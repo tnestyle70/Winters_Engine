@@ -1,0 +1,1440 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="00. MainApp">
+      <UniqueIdentifier>{f2c59963-f2a0-4054-b47b-6bb462d96110}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene">
+      <UniqueIdentifier>{0e7a5753-d0d6-4717-99a5-2f439181683c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject">
+      <UniqueIdentifier>{cf0f370b-3c43-4185-b0f9-9b2670351d00}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="98. Default">
+      <UniqueIdentifier>{F2980001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="99. Defines">
+      <UniqueIdentifier>{F2990001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\00. DynamicCamera">
+      <UniqueIdentifier>{8ec712df-a745-4dc8-9d31-235524196f23}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions">
+      <UniqueIdentifier>{127adef2-651a-4083-9ddc-cc42c05ae560}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Manager">
+      <UniqueIdentifier>{F2000010-0000-0000-0000-000000000010}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Manager\00. Structure">
+      <UniqueIdentifier>{89a52b05-db35-480c-b16e-4d278648aab3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Manager\01. Jungle">
+      <UniqueIdentifier>{7a3d8012-4f51-4f96-a9c1-1b32c8a9a201}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Manager\02. Minion">
+      <UniqueIdentifier>{6c006f14-88a6-498d-af60-578f91b26185}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI">
+      <UniqueIdentifier>{f08250ce-9341-4fc7-9667-c5db3a02d537}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\00. CombatDebug">
+      <UniqueIdentifier>{3d6d158e-1eec-470a-84b6-08077a53b4ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\01. MapTuner">
+      <UniqueIdentifier>{d5166167-6ced-4687-8fe6-52c1955ceee0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\02. RenderDebug">
+      <UniqueIdentifier>{c85220d5-3eec-4033-b3fa-2aa412efc856}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\03. DebugDraw">
+      <UniqueIdentifier>{3bded7ff-1063-49d6-84ab-4702693aaec7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay">
+      <UniqueIdentifier>{b369ec61-d024-4513-8543-b34fc38ae957}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\00. System">
+      <UniqueIdentifier>{2e9e8282-3bc6-4fd3-8609-e97afbd47dfe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\05. SkillTiming">
+      <UniqueIdentifier>{3fc11850-83ae-4e5f-b27f-cb6890871960}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\06. ChampionTuner">
+      <UniqueIdentifier>{687f1481-0bbc-4386-bf67-dcf2a568d1a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX">
+      <UniqueIdentifier>{66ff0519-f817-4e7a-975b-5b4012328b8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\00. Mesh">
+      <UniqueIdentifier>{ec16adcd-640e-40d7-b1ff-876c7a07b601}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\07. EffectTuner">
+      <UniqueIdentifier>{ac798c62-1944-4ba6-89dd-940cda669e70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\08. Minimap">
+      <UniqueIdentifier>{c470f155-5ac7-44d5-a33c-1847d71c3449}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\09. AIDebug">
+      <UniqueIdentifier>{1e024846-6a70-479a-961f-383e42088d55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\01. WindWall">
+      <UniqueIdentifier>{ec3ab1a1-b769-497d-878f-5677479afb74}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\01. Skill">
+      <UniqueIdentifier>{676c7fba-5b9b-4ca2-9d31-a3de25bcd0d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\02. Champion">
+      <UniqueIdentifier>{b65740d1-463d-45fb-94c8-98002a115f1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\03. Projectile">
+      <UniqueIdentifier>{6adf3607-3ecc-4f47-bf97-516fc3ea8398}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network">
+      <UniqueIdentifier>{d1a9bca9-0bde-42aa-95a9-28723824566c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Backend">
+      <UniqueIdentifier>{7a775aae-26f0-408d-ae4e-e85f88707bc8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Client">
+      <UniqueIdentifier>{b27fdfbe-eb6a-4e80-8115-501a29e5d2ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. GameModule">
+      <UniqueIdentifier>{cfc17553-5c1d-4c9b-8f72-a4b20182e599}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. GameModule\00. LOL">
+      <UniqueIdentifier>{4dc58d2a-4841-4c1b-89ca-dc1c75ce26c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="10. Shell">
+      <UniqueIdentifier>{928097db-199f-490c-be4f-447101dd53ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="11. GameMode">
+      <UniqueIdentifier>{2e7f1d54-0a1b-4f0d-98a6-8bb41820d8e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="11. GameMode\00. LOL">
+      <UniqueIdentifier>{a90e07bc-e643-4e48-862d-7fb008b035dc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Client\00. InputBuffer">
+      <UniqueIdentifier>{ed874ca9-1b53-4690-8a3d-a48d0d735b69}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Client\01. CommandSerializer">
+      <UniqueIdentifier>{95ceff3b-860c-4f8c-a2c4-74743b3de58a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Client\02. EventApplier">
+      <UniqueIdentifier>{d0fa9924-d2a4-4aea-bd77-ccdb023f3b5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Client\03. SnapshotApplier">
+      <UniqueIdentifier>{328aa32c-ff01-43c0-8080-ec73ea9a4559}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Client\04. NetworkEventTrace">
+      <UniqueIdentifier>{2af3fa87-1008-408d-b8de-65942c2e6b04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Client\05. GameSessionClient">
+      <UniqueIdentifier>{37ff48ca-80cf-4fa1-8258-010ddbfdd8a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Client\99. TCPClientNetwork">
+      <UniqueIdentifier>{a7b0f6c2-460f-4e1c-a819-50d9587e31dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Client\98. UDPClientNetwork">
+      <UniqueIdentifier>{9ad14976-8e65-4332-b448-fca01c171734}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\00. System\00. Damage">
+      <UniqueIdentifier>{55b659f5-4200-47c8-a7d3-85408d876fde}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\00. System\01. Input">
+      <UniqueIdentifier>{ebdc249a-b0a5-4b61-b2d0-39f0b0dfa58a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\03. CommandQueue">
+      <UniqueIdentifier>{5d6d009f-f133-47bf-b8c1-aa4f08441ac9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\04. VisualHookRegistry">
+      <UniqueIdentifier>{096c016a-dcd1-4a64-a786-ec064f651c74}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\10. ImageScenePresenter">
+      <UniqueIdentifier>{210d0434-9019-45d6-92ce-fd4ca1a02015}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\11. WfxEffectTool">
+      <UniqueIdentifier>{1ed2e587-3b23-4be7-82d5-4e19bb6f3111}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\02. Beam">
+      <UniqueIdentifier>{abf411cc-f85e-4591-9a28-abec7c0983c4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\03. Billboard">
+      <UniqueIdentifier>{f515d461-3c99-4721-936f-1aad30822aac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\04. CuePlayer">
+      <UniqueIdentifier>{203af9c4-292e-44cf-9369-5a1f3e6ee7e3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\05. LifeCycle">
+      <UniqueIdentifier>{94e9f523-f72d-4a0b-aa04-68619da2800f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\06. Ribbon">
+      <UniqueIdentifier>{4ec4ca2e-b562-4e36-a419-ad1cc389c96b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\07. FxSystem">
+      <UniqueIdentifier>{0f5505fd-8b84-43ce-8072-a8c604015362}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\08. Legacy">
+      <UniqueIdentifier>{8f9cef19-1d40-4896-8900-b48e36ff5c08}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\08. Legacy\00. AssetDumper">
+      <UniqueIdentifier>{c6899cba-62ab-4c1c-b131-b3aa20201a3b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\08. Legacy\01. Manifest">
+      <UniqueIdentifier>{01d74012-3d62-437d-b190-4a40abfc8701}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\08. Legacy\02. Adapter">
+      <UniqueIdentifier>{90afffd6-8d5b-4582-b4d9-a82b52204b55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\01. Skill\00. Dispatch">
+      <UniqueIdentifier>{5c7143d0-3214-4337-a0db-09600f8c81b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\01. Skill\01. HookContext">
+      <UniqueIdentifier>{0ace6de2-618a-4923-aa18-a15cec57e620}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\01. Skill\02. HookRegistry">
+      <UniqueIdentifier>{6080d77a-0f30-43be-ac44-1c649636996b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\01. Skill\03. Registry">
+      <UniqueIdentifier>{e3b9da2e-8d82-498c-9d64-adb56e70dc9a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\01. Skill\04. VisualHookRegistry">
+      <UniqueIdentifier>{aa93923e-a541-4f2b-941c-78fc4eba5f45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\02. Champion\00. Catalog">
+      <UniqueIdentifier>{2873a538-8456-4d24-8646-f150bd520702}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\02. Champion\01. ModuleBootstrap">
+      <UniqueIdentifier>{18ea551c-ef44-413f-bacd-5bcc3c0baa8d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\02. Champion\02. Registry">
+      <UniqueIdentifier>{eb8d66b3-caf6-4fe7-8360-80794686582c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\05. Smoke">
+      <UniqueIdentifier>{0151b800-608d-4898-b228-d5cc0a2f26e4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Backend\00. Auth">
+      <UniqueIdentifier>{4d38d1fc-9841-499d-a43a-49dfbd90fc7a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Backend\01. Shop">
+      <UniqueIdentifier>{f9276843-ad8d-4464-9697-d75cc37e238d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Backend\02. Match">
+      <UniqueIdentifier>{b7352977-f6e5-45f6-9e66-02e363272ed3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Backend\03. Payment">
+      <UniqueIdentifier>{ef79fac5-6355-4ebc-8ba2-049889fe987d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Backend\04. Profile">
+      <UniqueIdentifier>{624e9c2d-1608-432a-b825-2dad40100994}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Network\Backend\05. Http">
+      <UniqueIdentifier>{e804f6f1-6934-47cf-9b2b-9bb96f87b3e1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion">
+      <UniqueIdentifier>{f5cbb6a3-2c9e-461e-af3e-bf21ec13b496}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\17. Sylas">
+      <UniqueIdentifier>{c61a72c9-10d6-46b2-b8a5-b248996a97c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\00. Irelia">
+      <UniqueIdentifier>{e4dd4977-2f92-41c6-9879-98e44e34bfa9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\02. Yasuo">
+      <UniqueIdentifier>{a3cc7d96-2f6b-45a1-9876-8f25e20a79ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\03. Kalista">
+      <UniqueIdentifier>{a8dfbca3-1a2e-49fd-a2fb-996c35a2df0f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\04. Garen">
+      <UniqueIdentifier>{0d76d7b7-4d27-4f5d-90ec-294e2eb109c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\05. Zed">
+      <UniqueIdentifier>{57c603e7-6ab2-45d0-b9da-ac3d73d5ac2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\06. Riven">
+      <UniqueIdentifier>{4c67b33d-e06e-4a31-ae7d-6051d9519d56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\07. Ezreal">
+      <UniqueIdentifier>{f97ddfa6-49c8-4cbe-b94b-0faf79832967}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\08. Fiora">
+      <UniqueIdentifier>{9735f0f6-d1b3-427c-9a7a-b4132f5f111c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\09. Jax">
+      <UniqueIdentifier>{fd140d95-9fc6-48e1-b5c5-f8d6d7b87c77}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\10. Annie">
+      <UniqueIdentifier>{d5e1d0ee-8734-4e10-8f42-3b3c4929f13a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\11. Ashe">
+      <UniqueIdentifier>{6aa95c1e-0811-4b4f-9d64-74d987be7efb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\12. Yone">
+      <UniqueIdentifier>{4830f49c-7a17-4801-9289-c99e7390d996}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\13. Viego">
+      <UniqueIdentifier>{8b7b2a9c-6308-4f58-b83b-373753f2f9d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\14. Kindred">
+      <UniqueIdentifier>{72926f94-61ca-47fa-9b79-b33c48880c1b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\15. LeeSin">
+      <UniqueIdentifier>{691f54be-1060-427b-9677-94d921b7e5ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\00. Champion\16. MasterYi">
+      <UniqueIdentifier>{554145d5-a7f3-4dcc-af88-6b0c9ba335c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\01. Def">
+      <UniqueIdentifier>{dca30fe1-b6da-45de-bc4b-5a190cb55671}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\02. Table">
+      <UniqueIdentifier>{b6d5bfad-11fc-42cf-9f4d-e018945658be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\01. Champions\03. SpawnService">
+      <UniqueIdentifier>{2f419df8-6a12-4828-905d-3aa066eb92d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\04. Skill">
+      <UniqueIdentifier>{fbdb8618-421c-4e8c-92dd-4b219bd26b3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\02. Champion\03. Champion">
+      <UniqueIdentifier>{bfefa20a-8e4c-45b5-8670-d03f6c86b814}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. GamePlay\02. Champion\03. Champion\00. Yone">
+      <UniqueIdentifier>{262129d4-12e9-4273-8280-b77b18c1965e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. GameModule\01. LaunchConfig">
+      <UniqueIdentifier>{f90322f0-f89b-43e6-8ea8-9b5731b83609}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. GameModule\02. ModuleRegistry">
+      <UniqueIdentifier>{f87eb918-356b-45ab-a8af-afbbacbaf8c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. GameModule\03. GameProduct">
+      <UniqueIdentifier>{05478966-dc42-451d-8a8c-05d1ecd531fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="11. GameMode\01. Catalog">
+      <UniqueIdentifier>{fa379aa6-625b-41ad-a212-47b8f9ca8318}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="11. GameMode\02. Def">
+      <UniqueIdentifier>{2787d5a5-689a-44a1-abdd-12ea23628d37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. GameObject\02. FX\09. WFX">
+      <UniqueIdentifier>{8b8f6cb6-3864-47f7-9708-dda3880536a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. UI\11. WfxEffectTool\00. AssetCatalog">
+      <UniqueIdentifier>{c35914b0-cb3c-47b8-83d0-3c875057316e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Shared">
+      <UniqueIdentifier>{80f0ac70-6d69-4f5a-89eb-c3bfc71211b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Shared\GameSim">
+      <UniqueIdentifier>{cd2557fc-dd5a-4c78-a32f-fcb402951601}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Shared\GameSim\Champions">
+      <UniqueIdentifier>{fcf90442-3d80-4cb8-b7d7-2d07371db39f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Shared\GameSim\Definitions">
+      <UniqueIdentifier>{7f48207b-0121-4c2f-9000-d97f77b9a083}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Shared\GameSim\Registries">
+      <UniqueIdentifier>{2670f7ee-a860-45cd-9979-d50531607d97}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Shared\GameSim\Systems">
+      <UniqueIdentifier>{36e7cbf5-207f-4a93-b33f-49e1402a3311}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="08. Dev">
+      <UniqueIdentifier>{23cf47df-11a9-4599-8657-f91e96cf7e25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\00. Login">
+      <UniqueIdentifier>{42166bf9-7a03-4db5-845c-681b48ffa284}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\01. MainMenu">
+      <UniqueIdentifier>{23a1a9e7-735c-48d0-ae40-3e840ff65f45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\02. CustomMode">
+      <UniqueIdentifier>{a9e5911d-5243-4984-86fe-3c84e76083a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\03. BanPick">
+      <UniqueIdentifier>{7ad7f8c9-c485-4cba-aeaf-3acb44ba5dde}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\03. BanPick\00. LobbyRosterHelper">
+      <UniqueIdentifier>{56028bb5-46b4-4772-93be-85711761baf8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\04. Loading">
+      <UniqueIdentifier>{c7b8a5e2-3f14-4d6a-9b85-1f2e3d4c5a6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\04. Loading\Loader">
+      <UniqueIdentifier>{39674c01-7de6-4391-9bdf-f29feda021bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\04. MatchLoading">
+      <UniqueIdentifier>{d74d8be7-55d1-44a9-ba9b-d323ad4f9900}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame">
+      <UniqueIdentifier>{ee99f3d3-71d3-4688-9fac-b345ae52a427}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\00. GameplayQuery">
+      <UniqueIdentifier>{4bbacb36-9c4a-4b4e-99f5-841f318035be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\01. CombatInput">
+      <UniqueIdentifier>{c6844894-5126-4099-b08d-a5d119c033bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\02. Render">
+      <UniqueIdentifier>{86b5fb4b-ab50-4fbd-a173-3fa40873db42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\04. Network">
+      <UniqueIdentifier>{85afbeb7-4874-45a1-bf2e-9a0ab6808faa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\05. Bootstrap">
+      <UniqueIdentifier>{8051b35e-5c15-4b29-acdf-7fd160ba025e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\06. ChampionState">
+      <UniqueIdentifier>{89aff615-6fc4-4982-ad3d-de9c1af77d38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\07. Debug">
+      <UniqueIdentifier>{2ee13d08-0a28-439c-8eb7-e4d30c20206a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\08. Lifecycle">
+      <UniqueIdentifier>{9e351a43-9266-4471-b1a5-aca9cd349057}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\09. PlayerControl">
+      <UniqueIdentifier>{b8c276e8-9cdc-41ac-981b-ad6b4a70547b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\10. PlayerTransform">
+      <UniqueIdentifier>{228e19a3-6415-4360-b1d8-21c3a5dfcc31}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\12. RosterSpawner">
+      <UniqueIdentifier>{4eba5dd2-1ff5-4b2a-9c2f-6d50b162436c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\13. SkillDispatch">
+      <UniqueIdentifier>{92c2e27b-d33d-4208-979e-a12893061667}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\05. InGame\14. RenderVisibilityFilter">
+      <UniqueIdentifier>{15b29367-92c2-4eb6-b19d-3ac9ab143925}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\06. Editor">
+      <UniqueIdentifier>{ca004b2c-af9c-45cd-bdba-e9b6214ea05f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Scene\06. Editor\Map">
+      <UniqueIdentifier>{8b31b6c3-e354-4f86-a5eb-5c1144aa27c4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Public\Defines.h">
+      <Filter>99. Defines</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\DynamicCamera.h">
+      <Filter>02. GameObject\00. DynamicCamera</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_InGame.h">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_Loading.h">
+      <Filter>01. Scene\04. Loading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_BanPick.h">
+      <Filter>01. Scene\03. BanPick</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_MainMenu.h">
+      <Filter>01. Scene\01. MainMenu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_Editor.h">
+      <Filter>01. Scene\06. Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Map\MapDataFormats.h">
+      <Filter>01. Scene\06. Editor\Map</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Map\MapDataIO.h">
+      <Filter>01. Scene\06. Editor\Map</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\Structure_Manager.h">
+      <Filter>04. Manager\00. Structure</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\Jungle_Manager.h">
+      <Filter>04. Manager\01. Jungle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\Minion_Manager.h">
+      <Filter>04. Manager\02. Minion</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_MatchLoading.h">
+      <Filter>01. Scene\04. MatchLoading</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Loader.h">
+      <Filter>01. Scene\04. Loading\Loader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\AIDebugPanel.h">
+      <Filter>05. UI\09. AIDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\CombatDebugPanel.h">
+      <Filter>05. UI\00. CombatDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\MapTunerPanel.h">
+      <Filter>05. UI\01. MapTuner</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\MinimapPanel.h">
+      <Filter>05. UI\08. Minimap</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\RenderDebug.h">
+      <Filter>05. UI\02. RenderDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\DebugDrawSystem.h">
+      <Filter>05. UI\03. DebugDraw</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\InputSystem.h">
+      <Filter>03. GamePlay\00. System\01. Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\SkillTimingPanel.h">
+      <Filter>05. UI\05. SkillTiming</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\ChampionTuner.h">
+      <Filter>05. UI\06. ChampionTuner</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Irelia\IreliaBladeSystem.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxMeshComponent.h">
+      <Filter>02. GameObject\02. FX\00. Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxMeshSystem.h">
+      <Filter>02. GameObject\02. FX\00. Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Irelia\IreliaFxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Irelia\Irelia_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\WfxEffectToolPanel.h">
+      <Filter>05. UI\11. WfxEffectTool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Irelia\Irelia_Tuning.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Garen\Garen_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\04. Garen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Zed\Zed_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\05. Zed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Riven\Riven_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\06. Riven</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\EffectTuner.h">
+      <Filter>05. UI\07. EffectTuner</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\YasuoFxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\PendingHitSystem.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\Yasuo_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\Yasuo_Tuning.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\WindWallSystem.h">
+      <Filter>02. GameObject\02. FX\01. WindWall</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\YasuoProjectileSystem.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\KalistaFxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\KalistaProjectileSystem.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\KalistaRendSystem.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\Kalista_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\Kalista_Tuning.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Garen\GarenFxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\04. Garen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Zed\ZedFxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\05. Zed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Riven\RivenFxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\06. Riven</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Projectile\ProjectileKind.h">
+      <Filter>02. GameObject\03. Projectile</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\Systems\Damage.h">
+      <Filter>03. GamePlay\00. System\00. Damage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Ezreal\Ezreal_Components.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\07. Ezreal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Ezreal\Ezreal_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\07. Ezreal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Ezreal\Ezreal_FxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\07. Ezreal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Ezreal\Ezreal_Registration.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\07. Ezreal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\SkillDef.h">
+      <Filter>02. GameObject\04. Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Fiora\Fiora_Components.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\08. Fiora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Fiora\Fiora_FxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\08. Fiora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Fiora\Fiora_Registration.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\08. Fiora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Fiora\Fiora_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\08. Fiora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_Components.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\09. Jax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_FxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\09. Jax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_Registration.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\09. Jax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\09. Jax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Components.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_FxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Registration.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\AsheVisualCueCatalog.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\11. Ashe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\Ashe_Components.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\11. Ashe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\Ashe_FxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\11. Ashe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\Ashe_Registration.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\11. Ashe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\Ashe_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\11. Ashe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Kindred\Kindred_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\14. Kindred</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\LeeSin\LeeSin_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\15. LeeSin</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\MasterYi\MasterYi_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\16. MasterYi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Viego\Viego_FxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\13. Viego</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Viego\Viego_Registration.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\13. Viego</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Viego\Viego_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\13. Viego</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_Components.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\12. Yone</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_FxPresets.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\12. Yone</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_MeshGroups.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\12. Yone</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_Registration.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\12. Yone</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_Skills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\12. Yone</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameModule\IGameModule.h">
+      <Filter>09. GameModule</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameModule\LOL\LOLGameModule.h">
+      <Filter>09. GameModule\00. LOL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ClientShell\ClientShellSession.h">
+      <Filter>10. Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ClientShell\ClientShellTypes.h">
+      <Filter>10. Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ClientShell\ClientShellDataStore.h">
+      <Filter>10. Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ClientShell\ClientShellBackendService.h">
+      <Filter>10. Shell</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Dev\SmokeLog.h">
+      <Filter>08. Dev</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameMode\IGameMode.h">
+      <Filter>11. GameMode</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameMode\LOL\LOLGameModeRuntime.h">
+      <Filter>11. GameMode\00. LOL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGameCombatInputBridge.h">
+      <Filter>01. Scene\05. InGame\01. CombatInput</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGameRenderBridge.h">
+      <Filter>01. Scene\05. InGame\02. Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Client\CommandSerializer.h">
+      <Filter>06. Network\Client\01. CommandSerializer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Client\EventApplier.h">
+      <Filter>06. Network\Client\02. EventApplier</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Client\SnapshotApplier.h">
+      <Filter>06. Network\Client\03. SnapshotApplier</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Client\NetworkEventTrace.h">
+      <Filter>06. Network\Client\04. NetworkEventTrace</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Client\GameSessionClient.h">
+      <Filter>06. Network\Client\05. GameSessionClient</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Client\ClientInputBuffer.h">
+      <Filter>06. Network\Client\00. InputBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Client\ClientNetwork.h">
+      <Filter>06. Network\Client\99. TCPClientNetwork</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Network\Client\UdpClient.h">
+      <Filter>06. Network\Client\98. UDPClientNetwork</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Engine\Public\FX\FxLifeCycle.h">
+      <Filter>02. GameObject\02. FX\05. LifeCycle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxBillboardComponent.h">
+      <Filter>02. GameObject\02. FX\03. Billboard</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxBeamComponent.h">
+      <Filter>02. GameObject\02. FX\02. Beam</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxBeamSystem.h">
+      <Filter>02. GameObject\02. FX\02. Beam</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxRibbonComponent.h">
+      <Filter>02. GameObject\02. FX\06. Ribbon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxCuePlayer.h">
+      <Filter>02. GameObject\02. FX\04. CuePlayer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\GameplayQuery.h">
+      <Filter>01. Scene\05. InGame\00. GameplayQuery</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGameNetworkBridge.h">
+      <Filter>01. Scene\05. InGame\04. Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGameBootstrapBridge.h">
+      <Filter>01. Scene\05. InGame\05. Bootstrap</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGameChampionStateBridge.h">
+      <Filter>01. Scene\05. InGame\06. ChampionState</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGameDebugBridge.h">
+      <Filter>01. Scene\05. InGame\07. Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGameLifecycleBridge.h">
+      <Filter>01. Scene\05. InGame\08. Lifecycle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGamePlayerControlBridge.h">
+      <Filter>01. Scene\05. InGame\09. PlayerControl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGamePlayerTransformBridge.h">
+      <Filter>01. Scene\05. InGame\10. PlayerTransform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGameRosterSpawner.h">
+      <Filter>01. Scene\05. InGame\12. RosterSpawner</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\InGameSkillDispatchBridge.h">
+      <Filter>01. Scene\05. InGame\12. RosterSpawner</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\RenderVisibilityFilter.h">
+      <Filter>01. Scene\05. InGame\14. RenderVisibilityFilter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Sylas\SylasSkills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\17. Sylas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\YoneSoulSpawnSystem.h">
+      <Filter>03. GamePlay\02. Champion\03. Champion\00. Yone</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\CommandQueueComponent.h">
+      <Filter>03. GamePlay\03. CommandQueue</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\VisualHookRegistry.h">
+      <Filter>03. GamePlay\04. VisualHookRegistry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\ImageScenePresenter.h">
+      <Filter>05. UI\10. ImageScenePresenter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\LobbyRosterHelpers.h">
+      <Filter>01. Scene\03. BanPick\00. LobbyRosterHelper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_CustomMode.h">
+      <Filter>01. Scene\02. CustomMode</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_Login.h">
+      <Filter>01. Scene\00. Login</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxSystem.h">
+      <Filter>02. GameObject\02. FX\07. FxSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxLegacyAssetDumper.h">
+      <Filter>02. GameObject\02. FX\08. Legacy\00. AssetDumper</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxLegacyManifest.h">
+      <Filter>02. GameObject\02. FX\08. Legacy\01. Manifest</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\LegacyFxAdapter.h">
+      <Filter>02. GameObject\02. FX\08. Legacy\02. Adapter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\Systems\SkillDispatchSystem.h">
+      <Filter>03. GamePlay\01. Skill\00. Dispatch</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\SkillHookContext.h">
+      <Filter>03. GamePlay\01. Skill\01. HookContext</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Projectile\ProjectileVisualCatalog.h">
+      <Filter>02. GameObject\03. Projectile</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\WfxDocument.h">
+      <Filter>02. GameObject\02. FX\09. WFX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\WfxAssetCatalog.h">
+      <Filter>05. UI\11. WfxEffectTool\00. AssetCatalog</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\SkillHookRegistry.h">
+      <Filter>03. GamePlay\01. Skill\02. HookRegistry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\SkillRegistry.h">
+      <Filter>03. GamePlay\01. Skill\03. Registry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\ChampionCatalog.h">
+      <Filter>03. GamePlay\02. Champion\00. Catalog</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\ChampionModuleBootstrap.h">
+      <Filter>03. GamePlay\02. Champion\01. ModuleBootstrap</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\ChampionRegistry.h">
+      <Filter>03. GamePlay\02. Champion\02. Registry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\AuthClient.h">
+      <Filter>06. Network\Backend\00. Auth</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\CShopClient.h">
+      <Filter>06. Network\Backend\01. Shop</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\MatchClient.h">
+      <Filter>06. Network\Backend\02. Match</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\PaymentClient.h">
+      <Filter>06. Network\Backend\03. Payment</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\ProfileClient.h">
+      <Filter>06. Network\Backend\04. Profile</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\CHttpClient.h">
+      <Filter>06. Network\Backend\05. Http</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\ChampionDef.h">
+      <Filter>02. GameObject\01. Champions\01. Def</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\ChampionSpawnService.h">
+      <Filter>02. GameObject\01. Champions\03. SpawnService</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameModule\GameLaunchConfig.h">
+      <Filter>09. GameModule\01. LaunchConfig</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameModule\GameModuleRegistry.h">
+      <Filter>09. GameModule\02. ModuleRegistry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameModule\GameProduct.h">
+      <Filter>09. GameModule\03. GameProduct</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameMode\GameModeCatalog.h">
+      <Filter>11. GameMode\01. Catalog</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameMode\GameModeDef.h">
+      <Filter>11. GameMode\02. Def</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameApp.h">
+      <Filter>00. MainApp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\UltWaveSystem.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Private\main.cpp">
+      <Filter>00. MainApp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\DynamicCamera.cpp">
+      <Filter>02. GameObject\00. DynamicCamera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_InGame.cpp">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_Loading.cpp">
+      <Filter>01. Scene\04. Loading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_MainMenu.cpp">
+      <Filter>01. Scene\01. MainMenu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_Editor.cpp">
+      <Filter>01. Scene\06. Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Map\MapDataIO.cpp">
+      <Filter>01. Scene\06. Editor\Map</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\Structure_Manager.cpp">
+      <Filter>04. Manager\00. Structure</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\Jungle_Manager.cpp">
+      <Filter>04. Manager\01. Jungle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\Minion_Manager.cpp">
+      <Filter>04. Manager\02. Minion</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_MatchLoading.cpp">
+      <Filter>01. Scene\04. MatchLoading</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Loader.cpp">
+      <Filter>01. Scene\04. Loading\Loader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\CombatDebugPanel.cpp">
+      <Filter>05. UI\00. CombatDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\AIDebugPanel.cpp">
+      <Filter>05. UI\09. AIDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\MapTunerPanel.cpp">
+      <Filter>05. UI\01. MapTuner</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\MinimapPanel.cpp">
+      <Filter>05. UI\08. Minimap</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\RenderDebug.cpp">
+      <Filter>05. UI\02. RenderDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\DebugDrawSystem.cpp">
+      <Filter>05. UI\03. DebugDraw</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\InputSystem.cpp">
+      <Filter>03. GamePlay\00. System\01. Input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\SkillTimingPanel.cpp">
+      <Filter>05. UI\05. SkillTiming</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\ChampionTuner.cpp">
+      <Filter>05. UI\06. ChampionTuner</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\IreliaBladeSystem.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\FxMeshSystem.cpp">
+      <Filter>02. GameObject\02. FX\00. Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\IreliaFxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\Irelia_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\Irelia_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\Irelia_Tuning.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Garen\Garen_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\04. Garen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Garen\Garen_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\04. Garen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Zed\Zed_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\05. Zed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Zed\Zed_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\05. Zed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Riven\Riven_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\06. Riven</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Riven\Riven_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\06. Riven</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\EffectTuner.cpp">
+      <Filter>05. UI\07. EffectTuner</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\WfxEffectToolPanel.cpp">
+      <Filter>05. UI\11. WfxEffectTool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\YasuoFxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\PendingHitSystem.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\Yasuo_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\Yasuo_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\Yasuo_Tuning.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\WindWallSystem.cpp">
+      <Filter>02. GameObject\02. FX\01. WindWall</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\YasuoProjectileSystem.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\02. Yasuo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\KalistaFxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\KalistaProjectileSystem.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\Kalista_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\KalistaRendSystem.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\Kalista_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\Kalista_Tuning.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Garen\GarenFxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\04. Garen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Zed\ZedFxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\05. Zed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Riven\RivenFxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\06. Riven</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\Systems\Damage.cpp">
+      <Filter>03. GamePlay\00. System\00. Damage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Ezreal\Ezreal_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\07. Ezreal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Ezreal\Ezreal_FxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\07. Ezreal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Ezreal\Ezreal_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\07. Ezreal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\SkillTable.cpp">
+      <Filter>02. GameObject\04. Skill</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Fiora\Fiora_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\08. Fiora</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Fiora\Fiora_FxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\08. Fiora</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Fiora\Fiora_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\08. Fiora</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Jax\Jax_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\09. Jax</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Jax\Jax_FxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\09. Jax</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Jax\Jax_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\09. Jax</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_FxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Ashe\Ashe_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\11. Ashe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Ashe\Ashe_FxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\11. Ashe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Ashe\Ashe_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\11. Ashe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Viego\Viego_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\13. Viego</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Viego\Viego_FxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\13. Viego</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Viego\Viego_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\13. Viego</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Yone\Yone_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\12. Yone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Yone\Yone_FxPresets.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\12. Yone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Yone\Yone_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\12. Yone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameModule\LOL\LOLGameModule.cpp">
+      <Filter>09. GameModule\00. LOL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ClientShell\ClientShellSession.cpp">
+      <Filter>10. Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ClientShell\ClientShellDataStore.cpp">
+      <Filter>10. Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ClientShell\ClientShellBackendService.cpp">
+      <Filter>10. Shell</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Dev\SmokeLog.cpp">
+      <Filter>08. Dev</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameMode\LOL\LOLGameModeRuntime.cpp">
+      <Filter>11. GameMode\00. LOL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\GameplayQuery.cpp">
+      <Filter>01. Scene\05. InGame\00. GameplayQuery</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGameCombatInputBridge.cpp">
+      <Filter>01. Scene\05. InGame\01. CombatInput</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\WfxDocument.cpp">
+      <Filter>02. GameObject\02. FX\09. WFX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGameRenderBridge.cpp">
+      <Filter>01. Scene\05. InGame\02. Render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Client\CommandSerializer.cpp">
+      <Filter>06. Network\Client\01. CommandSerializer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Client\EventApplier.cpp">
+      <Filter>06. Network\Client\02. EventApplier</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Client\SnapshotApplier.cpp">
+      <Filter>06. Network\Client\03. SnapshotApplier</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Client\NetworkEventTrace.cpp">
+      <Filter>06. Network\Client\04. NetworkEventTrace</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Client\GameSessionClient.cpp">
+      <Filter>06. Network\Client\05. GameSessionClient</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Client\ClientInputBuffer.cpp">
+      <Filter>06. Network\Client\00. InputBuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Client\ClientNetwork.cpp">
+      <Filter>06. Network\Client\99. TCPClientNetwork</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Kindred\Kindred_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\14. Kindred</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\LeeSin\LeeSin_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\15. LeeSin</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\LeeSin\LeeSin_Skills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\15. LeeSin</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\MasterYi\MasterYi_Registration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\16. MasterYi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\FxBeamSystem.cpp">
+      <Filter>02. GameObject\02. FX\02. Beam</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_BanPick.cpp">
+      <Filter>01. Scene\03. BanPick</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\FxCuePlayer.cpp">
+      <Filter>02. GameObject\02. FX\04. CuePlayer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGameNetworkBridge.cpp">
+      <Filter>01. Scene\05. InGame\04. Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGameBootstrapBridge.cpp">
+      <Filter>01. Scene\05. InGame\05. Bootstrap</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGameChampionStateBridge.cpp">
+      <Filter>01. Scene\05. InGame\06. ChampionState</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGameDebugBridge.cpp">
+      <Filter>01. Scene\05. InGame\07. Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGameLifecycleBridge.cpp">
+      <Filter>01. Scene\05. InGame\08. Lifecycle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGamePlayerControlBridge.cpp">
+      <Filter>01. Scene\05. InGame\09. PlayerControl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGamePlayerTransformBridge.cpp">
+      <Filter>01. Scene\05. InGame\10. PlayerTransform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGameRosterSpawner.cpp">
+      <Filter>01. Scene\05. InGame\12. RosterSpawner</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\InGameSkillDispatchBridge.cpp">
+      <Filter>01. Scene\05. InGame\13. SkillDispatch</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Sylas\SylasSkills.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\17. Sylas</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Champion\Sylas\SylasRegistration.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\17. Sylas</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\YoneSoulSpawnSystem.cpp">
+      <Filter>03. GamePlay\02. Champion\03. Champion\00. Yone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\CommandQueueComponent.cpp">
+      <Filter>03. GamePlay\03. CommandQueue</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\ImageScenePresenter.cpp">
+      <Filter>05. UI\10. ImageScenePresenter</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\LobbyRosterHelpers.cpp">
+      <Filter>01. Scene\03. BanPick\00. LobbyRosterHelper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_CustomMode.cpp">
+      <Filter>01. Scene\02. CustomMode</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_Login.cpp">
+      <Filter>01. Scene\00. Login</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\FxSystem.cpp">
+      <Filter>02. GameObject\02. FX\07. FxSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\Projectile\ProjectileVisualCatalog.cpp">
+      <Filter>02. GameObject\03. Projectile</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\WfxAssetCatalog.cpp">
+      <Filter>05. UI\11. WfxEffectTool\00. AssetCatalog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\FxLegacyAssetDumper.cpp">
+      <Filter>02. GameObject\02. FX\08. Legacy\00. AssetDumper</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\FxLegacyManifest.cpp">
+      <Filter>02. GameObject\02. FX\08. Legacy\01. Manifest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\LegacyFxAdapter.cpp">
+      <Filter>02. GameObject\02. FX\08. Legacy\02. Adapter</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\System\SkillDispatchSystem.cpp">
+      <Filter>03. GamePlay\01. Skill\00. Dispatch</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\SkillHookRegistry.cpp">
+      <Filter>03. GamePlay\01. Skill\02. HookRegistry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\SkillRegistry.cpp">
+      <Filter>03. GamePlay\01. Skill\03. Registry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\VisualHookRegistry.cpp">
+      <Filter>03. GamePlay\01. Skill\04. VisualHookRegistry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\ChampionCatalog.cpp">
+      <Filter>03. GamePlay\02. Champion\00. Catalog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\ChampionModuleBootstrap.cpp">
+      <Filter>03. GamePlay\02. Champion\01. ModuleBootstrap</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\ChampionRegistry.cpp">
+      <Filter>03. GamePlay\02. Champion\02. Registry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\SchemaSmoke.cpp">
+      <Filter>03. GamePlay\05. Smoke</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\SharedGameSimSmoke.cpp">
+      <Filter>03. GamePlay\05. Smoke</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Backend\AuthClient.cpp">
+      <Filter>06. Network\Backend\00. Auth</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Backend\CShopClient.cpp">
+      <Filter>06. Network\Backend\01. Shop</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Backend\MatchClient.cpp">
+      <Filter>06. Network\Backend\02. Match</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Backend\PaymentClient.cpp">
+      <Filter>06. Network\Backend\03. Payment</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Backend\ProfileClient.cpp">
+      <Filter>06. Network\Backend\04. Profile</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Backend\CHttpClient.cpp">
+      <Filter>06. Network\Backend\05. Http</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\ChampionTable.cpp">
+      <Filter>02. GameObject\01. Champions\02. Table</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\ChampionSpawnService.cpp">
+      <Filter>02. GameObject\01. Champions\03. SpawnService</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameModule\GameModuleRegistry.cpp">
+      <Filter>09. GameModule\02. ModuleRegistry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameMode\GameModeCatalog.cpp">
+      <Filter>11. GameMode\01. Catalog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Annie\AnnieGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Ashe\AsheGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Fiora\FioraGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Jax\JaxGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Kindred\KindredGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Viego\ViegoGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Yone\YoneGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Zed\ZedGameSim.cpp">
+      <Filter>07. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp">
+      <Filter>07. Shared\GameSim\Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Definitions\MapSpawnPoints.cpp">
+      <Filter>07. Shared\GameSim\Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp">
+      <Filter>07. Shared\GameSim\Registries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Registries\Reward\RewardRegistry.cpp">
+      <Filter>07. Shared\GameSim\Registries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp">
+      <Filter>07. Shared\GameSim\Registries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Registries\Skin\SkinRegistry.cpp">
+      <Filter>07. Shared\GameSim\Registries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Buff\BuffSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatActionSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatFormula.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamagePipeline.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Death\DeathSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Experience\ExperienceSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Move\MoveSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Recall\RecallSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Stat\StatSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameApp.cpp">
+      <Filter>00. MainApp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameObject\FX\UltWaveSystem.cpp">
+      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,1268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- ── 필터 정의 ──────────────────────────────────────────── -->
+  <ItemGroup>
+    <Filter Include="Include">
+      <UniqueIdentifier>{F1000001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS">
+      <UniqueIdentifier>{F1500001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\00. Core">
+      <UniqueIdentifier>{9aa0fca2-d4aa-46a3-a4a1-408f1a70e221}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\01. System">
+      <UniqueIdentifier>{95e91388-62de-4031-b5ff-3c141bacdd55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components">
+      <UniqueIdentifier>{8a2f70ec-217f-4686-afed-4133f110f537}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems">
+      <UniqueIdentifier>{47ac4d48-ce26-429f-963c-dff5a4bbdd62}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\01. System\00. Navigation">
+      <UniqueIdentifier>{e95f2f20-756c-4b26-8666-87e84abfc1ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\01. System\01. CommandBuffer">
+      <UniqueIdentifier>{4ae31685-671f-4111-9c87-515875c4e3d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\01. System\02. SystemScheduler">
+      <UniqueIdentifier>{b54d3ef0-5b41-4ff1-8624-cf4205e2c39f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\01. System\03. TransformSystem">
+      <UniqueIdentifier>{8669c9dc-ca48-443d-8af0-38f69d109a5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer">
+      <UniqueIdentifier>{587b0f57-10c0-4f51-9ebc-34b6e39f5f6d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\00. Camera">
+      <UniqueIdentifier>{F1400001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\02. Cube">
+      <UniqueIdentifier>{F1400003-0000-0000-0000-000000000003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\03. Model">
+      <UniqueIdentifier>{3bdb9482-862d-43c7-9208-e58893582ae6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. Plane">
+      <UniqueIdentifier>{31b52bc5-3a1f-4ba4-8c2a-2c2a57b472e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX">
+      <UniqueIdentifier>{8577a70e-638b-434d-bf90-b62850020784}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\07. Material">
+      <UniqueIdentifier>{1daf48a6-19f7-4637-94ce-7a56db52c7bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\08. FogOfWar">
+      <UniqueIdentifier>{bf3afd90-a4a2-475d-a4f9-bef3aad4e7e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\03. Model\00. Renderer">
+      <UniqueIdentifier>{72eaee67-064c-4510-8f1e-c57d1a96ec45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\03. Model\01. NormalPass">
+      <UniqueIdentifier>{35e3a22a-e280-480f-b8ca-8655658304ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\03. Model\02. SSAOPass">
+      <UniqueIdentifier>{a7373159-3fd4-46b0-9e61-84380515d18f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\00. Asset">
+      <UniqueIdentifier>{656f4949-3128-4a32-ae73-5cff1038080d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\01. DepthMode">
+      <UniqueIdentifier>{62981b32-dc18-4d98-abd2-6e74dae99373}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\02. DeterministicRandom">
+      <UniqueIdentifier>{a5bb062a-d8c6-4065-adc0-d251ab94211e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\03. StaticMeshRenderer">
+      <UniqueIdentifier>{12396025-87f4-4a80-9a6f-96d4e301103c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\04. MaterialDesc">
+      <UniqueIdentifier>{ee1729e2-bd52-433b-8815-9010a17b43f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\05. ShaderConstant">
+      <UniqueIdentifier>{57751ad8-aca9-4380-afc8-c6190a5ce51e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\06. ParticlePool">
+      <UniqueIdentifier>{84b7404d-3411-44b7-a693-32d69b2a834a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\07. ParameterMap">
+      <UniqueIdentifier>{ab5a5f9e-3839-4eab-98c8-f0447f9acc5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\08. RHI">
+      <UniqueIdentifier>{c7a7306d-1daa-4c9a-a6f2-3d0618755772}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\09. UIRenderer">
+      <UniqueIdentifier>{ed3fd8b4-3eaf-43e0-9d0c-cc2e5af1c682}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\00. Core\00. World">
+      <UniqueIdentifier>{db0e3330-6ad4-4f3b-9702-1509d7834004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\00. Core\01. ComponentStore">
+      <UniqueIdentifier>{3584b457-7fe0-4e04-aea7-5b1365b436d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\00. Core\02. Entity">
+      <UniqueIdentifier>{93ff901c-941a-431c-b68f-6c512461b60c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\00. Core">
+      <UniqueIdentifier>{4eeeae24-f588-4ac0-916c-9933eebd25c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\01. Transform">
+      <UniqueIdentifier>{6b306798-b8a0-46e7-a286-395de9e78150}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\02. Gameplay">
+      <UniqueIdentifier>{5056d726-6039-4799-8f69-cb217260de59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\03. MeshGroupVisibility">
+      <UniqueIdentifier>{57d6bbd1-ba0f-4c59-b805-6ac98e35853f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\04. Navigation">
+      <UniqueIdentifier>{4570992c-4fd4-4f03-9f2d-971d1706e08d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\05. Minion">
+      <UniqueIdentifier>{53ef3052-38b1-4bef-9f9a-d45953f57b4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\06. FX">
+      <UniqueIdentifier>{393ef117-f942-439b-a824-19cebb88619d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\07. Renderer">
+      <UniqueIdentifier>{7c81770f-fd87-42d4-9dfc-a7c3776ba74c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\08. SpatialAgent">
+      <UniqueIdentifier>{4a4ee1f2-d6f2-49c4-bb89-068dcda7ab51}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\09. Vision">
+      <UniqueIdentifier>{a8d72657-eae2-45b5-9576-8eb082bdaf54}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\02. Components\10. Bush">
+      <UniqueIdentifier>{28ffd7dd-f069-418c-adfa-fe0477ea82c5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\00. Core">
+      <UniqueIdentifier>{85bcb94b-e244-4171-b62a-74d92cc34e17}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\01. Minion">
+      <UniqueIdentifier>{5d066b70-bd1e-4237-a98f-f90dba43c890}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\02. Entity">
+      <UniqueIdentifier>{0804ae34-7990-40d0-bcca-826af2c29d16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\03. Collision">
+      <UniqueIdentifier>{f49d228e-38df-4f9d-a763-dcf62eecf75a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\01. Minion\00. AI">
+      <UniqueIdentifier>{9554e630-692f-4788-80d1-91a2cf88cee4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\01. Minion\01. Performance">
+      <UniqueIdentifier>{c980d8f2-6181-4188-87c7-7f5bf86fcdc6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\01. Minion\02. Separation">
+      <UniqueIdentifier>{a7338edc-7231-473a-b049-dd3a6052d61b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\04. Vision">
+      <UniqueIdentifier>{24da531b-2c19-49f8-b2e6-2049dd6eb2e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\06. Navigation">
+      <UniqueIdentifier>{e42365d5-a6b0-48fe-85a6-5fb140753d2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\07. Turret">
+      <UniqueIdentifier>{f15f4fd6-5280-4d26-8336-83b68eac5b09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\07. Turret\00. AI">
+      <UniqueIdentifier>{0f236708-4b27-4c74-b5d8-b585691ae59e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\07. Turret\01. Projectile">
+      <UniqueIdentifier>{9cb37582-3728-48e2-9d57-6b144658469c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\08. StatusEffect">
+      <UniqueIdentifier>{7c25e899-b407-45bb-8fb1-6b6e9e43c515}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\00. Core\10. JobSystem">
+      <UniqueIdentifier>{F1A00001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\00. Core\10. JobSystem\00. Core">
+      <UniqueIdentifier>{43251245-d92f-49b7-854e-e76bedbf4ac2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="11. Scripting">
+      <UniqueIdentifier>{3bcf0ba8-6359-434b-b967-9e513fc972cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="11. Scripting\00. Lua VM">
+      <UniqueIdentifier>{19a7540f-2938-4f90-914f-89553dd9ca9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. AI">
+      <UniqueIdentifier>{fefc6a1d-1439-4b65-b63f-6f776464d001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. AI\00. BT">
+      <UniqueIdentifier>{f27f75a3-bca0-4f38-bd82-ffc01001c9cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. AI\01. MCTS">
+      <UniqueIdentifier>{b995ca75-2008-4508-b5e5-0474ea9ca0b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="09. AI\02. RL">
+      <UniqueIdentifier>{75785921-4333-40df-8e3b-a2d41309464a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI">
+      <UniqueIdentifier>{440ab2d9-5cdf-47d6-ac7d-6ca357bb8859}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core">
+      <UniqueIdentifier>{f6be4705-ec35-4d92-9bcb-704c7f1f9a4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\00. Timer">
+      <UniqueIdentifier>{F1200001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\00. Timer\Manager">
+      <UniqueIdentifier>{03cd2cd0-4da0-4162-86a4-6dab0b0ee891}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\01. Transform">
+      <UniqueIdentifier>{F1200002-0000-0000-0000-000000000002}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\02. Platform">
+      <UniqueIdentifier>{F1200003-0000-0000-0000-000000000003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\02. Platform\00. Window">
+      <UniqueIdentifier>{076e75ee-9f81-4fd6-b5fb-b381ac12ae65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\03. Paths">
+      <UniqueIdentifier>{F1200004-0000-0000-0000-000000000004}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\05. PCH">
+      <UniqueIdentifier>{e697f850-4027-4b0e-91cd-d3646aee0dcc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\00. Interface">
+      <UniqueIdentifier>{f665f03d-4f72-416c-a833-f729992b9aa7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\01. DX11">
+      <UniqueIdentifier>{65e00c88-0a68-4e30-aed7-cd35c6200663}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\02. Texture">
+      <UniqueIdentifier>{2d89cc0b-25c6-4b91-89e5-24a06c1d00c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\03. Geometry">
+      <UniqueIdentifier>{90605fae-3d86-4f3b-b41c-d85a01fd94be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\01. DX11\01. Pipeline">
+      <UniqueIdentifier>{F1100002-0000-0000-0000-000000000002}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\04. Input">
+      <UniqueIdentifier>{22c4aed9-e7bd-42d4-8e0c-9d52be8c6f56}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Runtime">
+      <UniqueIdentifier>{fcb6db5c-e4c4-46d8-88ef-236f963febf6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Runtime\02. GameInstance">
+      <UniqueIdentifier>{264101e5-e62e-43b5-8c80-4968bf28239b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Runtime\00. EngineApp">
+      <UniqueIdentifier>{F1300001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Runtime\01. WintersEngine">
+      <UniqueIdentifier>{F1300003-0000-0000-0000-000000000003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Runtime\03. GameContext">
+      <UniqueIdentifier>{cad0ac76-0bc8-4d94-a3f9-ddecb2ae6a7d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource">
+      <UniqueIdentifier>{F1600001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\00. Mesh">
+      <UniqueIdentifier>{8158c6bb-31c4-4d33-8283-dbe1cf324665}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\01. Texture">
+      <UniqueIdentifier>{71df9aed-cb36-451b-b42a-67ccdeac1053}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\02. Model">
+      <UniqueIdentifier>{8e9204df-9bd1-4f03-9a14-b3e8ddd9c479}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\03. Bone">
+      <UniqueIdentifier>{ef46f726-8f0e-4257-9597-ab53310c407a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\04. Skeleton">
+      <UniqueIdentifier>{ff88dd95-124c-442c-ba5b-f86d6bad7260}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\05. Animation">
+      <UniqueIdentifier>{275dc4cc-1b99-449e-90ef-7b9c70772c9d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\06. Animator">
+      <UniqueIdentifier>{6bcc1639-8d21-48f2-b43c-1ce918bb6a1e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\07. ResourceCache">
+      <UniqueIdentifier>{53f58fca-f568-4277-9973-4bc39720a860}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\08. AssetFormat">
+      <UniqueIdentifier>{7e2033bd-496b-45b0-9081-6b9147789954}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\08. AssetFormat\Common">
+      <UniqueIdentifier>{129bebae-90b8-4783-8fc3-8a8b8d911915}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\08. AssetFormat\Mesh">
+      <UniqueIdentifier>{d96bffc7-7773-4545-93bf-1ba71a90bb12}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\08. AssetFormat\Material">
+      <UniqueIdentifier>{b061d048-35d6-4656-aefa-573774c24da2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Resource\08. AssetFormat\Anim">
+      <UniqueIdentifier>{b14238cd-b54e-468e-a5b3-453918bee2f8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="10. Editor">
+      <UniqueIdentifier>{a05ab206-ab58-4c25-89c4-6f372780eea3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="10. Editor\Imgui">
+      <UniqueIdentifier>{c69a774d-6021-4d8f-b819-f2d064e7f0ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="08. Sound">
+      <UniqueIdentifier>{a83b9530-2c99-43e0-b657-6cfba2067597}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. UI">
+      <UniqueIdentifier>{a88f4a23-eddc-4889-a745-84bb3f7c6b50}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. UI\00. AtlasManifest">
+      <UniqueIdentifier>{904a522b-9ba1-4355-9337-71e9926e3c5d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. UI\01. HUD">
+      <UniqueIdentifier>{4169dfa0-4041-4925-bb1c-5ba0b0bfe81a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. UI\02. Font">
+      <UniqueIdentifier>{52ffeca7-332d-4871-81d4-4e326230499a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. UI\03. Lua">
+      <UniqueIdentifier>{cc00b8aa-7bce-46f9-87f1-59e1ea84d9f0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Navigation">
+      <UniqueIdentifier>{21f746ea-1e3a-4992-9be7-a3013f1ade38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Navigation\NavGrid">
+      <UniqueIdentifier>{4e7783e4-60c5-416f-b3ea-32b748440e75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Navigation\Pathfinder">
+      <UniqueIdentifier>{f2f004ec-8f85-4079-942a-07b1131abed3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="06. Navigation\MapSurface">
+      <UniqueIdentifier>{fd22afd8-117a-4e21-9ef1-c12b13112a2e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="10. Editor\00. ProfilerOverlay">
+      <UniqueIdentifier>{f57dc6a3-aa9d-4062-b62d-2a213fedf2d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\06. Profiler">
+      <UniqueIdentifier>{9439a14f-20c8-4fb5-b084-c4815c7f624c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\06. Profiler\00. CPU">
+      <UniqueIdentifier>{4f723a01-9d87-4deb-a9bf-a37a06c3bdd2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Core\06. Profiler\01. GPU">
+      <UniqueIdentifier>{5902e31c-6915-49f7-a4c0-32b9d8b6f225}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Runtime\04. Scene">
+      <UniqueIdentifier>{5b724e25-9810-4483-8cae-fdcf45d8bbbb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\01. DX11\00. Device">
+      <UniqueIdentifier>{ccd3bf50-3583-42f9-a375-e624911319db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\01. DX11\02. Shader">
+      <UniqueIdentifier>{ac94552c-e2b4-4390-a9fc-97b46f90a4bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\01. DX11\03. Buffer">
+      <UniqueIdentifier>{f10329a9-f223-4bef-8747-42d91d207f59}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\01. DX11\04. StateCache">
+      <UniqueIdentifier>{00a0bd5d-e4e0-4ab3-9b43-fe9db56aced9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <!-- ── 공개 API 헤더 → Include 필터 ────────────────────── -->
+  <ItemGroup>
+    <ClInclude Include="WintersAPI.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="WintersTypes.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="WintersMath.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineConfig.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="IWintersApp.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="WintersEngine.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\CTransform.h">
+      <Filter>00. Core\01. Transform</Filter>
+    </ClInclude>
+    <ClInclude Include="WintersPaths.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <!-- ── 선생님 컨벤션 헤더 → Include 필터 ───────────── -->
+    <ClInclude Include="..\Public\Engine_Defines.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Enum.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Macro.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Struct.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Typedef.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Engine_Function.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <!-- ── 내부 헤더 → 기능별 필터 ─────────────────────── -->
+    <ClInclude Include="..\Private\RHI\DX11\DX11Pipeline.h">
+      <Filter>02. RHI\01. DX11\01. Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\CTimer.h">
+      <Filter>00. Core\00. Timer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Platform\IPlatformSurface.h">
+      <Filter>00. Core\02. Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Platform\IPlatformWindow.h">
+      <Filter>00. Core\02. Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Platform\PlatformTypes.h">
+      <Filter>00. Core\02. Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Framework\CEngineApp.h">
+      <Filter>01. Runtime\00. EngineApp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\JobCounter.h">
+      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\Fiber\Fiber.h">
+      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\Fiber\FiberPool.h">
+      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\Fiber\FiberTypes.h">
+      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\ISystem.h">
+      <Filter>05. ECS\01. System</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\SystemAccess.h">
+      <Filter>05. ECS\01. System</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\WintersCore.h">
+      <Filter>00. Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\CubeRenderer.h">
+      <Filter>03. Renderer\02. Cube</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\CCamera.h">
+      <Filter>03. Renderer\00. Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Resource\Mesh.h">
+      <Filter>04. Resource\00. Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Resource\Model.h">
+      <Filter>04. Resource\02. Model</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Resource\Animation.h">
+      <Filter>04. Resource\05. Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Resource\Animator.h">
+      <Filter>04. Resource\06. Animator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Resource\Texture.h">
+      <Filter>04. Resource\01. Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Resource\Bone.h">
+      <Filter>04. Resource\03. Bone</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Resource\Skeleton.h">
+      <Filter>04. Resource\04. Skeleton</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Resource\ResourceCache.h">
+      <Filter>04. Resource\07. ResourceCache</Filter>
+    </ClInclude>
+    <ClInclude Include="GameInstance.h">
+      <Filter>01. Runtime\02. GameInstance</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\Timer_Manager.h">
+      <Filter>00. Core\00. Timer\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Editor\ImGuiLayer.h">
+      <Filter>10. Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="IScene.h">
+      <Filter>01. Runtime\04. Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_Manager.h">
+      <Filter>01. Runtime\04. Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="GameContext.h">
+      <Filter>01. Runtime\03. GameContext</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Sound\Sound_Manager.h">
+      <Filter>08. Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Sound\SoundChannel.h">
+      <Filter>08. Sound</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\NavigationSystem.h">
+      <Filter>05. ECS\01. System\00. Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\Navigation\NavGrid.h">
+      <Filter>06. Navigation\NavGrid</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\Navigation\Pathfinder.h">
+      <Filter>06. Navigation\Pathfinder</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\Navigation\MapSurfaceSampler.h">
+      <Filter>06. Navigation\MapSurface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\Navigation\MapWalkableBaker.h">
+      <Filter>06. Navigation\MapSurface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\TransformComponent.h">
+      <Filter>05. ECS\02. Components\01. Transform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\UI\UI_Manager.h">
+      <Filter>07. UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\JobSystem\JobDecl.h">
+      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\JobSystem\WorkStealingDeque.h">
+      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\PlaneRenderer.h">
+      <Filter>03. Renderer\04. Plane</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Common\BinaryReader.h">
+      <Filter>04. Resource\08. AssetFormat\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Common\BinaryWriter.h">
+      <Filter>04. Resource\08. AssetFormat\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Common\WintersFileHeader.h">
+      <Filter>04. Resource\08. AssetFormat\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Material\WMaterialFormat.h">
+      <Filter>04. Resource\08. AssetFormat\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Material\WMaterialLoader.h">
+      <Filter>04. Resource\08. AssetFormat\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Material\WMaterialWriter.h">
+      <Filter>04. Resource\08. AssetFormat\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Mesh\WMeshFormat.h">
+      <Filter>04. Resource\08. AssetFormat\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Mesh\WMeshLoader.h">
+      <Filter>04. Resource\08. AssetFormat\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Mesh\WMeshWriter.h">
+      <Filter>04. Resource\08. AssetFormat\Mesh</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\CCommandBuffer.h">
+      <Filter>05. ECS\01. System\01. CommandBuffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\SystemScheduler.h">
+      <Filter>05. ECS\01. System\02. SystemScheduler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\TransformSystem.h">
+      <Filter>05. ECS\01. System\03. TransformSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Common\Hash.h">
+      <Filter>04. Resource\08. AssetFormat\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Anim\WSkelFormat.h">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Anim\WAnimFormat.h">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Anim\WSkelWriter.h">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Anim\WSkelLoader.h">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Anim\WAnimLoader.h">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AssetFormat\Anim\WAnimWriter.h">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\CBPerMaterial.h">
+      <Filter>03. Renderer\07. Material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\CMaterialPBR.h">
+      <Filter>03. Renderer\07. Material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\BlendTypes.h">
+      <Filter>03. Renderer\07. Material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\LightData.h">
+      <Filter>03. Renderer\07. Material</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\UI\UIAtlasManifest.h">
+      <Filter>07. UI\00. AtlasManifest</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\UI\ChampionHUDState.h">
+      <Filter>07. UI\01. HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Manager\UI\ChampionHUDPanel.h">
+      <Filter>07. UI\01. HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\UI\Font_Manager.h">
+      <Filter>07. UI\02. Font</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scripting\LuaRuntime.h">
+      <Filter>11. Scripting</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\UI\LuaUIHost.h">
+      <Filter>07. UI\03. Lua</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\FogOfWarRenderer.h">
+      <Filter>03. Renderer\08. FogOfWar</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\CInput.h">
+      <Filter>00. Core\04. Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Platform\CWin32Window.h">
+      <Filter>00. Core\02. Platform\00. Window</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\Profiler\CPUProfiler.h">
+      <Filter>00. Core\06. Profiler\00. CPU</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\WintersPCH.h">
+      <Filter>00. Core\05. PCH</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\ModelRenderer.h">
+      <Filter>03. Renderer\03. Model\00. Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\NormalPass.h">
+      <Filter>03. Renderer\03. Model\01. NormalPass</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\SSAOPass.h">
+      <Filter>03. Renderer\03. Model\02. SSAOPass</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\FxAsset.h">
+      <Filter>03. Renderer\05. FX\00. Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\FxLifeCycle.h">
+      <Filter>03. Renderer\05. FX\00. Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\FxDepthMode.h">
+      <Filter>03. Renderer\05. FX\01. DepthMode</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\DeterministicRandom.h">
+      <Filter>03. Renderer\05. FX\02. DeterministicRandom</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\FxStaticMeshRenderer.h">
+      <Filter>03. Renderer\05. FX\03. StaticMeshRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\FxMaterialDesc.h">
+      <Filter>03. Renderer\05. FX\04. MaterialDesc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\FxShaderConstants.h">
+      <Filter>03. Renderer\05. FX\05. ShaderConstant</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\ParticlePool.h">
+      <Filter>03. Renderer\05. FX\06. ParticlePool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\ParameterMap.h">
+      <Filter>03. Renderer\05. FX\07. ParameterMap</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\RHIFxMeshResource.h">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\RHIFxSpriteRenderer.h">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\UIRenderer.h">
+      <Filter>03. Renderer\05. FX\09. UIRenderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\World.h">
+      <Filter>05. ECS\00. Core\00. World</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\ComponentStore.h">
+      <Filter>05. ECS\00. Core\01. ComponentStore</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Entity.h">
+      <Filter>05. ECS\00. Core\02. Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\CoreComponents.h">
+      <Filter>05. ECS\02. Components\00. Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\GameplayComponents.h">
+      <Filter>05. ECS\02. Components\02. Gameplay</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\MeshGroupVisibilityComponent.h">
+      <Filter>05. ECS\02. Components\03. MeshGroupVisibility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\NavAgentComponent.h">
+      <Filter>05. ECS\02. Components\04. Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\MinionPerformanceComponents.h">
+      <Filter>05. ECS\02. Components\05. Minion</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\FxInstanceComponent.h">
+      <Filter>05. ECS\02. Components\06. FX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\RenderComponent.h">
+      <Filter>05. ECS\02. Components\07. Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\SpatialAgentComponent.h">
+      <Filter>05. ECS\02. Components\08. SpatialAgent</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\VisionComponents.h">
+      <Filter>05. ECS\02. Components\09. Vision</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\SpatialIndex.h">
+      <Filter>05. ECS\02. Components\04. Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\BushVolumeIndex.h">
+      <Filter>05. ECS\02. Components\10. Bush</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\CoreSystems.h">
+      <Filter>05. ECS\03. Systems\00. Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\EntityBlueprint.h">
+      <Filter>05. ECS\03. Systems\02. Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\EntityBlueprintRegistry.h">
+      <Filter>05. ECS\03. Systems\02. Entity</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\GameplayCollisionSystem.h">
+      <Filter>05. ECS\03. Systems\03. Collision</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\MinionAISystem.h">
+      <Filter>05. ECS\03. Systems\01. Minion\00. AI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\MinionSeparationSystem.h">
+      <Filter>05. ECS\03. Systems\01. Minion\02. Separation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\MinionPerformanceSystem.h">
+      <Filter>05. ECS\03. Systems\01. Minion\01. Performance</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\VisionSystem.h">
+      <Filter>05. ECS\03. Systems\04. Vision</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\SpatialHashSystem.h">
+      <Filter>05. ECS\03. Systems\06. Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\MCTSSystem.h">
+      <Filter>09. AI\01. MCTS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\BehaviorTreeSystem.h">
+      <Filter>09. AI\00. BT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\TurretAISystem.h">
+      <Filter>05. ECS\03. Systems\07. Turret\00. AI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\TurretProjectileSystem.h">
+      <Filter>05. ECS\03. Systems\07. Turret\01. Projectile</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Systems\StatusEffectSystem.h">
+      <Filter>05. ECS\03. Systems\08. StatusEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\JobSystem.h">
+      <Filter>05. ECS\00. Core\10. JobSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AI\BehaviorTree.h">
+      <Filter>09. AI\00. BT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AI\Blackboard.h">
+      <Filter>09. AI\00. BT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AI\BTNodes_Champion.h">
+      <Filter>09. AI\00. BT</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AI\MCTSPlanner.h">
+      <Filter>09. AI\01. MCTS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\AI\RLBridge.h">
+      <Filter>09. AI\02. RL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\RHI\DX11\CDX11Device.h">
+      <Filter>02. RHI\01. DX11\00. Device</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\RHI\DX11\DX11Shader.h">
+      <Filter>02. RHI\01. DX11\02. Shader</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\RHI\DX11\DX11Buffer.h">
+      <Filter>02. RHI\01. DX11\03. Buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\RHI\DX11\DX11ConstantBuffer.h">
+      <Filter>02. RHI\01. DX11\03. Buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\Profiler\ProfilerOverlay.h">
+      <Filter>10. Editor\00. ProfilerOverlay</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\Profiler\ProfilerTypes.h">
+      <Filter>00. Core\06. Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="ProfilerAPI.h">
+      <Filter>00. Core\06. Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Core\Profiler\ProfilerStableView.h">
+      <Filter>00. Core\06. Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\IRHIDevice.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\IRHICommandList.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\IRHIQueue.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\IRHISwapChain.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\IRHIPipelineState.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\IRHIRenderPass.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\IRHIBindGroup.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\IRHIBindGroupLayout.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\RHIHandles.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\RHITypes.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\RHIDescriptors.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\RHICapabilities.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\RHISurface.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\CRHIResourceTable.h">
+      <Filter>02. RHI\00. Interface</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\RHITextureLoader.h">
+      <Filter>02. RHI\02. Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\Geometry\CubeGeometry.h">
+      <Filter>02. RHI\03. Geometry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\RHI\DX11\BlendStateCache.h">
+      <Filter>02. RHI\01. DX11\04. StateCache</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\RHI\DX11\SamplerStateCache.h">
+      <Filter>02. RHI\01. DX11\04. StateCache</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <!-- ── 소스 파일 → 기능별 필터 ──────────────────────── -->
+  <ItemGroup>
+    <ClCompile Include="..\Private\RHI\DX11\DX11Pipeline.cpp">
+      <Filter>02. RHI\01. DX11\01. Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Core\CTimer.cpp">
+      <Filter>00. Core\00. Timer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Core\CTransform.cpp">
+      <Filter>00. Core\01. Transform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Core\WintersPaths.cpp">
+      <Filter>00. Core\03. Paths</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Framework\CEngineApp.cpp">
+      <Filter>01. Runtime\00. EngineApp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\WintersEngine.cpp">
+      <Filter>01. Runtime\01. WintersEngine</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\CCamera.cpp">
+      <Filter>03. Renderer\00. Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\CubeRenderer.cpp">
+      <Filter>03. Renderer\02. Cube</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Resource\Mesh.cpp">
+      <Filter>04. Resource\00. Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Resource\Model.cpp">
+      <Filter>04. Resource\02. Model</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Resource\Animation.cpp">
+      <Filter>04. Resource\05. Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Resource\Animator.cpp">
+      <Filter>04. Resource\06. Animator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Resource\Texture.cpp">
+      <Filter>04. Resource\01. Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Resource\Bone.cpp">
+      <Filter>04. Resource\03. Bone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Resource\Skeleton.cpp">
+      <Filter>04. Resource\04. Skeleton</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Resource\ResourceCache.cpp">
+      <Filter>04. Resource\07. ResourceCache</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GameInstance.cpp">
+      <Filter>01. Runtime\02. GameInstance</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Timer_Manager.cpp">
+      <Filter>00. Core\00. Timer\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Editor\ImGuiLayer.cpp">
+      <Filter>10. Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\imgui\imgui.cpp">
+      <Filter>10. Editor\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\imgui\imgui_demo.cpp">
+      <Filter>10. Editor\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\imgui\imgui_draw.cpp">
+      <Filter>10. Editor\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\imgui\imgui_tables.cpp">
+      <Filter>10. Editor\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\imgui\imgui_widgets.cpp">
+      <Filter>10. Editor\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\imgui\backends\imgui_impl_dx11.cpp">
+      <Filter>10. Editor\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\imgui\backends\imgui_impl_win32.cpp">
+      <Filter>10. Editor\Imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lapi.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lauxlib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lbaselib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lcode.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lcorolib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lctype.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ldblib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ldebug.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ldo.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ldump.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lfunc.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lgc.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\linit.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\liolib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\llex.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lmathlib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lmem.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\loadlib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lobject.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lopcodes.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\loslib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lparser.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lstate.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lstring.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lstrlib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ltable.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ltablib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ltm.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lundump.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lutf8lib.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lvm.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lzio.c">
+      <Filter>11. Scripting\00. Lua VM</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_Manager.cpp">
+      <Filter>01. Runtime\04. Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Sound\Sound_Manager.cpp">
+      <Filter>08. Sound</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\NavigationSystem.cpp">
+      <Filter>05. ECS\01. System\00. Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\Navigation\NavGrid.cpp">
+      <Filter>06. Navigation\NavGrid</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\Navigation\Pathfinder.cpp">
+      <Filter>06. Navigation\Pathfinder</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\Navigation\MapSurfaceSampler.cpp">
+      <Filter>06. Navigation\MapSurface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\Navigation\MapWalkableBaker.cpp">
+      <Filter>06. Navigation\MapSurface</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Components\TransformComponent.cpp">
+      <Filter>05. ECS\02. Components\01. Transform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\UI\UI_Manager.cpp">
+      <Filter>07. UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\PlaneRenderer.cpp">
+      <Filter>03. Renderer\04. Plane</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Common\BinaryReader.cpp">
+      <Filter>04. Resource\08. AssetFormat\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Common\BinaryWriter.cpp">
+      <Filter>04. Resource\08. AssetFormat\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Material\WMaterialLoader.cpp">
+      <Filter>04. Resource\08. AssetFormat\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Material\WMaterialWriter.cpp">
+      <Filter>04. Resource\08. AssetFormat\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Mesh\WMeshLoader.cpp">
+      <Filter>04. Resource\08. AssetFormat\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Mesh\WMeshWriter.cpp">
+      <Filter>04. Resource\08. AssetFormat\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\CommandBuffer.cpp">
+      <Filter>05. ECS\01. System\01. CommandBuffer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\SystemScheduler.cpp">
+      <Filter>05. ECS\01. System\02. SystemScheduler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\TransformSystem.cpp">
+      <Filter>05. ECS\01. System\03. TransformSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\CMaterialPBR.cpp">
+      <Filter>03. Renderer\07. Material</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Anim\WSkelWriter.cpp">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Anim\WSkelFormat.cpp">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Anim\WSkelLoader.cpp">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Anim\WAnimLoader.cpp">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Anim\WAnimWriter.cpp">
+      <Filter>04. Resource\08. AssetFormat\Anim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\UI\UIAtlasManifest.cpp">
+      <Filter>07. UI\00. AtlasManifest</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\UI\ChampionHUDPanel.cpp">
+      <Filter>07. UI\01. HUD</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\UI\Font_Manager.cpp">
+      <Filter>07. UI\02. Font</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\UI\LuaUIHost.cpp">
+      <Filter>07. UI\03. Lua</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scripting\LuaRuntime.cpp">
+      <Filter>11. Scripting</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\FogOfWarRenderer.cpp">
+      <Filter>03. Renderer\08. FogOfWar</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Platform\CInput.cpp">
+      <Filter>00. Core\04. Input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Platform\CWin32Window.cpp">
+      <Filter>00. Core\02. Platform\00. Window</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Core\Profiler\CPUProfiler.cpp">
+      <Filter>00. Core\06. Profiler\00. CPU</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Core\WintersPCH.cpp">
+      <Filter>00. Core\05. PCH</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\ModelRenderer.cpp">
+      <Filter>03. Renderer\03. Model\00. Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\NormalPass.cpp">
+      <Filter>03. Renderer\03. Model\01. NormalPass</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\SSAOPass.cpp">
+      <Filter>03. Renderer\03. Model\02. SSAOPass</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\FX\FxAsset.cpp">
+      <Filter>03. Renderer\05. FX\00. Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\FX\DeterministicRandom.cpp">
+      <Filter>03. Renderer\05. FX\02. DeterministicRandom</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\FxStaticMeshRenderer.cpp">
+      <Filter>03. Renderer\05. FX\03. StaticMeshRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\FX\ParticlePool.cpp">
+      <Filter>03. Renderer\05. FX\06. ParticlePool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\RHIFxMeshResource.cpp">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\RHIFxSpriteRenderer.cpp">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\UIRenderer.cpp">
+      <Filter>03. Renderer\05. FX\09. UIRenderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\World.cpp">
+      <Filter>05. ECS\00. Core\00. World</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\SpatialIndex.cpp">
+      <Filter>05. ECS\02. Components\04. Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\BushVolumeIndex.cpp">
+      <Filter>05. ECS\02. Components\10. Bush</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\CoreSystems.cpp">
+      <Filter>05. ECS\03. Systems\00. Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\EntityBlueprint.cpp">
+      <Filter>05. ECS\03. Systems\02. Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\EntityBlueprintRegistry.cpp">
+      <Filter>05. ECS\03. Systems\02. Entity</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\GameplayCollisionSystem.cpp">
+      <Filter>05. ECS\03. Systems\03. Collision</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\MinionAISystem.cpp">
+      <Filter>05. ECS\03. Systems\01. Minion\00. AI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\MinionSeparationSystem.cpp">
+      <Filter>05. ECS\03. Systems\01. Minion\02. Separation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\MinionPerformanceSystem.cpp">
+      <Filter>05. ECS\03. Systems\01. Minion\01. Performance</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\VisionSystem.cpp">
+      <Filter>05. ECS\03. Systems\04. Vision</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\SpatialHashSystem.cpp">
+      <Filter>05. ECS\03. Systems\06. Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\MCTSSystem.cpp">
+      <Filter>09. AI\01. MCTS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\BehaviorTreeSystem.cpp">
+      <Filter>09. AI\00. BT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\TurretAISystem.cpp">
+      <Filter>05. ECS\03. Systems\07. Turret\00. AI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\TurretProjectileSystem.cpp">
+      <Filter>05. ECS\03. Systems\07. Turret\01. Projectile</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\Systems\StatusEffectSystem.cpp">
+      <Filter>05. ECS\03. Systems\08. StatusEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Core\JobSystem.cpp">
+      <Filter>05. ECS\00. Core\10. JobSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AI\BehaviorTree.cpp">
+      <Filter>09. AI\00. BT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AI\BTNodes_Champion.cpp">
+      <Filter>09. AI\00. BT</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AI\MCTSPlanner.cpp">
+      <Filter>09. AI\01. MCTS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\AI\RLBridge.cpp">
+      <Filter>09. AI\02. RL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\RHI\DX11\CDX11Device.cpp">
+      <Filter>02. RHI\01. DX11\00. Device</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\RHI\DX11\DX11Shader.cpp">
+      <Filter>02. RHI\01. DX11\02. Shader</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\RHI\DX11\DX11Buffer.cpp">
+      <Filter>02. RHI\01. DX11\03. Buffer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\Profiler\ProfilerOverlay.cpp">
+      <Filter>10. Editor\00. ProfilerOverlay</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Core\Profiler\ProfilerStableView.cpp">
+      <Filter>00. Core\06. Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\RHI\RHITextureLoader.cpp">
+      <Filter>02. RHI\02. Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\RHI\DX11\BlendStateCache.cpp">
+      <Filter>02. RHI\01. DX11\04. StateCache</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\RHI\DX11\SamplerStateCache.cpp">
+      <Filter>02. RHI\01. DX11\04. StateCache</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="00. Server">
+      <UniqueIdentifier>{F3000001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Network">
+      <UniqueIdentifier>{F3000002-0000-0000-0000-000000000002}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game">
+      <UniqueIdentifier>{F3000003-0000-0000-0000-000000000003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Network\03. FrameParser">
+      <UniqueIdentifier>{166375FE-D7BE-4FD9-BCDA-AA2032F1A8A8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\04. CommandDispatcher">
+      <UniqueIdentifier>{5FD13CB2-8AF8-4F8A-8261-854574D47D0F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\05. SnapshotBuilder">
+      <UniqueIdentifier>{BCBC07CB-8394-47AA-AAD7-CB38D3EA65C8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Security">
+      <UniqueIdentifier>{738db38b-4ec3-49be-a237-c6146224f7b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\00. GameRoom">
+      <UniqueIdentifier>{e8d7fde5-a0bf-4898-b8aa-f9bd38d795a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\03. AOI">
+      <UniqueIdentifier>{c59b6116-c6fb-45f8-9b06-5dbe91aaf4b2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\01. GameLogic">
+      <UniqueIdentifier>{03fdbfb0-dffc-4ff7-9836-ff7f585000b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\02. ServerWorld">
+      <UniqueIdentifier>{34780351-85b5-48c6-9c63-cd83399e5297}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Network\00. IOCP">
+      <UniqueIdentifier>{7eb2fe60-5b64-4d45-90c4-df8ae9c85534}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Network\02. PacketDispatcher">
+      <UniqueIdentifier>{b6a75512-0a54-4d07-b889-e2dcc2be8865}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Security\00. AntiCheat">
+      <UniqueIdentifier>{5f779cd3-a868-4dad-9efd-0e285de7096d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Security\01. LagCompensation">
+      <UniqueIdentifier>{7fe2d4f8-1ef7-4561-a8d4-a8c755f86e3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Network\01. Session">
+      <UniqueIdentifier>{17e3f816-3242-453a-a3a3-9a0585587372}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Network\01. Session\Session">
+      <UniqueIdentifier>{4ad5fd4f-640e-4ff7-b235-de2697a00b3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\06. ServerEntry">
+      <UniqueIdentifier>{ff80e0b1-3138-4b3e-9a19-494e9f00fdb1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\07. Replay">
+      <UniqueIdentifier>{069e34a5-0d19-40ce-822f-fe81ca644493}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Network\04. UDP">
+      <UniqueIdentifier>{7b32651f-1ddb-4076-bdf8-c61be47e3888}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\08. Minion">
+      <UniqueIdentifier>{deb03043-cfe9-4077-ad00-e182e3f3f0e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\08. Minion\00. FlowField">
+      <UniqueIdentifier>{7fa9d324-1217-4c06-89c9-1c3b8ccb6297}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\08. Minion\01. WaveRuntime">
+      <UniqueIdentifier>{09aebc7b-c72a-45d9-929f-7da0c7d6aeec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\08. Minion\02. Tuning">
+      <UniqueIdentifier>{63f5cfcc-6e33-4d95-8c20-f842aab6f71f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\09. ChampionAI">
+      <UniqueIdentifier>{cef0969f-6959-4dc1-a994-d574d8dc102c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\10. ServerEntry">
+      <UniqueIdentifier>{0d365187-c296-40e6-9df2-160d0fd4a735}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Shared">
+      <UniqueIdentifier>{85f1f886-471c-459d-9924-f2a618ad3f47}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Shared\GameSim">
+      <UniqueIdentifier>{b55d49c9-045d-4d1e-912d-9e76bb93c99b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Shared\GameSim\Champions">
+      <UniqueIdentifier>{f28b61a8-32ed-4a36-b6a1-82d6540c01a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Shared\GameSim\Definitions">
+      <UniqueIdentifier>{792799e8-6917-4fb5-bfbc-b0697559148d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Shared\GameSim\Registries">
+      <UniqueIdentifier>{8a14121f-3a29-4fb5-9787-df7f34b7db46}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Shared\GameSim\Systems">
+      <UniqueIdentifier>{38b54c89-7d80-4b19-825d-8160c112de06}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\00. GameRoom\00. Tick">
+      <UniqueIdentifier>{21249159-74fd-413c-a785-4e814fa4f476}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\00. GameRoom\01. Replication">
+      <UniqueIdentifier>{3eace799-d38c-44ba-bb1a-a82a1b13676c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\00. GameRoom\02. Commands">
+      <UniqueIdentifier>{d4e0d030-5712-4f16-9a14-ff3a3a40cb5c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Private\main.cpp">
+      <Filter>00. Server</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\GameRoom.cpp">
+      <Filter>02. Game\00. GameRoom</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\GameLogic.cpp">
+      <Filter>02. Game\01. GameLogic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\AOI.cpp">
+      <Filter>02. Game\03. AOI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\ServerWorld.cpp">
+      <Filter>02. Game\02. ServerWorld</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\IOCPCore.cpp">
+      <Filter>01. Network\00. IOCP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\PacketDispatcher.cpp">
+      <Filter>01. Network\02. PacketDispatcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Session_Manager.cpp">
+      <Filter>01. Network\01. Session</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Security\AntiCheatServer.cpp">
+      <Filter>03. Security\00. AntiCheat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Security\LagCompensation.cpp">
+      <Filter>03. Security\01. LagCompensation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\CommandDispatcher.cpp">
+      <Filter>02. Game\04. CommandDispatcher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\SnapshotBuilder.cpp">
+      <Filter>02. Game\05. SnapshotBuilder</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\FrameParser.cpp">
+      <Filter>01. Network\03. FrameParser</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Session.cpp">
+      <Filter>01. Network\01. Session\Session</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\ReplayRecorder.cpp">
+      <Filter>02. Game\07. Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\ServerMinionFlowField.cpp">
+      <Filter>02. Game\08. Minion\00. FlowField</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\ServerMinionWaveRuntime.cpp">
+      <Filter>02. Game\08. Minion\01. WaveRuntime</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\GameRoomChampionAI.cpp">
+      <Filter>02. Game\09. ChampionAI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\ServerEntry.cpp">
+      <Filter>02. Game\10. ServerEntry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Annie\AnnieGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Ashe\AsheGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Fiora\FioraGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Jax\JaxGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Kindred\KindredGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Viego\ViegoGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Yone\YoneGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Zed\ZedGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp">
+      <Filter>04. Shared\GameSim\Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Definitions\MapSpawnPoints.cpp">
+      <Filter>04. Shared\GameSim\Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp">
+      <Filter>04. Shared\GameSim\Registries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Registries\Reward\RewardRegistry.cpp">
+      <Filter>04. Shared\GameSim\Registries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp">
+      <Filter>04. Shared\GameSim\Registries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Registries\Skin\SkinRegistry.cpp">
+      <Filter>04. Shared\GameSim\Registries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Buff\BuffSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatActionSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatFormula.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamagePipeline.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Death\DeathSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Experience\ExperienceSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Move\MoveSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Recall\RecallSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Stat\StatSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp">
+      <Filter>04. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\GameRoomTick.cpp">
+      <Filter>02. Game\00. GameRoom\00. Tick</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\GameRoomReplication.cpp">
+      <Filter>02. Game\00. GameRoom\01. Replication</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\GameRoomCommands.cpp">
+      <Filter>02. Game\00. GameRoom\02. Commands</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Public\Game\GameRoom.h">
+      <Filter>02. Game\00. GameRoom</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\GameLogic.h">
+      <Filter>02. Game\01. GameLogic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\AOI.h">
+      <Filter>02. Game\03. AOI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\ServerWorld.h">
+      <Filter>02. Game\02. ServerWorld</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\IOCPCore.h">
+      <Filter>01. Network\00. IOCP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Session_Manager.h">
+      <Filter>01. Network\01. Session</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\PacketDispatcher.h">
+      <Filter>01. Network\02. PacketDispatcher</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Security\AntiCheatServer.h">
+      <Filter>03. Security\00. AntiCheat</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Security\LagCompensation.h">
+      <Filter>03. Security\01. LagCompensation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\FrameParser.h">
+      <Filter>01. Network\03. FrameParser</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Session.h">
+      <Filter>01. Network\01. Session\Session</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\SnapshotBuilder.h">
+      <Filter>02. Game\05. SnapshotBuilder</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\ReplayRecorder.h">
+      <Filter>02. Game\07. Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\UdpSession.h">
+      <Filter>01. Network\04. UDP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\UdpPacketDispatcher.h">
+      <Filter>01. Network\04. UDP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\UdpCore.h">
+      <Filter>01. Network\04. UDP</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\ServerMinionFlowField.h">
+      <Filter>02. Game\08. Minion\00. FlowField</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\ServerMinionTuning.h">
+      <Filter>02. Game\08. Minion\02. Tuning</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\ServerMinionWaveRuntime.h">
+      <Filter>02. Game\08. Minion\01. WaveRuntime</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\ServerEntry.h">
+      <Filter>02. Game\10. ServerEntry</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

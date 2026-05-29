@@ -1,0 +1,69 @@
+{
+  "name": "Jax.Q.Leap",
+  "schema": "WintersWfx",
+  "version": 1,
+  "emitters": [
+    {
+      "name": "q_lantern_core",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_q_ball.png",
+      "lifetime": 0.36,
+      "fade_in": 0.01,
+      "fade_out": 0.20,
+      "width": 1.35,
+      "height": 1.35,
+      "color": [1.70, 1.00, 0.30, 0.86],
+      "attach_offset": [0.00, 1.10, 0.00],
+      "billboard": true
+    },
+    {
+      "name": "q_smoke_trail",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_q_smoketrail.png",
+      "lifetime": 0.42,
+      "fade_in": 0.02,
+      "fade_out": 0.26,
+      "width": 2.30,
+      "height": 1.35,
+      "color": [1.20, 0.60, 0.20, 0.70],
+      "attach_offset": [0.00, 0.95, 0.00],
+      "billboard": true
+    },
+    {
+      "name": "q_ground_smoke",
+      "render_type": "GroundDecal",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_q_tar_smoke.png",
+      "lifetime": 0.46,
+      "start_delay": 0.03,
+      "fade_in": 0.02,
+      "fade_out": 0.32,
+      "width": 2.80,
+      "height": 2.80,
+      "color": [0.78, 0.54, 0.34, 0.42],
+      "attach_offset": [0.00, 0.05, 0.00],
+      "billboard": false
+    },
+    {
+      "name": "q_sheen_arc",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_q_sheen2.png",
+      "lifetime": 0.28,
+      "start_delay": 0.04,
+      "fade_in": 0.01,
+      "fade_out": 0.18,
+      "width": 2.10,
+      "height": 2.10,
+      "color": [1.45, 0.90, 0.30, 0.74],
+      "attach_offset": [0.00, 1.20, 0.00],
+      "billboard": true
+    }
+  ]
+}

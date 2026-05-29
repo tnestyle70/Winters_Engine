@@ -1,0 +1,920 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.4.11620.152
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "Engine\Include\Engine.vcxproj", "{E1111111-1111-1111-1111-111111111111}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Server", "Server\Include\Server.vcxproj", "{E3333333-3333-3333-3333-333333333333}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Client", "Client\Include\Client.vcxproj", "{E2222222-2222-2222-2222-222222222222}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E1111111-1111-1111-1111-111111111111} = {E1111111-1111-1111-1111-111111111111}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WintersAssetConverter", "Tools\WintersAssetConverter\WintersAssetConverter.vcxproj", "{E4444444-4444-4444-4444-444444444444}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "04. Shared", "04. Shared", "{AD60FBA8-A423-4511-AD7E-9B738D30970C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "00. Docs", "00. Docs", "{758FD5E1-1EA7-41B7-9EB0-41CF0C2972D8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01. Client", "01. Client", "{47D997FB-CC45-4BF1-B5C3-19AA54710538}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "03. Server", "03. Server", "{493D8C81-95B3-4FA4-9F5D-48F5BC4FFFEA}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02. Engine", "02. Engine", "{714DA86A-C28B-4E2D-922B-DE1401D65EE6}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "05. Services", "05. Services", "{BE6E9998-E0F5-44D9-A934-6251EE9C64A9}"
+	ProjectSection(SolutionItems) = preProject
+		Services\.env.example = Services\.env.example
+		Services\docker-compose.yml = Services\docker-compose.yml
+		Services\go.mod = Services\go.mod
+		Services\go.sum = Services\go.sum
+		Services\Makefile = Services\Makefile
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "06. Data", "06. Data", "{9492FF71-3DCA-47B6-A843-ACE3ACE5F04B}"
+	ProjectSection(SolutionItems) = preProject
+		Data\Stage1.dat = Data\Stage1.dat
+		Data\Stage1.navgrid = Data\Stage1.navgrid
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "07. Shaders", "07. Shaders", "{0AF5F75E-1F98-4A52-A35B-56DCB8088B8F}"
+	ProjectSection(SolutionItems) = preProject
+		Shaders\ContactShadowPlane.hlsl = Shaders\ContactShadowPlane.hlsl
+		Shaders\Default3D.hlsl = Shaders\Default3D.hlsl
+		Shaders\FogOfWarWorld.hlsl = Shaders\FogOfWarWorld.hlsl
+		Shaders\FxMesh.hlsl = Shaders\FxMesh.hlsl
+		Shaders\FxSprite.hlsl = Shaders\FxSprite.hlsl
+		Shaders\Mesh3D.hlsl = Shaders\Mesh3D.hlsl
+		Shaders\Mesh3D_PBR.hlsl = Shaders\Mesh3D_PBR.hlsl
+		Shaders\Skinned3D.hlsl = Shaders\Skinned3D.hlsl
+		Shaders\Skinned3D_PBR.hlsl = Shaders\Skinned3D_PBR.hlsl
+		Shaders\Triangle.hlsl = Shaders\Triangle.hlsl
+		Shaders\UIPlane.hlsl = Shaders\UIPlane.hlsl
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "08. Tools", "08. Tools", "{0069B82D-6E7C-4A6F-8358-1871662EB04B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BRDF", "BRDF", "{6BD33D7C-19DD-407C-9D57-7B78ABEA32C7}"
+	ProjectSection(SolutionItems) = preProject
+		Shaders\BRDF\BRDF_GGX.hlsli = Shaders\BRDF\BRDF_GGX.hlsli
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SSAO", "SSAO", "{ABC2A6EB-8D75-41F0-8E6C-E61CD10BF4CD}"
+	ProjectSection(SolutionItems) = preProject
+		Shaders\SSAO\GTAO_Blur_CS.hlsl = Shaders\SSAO\GTAO_Blur_CS.hlsl
+		Shaders\SSAO\GTAO_CS.hlsl = Shaders\SSAO\GTAO_CS.hlsl
+		Shaders\SSAO\NormalOnly.hlsl = Shaders\SSAO\NormalOnly.hlsl
+		Shaders\SSAO\SkinnedNormalOnly.hlsl = Shaders\SSAO\SkinnedNormalOnly.hlsl
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GameModes", "GameModes", "{BE809654-25AB-42B9-9F1C-8BF987F16953}"
+	ProjectSection(SolutionItems) = preProject
+		Data\GameModes\gameMode.json = Data\GameModes\gameMode.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LoL", "LoL", "{B239E73D-5196-471E-B8A7-25E004352597}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "FX", "FX", "{37C96FC6-EC1D-47C5-B65D-C1CEA0152025}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Champions", "Champions", "{4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Annie", "Annie", "{4B830571-C8C7-4E4E-9829-AF53D3E8E7E7}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Annie\ba_hit.wfx = Data\LoL\FX\Champions\Annie\ba_hit.wfx
+		Data\LoL\FX\Champions\Annie\ba_projectile.wfx = Data\LoL\FX\Champions\Annie\ba_projectile.wfx
+		Data\LoL\FX\Champions\Annie\e_shield.wfx = Data\LoL\FX\Champions\Annie\e_shield.wfx
+		Data\LoL\FX\Champions\Annie\q_fireball.wfx = Data\LoL\FX\Champions\Annie\q_fireball.wfx
+		Data\LoL\FX\Champions\Annie\r_summon.wfx = Data\LoL\FX\Champions\Annie\r_summon.wfx
+		Data\LoL\FX\Champions\Annie\stun_ready.wfx = Data\LoL\FX\Champions\Annie\stun_ready.wfx
+		Data\LoL\FX\Champions\Annie\w_cone.wfx = Data\LoL\FX\Champions\Annie\w_cone.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ashe", "Ashe", "{92AA81FE-5FCE-4609-91E6-254FF9E6FCBB}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Ashe\ba_arrow.wfx = Data\LoL\FX\Champions\Ashe\ba_arrow.wfx
+		Data\LoL\FX\Champions\Ashe\ba_hit.wfx = Data\LoL\FX\Champions\Ashe\ba_hit.wfx
+		Data\LoL\FX\Champions\Ashe\r_arrow.wfx = Data\LoL\FX\Champions\Ashe\r_arrow.wfx
+		Data\LoL\FX\Champions\Ashe\r_cast.wfx = Data\LoL\FX\Champions\Ashe\r_cast.wfx
+		Data\LoL\FX\Champions\Ashe\r_hit.wfx = Data\LoL\FX\Champions\Ashe\r_hit.wfx
+		Data\LoL\FX\Champions\Ashe\w_arrow.wfx = Data\LoL\FX\Champions\Ashe\w_arrow.wfx
+		Data\LoL\FX\Champions\Ashe\w_cast.wfx = Data\LoL\FX\Champions\Ashe\w_cast.wfx
+		Data\LoL\FX\Champions\Ashe\w_hit.wfx = Data\LoL\FX\Champions\Ashe\w_hit.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Irelia", "Irelia", "{622CB6ED-B02D-4E66-BA3F-B18931711C7F}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Irelia\e_connect.wfx = Data\LoL\FX\Champions\Irelia\e_connect.wfx
+		Data\LoL\FX\Champions\Irelia\e_connect_pop.wfx = Data\LoL\FX\Champions\Irelia\e_connect_pop.wfx
+		Data\LoL\FX\Champions\Irelia\e_place.wfx = Data\LoL\FX\Champions\Irelia\e_place.wfx
+		Data\LoL\FX\Champions\Irelia\q_leadingedge.wfx = Data\LoL\FX\Champions\Irelia\q_leadingedge.wfx
+		Data\LoL\FX\Champions\Irelia\r_hit.wfx = Data\LoL\FX\Champions\Irelia\r_hit.wfx
+		Data\LoL\FX\Champions\Irelia\r_pulse.wfx = Data\LoL\FX\Champions\Irelia\r_pulse.wfx
+		Data\LoL\FX\Champions\Irelia\r_wall.wfx = Data\LoL\FX\Champions\Irelia\r_wall.wfx
+		Data\LoL\FX\Champions\Irelia\target_mark.wfx = Data\LoL\FX\Champions\Irelia\target_mark.wfx
+		Data\LoL\FX\Champions\Irelia\w_hold.wfx = Data\LoL\FX\Champions\Irelia\w_hold.wfx
+		Data\LoL\FX\Champions\Irelia\w_release.wfx = Data\LoL\FX\Champions\Irelia\w_release.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Kindred", "Kindred", "{783C97AA-BAAF-4A2D-9F3F-A8B2C368F265}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Kindred\r_zone.wfx = Data\LoL\FX\Champions\Kindred\r_zone.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LeeSin", "LeeSin", "{5E7AE59C-C537-4884-9960-68B690D53C1A}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\LeeSin\e1_cast.wfx = Data\LoL\FX\Champions\LeeSin\e1_cast.wfx
+		Data\LoL\FX\Champions\LeeSin\e2_cast.wfx = Data\LoL\FX\Champions\LeeSin\e2_cast.wfx
+		Data\LoL\FX\Champions\LeeSin\q2_dash.wfx = Data\LoL\FX\Champions\LeeSin\q2_dash.wfx
+		Data\LoL\FX\Champions\LeeSin\q_cast.wfx = Data\LoL\FX\Champions\LeeSin\q_cast.wfx
+		Data\LoL\FX\Champions\LeeSin\q_hit.wfx = Data\LoL\FX\Champions\LeeSin\q_hit.wfx
+		Data\LoL\FX\Champions\LeeSin\q_mark.wfx = Data\LoL\FX\Champions\LeeSin\q_mark.wfx
+		Data\LoL\FX\Champions\LeeSin\q_projectile.wfx = Data\LoL\FX\Champions\LeeSin\q_projectile.wfx
+		Data\LoL\FX\Champions\LeeSin\w1_cast.wfx = Data\LoL\FX\Champions\LeeSin\w1_cast.wfx
+		Data\LoL\FX\Champions\LeeSin\w2_cast.wfx = Data\LoL\FX\Champions\LeeSin\w2_cast.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Yasuo", "Yasuo", "{E8B0093C-86AB-4D08-829B-4D27AD2358DA}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Yasuo\eq_inner_wind.wfx = Data\LoL\FX\Champions\Yasuo\eq_inner_wind.wfx
+		Data\LoL\FX\Champions\Yasuo\eq_ring.wfx = Data\LoL\FX\Champions\Yasuo\eq_ring.wfx
+		Data\LoL\FX\Champions\Yasuo\e_dash_trail.wfx = Data\LoL\FX\Champions\Yasuo\e_dash_trail.wfx
+		Data\LoL\FX\Champions\Yasuo\q_build_up.wfx = Data\LoL\FX\Champions\Yasuo\q_build_up.wfx
+		Data\LoL\FX\Champions\Yasuo\q_slash.wfx = Data\LoL\FX\Champions\Yasuo\q_slash.wfx
+		Data\LoL\FX\Champions\Yasuo\q_tornado.wfx = Data\LoL\FX\Champions\Yasuo\q_tornado.wfx
+		Data\LoL\FX\Champions\Yasuo\r_land_impact.wfx = Data\LoL\FX\Champions\Yasuo\r_land_impact.wfx
+		Data\LoL\FX\Champions\Yasuo\r_sword_glow.wfx = Data\LoL\FX\Champions\Yasuo\r_sword_glow.wfx
+		Data\LoL\FX\Champions\Yasuo\w_windwall.wfx = Data\LoL\FX\Champions\Yasuo\w_windwall.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Zed", "Zed", "{72FE98F4-5D35-4EA3-A9F4-A7CCFD0FD55D}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Zed\e_slash.wfx = Data\LoL\FX\Champions\Zed\e_slash.wfx
+		Data\LoL\FX\Champions\Zed\q_cast.wfx = Data\LoL\FX\Champions\Zed\q_cast.wfx
+		Data\LoL\FX\Champions\Zed\q_hit.wfx = Data\LoL\FX\Champions\Zed\q_hit.wfx
+		Data\LoL\FX\Champions\Zed\q_projectile.wfx = Data\LoL\FX\Champions\Zed\q_projectile.wfx
+		Data\LoL\FX\Champions\Zed\r_mark.wfx = Data\LoL\FX\Champions\Zed\r_mark.wfx
+		Data\LoL\FX\Champions\Zed\r_pop.wfx = Data\LoL\FX\Champions\Zed\r_pop.wfx
+		Data\LoL\FX\Champions\Zed\w_shadow_spawn.wfx = Data\LoL\FX\Champions\Zed\w_shadow_spawn.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "cmd", "cmd", "{E217AF21-A6DF-4CE8-AFB6-40D862A1813B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "internal", "internal", "{F698BD6D-56FA-47EB-A05A-A0003723314B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "migrations", "migrations", "{99DF0D5B-E9CA-4071-BBF4-FCE327198FF7}"
+	ProjectSection(SolutionItems) = preProject
+		Services\migrations\000001_create_users.down.sql = Services\migrations\000001_create_users.down.sql
+		Services\migrations\000001_create_users.up.sql = Services\migrations\000001_create_users.up.sql
+		Services\migrations\000002_create_wallets.down.sql = Services\migrations\000002_create_wallets.down.sql
+		Services\migrations\000002_create_wallets.up.sql = Services\migrations\000002_create_wallets.up.sql
+		Services\migrations\000003_create_player_stats.down.sql = Services\migrations\000003_create_player_stats.down.sql
+		Services\migrations\000003_create_player_stats.up.sql = Services\migrations\000003_create_player_stats.up.sql
+		Services\migrations\000004_create_match_history.down.sql = Services\migrations\000004_create_match_history.down.sql
+		Services\migrations\000004_create_match_history.up.sql = Services\migrations\000004_create_match_history.up.sql
+		Services\migrations\000005_create_payment_transactions.down.sql = Services\migrations\000005_create_payment_transactions.down.sql
+		Services\migrations\000005_create_payment_transactions.up.sql = Services\migrations\000005_create_payment_transactions.up.sql
+		Services\migrations\000006_create_coin_transactions.down.sql = Services\migrations\000006_create_coin_transactions.down.sql
+		Services\migrations\000006_create_coin_transactions.up.sql = Services\migrations\000006_create_coin_transactions.up.sql
+		Services\migrations\000007_create_inventory.down.sql = Services\migrations\000007_create_inventory.down.sql
+		Services\migrations\000007_create_inventory.up.sql = Services\migrations\000007_create_inventory.up.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pkg", "pkg", "{ED527203-5DBA-41FA-84FA-397B04E3AA97}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "auth", "auth", "{BB7E93CE-8F29-4255-98B3-E2011D5A6E28}"
+	ProjectSection(SolutionItems) = preProject
+		Services\cmd\auth\main.go = Services\cmd\auth\main.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "leaderboard", "leaderboard", "{424919F3-8C14-4A5B-9E9F-4174FA35926E}"
+	ProjectSection(SolutionItems) = preProject
+		Services\cmd\leaderboard\main.go = Services\cmd\leaderboard\main.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "matchmaking", "matchmaking", "{38B47E5B-E930-4733-8F42-9E3C3D4D9CEB}"
+	ProjectSection(SolutionItems) = preProject
+		Services\cmd\matchmaking\main.go = Services\cmd\matchmaking\main.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "payment", "payment", "{A1419902-3A7A-4C8C-B6D8-939EF4BEC5AE}"
+	ProjectSection(SolutionItems) = preProject
+		Services\cmd\payment\main.go = Services\cmd\payment\main.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "profile", "profile", "{65B392F7-BB56-482B-AE33-5C2C3BCFC2C1}"
+	ProjectSection(SolutionItems) = preProject
+		Services\cmd\profile\main.go = Services\cmd\profile\main.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shop", "shop", "{3DDF549F-A863-44F0-B2C6-9CC99F4B6428}"
+	ProjectSection(SolutionItems) = preProject
+		Services\cmd\shop\main.go = Services\cmd\shop\main.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "auth", "auth", "{64A9C397-A29E-4A2E-B537-6BDDC80220CA}"
+	ProjectSection(SolutionItems) = preProject
+		Services\internal\auth\handler.go = Services\internal\auth\handler.go
+		Services\internal\auth\model.go = Services\internal\auth\model.go
+		Services\internal\auth\repository.go = Services\internal\auth\repository.go
+		Services\internal\auth\service.go = Services\internal\auth\service.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "leaderboard", "leaderboard", "{08BCC4BD-968A-4BCE-A8C3-062B465A2BE3}"
+	ProjectSection(SolutionItems) = preProject
+		Services\internal\leaderboard\consumer.go = Services\internal\leaderboard\consumer.go
+		Services\internal\leaderboard\handler.go = Services\internal\leaderboard\handler.go
+		Services\internal\leaderboard\model.go = Services\internal\leaderboard\model.go
+		Services\internal\leaderboard\repository.go = Services\internal\leaderboard\repository.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "matchmaking", "matchmaking", "{3F00BB8F-5ABC-4FE9-B1E7-ADE4EB05F285}"
+	ProjectSection(SolutionItems) = preProject
+		Services\internal\matchmaking\handler.go = Services\internal\matchmaking\handler.go
+		Services\internal\matchmaking\model.go = Services\internal\matchmaking\model.go
+		Services\internal\matchmaking\service.go = Services\internal\matchmaking\service.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "payment", "payment", "{42FD924C-2543-497B-B69A-7CC44D183736}"
+	ProjectSection(SolutionItems) = preProject
+		Services\internal\payment\gateway.go = Services\internal\payment\gateway.go
+		Services\internal\payment\gateway_mock.go = Services\internal\payment\gateway_mock.go
+		Services\internal\payment\handler.go = Services\internal\payment\handler.go
+		Services\internal\payment\model.go = Services\internal\payment\model.go
+		Services\internal\payment\repository.go = Services\internal\payment\repository.go
+		Services\internal\payment\service.go = Services\internal\payment\service.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "profile", "profile", "{AED41A7D-E666-406E-A6B4-28A51B83E840}"
+	ProjectSection(SolutionItems) = preProject
+		Services\internal\profile\consumer.go = Services\internal\profile\consumer.go
+		Services\internal\profile\handler.go = Services\internal\profile\handler.go
+		Services\internal\profile\model.go = Services\internal\profile\model.go
+		Services\internal\profile\repository.go = Services\internal\profile\repository.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shop", "shop", "{D7479522-C088-4A2F-9DA4-9426549B92F0}"
+	ProjectSection(SolutionItems) = preProject
+		Services\internal\shop\handler.go = Services\internal\shop\handler.go
+		Services\internal\shop\model.go = Services\internal\shop\model.go
+		Services\internal\shop\repository.go = Services\internal\shop\repository.go
+		Services\internal\shop\service.go = Services\internal\shop\service.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "auth", "auth", "{9F025F86-C3BE-4688-858F-12AA2C756C5C}"
+	ProjectSection(SolutionItems) = preProject
+		Services\pkg\auth\jwt.go = Services\pkg\auth\jwt.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "cache", "cache", "{9866D6A8-8DB8-4161-BDDA-7E6629FA6E86}"
+	ProjectSection(SolutionItems) = preProject
+		Services\pkg\cache\redis.go = Services\pkg\cache\redis.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "config", "config", "{6E9C1EC1-EDD6-4F2E-BE8E-4A12FB702F62}"
+	ProjectSection(SolutionItems) = preProject
+		Services\pkg\config\config.go = Services\pkg\config\config.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "database", "database", "{3C3E02F8-53B1-4718-B4AA-426BA18DA090}"
+	ProjectSection(SolutionItems) = preProject
+		Services\pkg\database\postgres.go = Services\pkg\database\postgres.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "errors", "errors", "{9412A437-59A9-4DC0-A2FA-2A82E069C14F}"
+	ProjectSection(SolutionItems) = preProject
+		Services\pkg\errors\errors.go = Services\pkg\errors\errors.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "messaging", "messaging", "{4B013DE0-326D-4FA5-A623-6937A56852AC}"
+	ProjectSection(SolutionItems) = preProject
+		Services\pkg\messaging\kafka.go = Services\pkg\messaging\kafka.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "middleware", "middleware", "{1BA6B5F9-B34B-498C-A736-494B140733C3}"
+	ProjectSection(SolutionItems) = preProject
+		Services\pkg\middleware\auth.go = Services\pkg\middleware\auth.go
+		Services\pkg\middleware\logging.go = Services\pkg\middleware\logging.go
+		Services\pkg\middleware\recovery.go = Services\pkg\middleware\recovery.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "response", "response", "{5CB97A55-FF19-4FA8-8FDA-BFEEF9E3D25E}"
+	ProjectSection(SolutionItems) = preProject
+		Services\pkg\response\json.go = Services\pkg\response\json.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "00. GameSim", "00. GameSim", "{806C11A8-DF5B-413C-8C05-F2C107621C26}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "01. Network", "01. Network", "{0B1850B6-9746-4FA0-B92E-8A7F281BD54E}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\Network\PacketDef.h = Shared\Network\PacketDef.h
+		Shared\Network\PacketEnvelope.h = Shared\Network\PacketEnvelope.h
+		Shared\Network\SeqMath.h = Shared\Network\SeqMath.h
+		Shared\Network\UdpFragmentHeader.h = Shared\Network\UdpFragmentHeader.h
+		Shared\Network\UdpPacketHeader.h = Shared\Network\UdpPacketHeader.h
+		Shared\Network\UdpReliabilityChannel.h = Shared\Network\UdpReliabilityChannel.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "02. Schemas", "02. Schemas", "{00099134-BE46-49A6-8B67-A0C4D608B9DD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "03. Replay", "03. Replay", "{8540EB8C-BA65-4B7C-B1C5-C9F5FEC75A2F}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\Replay\ReplayFormat.h = Shared\Replay\ReplayFormat.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Champions", "Champions", "{13ECD341-CF11-4A6A-B3D3-31962C2A050F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", "{05EC2259-3FEC-4B54-87BF-E494DDF451FC}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Components\AnnieSimComponent.h = Shared\GameSim\Components\AnnieSimComponent.h
+		Shared\GameSim\Components\AreaAuraComponent.h = Shared\GameSim\Components\AreaAuraComponent.h
+		Shared\GameSim\Components\AsheSimComponent.h = Shared\GameSim\Components\AsheSimComponent.h
+		Shared\GameSim\Components\AttackChaseComponent.h = Shared\GameSim\Components\AttackChaseComponent.h
+		Shared\GameSim\Components\BuffComponent.h = Shared\GameSim\Components\BuffComponent.h
+		Shared\GameSim\Components\ChampionAIComponent.h = Shared\GameSim\Components\ChampionAIComponent.h
+		Shared\GameSim\Components\ChampionComponent.h = Shared\GameSim\Components\ChampionComponent.h
+		Shared\GameSim\Components\CombatActionComponent.h = Shared\GameSim\Components\CombatActionComponent.h
+		Shared\GameSim\Components\DamageRequestComponent.h = Shared\GameSim\Components\DamageRequestComponent.h
+		Shared\GameSim\Components\FioraSimComponent.h = Shared\GameSim\Components\FioraSimComponent.h
+		Shared\GameSim\Components\FormOverrideComponent.h = Shared\GameSim\Components\FormOverrideComponent.h
+		Shared\GameSim\Components\GoldComponent.h = Shared\GameSim\Components\GoldComponent.h
+		Shared\GameSim\Components\HealthComponent.h = Shared\GameSim\Components\HealthComponent.h
+		Shared\GameSim\Components\InventoryComponent.h = Shared\GameSim\Components\InventoryComponent.h
+		Shared\GameSim\Components\IreliaSimComponent.h = Shared\GameSim\Components\IreliaSimComponent.h
+		Shared\GameSim\Components\JaxSimComponent.h = Shared\GameSim\Components\JaxSimComponent.h
+		Shared\GameSim\Components\KalistaPassiveDashComponent.h = Shared\GameSim\Components\KalistaPassiveDashComponent.h
+		Shared\GameSim\Components\KindredSimComponent.h = Shared\GameSim\Components\KindredSimComponent.h
+		Shared\GameSim\Components\LeeSinSimComponent.h = Shared\GameSim\Components\LeeSinSimComponent.h
+		Shared\GameSim\Components\ManaComponent.h = Shared\GameSim\Components\ManaComponent.h
+		Shared\GameSim\Components\MasterYiComponent.h = Shared\GameSim\Components\MasterYiComponent.h
+		Shared\GameSim\Components\MoveTargetComponent.h = Shared\GameSim\Components\MoveTargetComponent.h
+		Shared\GameSim\Components\NetAnimationComponent.h = Shared\GameSim\Components\NetAnimationComponent.h
+		Shared\GameSim\Components\NetEntityIdComponent.h = Shared\GameSim\Components\NetEntityIdComponent.h
+		Shared\GameSim\Components\PendingHitComponent.h = Shared\GameSim\Components\PendingHitComponent.h
+		Shared\GameSim\Components\ProjectileKindComponent.h = Shared\GameSim\Components\ProjectileKindComponent.h
+		Shared\GameSim\Components\RecallComponent.h = Shared\GameSim\Components\RecallComponent.h
+		Shared\GameSim\Components\ReplicatedEventComponent.h = Shared\GameSim\Components\ReplicatedEventComponent.h
+		Shared\GameSim\Components\ReplicatedStateComponent.h = Shared\GameSim\Components\ReplicatedStateComponent.h
+		Shared\GameSim\Components\RespawnComponent.h = Shared\GameSim\Components\RespawnComponent.h
+		Shared\GameSim\Components\ShadowCloneComponent.h = Shared\GameSim\Components\ShadowCloneComponent.h
+		Shared\GameSim\Components\SkillProjectileComponent.h = Shared\GameSim\Components\SkillProjectileComponent.h
+		Shared\GameSim\Components\SkillRankComponent.h = Shared\GameSim\Components\SkillRankComponent.h
+		Shared\GameSim\Components\SkillStateComponent.h = Shared\GameSim\Components\SkillStateComponent.h
+		Shared\GameSim\Components\SpellbookOverrideComponent.h = Shared\GameSim\Components\SpellbookOverrideComponent.h
+		Shared\GameSim\Components\StatComponent.h = Shared\GameSim\Components\StatComponent.h
+		Shared\GameSim\Components\ViegoSimComponent.h = Shared\GameSim\Components\ViegoSimComponent.h
+		Shared\GameSim\Components\ViegoSoulComponent.h = Shared\GameSim\Components\ViegoSoulComponent.h
+		Shared\GameSim\Components\WaypointPatrolComponent.h = Shared\GameSim\Components\WaypointPatrolComponent.h
+		Shared\GameSim\Components\YoneSimComponent.h = Shared\GameSim\Components\YoneSimComponent.h
+		Shared\GameSim\Components\ZedSimComponent.h = Shared\GameSim\Components\ZedSimComponent.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Core", "Core", "{CDB198B1-2FBC-4747-B963-8344EDA4B6DC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Definitions", "Definitions", "{4F905DC4-C4CA-4AD0-840A-82A098F6A642}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Definitions\ChampionDef.h = Shared\GameSim\Definitions\ChampionDef.h
+		Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp = Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp
+		Shared\GameSim\Definitions\ChampionRuntimeDefaults.h = Shared\GameSim\Definitions\ChampionRuntimeDefaults.h
+		Shared\GameSim\Definitions\ChampionStatsDef.h = Shared\GameSim\Definitions\ChampionStatsDef.h
+		Shared\GameSim\Definitions\ExperienceDef.h = Shared\GameSim\Definitions\ExperienceDef.h
+		Shared\GameSim\Definitions\GoldRewardDef.h = Shared\GameSim\Definitions\GoldRewardDef.h
+		Shared\GameSim\Definitions\ItemDef.h = Shared\GameSim\Definitions\ItemDef.h
+		Shared\GameSim\Definitions\MapDataFormats.h = Shared\GameSim\Definitions\MapDataFormats.h
+		Shared\GameSim\Definitions\MapSpawnPoints.cpp = Shared\GameSim\Definitions\MapSpawnPoints.cpp
+		Shared\GameSim\Definitions\MapSpawnPoints.h = Shared\GameSim\Definitions\MapSpawnPoints.h
+		Shared\GameSim\Definitions\ReplicatedStateComponent.h = Shared\GameSim\Definitions\ReplicatedStateComponent.h
+		Shared\GameSim\Definitions\SkillDef.h = Shared\GameSim\Definitions\SkillDef.h
+		Shared\GameSim\Definitions\SkillScalingTable.h = Shared\GameSim\Definitions\SkillScalingTable.h
+		Shared\GameSim\Definitions\SkinDef.h = Shared\GameSim\Definitions\SkinDef.h
+		Shared\GameSim\Definitions\SnapshotStateFlags.h = Shared\GameSim\Definitions\SnapshotStateFlags.h
+		Shared\GameSim\Definitions\StageData.h = Shared\GameSim\Definitions\StageData.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Registries", "Registries", "{05BA66B6-583E-47F6-B91F-DBBDB41C5AB3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Replication", "Replication", "{42F2CDEC-BC40-4170-83DB-5D6FE0A69DF8}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Replication\EntityIdMap.h = Shared\GameSim\Replication\EntityIdMap.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Systems", "Systems", "{6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Annie", "Annie", "{AE3F9EF4-EB42-422D-AD38-E39AF93E4994}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Annie\AnnieGameSim.cpp = Shared\GameSim\Champions\Annie\AnnieGameSim.cpp
+		Shared\GameSim\Champions\Annie\AnnieGameSim.h = Shared\GameSim\Champions\Annie\AnnieGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ashe", "Ashe", "{A03E8CA5-CDE2-405C-82A1-358D777E8530}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Ashe\AsheGameSim.cpp = Shared\GameSim\Champions\Ashe\AsheGameSim.cpp
+		Shared\GameSim\Champions\Ashe\AsheGameSim.h = Shared\GameSim\Champions\Ashe\AsheGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Fiora", "Fiora", "{5F248D44-DB8F-49A7-92DF-5DD418A99370}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Fiora\FioraGameSim.cpp = Shared\GameSim\Champions\Fiora\FioraGameSim.cpp
+		Shared\GameSim\Champions\Fiora\FioraGameSim.h = Shared\GameSim\Champions\Fiora\FioraGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Irelia", "Irelia", "{33020369-B135-4DE2-84C6-C33B7B5C88DF}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp = Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp
+		Shared\GameSim\Champions\Irelia\IreliaGameSim.h = Shared\GameSim\Champions\Irelia\IreliaGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jax", "Jax", "{F8DDDF20-303F-4276-8EEA-9E0EEAA571FB}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Jax\JaxGameSim.cpp = Shared\GameSim\Champions\Jax\JaxGameSim.cpp
+		Shared\GameSim\Champions\Jax\JaxGameSim.h = Shared\GameSim\Champions\Jax\JaxGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Kindred", "Kindred", "{E119E829-5CBF-4539-9E75-0C47BA9AB8BA}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Kindred\KindredGameSim.cpp = Shared\GameSim\Champions\Kindred\KindredGameSim.cpp
+		Shared\GameSim\Champions\Kindred\KindredGameSim.h = Shared\GameSim\Champions\Kindred\KindredGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LeeSin", "LeeSin", "{22A1ED23-8D07-4AA5-99FA-D4F1A6E99A92}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp = Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp
+		Shared\GameSim\Champions\LeeSin\LeeSinGameSim.h = Shared\GameSim\Champions\LeeSin\LeeSinGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MasterYi", "MasterYi", "{3A209BCB-3FA1-486B-A08B-B95498EB0431}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp = Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp
+		Shared\GameSim\Champions\MasterYi\MasterYiGameSim.h = Shared\GameSim\Champions\MasterYi\MasterYiGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sylas", "Sylas", "{0867A266-84FB-4A9E-8C1B-B4115CB5BD0C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Viego", "Viego", "{6A7D9754-4BF5-406E-B7C6-2B73001D2E1E}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Viego\ViegoGameSim.cpp = Shared\GameSim\Champions\Viego\ViegoGameSim.cpp
+		Shared\GameSim\Champions\Viego\ViegoGameSim.h = Shared\GameSim\Champions\Viego\ViegoGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Yasuo", "Yasuo", "{F559E669-E58E-41F4-8312-7600303382D2}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp = Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp
+		Shared\GameSim\Champions\Yasuo\YasuoGameSim.h = Shared\GameSim\Champions\Yasuo\YasuoGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Yone", "Yone", "{AE9E8F99-9E1A-4BC9-86CA-29EE32B7C33B}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Yone\YoneGameSim.cpp = Shared\GameSim\Champions\Yone\YoneGameSim.cpp
+		Shared\GameSim\Champions\Yone\YoneGameSim.h = Shared\GameSim\Champions\Yone\YoneGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Zed", "Zed", "{82C5E358-3501-4506-9871-5D6C5811A534}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Zed\ZedGameSim.cpp = Shared\GameSim\Champions\Zed\ZedGameSim.cpp
+		Shared\GameSim\Champions\Zed\ZedGameSim.h = Shared\GameSim\Champions\Zed\ZedGameSim.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Determinism", "Determinism", "{8E117452-96E4-4154-B101-7C062CD64A09}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Core\Determinism\DeterministicRng.h = Shared\GameSim\Core\Determinism\DeterministicRng.h
+		Shared\GameSim\Core\Determinism\DeterministicTime.h = Shared\GameSim\Core\Determinism\DeterministicTime.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "World", "World", "{22F2117C-5815-4A02-BC79-1D5EAA77C76E}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Core\World\World.h = Shared\GameSim\Core\World\World.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Skin", "Skin", "{166E189C-2061-4D93-B988-BA29A14F2AFE}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Registries\Skin\SkinRegistry.cpp = Shared\GameSim\Registries\Skin\SkinRegistry.cpp
+		Shared\GameSim\Registries\Skin\SkinRegistry.h = Shared\GameSim\Registries\Skin\SkinRegistry.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SkillScaling", "SkillScaling", "{F682ED9D-3798-4ED8-97CC-F16D1F077495}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp = Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp
+		Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.h = Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Reward", "Reward", "{6014160F-6023-471F-A5EF-3C09C29E1449}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Registries\Reward\RewardRegistry.cpp = Shared\GameSim\Registries\Reward\RewardRegistry.cpp
+		Shared\GameSim\Registries\Reward\RewardRegistry.h = Shared\GameSim\Registries\Reward\RewardRegistry.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ChampionStats", "ChampionStats", "{03DE27AD-DF37-446F-A955-C26C85C3FF2E}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp = Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp
+		Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.h = Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AreaAura", "AreaAura", "{551CD22D-4B62-42F0-9584-A0E49FA32705}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp = Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp
+		Shared\GameSim\Systems\AreaAura\AreaAuraSystem.h = Shared\GameSim\Systems\AreaAura\AreaAuraSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AttackChase", "AttackChase", "{0918B200-E228-42D4-8437-ED246654FDB3}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp = Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp
+		Shared\GameSim\Systems\AttackChase\AttackChaseSystem.h = Shared\GameSim\Systems\AttackChase\AttackChaseSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Buff", "Buff", "{4F39C5FB-6E9E-411B-AA95-4CEA8FE5FD75}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\Buff\BuffSystem.cpp = Shared\GameSim\Systems\Buff\BuffSystem.cpp
+		Shared\GameSim\Systems\Buff\BuffSystem.h = Shared\GameSim\Systems\Buff\BuffSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ChampionAI", "ChampionAI", "{2AB78A16-0E15-4232-9E27-9C8AF4E3DA3D}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp = Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp
+		Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.h = Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.h
+		Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp = Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp
+		Shared\GameSim\Systems\ChampionAI\ChampionAISystem.h = Shared\GameSim\Systems\ChampionAI\ChampionAISystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Combat", "Combat", "{E91E5808-6047-4E62-9A20-922C650EB6B7}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\Combat\CombatActionSystem.cpp = Shared\GameSim\Systems\Combat\CombatActionSystem.cpp
+		Shared\GameSim\Systems\Combat\CombatActionSystem.h = Shared\GameSim\Systems\Combat\CombatActionSystem.h
+		Shared\GameSim\Systems\Combat\CombatFormula.cpp = Shared\GameSim\Systems\Combat\CombatFormula.cpp
+		Shared\GameSim\Systems\Combat\CombatFormula.h = Shared\GameSim\Systems\Combat\CombatFormula.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CommandExecutor", "CommandExecutor", "{B1C0F1D5-2491-4B4E-9CBE-26C1AA4B0B6F}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp = Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp
+		Shared\GameSim\Systems\CommandExecutor\ICommandExecutor.h = Shared\GameSim\Systems\CommandExecutor\ICommandExecutor.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Damage", "Damage", "{0C4B26F5-E83F-4E6C-A337-540A2E00C7DA}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\Damage\Damage.h = Shared\GameSim\Systems\Damage\Damage.h
+		Shared\GameSim\Systems\Damage\DamagePipeline.cpp = Shared\GameSim\Systems\Damage\DamagePipeline.cpp
+		Shared\GameSim\Systems\Damage\DamagePipeline.h = Shared\GameSim\Systems\Damage\DamagePipeline.h
+		Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp = Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp
+		Shared\GameSim\Systems\Damage\DamageQueueSystem.h = Shared\GameSim\Systems\Damage\DamageQueueSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Death", "Death", "{4C5FC208-1E01-490B-8EB7-FF85514800EC}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\Death\DeathSystem.cpp = Shared\GameSim\Systems\Death\DeathSystem.cpp
+		Shared\GameSim\Systems\Death\DeathSystem.h = Shared\GameSim\Systems\Death\DeathSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DeterministicEntityIterator", "DeterministicEntityIterator", "{D5CA0503-AE26-4700-9047-39958DA3C007}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\DeterministicEntityIterator\DeterministicEntityIterator.h = Shared\GameSim\Systems\DeterministicEntityIterator\DeterministicEntityIterator.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Experience", "Experience", "{75330920-A19C-400E-8396-0FEF3AF21859}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\Experience\ExperienceSystem.cpp = Shared\GameSim\Systems\Experience\ExperienceSystem.cpp
+		Shared\GameSim\Systems\Experience\ExperienceSystem.h = Shared\GameSim\Systems\Experience\ExperienceSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GameplayHookRegistry", "GameplayHookRegistry", "{B336A1F0-56E6-42A9-B744-B119C2058149}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp = Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp
+		Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.h = Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GameplayStateQuery", "GameplayStateQuery", "{78ACCCD4-3BEF-4B97-BB6D-1D23FD7BFF47}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp = Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp
+		Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.h = Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Move", "Move", "{56DDDCDC-C822-4439-B9F8-B39B04BAFF39}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\Move\MoveSystem.cpp = Shared\GameSim\Systems\Move\MoveSystem.cpp
+		Shared\GameSim\Systems\Move\MoveSystem.h = Shared\GameSim\Systems\Move\MoveSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PendingHit", "PendingHit", "{1F6A4245-5552-45EE-8D20-3E3F0FCA8113}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\PendingHit\PendingHitSystem.h = Shared\GameSim\Systems\PendingHit\PendingHitSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Recall", "Recall", "{EF00D3F8-F885-4EC6-89D4-6A61DA9D6BAE}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\Recall\RecallSystem.cpp = Shared\GameSim\Systems\Recall\RecallSystem.cpp
+		Shared\GameSim\Systems\Recall\RecallSystem.h = Shared\GameSim\Systems\Recall\RecallSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ReplicatedEventQueue", "ReplicatedEventQueue", "{49A1852B-86AD-423E-924B-DDCD1959FF51}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\ReplicatedEventQueue\ReplicatedEventQueue.h = Shared\GameSim\Systems\ReplicatedEventQueue\ReplicatedEventQueue.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ReplicatedEventSerializer", "ReplicatedEventSerializer", "{AD6F8709-AD7B-4CAB-93E5-3E2900A38A2A}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp = Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp
+		Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.h = Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SkillCooldown", "SkillCooldown", "{F3953126-6F54-4F7C-AB87-D870D839D1A8}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp = Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp
+		Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.h = Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SkillRank", "SkillRank", "{1B209F33-BF95-4CAB-9E0C-AEB748530A04}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp = Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp
+		Shared\GameSim\Systems\SkillRank\SkillRankSystem.h = Shared\GameSim\Systems\SkillRank\SkillRankSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SpellbookFormOverride", "SpellbookFormOverride", "{34006214-465F-44D7-8831-590662AC5E37}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp = Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp
+		Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.h = Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Stat", "Stat", "{38CC4E24-E2FD-4ACD-9FA6-759E098E99E8}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\Stat\StatSystem.cpp = Shared\GameSim\Systems\Stat\StatSystem.cpp
+		Shared\GameSim\Systems\Stat\StatSystem.h = Shared\GameSim\Systems\Stat\StatSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StatusEffect", "StatusEffect", "{3E6E5B5A-CF4B-4374-8AD6-DB109579B646}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp = Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp
+		Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.h = Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WaypointPatrol", "WaypointPatrol", "{62FD9F7E-EB37-44FE-8B0F-606E4E00456F}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp = Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp
+		Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.h = Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "fbs", "fbs", "{05C6E8EF-F5F6-42A3-8CE7-41AE38562559}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\Schemas\Command.fbs = Shared\Schemas\Command.fbs
+		Shared\Schemas\Event.fbs = Shared\Schemas\Event.fbs
+		Shared\Schemas\Hello.fbs = Shared\Schemas\Hello.fbs
+		Shared\Schemas\LobbyCommand.fbs = Shared\Schemas\LobbyCommand.fbs
+		Shared\Schemas\LobbyState.fbs = Shared\Schemas\LobbyState.fbs
+		Shared\Schemas\LobbyTypes.fbs = Shared\Schemas\LobbyTypes.fbs
+		Shared\Schemas\run_codegen.bat = Shared\Schemas\run_codegen.bat
+		Shared\Schemas\Snapshot.fbs = Shared\Schemas\Snapshot.fbs
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Generated", "Generated", "{6C861CF7-297A-45F4-9702-5234BB296E9E}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "cpp", "cpp", "{0F7E16EC-83BC-418E-AB36-17117D769535}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\Schemas\Generated\cpp\Command_generated.h = Shared\Schemas\Generated\cpp\Command_generated.h
+		Shared\Schemas\Generated\cpp\Event_generated.h = Shared\Schemas\Generated\cpp\Event_generated.h
+		Shared\Schemas\Generated\cpp\Hello_generated.h = Shared\Schemas\Generated\cpp\Hello_generated.h
+		Shared\Schemas\Generated\cpp\LobbyCommand_generated.h = Shared\Schemas\Generated\cpp\LobbyCommand_generated.h
+		Shared\Schemas\Generated\cpp\LobbyState_generated.h = Shared\Schemas\Generated\cpp\LobbyState_generated.h
+		Shared\Schemas\Generated\cpp\LobbyTypes_generated.h = Shared\Schemas\Generated\cpp\LobbyTypes_generated.h
+		Shared\Schemas\Generated\cpp\Snapshot_generated.h = Shared\Schemas\Generated\cpp\Snapshot_generated.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "go", "go", "{1229A03B-2868-4DC9-AD5E-B601B4C5ED80}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\Schemas\Generated\go\AnimationStartEvent.go = Shared\Schemas\Generated\go\AnimationStartEvent.go
+		Shared\Schemas\Generated\go\BuffApplyEvent.go = Shared\Schemas\Generated\go\BuffApplyEvent.go
+		Shared\Schemas\Generated\go\CommandBatch.go = Shared\Schemas\Generated\go\CommandBatch.go
+		Shared\Schemas\Generated\go\CommandKind.go = Shared\Schemas\Generated\go\CommandKind.go
+		Shared\Schemas\Generated\go\CommandPacket.go = Shared\Schemas\Generated\go\CommandPacket.go
+		Shared\Schemas\Generated\go\DamageEvent.go = Shared\Schemas\Generated\go\DamageEvent.go
+		Shared\Schemas\Generated\go\EffectTriggerEvent.go = Shared\Schemas\Generated\go\EffectTriggerEvent.go
+		Shared\Schemas\Generated\go\EntityKind.go = Shared\Schemas\Generated\go\EntityKind.go
+		Shared\Schemas\Generated\go\EntitySnapshot.go = Shared\Schemas\Generated\go\EntitySnapshot.go
+		Shared\Schemas\Generated\go\EventKind.go = Shared\Schemas\Generated\go\EventKind.go
+		Shared\Schemas\Generated\go\EventPacket.go = Shared\Schemas\Generated\go\EventPacket.go
+		Shared\Schemas\Generated\go\Hello.go = Shared\Schemas\Generated\go\Hello.go
+		Shared\Schemas\Generated\go\LobbyCommand.go = Shared\Schemas\Generated\go\LobbyCommand.go
+		Shared\Schemas\Generated\go\LobbyCommandKind.go = Shared\Schemas\Generated\go\LobbyCommandKind.go
+		Shared\Schemas\Generated\go\LobbyPhase.go = Shared\Schemas\Generated\go\LobbyPhase.go
+		Shared\Schemas\Generated\go\LobbySeatKind.go = Shared\Schemas\Generated\go\LobbySeatKind.go
+		Shared\Schemas\Generated\go\LobbySlot.go = Shared\Schemas\Generated\go\LobbySlot.go
+		Shared\Schemas\Generated\go\LobbyState.go = Shared\Schemas\Generated\go\LobbyState.go
+		Shared\Schemas\Generated\go\ProjectileHitEvent.go = Shared\Schemas\Generated\go\ProjectileHitEvent.go
+		Shared\Schemas\Generated\go\ProjectileSpawnEvent.go = Shared\Schemas\Generated\go\ProjectileSpawnEvent.go
+		Shared\Schemas\Generated\go\SkillCastEvent.go = Shared\Schemas\Generated\go\SkillCastEvent.go
+		Shared\Schemas\Generated\go\Snapshot.go = Shared\Schemas\Generated\go\Snapshot.go
+		Shared\Schemas\Generated\go\Vec3.go = Shared\Schemas\Generated\go\Vec3.go
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".md", ".md", "{9DBF8F1D-1D1C-4B70-A359-58B340896E0D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Object", "Object", "{E00D437A-6CD0-47CA-AD0B-52197056C941}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Turret", "Turret", "{EF71E2CD-B3F6-4333-9425-CBD96364AF9A}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Object\Turret\attack_red.wfx = Data\LoL\FX\Object\Turret\attack_red.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Ezreal", "Ezreal", "{D0AF29E4-E043-450C-9901-C7741DA2F072}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Ezreal\ba_cast.wfx = Data\LoL\FX\Champions\Ezreal\ba_cast.wfx
+		Data\LoL\FX\Champions\Ezreal\ba_projectile.wfx = Data\LoL\FX\Champions\Ezreal\ba_projectile.wfx
+		Data\LoL\FX\Champions\Ezreal\e_blink_flash.wfx = Data\LoL\FX\Champions\Ezreal\e_blink_flash.wfx
+		Data\LoL\FX\Champions\Ezreal\q_cast.wfx = Data\LoL\FX\Champions\Ezreal\q_cast.wfx
+		Data\LoL\FX\Champions\Ezreal\q_projectile.wfx = Data\LoL\FX\Champions\Ezreal\q_projectile.wfx
+		Data\LoL\FX\Champions\Ezreal\r_cast.wfx = Data\LoL\FX\Champions\Ezreal\r_cast.wfx
+		Data\LoL\FX\Champions\Ezreal\r_missile.wfx = Data\LoL\FX\Champions\Ezreal\r_missile.wfx
+		Data\LoL\FX\Champions\Ezreal\w_cast.wfx = Data\LoL\FX\Champions\Ezreal\w_cast.wfx
+		Data\LoL\FX\Champions\Ezreal\w_projectile.wfx = Data\LoL\FX\Champions\Ezreal\w_projectile.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Jax", "Jax", "{93C6CB39-427F-454F-A57C-82D2D4F0A0AE}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Jax\ba_hit.wfx = Data\LoL\FX\Champions\Jax\ba_hit.wfx
+		Data\LoL\FX\Champions\Jax\e_counter.wfx = Data\LoL\FX\Champions\Jax\e_counter.wfx
+		Data\LoL\FX\Champions\Jax\q_leap.wfx = Data\LoL\FX\Champions\Jax\q_leap.wfx
+		Data\LoL\FX\Champions\Jax\r_aura.wfx = Data\LoL\FX\Champions\Jax\r_aura.wfx
+		Data\LoL\FX\Champions\Jax\r_third_hit.wfx = Data\LoL\FX\Champions\Jax\r_third_hit.wfx
+		Data\LoL\FX\Champions\Jax\w_empower.wfx = Data\LoL\FX\Champions\Jax\w_empower.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Riven", "Riven", "{9E79715F-32BD-4E24-A3C2-043022FE17FB}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Riven\Riven_E_Shield.wfx = Data\LoL\FX\Champions\Riven\Riven_E_Shield.wfx
+		Data\LoL\FX\Champions\Riven\Riven_Q_SlashA.wfx = Data\LoL\FX\Champions\Riven\Riven_Q_SlashA.wfx
+		Data\LoL\FX\Champions\Riven\Riven_Q_SlashB.wfx = Data\LoL\FX\Champions\Riven\Riven_Q_SlashB.wfx
+		Data\LoL\FX\Champions\Riven\Riven_Q_SlashC.wfx = Data\LoL\FX\Champions\Riven\Riven_Q_SlashC.wfx
+		Data\LoL\FX\Champions\Riven\Riven_R_Activate.wfx = Data\LoL\FX\Champions\Riven\Riven_R_Activate.wfx
+		Data\LoL\FX\Champions\Riven\Riven_R_WindSlash.wfx = Data\LoL\FX\Champions\Riven\Riven_R_WindSlash.wfx
+		Data\LoL\FX\Champions\Riven\Riven_W_Nova.wfx = Data\LoL\FX\Champions\Riven\Riven_W_Nova.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sylas", "Sylas", "{25ABF2C4-B65E-44B9-8C02-40C7B8416075}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Sylas\e1_dash.wfx = Data\LoL\FX\Champions\Sylas\e1_dash.wfx
+		Data\LoL\FX\Champions\Sylas\e2_chain.wfx = Data\LoL\FX\Champions\Sylas\e2_chain.wfx
+		Data\LoL\FX\Champions\Sylas\q_cast.wfx = Data\LoL\FX\Champions\Sylas\q_cast.wfx
+		Data\LoL\FX\Champions\Sylas\q_explosion.wfx = Data\LoL\FX\Champions\Sylas\q_explosion.wfx
+		Data\LoL\FX\Champions\Sylas\r_cast.wfx = Data\LoL\FX\Champions\Sylas\r_cast.wfx
+		Data\LoL\FX\Champions\Sylas\w_cast.wfx = Data\LoL\FX\Champions\Sylas\w_cast.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Viego", "Viego", "{394FDF2C-BE05-4167-9FA3-300AA0E67DEE}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Viego\ba_hit.wfx = Data\LoL\FX\Champions\Viego\ba_hit.wfx
+		Data\LoL\FX\Champions\Viego\e_body_glow.wfx = Data\LoL\FX\Champions\Viego\e_body_glow.wfx
+		Data\LoL\FX\Champions\Viego\e_mist.wfx = Data\LoL\FX\Champions\Viego\e_mist.wfx
+		Data\LoL\FX\Champions\Viego\q_slash.wfx = Data\LoL\FX\Champions\Viego\q_slash.wfx
+		Data\LoL\FX\Champions\Viego\r_impact.wfx = Data\LoL\FX\Champions\Viego\r_impact.wfx
+		Data\LoL\FX\Champions\Viego\soul_idle.wfx = Data\LoL\FX\Champions\Viego\soul_idle.wfx
+		Data\LoL\FX\Champions\Viego\w_cast.wfx = Data\LoL\FX\Champions\Viego\w_cast.wfx
+		Data\LoL\FX\Champions\Viego\w_missile.wfx = Data\LoL\FX\Champions\Viego\w_missile.wfx
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Yone", "Yone", "{E15FD410-97D3-42F5-91DC-F85795CB42EB}"
+	ProjectSection(SolutionItems) = preProject
+		Data\LoL\FX\Champions\Yone\basic_attack_impact.wfx = Data\LoL\FX\Champions\Yone\basic_attack_impact.wfx
+		Data\LoL\FX\Champions\Yone\e_soul_out.wfx = Data\LoL\FX\Champions\Yone\e_soul_out.wfx
+		Data\LoL\FX\Champions\Yone\e_soul_return.wfx = Data\LoL\FX\Champions\Yone\e_soul_return.wfx
+		Data\LoL\FX\Champions\Yone\q_mortal_steel.wfx = Data\LoL\FX\Champions\Yone\q_mortal_steel.wfx
+		Data\LoL\FX\Champions\Yone\r_fate_sealed.wfx = Data\LoL\FX\Champions\Yone\r_fate_sealed.wfx
+		Data\LoL\FX\Champions\Yone\w_spirit_cleave.wfx = Data\LoL\FX\Champions\Yone\w_spirit_cleave.wfx
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E1111111-1111-1111-1111-111111111111}.Debug|x64.ActiveCfg = Debug|x64
+		{E1111111-1111-1111-1111-111111111111}.Debug|x64.Build.0 = Debug|x64
+		{E1111111-1111-1111-1111-111111111111}.Release|x64.ActiveCfg = Release|x64
+		{E1111111-1111-1111-1111-111111111111}.Release|x64.Build.0 = Release|x64
+		{E3333333-3333-3333-3333-333333333333}.Debug|x64.ActiveCfg = Debug|x64
+		{E3333333-3333-3333-3333-333333333333}.Debug|x64.Build.0 = Debug|x64
+		{E3333333-3333-3333-3333-333333333333}.Release|x64.ActiveCfg = Release|x64
+		{E3333333-3333-3333-3333-333333333333}.Release|x64.Build.0 = Release|x64
+		{E2222222-2222-2222-2222-222222222222}.Debug|x64.ActiveCfg = Debug|x64
+		{E2222222-2222-2222-2222-222222222222}.Debug|x64.Build.0 = Debug|x64
+		{E2222222-2222-2222-2222-222222222222}.Release|x64.ActiveCfg = Release|x64
+		{E2222222-2222-2222-2222-222222222222}.Release|x64.Build.0 = Release|x64
+		{E4444444-4444-4444-4444-444444444444}.Debug|x64.ActiveCfg = Debug|x64
+		{E4444444-4444-4444-4444-444444444444}.Debug|x64.Build.0 = Debug|x64
+		{E4444444-4444-4444-4444-444444444444}.Release|x64.ActiveCfg = Release|x64
+		{E4444444-4444-4444-4444-444444444444}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E1111111-1111-1111-1111-111111111111} = {714DA86A-C28B-4E2D-922B-DE1401D65EE6}
+		{E3333333-3333-3333-3333-333333333333} = {493D8C81-95B3-4FA4-9F5D-48F5BC4FFFEA}
+		{E2222222-2222-2222-2222-222222222222} = {47D997FB-CC45-4BF1-B5C3-19AA54710538}
+		{E4444444-4444-4444-4444-444444444444} = {0069B82D-6E7C-4A6F-8358-1871662EB04B}
+		{6BD33D7C-19DD-407C-9D57-7B78ABEA32C7} = {0AF5F75E-1F98-4A52-A35B-56DCB8088B8F}
+		{ABC2A6EB-8D75-41F0-8E6C-E61CD10BF4CD} = {0AF5F75E-1F98-4A52-A35B-56DCB8088B8F}
+		{BE809654-25AB-42B9-9F1C-8BF987F16953} = {9492FF71-3DCA-47B6-A843-ACE3ACE5F04B}
+		{B239E73D-5196-471E-B8A7-25E004352597} = {9492FF71-3DCA-47B6-A843-ACE3ACE5F04B}
+		{37C96FC6-EC1D-47C5-B65D-C1CEA0152025} = {B239E73D-5196-471E-B8A7-25E004352597}
+		{4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3} = {37C96FC6-EC1D-47C5-B65D-C1CEA0152025}
+		{4B830571-C8C7-4E4E-9829-AF53D3E8E7E7} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{92AA81FE-5FCE-4609-91E6-254FF9E6FCBB} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{622CB6ED-B02D-4E66-BA3F-B18931711C7F} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{783C97AA-BAAF-4A2D-9F3F-A8B2C368F265} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{5E7AE59C-C537-4884-9960-68B690D53C1A} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{E8B0093C-86AB-4D08-829B-4D27AD2358DA} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{72FE98F4-5D35-4EA3-A9F4-A7CCFD0FD55D} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{E217AF21-A6DF-4CE8-AFB6-40D862A1813B} = {BE6E9998-E0F5-44D9-A934-6251EE9C64A9}
+		{F698BD6D-56FA-47EB-A05A-A0003723314B} = {BE6E9998-E0F5-44D9-A934-6251EE9C64A9}
+		{99DF0D5B-E9CA-4071-BBF4-FCE327198FF7} = {BE6E9998-E0F5-44D9-A934-6251EE9C64A9}
+		{ED527203-5DBA-41FA-84FA-397B04E3AA97} = {BE6E9998-E0F5-44D9-A934-6251EE9C64A9}
+		{BB7E93CE-8F29-4255-98B3-E2011D5A6E28} = {E217AF21-A6DF-4CE8-AFB6-40D862A1813B}
+		{424919F3-8C14-4A5B-9E9F-4174FA35926E} = {E217AF21-A6DF-4CE8-AFB6-40D862A1813B}
+		{38B47E5B-E930-4733-8F42-9E3C3D4D9CEB} = {E217AF21-A6DF-4CE8-AFB6-40D862A1813B}
+		{A1419902-3A7A-4C8C-B6D8-939EF4BEC5AE} = {E217AF21-A6DF-4CE8-AFB6-40D862A1813B}
+		{65B392F7-BB56-482B-AE33-5C2C3BCFC2C1} = {E217AF21-A6DF-4CE8-AFB6-40D862A1813B}
+		{3DDF549F-A863-44F0-B2C6-9CC99F4B6428} = {E217AF21-A6DF-4CE8-AFB6-40D862A1813B}
+		{64A9C397-A29E-4A2E-B537-6BDDC80220CA} = {F698BD6D-56FA-47EB-A05A-A0003723314B}
+		{08BCC4BD-968A-4BCE-A8C3-062B465A2BE3} = {F698BD6D-56FA-47EB-A05A-A0003723314B}
+		{3F00BB8F-5ABC-4FE9-B1E7-ADE4EB05F285} = {F698BD6D-56FA-47EB-A05A-A0003723314B}
+		{42FD924C-2543-497B-B69A-7CC44D183736} = {F698BD6D-56FA-47EB-A05A-A0003723314B}
+		{AED41A7D-E666-406E-A6B4-28A51B83E840} = {F698BD6D-56FA-47EB-A05A-A0003723314B}
+		{D7479522-C088-4A2F-9DA4-9426549B92F0} = {F698BD6D-56FA-47EB-A05A-A0003723314B}
+		{9F025F86-C3BE-4688-858F-12AA2C756C5C} = {ED527203-5DBA-41FA-84FA-397B04E3AA97}
+		{9866D6A8-8DB8-4161-BDDA-7E6629FA6E86} = {ED527203-5DBA-41FA-84FA-397B04E3AA97}
+		{6E9C1EC1-EDD6-4F2E-BE8E-4A12FB702F62} = {ED527203-5DBA-41FA-84FA-397B04E3AA97}
+		{3C3E02F8-53B1-4718-B4AA-426BA18DA090} = {ED527203-5DBA-41FA-84FA-397B04E3AA97}
+		{9412A437-59A9-4DC0-A2FA-2A82E069C14F} = {ED527203-5DBA-41FA-84FA-397B04E3AA97}
+		{4B013DE0-326D-4FA5-A623-6937A56852AC} = {ED527203-5DBA-41FA-84FA-397B04E3AA97}
+		{1BA6B5F9-B34B-498C-A736-494B140733C3} = {ED527203-5DBA-41FA-84FA-397B04E3AA97}
+		{5CB97A55-FF19-4FA8-8FDA-BFEEF9E3D25E} = {ED527203-5DBA-41FA-84FA-397B04E3AA97}
+		{806C11A8-DF5B-413C-8C05-F2C107621C26} = {AD60FBA8-A423-4511-AD7E-9B738D30970C}
+		{0B1850B6-9746-4FA0-B92E-8A7F281BD54E} = {AD60FBA8-A423-4511-AD7E-9B738D30970C}
+		{00099134-BE46-49A6-8B67-A0C4D608B9DD} = {AD60FBA8-A423-4511-AD7E-9B738D30970C}
+		{8540EB8C-BA65-4B7C-B1C5-C9F5FEC75A2F} = {AD60FBA8-A423-4511-AD7E-9B738D30970C}
+		{13ECD341-CF11-4A6A-B3D3-31962C2A050F} = {806C11A8-DF5B-413C-8C05-F2C107621C26}
+		{05EC2259-3FEC-4B54-87BF-E494DDF451FC} = {806C11A8-DF5B-413C-8C05-F2C107621C26}
+		{CDB198B1-2FBC-4747-B963-8344EDA4B6DC} = {806C11A8-DF5B-413C-8C05-F2C107621C26}
+		{4F905DC4-C4CA-4AD0-840A-82A098F6A642} = {806C11A8-DF5B-413C-8C05-F2C107621C26}
+		{05BA66B6-583E-47F6-B91F-DBBDB41C5AB3} = {806C11A8-DF5B-413C-8C05-F2C107621C26}
+		{42F2CDEC-BC40-4170-83DB-5D6FE0A69DF8} = {806C11A8-DF5B-413C-8C05-F2C107621C26}
+		{6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE} = {806C11A8-DF5B-413C-8C05-F2C107621C26}
+		{AE3F9EF4-EB42-422D-AD38-E39AF93E4994} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{A03E8CA5-CDE2-405C-82A1-358D777E8530} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{5F248D44-DB8F-49A7-92DF-5DD418A99370} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{33020369-B135-4DE2-84C6-C33B7B5C88DF} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{F8DDDF20-303F-4276-8EEA-9E0EEAA571FB} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{E119E829-5CBF-4539-9E75-0C47BA9AB8BA} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{22A1ED23-8D07-4AA5-99FA-D4F1A6E99A92} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{3A209BCB-3FA1-486B-A08B-B95498EB0431} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{0867A266-84FB-4A9E-8C1B-B4115CB5BD0C} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{6A7D9754-4BF5-406E-B7C6-2B73001D2E1E} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{F559E669-E58E-41F4-8312-7600303382D2} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{AE9E8F99-9E1A-4BC9-86CA-29EE32B7C33B} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{82C5E358-3501-4506-9871-5D6C5811A534} = {13ECD341-CF11-4A6A-B3D3-31962C2A050F}
+		{8E117452-96E4-4154-B101-7C062CD64A09} = {CDB198B1-2FBC-4747-B963-8344EDA4B6DC}
+		{22F2117C-5815-4A02-BC79-1D5EAA77C76E} = {CDB198B1-2FBC-4747-B963-8344EDA4B6DC}
+		{166E189C-2061-4D93-B988-BA29A14F2AFE} = {05BA66B6-583E-47F6-B91F-DBBDB41C5AB3}
+		{F682ED9D-3798-4ED8-97CC-F16D1F077495} = {05BA66B6-583E-47F6-B91F-DBBDB41C5AB3}
+		{6014160F-6023-471F-A5EF-3C09C29E1449} = {05BA66B6-583E-47F6-B91F-DBBDB41C5AB3}
+		{03DE27AD-DF37-446F-A955-C26C85C3FF2E} = {05BA66B6-583E-47F6-B91F-DBBDB41C5AB3}
+		{551CD22D-4B62-42F0-9584-A0E49FA32705} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{0918B200-E228-42D4-8437-ED246654FDB3} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{4F39C5FB-6E9E-411B-AA95-4CEA8FE5FD75} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{2AB78A16-0E15-4232-9E27-9C8AF4E3DA3D} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{E91E5808-6047-4E62-9A20-922C650EB6B7} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{B1C0F1D5-2491-4B4E-9CBE-26C1AA4B0B6F} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{0C4B26F5-E83F-4E6C-A337-540A2E00C7DA} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{4C5FC208-1E01-490B-8EB7-FF85514800EC} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{D5CA0503-AE26-4700-9047-39958DA3C007} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{75330920-A19C-400E-8396-0FEF3AF21859} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{B336A1F0-56E6-42A9-B744-B119C2058149} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{78ACCCD4-3BEF-4B97-BB6D-1D23FD7BFF47} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{56DDDCDC-C822-4439-B9F8-B39B04BAFF39} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{1F6A4245-5552-45EE-8D20-3E3F0FCA8113} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{EF00D3F8-F885-4EC6-89D4-6A61DA9D6BAE} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{49A1852B-86AD-423E-924B-DDCD1959FF51} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{AD6F8709-AD7B-4CAB-93E5-3E2900A38A2A} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{F3953126-6F54-4F7C-AB87-D870D839D1A8} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{1B209F33-BF95-4CAB-9E0C-AEB748530A04} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{34006214-465F-44D7-8831-590662AC5E37} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{38CC4E24-E2FD-4ACD-9FA6-759E098E99E8} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{3E6E5B5A-CF4B-4374-8AD6-DB109579B646} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{62FD9F7E-EB37-44FE-8B0F-606E4E00456F} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{05C6E8EF-F5F6-42A3-8CE7-41AE38562559} = {00099134-BE46-49A6-8B67-A0C4D608B9DD}
+		{6C861CF7-297A-45F4-9702-5234BB296E9E} = {00099134-BE46-49A6-8B67-A0C4D608B9DD}
+		{0F7E16EC-83BC-418E-AB36-17117D769535} = {6C861CF7-297A-45F4-9702-5234BB296E9E}
+		{1229A03B-2868-4DC9-AD5E-B601B4C5ED80} = {6C861CF7-297A-45F4-9702-5234BB296E9E}
+		{9DBF8F1D-1D1C-4B70-A359-58B340896E0D} = {758FD5E1-1EA7-41B7-9EB0-41CF0C2972D8}
+		{E00D437A-6CD0-47CA-AD0B-52197056C941} = {37C96FC6-EC1D-47C5-B65D-C1CEA0152025}
+		{EF71E2CD-B3F6-4333-9425-CBD96364AF9A} = {E00D437A-6CD0-47CA-AD0B-52197056C941}
+		{D0AF29E4-E043-450C-9901-C7741DA2F072} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{93C6CB39-427F-454F-A57C-82D2D4F0A0AE} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{9E79715F-32BD-4E24-A3C2-043022FE17FB} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{25ABF2C4-B65E-44B9-8C02-40C7B8416075} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{394FDF2C-BE05-4167-9FA3-300AA0E67DEE} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{E15FD410-97D3-42F5-91DC-F85795CB42EB} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A0C25645-38FC-4ADB-91B9-14996F8289C7}
+	EndGlobalSection
+EndGlobal

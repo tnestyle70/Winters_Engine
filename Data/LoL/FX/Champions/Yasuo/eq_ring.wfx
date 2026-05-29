@@ -1,0 +1,70 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Yasuo.EQ.Ring",
+  "emitters": [
+    {
+      "name": "eq_fill_circle",
+      "render_type": "GroundDecal",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_base_eq_fill_circle_cas.png",
+      "lifetime": 0.62,
+      "fade_in": 0.02,
+      "fade_out": 0.34,
+      "width": 5.10,
+      "height": 5.10,
+      "color": [0.35, 0.78, 1.00, 0.58],
+      "attach_offset": [0.0, 0.06, 0.0],
+      "billboard": false
+    },
+    {
+      "name": "eq_slash_black_under",
+      "render_type": "GroundDecal",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_base_q3_indicator_ring_mult.png",
+      "lifetime": 0.58,
+      "start_delay": 0.02,
+      "fade_in": 0.01,
+      "fade_out": 0.34,
+      "width": 5.35,
+      "height": 5.35,
+      "color": [0.02, 0.06, 0.10, 0.62],
+      "attach_offset": [0.0, 0.07, 0.0],
+      "billboard": false
+    },
+    {
+      "name": "eq_blade_trail",
+      "render_type": "GroundDecal",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_base_q3_indicator_ring.png",
+      "lifetime": 0.46,
+      "start_delay": 0.04,
+      "fade_in": 0.01,
+      "fade_out": 0.28,
+      "width": 5.55,
+      "height": 5.55,
+      "color": [0.42, 0.82, 1.00, 0.82],
+      "attach_offset": [0.0, 0.08, 0.0],
+      "billboard": false
+    },
+    {
+      "name": "eq_second_swirl_mesh",
+      "render_type": "MeshParticle",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Yasuo/particles/fbx/yasuo_base_q_second_swirl.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_base_q_second_swirl.png",
+      "lifetime": 0.52,
+      "start_delay": 0.03,
+      "fade_in": 0.02,
+      "fade_out": 0.30,
+      "scale": [0.018, 0.018, 0.018],
+      "world_yaw_spin_speed": 10.000,
+      "color": [0.45, 0.82, 1.00, 0.70],
+      "attach_offset": [0.0, 0.78, 0.0]
+    }
+  ]
+}

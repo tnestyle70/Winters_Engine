@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="00. Engine Shared">
+      <UniqueIdentifier>{98DB0E2F-C5DE-462B-A1B3-334E1852BE73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Engine Shared\AssetFormat">
+      <UniqueIdentifier>{4E1367C9-69AC-4621-B56A-27B6480219B1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Engine Shared\AssetFormat\Common">
+      <UniqueIdentifier>{B1608F8C-6688-4551-AC56-D08D71277208}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Engine Shared\AssetFormat\Mesh">
+      <UniqueIdentifier>{1C80E049-678C-4656-BA48-846B6733739F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Engine Shared\AssetFormat\Anim">
+      <UniqueIdentifier>{D9092D79-2D65-43A9-9463-AD46B1CA8D7C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Engine Shared\AssetFormat\Material">
+      <UniqueIdentifier>{2A44864C-467D-4205-B832-E0E394C3D13C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="00. Engine Shared\Resource">
+      <UniqueIdentifier>{C0F86C3C-8125-4540-86B8-045BD8A6B83F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Tools">
+      <UniqueIdentifier>{FDFDCE03-39B7-4E2F-A4D7-1487F0F830B4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Anim\WAnimLoader.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Anim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Anim\WAnimWriter.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Anim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Anim\WSkelLoader.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Anim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Anim\WSkelWriter.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Anim</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Common\BinaryReader.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Common\BinaryWriter.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Material\WMaterialLoader.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Material\WMaterialWriter.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Mesh\WMeshLoader.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\AssetFormat\Mesh\WMeshWriter.cpp">
+      <Filter>00. Engine Shared\AssetFormat\Mesh</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\Resource\Animation.cpp">
+      <Filter>00. Engine Shared\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\Resource\Bone.cpp">
+      <Filter>00. Engine Shared\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\Resource\Skeleton.cpp">
+      <Filter>00. Engine Shared\Resource</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Engine\Private\Tools\AssetConverter\main.cpp">
+      <Filter>01. Tools</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,37 @@
+{
+  "name": "Ashe.W.Arrow",
+  "emitters": [
+    {
+      "name": "w_arrow_mesh",
+      "render_type": "MeshParticle",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Ashe/particles/fbx/ashe_base_aa_arrow.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_aa_arrowtext.png",
+      "lifetime": 0.35,
+      "scale": [0.021, 0.021, 0.021],
+      "rotation": [0.0, -1.57079632679, 0.0],
+      "color": [0.78, 1.16, 1.42, 0.95],
+      "attach_offset": [0.0, 0.0, 0.0],
+      "fade_in": 0.01,
+      "fade_out": 0.12,
+      "blockable_by_wind_wall": true
+    },
+    {
+      "name": "w_arrow_trail",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_ba_mist_trail.png",
+      "lifetime": 0.32,
+      "width": 1.65,
+      "height": 0.58,
+      "color": [0.58, 0.94, 1.30, 0.70],
+      "attach_offset": [0.0, 0.0, -0.46],
+      "fade_in": 0.02,
+      "fade_out": 0.16,
+      "billboard": true,
+      "blockable_by_wind_wall": true
+    }
+  ]
+}

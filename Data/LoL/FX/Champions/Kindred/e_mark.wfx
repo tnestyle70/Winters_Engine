@@ -1,0 +1,81 @@
+{
+  "name": "Kindred.E.Mark",
+  "emitters": [
+    {
+      "name": "e_ring_ground",
+      "render_type": "GroundDecal",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_e_ring_cas.png",
+      "lifetime": 4.0,
+      "width": 3.0,
+      "height": 3.0,
+      "color": [0.50, 0.84, 1.18, 0.68],
+      "attach_offset": [0.0, 0.08, 0.0],
+      "fade_in": 0.10,
+      "fade_out": 0.50,
+      "billboard": false
+    },
+    {
+      "name": "e_wolf_head",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_e_wolf_head.png",
+      "lifetime": 4.0,
+      "width": 1.7,
+      "height": 1.7,
+      "color": [0.60, 0.82, 1.35, 0.72],
+      "attach_offset": [0.0, 1.55, 0.0],
+      "fade_in": 0.12,
+      "fade_out": 0.55,
+      "billboard": true
+    },
+    {
+      "name": "e_stack_glow",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_e_stack_3.png",
+      "lifetime": 4.0,
+      "width": 1.9,
+      "height": 1.9,
+      "color": [0.72, 0.60, 1.42, 0.70],
+      "attach_offset": [0.0, 1.25, 0.0],
+      "fade_in": 0.10,
+      "fade_out": 0.55,
+      "billboard": true
+    },
+    {
+      "name": "e_muzzle_flare",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_e_muzzle_cas.png",
+      "lifetime": 0.55,
+      "width": 1.45,
+      "height": 1.45,
+      "color": [0.86, 1.12, 1.35, 0.86],
+      "attach_offset": [0.0, 1.24, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.30,
+      "billboard": true
+    },
+    {
+      "name": "e_hit_flare",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_e_hit_flare.png",
+      "lifetime": 0.65,
+      "start_delay": 0.05,
+      "width": 1.55,
+      "height": 1.55,
+      "color": [0.70, 1.22, 1.12, 0.80],
+      "attach_offset": [0.0, 1.20, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.35,
+      "billboard": true
+    }
+  ]
+}

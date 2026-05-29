@@ -1,0 +1,51 @@
+{
+  "name": "Kindred.BA.Hit",
+  "emitters": [
+    {
+      "name": "ba_target_flash",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_ba_flash_tar.png",
+      "lifetime": 0.34,
+      "width": 1.15,
+      "height": 1.15,
+      "color": [0.70, 1.18, 1.00, 0.95],
+      "attach_offset": [0.0, 1.18, 0.0],
+      "fade_in": 0.01,
+      "fade_out": 0.18,
+      "billboard": true
+    },
+    {
+      "name": "ba_feather_pop",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_ba_hit_feather.png",
+      "lifetime": 0.45,
+      "width": 1.85,
+      "height": 1.15,
+      "color": [0.76, 1.05, 1.22, 0.78],
+      "attach_offset": [0.0, 1.28, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.26,
+      "billboard": true
+    },
+    {
+      "name": "ba_sharp_spark",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_ba_flash_sharp.png",
+      "lifetime": 0.26,
+      "start_delay": 0.04,
+      "width": 1.35,
+      "height": 1.35,
+      "color": [0.92, 1.32, 1.05, 0.92],
+      "attach_offset": [0.0, 1.30, 0.0],
+      "fade_in": 0.01,
+      "fade_out": 0.15,
+      "billboard": true
+    }
+  ]
+}

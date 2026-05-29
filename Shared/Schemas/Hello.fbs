@@ -1,0 +1,12 @@
+namespace Shared.Schema;
+
+table Hello {
+    sessionId:uint;
+    yourNetId:uint;
+    serverTick:ulong;
+    serverTimeMs:ulong;
+    championId:ubyte;
+    team:ubyte;
+}
+
+root_type Hello;

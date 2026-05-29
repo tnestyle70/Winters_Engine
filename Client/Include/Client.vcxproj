@@ -1,0 +1,471 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{E2222222-2222-2222-2222-222222222222}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Client</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <VcpkgEnableManifest>false</VcpkgEnableManifest>
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)..\Bin\Debug\</OutDir>
+    <IntDir>$(ProjectDir)..\Bin\Intermediate\Debug\</IntDir>
+    <TargetName>WintersGame</TargetName>
+    <LocalDebuggerWorkingDirectory>$(MSBuildThisFileDirectory)..\..\</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)..\Bin\Release\</OutDir>
+    <IntDir>$(ProjectDir)..\Bin\Intermediate\Release\</IntDir>
+    <TargetName>WintersGame</TargetName>
+    <LocalDebuggerWorkingDirectory>$(MSBuildThisFileDirectory)..\..\</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>IMGUI_API=__declspec(dllimport);WIN32;_DEBUG;_WINDOWS;NOMINMAX;WINTERS_PROFILING;WINTERS_ENABLE_NON_AI_DEBUG_STRING=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..;$(ProjectDir)..\Public;$(MSBuildThisFileDirectory)..\..\EngineSDK\inc;$(SolutionDir)EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ForcedSynchronousPDBWrites>true</ForcedSynchronousPDBWrites>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\..\EngineSDK\lib;$(SolutionDir)EngineSDK\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>WintersEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(OutDir)Shaders\" mkdir "$(OutDir)Shaders\"
+if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" "$(OutDir)Shaders\"</Command>
+      <Message>Copy Shaders to Client output</Message>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>$(MSBuildThisFileDirectory)..\..\UpdateLib.bat</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>IMGUI_API=__declspec(dllimport);WIN32;NDEBUG;_WINDOWS;NOMINMAX;WINTERS_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..;$(ProjectDir)..\Public;$(MSBuildThisFileDirectory)..\..\EngineSDK\inc;$(SolutionDir)EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ForcedSynchronousPDBWrites>true</ForcedSynchronousPDBWrites>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\..\EngineSDK\lib;$(SolutionDir)EngineSDK\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>WintersEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(OutDir)Shaders\" mkdir "$(OutDir)Shaders\"
+if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" "$(OutDir)Shaders\"</Command>
+      <Message>Copy Shaders to Client output</Message>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>$(MSBuildThisFileDirectory)..\..\UpdateLib.bat</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Private\ClientShell\ClientShellBackendService.cpp" />
+    <ClCompile Include="..\Private\ClientShell\ClientShellDataStore.cpp" />
+    <ClCompile Include="..\Private\ClientShell\ClientShellSession.cpp" />
+    <ClCompile Include="..\Private\Dev\SmokeLog.cpp" />
+    <ClCompile Include="..\Private\DynamicCamera.cpp" />
+    <ClCompile Include="..\Private\GameApp.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Sylas\SylasRegistration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Sylas\SylasSkills.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\FxCuePlayer.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\WfxDocument.cpp" />
+    <ClCompile Include="..\Private\GameModule\GameModuleRegistry.cpp" />
+    <ClCompile Include="..\Private\GameModule\LOL\LOLGameModule.cpp" />
+    <ClCompile Include="..\Private\GameMode\GameModeCatalog.cpp" />
+    <ClCompile Include="..\Private\GameMode\LOL\LOLGameModeRuntime.cpp" />
+    <ClCompile Include="..\Private\GameObject\ChampionTable.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Ezreal\Ezreal_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Ezreal\Ezreal_FxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Ezreal\Ezreal_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Fiora\Fiora_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Fiora\Fiora_FxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Fiora\Fiora_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Jax\Jax_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Jax\Jax_FxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Jax\Jax_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_FxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Ashe\Ashe_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Ashe\Ashe_FxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Ashe\Ashe_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Kindred\Kindred_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\LeeSin\LeeSin_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\LeeSin\LeeSin_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\MasterYi\MasterYi_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Viego\Viego_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Viego\Viego_FxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Viego\Viego_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Yone\Yone_FxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Yone\Yone_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Yone\Yone_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Garen\GarenFxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Garen\Garen_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Garen\Garen_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\IreliaBladeSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\IreliaFxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\Irelia_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\Irelia_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Irelia\Irelia_Tuning.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\KalistaFxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\KalistaProjectileSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\Kalista_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\KalistaRendSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\Kalista_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Kalista\Kalista_Tuning.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\PendingHitSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\Yasuo_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\Yasuo_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\Yasuo_Tuning.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\YasuoFxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Yasuo\YasuoProjectileSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Riven\RivenFxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Riven\Riven_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Riven\Riven_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Zed\ZedFxPresets.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Zed\Zed_Registration.cpp" />
+    <ClCompile Include="..\Private\GameObject\Champion\Zed\Zed_Skills.cpp" />
+    <ClCompile Include="..\Private\GameObject\ChampionSpawnService.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\FxBeamSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\FxLegacyAssetDumper.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\FxLegacyManifest.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\FxMeshSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\FxSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\LegacyFxAdapter.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\UltWaveSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\FX\WindWallSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\YoneSoulSpawnSystem.cpp" />
+    <ClCompile Include="..\Private\GameObject\Projectile\ProjectileVisualCatalog.cpp" />
+    <ClCompile Include="..\Private\GameObject\SkillTable.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Annie\AnnieGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Ashe\AsheGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Fiora\FioraGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Jax\JaxGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Kindred\KindredGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Viego\ViegoGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Yone\YoneGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Zed\ZedGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Definitions\MapSpawnPoints.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Registries\Reward\RewardRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Registries\Skin\SkinRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Buff\BuffSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatActionSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatFormula.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamagePipeline.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Death\DeathSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Experience\ExperienceSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Move\MoveSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Recall\RecallSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Stat\StatSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp" />
+    <!-- [Phase T] R-4 파일 빌드 제외 — R-2~R-6 리팩터 폐기. 파일은 디스크에 남김 (재개 시 참조용). -->
+    <ClCompile Include="..\Private\GamePlay\ChampionCatalog.cpp" />
+    <ClCompile Include="..\Private\GamePlay\ChampionModuleBootstrap.cpp" />
+    <ClCompile Include="..\Private\GamePlay\ChampionRegistry.cpp" />
+    <ClCompile Include="..\Private\GamePlay\CommandQueueComponent.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\SchemaSmoke.cpp" />
+    <ClCompile Include="..\Private\GamePlay\SharedGameSimSmoke.cpp" />
+    <ClCompile Include="..\Private\GamePlay\InputSystem.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\SkillHookRegistry.cpp" />
+    <ClCompile Include="..\Private\GamePlay\SkillRegistry.cpp" />
+    <ClCompile Include="..\Private\GamePlay\VisualHookRegistry.cpp" />
+    <ClCompile Include="..\Private\GamePlay\Systems\Damage.cpp" />
+    <ClCompile Include="..\Private\GamePlay\System\SkillDispatchSystem.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\Private\main.cpp" />
+    <ClCompile Include="..\Private\Manager\Minion_Manager.cpp" />
+    <ClCompile Include="..\Private\Manager\Structure_Manager.cpp" />
+    <ClCompile Include="..\Private\Manager\Jungle_Manager.cpp" />
+    <ClCompile Include="..\Private\Map\MapDataIO.cpp" />
+    <ClCompile Include="..\Private\Network\Backend\AuthClient.cpp" />
+    <ClCompile Include="..\Private\Network\Backend\CHttpClient.cpp" />
+    <ClCompile Include="..\Private\Network\Client\ClientInputBuffer.cpp" />
+    <ClCompile Include="..\Private\Network\Client\ClientNetwork.cpp" />
+    <ClCompile Include="..\Private\Network\Client\CommandSerializer.cpp" />
+    <ClCompile Include="..\Private\Network\Client\EventApplier.cpp" />
+    <ClCompile Include="..\Private\Network\Client\GameSessionClient.cpp" />
+    <ClCompile Include="..\Private\Network\Client\NetworkEventTrace.cpp" />
+    <ClCompile Include="..\Private\Network\Client\SnapshotApplier.cpp" />
+    <ClCompile Include="..\Private\Network\Backend\CShopClient.cpp" />
+    <ClCompile Include="..\Private\Network\Backend\MatchClient.cpp" />
+    <ClCompile Include="..\Private\Network\Backend\PaymentClient.cpp" />
+    <ClCompile Include="..\Private\Network\Backend\ProfileClient.cpp" />
+    <ClCompile Include="..\Private\Scene\GameplayQuery.cpp" />
+    <ClCompile Include="..\Private\Scene\Loader.cpp" />
+    <ClCompile Include="..\Private\Scene\InGameBootstrapBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\InGameChampionStateBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\InGameCombatInputBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\InGameDebugBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\InGameLifecycleBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\InGameNetworkBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\InGamePlayerControlBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\InGamePlayerTransformBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\InGameRenderBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\InGameRosterSpawner.cpp" />
+    <ClCompile Include="..\Private\Scene\InGameSkillDispatchBridge.cpp" />
+    <ClCompile Include="..\Private\Scene\LobbyRosterHelpers.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_BanPick.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_CustomMode.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_Editor.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_InGame.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_Loading.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_Login.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_MainMenu.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_MatchLoading.cpp" />
+    <ClCompile Include="..\Private\UI\AIDebugPanel.cpp" />
+    <ClCompile Include="..\Private\UI\ChampionTuner.cpp" />
+    <ClCompile Include="..\Private\UI\CombatDebugPanel.cpp" />
+    <ClCompile Include="..\Private\UI\DebugDrawSystem.cpp" />
+    <ClCompile Include="..\Private\UI\EffectTuner.cpp" />
+    <ClCompile Include="..\Private\UI\WfxAssetCatalog.cpp" />
+    <ClCompile Include="..\Private\UI\WfxEffectToolPanel.cpp" />
+    <ClCompile Include="..\Private\UI\ImageScenePresenter.cpp" />
+    <ClCompile Include="..\Private\UI\MapTunerPanel.cpp" />
+    <ClCompile Include="..\Private\UI\MinimapPanel.cpp" />
+    <ClCompile Include="..\Private\UI\RenderDebug.cpp" />
+    <ClCompile Include="..\Private\UI\SkillTimingPanel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\Engine\Public\FX\FxLifeCycle.h" />
+    <ClInclude Include="..\Private\Network\Client\UdpClient.h" />
+    <ClInclude Include="..\Public\ClientShell\ClientShellBackendService.h" />
+    <ClInclude Include="..\Public\ClientShell\ClientShellDataStore.h" />
+    <ClInclude Include="..\Public\ClientShell\ClientShellSession.h" />
+    <ClInclude Include="..\Public\ClientShell\ClientShellTypes.h" />
+    <ClInclude Include="..\Public\Dev\SmokeLog.h" />
+    <ClInclude Include="..\Public\Defines.h" />
+    <ClInclude Include="..\Public\DynamicCamera.h" />
+    <ClInclude Include="..\Public\GameApp.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Sylas\SylasSkills.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxCuePlayer.h" />
+    <ClInclude Include="..\Public\GameModule\GameLaunchConfig.h" />
+    <ClInclude Include="..\Public\GameModule\GameModuleRegistry.h" />
+    <ClInclude Include="..\Public\GameModule\GameProduct.h" />
+    <ClInclude Include="..\Public\GameModule\IGameModule.h" />
+    <ClInclude Include="..\Public\GameModule\LOL\LOLGameModule.h" />
+    <ClInclude Include="..\Public\GameMode\GameModeCatalog.h" />
+    <ClInclude Include="..\Public\GameMode\GameModeDef.h" />
+    <ClInclude Include="..\Public\GameMode\IGameMode.h" />
+    <ClInclude Include="..\Public\GameMode\LOL\LOLGameModeRuntime.h" />
+    <ClInclude Include="..\Public\GameObject\ChampionDef.h" />
+    <ClInclude Include="..\Public\GameObject\ChampionSpawnService.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Ezreal\Ezreal_Components.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Ezreal\Ezreal_FxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Ezreal\Ezreal_Registration.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Ezreal\Ezreal_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Fiora\Fiora_Components.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Fiora\Fiora_FxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Fiora\Fiora_Registration.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Fiora\Fiora_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_Components.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_FxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_Registration.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Components.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_FxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Registration.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\Ashe_Components.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\Ashe_FxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\Ashe_Registration.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\Ashe_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Ashe\AsheVisualCueCatalog.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Kindred\Kindred_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\LeeSin\LeeSin_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\MasterYi\MasterYi_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Viego\Viego_FxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Viego\Viego_Registration.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Viego\Viego_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_Components.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_FxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_MeshGroups.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_Registration.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yone\Yone_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Garen\GarenFxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Garen\Garen_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Irelia\IreliaBladeSystem.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Irelia\IreliaFxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Irelia\Irelia_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Irelia\Irelia_Tuning.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\KalistaFxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\KalistaProjectileSystem.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\KalistaRendSystem.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\Kalista_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\Kalista_Tuning.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\PendingHitSystem.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\Yasuo_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\Yasuo_Tuning.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\YasuoFxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Yasuo\YasuoProjectileSystem.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Riven\RivenFxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Riven\Riven_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Zed\ZedFxPresets.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Zed\Zed_Skills.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxBeamComponent.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxBeamSystem.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxBillboardComponent.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxLegacyAssetDumper.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxLegacyManifest.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxMeshComponent.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxMeshSystem.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxRibbonComponent.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxSystem.h" />
+    <ClInclude Include="..\Public\GameObject\FX\LegacyFxAdapter.h" />
+    <ClInclude Include="..\Public\GameObject\FX\UltWaveSystem.h" />
+    <ClInclude Include="..\Public\GameObject\FX\WfxDocument.h" />
+    <ClInclude Include="..\Public\GameObject\FX\WindWallSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\YoneSoulSpawnSystem.h" />
+    <ClInclude Include="..\Public\GameObject\Projectile\ProjectileKind.h" />
+    <ClInclude Include="..\Public\GameObject\Projectile\ProjectileVisualCatalog.h" />
+    <ClInclude Include="..\Public\GameObject\SkillDef.h" />
+    <!-- [Phase T] R-4 헤더 — 컴파일은 빠지지만 IntelliSense/편집 가능 유지용. Private cpp 가 빌드 제외이므로 실제 참조 없음. -->
+    <ClInclude Include="..\Public\GamePlay\ChampionCatalog.h" />
+    <ClInclude Include="..\Public\GamePlay\ChampionModuleBootstrap.h" />
+    <ClInclude Include="..\Public\GamePlay\ChampionRegistry.h" />
+    <ClInclude Include="..\Public\GamePlay\CommandQueueComponent.h" />
+    <ClInclude Include="..\Public\GamePlay\InputSystem.h" />
+    <ClInclude Include="..\Public\GamePlay\SkillHookContext.h" />
+    <ClInclude Include="..\Public\GamePlay\SkillHookRegistry.h" />
+    <ClInclude Include="..\Public\GamePlay\SkillRegistry.h" />
+    <ClInclude Include="..\Public\GamePlay\Systems\Damage.h" />
+    <ClInclude Include="..\Public\GamePlay\Systems\SkillDispatchSystem.h" />
+    <ClInclude Include="..\Public\GamePlay\VisualHookRegistry.h" />
+    <ClInclude Include="..\Public\Manager\Minion_Manager.h" />
+    <ClInclude Include="..\Public\Manager\Structure_Manager.h" />
+    <ClInclude Include="..\Public\Manager\Jungle_Manager.h" />
+    <ClInclude Include="..\Public\Map\MapDataFormats.h" />
+    <ClInclude Include="..\Public\Map\MapDataIO.h" />
+    <ClInclude Include="..\Public\Network\Backend\AuthClient.h" />
+    <ClInclude Include="..\Public\Network\Backend\CHttpClient.h" />
+    <ClInclude Include="..\Public\Network\Client\ClientInputBuffer.h" />
+    <ClInclude Include="..\Public\Network\Client\ClientNetwork.h" />
+    <ClInclude Include="..\Public\Network\Client\CommandSerializer.h" />
+    <ClInclude Include="..\Public\Network\Client\EventApplier.h" />
+    <ClInclude Include="..\Public\Network\Client\GameSessionClient.h" />
+    <ClInclude Include="..\Public\Network\Client\NetworkEventTrace.h" />
+    <ClInclude Include="..\Public\Network\Client\SnapshotApplier.h" />
+    <ClInclude Include="..\Public\Network\Backend\CShopClient.h" />
+    <ClInclude Include="..\Public\Network\Backend\MatchClient.h" />
+    <ClInclude Include="..\Public\Network\Backend\PaymentClient.h" />
+    <ClInclude Include="..\Public\Network\Backend\ProfileClient.h" />
+    <ClInclude Include="..\Public\Scene\GameplayQuery.h" />
+    <ClInclude Include="..\Public\Scene\Loader.h" />
+    <ClInclude Include="..\Public\Scene\InGameBootstrapBridge.h" />
+    <ClInclude Include="..\Public\Scene\InGameChampionStateBridge.h" />
+    <ClInclude Include="..\Public\Scene\InGameCombatInputBridge.h" />
+    <ClInclude Include="..\Public\Scene\InGameDebugBridge.h" />
+    <ClInclude Include="..\Public\Scene\InGameLifecycleBridge.h" />
+    <ClInclude Include="..\Public\Scene\InGameNetworkBridge.h" />
+    <ClInclude Include="..\Public\Scene\InGamePlayerControlBridge.h" />
+    <ClInclude Include="..\Public\Scene\InGamePlayerTransformBridge.h" />
+    <ClInclude Include="..\Public\Scene\InGameRenderBridge.h" />
+    <ClInclude Include="..\Public\Scene\InGameRosterSpawner.h" />
+    <ClInclude Include="..\Public\Scene\InGameSkillDispatchBridge.h" />
+    <ClInclude Include="..\Public\Scene\LobbyRosterHelpers.h" />
+    <ClInclude Include="..\Public\Scene\RenderVisibilityFilter.h" />
+    <ClInclude Include="..\Public\Scene\Scene_BanPick.h" />
+    <ClInclude Include="..\Public\Scene\Scene_CustomMode.h" />
+    <ClInclude Include="..\Public\Scene\Scene_Editor.h" />
+    <ClInclude Include="..\Public\Scene\Scene_InGame.h" />
+    <ClInclude Include="..\Public\Scene\Scene_Loading.h" />
+    <ClInclude Include="..\Public\Scene\Scene_Login.h" />
+    <ClInclude Include="..\Public\Scene\Scene_MainMenu.h" />
+    <ClInclude Include="..\Public\Scene\Scene_MatchLoading.h" />
+    <ClInclude Include="..\Public\UI\AIDebugPanel.h" />
+    <ClInclude Include="..\Public\UI\ChampionTuner.h" />
+    <ClInclude Include="..\Public\UI\CombatDebugPanel.h" />
+    <ClInclude Include="..\Public\UI\DebugDrawSystem.h" />
+    <ClInclude Include="..\Public\UI\EffectTuner.h" />
+    <ClInclude Include="..\Public\UI\WfxAssetCatalog.h" />
+    <ClInclude Include="..\Public\UI\WfxEffectToolPanel.h" />
+    <ClInclude Include="..\Public\UI\ImageScenePresenter.h" />
+    <ClInclude Include="..\Public\UI\MapTunerPanel.h" />
+    <ClInclude Include="..\Public\UI\MinimapPanel.h" />
+    <ClInclude Include="..\Public\UI\RenderDebug.h" />
+    <ClInclude Include="..\Public\UI\SkillTimingPanel.h" />
+  </ItemGroup>
+  <Target Name="FlatcCodegen" BeforeTargets="ClCompile">
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\..\Shared\Schemas\run_codegen.bat&quot;" />
+  </Target>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

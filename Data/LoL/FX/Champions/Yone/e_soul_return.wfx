@@ -1,0 +1,68 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Yone.E.SoulReturn",
+  "emitters": [
+    {
+      "name": "e_return_black_ring",
+      "render_type": "GroundDecal",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_e_timer_sumi-e_erode.png",
+      "lifetime": 0.62,
+      "fade_in": 0.02,
+      "fade_out": 0.38,
+      "width": 2.45,
+      "height": 2.45,
+      "color": [0.08, 0.00, 0.03, 0.72],
+      "attach_offset": [0.0, 0.05, 0.0],
+      "billboard": false
+    },
+    {
+      "name": "e_return_red_face",
+      "render_type": "MeshParticle",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Yone/particles/fbx/yone_base_e_face_mesh.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_e_mark.png",
+      "lifetime": 0.58,
+      "fade_in": 0.02,
+      "fade_out": 0.34,
+      "scale": [0.020, 0.020, 0.020],
+      "color": [1.20, 0.08, 0.18, 0.80],
+      "attach_offset": [0.0, 1.20, 0.0],
+      "world_yaw_spin_speed": 3.20
+    },
+    {
+      "name": "e_return_swipe_03",
+      "render_type": "MeshParticle",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Yone/particles/fbx/yone_base_e_swipe_03.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_e_slice.png",
+      "lifetime": 0.44,
+      "start_delay": 0.04,
+      "fade_in": 0.01,
+      "fade_out": 0.28,
+      "scale": [0.021, 0.021, 0.021],
+      "color": [1.10, 0.05, 0.20, 0.78],
+      "attach_offset": [0.0, 0.88, 0.25]
+    },
+    {
+      "name": "e_return_vertical_spark",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_streaks_vertical.png",
+      "lifetime": 0.36,
+      "start_delay": 0.08,
+      "fade_in": 0.01,
+      "fade_out": 0.24,
+      "width": 1.10,
+      "height": 3.10,
+      "color": [1.10, 0.08, 0.18, 0.74],
+      "attach_offset": [0.0, 1.45, 0.0],
+      "billboard": true
+    }
+  ]
+}

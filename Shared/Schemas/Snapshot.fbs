@@ -1,0 +1,80 @@
+include "Command.fbs";
+
+namespace Shared.Schema;
+
+enum EntityKind : ubyte {
+    None = 0,
+    Champion = 1,
+    Minion = 2,
+    Turret = 3,
+    Inhibitor = 4,
+    Nexus = 5,
+    JungleMonster = 6,
+    Projectile = 7,
+    Ward = 8,
+    EffectAnchor = 9
+}
+
+table EntitySnapshot {
+    netId:uint;
+    championId:ubyte;
+    team:ubyte;
+    level:ubyte;
+    xpCurrent:float;
+    xpRequired:float;
+    skillPoints:ubyte;
+    hp:float;
+    mana:float;
+    posX:float;
+    posY:float;
+    posZ:float;
+    yaw:float;
+    moveSpeed:float;
+    animId:ushort;
+    animPhaseFrame:ushort;
+    skillCooldowns:[float];
+    skillCooldownDurations:[float];
+    skillRanks:[ubyte];
+    buffMask:uint;
+    statHash:uint;
+    entityKind:EntityKind = Champion;
+    ownerNet:uint;
+    subtype:ushort;
+    maxHp:float;
+    maxMana:float;
+    shield:float;
+    stateFlags:uint;
+    animStartTick:ulong;
+    actionSeq:uint;
+    animPlaybackRateQ8:ushort = 256;
+    animFlags:ushort;
+    projectileKind:ushort;
+    projectileOwnerNet:uint;
+    projectileTargetNet:uint;
+    projectileSpeed:float;
+    projectileRadius:float;
+    projectileMaxDist:float;
+
+    gold:uint;
+    inventoryItemIds:[ushort];
+    ad:float;
+    ap:float;
+    armor:float;
+    mr:float;
+    attackSpeed:float;
+    attackRange:float;
+    critChance:float;
+    abilityHaste:float;
+}
+
+table Snapshot {
+    serverTick:ulong;
+    serverTimeMs:ulong;
+    rngState:ulong;
+    entities:[EntitySnapshot];
+    lastAckedCommandSeq:uint;
+    yourNetId:uint;
+    deltaBaseTick:ulong;
+}
+
+root_type Snapshot;

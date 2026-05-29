@@ -1,0 +1,53 @@
+{
+  "name": "Ashe.R.Arrow",
+  "emitters": [
+    {
+      "name": "r_arrow_mesh",
+      "render_type": "MeshParticle",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Ashe/particles/fbx/ashe_base_r_arrow.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_r_ice.sparx_ashe_r_update.png",
+      "lifetime": 1.00,
+      "scale": [0.018, 0.018, 0.018],
+      "rotation": [0.0, -1.57079632679, 0.0],
+      "color": [0.78, 1.20, 1.58, 0.98],
+      "attach_offset": [0.0, 0.0, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.22,
+      "blockable_by_wind_wall": true
+    },
+    {
+      "name": "r_ice_trail",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_r_ice_trail.sparx_ashe_r_update.png",
+      "lifetime": 0.92,
+      "width": 2.40,
+      "height": 0.82,
+      "color": [0.72, 1.08, 1.48, 0.78],
+      "attach_offset": [0.0, 0.0, -0.62],
+      "fade_in": 0.03,
+      "fade_out": 0.28,
+      "billboard": true,
+      "blockable_by_wind_wall": true
+    },
+    {
+      "name": "r_smoke_trail",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_r_smoke_trail.sparx_ashe_r_update.png",
+      "lifetime": 0.82,
+      "width": 2.80,
+      "height": 1.00,
+      "color": [0.55, 0.88, 1.25, 0.54],
+      "attach_offset": [0.0, 0.0, -0.85],
+      "fade_in": 0.04,
+      "fade_out": 0.32,
+      "billboard": true,
+      "blockable_by_wind_wall": true
+    }
+  ]
+}

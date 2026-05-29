@@ -1,0 +1,70 @@
+{
+  "name": "Jax.W.Empower",
+  "schema": "WintersWfx",
+  "version": 1,
+  "emitters": [
+    {
+      "name": "w_weapon_flame_ribbon",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_w_mis_01_ribbon.png",
+      "lifetime": 4.00,
+      "fade_in": 0.05,
+      "fade_out": 0.55,
+      "width": 1.80,
+      "height": 1.80,
+      "color": [1.80, 0.62, 0.18, 0.82],
+      "attach_offset": [0.00, 1.28, 0.00],
+      "billboard": true
+    },
+    {
+      "name": "w_hot_core",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_ba_flame_01.png",
+      "lifetime": 4.00,
+      "start_delay": 0.04,
+      "fade_in": 0.08,
+      "fade_out": 0.55,
+      "width": 1.35,
+      "height": 1.35,
+      "color": [1.75, 0.72, 0.22, 0.70],
+      "attach_offset": [0.00, 1.34, 0.00],
+      "billboard": true
+    },
+    {
+      "name": "w_sparks",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_ba_sparks.png",
+      "lifetime": 1.00,
+      "start_delay": 0.05,
+      "fade_in": 0.02,
+      "fade_out": 0.50,
+      "width": 1.35,
+      "height": 1.35,
+      "color": [2.00, 0.86, 0.24, 0.95],
+      "attach_offset": [0.00, 1.40, 0.00],
+      "billboard": true
+    },
+    {
+      "name": "w_soft_gold_shell",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/glowflare.png",
+      "lifetime": 4.00,
+      "start_delay": 0.08,
+      "fade_in": 0.10,
+      "fade_out": 0.50,
+      "width": 1.90,
+      "height": 1.90,
+      "color": [1.45, 0.95, 0.36, 0.45],
+      "attach_offset": [0.00, 1.20, 0.00],
+      "billboard": true
+    }
+  ]
+}

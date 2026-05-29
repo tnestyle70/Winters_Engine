@@ -1,0 +1,113 @@
+{
+  "_comment": "sub_id → ROI action mapping. Edit per-project. score.py 가 자동 로드.",
+  "_effort_meaning": {
+    "S": "Small (≤4시간)",
+    "M": "Medium (1-3일)",
+    "L": "Large (≥1주)"
+  },
+  "A1": {
+    "title": "Compass System Phase A — 모듈 _MODULE.md 박제",
+    "reference": ".toolkit/module-manifest/HOWTO.md",
+    "effort": "L"
+  },
+  "A2": {
+    "title": "진입점 stale 수정 (compass-validator 가 자동 발견)",
+    "reference": ".toolkit/compass-validator/validator.py --fix-suggestions",
+    "effort": "S"
+  },
+  "A3": {
+    "title": "Depth 3+ 폴더에 README.md 또는 _MODULE.md 추가",
+    "reference": ".toolkit/module-manifest/HOWTO.md §1",
+    "effort": "M"
+  },
+  "B1": {
+    "title": "CLAUDE.md 분할 — 모듈별 _MODULE.md 로 분산 (1500+줄 → 500줄)",
+    "reference": ".toolkit/README.md §3 Step 3",
+    "effort": "S"
+  },
+  "B2": {
+    "title": "CLAUDE.md / _MODULE.md 에 bash 코드블록 추가 (실행 가능한 명령)",
+    "reference": ".toolkit/module-manifest/HOWTO.md Anti-pattern §3",
+    "effort": "S"
+  },
+  "B3": {
+    "title": "Markdown link 추가 — 파일당 평균 3+ 보장",
+    "reference": ".toolkit/module-manifest/_MODULE_TEMPLATE.md §관련 계획서",
+    "effort": "S"
+  },
+  "B4": {
+    "title": "금지 패턴 박제 (Gotcha 섹션 보강)",
+    "reference": ".toolkit/module-manifest/_MODULE_TEMPLATE.md §함정",
+    "effort": "S"
+  },
+  "B5": {
+    "title": "크로스참조 강화 — @path 또는 [link](*.md) 형식",
+    "reference": ".toolkit/module-manifest/HOWTO.md §3-3 Anti-pattern",
+    "effort": "M"
+  },
+  "C1": {
+    "title": "Gotcha 박제 늘리기 — 디버깅 후 발견한 함정 즉시 박제",
+    "reference": ".toolkit/module-manifest/_MODULE_TEMPLATE.md §함정",
+    "effort": "M"
+  },
+  "C2": {
+    "title": "ADR 폴더 분리 (.md/architecture/decisions/) + 기존 결정 이전",
+    "reference": "https://adr.github.io/",
+    "effort": "M"
+  },
+  "C3": {
+    "title": "winters-skills/ 또는 .md/guide/ 에 학습 자료 추가",
+    "reference": ".toolkit/README.md §도메인별 가이드",
+    "effort": "M"
+  },
+  "D1": {
+    "title": "MODULE_GRAPH.md 작성 — 의존성 DAG (mermaid 포함)",
+    "reference": ".toolkit/compass-validator/README.md §의존성 cycle 검출",
+    "effort": "S"
+  },
+  "D2": {
+    "title": "Mermaid 그래프 추가 — 모듈 의존성 / 시퀀스 / 클래스 다이어그램",
+    "reference": "https://mermaid.js.org/",
+    "effort": "S"
+  },
+  "D3": {
+    "title": "CODE_INDEX.md 또는 ENTRY_POINTS.md 작성 — task → 모듈 매핑",
+    "reference": ".toolkit/module-manifest/HOWTO.md §3 Common Tasks",
+    "effort": "S"
+  },
+  "E1": {
+    "title": "깨진 markdown link 수정 (compass-validator 결과)",
+    "reference": ".toolkit/compass-validator/validator.py --fix-suggestions",
+    "effort": "S"
+  },
+  "E2": {
+    "title": "_MODULE.md 진입점/핵심 파일 stale 수정",
+    "reference": ".toolkit/compass-validator/validator.py --fix-suggestions",
+    "effort": "S"
+  },
+  "E3": {
+    "title": "Compass Validator + GitHub Actions 등록 (PR 자동 검증)",
+    "reference": ".toolkit/compass-validator/README.md §CI 통합",
+    "effort": "M"
+  },
+  "F1": {
+    "title": "CLAUDE.md Refresh Hook + Score Hook 등록",
+    "reference": ".toolkit/claude-md-refresh-hook/",
+    "effort": "S"
+  },
+  "F2": {
+    "title": "자동화 스크립트 추가 (build / lint / test / deploy)",
+    "reference": "도메인별 (게임엔진: convert_assets.bat 등 / 백엔드: Makefile)",
+    "effort": "M"
+  },
+  "G1": {
+    "title": "evals/ 디렉토리 + 회귀 테스트 5+ 박제",
+    "reference": ".toolkit/README.md §G1",
+    "effort": "L"
+  },
+  "G2": {
+    "title": "Closing report 자동 생성 + Backlog 박제",
+    "reference": ".toolkit/claude-md-refresh-hook/ (SessionEnd hook)",
+    "effort": "S"
+  }
+}

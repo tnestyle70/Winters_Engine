@@ -1,0 +1,135 @@
+include "Command.fbs";
+
+namespace Shared.Schema;
+
+enum EventKind : ubyte {
+    None = 0,
+    Damage = 1,
+    Heal = 2,
+    Death = 3,
+    Respawn = 4,
+    BuffApply = 5,
+    BuffExpire = 6,
+    ProjectileSpawn = 7,
+    ProjectileHit = 8,
+    SkillCast = 9,
+    SkillRankUp = 10,
+    ItemBuy = 11,
+    ItemSell = 12,
+    LevelUp = 13,
+    GameStart = 14,
+    GameEnd = 15,
+    KillFeed = 16,
+    Chat = 17,
+    AnimationStart = 18,
+    EffectTrigger = 19
+}
+
+table DamageEvent {
+    sourceNet:uint;
+    targetNet:uint;
+    amount:float;
+    type:ubyte;
+    bWasCrit:bool;
+    bKilled:bool;
+    skillId:ushort;
+}
+
+table BuffApplyEvent {
+    targetNet:uint;
+    sourceNet:uint;
+    buffDefId:uint;
+    duration:float;
+    stackCount:ubyte;
+}
+
+table ProjectileSpawnEvent {
+    netId:uint;
+    ownerNet:uint;
+    kind:ushort;
+    startX:float;
+    startY:float;
+    startZ:float;
+    dirX:float;
+    dirY:float;
+    dirZ:float;
+    speed:float;
+    maxDist:float;
+}
+
+table ProjectileHitEvent {
+    netId:uint;
+    ownerNet:uint;
+    targetNet:uint;
+    kind:ushort;
+    posX:float;
+    posY:float;
+    posZ:float;
+    bDestroyed:bool;
+}
+
+table SkillCastEvent {
+    casterNet:uint;
+    slot:ubyte;
+    rank:ubyte;
+    targetNet:uint;
+}
+
+table AnimationStartEvent {
+    netId:uint;
+    animId:ushort;
+    actionSeq:uint;
+    startTick:ulong;
+    playbackRateQ8:ushort;
+    flags:ushort;
+}
+
+table EffectTriggerEvent {
+    effectId:uint;
+    sourceNet:uint;
+    targetNet:uint;
+    attachBone:ushort;
+    posX:float;
+    posY:float;
+    posZ:float;
+    dirX:float;
+    dirY:float;
+    dirZ:float;
+    startTick:ulong;
+    durationMs:ushort;
+    flags:ushort;
+}
+
+enum KillFeedObjectKind : ubyte {
+    None = 0,
+    Champion = 1,
+    Turret = 2,
+    Inhibitor = 3,
+    Dragon = 4,
+    Baron = 5
+}
+
+table KillFeedEvent {
+    sourceNet:uint;
+    targetNet:uint;
+    sourceChampion:ubyte;
+    targetChampion:ubyte;
+    sourceTeam:ubyte;
+    targetTeam:ubyte;
+    objectKind:KillFeedObjectKind;
+}
+
+table EventPacket {
+    kind:EventKind;
+    serverTick:ulong;
+    damage:DamageEvent;
+    buffApply:BuffApplyEvent;
+    projectile:ProjectileSpawnEvent;
+    projectileHit:ProjectileHitEvent;
+    skillCast:SkillCastEvent;
+    animation:AnimationStartEvent;
+    effect:EffectTriggerEvent;
+    killFeed:KillFeedEvent;
+}
+
+root_type EventPacket;

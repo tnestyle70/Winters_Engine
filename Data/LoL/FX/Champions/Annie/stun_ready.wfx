@@ -1,0 +1,51 @@
+{
+  "name": "Annie.Stun.Ready",
+  "emitters": [
+    {
+      "name": "stun_wisp",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_stunready_wisp.png",
+      "lifetime": 1.20,
+      "width": 0.95,
+      "height": 0.95,
+      "color": [1.45, 0.50, 0.10, 0.95],
+      "attach_offset": [0.0, 2.35, 0.0],
+      "fade_in": 0.05,
+      "fade_out": 0.46,
+      "billboard": true
+    },
+    {
+      "name": "stun_aura",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_wisp_mult.png",
+      "lifetime": 0.90,
+      "width": 1.60,
+      "height": 1.60,
+      "color": [1.20, 0.34, 0.08, 0.58],
+      "attach_offset": [0.0, 1.45, 0.0],
+      "fade_in": 0.04,
+      "fade_out": 0.42,
+      "billboard": true
+    },
+    {
+      "name": "stun_spark",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_spark.png",
+      "lifetime": 0.50,
+      "start_delay": 0.08,
+      "width": 1.00,
+      "height": 1.00,
+      "color": [1.55, 0.62, 0.14, 0.88],
+      "attach_offset": [0.0, 2.10, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.24,
+      "billboard": true
+    }
+  ]
+}

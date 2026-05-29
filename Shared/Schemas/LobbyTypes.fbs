@@ -1,0 +1,44 @@
+namespace Shared.Schema;
+
+enum LobbyPhase : ubyte {
+    None = 0,
+    SeatSelect = 1,
+    ChampionSelect = 2,
+    Locked = 3,
+    Starting = 4,
+    InGame = 5
+}
+
+enum LobbyCommandKind : ubyte {
+    None = 0,
+    JoinSlot = 1,
+    LeaveSlot = 2,
+    PickChampion = 3,
+    SetBotChampion = 4,
+    SetBotDifficulty = 5,
+    SetReady = 6,
+    StartGame = 7,
+    CancelStart = 8,
+    SetEditPolicy = 9,
+    SetBotLane = 10
+}
+
+enum LobbySeatKind : ubyte {
+    Empty = 0,
+    Human = 1,
+    Bot = 2
+}
+
+table LobbySlot {
+    slotId:ubyte;
+    team:ubyte;
+    seatKind:LobbySeatKind;
+    sessionId:uint;
+    netId:uint;
+    championId:ubyte;
+    botDifficulty:ubyte;
+    botLane:ubyte;
+    botProfile:ushort;
+    ready:bool;
+    locked:bool;
+}

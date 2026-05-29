@@ -1,0 +1,112 @@
+{
+  "date": "2026-05-12",
+  "title": "RHI Game UI Renderer Conversion",
+  "principle": "Game-facing HUD, inventory, shop, cursor, health bars, damage text must move to RHI/UI renderer. ImGui remains only for editor, profiler, tuner, inspector, and debug panels.",
+  "currentFinding": {
+    "imguiReason": "Existing CUI_Manager was implemented with ImGui draw lists, so previous fast plans followed the existing path.",
+    "correction": "For final LoL-style UI, the rendering path should be RHI sprite/font rendering, not ImGui.",
+    "existingRHIConstraint": "CRHIFxSpriteRenderer currently targets DX12 frame command list; Debug DX11 runtime needs a DX11-native UI renderer behind IRHIDevice."
+  },
+  "implementationRules": [
+    {
+      "id": "ui-rendering-boundary",
+      "rule": "Do not render production gameplay UI with ImGui.",
+      "allowed": ["RHI sprite quads", "RHI font manager", "RHI atlas crop", "RHI render target preview"],
+      "disallowed": ["ImDrawList for HUD", "ImDrawList for inventory", "ImDrawList for shop", "ImGui text for final damage font"]
+    },
+    {
+      "id": "debug-boundary",
+      "rule": "ImGui is allowed only for debug and authoring surfaces.",
+      "allowed": ["UI Manager tuner", "Profiler", "Inspector", "SkillTimingPanel", "RenderDebug", "editor panels"]
+    },
+    {
+      "id": "data-boundary",
+      "rule": "UI renderer reads prepared UI draw commands or ECS components; gameplay state changes go through GameCommand or Shared/GameSim systems.",
+      "examples": ["BuyItem", "UseItem", "LevelSkill", "InventoryComponent", "GoldComponent"]
+    },
+    {
+      "id": "atlas-boundary",
+      "rule": "Atlas images are rendered by texture SRV plus normalized UV rect. Do not pre-cut PNGs unless atlas rects become unmaintainable."
+    },
+    {
+      "id": "text-boundary",
+      "rule": "Text must move to Font Manager / SDF or BMFont RHI rendering. Until then, text-only leftovers are temporary migration debt."
+    }
+  ],
+  "phases": [
+    {
+      "phase": "RHI-UI-0",
+      "name": "Renderer Foundation",
+      "status": "implemented",
+      "files": [
+        "Engine/Public/Renderer/UIRenderer.h",
+        "Engine/Private/Renderer/UIRenderer.cpp"
+      ],
+      "scope": [
+        "DX11-native screen-space UI renderer",
+        "Dynamic quad vertex buffer",
+        "Texture atlas image draw",
+        "Filled rect and rect border draw",
+        "Alpha blend, depth disabled, cull none, clamp sampler",
+        "DX11 state save/restore"
+      ]
+    },
+    {
+      "phase": "RHI-UI-1",
+      "name": "First Migration",
+      "status": "implemented",
+      "scope": [
+        "Champion-attached HP bars render through CUIRenderer",
+        "Mouse cursor renders through CUIRenderer after ImGui debug draw",
+        "Existing ImGui health bar path remains fallback only"
+      ]
+    },
+    {
+      "phase": "RHI-UI-2",
+      "name": "HUD Atlas Migration",
+      "status": "next",
+      "scope": [
+        "Move Draw_ChampionHUD atlas pieces and filled rects from ImDrawList to CUIRenderer",
+        "Keep only temporary text labels until Font Manager lands",
+        "Split HUD layout from rendering calls"
+      ]
+    },
+    {
+      "phase": "RHI-UI-3",
+      "name": "Font Manager",
+      "status": "next",
+      "scope": [
+        "BMFont or SDF font atlas loader",
+        "RHI text draw command",
+        "Damage floaters",
+        "HUD numbers",
+        "Inventory/shop labels and prices"
+      ]
+    },
+    {
+      "phase": "RHI-UI-4",
+      "name": "Inventory And Shop Panels",
+      "status": "next",
+      "scope": [
+        "InventoryComponent and GoldComponent",
+        "ItemCatalog icon SRV cache",
+        "P shop and I inventory panel rendered by RHI UI",
+        "BuyItem/UseItem command integration"
+      ]
+    },
+    {
+      "phase": "RHI-UI-5",
+      "name": "Remove Game UI ImGui Debt",
+      "status": "next",
+      "scope": [
+        "Remove ImDrawList from production HUD paths",
+        "Keep OnImGui_Tuner only",
+        "Document final AGENTS rule"
+      ]
+    }
+  ],
+  "build": {
+    "command": "MSBuild Engine/Include/Engine.vcxproj Client/Include/Client.vcxproj Server/Include/Server.vcxproj Debug x64",
+    "note": "Run all three after each RHI UI phase because EngineSDK header copy affects Client."
+  }
+}

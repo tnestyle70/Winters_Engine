@@ -1,0 +1,35 @@
+{
+  "name": "Ashe.W.Cast",
+  "emitters": [
+    {
+      "name": "w_muzzle_sparks",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_q_bow_sparks.png",
+      "lifetime": 0.42,
+      "width": 2.25,
+      "height": 1.05,
+      "color": [0.95, 1.18, 1.42, 0.95],
+      "attach_offset": [0.0, 1.35, 0.62],
+      "fade_in": 0.02,
+      "fade_out": 0.18,
+      "billboard": true
+    },
+    {
+      "name": "w_wind_swirl",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_w_windswirl01.png",
+      "lifetime": 0.45,
+      "width": 2.5,
+      "height": 1.25,
+      "color": [0.62, 0.92, 1.35, 0.65],
+      "attach_offset": [0.0, 1.10, 0.78],
+      "fade_in": 0.02,
+      "fade_out": 0.22,
+      "billboard": true
+    }
+  ]
+}

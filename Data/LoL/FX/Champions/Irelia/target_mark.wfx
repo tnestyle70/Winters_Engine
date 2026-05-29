@@ -1,0 +1,39 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Irelia.Target.Mark",
+  "emitters": [
+    {
+      "name": "target_mark_base",
+      "render_type": "Billboard",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Character/Irelia/particles/irelia_base_q_mark.png",
+      "lifetime": 1.2500,
+      "fade_in": 0.0400,
+      "fade_out": 0.2500,
+      "width": 1.8000,
+      "height": 1.8000,
+      "color": [1.0000, 1.0000, 1.0000, 0.9000],
+      "attach_offset": [0.0000, 1.0000, 0.0000],
+      "billboard": true,
+      "depth_write": false
+    },
+    {
+      "name": "target_mark_pulse_erode",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Character/Irelia/particles/irelia_base_q_mark_pulse_erode.png",
+      "lifetime": 1.2500,
+      "fade_in": 0.0300,
+      "fade_out": 0.3500,
+      "width": 2.0500,
+      "height": 2.0500,
+      "color": [0.6500, 0.9500, 1.8500, 0.8500],
+      "attach_offset": [0.0000, 1.0200, 0.0000],
+      "billboard": true,
+      "depth_write": false
+    }
+  ]
+}

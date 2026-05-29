@@ -1,0 +1,545 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{E1111111-1111-1111-1111-111111111111}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Engine</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <VcpkgEnableManifest>false</VcpkgEnableManifest>
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <!-- Debug 출력 경로 -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)..\Bin\Debug\</OutDir>
+    <IntDir>$(ProjectDir)..\Bin\Intermediate\Debug\</IntDir>
+    <TargetName>WintersEngine</TargetName>
+  </PropertyGroup>
+  <!-- Release 출력 경로 -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)..\Bin\Release\</OutDir>
+    <IntDir>$(ProjectDir)..\Bin\Intermediate\Release\</IntDir>
+    <TargetName>WintersEngine</TargetName>
+  </PropertyGroup>
+  <!-- Debug 컴파일/링크 옵션 -->
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WINTERS_ENGINE_EXPORTS;IMGUI_API=__declspec(dllexport);WIN32;_DEBUG;_WINDOWS;_USRDLL;WINTERS_PROFILING;WINTERS_ENABLE_NON_AI_DEBUG_STRING=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\External\imgui;$(ProjectDir)..\External\imgui\backends;$(ProjectDir)..\Private;$(ProjectDir)..\Public;$(ProjectDir)..\Public\ECS;$(ProjectDir)..\Public\ECS\Components;$(ProjectDir)..\Public\ECS\Systems;$(ProjectDir)..\Public\Sound;$(ProjectDir)..\ThirdPartyLib\Assimp\Inc;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Inc;$(ProjectDir)..\ThirdPartyLib\FMOD\Inc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>WintersPCH.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>WintersPCH.h</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\ThirdPartyLib\Assimp\Lib\Debug;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Lib\Debug;$(ProjectDir)..\ThirdPartyLib\FMOD\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;windowscodecs.lib;ole32.lib;assimp-vc143-mtd.lib;DirectXTK.lib;fmod_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <!-- 빌드 후: EngineSDK 배포 + Client에 DLL 복사 -->
+    <PostBuildEvent>
+      <Command>$(MSBuildThisFileDirectory)..\..\UpdateLib.bat</Command>
+      <Message>EngineSDK 배포 + DLL → Client/Bin/Debug 복사 완료</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WINTERS_ENGINE_EXPORTS;IMGUI_API=__declspec(dllexport);WIN32;NDEBUG;_WINDOWS;_USRDLL;WINTERS_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\External\imgui;$(ProjectDir)..\External\imgui\backends;$(ProjectDir)..\Private;$(ProjectDir)..\Public;$(ProjectDir)..\Public\ECS;$(ProjectDir)..\Public\ECS\Components;$(ProjectDir)..\Public\ECS\Systems;$(ProjectDir)..\Public\Sound;$(ProjectDir)..\ThirdPartyLib\Assimp\Inc;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Inc;$(ProjectDir)..\ThirdPartyLib\FMOD\Inc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>WintersPCH.h</PrecompiledHeaderFile>
+      <ForcedIncludeFiles>WintersPCH.h</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\ThirdPartyLib\Assimp\Lib\Release;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Lib\Release;$(ProjectDir)..\ThirdPartyLib\FMOD\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;windowscodecs.lib;ole32.lib;assimp-vc143-mt.lib;DirectXTK.lib;fmod_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(MSBuildThisFileDirectory)..\..\UpdateLib.bat</Command>
+      <Message>EngineSDK 배포 + DLL → Client/Bin/Release 복사 완료</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <!-- 소스 파일 -->
+  <ItemGroup>
+    <ClCompile Include="..\External\imgui\backends\imgui_impl_dx11.cpp" />
+    <ClCompile Include="..\External\imgui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="..\External\imgui\imgui.cpp" />
+    <ClCompile Include="..\External\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\External\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\External\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\External\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\External\lua-5.4.8\src\lapi.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lauxlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lbaselib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lcode.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lcorolib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lctype.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ldblib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ldebug.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ldo.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ldump.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lfunc.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lgc.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\linit.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\liolib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\llex.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lmathlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lmem.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\loadlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lobject.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lopcodes.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\loslib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lparser.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lstate.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lstring.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lstrlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ltable.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ltablib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\ltm.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lundump.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lutf8lib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lvm.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\External\lua-5.4.8\src\lzio.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
+    <ClCompile Include="..\Private\AssetFormat\Anim\WAnimLoader.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Anim\WAnimWriter.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Anim\WSkelFormat.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Anim\WSkelLoader.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Anim\WSkelWriter.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Common\BinaryReader.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Common\BinaryWriter.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Material\WMaterialLoader.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Material\WMaterialWriter.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Mesh\WMeshLoader.cpp" />
+    <ClCompile Include="..\Private\AssetFormat\Mesh\WMeshWriter.cpp" />
+    <ClCompile Include="..\Private\AI\BehaviorTree.cpp" />
+    <ClCompile Include="..\Private\AI\BTNodes_Champion.cpp" />
+    <ClCompile Include="..\Private\AI\MCTSPlanner.cpp" />
+    <ClCompile Include="..\Private\AI\RLBridge.cpp" />
+    <ClCompile Include="..\Private\Core\JobSystem.cpp" />
+    <ClCompile Include="..\Private\Core\Profiler\CPUProfiler.cpp" />
+    <ClCompile Include="..\Private\Core\Profiler\ProfilerStableView.cpp" />
+    <ClCompile Include="..\Private\Core\WintersPCH.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\Private\ECS\CommandBuffer.cpp" />
+    <ClCompile Include="..\Private\ECS\BushVolumeIndex.cpp" />
+    <ClCompile Include="..\Private\ECS\SpatialIndex.cpp" />
+    <ClCompile Include="..\Private\ECS\Components\TransformComponent.cpp" />
+    <ClCompile Include="..\Private\ECS\SystemScheduler.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\CoreSystems.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\BehaviorTreeSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\EntityBlueprint.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\EntityBlueprintRegistry.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\MCTSSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\GameplayCollisionSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\MinionAISystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\MinionPerformanceSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\MinionSeparationSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\NavigationSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\SpatialHashSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\StatusEffectSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\TransformSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\TurretAISystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\TurretProjectileSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\VisionSystem.cpp" />
+    <ClCompile Include="..\Private\FX\DeterministicRandom.cpp" />
+    <ClCompile Include="..\Private\FX\FxAsset.cpp" />
+    <ClCompile Include="..\Private\FX\ParticlePool.cpp" />
+    <ClCompile Include="..\Private\ECS\World.cpp" />
+    <ClCompile Include="..\Private\Editor\ImGuiLayer.cpp" />
+    <ClCompile Include="..\Private\GameInstance.cpp" />
+    <ClCompile Include="..\Private\Manager\Navigation\MapSurfaceSampler.cpp" />
+    <ClCompile Include="..\Private\Manager\Navigation\MapWalkableBaker.cpp" />
+    <ClCompile Include="..\Private\Manager\Navigation\NavGrid.cpp" />
+    <ClCompile Include="..\Private\Manager\Navigation\Pathfinder.cpp" />
+    <ClCompile Include="..\Private\Manager\Profiler\ProfilerOverlay.cpp" />
+    <ClCompile Include="..\Private\Manager\UI\ChampionHUDPanel.cpp" />
+    <ClCompile Include="..\Private\Manager\UI\Font_Manager.cpp" />
+    <ClCompile Include="..\Private\Manager\UI\LuaUIHost.cpp" />
+    <ClCompile Include="..\Private\Manager\UI\UIAtlasManifest.cpp" />
+    <ClCompile Include="..\Private\Manager\UI\UI_Manager.cpp" />
+    <ClCompile Include="..\Private\Renderer\CMaterialPBR.cpp" />
+    <ClCompile Include="..\Private\Renderer\FxStaticMeshRenderer.cpp" />
+    <ClCompile Include="..\Private\Renderer\ModelRenderer.cpp" />
+    <ClCompile Include="..\Private\Renderer\NormalPass.cpp" />
+    <ClCompile Include="..\Private\Renderer\PlaneRenderer.cpp" />
+    <ClCompile Include="..\Private\Renderer\FogOfWarRenderer.cpp" />
+    <ClCompile Include="..\Private\Renderer\SSAOPass.cpp" />
+    <ClCompile Include="..\Private\Renderer\RHIFxMeshResource.cpp" />
+    <ClCompile Include="..\Private\Renderer\RHIFxSpriteRenderer.cpp" />
+    <ClCompile Include="..\Private\Renderer\UIRenderer.cpp" />
+    <ClCompile Include="..\Private\Resource\Animation.cpp" />
+    <ClCompile Include="..\Private\Resource\Animator.cpp" />
+    <ClCompile Include="..\Private\Resource\Bone.cpp" />
+    <ClCompile Include="..\Private\Resource\Mesh.cpp" />
+    <ClCompile Include="..\Private\Resource\Model.cpp" />
+    <ClCompile Include="..\Private\Resource\ResourceCache.cpp" />
+    <ClCompile Include="..\Private\Resource\Skeleton.cpp" />
+    <ClCompile Include="..\Private\Resource\Texture.cpp" />
+    <ClCompile Include="..\Private\RHI\DX11\BlendStateCache.cpp" />
+    <ClCompile Include="..\Private\RHI\DX11\SamplerStateCache.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_Manager.cpp" />
+    <ClCompile Include="..\Private\Sound\Sound_Manager.cpp" />
+    <ClCompile Include="..\Private\Timer_Manager.cpp" />
+    <ClCompile Include="..\Private\WintersEngine.cpp" />
+    <ClCompile Include="..\Private\Core\CTimer.cpp" />
+    <ClCompile Include="..\Private\Core\WintersPaths.cpp" />
+    <ClCompile Include="..\Private\Core\CTransform.cpp" />
+    <ClCompile Include="..\Private\Platform\CWin32Window.cpp" />
+    <ClCompile Include="..\Private\Platform\CInput.cpp" />
+    <ClCompile Include="..\Private\RHI\DX11\CDX11Device.cpp" />
+    <ClCompile Include="..\Private\RHI\DX11\DX11Shader.cpp" />
+    <ClCompile Include="..\Private\RHI\DX11\DX11Buffer.cpp" />
+    <ClCompile Include="..\Private\RHI\DX11\DX11Pipeline.cpp" />
+    <ClCompile Include="..\Private\RHI\RHITextureLoader.cpp" />
+    <ClCompile Include="..\Private\Scripting\LuaRuntime.cpp" />
+    <ClCompile Include="..\Private\Framework\CEngineApp.cpp" />
+    <ClCompile Include="..\Private\Renderer\CCamera.cpp" />
+    <ClCompile Include="..\Private\Renderer\CubeRenderer.cpp" />
+  </ItemGroup>
+  <!-- 헤더 파일 (내부) -->
+  <ItemGroup>
+    <ClInclude Include="..\Private\Manager\UI\ChampionHUDPanel.h" />
+    <ClInclude Include="..\Public\Manager\UI\ChampionHUDState.h" />
+    <ClInclude Include="..\Public\AssetFormat\Anim\WAnimFormat.h" />
+    <ClInclude Include="..\Public\AssetFormat\Anim\WAnimLoader.h" />
+    <ClInclude Include="..\Public\AssetFormat\Anim\WAnimWriter.h" />
+    <ClInclude Include="..\Public\AssetFormat\Anim\WSkelFormat.h" />
+    <ClInclude Include="..\Public\AssetFormat\Anim\WSkelLoader.h" />
+    <ClInclude Include="..\Public\AssetFormat\Anim\WSkelWriter.h" />
+    <ClInclude Include="..\Public\AssetFormat\Common\BinaryReader.h" />
+    <ClInclude Include="..\Public\AssetFormat\Common\BinaryWriter.h" />
+    <ClInclude Include="..\Public\AssetFormat\Common\Hash.h" />
+    <ClInclude Include="..\Public\AssetFormat\Common\WintersFileHeader.h" />
+    <ClInclude Include="..\Public\AssetFormat\Material\WMaterialFormat.h" />
+    <ClInclude Include="..\Public\AssetFormat\Material\WMaterialLoader.h" />
+    <ClInclude Include="..\Public\AssetFormat\Material\WMaterialWriter.h" />
+    <ClInclude Include="..\Public\AssetFormat\Mesh\WMeshFormat.h" />
+    <ClInclude Include="..\Public\AssetFormat\Mesh\WMeshLoader.h" />
+    <ClInclude Include="..\Public\AssetFormat\Mesh\WMeshWriter.h" />
+    <ClInclude Include="..\Public\AI\Blackboard.h" />
+    <ClInclude Include="..\Public\AI\BehaviorTree.h" />
+    <ClInclude Include="..\Public\AI\BTNodes_Champion.h" />
+    <ClInclude Include="..\Public\AI\MCTSPlanner.h" />
+    <ClInclude Include="..\Public\AI\RLBridge.h" />
+    <ClInclude Include="..\Public\Core\CInput.h" />
+    <ClInclude Include="..\Public\Core\Fiber\Fiber.h" />
+    <ClInclude Include="..\Public\Core\Fiber\FiberPool.h" />
+    <ClInclude Include="..\Public\Core\Fiber\FiberTypes.h" />
+    <ClInclude Include="..\Public\Core\JobSystem\JobDecl.h" />
+    <ClInclude Include="..\Public\Core\JobSystem\WorkStealingDeque.h" />
+    <ClInclude Include="..\Public\Core\Profiler\CPUProfiler.h" />
+    <ClInclude Include="..\Public\Core\Profiler\ProfilerStableView.h" />
+    <ClInclude Include="..\Public\Core\Profiler\ProfilerTypes.h" />
+    <ClInclude Include="..\Public\Core\Timer_Manager.h" />
+    <ClInclude Include="..\Public\ECS\Components\CoreComponents.h" />
+    <ClInclude Include="..\Public\ECS\Components\FxInstanceComponent.h" />
+    <ClInclude Include="..\Public\ECS\Components\GameplayComponents.h" />
+    <ClInclude Include="..\Public\ECS\Components\MeshGroupVisibilityComponent.h" />
+    <ClInclude Include="..\Public\ECS\Components\MinionPerformanceComponents.h" />
+    <ClInclude Include="..\Public\ECS\Components\RenderComponent.h" />
+    <ClInclude Include="..\Public\ECS\Components\SpatialAgentComponent.h" />
+    <ClInclude Include="..\Public\ECS\Components\VisionComponents.h" />
+    <ClInclude Include="..\Public\ECS\BushVolumeIndex.h" />
+    <ClInclude Include="..\Public\ECS\SpatialIndex.h" />
+    <ClInclude Include="..\Public\Core\CTimer.h" />
+    <ClInclude Include="..\Public\Core\JobCounter.h" />
+    <ClInclude Include="..\Public\Core\JobSystem.h" />
+    <ClInclude Include="..\Public\ECS\CCommandBuffer.h" />
+    <ClInclude Include="..\Public\ECS\Components\NavAgentComponent.h" />
+    <ClInclude Include="..\Public\ECS\Components\TransformComponent.h" />
+    <ClInclude Include="..\Public\ECS\Systems\BehaviorTreeSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\CoreSystems.h" />
+    <ClInclude Include="..\Public\ECS\Systems\EntityBlueprint.h" />
+    <ClInclude Include="..\Public\ECS\Systems\EntityBlueprintRegistry.h" />
+    <ClInclude Include="..\Public\ECS\Systems\MCTSSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\GameplayCollisionSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\MinionAISystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\MinionPerformanceSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\MinionSeparationSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\NavigationSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\SpatialHashSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\StatusEffectSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\TransformSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\TurretAISystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\TurretProjectileSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\VisionSystem.h" />
+    <ClInclude Include="..\Public\Editor\ImGuiLayer.h" />
+    <ClInclude Include="..\Public\FX\DeterministicRandom.h" />
+    <ClInclude Include="..\Public\FX\FxAsset.h" />
+    <ClInclude Include="..\Public\FX\FxDepthMode.h" />
+    <ClInclude Include="..\Public\FX\FxLifeCycle.h" />
+    <ClInclude Include="..\Public\FX\FxMaterialDesc.h" />
+    <ClInclude Include="..\Public\FX\ParticlePool.h" />
+    <ClInclude Include="..\Public\FX\ParameterMap.h" />
+    <ClInclude Include="..\Public\Manager\Navigation\MapSurfaceSampler.h" />
+    <ClInclude Include="..\Public\Manager\Navigation\MapWalkableBaker.h" />
+    <ClInclude Include="..\Public\Manager\Navigation\NavGrid.h" />
+    <ClInclude Include="..\Public\Manager\Navigation\Pathfinder.h" />
+    <ClInclude Include="..\Public\Manager\Profiler\ProfilerOverlay.h" />
+    <ClInclude Include="..\Public\Manager\UI\Font_Manager.h" />
+    <ClInclude Include="..\Public\Manager\UI\LuaUIHost.h" />
+    <ClInclude Include="..\Public\Manager\UI\UIAtlasManifest.h" />
+    <ClInclude Include="..\Public\Manager\UI\UI_Manager.h" />
+    <ClInclude Include="..\Public\Renderer\BlendTypes.h" />
+    <ClInclude Include="..\Public\Renderer\CBPerMaterial.h" />
+    <ClInclude Include="..\Public\Renderer\CCamera.h" />
+    <ClInclude Include="..\Public\Renderer\CMaterialPBR.h" />
+    <ClInclude Include="..\Public\Renderer\CubeRenderer.h" />
+    <ClInclude Include="..\Public\Renderer\FxShaderConstants.h" />
+    <ClInclude Include="..\Public\Renderer\FxStaticMeshRenderer.h" />
+    <ClInclude Include="..\Public\Renderer\FogOfWarRenderer.h" />
+    <ClInclude Include="..\Public\Renderer\LightData.h" />
+    <ClInclude Include="..\Public\Renderer\ModelRenderer.h" />
+    <ClInclude Include="..\Public\Renderer\NormalPass.h" />
+    <ClInclude Include="..\Public\Renderer\PlaneRenderer.h" />
+    <ClInclude Include="..\Public\Renderer\RHIFxMeshResource.h" />
+    <ClInclude Include="..\Public\Renderer\RHIFxSpriteRenderer.h" />
+    <ClInclude Include="..\Public\Renderer\UIRenderer.h" />
+    <ClInclude Include="..\Public\Renderer\SSAOPass.h" />
+    <ClInclude Include="..\Public\Resource\Animation.h" />
+    <ClInclude Include="..\Public\Resource\Animator.h" />
+    <ClInclude Include="..\Public\Resource\Bone.h" />
+    <ClInclude Include="..\Public\Resource\Mesh.h" />
+    <ClInclude Include="..\Public\Resource\Model.h" />
+    <ClInclude Include="..\Public\Resource\ResourceCache.h" />
+    <ClInclude Include="..\Public\Resource\Skeleton.h" />
+    <ClInclude Include="..\Public\Resource\Texture.h" />
+    <ClInclude Include="..\Private\RHI\DX11\BlendStateCache.h" />
+    <ClInclude Include="..\Private\RHI\DX11\SamplerStateCache.h" />
+    <ClInclude Include="..\Public\RHI\CRHIResourceTable.h" />
+    <ClInclude Include="..\Public\RHI\IRHIBindGroup.h" />
+    <ClInclude Include="..\Public\RHI\IRHIBindGroupLayout.h" />
+    <ClInclude Include="..\Public\RHI\IRHICommandList.h" />
+    <ClInclude Include="..\Public\RHI\IRHIDevice.h" />
+    <ClInclude Include="..\Public\RHI\IRHIPipelineState.h" />
+    <ClInclude Include="..\Public\RHI\IRHIQueue.h" />
+    <ClInclude Include="..\Public\RHI\IRHIRenderPass.h" />
+    <ClInclude Include="..\Public\RHI\IRHISwapChain.h" />
+    <ClInclude Include="..\Public\RHI\RHICapabilities.h" />
+    <ClInclude Include="..\Public\RHI\RHIDescriptors.h" />
+    <ClInclude Include="..\Public\RHI\RHIHandles.h" />
+    <ClInclude Include="..\Public\RHI\RHISurface.h" />
+    <ClInclude Include="..\Public\RHI\RHITextureLoader.h" />
+    <ClInclude Include="..\Public\RHI\RHITypes.h" />
+    <ClInclude Include="..\Public\Scene\Scene_Manager.h" />
+    <ClInclude Include="..\Public\Scripting\LuaRuntime.h" />
+    <ClInclude Include="..\Public\Sound\SoundChannel.h" />
+    <ClInclude Include="..\Public\Sound\Sound_Manager.h" />
+    <ClInclude Include="..\Public\WintersCore.h" />
+    <ClInclude Include="..\Public\WintersPCH.h" />
+    <ClInclude Include="..\Public\ECS\ComponentStore.h" />
+    <ClInclude Include="..\Public\ECS\Entity.h" />
+    <ClInclude Include="..\Public\ECS\ISystem.h" />
+    <ClInclude Include="..\Public\ECS\SystemAccess.h" />
+    <ClInclude Include="..\Public\ECS\SystemScheduler.h" />
+    <ClInclude Include="..\Public\ECS\World.h" />
+    <ClInclude Include="..\Public\Platform\CWin32Window.h" />
+    <ClInclude Include="..\Public\Platform\IPlatformSurface.h" />
+    <ClInclude Include="..\Public\Platform\IPlatformWindow.h" />
+    <ClInclude Include="..\Public\Platform\PlatformTypes.h" />
+    <ClInclude Include="..\Private\RHI\DX11\CDX11Device.h" />
+    <ClInclude Include="..\Private\RHI\DX11\DX11Shader.h" />
+    <ClInclude Include="..\Private\RHI\DX11\DX11Buffer.h" />
+    <ClInclude Include="..\Private\RHI\DX11\DX11Pipeline.h" />
+    <ClInclude Include="..\Private\RHI\DX11\DX11ConstantBuffer.h" />
+    <ClInclude Include="..\Public\RHI\Geometry\CubeGeometry.h" />
+    <ClInclude Include="..\Public\Framework\CEngineApp.h" />
+    <ClInclude Include="..\Public\Engine_Defines.h" />
+    <ClInclude Include="..\Public\Engine_Enum.h" />
+    <ClInclude Include="..\Public\Engine_Macro.h" />
+    <ClInclude Include="..\Public\Engine_Struct.h" />
+    <ClInclude Include="..\Public\Engine_Typedef.h" />
+    <ClInclude Include="..\Public\Engine_Function.h" />
+  </ItemGroup>
+  <!-- 헤더 파일 (공개 API) -->
+  <ItemGroup>
+    <ClInclude Include="GameContext.h" />
+    <ClInclude Include="GameInstance.h" />
+    <ClInclude Include="IScene.h" />
+    <ClInclude Include="ProfilerAPI.h" />
+    <ClInclude Include="WintersAPI.h" />
+    <ClInclude Include="WintersTypes.h" />
+    <ClInclude Include="WintersMath.h" />
+    <ClInclude Include="EngineConfig.h" />
+    <ClInclude Include="IWintersApp.h" />
+    <ClInclude Include="WintersEngine.h" />
+    <ClInclude Include="..\Public\Core\CTransform.h" />
+    <ClInclude Include="WintersPaths.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

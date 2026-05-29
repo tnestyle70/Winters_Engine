@@ -1,0 +1,20 @@
+{
+  "name": "Ashe.W.Hit",
+  "emitters": [
+    {
+      "name": "w_hit_frost",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_ba_color-rampdownfrost.png",
+      "lifetime": 0.34,
+      "width": 1.20,
+      "height": 1.20,
+      "color": [0.60, 0.95, 1.32, 0.92],
+      "attach_offset": [0.0, 0.9, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.18,
+      "billboard": true
+    }
+  ]
+}

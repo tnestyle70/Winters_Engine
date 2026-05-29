@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "defaultModeID": "summoners_rift",
+  "modes": [
+    {
+      "id": "summoners_rift",
+      "displayName": "Summoner's Rift",
+      "mapID": "sr_stage1",
+      "rulesetID": "lol_standard_5v5",
+      "queueName": "Normal",
+      "teamSize": 5,
+      "available": true,
+      "matchmakingEnabled": true,
+      "practiceMode": false
+    },
+    {
+      "id": "practice_tool",
+      "displayName": "Practice Tool",
+      "mapID": "sr_stage1",
+      "rulesetID": "lol_practice",
+      "queueName": "Practice",
+      "teamSize": 1,
+      "available": true,
+      "matchmakingEnabled": false,
+      "practiceMode": true
+    },
+    {
+      "id": "aram",
+      "displayName": "ARAM",
+      "mapID": "howling_abyss",
+      "rulesetID": "lol_aram",
+      "queueName": "ARAM",
+      "teamSize": 5,
+      "available": false,
+      "matchmakingEnabled": false,
+      "practiceMode": false
+    }
+  ]
+}

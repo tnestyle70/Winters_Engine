@@ -1,0 +1,20 @@
+{
+  "name": "Zed.Q.Cast",
+  "emitters": [
+    {
+      "name": "q_cast_flash",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/zed_shuriken_tx.png",
+      "lifetime": 0.22,
+      "width": 1.0,
+      "height": 1.0,
+      "color": [0.65, 0.80, 1.0, 0.85],
+      "attach_offset": [0.0, 0.2, 0.45],
+      "fade_in": 0.02,
+      "fade_out": 0.14,
+      "billboard": true
+    }
+  ]
+}

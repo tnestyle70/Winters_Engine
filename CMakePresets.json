@@ -1,0 +1,60 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "msvc-ninja",
+      "displayName": "MSVC Ninja Multi-Config",
+      "generator": "Ninja Multi-Config",
+      "binaryDir": "${sourceDir}/out/build/msvc-ninja",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+        "WINTERS_ENABLE_ENGINE_POST_BUILD_DEPLOY": "ON"
+      }
+    },
+    {
+      "name": "vs2022",
+      "displayName": "Visual Studio 2022",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/out/build/vs2022",
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+        "WINTERS_ENABLE_ENGINE_POST_BUILD_DEPLOY": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "engine-debug",
+      "displayName": "Build WintersEngine Debug with Ninja",
+      "configurePreset": "msvc-ninja",
+      "configuration": "Debug",
+      "targets": [
+        "WintersEngine"
+      ]
+    },
+    {
+      "name": "engine-release",
+      "displayName": "Build WintersEngine Release with Ninja",
+      "configurePreset": "msvc-ninja",
+      "configuration": "Release",
+      "targets": [
+        "WintersEngine"
+      ]
+    },
+    {
+      "name": "engine-vs-debug",
+      "displayName": "Build WintersEngine Debug with Visual Studio generator",
+      "configurePreset": "vs2022",
+      "configuration": "Debug",
+      "targets": [
+        "WintersEngine"
+      ]
+    }
+  ]
+}

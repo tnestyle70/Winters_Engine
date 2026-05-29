@@ -1,0 +1,20 @@
+{
+  "name": "Ashe.R.Cast",
+  "emitters": [
+    {
+      "name": "r_charge_star",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_q_ready_brightsparks_star.png",
+      "lifetime": 0.45,
+      "width": 1.75,
+      "height": 1.75,
+      "color": [1.12, 1.32, 1.55, 1.0],
+      "attach_offset": [0.0, 1.50, 0.55],
+      "fade_in": 0.02,
+      "fade_out": 0.20,
+      "billboard": true
+    }
+  ]
+}

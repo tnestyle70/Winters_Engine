@@ -1,0 +1,68 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Sylas.W.Cast",
+  "emitters": [
+    {
+      "name": "w_target_dome_mesh",
+      "render_type": "MeshParticle",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Sylas/particles/fbx/sylas_base_w_dome_01.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/render/sylas_base_w_dome_01.png",
+      "lifetime": 0.44,
+      "fade_in": 0.01,
+      "fade_out": 0.26,
+      "scale": [0.024, 0.024, 0.024],
+      "color": [1.70, 1.22, 0.48, 0.82],
+      "attach_offset": [0.0, 0.88, 0.0]
+    },
+    {
+      "name": "w_hit_front_glow",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/sylas_base_w_hit_tar_muzzle.png",
+      "lifetime": 0.34,
+      "fade_in": 0.01,
+      "fade_out": 0.22,
+      "width": 2.25,
+      "height": 2.25,
+      "color": [2.10, 1.52, 0.58, 0.95],
+      "attach_offset": [0.0, 1.15, 0.0],
+      "billboard": true
+    },
+    {
+      "name": "w_hit_electricity",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/sylas_base_w_hit_electricity2.png",
+      "lifetime": 0.46,
+      "start_delay": 0.03,
+      "fade_in": 0.01,
+      "fade_out": 0.30,
+      "width": 2.85,
+      "height": 2.85,
+      "color": [1.12, 0.62, 2.05, 0.70],
+      "attach_offset": [0.0, 1.08, 0.0],
+      "billboard": true
+    },
+    {
+      "name": "w_gold_shockwave",
+      "render_type": "ShockwaveRing",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/sylas_base_w_hit_shockwave.png",
+      "lifetime": 0.38,
+      "start_delay": 0.02,
+      "fade_in": 0.01,
+      "fade_out": 0.27,
+      "start_radius": 0.35,
+      "end_radius": 2.15,
+      "color": [1.65, 1.08, 0.38, 0.70],
+      "attach_offset": [0.0, 0.08, 0.0],
+      "billboard": false
+    }
+  ]
+}

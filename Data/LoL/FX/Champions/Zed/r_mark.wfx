@@ -1,0 +1,20 @@
+{
+  "name": "Zed.R.Mark",
+  "emitters": [
+    {
+      "name": "r_death_mark",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/zed_r_marker.png",
+      "lifetime": 3.0,
+      "width": 1.45,
+      "height": 1.45,
+      "color": [1.0, 0.18, 0.24, 0.95],
+      "attach_offset": [0.0, 0.0, 0.0],
+      "fade_in": 0.05,
+      "fade_out": 0.35,
+      "billboard": true
+    }
+  ]
+}

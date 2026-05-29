@@ -1,0 +1,23 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Irelia.R.Wall",
+  "emitters": [
+    {
+      "name": "r_wall_ground_haze",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Character/Irelia/particles/irelia_base_r_disarm_sword_icon_bottom.png",
+      "lifetime": 2.5000,
+      "fade_in": 0.0800,
+      "fade_out": 0.5500,
+      "width": 8.5000,
+      "height": 5.2000,
+      "color": [0.4000, 0.7500, 1.6000, 0.2600],
+      "attach_offset": [0.0000, 0.0300, 0.0000],
+      "billboard": false,
+      "depth_write": false
+    }
+  ]
+}

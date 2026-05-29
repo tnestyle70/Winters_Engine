@@ -1,0 +1,70 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "LeeSin.W2.Cast",
+  "emitters": [
+    {
+      "name": "w2_ironwill_hand_glow",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/LeeSin/particles/leesin_base_w_ironwill_glow.png",
+      "lifetime": 0.72,
+      "fade_in": 0.03,
+      "fade_out": 0.38,
+      "width": 1.90,
+      "height": 1.90,
+      "color": [1.0, 0.54, 0.12, 0.62],
+      "attach_offset": [0.0, 1.03, 0.0],
+      "billboard": true
+    },
+    {
+      "name": "w2_outer_ground_ring",
+      "render_type": "GroundDecal",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/LeeSin/particles/leesin_base_w_bigring_02.png",
+      "lifetime": 0.64,
+      "fade_in": 0.03,
+      "fade_out": 0.36,
+      "width": 2.38,
+      "height": 2.38,
+      "color": [1.0, 0.64, 0.18, 0.42],
+      "attach_offset": [0.0, 0.07, 0.0],
+      "billboard": false
+    },
+    {
+      "name": "w2_body_orange_aura",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/LeeSin/particles/leesin_orange.png",
+      "lifetime": 0.70,
+      "start_delay": 0.02,
+      "fade_in": 0.03,
+      "fade_out": 0.36,
+      "width": 1.70,
+      "height": 1.70,
+      "color": [1.0, 0.44, 0.08, 0.52],
+      "attach_offset": [0.0, 0.82, 0.0],
+      "billboard": true
+    },
+    {
+      "name": "w2_low_fire_trail",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/LeeSin/particles/leesin_base_w_trail.png",
+      "lifetime": 0.56,
+      "start_delay": 0.05,
+      "fade_in": 0.02,
+      "fade_out": 0.30,
+      "width": 1.95,
+      "height": 0.70,
+      "color": [1.0, 0.50, 0.10, 0.54],
+      "attach_offset": [0.0, 0.55, -0.42],
+      "uv_scroll": [0.0, -0.75],
+      "billboard": false
+    }
+  ]
+}

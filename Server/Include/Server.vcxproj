@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{E3333333-3333-3333-3333-333333333333}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Server</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <VcpkgEnableManifest>false</VcpkgEnableManifest>
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)..\Bin\Debug\</OutDir>
+    <IntDir>$(ProjectDir)..\Bin\Intermediate\Debug\</IntDir>
+    <TargetName>WintersServer</TargetName>
+    <LocalDebuggerWorkingDirectory>$(MSBuildThisFileDirectory)..\..\</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)..\Bin\Release\</OutDir>
+    <IntDir>$(ProjectDir)..\Bin\Intermediate\Release\</IntDir>
+    <TargetName>WintersServer</TargetName>
+    <LocalDebuggerWorkingDirectory>$(MSBuildThisFileDirectory)..\..\</LocalDebuggerWorkingDirectory>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..;$(ProjectDir)..\Public;$(MSBuildThisFileDirectory)..\..\Shared;$(MSBuildThisFileDirectory)..\..\EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\Engine\Public;$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>ws2_32.lib;Mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(MSBuildThisFileDirectory)..\..\Engine\Bin\Debug\WintersEngine.dll" "$(OutDir)"
+xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\Assimp\Bin\Debug\*.dll" "$(OutDir)"
+xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\DirectXTK\Bin\Debug\*.dll" "$(OutDir)"
+xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FMOD\Bin\*.dll" "$(OutDir)"</Command>
+      <Message>Copy WintersEngine.dll to Server output</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..;$(ProjectDir)..\Public;$(MSBuildThisFileDirectory)..\..\Shared;$(MSBuildThisFileDirectory)..\..\EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\Engine\Public;$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>ws2_32.lib;Mswsock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>copy /Y "$(MSBuildThisFileDirectory)..\..\Engine\Bin\Release\WintersEngine.dll" "$(OutDir)"
+xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\Assimp\Bin\Release\*.dll" "$(OutDir)"
+xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\DirectXTK\Bin\Release\*.dll" "$(OutDir)"
+xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FMOD\Bin\*.dll" "$(OutDir)"</Command>
+      <Message>Copy WintersEngine.dll to Server output</Message>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Private\Game\AOI.cpp" />
+    <ClCompile Include="..\Private\Game\CommandDispatcher.cpp" />
+    <ClCompile Include="..\Private\Game\GameLogic.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoom.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomChampionAI.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomCommands.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomReplication.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomTick.cpp" />
+    <ClCompile Include="..\Private\Game\ReplayRecorder.cpp" />
+    <ClCompile Include="..\Private\Game\ServerEntry.cpp" />
+    <ClCompile Include="..\Private\Game\ServerMinionFlowField.cpp" />
+    <ClCompile Include="..\Private\Game\ServerMinionWaveRuntime.cpp" />
+    <ClCompile Include="..\Private\Game\ServerWorld.cpp" />
+    <ClCompile Include="..\Private\Game\SnapshotBuilder.cpp" />
+    <ClCompile Include="..\Private\main.cpp" />
+    <ClCompile Include="..\Private\Network\FrameParser.cpp" />
+    <ClCompile Include="..\Private\Network\IOCPCore.cpp" />
+    <ClCompile Include="..\Private\Network\PacketDispatcher.cpp" />
+    <ClCompile Include="..\Private\Network\Session.cpp" />
+    <ClCompile Include="..\Private\Network\Session_Manager.cpp" />
+    <ClCompile Include="..\Private\Security\AntiCheatServer.cpp" />
+    <ClCompile Include="..\Private\Security\LagCompensation.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Annie\AnnieGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Ashe\AsheGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Fiora\FioraGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Jax\JaxGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Kindred\KindredGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Viego\ViegoGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Yone\YoneGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Zed\ZedGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Definitions\MapSpawnPoints.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Registries\Reward\RewardRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Registries\Skin\SkinRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Buff\BuffSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatActionSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatFormula.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamagePipeline.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Death\DeathSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Experience\ExperienceSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Move\MoveSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Recall\RecallSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Stat\StatSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Public\Game\AOI.h" />
+    <ClInclude Include="..\Public\Game\GameLogic.h" />
+    <ClInclude Include="..\Public\Game\GameRoom.h" />
+    <ClInclude Include="..\Public\Game\ReplayRecorder.h" />
+    <ClInclude Include="..\Public\Game\ServerEntry.h" />
+    <ClInclude Include="..\Public\Game\ServerMinionFlowField.h" />
+    <ClInclude Include="..\Public\Game\ServerMinionTuning.h" />
+    <ClInclude Include="..\Public\Game\ServerMinionWaveRuntime.h" />
+    <ClInclude Include="..\Public\Game\ServerWorld.h" />
+    <ClInclude Include="..\Public\Game\SnapshotBuilder.h" />
+    <ClInclude Include="..\Public\Network\FrameParser.h" />
+    <ClInclude Include="..\Public\Network\IOCPCore.h" />
+    <ClInclude Include="..\Public\Network\PacketDispatcher.h" />
+    <ClInclude Include="..\Public\Network\Session.h" />
+    <ClInclude Include="..\Public\Network\Session_Manager.h" />
+    <ClInclude Include="..\Public\Network\UdpCore.h" />
+    <ClInclude Include="..\Public\Network\UdpPacketDispatcher.h" />
+    <ClInclude Include="..\Public\Network\UdpSession.h" />
+    <ClInclude Include="..\Public\Security\AntiCheatServer.h" />
+    <ClInclude Include="..\Public\Security\LagCompensation.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Engine\Include\Engine.vcxproj">
+      <Project>{E1111111-1111-1111-1111-111111111111}</Project>
+      <Private>true</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="FlatcCodegen" BeforeTargets="ClCompile">
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\..\Shared\Schemas\run_codegen.bat&quot;" />
+  </Target>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

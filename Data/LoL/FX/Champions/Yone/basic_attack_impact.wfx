@@ -1,0 +1,55 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Yone.BasicAttack.Impact",
+  "emitters": [
+    {
+      "name": "ba_red_cross_slash",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yone/particles/yone_basic_attack_impact_slash.png",
+      "lifetime": 0.24,
+      "fade_in": 0.01,
+      "fade_out": 0.16,
+      "width": 1.55,
+      "height": 1.55,
+      "color": [1.00, 0.18, 0.28, 0.92],
+      "attach_offset": [0.0, 1.05, 0.0],
+      "billboard": true
+    },
+    {
+      "name": "ba_blue_cut_flash",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_star_flare.png",
+      "lifetime": 0.18,
+      "fade_in": 0.01,
+      "fade_out": 0.12,
+      "width": 1.05,
+      "height": 1.05,
+      "color": [0.38, 0.95, 1.35, 0.88],
+      "attach_offset": [0.0, 1.10, 0.0],
+      "billboard": true
+    },
+    {
+      "name": "ba_ring_pop",
+      "render_type": "ShockwaveRing",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_ring_impact.png",
+      "lifetime": 0.32,
+      "start_delay": 0.03,
+      "fade_in": 0.01,
+      "fade_out": 0.22,
+      "start_radius": 0.25,
+      "end_radius": 1.25,
+      "thickness": 0.11,
+      "grow_duration": 0.20,
+      "color": [1.00, 0.25, 0.32, 0.55],
+      "attach_offset": [0.0, 0.70, 0.0],
+      "billboard": true
+    }
+  ]
+}

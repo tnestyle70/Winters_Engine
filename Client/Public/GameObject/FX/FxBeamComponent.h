@@ -1,0 +1,99 @@
+#pragma once
+#include "Defines.h"
+#include "WintersMath.h"
+#include "ECS/Entity.h"
+#include "FX/FxAsset.h"
+#include "Renderer/BlendTypes.h"
+#include <memory>
+#include <string>
+#include <utility>
+
+struct FxBeamComponent
+{
+    EntityID hStart = NULL_ENTITY;
+    EntityID hEnd = NULL_ENTITY;
+    Vec3 vStartWorldPos = { 0.f, 0.f, 0.f };
+    Vec3 vEndWorldPos = { 0.f, 0.f, 1.f };
+    Vec3 vStartOffset = { 0.f, 0.f, 0.f };
+    Vec3 vEndOffset = { 0.f, 0.f, 0.f };
+    Vec3 vVelocity = { 0.f, 0.f, 0.f };
+
+    const wchar_t* texturePath = nullptr;
+    std::shared_ptr<const wstring_t> texturePathOwner = {};
+    FxAssetHandle hAsset{};
+    u32_t iEmitterIndex = 0;
+
+    f32_t fWidth = 0.5f;
+    f32_t fLifetime = 1.f;
+    f32_t fElapsed = 0.f;
+    f32_t fStartDelay = 0.f;
+    f32_t fFadeIn = 0.f;
+    f32_t fFadeOut = 0.f;
+    f32_t fUvScrollSpeed = 0.f;
+    f32_t fUvScrollU = 0.f;
+    f32_t fUvScrollV = 0.f;
+
+    f32_t fAlphaClip = 0.05f;
+    f32_t fErodeThreshold = 0.f;
+
+    FxMaterialDesc material{};
+    eFxDepthMode depthMode = eFxDepthMode::DepthTestWriteOn;
+    bool_t bMaterialReady = false;
+
+    Vec4 vColor = { 1.f, 1.f, 1.f, 1.f };
+    eBlendPreset blendMode = eBlendPreset::Additive;
+
+    bool bPendingDelete = false;
+    bool bBlockableByWindWall = false;
+
+    void SetMaterialFromDesc(const FxMaterialDesc& desc, eFxDepthMode mode)
+    {
+        material = desc;
+        depthMode = mode;
+
+        vColor = material.vTint;
+        fUvScrollU = material.vUVScroll.x;
+        fUvScrollV = material.vUVScroll.y;
+        fAlphaClip = material.fAlphaClip;
+        fErodeThreshold = material.fErodeThreshold;
+        bMaterialReady = true;
+    }
+
+    void RefreshMaterialFromLegacyFields()
+    {
+        FxSetMaterialDrawFields(
+            material,
+            vColor,
+            { 0.f, 0.f, 1.f, 1.f },
+            { fUvScrollU, fUvScrollV },
+            fAlphaClip,
+            fErodeThreshold);
+        bMaterialReady = true;
+    }
+
+    void SetTexturePath(const tchar_t* path)
+    {
+        if (!path || path[0] == 0)
+        {
+            texturePathOwner.reset();
+            texturePath = nullptr;
+            return;
+        }
+
+        texturePathOwner = std::make_shared<wstring_t>(path);
+        texturePath = texturePathOwner->c_str();
+    }
+
+    void SetTexturePath(wstring_t path)
+    {
+        if (path.empty())
+        {
+            texturePathOwner.reset();
+            texturePath = nullptr;
+            return;
+        }
+
+        texturePathOwner = std::make_shared<wstring_t>(std::move(path));
+        texturePath = texturePathOwner->c_str();
+    }
+};

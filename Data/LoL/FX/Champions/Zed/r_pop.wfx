@@ -1,0 +1,20 @@
+{
+  "name": "Zed.R.Pop",
+  "emitters": [
+    {
+      "name": "r_pop_burst",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/zed_r_marker.png",
+      "lifetime": 0.55,
+      "width": 2.2,
+      "height": 2.2,
+      "color": [1.0, 0.12, 0.18, 1.0],
+      "attach_offset": [0.0, 0.0, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.28,
+      "billboard": true
+    }
+  ]
+}

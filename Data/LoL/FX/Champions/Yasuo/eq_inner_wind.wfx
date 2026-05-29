@@ -1,0 +1,55 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Yasuo.EQ.InnerWind",
+  "emitters": [
+    {
+      "name": "eq_inner_wind_column",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/color_yasuo_base_e_inner_wind.png",
+      "lifetime": 0.62,
+      "fade_in": 0.04,
+      "fade_out": 0.32,
+      "width": 3.95,
+      "height": 3.95,
+      "color": [0.46, 0.80, 1.00, 0.82],
+      "attach_offset": [0.0, 1.04, 0.0],
+      "uv_scroll": [0.0, -0.45],
+      "billboard": true
+    },
+    {
+      "name": "eq_flash_core",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/color_yasuo_base_e_flash.png",
+      "lifetime": 0.30,
+      "start_delay": 0.03,
+      "fade_in": 0.01,
+      "fade_out": 0.20,
+      "width": 2.35,
+      "height": 2.35,
+      "color": [0.62, 0.88, 1.00, 0.76],
+      "attach_offset": [0.0, 1.08, 0.0],
+      "billboard": true
+    },
+    {
+      "name": "eq_big_tornado_mesh",
+      "render_type": "MeshParticle",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Yasuo/particles/fbx/yasuo_base_e_big_tonado.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/color_yasuo_base_e_tonado_blend.png",
+      "lifetime": 0.58,
+      "start_delay": 0.02,
+      "fade_in": 0.03,
+      "fade_out": 0.30,
+      "scale": [0.018, 0.018, 0.018],
+      "world_yaw_spin_speed": 11.000,
+      "color": [0.38, 0.74, 1.00, 0.58],
+      "attach_offset": [0.0, 1.00, 0.0]
+    }
+  ]
+}

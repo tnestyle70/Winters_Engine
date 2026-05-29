@@ -1,0 +1,14 @@
+include "LobbyTypes.fbs";
+
+namespace Shared.Schema;
+
+table LobbyCommand {
+    kind:LobbyCommandKind;
+    slotId:ubyte;
+    team:ubyte;
+    championId:ubyte;
+    botDifficulty:ubyte;
+    value:uint;
+}
+
+root_type LobbyCommand;

@@ -1,0 +1,47 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Ezreal.BA.Cast",
+  "emitters": [
+    {
+      "name": "ba_hand_flash",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ezreal/particles/ezreal_base_z_glowflare.png",
+      "lifetime": 0.24,
+      "fade_in": 0.01,
+      "fade_out": 0.16,
+      "width": 1.12,
+      "height": 0.92,
+      "color": [1.55, 1.12, 0.32, 0.92],
+      "attach_offset": [0.0, 1.22, 0.26],
+      "billboard": true,
+      "alpha_clip": 0.012,
+      "style_mode": 4,
+      "style_color_a": [1.75, 1.20, 0.34, 1.60],
+      "style_color_b": [0.10, 0.32, 0.92, 0.75],
+      "rim_color": [0.70, 0.95, 1.60, 0.44],
+      "magic_scroll_a": [0.04, 0.36, 0.08, 0.08],
+      "magic_shape": [1.80, 0.070, 0.42, 0.020],
+      "magic_core": [1.70, 0.72, 1.40, 0.0],
+      "material_random": 0.21
+    },
+    {
+      "name": "ba_cast_whisps",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ezreal/particles/ezreal_base_ba_whisps.png",
+      "lifetime": 0.30,
+      "fade_in": 0.02,
+      "fade_out": 0.20,
+      "width": 1.45,
+      "height": 1.00,
+      "color": [0.45, 1.25, 1.45, 0.62],
+      "attach_offset": [0.0, 1.08, 0.12],
+      "billboard": true,
+      "alpha_clip": 0.015
+    }
+  ]
+}

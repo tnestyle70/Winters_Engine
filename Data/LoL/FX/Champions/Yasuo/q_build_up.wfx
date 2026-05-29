@@ -1,0 +1,55 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Yasuo.Q.BuildUp",
+  "emitters": [
+    {
+      "name": "q_build_up_hand_flash",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/color_yasuo_q_build_up.png",
+      "lifetime": 0.32,
+      "fade_in": 0.02,
+      "fade_out": 0.16,
+      "width": 0.95,
+      "height": 0.95,
+      "color": [0.52, 0.78, 1.00, 0.95],
+      "attach_offset": [0.0, 1.48, 0.25],
+      "billboard": true
+    },
+    {
+      "name": "q_build_up_wind_wrap",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/color_yasuo_base_passvive_wind.png",
+      "lifetime": 0.36,
+      "start_delay": 0.03,
+      "fade_in": 0.02,
+      "fade_out": 0.18,
+      "width": 1.35,
+      "height": 1.35,
+      "color": [0.40, 0.70, 1.00, 0.68],
+      "attach_offset": [0.0, 1.15, 0.10],
+      "uv_scroll": [0.0, -0.35],
+      "billboard": true
+    },
+    {
+      "name": "q_build_up_sheath_spark",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_base_i_sheath_spark_glow.png",
+      "lifetime": 0.26,
+      "start_delay": 0.06,
+      "fade_in": 0.01,
+      "fade_out": 0.18,
+      "width": 0.78,
+      "height": 0.78,
+      "color": [0.70, 0.90, 1.00, 0.80],
+      "attach_offset": [0.0, 1.30, 0.35],
+      "billboard": true
+    }
+  ]
+}

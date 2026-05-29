@@ -1,0 +1,35 @@
+{
+  "name": "Zed.W.ShadowSpawn",
+  "emitters": [
+    {
+      "name": "w_shadow_ground",
+      "render_type": "GroundDecal",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/zed_base_w_team_indicator_blue.png",
+      "lifetime": 4.0,
+      "width": 3.8,
+      "height": 3.8,
+      "color": [0.55, 0.62, 1.0, 0.72],
+      "attach_offset": [0.0, 0.04, 0.0],
+      "fade_in": 0.05,
+      "fade_out": 0.35,
+      "billboard": false
+    },
+    {
+      "name": "w_shadow_wisps",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/zed_shadowwisps.png",
+      "lifetime": 4.0,
+      "width": 2.1,
+      "height": 2.1,
+      "color": [0.28, 0.38, 0.9, 0.82],
+      "attach_offset": [0.0, 1.1, 0.0],
+      "fade_in": 0.08,
+      "fade_out": 0.4,
+      "billboard": true
+    }
+  ]
+}

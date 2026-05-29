@@ -1,0 +1,79 @@
+# Visual Studio local state
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Agent local state
+.claude/
+.codex/
+.worktree-backups/
+
+# Build output directories
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Oo]bj/
+ipch/
+out/
+.builds/
+/Client/Bin/Debug*/
+/Client/Bin/Release*/
+**/[Bb]in/[Ii]ntermediate/
+
+# Compiled and intermediate files
+*.exe
+*.pdb
+*.ilk
+*.obj
+*.iobj
+*.ipdb
+*.exp
+*.pch
+*.gch
+*.tlog
+*.log
+*.idb
+*.lastbuildstate
+*.recipe
+*.ipch
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+*.meta
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*.vspscc
+*.vssscc
+*.pidb
+*.svclog
+*.scc
+*.FileListAbsolute.txt
+*.CppClean.log
+
+# Runtime Resource is restored separately
+/Client/Bin/Resource/
+/Client/Bin/Resource.zip
+
+# Local/editor noise
+.cursorrules
+GEMINI.md
+[Ii]mgui.ini
+*.lnk
+
+# Local service secrets
+Services/.env

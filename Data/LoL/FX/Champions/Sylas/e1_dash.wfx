@@ -1,0 +1,67 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Sylas.E1.Dash",
+  "emitters": [
+    {
+      "name": "e1_dash_mesh",
+      "render_type": "MeshParticle",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Sylas/particles/fbx/sylas_base_e1_dash.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/render/sylas_base_e1_dash.png",
+      "lifetime": 0.36,
+      "fade_in": 0.01,
+      "fade_out": 0.22,
+      "scale": [0.020, 0.020, 0.020],
+      "color": [1.20, 0.92, 0.62, 0.72],
+      "attach_offset": [0.0, 0.82, -0.25]
+    },
+    {
+      "name": "e1_blue_aura",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/sylas_base_e_aura_tex_blue.png",
+      "lifetime": 0.42,
+      "fade_in": 0.02,
+      "fade_out": 0.30,
+      "width": 2.55,
+      "height": 1.85,
+      "color": [0.90, 0.82, 1.95, 0.56],
+      "attach_offset": [0.0, 0.95, -0.15],
+      "billboard": true
+    },
+    {
+      "name": "e1_gold_trail",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/sylas_base_e_trail_mult.png",
+      "lifetime": 0.34,
+      "start_delay": 0.02,
+      "fade_in": 0.01,
+      "fade_out": 0.24,
+      "width": 1.15,
+      "height": 3.20,
+      "color": [1.45, 1.08, 0.42, 0.58],
+      "attach_offset": [0.0, 0.92, -0.95],
+      "billboard": false
+    },
+    {
+      "name": "e1_ground_smoke",
+      "render_type": "GroundDecal",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/sylas_base_e_sand_smoke.png",
+      "lifetime": 0.46,
+      "fade_in": 0.03,
+      "fade_out": 0.32,
+      "width": 2.70,
+      "height": 1.65,
+      "color": [0.40, 0.34, 0.30, 0.50],
+      "attach_offset": [0.0, 0.04, -0.30],
+      "billboard": false
+    }
+  ]
+}

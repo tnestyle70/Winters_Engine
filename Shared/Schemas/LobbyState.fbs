@@ -1,0 +1,16 @@
+include "LobbyTypes.fbs";
+
+namespace Shared.Schema;
+
+table LobbyState {
+    roomId:uint;
+    revision:uint;
+    hostSessionId:uint;
+    phase:LobbyPhase;
+    allPlayersCanEditBots:bool;
+    slots:[LobbySlot];
+    startCountdownMs:uint;
+    debugMessage:string;
+}
+
+root_type LobbyState;

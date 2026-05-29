@@ -1,0 +1,20 @@
+{
+  "name": "Zed.E.Slash",
+  "emitters": [
+    {
+      "name": "e_slash_ring",
+      "render_type": "Billboard",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/zed_e_slash.png",
+      "lifetime": 0.5,
+      "width": 2.7,
+      "height": 2.7,
+      "color": [1.0, 0.46, 0.46, 0.95],
+      "attach_offset": [0.0, 0.0, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.2,
+      "billboard": true
+    }
+  ]
+}

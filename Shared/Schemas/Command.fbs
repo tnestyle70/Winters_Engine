@@ -1,0 +1,39 @@
+namespace Shared.Schema;
+
+enum CommandKind : ubyte {
+    None = 0,
+    Move = 1,
+    CastSkill = 2,
+    BasicAttack = 3,
+    LevelSkill = 4,
+    BuyItem = 5,
+    UseItem = 6,
+    Recall = 7,
+    RecallCancel = 8,
+    AIDebugControl = 9
+}
+
+struct Vec3 {
+    x:float;
+    y:float;
+    z:float;
+}
+
+table CommandPacket {
+    kind:CommandKind;
+    sequenceNum:uint;
+    clientTick:ulong;
+    slot:ubyte;
+    targetNet:uint;
+    groundPos:Vec3;
+    direction:Vec3;
+    itemId:ushort;
+    pad:ushort;
+}
+
+table CommandBatch {
+    commands:[CommandPacket];
+    clientTimestampMs:ulong;
+}
+
+root_type CommandBatch;

@@ -1,0 +1,35 @@
+{
+  "name": "Ashe.R.Hit",
+  "emitters": [
+    {
+      "name": "r_hit_burst",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_ba_ashe_teal_sparkle.png",
+      "lifetime": 0.62,
+      "width": 2.45,
+      "height": 2.45,
+      "color": [0.78, 1.22, 1.60, 1.0],
+      "attach_offset": [0.0, 1.15, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.28,
+      "billboard": true
+    },
+    {
+      "name": "r_hit_frozen_ground",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_ground_frozen.png",
+      "lifetime": 0.80,
+      "width": 3.10,
+      "height": 3.10,
+      "color": [0.58, 0.95, 1.35, 0.70],
+      "attach_offset": [0.0, 0.05, 0.0],
+      "fade_in": 0.03,
+      "fade_out": 0.34,
+      "billboard": false
+    }
+  ]
+}

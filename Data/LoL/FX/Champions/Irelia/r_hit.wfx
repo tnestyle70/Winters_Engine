@@ -1,0 +1,56 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Irelia.R.Hit",
+  "emitters": [
+    {
+      "name": "r_hit_disarm_ring",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Character/Irelia/particles/irelia_base_disarm_ring.png",
+      "lifetime": 1.0000,
+      "fade_in": 0.0300,
+      "fade_out": 0.4500,
+      "width": 3.4000,
+      "height": 3.4000,
+      "color": [0.5500, 0.9500, 1.8000, 0.5500],
+      "attach_offset": [0.0000, 0.0300, 0.0000],
+      "billboard": false,
+      "depth_write": false
+    },
+    {
+      "name": "r_hit_wall_muzzle",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Character/Irelia/particles/irelia_base_r_hit_wall_dissarm_muzzle.png",
+      "lifetime": 1.4000,
+      "start_delay": 0.0800,
+      "fade_in": 0.0300,
+      "fade_out": 0.6000,
+      "width": 5.5000,
+      "height": 2.2000,
+      "color": [0.4500, 0.8500, 1.5000, 0.4500],
+      "attach_offset": [0.0000, 0.0300, 0.0000],
+      "billboard": false,
+      "depth_write": false
+    },
+    {
+      "name": "r_hit_flash",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Character/Irelia/particles/irelia_base_r_hit_flash.png",
+      "lifetime": 0.2200,
+      "fade_in": 0.0100,
+      "fade_out": 0.1800,
+      "width": 2.6000,
+      "height": 2.6000,
+      "color": [0.8500, 1.1000, 2.0000, 0.9000],
+      "attach_offset": [0.0000, 0.0300, 0.0000],
+      "billboard": true,
+      "depth_write": false
+    }
+  ]
+}

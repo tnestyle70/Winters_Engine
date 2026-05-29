@@ -1,0 +1,41 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Minion.Ranged.Projectile.Blue",
+  "emitters": [
+    {
+      "name": "core_hotcenter",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Object/Turret/particles/sru_order_turret1_hotcenter.png",
+      "lifetime": 0.3600,
+      "fade_in": 0.0040,
+      "fade_out": 0.1200,
+      "width": 0.4200,
+      "height": 0.4200,
+      "color": [1.1500, 1.6500, 2.7000, 0.9000],
+      "attach_offset": [0.0000, 0.8000, 0.0000],
+      "billboard": true,
+      "alpha_clip": 0.0000,
+      "depth_write": false
+    },
+    {
+      "name": "outer_glare",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Object/Turret/particles/sru_order_turret1_flare.png",
+      "lifetime": 0.3400,
+      "fade_in": 0.0060,
+      "fade_out": 0.1400,
+      "width": 0.8200,
+      "height": 0.8200,
+      "color": [0.4500, 1.1000, 2.5000, 0.4200],
+      "attach_offset": [0.0000, 0.8000, -0.0300],
+      "billboard": true,
+      "alpha_clip": 0.0000,
+      "depth_write": false
+    }
+  ]
+}

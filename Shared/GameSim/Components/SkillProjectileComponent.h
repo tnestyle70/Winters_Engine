@@ -9,6 +9,7 @@
 struct SkillProjectileComponent
 {
     EntityID sourceEntity = NULL_ENTITY;
+    EntityID targetEntity = NULL_ENTITY;
     eTeam sourceTeam = eTeam::Neutral;
     eProjectileKind kind = eProjectileKind::Generic;
     u16_t skillId = 0;

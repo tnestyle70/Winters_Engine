@@ -17,5 +17,7 @@ enum class eProjectileKind : uint16_t
     KindredArrow = 21,
     SylasChain = 22,
     ZedShuriken = 30,
+    MinionRangedBasicBlue = 40,
+    MinionRangedBasicRed = 41,
     PROJECTILE_END
 };

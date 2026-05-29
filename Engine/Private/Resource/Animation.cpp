@@ -5,6 +5,51 @@
 using namespace Engine;
 using namespace DirectX;
 
+namespace
+{
+	u32_t FindVectorKeySegment(const vector<VectorKey>& keys, f64_t t)
+	{
+		if (keys.size() <= 1)
+			return 0;
+
+		if (t <= keys.front().dTime)
+			return 0;
+
+		const u32_t lastSegment = static_cast<u32_t>(keys.size() - 2);
+		if (t >= keys.back().dTime)
+			return lastSegment;
+
+		for (u32_t i = 0; i < lastSegment; ++i)
+		{
+			if (t < keys[i + 1].dTime)
+				return i;
+		}
+
+		return lastSegment;
+	}
+
+	u32_t FindQuatKeySegment(const vector<QuatKey>& keys, f64_t t)
+	{
+		if (keys.size() <= 1)
+			return 0;
+
+		if (t <= keys.front().dTime)
+			return 0;
+
+		const u32_t lastSegment = static_cast<u32_t>(keys.size() - 2);
+		if (t >= keys.back().dTime)
+			return lastSegment;
+
+		for (u32_t i = 0; i < lastSegment; ++i)
+		{
+			if (t < keys[i + 1].dTime)
+				return i;
+		}
+
+		return lastSegment;
+	}
+}
+
 unique_ptr<CAnimation> CAnimation::Create(const string& strName, f64_t dDuration, 
 	f64_t dTicksPerSecond)
 {
@@ -56,18 +101,9 @@ XMVECTOR CAnimation::InterpolatePosition(const BoneChannel & ch, f64_t t) const
 	if (k.size() == 1)
 		return XMLoadFloat3(&k[0].vValue);
 
-	u32_t i = 0;
-	
-	for (u32_t j = 0; j < (u32_t)k.size() - 1; ++j)
-	{
-		if (t < k[j + 1].dTime)
-		{
-			i = j;
-			break;
-		}
-	}
-
-	f32_t f = (f32_t)((t - k[i].dTime) / (k[i + 1].dTime - k[i].dTime));
+	const u32_t i = FindVectorKeySegment(k, t);
+	const f64_t span = k[i + 1].dTime - k[i].dTime;
+	f32_t f = (span > 0.0) ? (f32_t)((t - k[i].dTime) / span) : 0.f;
 	f = max(0.f, min(1.f, f));
 	return XMVectorLerp(XMLoadFloat3(&k[i].vValue), XMLoadFloat3(&k[i + 1].vValue), f);
 }
@@ -80,17 +116,9 @@ XMVECTOR CAnimation::InterpolateRotation(const BoneChannel& ch, f64_t t) const
 	if (k.size() == 1)
 		return XMLoadFloat4(&k[0].vValue);
 
-	u32_t i = 0;
-	for (u32_t j = 0; j < (u32_t)k.size() - 1; ++j)
-	{
-		if (t < k[j + 1].dTime)
-		{
-			i = j;
-			break;
-		}
-	}
-
-	f32_t f = (f32_t)((t - k[i].dTime) / (k[i + 1].dTime - k[i].dTime));
+	const u32_t i = FindQuatKeySegment(k, t);
+	const f64_t span = k[i + 1].dTime - k[i].dTime;
+	f32_t f = (span > 0.0) ? (f32_t)((t - k[i].dTime) / span) : 0.f;
 	f = max(0.f, min(1.f, f));
 
 	return XMQuaternionSlerp(XMLoadFloat4(&k[i].vValue), XMLoadFloat4(&k[i + 1].vValue), f);
@@ -104,17 +132,9 @@ XMVECTOR CAnimation::InterpolateScale(const BoneChannel& ch, f64_t t) const
 	if (k.size() == 1)
 		return XMLoadFloat3(&k[0].vValue);
 
-	u32_t i = 0; 
-	for (u32_t j = 0; j < (u32_t)k.size() - 1; ++j)
-	{
-		if (t < k[j + 1].dTime)
-		{
-			i = j;
-			break;
-		}
-	}
-
-	f32_t f = (f32_t)((t - k[i].dTime) / (k[i + 1].dTime - k[i].dTime));
+	const u32_t i = FindVectorKeySegment(k, t);
+	const f64_t span = k[i + 1].dTime - k[i].dTime;
+	f32_t f = (span > 0.0) ? (f32_t)((t - k[i].dTime) / span) : 0.f;
 	f = max(0.f, min(1.f, f));
 	return XMVectorLerp(XMLoadFloat3(&k[i].vValue), XMLoadFloat3(&k[i + 1].vValue), f);
 }

@@ -75,6 +75,20 @@ namespace
         0.8f, 0.8f, 1.4f, 1.4f,
         false, false
     };
+
+    constexpr ProjectileVisualDesc kMinionRangedBlueVisual{
+        "Minion.Ranged.Projectile.Blue", nullptr, nullptr,
+        nullptr, nullptr,
+        0.42f, 0.42f, 0.62f, 0.62f,
+        false, false
+    };
+
+    constexpr ProjectileVisualDesc kMinionRangedRedVisual{
+        "Minion.Ranged.Projectile.Red", nullptr, nullptr,
+        nullptr, nullptr,
+        0.42f, 0.42f, 0.62f, 0.62f,
+        false, false
+    };
 }
 
 namespace ProjectileVisualCatalog
@@ -102,6 +116,10 @@ namespace ProjectileVisualCatalog
             return kAsheVolleyArrowVisual;
         case eProjectileKind::AsheCrystalArrow:
             return kAsheCrystalArrowVisual;
+        case eProjectileKind::MinionRangedBasicBlue:
+            return kMinionRangedBlueVisual;
+        case eProjectileKind::MinionRangedBasicRed:
+            return kMinionRangedRedVisual;
         default:
             return kGenericProjectileVisual;
         }

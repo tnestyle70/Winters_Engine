@@ -547,6 +547,13 @@ namespace
     constexpr u32_t kLaneBot = static_cast<u32_t>(Winters::Map::eLane::Bot);
     constexpr u32_t kLaneBase = static_cast<u32_t>(Winters::Map::eLane::Base);
     constexpr u16_t kTurretProjectileKind = 100;
+    constexpr u8_t kServerMinionRoleRanged = 1u;
+    constexpr f32_t kServerMinionRangedProjectileSpeed = 14.f;
+    constexpr f32_t kServerMinionRangedProjectileHitRadius = 0.45f;
+    constexpr f32_t kServerMinionRangedProjectileStartForwardOffset = 0.45f;
+    constexpr f32_t kServerMinionRangedProjectileStartHeight = 0.85f;
+    constexpr f32_t kServerMinionRangedProjectileTargetHeight = 0.85f;
+    constexpr f32_t kServerMinionRangedProjectileMaxDistancePadding = 2.f;
     constexpr f32_t kDefaultStructureRadius = 1.5f;
     constexpr f32_t kStageFountainForwardFromTwin = -0.4f;
     constexpr f32_t kStageFountainSideFromTwin = -6.5f;
@@ -1258,6 +1265,24 @@ namespace
             v,
             fallback,
             std::numeric_limits<f32_t>::epsilon());
+    }
+
+    bool_t IsServerRangedMinion(const MinionStateComponent& state)
+    {
+        return state.type == kServerMinionRoleRanged;
+    }
+
+    eProjectileKind ResolveServerMinionRangedProjectileKind(eTeam team)
+    {
+        return team == eTeam::Red
+            ? eProjectileKind::MinionRangedBasicRed
+            : eProjectileKind::MinionRangedBasicBlue;
+    }
+
+    bool_t IsServerMinionRangedProjectileKind(eProjectileKind kind)
+    {
+        return kind == eProjectileKind::MinionRangedBasicBlue ||
+            kind == eProjectileKind::MinionRangedBasicRed;
     }
 
     Vec3 OffsetLaneStartAlong(const Vec3& start, const Vec3& next, f32_t offset)
@@ -2210,14 +2235,51 @@ void CGameRoom::Phase_ServerMinionAI(TickContext& tc)
                     eTeam sourceTeam = minion.team;
                     (void)TryResolveCombatTeam(m_world, entity, sourceTeam);
 
-                    DamageRequest request{};
-                    request.source = entity;
-                    request.target = target;
-                    request.sourceTeam = sourceTeam;
-                    request.type = eDamageType::Physical;
-                    request.flatAmount = state.attackDamage;
-                    request.flags = DamageFlag_OnHit;
-                    EnqueueDamageRequest(m_world, request);
+                    if (IsServerRangedMinion(state))
+                    {
+                        const Vec3 projectileDir = NormalizeXZOrForward(
+                            Vec3{ targetPos.x - pos.x, 0.f, targetPos.z - pos.z },
+                            sourceTeam);
+                        const Vec3 projectileStart{
+                            pos.x + projectileDir.x * kServerMinionRangedProjectileStartForwardOffset,
+                            pos.y + kServerMinionRangedProjectileStartHeight,
+                            pos.z + projectileDir.z * kServerMinionRangedProjectileStartForwardOffset
+                        };
+
+                        SkillProjectileComponent projectile{};
+                        projectile.sourceEntity = entity;
+                        projectile.targetEntity = target;
+                        projectile.sourceTeam = sourceTeam;
+                        projectile.kind = ResolveServerMinionRangedProjectileKind(sourceTeam);
+                        projectile.skillId = static_cast<u16_t>(projectile.kind);
+                        projectile.currentPos = projectileStart;
+                        projectile.direction = projectileDir;
+                        projectile.speed = kServerMinionRangedProjectileSpeed;
+                        projectile.maxDistance =
+                            effectiveAttackRange + kServerMinionRangedProjectileMaxDistancePadding;
+                        projectile.hitRadius = kServerMinionRangedProjectileHitRadius;
+                        projectile.damage = state.attackDamage;
+
+                        const EntityID projectileEntity = m_world.CreateEntity();
+                        m_world.AddComponent<SkillProjectileComponent>(projectileEntity, projectile);
+
+                        TransformComponent projectileTransform{};
+                        projectileTransform.SetPosition(projectileStart);
+                        m_world.AddComponent<TransformComponent>(
+                            projectileEntity,
+                            projectileTransform);
+                    }
+                    else
+                    {
+                        DamageRequest request{};
+                        request.source = entity;
+                        request.target = target;
+                        request.sourceTeam = sourceTeam;
+                        request.type = eDamageType::Physical;
+                        request.flatAmount = state.attackDamage;
+                        request.flags = DamageFlag_OnHit;
+                        EnqueueDamageRequest(m_world, request);
+                    }
 
                     state.attackCooldown = state.attackCooldownMax;
                     state.bHitFired = true;
@@ -2557,6 +2619,7 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
             ReplicatedEventComponent spawn{};
             spawn.kind = eReplicatedEventKind::ProjectileSpawn;
             spawn.sourceEntity = projectile.sourceEntity;
+            spawn.targetEntity = projectile.targetEntity;
             spawn.projectileEntity = entity;
             spawn.projectileKind = static_cast<u16_t>(projectile.kind);
             spawn.position = projectile.currentPos;
@@ -2565,7 +2628,13 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
             spawn.maxDistance = projectile.maxDistance;
             spawn.startTick = tc.tickIndex;
             EnqueueReplicatedEvent(m_world, spawn);
-            LogSkillProjectileEvent("spawn", entity, projectile, NULL_ENTITY, projectile.currentPos);
+            if (!IsServerMinionRangedProjectileKind(projectile.kind))
+                LogSkillProjectileEvent(
+                    "spawn",
+                    entity,
+                    projectile,
+                    projectile.targetEntity,
+                    projectile.currentPos);
             continue;
         }
 
@@ -2583,6 +2652,128 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
             hit.startTick = tc.tickIndex;
             EnqueueReplicatedEvent(m_world, hit);
             m_world.DestroyEntity(entity);
+            continue;
+        }
+
+        if (projectile.targetEntity != NULL_ENTITY)
+        {
+            const bool_t bTargetAlive =
+                m_world.IsAlive(projectile.targetEntity) &&
+                m_world.HasComponent<TransformComponent>(projectile.targetEntity) &&
+                IsAliveHealth(m_world, projectile.targetEntity) &&
+                GameplayStateQuery::CanReceiveProjectileHit(
+                    m_world,
+                    projectile.sourceEntity,
+                    projectile.targetEntity);
+
+            if (!bTargetAlive)
+            {
+                ReplicatedEventComponent hit{};
+                hit.kind = eReplicatedEventKind::ProjectileHit;
+                hit.sourceEntity = projectile.sourceEntity;
+                hit.targetEntity = NULL_ENTITY;
+                hit.projectileEntity = entity;
+                hit.projectileKind = static_cast<u16_t>(projectile.kind);
+                hit.position = projectile.currentPos;
+                hit.bDestroyed = true;
+                hit.startTick = tc.tickIndex;
+                EnqueueReplicatedEvent(m_world, hit);
+                m_world.DestroyEntity(entity);
+                continue;
+            }
+
+            const Vec3 targetPos =
+                m_world.GetComponent<TransformComponent>(projectile.targetEntity).GetPosition();
+            const Vec3 targetAim{
+                targetPos.x,
+                targetPos.y + kServerMinionRangedProjectileTargetHeight,
+                targetPos.z
+            };
+            const Vec3 delta{
+                targetAim.x - projectile.currentPos.x,
+                targetAim.y - projectile.currentPos.y,
+                targetAim.z - projectile.currentPos.z
+            };
+            const f32_t distSq = delta.x * delta.x + delta.y * delta.y + delta.z * delta.z;
+            const f32_t hitRadiusSq = projectile.hitRadius * projectile.hitRadius;
+
+            if (distSq <= hitRadiusSq)
+            {
+                DamageRequest request{};
+                request.source = projectile.sourceEntity;
+                request.target = projectile.targetEntity;
+                request.sourceTeam = projectile.sourceTeam;
+                request.type = eDamageType::Physical;
+                request.flatAmount = projectile.damage;
+                request.skillId = projectile.skillId;
+                request.rank = projectile.rank;
+                request.flags = DamageFlag_OnHit;
+                EnqueueDamageRequest(m_world, request);
+
+                ReplicatedEventComponent hit{};
+                hit.kind = eReplicatedEventKind::ProjectileHit;
+                hit.sourceEntity = projectile.sourceEntity;
+                hit.targetEntity = projectile.targetEntity;
+                hit.projectileEntity = entity;
+                hit.projectileKind = static_cast<u16_t>(projectile.kind);
+                hit.position = targetAim;
+                hit.bDestroyed = true;
+                hit.startTick = tc.tickIndex;
+                EnqueueReplicatedEvent(m_world, hit);
+                m_world.DestroyEntity(entity);
+                continue;
+            }
+
+            const f32_t dist = std::sqrt(distSq);
+            if (dist <= std::numeric_limits<f32_t>::epsilon())
+            {
+                m_world.DestroyEntity(entity);
+                continue;
+            }
+
+            const f32_t remaining = projectile.maxDistance - projectile.traveledDistance;
+            if (remaining <= 0.f)
+            {
+                ReplicatedEventComponent hit{};
+                hit.kind = eReplicatedEventKind::ProjectileHit;
+                hit.sourceEntity = projectile.sourceEntity;
+                hit.targetEntity = NULL_ENTITY;
+                hit.projectileEntity = entity;
+                hit.projectileKind = static_cast<u16_t>(projectile.kind);
+                hit.position = projectile.currentPos;
+                hit.bDestroyed = true;
+                hit.startTick = tc.tickIndex;
+                EnqueueReplicatedEvent(m_world, hit);
+                m_world.DestroyEntity(entity);
+                continue;
+            }
+
+            const f32_t step = std::min(projectile.speed * tc.fDt, remaining);
+            const f32_t actualStep = (step >= dist) ? dist : step;
+            const f32_t t = actualStep / dist;
+            const Vec3 next{
+                projectile.currentPos.x + delta.x * t,
+                projectile.currentPos.y + delta.y * t,
+                projectile.currentPos.z + delta.z * t
+            };
+            projectile.currentPos = next;
+            projectile.traveledDistance += actualStep;
+            transform.SetPosition(next);
+
+            if (projectile.traveledDistance >= projectile.maxDistance - 0.001f)
+            {
+                ReplicatedEventComponent hit{};
+                hit.kind = eReplicatedEventKind::ProjectileHit;
+                hit.sourceEntity = projectile.sourceEntity;
+                hit.targetEntity = NULL_ENTITY;
+                hit.projectileEntity = entity;
+                hit.projectileKind = static_cast<u16_t>(projectile.kind);
+                hit.position = next;
+                hit.bDestroyed = true;
+                hit.startTick = tc.tickIndex;
+                EnqueueReplicatedEvent(m_world, hit);
+                m_world.DestroyEntity(entity);
+            }
             continue;
         }
 

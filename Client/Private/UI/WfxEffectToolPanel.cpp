@@ -4,6 +4,7 @@
 #include "ECS/World.h"
 #include "GameObject/Champion/Irelia/Irelia_Tuning.h"
 #include "GameObject/FX/FxCuePlayer.h"
+#include "GameObject/FX/FxRibbonComponent.h"
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/WfxDocument.h"
 #include "Scene/Scene_InGame.h"
@@ -592,7 +593,18 @@ namespace
             bool bAtlasLoop = emitter.bAtlasLoop;
             if (ImGui::Checkbox("Atlas Loop", &bAtlasLoop))
                 emitter.bAtlasLoop = bAtlasLoop;
-            DragUInt("Ribbon Point Count", emitter.iRibbonPointCount, 2, 128);
+            DragUInt("Ribbon Point Count", emitter.iRibbonPointCount, 2, FX_RIBBON_MAX_POINTS);
+            bool bHistoryTrail = emitter.bHistoryTrail;
+            if (ImGui::Checkbox("History Trail", &bHistoryTrail))
+                emitter.bHistoryTrail = bHistoryTrail;
+            ImGui::DragFloat("Trail Sample Interval", &emitter.fTrailSampleInterval, 0.001f, 0.001f, 0.25f, "%.4f");
+            ImGui::DragFloat("Trail Head Width Scale", &emitter.fTrailHeadWidthScale, 0.01f, 0.f, 8.f, "%.3f");
+            ImGui::DragFloat("Trail Tail Width Scale", &emitter.fTrailTailWidthScale, 0.01f, 0.f, 8.f, "%.3f");
+            ImGui::DragFloat("Trail Head Alpha Scale", &emitter.fTrailHeadAlphaScale, 0.01f, 0.f, 8.f, "%.3f");
+            ImGui::DragFloat("Trail Tail Alpha Scale", &emitter.fTrailTailAlphaScale, 0.01f, 0.f, 8.f, "%.3f");
+            ImGui::DragFloat("Trail Jitter Amplitude", &emitter.fTrailJitterAmplitude, 0.005f, 0.f, 5.f, "%.3f");
+            ImGui::DragFloat("Trail Jitter Frequency", &emitter.fTrailJitterFrequency, 0.05f, 0.f, 80.f, "%.3f");
+            ImGui::DragFloat("Trail Jitter Seed", &emitter.fTrailJitterSeed, 0.05f, -100.f, 100.f, "%.3f");
             ImGui::TreePop();
         }
     }

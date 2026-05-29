@@ -381,6 +381,24 @@ namespace
             ExtractNumber(block, "atlas_fps", emitter.fAtlasFps);
             ExtractBool(block, "atlas_loop", emitter.bAtlasLoop);
             ExtractUInt(block, "ribbon_point_count", emitter.iRibbonPointCount);
+            if (!ExtractBool(block, "history_trail", emitter.bHistoryTrail))
+                ExtractBool(block, "historyTrail", emitter.bHistoryTrail);
+            if (!ExtractNumber(block, "trail_sample_interval", emitter.fTrailSampleInterval))
+                ExtractNumber(block, "trailSampleInterval", emitter.fTrailSampleInterval);
+            if (!ExtractNumber(block, "trail_head_width_scale", emitter.fTrailHeadWidthScale))
+                ExtractNumber(block, "trailHeadWidthScale", emitter.fTrailHeadWidthScale);
+            if (!ExtractNumber(block, "trail_tail_width_scale", emitter.fTrailTailWidthScale))
+                ExtractNumber(block, "trailTailWidthScale", emitter.fTrailTailWidthScale);
+            if (!ExtractNumber(block, "trail_head_alpha_scale", emitter.fTrailHeadAlphaScale))
+                ExtractNumber(block, "trailHeadAlphaScale", emitter.fTrailHeadAlphaScale);
+            if (!ExtractNumber(block, "trail_tail_alpha_scale", emitter.fTrailTailAlphaScale))
+                ExtractNumber(block, "trailTailAlphaScale", emitter.fTrailTailAlphaScale);
+            if (!ExtractNumber(block, "trail_jitter_amplitude", emitter.fTrailJitterAmplitude))
+                ExtractNumber(block, "trailJitterAmplitude", emitter.fTrailJitterAmplitude);
+            if (!ExtractNumber(block, "trail_jitter_frequency", emitter.fTrailJitterFrequency))
+                ExtractNumber(block, "trailJitterFrequency", emitter.fTrailJitterFrequency);
+            if (!ExtractNumber(block, "trail_jitter_seed", emitter.fTrailJitterSeed))
+                ExtractNumber(block, "trailJitterSeed", emitter.fTrailJitterSeed);
 
             Vec2 uvScroll{};
             if (ExtractVec2(block, "uv_scroll", uvScroll))

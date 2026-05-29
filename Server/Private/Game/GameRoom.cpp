@@ -29,6 +29,7 @@
 #include "Shared/GameSim/Champions/Kindred/KindredGameSim.h"
 #include "Shared/GameSim/Champions/LeeSin/LeeSinGameSim.h"
 #include "Shared/GameSim/Champions/MasterYi/MasterYiGameSim.h"
+#include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
 #include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
 #include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
@@ -327,7 +328,17 @@ namespace
     {
         return kind == eSpatialKind::Champion ||
             kind == eSpatialKind::Minion ||
-            kind == eSpatialKind::JungleMob;
+            kind == eSpatialKind::JungleMob ||
+            kind == eSpatialKind::Turret ||
+            kind == eSpatialKind::Inhibitor ||
+            kind == eSpatialKind::Nexus;
+    }
+
+    bool_t IsStaticMoveBlockingKind(eSpatialKind kind)
+    {
+        return kind == eSpatialKind::Turret ||
+            kind == eSpatialKind::Inhibitor ||
+            kind == eSpatialKind::Nexus;
     }
 
     f32_t ResolveAgentRadius(CWorld& world, EntityID entity)
@@ -427,6 +438,9 @@ namespace
             agent.team != static_cast<u8_t>(eTeam::Neutral);
         if (bSameTeam)
         {
+            if (agent.kind == eSpatialKind::Minion)
+                return false;
+
             const f32_t currentDistSq = WintersMath::DistanceSqXZ(current, otherPos);
             if (candidateDistSq + 0.0001f >= currentDistSq)
                 return false;
@@ -458,7 +472,10 @@ namespace
             const u32_t moveBlockerMask =
                 SpatialMask(eSpatialKind::Champion) |
                 SpatialMask(eSpatialKind::Minion) |
-                SpatialMask(eSpatialKind::JungleMob);
+                SpatialMask(eSpatialKind::JungleMob) |
+                SpatialMask(eSpatialKind::Turret) |
+                SpatialMask(eSpatialKind::Inhibitor) |
+                SpatialMask(eSpatialKind::Nexus);
 
             std::vector<EntityID> candidates;
             candidates.reserve(16);
@@ -633,6 +650,137 @@ namespace
             return;
 
         WintersOutputAIDebugStringW(pText);
+    }
+
+    const char* ServerMinionDebugStateName(MinionStateComponent::State state)
+    {
+        switch (state)
+        {
+        case MinionStateComponent::Idle: return "Idle";
+        case MinionStateComponent::LaneMove: return "LaneMove";
+        case MinionStateComponent::Chase: return "Chase";
+        case MinionStateComponent::Attack: return "Attack";
+        case MinionStateComponent::Dead: return "Dead";
+        default: return "Unknown";
+        }
+    }
+
+    Engine::CNavGrid::Cell ResolveDebugCell(const Engine::CNavGrid* pGrid, const Vec3& pos)
+    {
+        if (!pGrid)
+            return Engine::CNavGrid::Cell{ -1, -1 };
+
+        return pGrid->WorldToCell(pos);
+    }
+
+    void OutputServerMinionPathDebug(
+        const Engine::CNavGrid* pMoveGrid,
+        const Engine::CNavGrid* pPathGrid,
+        u64_t tickIndex,
+        EntityID entity,
+        const MinionStateComponent& state,
+        const Vec3& vPos,
+        const Vec3& vTarget,
+        const Vec3& vResolvedTarget,
+        u16_t pathCount,
+        u32_t pathBuildBudget,
+        bool_t bBuilt)
+    {
+        static u32_t s_minionPathLogCount = 0u;
+        if (s_minionPathLogCount >= 256u)
+            return;
+
+        const Engine::CNavGrid::Cell posMoveCell = ResolveDebugCell(pMoveGrid, vPos);
+        const Engine::CNavGrid::Cell posPathCell = ResolveDebugCell(pPathGrid, vPos);
+        const Engine::CNavGrid::Cell targetMoveCell = ResolveDebugCell(pMoveGrid, vTarget);
+        const Engine::CNavGrid::Cell targetPathCell = ResolveDebugCell(pPathGrid, vTarget);
+        const Engine::CNavGrid::Cell resolvedMoveCell = ResolveDebugCell(pMoveGrid, vResolvedTarget);
+        const Engine::CNavGrid::Cell resolvedPathCell = ResolveDebugCell(pPathGrid, vResolvedTarget);
+
+        char msg[640]{};
+        sprintf_s(
+            msg,
+            "[MinionMove][Path] tick=%llu entity=%u team=%u lane=%u result=%s "
+            "pos=(%.2f,%.2f) moveCell=(%d,%d) pathCell=(%d,%d) "
+            "target=(%.2f,%.2f) targetMoveCell=(%d,%d) targetPathCell=(%d,%d) "
+            "resolved=(%.2f,%.2f) resolvedMoveCell=(%d,%d) resolvedPathCell=(%d,%d) pathCount=%u budget=%u\n",
+            static_cast<unsigned long long>(tickIndex),
+            static_cast<u32_t>(entity),
+            static_cast<u32_t>(state.team),
+            static_cast<u32_t>(state.lane),
+            bBuilt ? "built" : "failed",
+            vPos.x,
+            vPos.z,
+            posMoveCell.x,
+            posMoveCell.y,
+            posPathCell.x,
+            posPathCell.y,
+            vTarget.x,
+            vTarget.z,
+            targetMoveCell.x,
+            targetMoveCell.y,
+            targetPathCell.x,
+            targetPathCell.y,
+            vResolvedTarget.x,
+            vResolvedTarget.z,
+            resolvedMoveCell.x,
+            resolvedMoveCell.y,
+            resolvedPathCell.x,
+            resolvedPathCell.y,
+            static_cast<u32_t>(pathCount),
+            pathBuildBudget);
+        OutputServerAITrace(msg);
+        ++s_minionPathLogCount;
+    }
+
+    void OutputServerMinionStuckDebug(
+        const char* pReason,
+        const Engine::CNavGrid* pMoveGrid,
+        u64_t tickIndex,
+        EntityID entity,
+        const MinionStateComponent& state,
+        const Vec3& vPos,
+        const Vec3& vGoal,
+        const Vec3* pWaypoint)
+    {
+        static u32_t s_minionStuckLogCount = 0u;
+        if (s_minionStuckLogCount >= 256u)
+            return;
+
+        const Engine::CNavGrid::Cell posCell = ResolveDebugCell(pMoveGrid, vPos);
+        const Engine::CNavGrid::Cell goalCell = ResolveDebugCell(pMoveGrid, vGoal);
+        const Engine::CNavGrid::Cell waypointCell = pWaypoint
+            ? ResolveDebugCell(pMoveGrid, *pWaypoint)
+            : Engine::CNavGrid::Cell{ -1, -1 };
+
+        char msg[512]{};
+        sprintf_s(
+            msg,
+            "[MinionMove][Stuck] tick=%llu entity=%u team=%u lane=%u state=%s reason=%s "
+            "blocked=%u pos=(%.2f,%.2f) posCell=(%d,%d) "
+            "goal=(%.2f,%.2f) goalCell=(%d,%d) "
+            "path=%u/%u waypointCell=(%d,%d)\n",
+            static_cast<unsigned long long>(tickIndex),
+            static_cast<u32_t>(entity),
+            static_cast<u32_t>(state.team),
+            static_cast<u32_t>(state.lane),
+            ServerMinionDebugStateName(state.current),
+            pReason ? pReason : "unknown",
+            static_cast<u32_t>(state.BlockedMoveFrames),
+            vPos.x,
+            vPos.z,
+            posCell.x,
+            posCell.y,
+            vGoal.x,
+            vGoal.z,
+            goalCell.x,
+            goalCell.y,
+            static_cast<u32_t>(state.PathIndex),
+            static_cast<u32_t>(state.PathCount),
+            waypointCell.x,
+            waypointCell.y);
+        OutputServerAITrace(msg);
+        ++s_minionStuckLogCount;
     }
 
     void OutputServerNavGridSummary(const char* pLabel, const Engine::CNavGrid& navGrid)
@@ -1605,6 +1753,7 @@ void CGameRoom::InitializeServerSimSystems()
     LeeSinGameSim::RegisterHooks();
     KindredGameSim::RegisterHooks();
     MasterYiGameSim::RegisterHooks();
+    SylasGameSim::RegisterHooks();
     ViegoGameSim::RegisterHooks();
     YoneGameSim::RegisterHooks();
     YasuoGameSim::RegisterHooks();
@@ -2177,6 +2326,44 @@ void CGameRoom::Phase_ServerMinionAI(TickContext& tc)
     }
 }
 
+void CGameRoom::Phase_ServerMinionDepenetration(TickContext& tc)
+{
+    if (m_roomPhase != eRoomPhase::InGame)
+        return;
+
+    const auto minions =
+        DeterministicEntityIterator<MinionStateComponent>::CollectSorted(m_world);
+
+    for (EntityID entity : minions)
+    {
+        if (!m_world.IsAlive(entity) ||
+            !m_world.HasComponent<MinionStateComponent>(entity) ||
+            !m_world.HasComponent<TransformComponent>(entity))
+        {
+            continue;
+        }
+
+        MinionStateComponent& state = m_world.GetComponent<MinionStateComponent>(entity);
+        if (state.current == MinionStateComponent::Dead)
+            continue;
+
+        TransformComponent& transform = m_world.GetComponent<TransformComponent>(entity);
+        const Vec3 vPos = transform.GetPosition();
+        const f32_t fStep = (std::max)(0.08f, state.moveSpeed * tc.fDt);
+
+        Vec3 vResolved{};
+        if (!TryResolveMinionDepenetrationStep(entity, vPos, fStep, tc, vResolved))
+            continue;
+
+        const Vec3 vActualMove{ vResolved.x - vPos.x, 0.f, vResolved.z - vPos.z };
+        transform.SetPosition(vResolved);
+        FaceServerMinionTowardDirection(transform, vActualMove);
+
+        if (state.BlockedMoveFrames > 0u)
+            state.BlockedMoveFrames = 0u;
+    }
+}
+
 void CGameRoom::Phase_ServerTurretAI(TickContext& tc)
 {
     if (m_roomPhase != eRoomPhase::InGame)
@@ -2422,6 +2609,8 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
                 YasuoGameSim::ApplyTornadoAirborne(m_world, projectile.sourceEntity, target);
             if (projectile.kind == eProjectileKind::LeeSinQ)
                 LeeSinGameSim::ApplySonicWaveMark(m_world, projectile.sourceEntity, target);
+            if (projectile.kind == eProjectileKind::SylasChain)
+                SylasGameSim::ApplyChainHit(m_world, projectile.sourceEntity, target);
             if (projectile.bApplyOnHitStatus)
                 GameplayStatus::ApplyStatusEffect(m_world, target, projectile.onHitStatus);
 
@@ -2429,7 +2618,9 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
             request.source = projectile.sourceEntity;
             request.target = target;
             request.sourceTeam = projectile.sourceTeam;
-            request.type = eDamageType::Physical;
+            request.type = projectile.kind == eProjectileKind::SylasChain
+                ? eDamageType::Magic
+                : eDamageType::Physical;
             request.flatAmount = projectile.damage;
             request.skillId = projectile.skillId;
             request.rank = projectile.rank;
@@ -4620,6 +4811,160 @@ u32_t CGameRoom::ResolveServerMinionStartWaypoint(eTeam team, u8_t lane, const V
     return 1u;
 }
 
+bool_t CGameRoom::TryResolveMinionDepenetrationStep(
+    EntityID entity,
+    const Vec3& vPos,
+    f32_t fStep,
+    const TickContext& tc,
+    Vec3& vOutNext)
+{
+    if (!m_world.HasComponent<SpatialAgentComponent>(entity))
+        return false;
+
+    const SpatialAgentComponent& self = m_world.GetComponent<SpatialAgentComponent>(entity);
+    const f32_t selfRadius = (std::max)(0.2f, self.radius);
+
+    const u32_t blockerMask =
+        SpatialMask(eSpatialKind::Champion) |
+        SpatialMask(eSpatialKind::Minion) |
+        SpatialMask(eSpatialKind::JungleMob) |
+        SpatialMask(eSpatialKind::Turret) |
+        SpatialMask(eSpatialKind::Inhibitor) |
+        SpatialMask(eSpatialKind::Nexus);
+
+    std::vector<EntityID> blockers;
+    blockers.reserve(32);
+
+    if (CSpatialIndex* pSpatial = m_world.Get_SpatialIndex())
+    {
+        pSpatial->QueryRadius(vPos, selfRadius + 3.0f, blockerMask, 0u, blockers);
+    }
+    else
+    {
+        blockers = DeterministicEntityIterator<SpatialAgentComponent>::CollectSorted(m_world);
+    }
+
+    Vec3 vPush{};
+    u32_t blockerCount = 0u;
+    u32_t staticCount = 0u;
+    u32_t dynamicCount = 0u;
+
+    for (EntityID other : blockers)
+    {
+        if (other == entity ||
+            !m_world.HasComponent<SpatialAgentComponent>(other) ||
+            !m_world.HasComponent<TransformComponent>(other))
+        {
+            continue;
+        }
+
+        const SpatialAgentComponent& agent = m_world.GetComponent<SpatialAgentComponent>(other);
+        if (!IsMoveBlockingKind(agent.kind))
+            continue;
+
+        if (m_world.HasComponent<HealthComponent>(other))
+        {
+            const HealthComponent& health = m_world.GetComponent<HealthComponent>(other);
+            if (health.bIsDead || health.fCurrent <= 0.f)
+                continue;
+        }
+
+        const Vec3 otherPos = m_world.GetComponent<TransformComponent>(other).GetPosition();
+        Vec3 vAway{ vPos.x - otherPos.x, 0.f, vPos.z - otherPos.z };
+        f32_t distSq = vAway.x * vAway.x + vAway.z * vAway.z;
+
+        if (distSq <= 0.0001f)
+        {
+            const u32_t hash =
+                static_cast<u32_t>(entity) * 73856093u ^
+                static_cast<u32_t>(other) * 19349663u;
+            vAway = Vec3{
+                (hash & 1u) ? 1.f : -1.f,
+                0.f,
+                (hash & 2u) ? 1.f : -1.f };
+            distSq = vAway.x * vAway.x + vAway.z * vAway.z;
+        }
+
+        const bool_t bStatic = IsStaticMoveBlockingKind(agent.kind);
+        const f32_t otherRadius = (std::max)(0.2f, agent.radius);
+        const f32_t padding = bStatic ? 0.20f : 0.04f;
+        const f32_t minDist = selfRadius + otherRadius + padding;
+        if (distSq >= minDist * minDist)
+            continue;
+
+        const f32_t dist = std::sqrt(distSq);
+        const f32_t penetration = minDist - dist;
+        const f32_t weight = bStatic ? 1.0f : 0.55f;
+
+        vPush.x += (vAway.x / dist) * penetration * weight;
+        vPush.z += (vAway.z / dist) * penetration * weight;
+
+        ++blockerCount;
+        if (bStatic)
+            ++staticCount;
+        else
+            ++dynamicCount;
+    }
+
+    const f32_t pushLenSq = vPush.x * vPush.x + vPush.z * vPush.z;
+    if (pushLenSq <= 0.0001f)
+        return false;
+
+    const f32_t pushLen = std::sqrt(pushLenSq);
+    const f32_t pushStep = (std::min)((std::max)(0.08f, fStep), 0.35f);
+    const Vec3 vCandidate{
+        vPos.x + (vPush.x / pushLen) * pushStep,
+        vPos.y,
+        vPos.z + (vPush.z / pushLen) * pushStep
+    };
+
+    Vec3 vGuarded = vCandidate;
+    if (!TryClampMoveSegmentXZ(
+        vPos,
+        vCandidate,
+        ServerMinionTuning::kMinionLaneClearanceRadius,
+        vGuarded))
+    {
+        return false;
+    }
+
+    if (!TrySampleHeight(vGuarded.x, vGuarded.z, vGuarded.y))
+        vGuarded.y = vPos.y;
+
+    static u32_t s_minionDepenetrationLogCount = 0u;
+    if (s_minionDepenetrationLogCount < 256u)
+    {
+        const Engine::CNavGrid::Cell posCell = ResolveDebugCell(m_pNavGrid.get(), vPos);
+        const Engine::CNavGrid::Cell nextCell = ResolveDebugCell(m_pNavGrid.get(), vGuarded);
+
+        char msg[448]{};
+        sprintf_s(
+            msg,
+            "[MinionMove][Depenetrate] tick=%llu entity=%u posCell=(%d,%d) nextCell=(%d,%d) "
+            "push=(%.3f,%.3f) blockers=%u static=%u dynamic=%u from=(%.2f,%.2f) to=(%.2f,%.2f)\n",
+            static_cast<unsigned long long>(tc.tickIndex),
+            static_cast<u32_t>(entity),
+            posCell.x,
+            posCell.y,
+            nextCell.x,
+            nextCell.y,
+            vPush.x,
+            vPush.z,
+            blockerCount,
+            staticCount,
+            dynamicCount,
+            vPos.x,
+            vPos.z,
+            vGuarded.x,
+            vGuarded.z);
+        OutputServerAITrace(msg);
+        ++s_minionDepenetrationLogCount;
+    }
+
+    vOutNext = vGuarded;
+    return WintersMath::DistanceSqXZ(vPos, vOutNext) > 0.0001f;
+}
+
 bool_t CGameRoom::TryMoveServerMinionToward(
     EntityID entity,
     MinionStateComponent& state,
@@ -4663,13 +5008,14 @@ bool_t CGameRoom::TryMoveServerMinionToward(
         {
             Vec3 vResolvedTarget = vTarget;
             u16_t PathCount = 0u;
-            if (TryBuildServerMinionMovePath(
+            const bool_t bPathBuilt = TryBuildServerMinionMovePath(
                 vPos,
                 vTarget,
                 state.PathWaypoints,
                 MinionStateComponent::PathMaxWaypoints,
                 PathCount,
-                vResolvedTarget))
+                vResolvedTarget);
+            if (bPathBuilt)
             {
                 state.PathTarget = vTarget;
                 state.PathResolvedTarget = vResolvedTarget;
@@ -4677,6 +5023,23 @@ bool_t CGameRoom::TryMoveServerMinionToward(
                 state.PathIndex = 0u;
                 state.BlockedMoveFrames = 0u;
             }
+
+            const Engine::CNavGrid* pPathDebugGrid = m_pMinionLaneNavGrid ? m_pMinionLaneNavGrid.get() : m_pPathNavGrid.get();
+            if (!pPathDebugGrid)
+                pPathDebugGrid = m_pNavGrid.get();
+
+            OutputServerMinionPathDebug(
+                m_pNavGrid.get(),
+                pPathDebugGrid,
+                tc.tickIndex,
+                entity,
+                state,
+                vPos,
+                vTarget,
+                vResolvedTarget,
+                PathCount,
+                PathBuildBudget,
+                bPathBuilt);
 
             --PathBuildBudget;
             state.PathRebuildCooldown =
@@ -4716,9 +5079,35 @@ bool_t CGameRoom::TryMoveServerMinionToward(
     const f32_t fStep = state.moveSpeed * tc.fDt;
 
     Vec3 vNext{};
-    if (!TryResolveMinionMoveStep(entity, vPos, vDir, fStep, vNext))
+    if (!TryResolveMinionMoveStep(entity, vPos, vDir, fStep, tc, vNext))
     {
+        Vec3 vDepenetrated{};
+        if (TryResolveMinionDepenetrationStep(entity, vPos, fStep, tc, vDepenetrated))
+        {
+            const Vec3 vActualMove{ vDepenetrated.x - vPos.x, 0.f, vDepenetrated.z - vPos.z };
+            transform.SetPosition(vDepenetrated);
+            FaceServerMinionTowardDirection(transform, vActualMove);
+            state.current = moveState;
+            state.BlockedMoveFrames = 0u;
+            outMoved = true;
+            return true;
+        }
+
         ++state.BlockedMoveFrames;
+
+        const Vec3* pWaypoint =
+            state.PathCount > 0u && state.PathIndex < state.PathCount
+            ? &state.PathWaypoints[state.PathIndex]
+            : nullptr;
+        OutputServerMinionStuckDebug(
+            "toward-resolve-failed",
+            m_pNavGrid.get(),
+            tc.tickIndex,
+            entity,
+            state,
+            vPos,
+            vMoveGoal,
+            pWaypoint);
         return false;
     }
 
@@ -4763,9 +5152,30 @@ bool_t CGameRoom::TryMoveServerMinionByFlowFields(
 
     const f32_t fStep = state.moveSpeed * tc.fDt;
     Vec3 vNext{};
-    if (!TryResolveMinionMoveStep(entity, vPos, vDir, fStep, vNext))
+    if (!TryResolveMinionMoveStep(entity, vPos, vDir, fStep, tc, vNext))
     {
+        Vec3 vDepenetrated{};
+        if (TryResolveMinionDepenetrationStep(entity, vPos, fStep, tc, vDepenetrated))
+        {
+            const Vec3 vActualMove{ vDepenetrated.x - vPos.x, 0.f, vDepenetrated.z - vPos.z };
+            transform.SetPosition(vDepenetrated);
+            FaceServerMinionTowardDirection(transform, vActualMove);
+            state.current = MinionStateComponent::LaneMove;
+            state.BlockedMoveFrames = 0u;
+            outMoved = true;
+            return true;
+        }
+
         ++state.BlockedMoveFrames;
+        OutputServerMinionStuckDebug(
+            "flow-resolve-failed",
+            m_pNavGrid.get(),
+            tc.tickIndex,
+            entity,
+            state,
+            vPos,
+            vLaneTarget,
+            nullptr);
         return false;
     }
 
@@ -4819,6 +5229,7 @@ bool_t CGameRoom::TryResolveMinionMoveStep(
     const Vec3& vPos,
     const Vec3& vDesiredDir,
     f32_t fStep,
+    const TickContext& tc,
     Vec3& vOutNext)
 {
     static constexpr f32_t kAngles[] =
@@ -4830,6 +5241,9 @@ bool_t CGameRoom::TryResolveMinionMoveStep(
     };
 
     const f32_t fRadius = ResolveAgentRadius(m_world, entity);
+    u32_t actorBlocked = 0u;
+    u32_t navBlocked = 0u;
+
     for (const f32_t fAngle : kAngles)
     {
         const Vec3 vDir = WintersMath::RotateXZ(vDesiredDir, fAngle);
@@ -4840,7 +5254,10 @@ bool_t CGameRoom::TryResolveMinionMoveStep(
         };
 
         if (!IsAvoidanceCandidateClear(m_world, entity, vPos, vCandidate, fRadius))
+        {
+            ++actorBlocked;
             continue;
+        }
 
         Vec3 vGuarded = vCandidate;
         if (!TryClampMoveSegmentXZ(
@@ -4848,14 +5265,89 @@ bool_t CGameRoom::TryResolveMinionMoveStep(
             vCandidate,
             ServerMinionTuning::kMinionLaneClearanceRadius,
             vGuarded))
+        {
+            ++navBlocked;
             continue;
+        }
 
         f32_t fSurfaceY = 0.f;
         if (TrySampleHeight(vGuarded.x, vGuarded.z, fSurfaceY))
             vGuarded.y = fSurfaceY;
 
+        const bool_t bAngleAdjusted = std::fabs(fAngle) > 0.001f;
+        const bool_t bClamped =
+            WintersMath::DistanceSqXZ(vCandidate, vGuarded) > 0.0001f;
+        if (bAngleAdjusted || bClamped || actorBlocked > 0u || navBlocked > 0u)
+        {
+            static u32_t s_minionResolveLogCount = 0u;
+            if (s_minionResolveLogCount < 512u)
+            {
+                const Engine::CNavGrid::Cell posCell = ResolveDebugCell(m_pNavGrid.get(), vPos);
+                const Engine::CNavGrid::Cell candidateCell = ResolveDebugCell(m_pNavGrid.get(), vCandidate);
+                const Engine::CNavGrid::Cell guardedCell = ResolveDebugCell(m_pNavGrid.get(), vGuarded);
+
+                char msg[640]{};
+                sprintf_s(
+                    msg,
+                    "[MinionMove][Resolve] tick=%llu entity=%u posCell=(%d,%d) "
+                    "desiredDir=(%.3f,%.3f) angle=%.3f selectedDir=(%.3f,%.3f) "
+                    "candidate=(%.2f,%.2f) candidateCell=(%d,%d) "
+                    "guarded=(%.2f,%.2f) guardedCell=(%d,%d) "
+                    "actorBlocked=%u navBlocked=%u clamped=%u\n",
+                    static_cast<unsigned long long>(tc.tickIndex),
+                    static_cast<u32_t>(entity),
+                    posCell.x,
+                    posCell.y,
+                    vDesiredDir.x,
+                    vDesiredDir.z,
+                    fAngle,
+                    vDir.x,
+                    vDir.z,
+                    vCandidate.x,
+                    vCandidate.z,
+                    candidateCell.x,
+                    candidateCell.y,
+                    vGuarded.x,
+                    vGuarded.z,
+                    guardedCell.x,
+                    guardedCell.y,
+                    actorBlocked,
+                    navBlocked,
+                    bClamped ? 1u : 0u);
+                OutputServerAITrace(msg);
+                ++s_minionResolveLogCount;
+            }
+        }
+
         vOutNext = vGuarded;
         return true;
+    }
+
+    static u32_t s_minionResolveFailLogCount = 0u;
+    if (s_minionResolveFailLogCount < 256u)
+    {
+        const Engine::CNavGrid::Cell posCell = ResolveDebugCell(m_pNavGrid.get(), vPos);
+
+        char msg[384]{};
+        sprintf_s(
+            msg,
+            "[MinionMove][ResolveFail] tick=%llu entity=%u pos=(%.2f,%.2f) posCell=(%d,%d) "
+            "desiredDir=(%.3f,%.3f) step=%.3f radius=%.2f actorBlocked=%u navBlocked=%u candidates=%u\n",
+            static_cast<unsigned long long>(tc.tickIndex),
+            static_cast<u32_t>(entity),
+            vPos.x,
+            vPos.z,
+            posCell.x,
+            posCell.y,
+            vDesiredDir.x,
+            vDesiredDir.z,
+            fStep,
+            fRadius,
+            actorBlocked,
+            navBlocked,
+            static_cast<u32_t>(sizeof(kAngles) / sizeof(kAngles[0])));
+        OutputServerAITrace(msg);
+        ++s_minionResolveFailLogCount;
     }
 
     return false;

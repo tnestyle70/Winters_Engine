@@ -3,6 +3,8 @@
 #include "ECS/World.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/CoreComponents.h"  // ColliderComponent (vOffset / vHalfExtents)
+#include "ECS/Components/GameplayComponents.h"
+#include "ECS/Components/SpatialAgentComponent.h"
 #include "Manager/Structure_Manager.h"
 #include "Manager/Jungle_Manager.h"
 #include "Manager/Navigation/NavGrid.h"
@@ -14,6 +16,10 @@
 #undef new
 #include <imgui.h>
 #pragma pop_macro("new")
+
+#include <algorithm>
+#include <cmath>
+#include <cstdio>
 
 // ─────────────────────────────────────────────────────────────
 //  TU 전용 Debug 헬퍼 (Scene_InGame.cpp L1156-1222 에서 이관)
@@ -82,6 +88,43 @@ namespace
             if (botOk[i] && topOk[i]) pDraw->AddLine(botPts[i], topPts[i], col, 1.5f);
         }
     }
+
+    bool DrawWorldLine(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP,
+        const Vec3& a, const Vec3& b, ImU32 col, f32_t thickness = 2.f)
+    {
+        ImVec2 sa{}, sb{};
+        if (!WorldToScreen(mVP, a, sa) || !WorldToScreen(mVP, b, sb))
+            return false;
+
+        pDraw->AddLine(sa, sb, col, thickness);
+        return true;
+    }
+
+    Vec3 DebugMinionForwardFromYaw(f32_t fYaw)
+    {
+        return Vec3{ -sinf(fYaw), 0.f, -cosf(fYaw) };
+    }
+
+    Vec3 NormalizeDebugXZOrFallback(const Vec3& v, const Vec3& fallback)
+    {
+        const f32_t fLenSq = v.x * v.x + v.z * v.z;
+        if (fLenSq <= 0.0001f)
+            return fallback;
+
+        const f32_t fInvLen = 1.f / std::sqrt(fLenSq);
+        return Vec3{ v.x * fInvLen, 0.f, v.z * fInvLen };
+    }
+
+    ImU32 MinionDebugColor(eTeam team)
+    {
+        switch (team)
+        {
+        case eTeam::Blue:    return 0xFFFFAA40u;
+        case eTeam::Red:     return 0xFF5050FFu;
+        case eTeam::Neutral: return 0xFFC8C8C8u;
+        default:             return 0xFFC8C8C8u;
+        }
+    }
 }
 
 namespace UI
@@ -99,6 +142,7 @@ namespace UI
         if (pScene->IsDbgShowStructures()) DrawStructures(world, pScene, pDraw, mVP);
         if (pScene->IsDbgShowColliders())  DrawColliders(world, pScene, pDraw, mVP);
         if (pScene->IsDbgShowChampions())  DrawChampions(world, pScene, pDraw, mVP);
+        if (pScene->IsDbgShowMinionMovement()) DrawMinionMovement(world, pScene, pDraw, mVP);
     }
 
     // R-8: GetOrigin() 없음 → Get_OriginX/Z 분리 + int32_t
@@ -221,6 +265,121 @@ namespace UI
                 }
 
                 DrawWireCylinder(pDraw, mVP, vBase, kRadius, kHeight, col);
+            });
+    }
+
+    void CDebugDrawSystem::DrawMinionMovement(CWorld& w, CScene_InGame* s, ImDrawList* pDraw, const DirectX::XMMATRIX& mVP)
+    {
+        const CNavGrid* pGrid = s->GetPathNavGrid() ? s->GetPathNavGrid() : s->GetNavGrid();
+        constexpr f32_t kDefaultRadius = 0.5f;
+        constexpr f32_t kHeight = 1.4f;
+
+        w.ForEach<MinionStateComponent, TransformComponent>(
+            [&](EntityID entity, MinionStateComponent& state, TransformComponent& tf)
+            {
+                const Vec3 vPos = tf.GetPosition();
+                const ImU32 col = MinionDebugColor(state.team);
+                const f32_t fRadius = w.HasComponent<SpatialAgentComponent>(entity)
+                    ? (std::max)(kDefaultRadius, w.GetComponent<SpatialAgentComponent>(entity).radius)
+                    : kDefaultRadius;
+
+                DrawWireCylinder(
+                    pDraw,
+                    mVP,
+                    Vec3{ vPos.x, vPos.y, vPos.z },
+                    fRadius,
+                    kHeight,
+                    col,
+                    16);
+
+                CNavGrid::Cell currentCell{ -1, -1 };
+                if (pGrid)
+                {
+                    currentCell = pGrid->WorldToCell(vPos);
+                    if (pGrid->IsInBounds(currentCell.x, currentCell.y))
+                    {
+                        const Vec3 vCellCenter = pGrid->CellToWorld(currentCell.x, currentCell.y);
+                        const ImU32 cellCol = pGrid->IsWalkable(currentCell.x, currentCell.y)
+                            ? 0xA000FF80u
+                            : 0xA00000FFu;
+                        DrawWireBox(
+                            pDraw,
+                            mVP,
+                            Vec3{ vCellCenter.x, vPos.y + 0.08f, vCellCenter.z },
+                            Vec3{ CNavGrid::kCellSize * 0.5f, 0.08f, CNavGrid::kCellSize * 0.5f },
+                            cellCol,
+                            1.75f);
+                    }
+                }
+
+                const Vec3 vForward = DebugMinionForwardFromYaw(tf.GetRotation().y);
+                const bool_t bHasWaypoint =
+                    state.PathCount > 0u &&
+                    state.PathIndex < state.PathCount;
+                const Vec3 vPathDir = bHasWaypoint
+                    ? Vec3{
+                        state.PathWaypoints[state.PathIndex].x - vPos.x,
+                        0.f,
+                        state.PathWaypoints[state.PathIndex].z - vPos.z }
+                    : Vec3{};
+                const Vec3 vDir = NormalizeDebugXZOrFallback(vPathDir, vForward);
+
+                const Vec3 vLineStart{ vPos.x, vPos.y + 0.75f, vPos.z };
+                const Vec3 vLineEnd{
+                    vLineStart.x + vDir.x * 1.6f,
+                    vLineStart.y,
+                    vLineStart.z + vDir.z * 1.6f
+                };
+                DrawWorldLine(pDraw, mVP, vLineStart, vLineEnd, 0xFF00FFFFu, 2.5f);
+
+                if (pGrid)
+                {
+                    const Vec3 vProbe{
+                        vPos.x + vDir.x * CNavGrid::kCellSize * 2.f,
+                        vPos.y,
+                        vPos.z + vDir.z * CNavGrid::kCellSize * 2.f
+                    };
+                    const CNavGrid::Cell nextCell = pGrid->WorldToCell(vProbe);
+                    if (pGrid->IsInBounds(nextCell.x, nextCell.y))
+                    {
+                        const Vec3 vNextCenter = pGrid->CellToWorld(nextCell.x, nextCell.y);
+                        DrawWireBox(
+                            pDraw,
+                            mVP,
+                            Vec3{ vNextCenter.x, vPos.y + 0.2f, vNextCenter.z },
+                            Vec3{ CNavGrid::kCellSize * 0.5f, 0.12f, CNavGrid::kCellSize * 0.5f },
+                            0xFF00FFFFu,
+                            1.5f);
+                    }
+                }
+
+                if (bHasWaypoint)
+                {
+                    const Vec3 vWaypoint = state.PathWaypoints[state.PathIndex];
+                    DrawWorldLine(
+                        pDraw,
+                        mVP,
+                        Vec3{ vPos.x, vPos.y + 1.05f, vPos.z },
+                        Vec3{ vWaypoint.x, vWaypoint.y + 1.05f, vWaypoint.z },
+                        0xFFFF00FFu,
+                        1.8f);
+                }
+
+                ImVec2 labelPos{};
+                if (WorldToScreen(mVP, Vec3{ vPos.x, vPos.y + 2.05f, vPos.z }, labelPos))
+                {
+                    char label[128]{};
+                    sprintf_s(
+                        label,
+                        "m%u cell=%d,%d path=%u/%u block=%u",
+                        static_cast<u32_t>(entity),
+                        currentCell.x,
+                        currentCell.y,
+                        static_cast<u32_t>(state.PathIndex),
+                        static_cast<u32_t>(state.PathCount),
+                        static_cast<u32_t>(state.BlockedMoveFrames));
+                    pDraw->AddText(labelPos, 0xFFFFFFFFu, label);
+                }
             });
     }
 }

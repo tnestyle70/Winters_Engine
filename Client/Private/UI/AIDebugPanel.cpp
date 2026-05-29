@@ -6,6 +6,7 @@
 #include "ECS/World.h"
 #include "Network/Client/CommandSerializer.h"
 #include "Scene/Scene_InGame.h"
+#include "Manager/Navigation/NavGrid.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
@@ -469,13 +470,17 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 	ImGui::SeparatorText("Server Minions");
 	ImGui::TextDisabled("Snapshot readout only. Server gameplay tuning lives in ServerMinionTuning.");
 
+	const CNavGrid* pMinionDebugGrid = pScene
+		? (pScene->GetPathNavGrid() ? pScene->GetPathNavGrid() : pScene->GetNavGrid())
+		: nullptr;
+
 	u32_t minionCount = 0u;
 	u32_t attackingCount = 0u;
 	u32_t movingCount = 0u;
 
 	if (ImGui::BeginTable(
 		"ServerMinionSnapshotTable",
-		8,
+		11,
 		ImGuiTableFlags_BordersInnerV |
 		ImGuiTableFlags_RowBg |
 		ImGuiTableFlags_Resizable |
@@ -488,6 +493,9 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 		ImGui::TableSetupColumn("State");
 		ImGui::TableSetupColumn("Entity");
 		ImGui::TableSetupColumn("Pos");
+		ImGui::TableSetupColumn("Cell");
+		ImGui::TableSetupColumn("Path");
+		ImGui::TableSetupColumn("Blocked");
 		ImGui::TableSetupColumn("HP");
 		ImGui::TableSetupColumn("Move");
 		ImGui::TableHeadersRow();
@@ -508,6 +516,9 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 					? &world.GetComponent<MinionComponent>(entity)
 					: nullptr;
 				const Vec3 pos = transform.GetLocalPosition();
+				const CNavGrid::Cell cell = pMinionDebugGrid
+					? pMinionDebugGrid->WorldToCell(pos)
+					: CNavGrid::Cell{ -1, -1 };
 				const f32_t hp = pMinion ? pMinion->hp : 0.f;
 				const f32_t maxHp = pMinion ? pMinion->maxHp : 0.f;
 				const u8_t role = pMinion ? pMinion->roleType : state.type;
@@ -526,6 +537,17 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 				ImGui::Text("%llu", static_cast<unsigned long long>(entity));
 				ImGui::TableNextColumn();
 				ImGui::Text("%.1f %.1f %.1f", pos.x, pos.y, pos.z);
+				ImGui::TableNextColumn();
+				if (pMinionDebugGrid && pMinionDebugGrid->IsInBounds(cell.x, cell.y))
+					ImGui::Text("%d,%d", cell.x, cell.y);
+				else
+					ImGui::TextUnformatted("-");
+				ImGui::TableNextColumn();
+				ImGui::Text("%u/%u",
+					static_cast<u32_t>(state.PathIndex),
+					static_cast<u32_t>(state.PathCount));
+				ImGui::TableNextColumn();
+				ImGui::Text("%u", static_cast<u32_t>(state.BlockedMoveFrames));
 				ImGui::TableNextColumn();
 				ImGui::Text("%.0f / %.0f", hp, maxHp);
 				ImGui::TableNextColumn();

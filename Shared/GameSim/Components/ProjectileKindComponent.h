@@ -15,6 +15,7 @@ enum class eProjectileKind : uint16_t
     AsheCrystalArrow = 14,
     LeeSinQ = 20,
     KindredArrow = 21,
+    SylasChain = 22,
     ZedShuriken = 30,
     PROJECTILE_END
 };

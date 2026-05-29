@@ -133,6 +133,7 @@ private:
     void Phase_ServerMinionWave(TickContext& tc);
     void Phase_ServerMinionAI(TickContext& tc);
     void Phase_ServerTurretAI(TickContext& tc);
+    void Phase_ServerMinionDepenetration(TickContext& tc);
     void Phase_ServerProjectiles(TickContext& tc);
     void Phase_ServerDeathAndRespawn(TickContext& tc);
     void Phase_BroadcastEvents(TickContext& tc);
@@ -186,6 +187,13 @@ private:
         const Vec3& vPos,
         const Vec3& vDesiredDir,
         f32_t fStep,
+        const TickContext& tc,
+        Vec3& vOutNext);
+    bool_t TryResolveMinionDepenetrationStep(
+        EntityID entity,
+        const Vec3& vPos,
+        f32_t fStep,
+        const TickContext& tc,
         Vec3& vOutNext);
     bool_t TryBuildServerMinionMovePath(
         const Vec3& vStart,

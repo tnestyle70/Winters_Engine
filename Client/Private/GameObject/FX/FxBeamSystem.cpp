@@ -35,6 +35,101 @@ namespace
         return { std::sinf(fYaw), 0.f, std::cosf(fYaw) };
     }
 
+    f32_t LerpFloat(f32_t a, f32_t b, f32_t t)
+    {
+        return a + (b - a) * t;
+    }
+
+    f32_t LengthSqXZ(const Vec3& a, const Vec3& b)
+    {
+        const f32_t dx = b.x - a.x;
+        const f32_t dz = b.z - a.z;
+        return dx * dx + dz * dz;
+    }
+
+    Vec3 ResolveRibbonHeadWorldPos(CWorld& world, const FxRibbonComponent& ribbon, f32_t fTimeDelta)
+    {
+        if (ribbon.attachTo != NULL_ENTITY &&
+            world.HasComponent<TransformComponent>(ribbon.attachTo))
+        {
+            const Vec3& p = world.GetComponent<TransformComponent>(ribbon.attachTo).m_LocalPosition;
+            return { p.x + ribbon.vStartOffset.x,
+                     p.y + ribbon.vStartOffset.y,
+                     p.z + ribbon.vStartOffset.z };
+        }
+
+        return { ribbon.points[0].x + ribbon.vVelocity.x * fTimeDelta,
+                 ribbon.points[0].y + ribbon.vVelocity.y * fTimeDelta,
+                 ribbon.points[0].z + ribbon.vVelocity.z * fTimeDelta };
+    }
+
+    void CopyRibbonTrailFields(FxRibbonComponent& ribbon, const FxEmitterDesc& emitter)
+    {
+        ribbon.bHistoryTrail = emitter.bHistoryTrail;
+        ribbon.fTrailSampleInterval = emitter.fTrailSampleInterval;
+        ribbon.fTrailHeadWidthScale = emitter.fTrailHeadWidthScale;
+        ribbon.fTrailTailWidthScale = emitter.fTrailTailWidthScale;
+        ribbon.fTrailHeadAlphaScale = emitter.fTrailHeadAlphaScale;
+        ribbon.fTrailTailAlphaScale = emitter.fTrailTailAlphaScale;
+        ribbon.fTrailJitterAmplitude = emitter.fTrailJitterAmplitude;
+        ribbon.fTrailJitterFrequency = emitter.fTrailJitterFrequency;
+        ribbon.fTrailJitterSeed = emitter.fTrailJitterSeed;
+    }
+
+    void AdvanceHistoryRibbon(CWorld& world, FxRibbonComponent& ribbon, f32_t fTimeDelta)
+    {
+        ribbon.iPointCount = std::clamp(ribbon.iPointCount, 2u, FX_RIBBON_MAX_POINTS);
+
+        const Vec3 head = ResolveRibbonHeadWorldPos(world, ribbon, fTimeDelta);
+        for (u32_t i = 0; i < ribbon.iPointCount; ++i)
+            ribbon.pointAges[i] += fTimeDelta;
+
+        ribbon.fTrailSampleAccumulator += fTimeDelta;
+        const f32_t sampleInterval = std::max(0.001f, ribbon.fTrailSampleInterval);
+        const bool_t bTeleported = LengthSqXZ(head, ribbon.points[0]) > 4.f;
+        if (ribbon.fTrailSampleAccumulator >= sampleInterval || bTeleported)
+        {
+            for (u32_t i = ribbon.iPointCount - 1u; i > 0u; --i)
+            {
+                ribbon.points[i] = ribbon.points[i - 1u];
+                ribbon.pointAges[i] = ribbon.pointAges[i - 1u];
+            }
+
+            ribbon.fTrailSampleAccumulator = 0.f;
+        }
+
+        ribbon.points[0] = head;
+        ribbon.pointAges[0] = 0.f;
+    }
+
+    Vec3 ApplyRibbonJitter(const FxRibbonComponent& ribbon,
+        const Vec3& point,
+        const Vec3& segmentStart,
+        const Vec3& segmentEnd,
+        u32_t pointIndex,
+        f32_t fAge)
+    {
+        if (ribbon.fTrailJitterAmplitude <= 0.f || ribbon.fTrailJitterFrequency <= 0.f)
+            return point;
+
+        const f32_t dx = segmentEnd.x - segmentStart.x;
+        const f32_t dz = segmentEnd.z - segmentStart.z;
+        const f32_t length = std::sqrt(dx * dx + dz * dz);
+        if (length <= 0.001f)
+            return point;
+
+        const Vec3 right{ dz / length, 0.f, -dx / length };
+        const f32_t phase = ribbon.fTrailJitterSeed +
+            static_cast<f32_t>(pointIndex) * 1.731f +
+            fAge * ribbon.fTrailJitterFrequency;
+        const f32_t headDampen = (pointIndex == 0u) ? 0.15f : 1.f;
+        const f32_t offset = std::sinf(phase) * ribbon.fTrailJitterAmplitude * headDampen;
+
+        return { point.x + right.x * offset,
+                 point.y + std::cosf(phase * 0.73f) * ribbon.fTrailJitterAmplitude * 0.10f,
+                 point.z + right.z * offset };
+    }
+
     FxBeamComponent BuildBeamFromEmitter(
         const FxAsset& asset,
         const FxEmitterDesc& emitter,
@@ -114,6 +209,7 @@ namespace
         ribbon.fAlphaClip = emitter.fAlphaClip;
         ribbon.fErodeThreshold = emitter.fErodeThreshold;
         ribbon.SetMaterialFromDesc(emitter.material, emitter.depthMode);
+        CopyRibbonTrailFields(ribbon, emitter);
 
         const Vec3 fallbackForward = ResolveForwardFromYaw(emitter.fYaw);
         const f32_t fallbackLength = (emitter.fHeight > 0.f) ? emitter.fHeight : 1.f;
@@ -142,6 +238,7 @@ namespace
             ribbon.SetPoint(i, { vWorldPos.x + offset.x,
                                  vWorldPos.y + offset.y,
                                  vWorldPos.z + offset.z });
+            ribbon.pointAges[i] = t * std::max(0.001f, ribbon.fLifetime);
         }
 
         return ribbon;
@@ -298,7 +395,11 @@ void CFxBeamSystem::Update(CWorld& world, f32_t fTimeDelta)
             {
                 ribbon.fElapsed += fTimeDelta;
 
-                if (ribbon.attachTo != NULL_ENTITY
+                if (ribbon.bHistoryTrail)
+                {
+                    AdvanceHistoryRibbon(world, ribbon, fTimeDelta);
+                }
+                else if (ribbon.attachTo != NULL_ENTITY
                     && world.HasComponent<TransformComponent>(ribbon.attachTo))
                 {
                     const Vec3& p = world.GetComponent<TransformComponent>(ribbon.attachTo).m_LocalPosition;
@@ -316,6 +417,7 @@ void CFxBeamSystem::Update(CWorld& world, f32_t fTimeDelta)
                         ribbon.points[i].x += ribbon.vVelocity.x * fTimeDelta;
                         ribbon.points[i].y += ribbon.vVelocity.y * fTimeDelta;
                         ribbon.points[i].z += ribbon.vVelocity.z * fTimeDelta;
+                        ribbon.pointAges[i] += fTimeDelta;
                     }
                 }
 
@@ -415,24 +517,55 @@ void CFxBeamSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                 const f32_t fNormalizedAge =
                     (ribbon.fLifetime > 0.f) ? std::clamp(fAge / ribbon.fLifetime, 0.f, 1.f) : 0.f;
 
-                const CBFxParams fxParams = MakeFxParamsFromMaterial(
-                    drawMaterial,
-                    drawMaterial.vTint,
-                    drawMaterial.vUVRect,
-                    drawMaterial.vUVScroll,
-                    fAge,
-                    fNormalizedAge);
-
+                const u32_t lastPoint = ribbon.iPointCount - 1u;
                 for (u32_t i = 0; i + 1 < ribbon.iPointCount; ++i)
                 {
-                    DrawSegment(
+                    const f32_t t0 = static_cast<f32_t>(i) / static_cast<f32_t>(lastPoint);
+                    const f32_t t1 = static_cast<f32_t>(i + 1u) / static_cast<f32_t>(lastPoint);
+                    const f32_t midT = (t0 + t1) * 0.5f;
+                    const f32_t widthScale = std::max(0.f,
+                        LerpFloat(ribbon.fTrailHeadWidthScale, ribbon.fTrailTailWidthScale, midT));
+                    const f32_t alphaScale = std::max(0.f,
+                        LerpFloat(ribbon.fTrailHeadAlphaScale, ribbon.fTrailTailAlphaScale, midT));
+
+                    if (widthScale <= 0.001f || alphaScale <= 0.001f)
+                        continue;
+
+                    FxMaterialDesc segmentMaterial = drawMaterial;
+                    segmentMaterial.vTint.w *= alphaScale;
+                    segmentMaterial.vUVRect = { 0.f, t0, 1.f, t1 };
+
+                    const CBFxParams segmentParams = MakeFxParamsFromMaterial(
+                        segmentMaterial,
+                        segmentMaterial.vTint,
+                        segmentMaterial.vUVRect,
+                        segmentMaterial.vUVScroll,
+                        fAge,
+                        fNormalizedAge);
+
+                    const Vec3 start = ApplyRibbonJitter(
+                        ribbon,
                         ribbon.points[i],
-                        ribbon.points[i + 1],
-                        ribbon.fWidth,
+                        ribbon.points[i],
+                        ribbon.points[i + 1u],
+                        i,
+                        fAge + ribbon.pointAges[i]);
+                    const Vec3 end = ApplyRibbonJitter(
+                        ribbon,
+                        ribbon.points[i + 1u],
+                        ribbon.points[i],
+                        ribbon.points[i + 1u],
+                        i + 1u,
+                        fAge + ribbon.pointAges[i + 1u]);
+
+                    DrawSegment(
+                        start,
+                        end,
+                        ribbon.fWidth * widthScale,
                         ribbon.texturePath,
                         ribbon.blendMode,
-                        eFxDepthMode::OverlayNoDepth,
-                        fxParams,
+                        ribbon.depthMode,
+                        segmentParams,
                         matVP);
                 }
             }));

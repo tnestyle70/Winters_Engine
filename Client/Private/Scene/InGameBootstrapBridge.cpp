@@ -506,7 +506,6 @@ bool CInGameBootstrapBridge::Enter(CScene_InGame& scene)
         scene.m_pFxMeshSystem = CFxMeshSystem::Create(scene.m_pFxMeshRenderer.get());
 
         scene.m_pIreliaBladeSystem = CIreliaBladeSystem::Create();
-        scene.m_pUltWaveSystem = CUltWaveSystem::Create();
         scene.m_pWindWallSystem = CWindWallSystem::Create();
         scene.m_pYasuoProjectileSystem = CYasuoProjectileSystem::Create();
         scene.m_pPendingHitSystem = CPendingHitSystem::Create();

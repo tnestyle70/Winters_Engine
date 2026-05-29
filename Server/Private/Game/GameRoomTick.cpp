@@ -10,6 +10,7 @@
 #include "Shared/GameSim/Champions/Kindred/KindredGameSim.h"
 #include "Shared/GameSim/Champions/LeeSin/LeeSinGameSim.h"
 #include "Shared/GameSim/Champions/MasterYi/MasterYiGameSim.h"
+#include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
 #include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
 #include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
@@ -107,12 +108,14 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	LeeSinGameSim::Tick(m_world, tc);
 	KindredGameSim::Tick(m_world, tc);
 	MasterYiGameSim::Tick(m_world, tc);
+	SylasGameSim::Tick(m_world, tc);
 	ViegoGameSim::Tick(m_world, tc);
 	YoneGameSim::Tick(m_world, tc);
 	YasuoGameSim::Tick(m_world, tc);
 	ZedGameSim::Tick(m_world, tc);
 	Phase_ServerMinionWave(tc);
 	Phase_ServerMinionAI(tc);
+	Phase_ServerMinionDepenetration(tc);
 	if (m_pGameplayCollision)
 		m_pGameplayCollision->Execute(m_world, tc.fDt);
 	Phase_ServerTurretAI(tc);

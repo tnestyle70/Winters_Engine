@@ -103,4 +103,5 @@ Mistake-prevention log: [.claude/gotchas.md](.claude/gotchas.md). Read it before
 - Team shared rules and coding conventions: add only behavior-changing decisions here; put detailed C++ style in `.md/architecture/WINTERS_ENGINE_CONVENTIONS.md`.
 - C++ field names use type prefix first, then domain/skill meaning. Examples: `fEGroundYOffset`, `fECloseSparkSize`, `vEGroundGlowColor`, `vECloseSparkColor`; reserve `e` prefix for enum-like values, not for E-skill float/vector fields.
 - Verification/debug logs should use `OutputDebugStringA/W` in Debug paths so client/server diagnostics are visible in the debugger without changing gameplay behavior.
+- Gameplay/render debugging pipeline: before tuning symptoms, add or use an inspectable debug UI/overlay, bounded `OutputDebugStringA/W` traces, and visual capture around the authoritative code path; for movement/pathfinding, expose current cell, next cell/waypoint, resolved path, correction direction, and stuck/resolve reason.
 - Runtime resources resolve from `Client/Bin/Resource` only; do not add or rely on per-config output `Resource` copies under `Client/Bin/Debug*` or `Client/Bin/Release*`.

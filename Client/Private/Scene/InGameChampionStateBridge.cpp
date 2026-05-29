@@ -189,8 +189,6 @@ void CInGameChampionStateBridge::UpdateLocalRuntime(CScene_InGame& scene, f32_t 
 {
     if (scene.m_pIreliaBladeSystem)
         scene.m_pIreliaBladeSystem->Execute(scene.m_World, dt);
-    if (scene.m_pUltWaveSystem)
-        scene.m_pUltWaveSystem->Execute(scene.m_World, dt);
     if (scene.m_pWindWallSystem)
         scene.m_pWindWallSystem->Execute(scene.m_World, dt);
 

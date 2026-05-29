@@ -94,7 +94,7 @@
     },
     {
       "name": "projectile_trail",
-      "render_type": "Billboard",
+      "render_type": "Ribbon",
       "blend_mode": "Additive",
       "depth_mode": "OverlayNoDepth",
       "texture": "Client/Bin/Resource/Texture/Object/Turret/particles/turret_skin0_trail_main.png",
@@ -105,9 +105,11 @@
       "fade_out": 0.2200,
       "width": 2.2500,
       "height": 0.5200,
+      "end_offset": [0.0000, 0.0000, -2.6000],
+      "ribbon_point_count": 4,
       "color": [2.0500, 0.1200, 0.0300, 0.7200],
       "attach_offset": [0.0000, 1.0000, 0.0000],
-      "billboard": true,
+      "billboard": false,
       "depth_write": false
     },
     {

@@ -33,7 +33,6 @@
 #include "GameObject/FX/FxBeamSystem.h"
 #include "GameObject/FX/FxMeshSystem.h"
 #include "GameObject/FX/FxMeshComponent.h"
-#include "GameObject/FX/UltWaveSystem.h"
 #include "GameObject/Champion/Irelia/IreliaBladeSystem.h"
 #include "GameObject/Champion/Irelia/Irelia_Tuning.h"
 #include "GameObject/Champion/Kalista/Kalista_Tuning.h"
@@ -191,6 +190,8 @@ public:
     void     SetDbgShowColliders(bool_t b) { m_bDbgShowColliders = b; }
     bool_t   IsDbgShowChampions() const { return m_bDbgShowChampions; }
     void     SetDbgShowChampions(bool_t b) { m_bDbgShowChampions = b; }
+    bool_t   IsDbgShowMinionMovement() const { return m_bDbgShowMinionMovement; }
+    void     SetDbgShowMinionMovement(bool_t b) { m_bDbgShowMinionMovement = b; }
     f32_t    GetDbgNavRadius() const { return m_fDbgNavRadius; }
     void     SetDbgNavRadius(f32_t r) { m_fDbgNavRadius = r; }
     f32_t    GetNavPlayableBaseY() const { return m_fNavPlayableBaseY; }
@@ -239,6 +240,7 @@ private:
     bool_t m_bDbgShowStructures = true;
     bool_t m_bDbgShowColliders = true;
     bool_t m_bDbgShowChampions = true;
+    bool_t m_bDbgShowMinionMovement = true;
     f32_t  m_fDbgNavRadius = 40.f;
     f32_t  m_fNavPlayableBaseY = 0.5f;
     f32_t  m_fNavPlayableHeightBand = 1.25f;
@@ -440,7 +442,6 @@ private:
     std::unique_ptr<Engine::CFxStaticMeshRenderer>   m_pFxMeshRenderer;
     std::unique_ptr<CFxMeshSystem>                   m_pFxMeshSystem;
     std::unique_ptr<CIreliaBladeSystem>              m_pIreliaBladeSystem;
-    std::unique_ptr<CUltWaveSystem>                  m_pUltWaveSystem;
 
 
     bool_t m_bCastFrameFired = false;

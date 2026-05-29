@@ -229,6 +229,17 @@ namespace
         WriteBool(file, emitter.bAtlasLoop);
         file << ",\n";
         file << "      \"ribbon_point_count\": " << emitter.iRibbonPointCount << ",\n";
+        file << "      \"history_trail\": ";
+        WriteBool(file, emitter.bHistoryTrail);
+        file << ",\n";
+        file << "      \"trail_sample_interval\": " << emitter.fTrailSampleInterval << ",\n";
+        file << "      \"trail_head_width_scale\": " << emitter.fTrailHeadWidthScale << ",\n";
+        file << "      \"trail_tail_width_scale\": " << emitter.fTrailTailWidthScale << ",\n";
+        file << "      \"trail_head_alpha_scale\": " << emitter.fTrailHeadAlphaScale << ",\n";
+        file << "      \"trail_tail_alpha_scale\": " << emitter.fTrailTailAlphaScale << ",\n";
+        file << "      \"trail_jitter_amplitude\": " << emitter.fTrailJitterAmplitude << ",\n";
+        file << "      \"trail_jitter_frequency\": " << emitter.fTrailJitterFrequency << ",\n";
+        file << "      \"trail_jitter_seed\": " << emitter.fTrailJitterSeed << ",\n";
         file << "      \"billboard\": ";
         WriteBool(file, emitter.bBillboard);
         file << ",\n";

@@ -19,7 +19,6 @@
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "GameObject/FX/FxCuePlayer.h"
 #include "GameObject/FX/FxMeshComponent.h"
-#include "GameObject/FX/FxMeshSystem.h"
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/Projectile/ProjectileKind.h"
 #include "GameObject/Projectile/ProjectileVisualCatalog.h"
@@ -32,20 +31,13 @@
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/NetAnimationComponent.h"
 
-#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace
 {
-    constexpr const wchar_t* kTurretProjectileTexture =
-        L"Client/Bin/Resource/Texture/Object/Turret/particles/turret_base_z_crystals.2025_s3_basesr_env.png";
-    constexpr const char* kTurretProjectileMeshPath =
-        "Client/Bin/Resource/Texture/Object/Turret/particles/converted/sru_turret_shard.2025_s3_basesr_env.fbx";
-    constexpr const wchar_t* kTurretProjectileMeshTexture =
-        L"Client/Bin/Resource/Texture/Object/Turret/particles/turret_base_z_crystals.2025_s3_basesr_env.png";
-    constexpr f32_t kTurretProjectileMeshScale = 0.34f;
     constexpr const wchar_t* kTurretTopBeamTexture =
         L"Client/Bin/Resource/Texture/Object/Turret/particles/TurretTopBeam.png";
     constexpr const wchar_t* kEffectTexture = L"Client/Bin/Resource/Texture/FX/Kalista/common_global_indicator_ring_bright.png";
@@ -340,11 +332,6 @@ namespace
         return h;
     }
 
-    f32_t ResolveYawFromDirection(const Vec3& dir)
-    {
-        return std::atan2(dir.x, dir.z);
-    }
-
     void SpawnTurretTopBeam(CWorld& world, EntityID ownerEntity, const Vec3& fallbackPos)
     {
         // No .wfx asset exists for this cue yet, so use the runtime billboard path.
@@ -373,30 +360,6 @@ namespace
         fx.bAtlasLoop = false;
         fx.vColor = { 1.25f, 1.15f, 0.95f, 1.f };
         fx.blendMode = eBlendPreset::Additive;
-        fx.fAlphaClip = 0.02f;
-        CFxSystem::Spawn(world, fx);
-    }
-
-    void SpawnTurretProjectileFallbackBillboard(
-        CWorld& world,
-        const Vec3& pos,
-        const Vec3& velocity,
-        f32_t lifetime)
-    {
-        FxBillboardComponent fx{};
-        fx.vWorldPos = pos;
-        fx.vVelocity = velocity;
-        fx.texturePath = kTurretProjectileTexture;
-        fx.fWidth = 0.75f;
-        fx.fHeight = 0.75f;
-        fx.fLifetime = lifetime;
-        fx.fFadeOut = lifetime * 0.2f;
-        fx.iAtlasCols = 2;
-        fx.iAtlasRows = 2;
-        fx.iAtlasFrameCount = 1;
-        fx.bAtlasLoop = false;
-        fx.bBillboard = true;
-        fx.blendMode = eBlendPreset::AlphaBlend;
         fx.fAlphaClip = 0.02f;
         CFxSystem::Spawn(world, fx);
     }
@@ -540,12 +503,6 @@ void CEventApplier::ApplyProjectileSpawn(
     const f32_t lifetime = (ev->speed() > 0.01f && ev->maxDist() > 0.f)
         ? ev->maxDist() / ev->speed()
         : 1.0f;
-    if (bTurretProjectile &&
-        !SpawnTurretProjectileMesh(world, pos, dir, velocity, lifetime))
-    {
-        SpawnTurretProjectileFallbackBillboard(world, pos, velocity, lifetime);
-    }
-
     const ProjectileVisualDesc& visual = ProjectileVisualCatalog::Resolve(ev->kind());
     bool_t bPlayedProjectileWfxCue = false;
     if (visual.pszSpawnCue)
@@ -558,7 +515,35 @@ void CEventApplier::ApplyProjectileSpawn(
         fx.fLifetimeOverride = lifetime;
         fx.bOverrideLifetime = true;
         fx.pFxMeshRenderer = m_pFxMeshRenderer;
-        bPlayedProjectileWfxCue = CFxCuePlayer::Play(world, visual.pszSpawnCue, fx) != NULL_ENTITY;
+
+        std::vector<EntityID> spawnedCueEntities;
+        bPlayedProjectileWfxCue =
+            CFxCuePlayer::PlayAll(world, visual.pszSpawnCue, fx, &spawnedCueEntities) != NULL_ENTITY;
+
+        if (bTurretProjectile && bPlayedProjectileWfxCue)
+        {
+            bool_t bSpawnedMesh = false;
+            for (EntityID spawned : spawnedCueEntities)
+            {
+                if (spawned != NULL_ENTITY && world.HasComponent<FxMeshComponent>(spawned))
+                {
+                    bSpawnedMesh = true;
+                    break;
+                }
+            }
+
+            if (!bSpawnedMesh)
+            {
+                for (EntityID spawned : spawnedCueEntities)
+                {
+                    if (spawned != NULL_ENTITY)
+                        world.DestroyEntity(spawned);
+                }
+
+                OutputDebugStringA("[TurretProjectileFx] Turret projectile cue spawned without MeshParticle; removed non-mesh emitters.\n");
+                bPlayedProjectileWfxCue = false;
+            }
+        }
     }
 
     const bool_t bShouldSpawnGenericProjectile =
@@ -990,37 +975,4 @@ void CEventApplier::SpawnBillboard(CWorld& world, const Vec3& pos, const Vec3& v
     fx.bBillboard = true;
     fx.blendMode = eBlendPreset::AlphaBlend;
     CFxSystem::Spawn(world, fx);
-}
-
-bool_t CEventApplier::SpawnTurretProjectileMesh(
-    CWorld& world,
-    const Vec3& pos,
-    const Vec3& dir,
-    const Vec3& velocity,
-    f32_t lifetime)
-{
-    if (!m_pFxMeshRenderer)
-        return false;
-
-    FxMeshComponent fx{};
-    fx.vWorldPos = pos;
-    fx.vVelocity = velocity;
-    fx.vScale = {
-        kTurretProjectileMeshScale,
-        kTurretProjectileMeshScale,
-        kTurretProjectileMeshScale
-    };
-    fx.vRotation = { 0.f, ResolveYawFromDirection(dir), 0.f };
-    fx.fWorldYawSpinSpeed = 4.5f;
-    fx.SetModelPath(kTurretProjectileMeshPath);
-    fx.SetTexturePath(kTurretProjectileMeshTexture);
-    fx.fLifetime = lifetime;
-    fx.fFadeOut = (std::min)(0.12f, lifetime * 0.25f);
-    fx.vColor = { 1.f, 1.f, 1.f, 1.f };
-    fx.blendMode = eBlendPreset::AlphaBlend;
-    fx.iStyleMode = 0;
-    fx.fAlphaClip = 0.f;
-    fx.bDepthWrite = false;
-
-    return CFxMeshSystem::Spawn(world, m_pFxMeshRenderer, fx) != NULL_ENTITY;
 }

@@ -972,7 +972,10 @@ void CUI_Manager::Bind_World(CWorld* pWorld)
     const bool_t bNewWorld = pWorld != nullptr && pWorld != m_pWorld;
     m_pWorld = pWorld;
     if (bNewWorld)
+    {
         ResetGameContextHUDStats();
+        m_ChampionHealthBarTrails.clear();
+    }
 }
 
 void CUI_Manager::Render_Overlay(const Mat4& matVP)
@@ -980,6 +983,10 @@ void CUI_Manager::Render_Overlay(const Mat4& matVP)
     if (!m_pWorld) return;
     const DirectX::XMMATRIX mVP = matVP.ToXMMATRIX();
     ChampionHUDState HudState{};
+
+    const f32_t fUIDt = ImGui::GetIO().DeltaTime;
+    UpdateChampionHealthBarTrails(fUIDt);
+
     if (m_bShowChampionHUD)
     {
         BuildChampionHUDState(HudState);
@@ -2026,6 +2033,75 @@ void CUI_Manager::Update_HUDStatusTimers(EntityID localEntity, f32_t hp, bool_t 
     m_fHUDHitFlashTimer = (m_fHUDHitFlashTimer > dt) ? (m_fHUDHitFlashTimer - dt) : 0.f;
     m_fHUDStunFlashTimer = (m_fHUDStunFlashTimer > dt) ? (m_fHUDStunFlashTimer - dt) : 0.f;
 }
+//피해 체력 범위가 오른쪽에서부터 사라짐
+void CUI_Manager::UpdateChampionHealthBarTrails(f32_t dt)
+{
+    if (!m_pWorld)
+        return;
+
+    dt = std::clamp(dt, 0.f, 0.1f);
+
+    std::vector<EntityID> visibleChampions;
+    m_pWorld->ForEach<HealthComponent, TransformComponent>(
+        [&](EntityID id, HealthComponent& hp, TransformComponent&)
+        {
+            if (!m_pWorld->HasComponent<ChampionComponent>(id) ||
+                hp.bIsDead || hp.fMaximum <= 0.f)
+                return;
+
+            visibleChampions.push_back(id);
+
+            const f32_t ratio = std::clamp(hp.fCurrent / hp.fMaximum, 0.f, 1.f);
+            ChampionHealthBarTrailState& state = m_ChampionHealthBarTrails[id];
+            if (!state.bInitialized)
+            {
+                state.fLastRatio = ratio;
+                state.fTrailRatio = ratio;
+                state.bInitialized = true;
+                return;
+            }
+
+            if (ratio + 0.001f < state.fLastRatio)
+            {
+                state.fTrailRatio = std::max(state.fTrailRatio, state.fLastRatio);
+                state.fHoldSec = m_fHealthBarTrailHoldSec;
+            }
+            else if (ratio > state.fLastRatio)
+            {
+                state.fTrailRatio = ratio;
+            }
+
+            state.fLastRatio = ratio;
+
+            if (state.fHoldSec > 0.f)
+            {
+                state.fHoldSec = std::max(0.f, state.fHoldSec - dt);
+            }
+            else if (state.fTrailRatio > ratio)
+            {
+                state.fTrailRatio = std::max(
+                    ratio,
+                    state.fTrailRatio - m_fHealthBarTrailShrinkSpeed * dt);
+            }
+        }
+    );
+    for (auto it = m_ChampionHealthBarTrails.begin(); it != m_ChampionHealthBarTrails.end();)
+    {
+        if (std::find(visibleChampions.begin(), visibleChampions.end(), it->first) == visibleChampions.end())
+            it = m_ChampionHealthBarTrails.erase(it);
+        else
+            ++it;
+    }
+}
+
+f32_t CUI_Manager::ResolveChampionHealthTrailRatio(EntityID entity, f32_t currentRatio) const
+{
+    const auto it = m_ChampionHealthBarTrails.find(entity);
+    if (it == m_ChampionHealthBarTrails.end())
+        return currentRatio;
+
+    return std::max(currentRatio, std::clamp(it->second.fTrailRatio, 0.f, 1.f));
+}
 
 void CUI_Manager::Draw_HUDStatusFlash(ImDrawList* pDraw, const ImVec2& root, f32_t hudW, f32_t hudH)
 {
@@ -2756,9 +2832,24 @@ void CUI_Manager::Draw_HealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mV
             const bool_t bAlly = (team != eTeam::TEAM_END && team == localTeam);
 
             pDraw->AddRectFilled(rects.BarMin, rects.BarMax, IM_COL32(10, 10, 10, 226));
+            const f32_t fillW = rects.FillMax.x - rects.FillMin.x;
+            const f32_t trailRatio = ResolveChampionHealthTrailRatio(id, clamped);
+            if (trailRatio > clamped + 0.002f)
+            {
+                const f32_t trailMinX = rects.FillMin.x + fillW * clamped;
+                const f32_t trailMaxX = rects.FillMin.x + fillW * trailRatio;
+                pDraw->AddRectFilled(
+                    ImVec2(trailMinX, rects.FillMin.y),
+                    ImVec2(trailMaxX, rects.FillMax.y),
+                    IM_COL32(255, 18, 8, 242));
+                pDraw->AddRectFilled(
+                    ImVec2(trailMinX, rects.FillMin.y),
+                    ImVec2(trailMaxX, rects.FillMin.y + 1.f),
+                    IM_COL32(255, 128, 84, 110));
+            }
+
             if (clamped > 0.f)
             {
-                const f32_t fillW = rects.FillMax.x - rects.FillMin.x;
                 const ImVec2 fillMax(rects.FillMin.x + fillW * clamped, rects.FillMax.y);
                 const ImU32 fillColor = bAlly ? IM_COL32(74, 190, 62, 255) : IM_COL32(218, 52, 48, 255);
                 const ImU32 topColor = bAlly ? IM_COL32(142, 255, 118, 72) : IM_COL32(255, 132, 104, 72);
@@ -2821,9 +2912,32 @@ void CUI_Manager::Draw_HealthBars_RHI(const DirectX::XMMATRIX& mVP)
                 uvFull,
                 Vec4(0.04f, 0.04f, 0.04f, 0.89f));
 
+            const f32_t fillW = rects.FillMax.x - rects.FillMin.x;
+            const f32_t trailRatio = ResolveChampionHealthTrailRatio(id, clamped);
+            if (trailRatio > clamped + 0.002f)
+            {
+                const f32_t trailMinX = rects.FillMin.x + fillW * clamped;
+                const f32_t trailMaxX = rects.FillMin.x + fillW * trailRatio;
+                m_pRHIUIRenderer->DrawImage(
+                    nullptr,
+                    trailMinX,
+                    rects.FillMin.y,
+                    trailMaxX - trailMinX,
+                    rects.FillMax.y - rects.FillMin.y,
+                    uvFull,
+                    Vec4(1.0f, 0.055f, 0.025f, 0.95f));
+                m_pRHIUIRenderer->DrawImage(
+                    nullptr,
+                    trailMinX,
+                    rects.FillMin.y,
+                    trailMaxX - trailMinX,
+                    1.0f,
+                    uvFull,
+                    Vec4(1.0f, 0.50f, 0.33f, 0.43f));
+            }
+
             if (clamped > 0.f)
             {
-                const f32_t fillW = rects.FillMax.x - rects.FillMin.x;
                 m_pRHIUIRenderer->DrawImage(
                     nullptr,
                     rects.FillMin.x,

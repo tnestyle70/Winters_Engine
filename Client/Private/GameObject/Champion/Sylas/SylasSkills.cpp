@@ -140,6 +140,18 @@ namespace Sylas
 			{
 				Vec3 vStart = ResolveCasterPosition(ctx);
 				Vec3 vEnd = ResolveTargetOrEffectPosition(ctx);
+				if (WintersMath::DistanceSqXZ(vStart, vEnd) < 0.01f)
+				{
+					const Vec3 vForward = ResolveForward(ctx);
+					const f32_t fRange = (ctx.pDef && ctx.pDef->rangeMax > 0.f)
+						? ctx.pDef->rangeMax
+						: 6.f;
+					vEnd = Vec3{
+						vStart.x + vForward.x * fRange,
+						vStart.y,
+						vStart.z + vForward.z * fRange
+					};
+				}
 				vStart.y += 1.1f;
 				vEnd.y += 1.0f;
 				PlaySylasCueSegment(ctx, "Sylas.E2.Chain", vStart, vEnd);

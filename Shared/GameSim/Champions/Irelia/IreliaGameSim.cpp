@@ -1,5 +1,6 @@
 #include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
 
+#include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/IreliaSimComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
@@ -8,6 +9,7 @@
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -18,9 +20,19 @@
 
 namespace
 {
+    constexpr f32_t kIreliaRLength = 5.f;
     constexpr f32_t kIreliaRRange = 8.f;
     constexpr f32_t kIreliaRWidth = 7.5f;
-    constexpr f32_t kIreliaRHalfWidth = kIreliaRWidth * 0.5f;
+    constexpr f32_t kIreliaRSpeed = 15.f;
+    constexpr f32_t kIreliaRDamage = 250.f;
+    constexpr f32_t kIreliaRDisarmSec = 1.5f;
+    constexpr f32_t kIreliaRHitStunSec = 0.3f;
+    constexpr f32_t kIreliaRWallSlowSec = 0.5f;
+    constexpr f32_t kIreliaRWallSlowMul = 0.5f;
+    constexpr f32_t kIreliaRWallDurationSec = 2.5f;
+    constexpr u8_t kIreliaREffectStageHit = 2u;
+    constexpr u8_t kIreliaREffectStageWall = 3u;
+    constexpr u8_t kIreliaREffectStageWallMark = 4u;
     constexpr f32_t kIreliaQDashDurationSec = 0.25f;
     constexpr f32_t kIreliaWRange = 6.0f;
     constexpr f32_t kIreliaWHalfWidth = 2.2f;
@@ -95,26 +107,306 @@ namespace
         return Vec3{ 0.f, 0.f, -1.f };
     }
 
-    void EmitIreliaRHitVisual(CWorld& world, const GameplayHookContext& ctx,
-        EntityID target, const Vec3& vHitPos, const Vec3& vForward)
+    u16_t EncodeIreliaREffectFlags(u8_t stage, u8_t rank)
+    {
+        return static_cast<u16_t>(
+            (static_cast<u16_t>(stage & 0x0fu) << 12) |
+            (static_cast<u16_t>(rank & 0x0fu) << 8) |
+            static_cast<u16_t>(eSkillSlot::R));
+    }
+
+    void EmitIreliaREffect(CWorld& world,
+        EntityID caster,
+        EntityID target,
+        u8_t rank,
+        u8_t stage,
+        const Vec3& vPos,
+        const Vec3& vForward,
+        u16_t durationMs,
+        const TickContext& tc)
     {
         ReplicatedEventComponent event{};
         event.kind = eReplicatedEventKind::EffectTrigger;
-        event.sourceEntity = ctx.casterEntity;
+        event.sourceEntity = caster;
         event.targetEntity = target;
         event.effectId = MakeGameplayHookId(eChampion::IRELIA, GameplayHookVariant::R_OnCastAccepted);
         event.slot = static_cast<u8_t>(eSkillSlot::R);
-        event.rank = ctx.skillRank;
-        event.flags = static_cast<u16_t>(
-            (2u << 12) |
-            (static_cast<u16_t>(ctx.skillRank & 0x0fu) << 8) |
-            static_cast<u16_t>(eSkillSlot::R));
-        event.position = vHitPos;
+        event.rank = rank;
+        event.flags = EncodeIreliaREffectFlags(stage, rank);
+        event.position = vPos;
         event.direction = vForward;
-        event.durationMs = 900;
-        event.startTick = ctx.pTickCtx ? ctx.pTickCtx->tickIndex : 0;
+        event.durationMs = durationMs;
+        event.startTick = tc.tickIndex;
 
         EnqueueReplicatedEvent(world, event);
+    }
+
+    void ClearTrackedTargets(EntityID* targets, u8_t& count)
+    {
+        for (u8_t i = 0; i < IreliaSimComponent::kRMaxTrackedTargets; ++i)
+            targets[i] = NULL_ENTITY;
+        count = 0;
+    }
+
+    bool_t IsTrackedTarget(const EntityID* targets, u8_t count, EntityID target)
+    {
+        for (u8_t i = 0; i < count; ++i)
+        {
+            if (targets[i] == target)
+                return true;
+        }
+        return false;
+    }
+
+    void TrackTarget(EntityID* targets, u8_t& count, EntityID target)
+    {
+        if (target == NULL_ENTITY || IsTrackedTarget(targets, count, target))
+            return;
+        if (count >= IreliaSimComponent::kRMaxTrackedTargets)
+            return;
+        targets[count++] = target;
+    }
+
+    void ResetRWave(IreliaSimComponent& state)
+    {
+        state.rWavePos = {};
+        state.rWaveDir = {};
+        state.rWaveTravelled = 0.f;
+        state.rWallRemainingSec = 0.f;
+        state.rRank = 0;
+        state.bRWaveActive = false;
+        state.bRWallActive = false;
+        ClearTrackedTargets(state.rHitTargets, state.rHitTargetCount);
+        ClearTrackedTargets(state.rWallTargets, state.rWallTargetCount);
+    }
+
+    bool_t IsAliveChampion(CWorld& world, EntityID target)
+    {
+        if (target == NULL_ENTITY || !world.IsAlive(target))
+            return false;
+        if (world.HasComponent<HealthComponent>(target))
+        {
+            const HealthComponent& health = world.GetComponent<HealthComponent>(target);
+            if (health.bIsDead || health.fCurrent <= 0.f)
+                return false;
+        }
+        return true;
+    }
+
+    bool_t IsInRRectangle(const Vec3& targetPos,
+        const Vec3& center,
+        const Vec3& forward,
+        f32_t length,
+        f32_t width)
+    {
+        const f32_t dx = targetPos.x - center.x;
+        const f32_t dz = targetPos.z - center.z;
+        const f32_t along = dx * forward.x + dz * forward.z;
+        const f32_t perp = dx * (-forward.z) + dz * forward.x;
+        return std::fabs(along) <= length * 0.5f &&
+            std::fabs(perp) <= width * 0.5f;
+    }
+
+    void ApplyDisarm(CWorld& world, EntityID target, EntityID source, f32_t duration)
+    {
+        if (!IsAliveChampion(world, target))
+            return;
+
+        DisarmComponent disarm{};
+        disarm.fRemaining = duration;
+        disarm.sourceEntity = source;
+        if (world.HasComponent<DisarmComponent>(target))
+            world.GetComponent<DisarmComponent>(target) = disarm;
+        else
+            world.AddComponent<DisarmComponent>(target, disarm);
+
+        GameplayStatus::RebuildGameplayState(world, target);
+    }
+
+    void ApplyStun(CWorld& world, EntityID target, EntityID source, f32_t duration)
+    {
+        if (!IsAliveChampion(world, target))
+            return;
+
+        StunComponent stun{};
+        stun.fRemaining = duration;
+        stun.sourceEntity = source;
+        if (world.HasComponent<StunComponent>(target))
+            world.GetComponent<StunComponent>(target) = stun;
+        else
+            world.AddComponent<StunComponent>(target, stun);
+
+        GameplayStatus::RebuildGameplayState(world, target);
+    }
+
+    void ApplySlow(CWorld& world, EntityID target, EntityID source, f32_t duration, f32_t moveSpeedMul)
+    {
+        if (!IsAliveChampion(world, target))
+            return;
+
+        SlowComponent slow{};
+        slow.fRemaining = duration;
+        slow.fMoveSpeedMul = moveSpeedMul;
+        slow.sourceEntity = source;
+        if (world.HasComponent<SlowComponent>(target))
+            world.GetComponent<SlowComponent>(target) = slow;
+        else
+            world.AddComponent<SlowComponent>(target, slow);
+
+        GameplayStatus::RebuildGameplayState(world, target);
+    }
+
+    void StartRWall(CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        IreliaSimComponent& state,
+        bool_t bEmitWallCue)
+    {
+        state.bRWaveActive = false;
+        state.bRWallActive = true;
+        state.rWallRemainingSec = kIreliaRWallDurationSec;
+
+        if (bEmitWallCue)
+        {
+            EmitIreliaREffect(world,
+                caster,
+                NULL_ENTITY,
+                state.rRank,
+                kIreliaREffectStageWall,
+                state.rWavePos,
+                state.rWaveDir,
+                static_cast<u16_t>(kIreliaRWallDurationSec * 1000.f),
+                tc);
+        }
+    }
+
+    void TickRWave(CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        IreliaSimComponent& state)
+    {
+        if (!state.bRWaveActive && !state.bRWallActive)
+            return;
+        if (!world.HasComponent<ChampionComponent>(caster))
+            return;
+
+        const eTeam casterTeam = world.GetComponent<ChampionComponent>(caster).team;
+
+        if (state.bRWaveActive)
+        {
+            const f32_t remaining = kIreliaRRange - state.rWaveTravelled;
+            const f32_t step = kIreliaRSpeed * tc.fDt;
+            const f32_t appliedStep = step < remaining ? step : remaining;
+            state.rWavePos.x += state.rWaveDir.x * appliedStep;
+            state.rWavePos.z += state.rWaveDir.z * appliedStep;
+            state.rWaveTravelled += appliedStep;
+
+            EntityID hitTarget = NULL_ENTITY;
+            Vec3 hitPos{};
+
+            world.ForEach<ChampionComponent, TransformComponent>(
+                std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
+                    [&](EntityID target, ChampionComponent& champion, TransformComponent& tf)
+                    {
+                        if (hitTarget != NULL_ENTITY)
+                            return;
+                        if (target == caster || champion.team == casterTeam)
+                            return;
+                        if (!IsAliveChampion(world, target))
+                            return;
+                        if (IsTrackedTarget(state.rHitTargets, state.rHitTargetCount, target))
+                            return;
+
+                        const Vec3 targetPos = tf.GetPosition();
+                        if (!IsInRRectangle(targetPos, state.rWavePos, state.rWaveDir,
+                            kIreliaRLength, kIreliaRWidth))
+                        {
+                            return;
+                        }
+
+                        hitTarget = target;
+                        hitPos = targetPos;
+                    }));
+
+            if (hitTarget != NULL_ENTITY)
+            {
+                TrackTarget(state.rHitTargets, state.rHitTargetCount, hitTarget);
+                TrackTarget(state.rWallTargets, state.rWallTargetCount, hitTarget);
+                state.rWavePos = hitPos;
+
+                EnqueuePhysicalDamage(
+                    world,
+                    caster,
+                    hitTarget,
+                    casterTeam,
+                    kIreliaRDamage,
+                    static_cast<u16_t>((static_cast<u32_t>(eChampion::IRELIA) << 8) |
+                        static_cast<u32_t>(eSkillSlot::R)),
+                    state.rRank);
+                ApplyDisarm(world, hitTarget, caster, kIreliaRDisarmSec);
+                ApplyStun(world, hitTarget, caster, kIreliaRHitStunSec);
+
+                EmitIreliaREffect(world,
+                    caster,
+                    hitTarget,
+                    state.rRank,
+                    kIreliaREffectStageHit,
+                    hitPos,
+                    state.rWaveDir,
+                    static_cast<u16_t>(kIreliaRWallDurationSec * 1000.f),
+                    tc);
+                StartRWall(world, tc, caster, state, false);
+                return;
+            }
+
+            if (state.rWaveTravelled >= kIreliaRRange)
+            {
+                StartRWall(world, tc, caster, state, true);
+                return;
+            }
+        }
+
+        if (!state.bRWallActive)
+            return;
+
+        state.rWallRemainingSec -= tc.fDt;
+        if (state.rWallRemainingSec <= 0.f)
+        {
+            ResetRWave(state);
+            return;
+        }
+
+        world.ForEach<ChampionComponent, TransformComponent>(
+            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
+                [&](EntityID target, ChampionComponent& champion, TransformComponent& tf)
+                {
+                    if (target == caster || champion.team == casterTeam)
+                        return;
+                    if (!IsAliveChampion(world, target))
+                        return;
+                    if (IsTrackedTarget(state.rWallTargets, state.rWallTargetCount, target))
+                        return;
+
+                    const Vec3 targetPos = tf.GetPosition();
+                    if (!IsInRRectangle(targetPos, state.rWavePos, state.rWaveDir,
+                        kIreliaRLength, kIreliaRWidth))
+                    {
+                        return;
+                    }
+
+                    TrackTarget(state.rWallTargets, state.rWallTargetCount, target);
+                    ApplySlow(world, target, caster, kIreliaRWallSlowSec, kIreliaRWallSlowMul);
+                    ApplyDisarm(world, target, caster, kIreliaRDisarmSec);
+                    EmitIreliaREffect(world,
+                        caster,
+                        target,
+                        state.rRank,
+                        kIreliaREffectStageWallMark,
+                        targetPos,
+                        state.rWaveDir,
+                        static_cast<u16_t>(kIreliaRDisarmSec * 1000.f),
+                        tc);
+                }));
     }
 
     void OnQ(GameplayHookContext& ctx)
@@ -318,46 +610,15 @@ namespace
         const Vec3 vOrigin = world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 vForward = ResolveRForward(world, ctx.casterEntity, ctx.pCommand);
 
-        EntityID bestTarget = NULL_ENTITY;
-        Vec3 vBestHitPos{};
-        //bestalong의 의미가 뭐임?
-        f32_t fBestAlong = kIreliaRRange + 1.f;
+        IreliaSimComponent& state = GetIreliaState(world, ctx.casterEntity);
 
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID target, ChampionComponent& champion, TransformComponent& tf)
-                {
-                    if (target == ctx.casterEntity || champion.team == ctx.casterTeam)
-                        return;
+        ResetRWave(state);
+        state.rWavePos = vOrigin;
+        state.rWaveDir = vForward;
+        state.rRank = ctx.skillRank;
+        state.bRWaveActive = true;
 
-                    const Vec3 vPos = tf.GetPosition();
-                    //best along의 의미가  정확히 뭐임?
-                    const f32_t dx = vPos.x - vOrigin.x;
-                    const f32_t dz = vPos.z - vOrigin.z;
-                    const f32_t fAlong = dx * vForward.x + dz * vForward.z;
-                    if (fAlong < 0.f || fAlong > kIreliaRRange || fAlong >= fBestAlong)
-                        return;
-
-                    const f32_t fPerp = dx * (-vForward.z) + dz * vForward.x;
-                    if (std::fabs(fPerp) > kIreliaRHalfWidth)
-                        return;
-
-                    bestTarget = target;
-                    vBestHitPos = vPos;
-                    fBestAlong = fAlong;
-
-                    //along의 역할이 뭔지 모르겠어
-                }));
-        if (bestTarget != NULL_ENTITY)
-        {
-            EmitIreliaRHitVisual(world, ctx, bestTarget, vBestHitPos, vForward);
-            std::cout << "[IreliaSim] R hit caster=" << ctx.casterEntity
-                << " target=" << bestTarget
-                << " along=" << fBestAlong << "\n";
-            return;
-        }
-
-        std::cout << "[IreliaSim] R accepted caster=" << ctx.casterEntity << " miss\n";
+        ClearMove(world, ctx.casterEntity);
     }
 }
 
@@ -369,59 +630,61 @@ namespace IreliaGameSim
             std::function<void(EntityID, IreliaSimComponent&, TransformComponent&)>(
                 [&](EntityID entity, IreliaSimComponent& state, TransformComponent& transform)
                 {
-                    if (!state.bDashActive)
-                        return;
-
-                    ClearMove(world, entity);
-
-                    const f32_t duration =
-                        state.dashDurationSec > 0.01f ? state.dashDurationSec : kIreliaQDashDurationSec;
-                    state.dashElapsedSec += tc.fDt;
-
-                    f32_t t = state.dashElapsedSec / duration;
-                    if (t < 0.f) t = 0.f;
-                    if (t > 1.f) t = 1.f;
-
-                    const Vec3 desiredPos = Lerp(state.dashStartPos, state.dashEndPos, t);
-                    Vec3 guardedPos = desiredPos;
-                    bool_t bDashBlocked = false;
-                    if (tc.pWalkable)
+                    if (state.bDashActive)
                     {
-                        const Vec3 currentPos = transform.GetLocalPosition();
-                        if (!tc.pWalkable->TryClampMoveSegmentXZ(currentPos, desiredPos, 0.5f, guardedPos))
+                        ClearMove(world, entity);
+
+                        const f32_t duration =
+                            state.dashDurationSec > 0.01f ? state.dashDurationSec : kIreliaQDashDurationSec;
+                        state.dashElapsedSec += tc.fDt;
+
+                        f32_t t = state.dashElapsedSec / duration;
+                        if (t < 0.f) t = 0.f;
+                        if (t > 1.f) t = 1.f;
+
+                        const Vec3 desiredPos = Lerp(state.dashStartPos, state.dashEndPos, t);
+                        Vec3 guardedPos = desiredPos;
+                        bool_t bDashBlocked = false;
+                        if (tc.pWalkable)
                         {
-                            guardedPos = currentPos;
-                            bDashBlocked = true;
+                            const Vec3 currentPos = transform.GetLocalPosition();
+                            if (!tc.pWalkable->TryClampMoveSegmentXZ(currentPos, desiredPos, 0.5f, guardedPos))
+                            {
+                                guardedPos = currentPos;
+                                bDashBlocked = true;
+                            }
+                            else if (WintersMath::DistanceSqXZ(guardedPos, desiredPos) > 0.0001f)
+                            {
+                                bDashBlocked = true;
+                            }
                         }
-                        else if (WintersMath::DistanceSqXZ(guardedPos, desiredPos) > 0.0001f)
+
+                        transform.SetPosition(guardedPos);
+
+                        const Vec3 dir = WintersMath::NormalizeXZ(Vec3{
+                            state.dashEndPos.x - state.dashStartPos.x,
+                            0.f,
+                            state.dashEndPos.z - state.dashStartPos.z
+                        });
+                        if (dir.x * dir.x + dir.z * dir.z > 0.0001f)
                         {
-                            bDashBlocked = true;
+                            Vec3 rot = transform.GetRotation();
+                            transform.SetRotation({
+                                rot.x,
+                                ResolveChampionVisualYawNear(eChampion::IRELIA, dir, rot.y),
+                                rot.z });
+                        }
+
+                        if (t >= 1.f || bDashBlocked)
+                        {
+                            state.bDashActive = false;
+                            state.dashElapsedSec = 0.f;
+                            state.dashDurationSec = 0.f;
+                            state.dashTarget = NULL_ENTITY;
                         }
                     }
 
-                    transform.SetPosition(guardedPos);
-
-                    const Vec3 dir = WintersMath::NormalizeXZ(Vec3{
-                        state.dashEndPos.x - state.dashStartPos.x,
-                        0.f,
-                        state.dashEndPos.z - state.dashStartPos.z
-                    });
-                    if (dir.x * dir.x + dir.z * dir.z > 0.0001f)
-                    {
-                        Vec3 rot = transform.GetRotation();
-                        transform.SetRotation({
-                            rot.x,
-                            ResolveChampionVisualYawNear(eChampion::IRELIA, dir, rot.y),
-                            rot.z });
-                    }
-
-                    if (t >= 1.f || bDashBlocked)
-                    {
-                        state.bDashActive = false;
-                        state.dashElapsedSec = 0.f;
-                        state.dashDurationSec = 0.f;
-                        state.dashTarget = NULL_ENTITY;
-                    }
+                    TickRWave(world, tc, entity, state);
                 }));
     }
 

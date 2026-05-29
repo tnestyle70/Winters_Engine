@@ -15,7 +15,6 @@ namespace Irelia
     void OnCastAccepted_Q(SkillHookContext& ctx);
     void OnCastAccepted_W(SkillHookContext& ctx);
     void OnCastAccepted_E(SkillHookContext& ctx);
-    void OnCastAccepted_R(SkillHookContext& ctx);
 
     void UpdateLocalBladeState(
         CWorld& world,

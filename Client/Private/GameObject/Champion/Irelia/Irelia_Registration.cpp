@@ -163,7 +163,7 @@ namespace
                 s.rotate = eRotateMode::TowardsCursor;
                 s.castFrame = 7.f;
                 s.recoveryFrame = 30.f;
-                s.animPlaySpeed = 0.25f;
+                s.animPlaySpeed = 1.00f;
                 s.stage2PlaySpeed = 1.f;
                 s.endTransitionIdleAnim = "spell4_idle";
                 s.endTransitionRunAnim = "spell4_to_run";
@@ -176,9 +176,6 @@ namespace
                 kIrelia_Q_OnCastAccepted, &Irelia::OnCastAccepted_Q);
             CSkillHookRegistry::Instance().Register(
                 kIrelia_W_OnCastAccepted, &Irelia::OnCastAccepted_W);
-            CSkillHookRegistry::Instance().Register(
-                kIrelia_R_OnCastAccepted, &Irelia::OnCastAccepted_R);
-
             CVisualHookRegistry::Instance().Register(
                 kIrelia_Q_OnCastAccepted, &Irelia::Visual::OnCastAccepted_Q_Visual);
             CVisualHookRegistry::Instance().Register(

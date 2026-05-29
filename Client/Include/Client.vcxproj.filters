@@ -882,9 +882,6 @@
     <ClInclude Include="..\Public\GameApp.h">
       <Filter>00. MainApp</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\GameObject\FX\UltWaveSystem.h">
-      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\main.cpp">
@@ -1432,9 +1429,6 @@
     </ClCompile>
     <ClCompile Include="..\Private\GameApp.cpp">
       <Filter>00. MainApp</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\GameObject\FX\UltWaveSystem.cpp">
-      <Filter>02. GameObject\01. Champions\00. Champion\00. Irelia</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

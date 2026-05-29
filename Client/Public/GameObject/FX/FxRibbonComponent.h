@@ -9,11 +9,12 @@
 #include <string>
 #include <utility>
 
-constexpr u32_t FX_RIBBON_MAX_POINTS = 16;
+constexpr u32_t FX_RIBBON_MAX_POINTS = 32;
 
 struct FxRibbonComponent
 {
     std::array<Vec3, FX_RIBBON_MAX_POINTS> points{};
+    std::array<f32_t, FX_RIBBON_MAX_POINTS> pointAges{};
     u32_t iPointCount = 0;
     EntityID attachTo = NULL_ENTITY;
     Vec3 vStartOffset = { 0.f, 0.f, 0.f };
@@ -33,6 +34,15 @@ struct FxRibbonComponent
     f32_t fFadeOut = 0.f;
     f32_t fUvScrollU = 0.f;
     f32_t fUvScrollV = 0.f;
+    f32_t fTrailSampleInterval = 0.025f;
+    f32_t fTrailSampleAccumulator = 0.f;
+    f32_t fTrailHeadWidthScale = 1.f;
+    f32_t fTrailTailWidthScale = 1.f;
+    f32_t fTrailHeadAlphaScale = 1.f;
+    f32_t fTrailTailAlphaScale = 1.f;
+    f32_t fTrailJitterAmplitude = 0.f;
+    f32_t fTrailJitterFrequency = 0.f;
+    f32_t fTrailJitterSeed = 0.f;
     f32_t fAlphaClip = 0.05f;
     f32_t fErodeThreshold = 0.f;
     FxMaterialDesc material{};
@@ -43,6 +53,7 @@ struct FxRibbonComponent
 
     bool bPendingDelete = false;
     bool bBlockableByWindWall = false;
+    bool bHistoryTrail = false;
 
     void SetPoint(u32_t index, const Vec3& v)
     {

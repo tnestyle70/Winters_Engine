@@ -131,6 +131,7 @@ xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FMOD\Bin\*.dl
     <ClCompile Include="..\..\Shared\GameSim\Champions\Kindred\KindredGameSim.cpp" />
     <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp" />
     <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp" />
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Sylas\SylasGameSim.cpp" />
     <ClCompile Include="..\..\Shared\GameSim\Champions\Viego\ViegoGameSim.cpp" />
     <ClCompile Include="..\..\Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp" />
     <ClCompile Include="..\..\Shared\GameSim\Champions\Yone\YoneGameSim.cpp" />

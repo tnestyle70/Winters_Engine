@@ -19,6 +19,7 @@
 
 #include <array>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 NS_BEGIN(Engine)
@@ -26,21 +27,6 @@ NS_BEGIN(Engine)
 class CChampionHudPanel;
 class CLuaUIHost;
 
-// ─────────────────────────────────────────────────────────────
-// CUI_Manager — 게임 내 UI 오버레이 통합 관리 싱글턴 (Engine 범용)
-//   Phase A: HP Bar (미니언/챔피언/포탑 — HealthComponent 보유 전 엔티티)
-//   Phase B+: 데미지 팝업 / 챔피언 HUD / 스킬 쿨타임 / 스코어보드
-//
-// 렌더 방식: ImGui BackgroundDrawList 2D 오버레이
-//   - 월드 공간: matVP 로 스크린 투영 후 PNG 배경 + Rect fill
-//   - 화면 고정 HUD (Phase D): ImGui 윈도우
-//
-// GameInstance boundary: Client uses UI_* forwarding only. CUI_Manager stays internal.
-// ─────────────────────────────────────────────────────────────
-
-//Gotchas 기록, GameInstance로 관리하는 singleton은 절대 WINTERS_ENGINE으로 외부에 공개하지 않는다!!!!!
-// → export 마크 없음. Client 는 CGameInstance 의 포워딩 함수(UI_*)만 사용.
-// → Timer/Sound/Scene Manager 와 동일한 Create 팩토리 패턴 (private ctor + unique_ptr 소유).
 enum class eCursorMode : uint8_t
 {
     Default,
@@ -172,6 +158,8 @@ private:
     void    ResetGameContextHUDStats();
     void    Draw_HUDStatusFlash(ImDrawList* pDraw, const ImVec2& root, f32_t hudW, f32_t hudH);
     void    Update_HUDStatusTimers(EntityID localEntity, f32_t hp, bool_t bStunned, f32_t dt);
+    void UpdateChampionHealthBarTrails(f32_t dt);
+    f32_t ResolveChampionHealthTrailRatio(EntityID entity, f32_t currentRatio) const;
     void    Apply_CursorMode();
 
     //인게임 상점
@@ -278,6 +266,18 @@ private:
     f32_t   m_fHPBarWidth = 104.f;    // 화면 픽셀
     f32_t   m_fHPBarHeight = 20.f;
     f32_t   m_fHPBarYOffset = 2.75f;    // 월드 좌표 머리 위 높이 (m)
+
+    struct ChampionHealthBarTrailState
+    {
+        f32_t fLastRatio = 1.f;
+        f32_t fTrailRatio = 1.f;
+        f32_t fHoldSec = 0.f;
+        bool_t bInitialized = false;
+    };
+
+    std::unordered_map<EntityID, ChampionHealthBarTrailState> m_ChampionHealthBarTrails;
+    f32_t m_fHealthBarTrailHoldSec = 0.04f;
+    f32_t m_fHealthBarTrailShrinkSpeed = 3.75f;
 
     f32_t   m_fMinionHPBarWidth = 43.088f;
     f32_t   m_fMinionHPBarHeight = 3.f;

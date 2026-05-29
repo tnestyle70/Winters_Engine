@@ -12,7 +12,6 @@
 #include "GameObject/FX/FxMeshComponent.h"
 #include "GameObject/FX/FxMeshSystem.h"
 #include "GameObject/FX/FxRibbonComponent.h"
-#include "GameObject/FX/UltWaveSystem.h"
 #include "GamePlay/VisualHookRegistry.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 
@@ -38,7 +37,7 @@ namespace
         bool_t bBeamSpawned = false;
         f32_t eSword1Elapsed = 0.f;
         bool_t bEAutoSecondPending = false;
-        EntityID rWaveId = NULL_ENTITY;
+        std::vector<EntityID> rPulseCueIds{};
     };
 
     std::unordered_map<EntityID, IreliaLocalState> s_stateByCaster;
@@ -181,6 +180,11 @@ namespace Irelia
         state.bWHoldCueActive = false;
     }
 
+    void ClearRPulseFx(CWorld& world, IreliaLocalState& state)
+    {
+        ClearFxIdList(world, state.rPulseCueIds);
+    }
+
     Vec3 ResolveWAimEnd(const Vec3& origin, const Vec3& cursorGround, f32_t range)
     {
         Vec3 dir = WintersMath::DirectionXZ(origin, cursorGround, Vec3{ 0.f, 0.f, 1.f });
@@ -316,10 +320,11 @@ namespace Irelia
                 }));
     }
 
-    EntityID SpawnRPulseCueOrLegacy(CWorld& world, const Vec3& origin, const Vec3& forward,
+    bool_t SpawnRPulseCueOrLegacy(CWorld& world, const Vec3& origin, const Vec3& forward,
         f32_t speed, f32_t lifetime,
         f32_t width, f32_t height,
-        f32_t yOffset, f32_t fwdOffset, f32_t yawOffset)
+        f32_t yOffset, f32_t fwdOffset, f32_t yawOffset,
+        std::vector<EntityID>* pOutSpawned)
     {
         FxCueContext fx{};
         fx.vWorldPos = origin;
@@ -327,13 +332,15 @@ namespace Irelia
         fx.bOverrideVelocity = true;
         fx.vVelocity = { forward.x * speed, 0.f, forward.z * speed };
 
-        const EntityID cueId = CFxCuePlayer::Play(world, "Irelia.R.Pulse", fx);
-        if (cueId != NULL_ENTITY)
-            return cueId;
+        if (CFxCuePlayer::PlayAll(world, "Irelia.R.Pulse", fx, pOutSpawned) != NULL_ENTITY)
+            return true;
 
-        return IreliaFx::SpawnRPulse(world,
+        const EntityID fallbackId = IreliaFx::SpawnRPulse(world,
             origin, forward, speed, lifetime,
             width, height, yOffset, fwdOffset, yawOffset);
+        if (fallbackId != NULL_ENTITY && pOutSpawned)
+            pOutSpawned->push_back(fallbackId);
+        return fallbackId != NULL_ENTITY;
     }
 
     bool_t SpawnRHitCueOrLegacy(CWorld& world, const Vec3& hitPos,
@@ -348,6 +355,16 @@ namespace Irelia
 
         IreliaFx::SpawnRHitLayers(world, hitPos, forward, lifetime);
         return false;
+    }
+
+    bool_t SpawnRWallCue(CWorld& world, const Vec3& wallPos, const Vec3& forward)
+    {
+        FxCueContext fx{};
+        fx.vWorldPos = wallPos;
+        fx.vWorldPos.y += 0.02f;
+        fx.vForward = forward;
+
+        return CFxCuePlayer::Play(world, "Irelia.R.Wall", fx) != NULL_ENTITY;
     }
 
     void UpdateWAimCue(CWorld& world, IreliaLocalState& state,
@@ -636,75 +653,73 @@ namespace Irelia
                 return;
 
             const IreliaTuning& t = GetTuning();
-            if (ctx.skillStage >= 2)
-                return;
-
-            const Vec3 origin = ResolveOrigin(*ctx.pWorld, ctx.casterEntity);
             const Vec3 forward = ResolveForward(*ctx.pWorld, ctx.casterEntity, ctx.pCommand);
-            const f32_t rSpeed = (t.waveSpeed > 1.f) ? t.waveSpeed : 25.f;
-            const f32_t lifetime = t.waveMaxDist / rSpeed + 0.1f;
+            const Vec3 eventPos = ctx.pCommand
+                ? ctx.pCommand->groundPos
+                : ResolveOrigin(*ctx.pWorld, ctx.casterEntity);
+            IreliaLocalState& state = GetState(ctx.casterEntity);
 
-            SpawnRPulseCueOrLegacy(*ctx.pWorld,
-                origin,
-                forward,
-                rSpeed,
-                lifetime,
-                t.rFxWidth,
-                t.rFxHeight,
-                t.rFxYOffset,
-                t.rFxFwdOffset,
-                t.rFxYawOffset);
+            if (ctx.skillStage <= 1)
+            {
+                const Vec3 origin = ResolveOrigin(*ctx.pWorld, ctx.casterEntity);
+                const f32_t rSpeed = (t.waveSpeed > 1.f) ? t.waveSpeed : 25.f;
+                const f32_t lifetime = t.waveMaxDist / rSpeed + 0.1f;
+
+                ClearRPulseFx(*ctx.pWorld, state);
+                SpawnRPulseCueOrLegacy(*ctx.pWorld,
+                    origin,
+                    forward,
+                    rSpeed,
+                    lifetime,
+                    t.rFxWidth,
+                    t.rFxHeight,
+                    t.rFxYOffset,
+                    t.rFxFwdOffset,
+                    t.rFxYawOffset,
+                    &state.rPulseCueIds);
+                return;
+            }
+
+            if (ctx.skillStage == 2)
+            {
+                ClearRPulseFx(*ctx.pWorld, state);
+                SpawnTargetMarkCueOrLegacy(*ctx.pWorld,
+                    ctx.pCommand ? ctx.pCommand->targetEntityId : NULL_ENTITY,
+                    1.5f);
+                SpawnRHitCueOrLegacy(*ctx.pWorld, eventPos, forward, 0.45f);
+                SpawnRWallCue(*ctx.pWorld, eventPos, forward);
+
+                const Vec3 bladeRot{ t.bladePitch, t.bladeYaw, t.bladeRoll };
+                IreliaFx::SpawnRBladeFan(*ctx.pWorld,
+                    ctx.pFxMeshRenderer,
+                    eventPos,
+                    forward,
+                    t.iRWallBladeCount,
+                    t.fRWallBladeSpreadRad,
+                    t.fRWallBladePlaceDist,
+                    t.fRWallBladeLifetime,
+                    t.bladeScale * t.fRWallBladeScaleMul,
+                    bladeRot,
+                    t.bRTriangleMode,
+                    t.rTipBoost,
+                    t.rSideShrink);
+                return;
+            }
+
+            if (ctx.skillStage == 3)
+            {
+                ClearRPulseFx(*ctx.pWorld, state);
+                SpawnRWallCue(*ctx.pWorld, eventPos, forward);
+                return;
+            }
+
+            if (ctx.skillStage == 4)
+            {
+                SpawnTargetMarkCueOrLegacy(*ctx.pWorld,
+                    ctx.pCommand ? ctx.pCommand->targetEntityId : NULL_ENTITY,
+                    1.5f);
+            }
         }
-    }
-
-    void OnCastAccepted_R(SkillHookContext& ctx)
-    {
-        if (!ctx.pWorld)
-            return;
-
-        const IreliaTuning& t = GetTuning();
-        const Vec3 origin = ResolveOrigin(*ctx.pWorld, ctx.casterEntity);
-        const Vec3 forward = ResolveForward(*ctx.pWorld, ctx.casterEntity, ctx.pCommand);
-        const Vec3 bladeRot{ t.bladePitch, t.bladeYaw, t.bladeRoll };
-        const f32_t rBladeFanScale = t.bladeScale * t.fRWallBladeScaleMul;
-        IreliaLocalState& state = GetState(ctx.casterEntity);
-        if (state.rWaveId != NULL_ENTITY && !ctx.pWorld->IsAlive(state.rWaveId))
-            state.rWaveId = NULL_ENTITY;
-        if (state.rWaveId != NULL_ENTITY)
-        {
-            ::OutputDebugStringA("[Irelia R] active wave already exists; skip duplicate spawn\n");
-            return;
-        }
-
-        state.rWaveId = CUltWaveSystem::Spawn(*ctx.pWorld, origin, forward, ctx.casterEntity,
-            t.waveLength, t.waveWidth, t.waveSpeed, t.waveMaxDist, t.waveDamage,
-            ctx.pFxMeshRenderer,
-            rBladeFanScale, bladeRot,
-            t.iRWallBladeCount,
-            t.fRWallBladeSpreadRad,
-            t.fRWallBladePlaceDist,
-            t.fRWallBladeLifetime,
-            t.bRTriangleMode, t.rTipBoost, t.rSideShrink);
-
-        const f32_t rSpeed = (t.waveSpeed > 1.f) ? t.waveSpeed : 25.f;
-        const f32_t lifetime = t.waveMaxDist / rSpeed + 0.1f;
-        const EntityID rfxId = SpawnRPulseCueOrLegacy(*ctx.pWorld,
-            origin,
-            forward,
-            rSpeed,
-            lifetime,
-            t.rFxWidth,
-            t.rFxHeight,
-            t.rFxYOffset,
-            t.rFxFwdOffset,
-            t.rFxYawOffset);
-        CUltWaveSystem::SetPulseFx(*ctx.pWorld, state.rWaveId, rfxId);
-
-        char dbg[192]{};
-        sprintf_s(dbg,
-            "[Irelia R] wave/pulse spawn pulse=%u origin=(%.1f,%.1f,%.1f) dir=(%.2f,%.2f) life=%.2fs\n",
-            rfxId, origin.x, origin.y, origin.z, forward.x, forward.z, lifetime);
-        ::OutputDebugStringA(dbg);
     }
 
     void UpdateLocalBladeState(

@@ -116,7 +116,7 @@
       "render_type": "Billboard",
       "blend_mode": "Additive",
       "depth_mode": "OverlayNoDepth",
-      "texture": "Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_warnig_spark.png",
+      "texture": "Client/Bin/Resource/Texture/FX/Irelia/irelia_base_lensflare_streak.png",
       "erode_texture": "",
       "model": "",
       "max_particles": 1,

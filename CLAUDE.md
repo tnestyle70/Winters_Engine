@@ -96,3 +96,4 @@ Mistake-prevention log lives in [.claude/gotchas.md](.claude/gotchas.md). Import
 ## Progressive Sections
 
 - Team shared rules and coding conventions: add only behavior-changing decisions here; put detailed C++ style in `.md/architecture/WINTERS_ENGINE_CONVENTIONS.md`.
+- Gameplay/render debugging pipeline: before tuning symptoms, add or use an inspectable debug UI/overlay, bounded `OutputDebugStringA/W` traces, and visual capture around the authoritative code path; for movement/pathfinding, expose current cell, next cell/waypoint, resolved path, correction direction, and stuck/resolve reason.

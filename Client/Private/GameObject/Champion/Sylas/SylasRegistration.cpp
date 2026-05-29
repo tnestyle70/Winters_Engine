@@ -50,10 +50,10 @@ namespace
 		if (slot == static_cast<u8_t>(eSkillSlot::E))
 		{
 			s.stageCount = 2;
-			s.stage2TargetMode = eTargetMode::UnitTarget;
+			s.stage2TargetMode = eTargetMode::Direction;
 			s.stage2AnimKey = "skinned_mesh_sylas_spell3_bhit_cast";
 			s.stage2LockSec = 0.5f;
-			s.stage2Rotate = eRotateMode::TowardsTarget;
+			s.stage2Rotate = eRotateMode::TowardsCursor;
 			s.stageWindowSec = 3.f;
 			s.stage2CastFrame = 4.f;
 			s.stage2RecoveryFrame = 12.f;

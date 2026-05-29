@@ -201,6 +201,7 @@ void CPlaneRenderer::Render(IRHIDevice* pDevice, const Mat4& matViewProj)
     ComPtr<ID3D11DepthStencilState> pPrevDSS;
     UINT prevStencil = 0;
     ComPtr<ID3D11RasterizerState> pPrevRS;
+    ID3D11DepthStencilState* pDepthState = nullptr;
 
     if (bAlpha)
     {
@@ -209,11 +210,9 @@ void CPlaneRenderer::Render(IRHIDevice* pDevice, const Mat4& matViewProj)
         pContext->RSGetState(pPrevRS.GetAddressOf());
         m_pBlendCache->Bind(pContext, m_eBlend);
 
-        ID3D11DepthStencilState* pDepthState = m_pImpl->pDSSNoWrite.Get();
+        pDepthState = m_pImpl->pDSSNoWrite.Get();
         if (m_eDepthMode == eFxDepthMode::OverlayNoDepth && m_pImpl->pDSSNoDepth)
             pDepthState = m_pImpl->pDSSNoDepth.Get();
-
-        pContext->OMSetDepthStencilState(pDepthState, 0);
     }
 
     D3D11_MAPPED_SUBRESOURCE mapped = {};
@@ -231,6 +230,9 @@ void CPlaneRenderer::Render(IRHIDevice* pDevice, const Mat4& matViewProj)
 
     m_pImpl->pSharedShader->Bind(pContext);
     m_pImpl->pSharedPipeline->Bind(pContext);
+
+    if (bAlpha && pDepthState)
+        pContext->OMSetDepthStencilState(pDepthState, 0);
 
     if (bAlpha && m_pImpl->pRSTwoSided)
         pContext->RSSetState(m_pImpl->pRSTwoSided.Get());

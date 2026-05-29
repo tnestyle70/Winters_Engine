@@ -135,7 +135,7 @@ namespace LegacyFx
             },
             {
                 "Irelia.R.Wall", "Irelia", "CFxCuePlayer::Play",
-                "Client/Private/GameObject/FX/UltWaveSystem.cpp",
+                "Client/Private/GameObject/Champion/Irelia/Irelia_Skills.cpp",
                 "Billboard",
                 L"Data/LoL/FX/Champions/Irelia/r_wall.wfx",
                 L"",

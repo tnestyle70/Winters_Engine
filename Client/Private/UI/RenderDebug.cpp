@@ -93,6 +93,9 @@ namespace UI
             bool bh = pScene->IsDbgShowChampions();
             if (ImGui::Checkbox("Champions (cylinder)", &bh)) pScene->SetDbgShowChampions(bh);
 
+            bool bm = pScene->IsDbgShowMinionMovement();
+            if (ImGui::Checkbox("Minion cells / move vectors", &bm)) pScene->SetDbgShowMinionMovement(bm);
+
             f32_t r = pScene->GetDbgNavRadius();
             if (ImGui::SliderFloat("NavGrid radius (m)", &r, 10.f, 200.f))
                 pScene->SetDbgNavRadius(r);
@@ -112,6 +115,7 @@ namespace UI
             pScene->SetDbgShowStructures(true);
             pScene->SetDbgShowColliders(true);
             pScene->SetDbgShowChampions(true);
+            pScene->SetDbgShowMinionMovement(true);
         }
         ImGui::SameLine();
         if (ImGui::Button("Sylas Only"))
@@ -121,6 +125,7 @@ namespace UI
             pScene->SetDbgShowStructures(false);
             pScene->SetDbgShowColliders(false);
             pScene->SetDbgShowChampions(true);
+            pScene->SetDbgShowMinionMovement(false);
         }
 
         ImGui::End();

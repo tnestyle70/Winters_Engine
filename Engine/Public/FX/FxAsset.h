@@ -74,6 +74,15 @@ struct FxEmitterDesc
     f32_t fStartDelay = 0.f;
     f32_t fFadeOut = 0.f;
     u32_t iRibbonPointCount = 2;
+    bool_t bHistoryTrail = false;
+    f32_t fTrailSampleInterval = 0.025f;
+    f32_t fTrailHeadWidthScale = 1.f;
+    f32_t fTrailTailWidthScale = 1.f;
+    f32_t fTrailHeadAlphaScale = 1.f;
+    f32_t fTrailTailAlphaScale = 1.f;
+    f32_t fTrailJitterAmplitude = 0.f;
+    f32_t fTrailJitterFrequency = 0.f;
+    f32_t fTrailJitterSeed = 0.f;
 
     u32_t iAtlasCols = 1;
     u32_t iAtlasRows = 1;

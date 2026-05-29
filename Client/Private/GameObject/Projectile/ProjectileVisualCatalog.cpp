@@ -41,6 +41,13 @@ namespace
         true, true
     };
 
+    constexpr ProjectileVisualDesc kSylasChainVisual{
+        nullptr, nullptr, nullptr,
+        nullptr, nullptr,
+        0.8f, 0.8f, 1.4f, 1.4f,
+        false, false
+    };
+
     constexpr ProjectileVisualDesc kZedShurikenVisual{
         "Zed.Q.Projectile", "Zed.Q.Hit", nullptr,
         kGenericProjectileTexture, kGenericProjectileHitTexture,
@@ -61,12 +68,22 @@ namespace
         1.1f, 1.1f, 1.8f, 1.8f,
         true, true
     };
+
+    constexpr ProjectileVisualDesc kTurretProjectileVisual{
+        "Turret.Projectile.Red", "Turret.Projectile.Hit.Red", nullptr,
+        nullptr, nullptr,
+        0.8f, 0.8f, 1.4f, 1.4f,
+        false, false
+    };
 }
 
 namespace ProjectileVisualCatalog
 {
     const ProjectileVisualDesc& Resolve(u16_t kind)
     {
+        if (IsTurretProjectileKind(kind))
+            return kTurretProjectileVisual;
+
         switch (static_cast<eProjectileKind>(kind))
         {
         case eProjectileKind::Wind:
@@ -77,6 +94,8 @@ namespace ProjectileVisualCatalog
             return kEzrealMysticShotVisual;
         case eProjectileKind::LeeSinQ:
             return kLeeSinQVisual;
+        case eProjectileKind::SylasChain:
+            return kSylasChainVisual;
         case eProjectileKind::ZedShuriken:
             return kZedShurikenVisual;
         case eProjectileKind::AsheVolleyArrow:

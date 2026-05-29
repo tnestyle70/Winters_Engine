@@ -186,6 +186,9 @@
     <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp">
       <Filter>04. Shared\GameSim\Champions</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Champions\Sylas\SylasGameSim.cpp">
+      <Filter>04. Shared\GameSim\Champions</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp">
       <Filter>04. Shared\GameSim\Champions</Filter>
     </ClCompile>

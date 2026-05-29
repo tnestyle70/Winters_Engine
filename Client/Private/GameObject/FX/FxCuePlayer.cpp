@@ -310,6 +310,15 @@ namespace
         ribbon.fAlphaClip = emitter.fAlphaClip;
         ribbon.fErodeThreshold = emitter.fErodeThreshold;
         ribbon.SetMaterialFromDesc(emitter.material, emitter.depthMode);
+        ribbon.bHistoryTrail = emitter.bHistoryTrail;
+        ribbon.fTrailSampleInterval = emitter.fTrailSampleInterval;
+        ribbon.fTrailHeadWidthScale = emitter.fTrailHeadWidthScale;
+        ribbon.fTrailTailWidthScale = emitter.fTrailTailWidthScale;
+        ribbon.fTrailHeadAlphaScale = emitter.fTrailHeadAlphaScale;
+        ribbon.fTrailTailAlphaScale = emitter.fTrailTailAlphaScale;
+        ribbon.fTrailJitterAmplitude = emitter.fTrailJitterAmplitude;
+        ribbon.fTrailJitterFrequency = emitter.fTrailJitterFrequency;
+        ribbon.fTrailJitterSeed = emitter.fTrailJitterSeed;
 
         const u32_t pointCount = std::clamp(emitter.iRibbonPointCount, 2u, FX_RIBBON_MAX_POINTS);
         for (u32_t pointIndex = 0; pointIndex < pointCount; ++pointIndex)
@@ -322,6 +331,7 @@ namespace
                 start.y + (end.y - start.y) * t,
                 start.z + (end.z - start.z) * t
             });
+            ribbon.pointAges[pointIndex] = t * std::max(0.001f, ribbon.fLifetime);
         }
 
         return ribbon;

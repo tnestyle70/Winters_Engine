@@ -80,8 +80,6 @@ private:
     void SpawnBillboard(CWorld& world, const Vec3& pos, const Vec3& velocity,
         const wchar_t* texturePath, f32_t width, f32_t height, f32_t lifetime,
         EntityID attachTo = NULL_ENTITY);
-    bool_t SpawnTurretProjectileMesh(CWorld& world, const Vec3& pos, const Vec3& dir,
-        const Vec3& velocity, f32_t lifetime);
 
     std::unordered_map<NetEntityId, u32_t> m_lastAnimationSeq;
     std::unordered_set<u64_t> m_seenEffectCueKeys;

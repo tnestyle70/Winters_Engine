@@ -44,7 +44,7 @@ namespace
         { eChampion::IRELIA, 2, 2, 0.40f, 1.00f },
         { eChampion::IRELIA, 3, 1, 0.90f, 1.05f },
         { eChampion::IRELIA, 3, 2, 0.45f, 1.05f },
-        { eChampion::IRELIA, 4, 1, 0.65f, 0.25f },
+        { eChampion::IRELIA, 4, 1, 0.65f, 1.00f },
 
         { eChampion::YASUO, 0, 1, 0.50f, 0.85f },
         { eChampion::YASUO, 1, 1, 0.50f, 0.85f },
@@ -140,6 +140,13 @@ namespace
         { eChampion::YONE, 2, 1, 0.90f, 0.85f },
         { eChampion::YONE, 3, 1, 0.75f, 1.00f },
         { eChampion::YONE, 4, 1, 1.20f, 1.00f },
+
+        { eChampion::SYLAS, 0, 1, 0.60f, 1.00f },
+        { eChampion::SYLAS, 1, 1, 0.55f, 1.00f },
+        { eChampion::SYLAS, 2, 1, 0.45f, 1.00f },
+        { eChampion::SYLAS, 3, 1, 0.35f, 1.00f },
+        { eChampion::SYLAS, 3, 2, 0.50f, 1.00f },
+        { eChampion::SYLAS, 4, 1, 0.80f, 1.00f },
     };
 
     constexpr ChampionSkillStageRow kChampionSkillStageTable[] =
@@ -151,6 +158,7 @@ namespace
         { eChampion::LEESIN, 1, 2, 3.00f },
         { eChampion::LEESIN, 2, 2, 3.00f },
         { eChampion::LEESIN, 3, 2, 3.00f },
+        { eChampion::SYLAS, 3, 2, 3.00f },
     };
 
     constexpr ChampionSkillValueRow kChampionSkillValueTable[] =
@@ -250,6 +258,12 @@ namespace
         { eChampion::YONE, 2, 16.00f, 6.00f },
         { eChampion::YONE, 3, 22.00f, 4.00f },
         { eChampion::YONE, 4, 120.00f, 10.00f },
+
+        { eChampion::SYLAS, 0, 0.60f, 1.50f },
+        { eChampion::SYLAS, 1, 4.00f, 4.00f },
+        { eChampion::SYLAS, 2, 5.00f, 5.00f },
+        { eChampion::SYLAS, 3, 6.00f, 6.00f },
+        { eChampion::SYLAS, 4, 10.00f, 10.00f },
     };
 
     f32_t SanitizePositive(f32_t value, f32_t fallback)

@@ -363,6 +363,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", 
 		Shared\GameSim\Components\SkillStateComponent.h = Shared\GameSim\Components\SkillStateComponent.h
 		Shared\GameSim\Components\SpellbookOverrideComponent.h = Shared\GameSim\Components\SpellbookOverrideComponent.h
 		Shared\GameSim\Components\StatComponent.h = Shared\GameSim\Components\StatComponent.h
+		Shared\GameSim\Components\SylasSimComponent.h = Shared\GameSim\Components\SylasSimComponent.h
 		Shared\GameSim\Components\ViegoSimComponent.h = Shared\GameSim\Components\ViegoSimComponent.h
 		Shared\GameSim\Components\ViegoSoulComponent.h = Shared\GameSim\Components\ViegoSoulComponent.h
 		Shared\GameSim\Components\WaypointPatrolComponent.h = Shared\GameSim\Components\WaypointPatrolComponent.h
@@ -450,6 +451,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MasterYi", "MasterYi", "{3A
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sylas", "Sylas", "{0867A266-84FB-4A9E-8C1B-B4115CB5BD0C}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Champions\Sylas\SylasGameSim.cpp = Shared\GameSim\Champions\Sylas\SylasGameSim.cpp
+		Shared\GameSim\Champions\Sylas\SylasGameSim.h = Shared\GameSim\Champions\Sylas\SylasGameSim.h
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Viego", "Viego", "{6A7D9754-4BF5-406E-B7C6-2B73001D2E1E}"
 	ProjectSection(SolutionItems) = preProject

@@ -183,7 +183,6 @@ if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSB
     <ClCompile Include="..\Private\GameObject\FX\FxMeshSystem.cpp" />
     <ClCompile Include="..\Private\GameObject\FX\FxSystem.cpp" />
     <ClCompile Include="..\Private\GameObject\FX\LegacyFxAdapter.cpp" />
-    <ClCompile Include="..\Private\GameObject\FX\UltWaveSystem.cpp" />
     <ClCompile Include="..\Private\GameObject\FX\WindWallSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\YoneSoulSpawnSystem.cpp" />
     <ClCompile Include="..\Private\GameObject\Projectile\ProjectileVisualCatalog.cpp" />
@@ -391,7 +390,6 @@ if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSB
     <ClInclude Include="..\Public\GameObject\FX\FxRibbonComponent.h" />
     <ClInclude Include="..\Public\GameObject\FX\FxSystem.h" />
     <ClInclude Include="..\Public\GameObject\FX\LegacyFxAdapter.h" />
-    <ClInclude Include="..\Public\GameObject\FX\UltWaveSystem.h" />
     <ClInclude Include="..\Public\GameObject\FX\WfxDocument.h" />
     <ClInclude Include="..\Public\GameObject\FX\WindWallSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\YoneSoulSpawnSystem.h" />

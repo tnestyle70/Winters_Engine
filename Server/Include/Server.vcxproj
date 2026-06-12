@@ -106,7 +106,9 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Game\GameRoom.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomChampionAI.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomCommands.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomInternal.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomLobby.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomNav.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomReplication.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomSmokeRoster.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomTick.cpp" />
@@ -122,58 +124,10 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Network\Session.cpp" />
     <ClCompile Include="..\Private\Network\Session_Manager.cpp" />
     <ClCompile Include="..\Private\Security\LagCompensation.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Annie\AnnieGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Ashe\AsheGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Fiora\FioraGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Jax\JaxGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Kalista\KalistaGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Kindred\KindredGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Riven\RivenGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Sylas\SylasGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Viego\ViegoGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Yone\YoneGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Zed\ZedGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Definitions\MapSpawnPoints.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionGameData\ChampionGameDataDB.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Generated\ChampionGameData.generated.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Registries\Reward\RewardRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Registries\Skin\SkinRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\JungleAI\JungleAISystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Buff\BuffSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIBrain.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatActionSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatFormula.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamagePipeline.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Death\DeathSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Experience\ExperienceSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Move\MoveSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Recall\RecallSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Rune\RuneSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Stat\StatSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\Game\GameRoom.h" />
+    <ClInclude Include="..\Private\Game\GameRoomInternal.h" />
     <ClInclude Include="..\Private\Game\GameRoomSmokeRoster.h" />
     <ClInclude Include="..\Public\Game\ReplayRecorder.h" />
     <ClInclude Include="..\Public\Game\ServerEntry.h" />
@@ -196,6 +150,9 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
       <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Shared\GameSim\Include\GameSim.vcxproj">
+      <Project>{E5555555-5555-5555-5555-555555555555}</Project>
     </ProjectReference>
   </ItemGroup>
   <Target Name="FlatcCodegen" BeforeTargets="ClCompile">

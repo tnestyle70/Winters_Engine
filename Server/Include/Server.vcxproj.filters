@@ -94,6 +94,12 @@
     <Filter Include="02. Game\00. GameRoom\04. SmokeRoster">
       <UniqueIdentifier>{238c7517-52a4-4467-8155-29a61d97ec75}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. Game\00. GameRoom\05. Nav">
+      <UniqueIdentifier>{8f2c1a3e-7d94-4b06-9c3a-51e8f0a72d41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\00. GameRoom\06. Internal">
+      <UniqueIdentifier>{c47b9e02-3a61-48d5-b7f2-90ad64c81e53}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\main.cpp">
@@ -300,6 +306,12 @@
     <ClCompile Include="..\Private\Game\GameRoomSmokeRoster.cpp">
       <Filter>02. Game\00. GameRoom\04. SmokeRoster</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Game\GameRoomNav.cpp">
+      <Filter>02. Game\00. GameRoom\05. Nav</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\GameRoomInternal.cpp">
+      <Filter>02. Game\00. GameRoom\06. Internal</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\Game\GameRoom.h">
@@ -307,6 +319,9 @@
     </ClInclude>
     <ClInclude Include="..\Private\Game\GameRoomSmokeRoster.h">
       <Filter>02. Game\00. GameRoom\04. SmokeRoster</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Game\GameRoomInternal.h">
+      <Filter>02. Game\00. GameRoom\06. Internal</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Network\IOCPCore.h">
       <Filter>01. Network\00. IOCP</Filter>

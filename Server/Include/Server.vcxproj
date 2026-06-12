@@ -111,6 +111,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Game\GameRoomNav.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomReplication.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomSmokeRoster.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomSpawn.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomTick.cpp" />
     <ClCompile Include="..\Private\Game\ReplayRecorder.cpp" />
     <ClCompile Include="..\Private\Game\ServerEntry.cpp" />

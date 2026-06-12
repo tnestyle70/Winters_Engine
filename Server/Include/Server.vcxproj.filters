@@ -100,6 +100,9 @@
     <Filter Include="02. Game\00. GameRoom\06. Internal">
       <UniqueIdentifier>{c47b9e02-3a61-48d5-b7f2-90ad64c81e53}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. Game\00. GameRoom\07. Spawn">
+      <UniqueIdentifier>{1be64d7a-92f5-4c38-a0d1-7e35b9c4f862}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\main.cpp">
@@ -311,6 +314,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Game\GameRoomInternal.cpp">
       <Filter>02. Game\00. GameRoom\06. Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\GameRoomSpawn.cpp">
+      <Filter>02. Game\00. GameRoom\07. Spawn</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

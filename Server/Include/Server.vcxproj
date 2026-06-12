@@ -110,6 +110,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Game\GameRoomLobby.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomMinionAI.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomNav.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomProjectiles.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomReplication.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomSmokeRoster.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomSpawn.cpp" />

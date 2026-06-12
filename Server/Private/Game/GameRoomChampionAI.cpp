@@ -1,5 +1,6 @@
 #include "Game/GameRoom.h"
 #include "Game/ServerMinionWaveRuntime.h"
+#include "GameRoomInternal.h"
 
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
@@ -15,41 +16,13 @@
 
 namespace
 {
-    constexpr u32_t kStructureKindTurret =
-        static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Turret);
-    constexpr u32_t kLaneTop = static_cast<u32_t>(Winters::Map::eLane::Top);
-    constexpr u32_t kLaneMid = static_cast<u32_t>(Winters::Map::eLane::Mid);
-    constexpr u32_t kLaneBot = static_cast<u32_t>(Winters::Map::eLane::Bot);
     constexpr f32_t kChampionAISafeAnchorBehindTurret = 3.f;
-
-    u8_t TeamByte(eTeam team)
-    {
-        return static_cast<u8_t>(team);
-    }
 
     bool_t IsValidChampionAILane(u8_t lane)
     {
         return lane == static_cast<u8_t>(kLaneTop) ||
             lane == static_cast<u8_t>(kLaneMid) ||
             lane == static_cast<u8_t>(kLaneBot);
-    }
-
-    Vec3 NormalizeXZOrForward(const Vec3& v, eTeam team)
-    {
-        const Vec3 fallback =
-            (team == eTeam::Blue) ? Vec3{ -1.f, 0.f, 0.f } : Vec3{ 1.f, 0.f, 0.f };
-        return WintersMath::NormalizeXZ(
-            v,
-            fallback,
-            std::numeric_limits<f32_t>::epsilon());
-    }
-
-    void OutputServerAITrace(const char* pText)
-    {
-        if (!pText)
-            return;
-
-        WintersOutputAIDebugStringA(pText);
     }
 }
 

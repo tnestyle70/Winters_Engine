@@ -1,5 +1,6 @@
 #include "Game/GameRoom.h"
 
+#include "GameRoomInternal.h"
 #include "GameRoomSmokeRoster.h"
 #include "Network/PacketDispatcher.h"
 #include "Network/Session.h"
@@ -18,13 +19,6 @@
 
 namespace
 {
-    void OutputServerAITrace(const char* pText)
-    {
-        if (!pText)
-            return;
-
-        WintersOutputAIDebugStringA(pText);
-    }
 
     const char* GetLobbyCommandKindName(Shared::Schema::LobbyCommandKind kind)
     {

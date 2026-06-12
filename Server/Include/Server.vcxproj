@@ -106,7 +106,9 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Game\GameRoom.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomChampionAI.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomCommands.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomLobby.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomReplication.cpp" />
+    <ClCompile Include="..\Private\Game\GameRoomSmokeRoster.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomTick.cpp" />
     <ClCompile Include="..\Private\Game\ReplayRecorder.cpp" />
     <ClCompile Include="..\Private\Game\ServerEntry.cpp" />
@@ -172,6 +174,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\Game\GameRoom.h" />
+    <ClInclude Include="..\Private\Game\GameRoomSmokeRoster.h" />
     <ClInclude Include="..\Public\Game\ReplayRecorder.h" />
     <ClInclude Include="..\Public\Game\ServerEntry.h" />
     <ClInclude Include="..\Public\Game\ServerMinionFlowField.h" />

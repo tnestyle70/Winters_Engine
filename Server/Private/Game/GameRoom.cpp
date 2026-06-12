@@ -3,19 +3,24 @@
 #include "Game/ServerMinionTuning.h"
 #include "Game/SnapshotBuilder.h"
 #include "Game/ReplayRecorder.h"
+#include "GameRoomSmokeRoster.h"
 #include "Network/PacketDispatcher.h"
 #include "Network/Session.h"
 #include "Network/Session_Manager.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
+#include "Shared/GameSim/Components/ChampionScore.h"
+#include "Shared/GameSim/Components/MatchScore.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/JungleAIComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/NetAnimationComponent.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
+#include "Shared/GameSim/Components/RuneComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
@@ -26,9 +31,11 @@
 #include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
 #include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
 #include "Shared/GameSim/Champions/Jax/JaxGameSim.h"
+#include "Shared/GameSim/Champions/Kalista/KalistaGameSim.h"
 #include "Shared/GameSim/Champions/Kindred/KindredGameSim.h"
 #include "Shared/GameSim/Champions/LeeSin/LeeSinGameSim.h"
 #include "Shared/GameSim/Champions/MasterYi/MasterYiGameSim.h"
+#include "Shared/GameSim/Champions/Riven/RivenGameSim.h"
 #include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
 #include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
@@ -46,6 +53,7 @@
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 #include "Shared/GameSim/Definitions/StageData.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
@@ -70,7 +78,6 @@
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
 #include "ECS/SpatialIndex.h"
-#include "ECS/Systems/GameplayCollisionSystem.h"
 #include "ECS/Systems/SpatialHashSystem.h"
 #include "ECS/Systems/TurretAISystem.h"
 #include "Manager/Navigation/MapSurfaceSampler.h"
@@ -96,100 +103,20 @@ namespace
 {
     constexpr f32_t kMoveTargetMaxSurfaceDeltaY = 3.f;
 
-    const char* GetLobbyCommandKindName(Shared::Schema::LobbyCommandKind kind)
+    void EnsureMatchScoreEntity(CWorld& world)
     {
-        switch (kind)
-        {
-        case Shared::Schema::LobbyCommandKind::JoinSlot:
-            return "JoinSlot";
-        case Shared::Schema::LobbyCommandKind::LeaveSlot:
-            return "LeaveSlot";
-        case Shared::Schema::LobbyCommandKind::PickChampion:
-            return "PickChampion";
-        case Shared::Schema::LobbyCommandKind::SetBotChampion:
-            return "SetBotChampion";
-        case Shared::Schema::LobbyCommandKind::SetBotDifficulty:
-            return "SetBotDifficulty";
-        case Shared::Schema::LobbyCommandKind::SetBotLane:
-            return "SetBotLane";
-        case Shared::Schema::LobbyCommandKind::SetReady:
-            return "SetReady";
-        case Shared::Schema::LobbyCommandKind::StartGame:
-            return "StartGame";
-        case Shared::Schema::LobbyCommandKind::CancelStart:
-            return "CancelStart";
-        case Shared::Schema::LobbyCommandKind::SetEditPolicy:
-            return "SetEditPolicy";
-        default:
-            return "None";
-        }
-    }
-
-    std::string FormatLobbyCommandLog(
-        const char* result,
-        u32_t sessionId,
-        Shared::Schema::LobbyCommandKind kind,
-        u8_t slotId,
-        eChampion champion,
-        const char* reason)
-    {
-        char text[320]{};
-        sprintf_s(
-            text,
-            "%s sid=%u cmd=%s slot=%u champ=%u reason=%s",
-            result,
-            sessionId,
-            GetLobbyCommandKindName(kind),
-            static_cast<u32_t>(slotId),
-            static_cast<u32_t>(champion),
-            reason ? reason : "-");
-        return std::string(text);
-    }
-
-    bool_t IsValidLobbyBotLane(u8_t lane)
-    {
-        return lane == kGameSimLaneTop ||
-            lane == kGameSimLaneMid ||
-            lane == kGameSimLaneBot;
-    }
-
-    u8_t GetDefaultLobbyBotLane(u8_t slotId)
-    {
-        switch (slotId % 5u)
-        {
-        case 1:
-            return kGameSimLaneTop;
-        case 2:
-            return kGameSimLaneMid;
-        case 3:
-        case 4:
-            return kGameSimLaneBot;
-        default:
-            return kGameSimLaneMid;
-        }
-    }
-
-    // Debug smoke roster keeps a red Sylas bot in this fixed slot.
-    constexpr u8_t kSmokeRedSylasSlot = 5;
-
-    bool_t HasServerFlag(const wchar_t* pFlag)
-    {
-        const wchar_t* pCommandLine = ::GetCommandLineW();
-        return pCommandLine != nullptr && pFlag != nullptr
-            && std::wcsstr(pCommandLine, pFlag) != nullptr;
-    }
-
-    bool_t ShouldUseRedSylasSmokeRoster()
-    {
-#ifdef _DEBUG
-        if (HasServerFlag(L"--no-sylas-smoke") || HasServerFlag(L"--no-irelia-sylas-smoke"))
-            return false;
-        return true;
-#else
-        if (HasServerFlag(L"--no-sylas-smoke") || HasServerFlag(L"--no-irelia-sylas-smoke"))
-            return false;
-        return HasServerFlag(L"--sylas-smoke") || HasServerFlag(L"--irelia-sylas-smoke");
-#endif
+        bool_t bFound = false;
+        world.ForEach<MatchScoreComponent>(
+            [&](EntityID, MatchScoreComponent&)
+            {
+                bFound = true;
+            }
+        );
+        if (!bFound)
+            world.AddComponent<MatchScoreComponent>(
+                world.CreateEntity(),
+                MatchScoreComponent{}
+            );
     }
 
     bool_t FileExistsForServer(const std::wstring& path)
@@ -257,39 +184,6 @@ namespace
         return false;
     }
 
-    Vec3 GetRedSylasSmokeDummyPosition()
-    {
-        return Vec3{ 36.f, 1.f, -6.f };
-    }
-
-    bool_t IsRedSylasSmokeDummySlot(const LobbySlotState& slot)
-    {
-        return slot.bDummy && slot.champion == eChampion::SYLAS;
-    }
-
-    u8_t GetRedSylasSmokePatrolPointCount()
-    {
-        return 2;
-    }
-
-    Vec3 GetRedSylasSmokePatrolPoint(u8_t index)
-    {
-        return index == 0u
-            ? Vec3{ 32.f, 1.f, -6.f }
-            : Vec3{ 40.f, 1.f, -6.f };
-    }
-
-    constexpr f32_t kSmokeRedSylasMaxHp = 600.f;
-
-    f32_t ResolveServerChampionMaxHpForSlot(const LobbySlotState& slot, f32_t defaultMaxHp)
-    {
-        if (IsRedSylasSmokeDummySlot(slot))
-            return kSmokeRedSylasMaxHp;
-        if (slot.bDummy)
-            return 100000.f;
-        return defaultMaxHp;
-    }
-
     void AssignDefaultBotSkillRanks(SkillRankComponent& ranks, u8_t championLevel)
     {
         ranks = SkillRankComponent{};
@@ -326,9 +220,7 @@ namespace
 
     bool_t IsMoveBlockingKind(eSpatialKind kind)
     {
-        return kind == eSpatialKind::Champion ||
-            kind == eSpatialKind::Minion ||
-            kind == eSpatialKind::JungleMob ||
+        return kind == eSpatialKind::JungleMob ||
             kind == eSpatialKind::Turret ||
             kind == eSpatialKind::Inhibitor ||
             kind == eSpatialKind::Nexus;
@@ -470,8 +362,6 @@ namespace
             const f32_t queryRadius =
                 radius + kAvoidancePadding + candidateStep + kStaleIndexMargin;
             const u32_t moveBlockerMask =
-                SpatialMask(eSpatialKind::Champion) |
-                SpatialMask(eSpatialKind::Minion) |
                 SpatialMask(eSpatialKind::JungleMob) |
                 SpatialMask(eSpatialKind::Turret) |
                 SpatialMask(eSpatialKind::Inhibitor) |
@@ -503,37 +393,6 @@ namespace
         }
 
         return true;
-    }
-
-    void EnsureRedSylasSmokeRoster(LobbySlotState* pSlots, u32_t slotCount)
-    {
-        bool_t bHasHumanChampion = false;
-        for (u32_t i = 0; i < slotCount; ++i)
-        {
-            const LobbySlotState& slot = pSlots[i];
-            if (slot.bHuman && slot.champion != eChampion::NONE && slot.champion != eChampion::END)
-            {
-                bHasHumanChampion = true;
-                break;
-            }
-        }
-
-        if (!bHasHumanChampion || kSmokeRedSylasSlot >= slotCount)
-            return;
-
-        LobbySlotState& dummy = pSlots[kSmokeRedSylasSlot];
-        if (dummy.bHuman)
-            return;
-
-        dummy = LobbySlotState{};
-        dummy.slotId = kSmokeRedSylasSlot;
-        dummy.team = 1;
-        dummy.bBot = true;
-        dummy.bDummy = true;
-        dummy.champion = eChampion::SYLAS;
-        dummy.botDifficulty = 0;
-
-        WintersOutputAIDebugStringA("[Smoke] red Sylas dummy enabled slot=5 pos=(36,1,-6)\n");
     }
 
     constexpr u32_t kStructureKindNexus =
@@ -1118,8 +977,74 @@ namespace
         case 3u:
         case 5u:
             return 1.2f;
+        case 4u:
+        case 6u:
+        case 7u:
+            return 1.0f;
+        case 8u:
+        case 9u:
+        case 10u:
+            return 0.7f;
         default:
             return 1.0f;
+        }
+    }
+
+    f32_t ResolveStageJungleAttackRange(u32_t subKind)
+    {
+        switch (subKind)
+        {
+        case 0u: return 4.0f;
+        case 1u: return 3.0f;
+        case 2u:
+        case 3u:
+        case 5u: return 2.0f;
+        case 8u:
+        case 9u:
+        case 10u: return 1.4f;
+        default: return 1.7f;
+        }
+    }
+
+    f32_t ResolveStageJungleAttackDamage(u32_t subKind)
+    {
+        switch (subKind)
+        {
+        case 0u: return 120.f;
+        case 1u: return 90.f;
+        case 2u:
+        case 3u: return 65.f;
+        case 5u: return 60.f;
+        case 8u:
+        case 9u:
+        case 10u: return 25.f;
+        default: return 45.f;
+        }
+    }
+
+    f32_t ResolveStageJungleAttackCooldown(u32_t subKind)
+    {
+        switch (subKind)
+        {
+        case 0u: return 1.2f;
+        case 1u: return 1.5f;
+        case 8u:
+        case 9u:
+        case 10u: return 1.25f;
+        default: return 1.4f;
+        }
+    }
+
+    f32_t ResolveStageJungleMoveSpeed(u32_t subKind)
+    {
+        switch (subKind)
+        {
+        case 0u: return 2.5f;
+        case 1u: return 4.0f;
+        case 8u:
+        case 9u:
+        case 10u: return 4.5f;
+        default: return 4.0f;
         }
     }
 
@@ -1336,7 +1261,7 @@ namespace
         const eChampion champion = ResolveAnimationChampion(world, entity);
         const u8_t slot = ResolveAnimationSlot(animId);
         const ChampionSkillTimingDefaults timing =
-            GetDefaultChampionSkillTiming(champion, slot);
+            ChampionGameDataDB::ResolveSkillTiming(champion, slot);
 
         ++anim.actionSeq;
         anim.animId = static_cast<u16_t>(animId);
@@ -1758,15 +1683,9 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
 void CGameRoom::InitializeServerSimSystems()
 {
     m_world.Initialize_Spatial(LoLSpatialGridDesc());
+    EnsureMatchScoreEntity(m_world);
     m_pSpatialSystem = Engine::CSpatialHashSystem::Create();
     m_pTurretAI = Engine::CTurretAISystem::Create();
-    m_pGameplayCollision = Engine::CGameplayCollisionSystem::Create();
-    if (m_pGameplayCollision)
-    {
-        m_pGameplayCollision->Set_Enabled(false);
-        m_pGameplayCollision->Set_Iterations(3);
-        m_pGameplayCollision->Set_PushStrength(0.f);
-    }
 
     RegisterDefaultChampionSkillScalingTables();
 
@@ -1775,9 +1694,11 @@ void CGameRoom::InitializeServerSimSystems()
     FioraGameSim::RegisterHooks();
     IreliaGameSim::RegisterHooks();
     JaxGameSim::RegisterHooks();
+    KalistaGameSim::RegisterHooks();
     LeeSinGameSim::RegisterHooks();
     KindredGameSim::RegisterHooks();
     MasterYiGameSim::RegisterHooks();
+    RivenGameSim::RegisterHooks();
     SylasGameSim::RegisterHooks();
     ViegoGameSim::RegisterHooks();
     YoneGameSim::RegisterHooks();
@@ -2049,6 +1970,9 @@ void CGameRoom::BuildServerPathNavGrid()
         OutputServerAITrace("[ServerNav] path grid or minion lane grid inflate failed\n");
         return;
     }
+
+    Engine::CPathfinder::PrewarmReachabilityCache(m_pPathNavGrid.get());
+    Engine::CPathfinder::PrewarmReachabilityCache(m_pMinionLaneNavGrid.get());
 }
 
 bool_t CGameRoom::LoadServerStageData(
@@ -2797,13 +2721,13 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
         if (target != NULL_ENTITY)
         {
             if (projectile.kind == eProjectileKind::Tornado)
-                YasuoGameSim::ApplyTornadoAirborne(m_world, projectile.sourceEntity, target);
+                YasuoGameSim::ApplyTornadoAirborne(m_world, tc, projectile.sourceEntity, target);
             if (projectile.kind == eProjectileKind::LeeSinQ)
                 LeeSinGameSim::ApplySonicWaveMark(m_world, projectile.sourceEntity, target);
             if (projectile.kind == eProjectileKind::SylasChain)
-                SylasGameSim::ApplyChainHit(m_world, projectile.sourceEntity, target);
+                SylasGameSim::ApplyChainHit(m_world, tc, projectile.sourceEntity, target);
             if (projectile.bApplyOnHitStatus)
-                GameplayStatus::ApplyStatusEffect(m_world, target, projectile.onHitStatus);
+                GameplayStatus::ApplyStatusEffect(m_world, target, projectile.onHitStatus, tc);
 
             DamageRequest request{};
             request.source = projectile.sourceEntity;
@@ -2854,970 +2778,6 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
     }
 }
 
-void CGameRoom::OnLobbyCommand(u32_t sessionId, const Shared::Schema::LobbyCommand* command)
-{
-    if (!command)
-        return;
-
-    std::lock_guard stateLock(m_stateMutex);
-
-    const bool_t bLobbyEditablePhase =
-        m_roomPhase == eRoomPhase::SeatSelect ||
-        m_roomPhase == eRoomPhase::ChampionSelect;
-
-    if (!bLobbyEditablePhase)
-    {
-        if (m_roomPhase == eRoomPhase::Loading &&
-            command->kind() == Shared::Schema::LobbyCommandKind::SetReady)
-        {
-            if (TrySetReady(sessionId, command->value() != 0))
-                return;
-            ++m_lobbyRevision;
-            BroadcastLobbyStateLocked();
-            return;
-        }
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            command->kind(),
-            command->slotId(),
-            static_cast<eChampion>(command->championId()),
-            "room is not in lobby phase"));
-        ++m_lobbyRevision;
-        BroadcastLobbyStateLocked();
-        return;
-    }
-
-    bool bChanged = false;
-    m_strLastLobbyMessage.clear();
-
-    switch (command->kind())
-    {
-    case Shared::Schema::LobbyCommandKind::JoinSlot:
-        if (m_roomPhase != eRoomPhase::SeatSelect)
-        {
-            SetLobbyMessageLocked(FormatLobbyCommandLog(
-                "reject",
-                sessionId,
-                command->kind(),
-                command->slotId(),
-                static_cast<eChampion>(command->championId()),
-                "slot changes are only allowed in seat select"));
-            break;
-        }
-        bChanged = TryJoinSlot(sessionId, command->slotId());
-        break;
-    case Shared::Schema::LobbyCommandKind::LeaveSlot:
-        if (m_roomPhase != eRoomPhase::SeatSelect)
-        {
-            SetLobbyMessageLocked(FormatLobbyCommandLog(
-                "reject",
-                sessionId,
-                command->kind(),
-                command->slotId(),
-                static_cast<eChampion>(command->championId()),
-                "slot changes are only allowed in seat select"));
-            break;
-        }
-        bChanged = TryLeaveSlot(sessionId);
-        break;
-    case Shared::Schema::LobbyCommandKind::PickChampion:
-        if (m_roomPhase != eRoomPhase::ChampionSelect)
-        {
-            SetLobbyMessageLocked(FormatLobbyCommandLog(
-                "reject",
-                sessionId,
-                command->kind(),
-                command->slotId(),
-                static_cast<eChampion>(command->championId()),
-                "player champion pick is only allowed in champion select"));
-            break;
-        }
-        bChanged = TryPickChampion(sessionId, static_cast<eChampion>(command->championId()));
-        break;
-    case Shared::Schema::LobbyCommandKind::SetBotChampion:
-        bChanged = TrySetBotChampion(
-            sessionId,
-            command->slotId(),
-            static_cast<eChampion>(command->championId()));
-        break;
-    case Shared::Schema::LobbyCommandKind::SetReady:
-        if (TrySetReady(sessionId, command->value() != 0))
-            return;
-        break;
-    case Shared::Schema::LobbyCommandKind::SetBotDifficulty:
-        bChanged = TrySetBotDifficulty(sessionId, command->slotId(), command->botDifficulty());
-        break;
-    case Shared::Schema::LobbyCommandKind::SetBotLane:
-        bChanged = TrySetBotLane(sessionId, command->slotId(), static_cast<u8_t>(command->value()));
-        break;
-    case Shared::Schema::LobbyCommandKind::StartGame:
-        if (m_roomPhase == eRoomPhase::SeatSelect)
-        {
-            if (TryAdvanceToChampionSelect(sessionId))
-                return;
-        }
-        else if (m_roomPhase == eRoomPhase::ChampionSelect)
-        {
-            if (TryStartGame(sessionId))
-                return;
-        }
-        else
-        {
-            SetLobbyMessageLocked(FormatLobbyCommandLog(
-                "reject",
-                sessionId,
-                command->kind(),
-                command->slotId(),
-                static_cast<eChampion>(command->championId()),
-                "room is not ready to advance"));
-        }
-        break;
-    default:
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            command->kind(),
-            command->slotId(),
-            static_cast<eChampion>(command->championId()),
-            "unsupported lobby command"));
-        break;
-    }
-
-    if (bChanged)
-    {
-        if (m_strLastLobbyMessage.empty())
-        {
-            SetLobbyMessageLocked(FormatLobbyCommandLog(
-                "accept",
-                sessionId,
-                command->kind(),
-                command->slotId(),
-                static_cast<eChampion>(command->championId()),
-                "state changed"));
-        }
-        ++m_lobbyRevision;
-        BroadcastLobbyStateLocked();
-    }
-    else
-    {
-        if (m_strLastLobbyMessage.empty())
-        {
-            SetLobbyMessageLocked(FormatLobbyCommandLog(
-                "reject",
-                sessionId,
-                command->kind(),
-                command->slotId(),
-                static_cast<eChampion>(command->championId()),
-                "no state change"));
-        }
-        ++m_lobbyRevision;
-        BroadcastLobbyStateLocked();
-    }
-}
-
-EntityID CGameRoom::OnSessionJoin(u32_t sessionId)
-{
-    std::lock_guard stateLock(m_stateMutex);
-
-    if (auto it = m_sessionToEntity.find(sessionId);
-        it != m_sessionToEntity.end() && it->second != NULL_ENTITY)
-        return it->second;
-
-    if (std::find(m_sessionIds.begin(), m_sessionIds.end(), sessionId) == m_sessionIds.end())
-        m_sessionIds.push_back(sessionId);
-    std::sort(m_sessionIds.begin(), m_sessionIds.end());
-
-    CPacketDispatcher::Instance().RouteSession(sessionId, m_roomId);
-
-    if (m_roomPhase == eRoomPhase::SeatSelect ||
-        m_roomPhase == eRoomPhase::ChampionSelect)
-    {
-        OnLobbyJoin(sessionId);
-        ++m_lobbyRevision;
-        SendHelloToSessionLocked(sessionId, NULL_NET_ENTITY, eChampion::END, 0);
-        BroadcastLobbyStateLocked();
-
-        char msg[128]{};
-        sprintf_s(msg, "[GameRoom] Lobby join sid=%u\n", sessionId);
-        OutputServerAITrace(msg);
-        return NULL_ENTITY;
-    }
-
-    EntityID lateJoinEntity = NULL_ENTITY;
-    if (TryAttachSessionToDisconnectedHumanSlot(sessionId, lateJoinEntity))
-    {
-        const LobbySlotState& slot = m_lobbySlots[m_sessionToSlot[sessionId]];
-        ++m_lobbyRevision;
-        SendHelloToSessionLocked(sessionId, slot.netId, slot.champion, slot.team);
-        BroadcastLobbyStateLocked();
-        if (m_roomPhase == eRoomPhase::InGame)
-            SendGameStartToSessionLocked(sessionId);
-
-        char msg[192]{};
-        sprintf_s(msg,
-            "[GameRoom] Late session attach sid=%u slot=%u net=%u entity=%u phase=%u\n",
-            sessionId,
-            static_cast<u32_t>(slot.slotId),
-            slot.netId,
-            static_cast<u32_t>(lateJoinEntity),
-            static_cast<u32_t>(m_roomPhase));
-        OutputServerAITrace(msg);
-        return lateJoinEntity;
-    }
-
-    auto slotIt = m_sessionToSlot.find(sessionId);
-    if (slotIt != m_sessionToSlot.end())
-    {
-        const LobbySlotState& slot = m_lobbySlots[slotIt->second];
-        SendHelloToSessionLocked(sessionId, slot.netId, slot.champion, slot.team);
-    }
-    else
-    {
-        SendHelloToSessionLocked(sessionId, NULL_NET_ENTITY, eChampion::END, 0);
-        BroadcastLobbyStateLocked();
-
-        char msg[160]{};
-        sprintf_s(msg,
-            "[GameRoom] Session sid=%u connected without available slot phase=%u\n",
-            sessionId,
-            static_cast<u32_t>(m_roomPhase));
-        OutputServerAITrace(msg);
-    }
-
-    return NULL_ENTITY;
-}
-
-void CGameRoom::OnSessionLeave(u32_t sessionId)
-{
-    std::lock_guard stateLock(m_stateMutex);
-
-    m_sessionToEntity.erase(sessionId);
-    m_sessionIds.erase(
-        std::remove(m_sessionIds.begin(), m_sessionIds.end(), sessionId),
-        m_sessionIds.end());
-
-    if (auto slotIt = m_sessionToSlot.find(sessionId); slotIt != m_sessionToSlot.end())
-    {
-        LobbySlotState& slot = m_lobbySlots[slotIt->second];
-        const u32_t beginSlot = slot.team == 0 ? 0u : 5u;
-        const u32_t endSlot = slot.team == 0 ? 5u : 10u;
-        if (slot.bHuman && slot.sessionId == sessionId)
-        {
-            if (m_roomPhase == eRoomPhase::SeatSelect ||
-                m_roomPhase == eRoomPhase::ChampionSelect)
-            {
-                slot.bHuman = false;
-                slot.sessionId = 0;
-                slot.netId = NULL_NET_ENTITY;
-                slot.champion = eChampion::END;
-                slot.botDifficulty = 2;
-                slot.botLane = GetDefaultLobbyBotLane(slot.slotId);
-                slot.bReady = false;
-                slot.bLocked = false;
-            }
-            else
-            {
-                slot.sessionId = 0;
-                slot.bReady = false;
-            }
-        }
-        m_sessionToSlot.erase(slotIt);
-        if (m_roomPhase == eRoomPhase::SeatSelect ||
-            m_roomPhase == eRoomPhase::ChampionSelect)
-        {
-            CompactLobbyTeamSlotsLocked(beginSlot, endSlot);
-        }
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "accept",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::LeaveSlot,
-            slot.slotId,
-            eChampion::END,
-            (m_roomPhase == eRoomPhase::SeatSelect ||
-                m_roomPhase == eRoomPhase::ChampionSelect)
-                ? "disconnected; slot freed"
-                : "disconnected; slot reserved for reconnect"));
-        ++m_lobbyRevision;
-        BroadcastLobbyStateLocked();
-    }
-
-    char msg[128]{};
-    sprintf_s(msg, "[GameRoom] OnSessionLeave sid=%u\n", sessionId);
-    OutputServerAITrace(msg);
-}
-
-void CGameRoom::InitializeLobbySlots()
-{
-    for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
-    {
-        LobbySlotState& slot = m_lobbySlots[i];
-        slot = LobbySlotState{};
-        slot.slotId = static_cast<u8_t>(i);
-        slot.team = static_cast<u8_t>(i < 5 ? 0 : 1);
-        slot.botDifficulty = 2;
-        slot.botLane = GetDefaultLobbyBotLane(slot.slotId);
-    }
-}
-
-u8_t CGameRoom::FindFirstEmptyLobbySlot(u32_t beginSlot, u32_t endSlot) const
-{
-    for (u32_t i = beginSlot; i < endSlot && i < kGameRosterSlotCount; ++i)
-    {
-        const LobbySlotState& slot = m_lobbySlots[i];
-        if (!slot.bHuman && !slot.bBot)
-            return static_cast<u8_t>(i);
-    }
-
-    return kInvalidGameRosterSlot;
-}
-
-void CGameRoom::CompactLobbyTeamSlotsLocked(u32_t beginSlot, u32_t endSlot)
-{
-    std::vector<LobbySlotState> occupied;
-    for (u32_t i = beginSlot; i < endSlot && i < kGameRosterSlotCount; ++i)
-    {
-        if (m_lobbySlots[i].bHuman || m_lobbySlots[i].bBot)
-            occupied.push_back(m_lobbySlots[i]);
-    }
-
-    for (u32_t i = beginSlot; i < endSlot && i < kGameRosterSlotCount; ++i)
-    {
-        LobbySlotState reset{};
-        reset.slotId = static_cast<u8_t>(i);
-        reset.team = static_cast<u8_t>(i < 5 ? 0 : 1);
-        reset.botDifficulty = 2;
-        reset.botLane = GetDefaultLobbyBotLane(reset.slotId);
-        m_lobbySlots[i] = reset;
-    }
-
-    u32_t occupiedIndex = 0;
-    for (u32_t i = beginSlot; i < endSlot && i < kGameRosterSlotCount && occupiedIndex < occupied.size(); ++i)
-    {
-        m_lobbySlots[i] = occupied[occupiedIndex++];
-        m_lobbySlots[i].slotId = static_cast<u8_t>(i);
-        m_lobbySlots[i].team = static_cast<u8_t>(i < 5 ? 0 : 1);
-        if (m_lobbySlots[i].bHuman)
-            m_sessionToSlot[m_lobbySlots[i].sessionId] = static_cast<u8_t>(i);
-    }
-}
-
-void CGameRoom::OnLobbyJoin(u32_t sessionId)
-{
-    if (m_hostSessionId == 0)
-    {
-        m_hostSessionId = sessionId;
-        TryJoinSlot(sessionId, 0);
-        return;
-    }
-
-    const u8_t blueSlot = FindFirstEmptyLobbySlot(0, 5);
-    if (blueSlot < kGameRosterSlotCount)
-    {
-        TryJoinSlot(sessionId, blueSlot);
-        return;
-    }
-
-    const u8_t redSlot = FindFirstEmptyLobbySlot(5, 10);
-    if (redSlot < kGameRosterSlotCount)
-    {
-        TryJoinSlot(sessionId, redSlot);
-        return;
-    }
-
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::None,
-        kInvalidGameRosterSlot,
-        eChampion::END,
-        "connected; choose a slot"));
-}
-
-bool CGameRoom::TryJoinSlot(u32_t sessionId, u8_t slotId)
-{
-    if (slotId >= kGameRosterSlotCount)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::JoinSlot,
-            slotId,
-            eChampion::END,
-            "invalid slot"));
-        return false;
-    }
-
-    LobbySlotState& target = m_lobbySlots[slotId];
-    if (target.bHuman && target.sessionId != sessionId)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::JoinSlot,
-            slotId,
-            target.champion,
-            "slot is occupied by another player"));
-        return false;
-    }
-    if (target.bBot)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::JoinSlot,
-            slotId,
-            target.champion,
-            "slot is occupied by a bot"));
-        return false;
-    }
-    if (target.bLocked)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::JoinSlot,
-            slotId,
-            target.champion,
-            "slot is locked"));
-        return false;
-    }
-
-    eChampion previousChampion = eChampion::END;
-    bool_t bHadPreviousSlot = false;
-    u32_t previousBeginSlot = 0;
-    u32_t previousEndSlot = 0;
-    if (auto prevIt = m_sessionToSlot.find(sessionId); prevIt != m_sessionToSlot.end())
-    {
-        LobbySlotState& oldSlot = m_lobbySlots[prevIt->second];
-        previousChampion = oldSlot.champion;
-        bHadPreviousSlot = true;
-        previousBeginSlot = oldSlot.team == 0 ? 0u : 5u;
-        previousEndSlot = oldSlot.team == 0 ? 5u : 10u;
-        oldSlot.bHuman = false;
-        oldSlot.sessionId = 0;
-        oldSlot.netId = NULL_NET_ENTITY;
-        oldSlot.champion = eChampion::END;
-        oldSlot.botDifficulty = 2;
-        oldSlot.botLane = GetDefaultLobbyBotLane(oldSlot.slotId);
-        oldSlot.bReady = false;
-        oldSlot.bLocked = false;
-        m_sessionToSlot.erase(prevIt);
-        if (bHadPreviousSlot && previousBeginSlot != (slotId < 5 ? 0u : 5u))
-            CompactLobbyTeamSlotsLocked(previousBeginSlot, previousEndSlot);
-    }
-
-    LobbySlotState& joinTarget = m_lobbySlots[slotId];
-    joinTarget.bHuman = true;
-    joinTarget.bBot = false;
-    joinTarget.sessionId = sessionId;
-    joinTarget.netId = NULL_NET_ENTITY;
-    joinTarget.champion = (previousChampion != eChampion::END && previousChampion != eChampion::NONE)
-        ? previousChampion
-        : joinTarget.champion;
-    joinTarget.bReady = true;
-    joinTarget.bLocked = false;
-    m_sessionToSlot[sessionId] = slotId;
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::JoinSlot,
-        slotId,
-        joinTarget.champion,
-        "joined slot"));
-    return true;
-}
-
-bool CGameRoom::TryLeaveSlot(u32_t sessionId)
-{
-    auto it = m_sessionToSlot.find(sessionId);
-    if (it == m_sessionToSlot.end())
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::LeaveSlot,
-            kInvalidGameRosterSlot,
-            eChampion::END,
-            "session has no slot"));
-        return false;
-    }
-
-    LobbySlotState& slot = m_lobbySlots[it->second];
-    const u8_t slotId = slot.slotId;
-    const u32_t beginSlot = slot.team == 0 ? 0u : 5u;
-    const u32_t endSlot = slot.team == 0 ? 5u : 10u;
-    slot.bHuman = false;
-    slot.sessionId = 0;
-    slot.netId = NULL_NET_ENTITY;
-    slot.champion = eChampion::END;
-    slot.botDifficulty = 2;
-    slot.botLane = GetDefaultLobbyBotLane(slot.slotId);
-    slot.bReady = false;
-    slot.bLocked = false;
-    m_sessionToSlot.erase(it);
-    CompactLobbyTeamSlotsLocked(beginSlot, endSlot);
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::LeaveSlot,
-        slotId,
-        eChampion::END,
-        "left slot"));
-    return true;
-}
-
-bool CGameRoom::TryPickChampion(u32_t sessionId, eChampion champion)
-{
-    if (champion == eChampion::END || champion == eChampion::NONE)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::PickChampion,
-            kInvalidGameRosterSlot,
-            champion,
-            "invalid champion"));
-        return false;
-    }
-
-    auto it = m_sessionToSlot.find(sessionId);
-    if (it == m_sessionToSlot.end())
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::PickChampion,
-            kInvalidGameRosterSlot,
-            champion,
-            "session has no slot"));
-        return false;
-    }
-
-    m_lobbySlots[it->second].champion = champion;
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::PickChampion,
-        m_lobbySlots[it->second].slotId,
-        champion,
-        "picked champion"));
-    return true;
-}
-
-bool CGameRoom::TrySetBotChampion(u32_t sessionId, u8_t slotId, eChampion champion)
-{
-    if (!CanEditBots(sessionId) || slotId >= kGameRosterSlotCount)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::SetBotChampion,
-            slotId,
-            champion,
-            !CanEditBots(sessionId) ? "no bot edit permission" : "invalid slot"));
-        return false;
-    }
-
-    LobbySlotState& slot = m_lobbySlots[slotId];
-    if (slot.bHuman)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::SetBotChampion,
-            slotId,
-            champion,
-            "slot is occupied by a player"));
-        return false;
-    }
-
-    if (m_roomPhase == eRoomPhase::ChampionSelect)
-    {
-        if (!slot.bBot)
-        {
-            SetLobbyMessageLocked(FormatLobbyCommandLog(
-                "reject",
-                sessionId,
-                Shared::Schema::LobbyCommandKind::SetBotChampion,
-                slotId,
-                champion,
-                "only existing bot champion can be changed in champion select"));
-            return false;
-        }
-
-        if (champion == eChampion::END || champion == eChampion::NONE)
-        {
-            SetLobbyMessageLocked(FormatLobbyCommandLog(
-                "reject",
-                sessionId,
-                Shared::Schema::LobbyCommandKind::SetBotChampion,
-                slotId,
-                champion,
-                "bot cannot be removed in champion select"));
-            return false;
-        }
-    }
-
-    if (champion == eChampion::END || champion == eChampion::NONE)
-    {
-        const u32_t beginSlot = slot.team == 0 ? 0u : 5u;
-        const u32_t endSlot = slot.team == 0 ? 5u : 10u;
-        slot.bBot = false;
-        slot.champion = eChampion::END;
-        slot.botDifficulty = 2;
-        slot.botLane = GetDefaultLobbyBotLane(slot.slotId);
-        CompactLobbyTeamSlotsLocked(beginSlot, endSlot);
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "accept",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::SetBotChampion,
-            slotId,
-            champion,
-            "removed bot"));
-        return true;
-    }
-
-    slot.bBot = true;
-    slot.sessionId = 0;
-    slot.netId = NULL_NET_ENTITY;
-    slot.champion = champion;
-    if (slot.botDifficulty == 0)
-        slot.botDifficulty = 2;
-    if (!IsValidLobbyBotLane(slot.botLane))
-        slot.botLane = GetDefaultLobbyBotLane(slot.slotId);
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::SetBotChampion,
-        slotId,
-        champion,
-        "set bot champion"));
-    return true;
-}
-
-bool CGameRoom::TrySetBotLane(u32_t sessionId, u8_t slotId, u8_t lane)
-{
-    if (!CanEditBots(sessionId) || slotId >= kGameRosterSlotCount || !IsValidLobbyBotLane(lane))
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::SetBotLane,
-            slotId,
-            eChampion::END,
-            !CanEditBots(sessionId) ? "no bot edit permission" : "invalid bot lane"));
-        return false;
-    }
-
-    LobbySlotState& slot = m_lobbySlots[slotId];
-    if (!slot.bBot)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::SetBotLane,
-            slotId,
-            slot.champion,
-            "slot is not a bot"));
-        return false;
-    }
-
-    slot.botLane = lane;
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::SetBotLane,
-        slotId,
-        slot.champion,
-        "set bot lane"));
-    return true;
-}
-
-bool CGameRoom::TrySetBotDifficulty(u32_t sessionId, u8_t slotId, u8_t difficulty)
-{
-    if (!CanEditBots(sessionId) || slotId >= kGameRosterSlotCount)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::SetBotDifficulty,
-            slotId,
-            eChampion::END,
-            !CanEditBots(sessionId) ? "no bot edit permission" : "invalid slot"));
-        return false;
-    }
-
-    LobbySlotState& slot = m_lobbySlots[slotId];
-    if (!slot.bBot)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::SetBotDifficulty,
-            slotId,
-            slot.champion,
-            "slot is not a bot"));
-        return false;
-    }
-
-    slot.botDifficulty = difficulty ? difficulty : 2;
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::SetBotDifficulty,
-        slotId,
-        slot.champion,
-        "set bot difficulty"));
-    return true;
-}
-
-bool CGameRoom::TryAdvanceToChampionSelect(u32_t sessionId)
-{
-    if (sessionId != m_hostSessionId && !m_bAllPlayersCanEditBots)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::StartGame,
-            kInvalidGameRosterSlot,
-            eChampion::END,
-            "only host can advance to champion select"));
-        return false;
-    }
-
-    bool_t bHasHuman = false;
-    for (const LobbySlotState& slot : m_lobbySlots)
-    {
-        if (slot.bHuman)
-        {
-            bHasHuman = true;
-            break;
-        }
-    }
-
-    if (!bHasHuman)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::StartGame,
-            kInvalidGameRosterSlot,
-            eChampion::END,
-            "no human player"));
-        return false;
-    }
-
-    m_roomPhase = eRoomPhase::ChampionSelect;
-    ++m_lobbyRevision;
-
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::StartGame,
-        kInvalidGameRosterSlot,
-        eChampion::END,
-        "champion select started"));
-
-    BroadcastLobbyStateLocked();
-    return true;
-}
-
-bool CGameRoom::TryStartGame(u32_t sessionId)
-{
-    if (sessionId != m_hostSessionId && !m_bAllPlayersCanEditBots)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::StartGame,
-            kInvalidGameRosterSlot,
-            eChampion::END,
-            "only host can start"));
-        return false;
-    }
-
-    bool_t bHasHuman = false;
-    for (const LobbySlotState& slot : m_lobbySlots)
-    {
-        if (slot.bHuman)
-        {
-            bHasHuman = true;
-            break;
-        }
-    }
-    if (!bHasHuman)
-    {
-        SetLobbyMessageLocked(FormatLobbyCommandLog(
-            "reject",
-            sessionId,
-            Shared::Schema::LobbyCommandKind::StartGame,
-            kInvalidGameRosterSlot,
-            eChampion::END,
-            "no human player"));
-        return false;
-    }
-
-    if (ShouldUseRedSylasSmokeRoster())
-        EnsureRedSylasSmokeRoster(m_lobbySlots, kGameRosterSlotCount);
-
-    for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
-    {
-        LobbySlotState& slot = m_lobbySlots[i];
-        if (!slot.bHuman && !slot.bBot)
-        {
-            slot.bLocked = false;
-            slot.bReady = false;
-            slot.champion = eChampion::END;
-            continue;
-        }
-
-        if (slot.champion == eChampion::END || slot.champion == eChampion::NONE)
-        {
-            SetLobbyMessageLocked(FormatLobbyCommandLog(
-                "reject",
-                sessionId,
-                Shared::Schema::LobbyCommandKind::StartGame,
-                slot.slotId,
-                slot.champion,
-                slot.bHuman ? "human slot has no champion" : "bot slot has no champion"));
-            return false;
-        }
-
-        slot.bLocked = true;
-
-        char msg[192]{};
-        sprintf_s(msg,
-            "[GameRoom] LockSlot slot=%u team=%u human=%u bot=%u champ=%u\n",
-            static_cast<u32_t>(slot.slotId),
-            static_cast<u32_t>(slot.team),
-            slot.bHuman ? 1u : 0u,
-            slot.bBot ? 1u : 0u,
-            static_cast<u32_t>(slot.champion));
-        OutputServerAITrace(msg);
-    }
-
-    m_roomPhase = eRoomPhase::Loading;
-    ++m_lobbyRevision;
-
-    for (LobbySlotState& slot : m_lobbySlots)
-    {
-        if (slot.bHuman)
-            slot.bReady = false;
-    }
-
-    SpawnChampionsFromLobby();
-    SpawnServerGameplayObjects();
-    for (const LobbySlotState& slot : m_lobbySlots)
-    {
-        if (slot.bHuman && slot.sessionId != 0)
-            SendHelloToSessionLocked(slot.sessionId, slot.netId, slot.champion, slot.team);
-    }
-
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::StartGame,
-        kInvalidGameRosterSlot,
-        eChampion::END,
-        "loading started"));
-
-    BroadcastLobbyStateLocked();
-
-    char msg[128]{};
-    sprintf_s(msg, "[GameRoom] StartGame loading revision=%u\n", m_lobbyRevision);
-    OutputServerAITrace(msg);
-    return true;
-}
-
-bool CGameRoom::TrySetReady(u32_t sessionId, bool_t bReady)
-{
-    auto it = m_sessionToSlot.find(sessionId);
-
-    if (it == m_sessionToSlot.end())
-        return false;
-
-    LobbySlotState& slot = m_lobbySlots[it->second];
-
-    if (!slot.bHuman || slot.sessionId != sessionId)
-        return false;
-
-    slot.bReady = bReady;
-    ++m_lobbyRevision;
-
-    if (m_roomPhase == eRoomPhase::Loading && AreAllActiveHumanSlotsReady())
-    {
-        BeginInGameLocked(sessionId);
-        return true;
-    }
-
-    BroadcastLobbyStateLocked();
-    return true;
-}
-
-bool CGameRoom::AreAllActiveHumanSlotsReady() const
-{
-    for (const LobbySlotState& slot : m_lobbySlots)
-    {
-        if (slot.bHuman && slot.sessionId != 0 && !slot.bReady)
-            return false;
-    }
-
-    return true;
-}
-
-void CGameRoom::BeginInGameLocked(u32_t sessionId)
-{
-    m_roomPhase = eRoomPhase::InGame;
-    ++m_lobbyRevision;
-
-    if (m_bGameplayObjectsSpawned)
-    {
-        m_serverMinionWaves.ScheduleFirstWave(
-            m_tickIndex,
-            [](const char* pText)
-            {
-                OutputServerAITrace(pText);
-            });
-    }
-
-    SetLobbyMessageLocked(FormatLobbyCommandLog(
-        "accept",
-        sessionId,
-        Shared::Schema::LobbyCommandKind::SetReady,
-        kInvalidGameRosterSlot,
-        eChampion::END,
-        "all clients loaded; game started"));
-
-    BroadcastLobbyStateLocked();
-    BroadcastGameStartLocked();
-
-    char msg[128]{};
-    sprintf_s(msg, "[GameRoom] BeginInGame all clients ready revision=%u\n", m_lobbyRevision);
-    OutputServerAITrace(msg);
-}
-
-bool CGameRoom::CanEditBots(u32_t sessionId) const
-{
-    return m_bAllPlayersCanEditBots || sessionId == m_hostSessionId;
-}
-
-void CGameRoom::SetLobbyMessageLocked(const std::string& message)
-{
-    m_strLastLobbyMessage = message;
-    if (!m_strLastLobbyMessage.empty())
-    {
-        char msg[512]{};
-        sprintf_s(msg, "[Lobby] %s\n", m_strLastLobbyMessage.c_str());
-        OutputServerAITrace(msg);
-    }
-}
-
-void CGameRoom::SetLobbyMessageLocked(const char* message)
-{
-    SetLobbyMessageLocked(message ? std::string(message) : std::string());
-}
-
 Vec3 CGameRoom::GetSpawnPositionForLobbySlot(const LobbySlotState& slot) const
 {
     if (IsRedSylasSmokeDummySlot(slot))
@@ -3858,156 +2818,9 @@ Vec3 CGameRoom::GetSpawnPositionForLobbySlot(const LobbySlotState& slot) const
     return fallbackSpawn;
 }
 
-void CGameRoom::BroadcastLobbyStateLocked()
-{
-    flatbuffers::FlatBufferBuilder fbb(1024);
-    std::vector<flatbuffers::Offset<Shared::Schema::LobbySlot>> slots;
-    slots.reserve(kGameRosterSlotCount);
-
-    for (const LobbySlotState& slot : m_lobbySlots)
-    {
-        const auto seatKind = slot.bHuman
-            ? Shared::Schema::LobbySeatKind::Human
-            : (slot.bBot ? Shared::Schema::LobbySeatKind::Bot : Shared::Schema::LobbySeatKind::Empty);
-
-        slots.push_back(Shared::Schema::CreateLobbySlot(
-            fbb,
-            slot.slotId,
-            slot.team,
-            seatKind,
-            slot.sessionId,
-            slot.netId,
-            static_cast<u8_t>(slot.champion),
-            slot.botDifficulty,
-            slot.botLane,
-            0,
-            slot.bReady,
-            slot.bLocked));
-    }
-
-    const auto slotVec = fbb.CreateVector(slots);
-    const auto debugMessage = fbb.CreateString(m_strLastLobbyMessage);
-    Shared::Schema::LobbyPhase phase = Shared::Schema::LobbyPhase::None;
-    switch (m_roomPhase)
-    {
-    case eRoomPhase::SeatSelect:
-        phase = Shared::Schema::LobbyPhase::SeatSelect;
-        break;
-    case eRoomPhase::ChampionSelect:
-        phase = Shared::Schema::LobbyPhase::ChampionSelect;
-        break;
-    case eRoomPhase::Loading:
-        phase = Shared::Schema::LobbyPhase::Starting;
-        break;
-    case eRoomPhase::InGame:
-        phase = Shared::Schema::LobbyPhase::InGame;
-        break;
-    }
-
-    const auto state = Shared::Schema::CreateLobbyState(
-        fbb,
-        m_roomId,
-        m_lobbyRevision,
-        m_hostSessionId,
-        phase,
-        m_bAllPlayersCanEditBots,
-        slotVec,
-        0,
-        debugMessage);
-    fbb.Finish(state);
-    auto buffer = fbb.Release();
-
-    const auto packet = WrapEnvelope(
-        ePacketType::LobbyState,
-        m_lobbyRevision,
-        buffer.data(),
-        static_cast<u32_t>(buffer.size()));
-
-    for (u32_t sid : m_sessionIds)
-    {
-        if (auto pSession = CSession_Manager::Get()->Find(sid))
-            pSession->Send(std::vector<u8_t>(packet.begin(), packet.end()));
-    }
-}
-
-void CGameRoom::BroadcastGameStartLocked()
-{
-    const auto packet = WrapEnvelope(ePacketType::GameStart, m_lobbyRevision, nullptr, 0);
-    for (u32_t sid : m_sessionIds)
-    {
-        if (auto pSession = CSession_Manager::Get()->Find(sid))
-            pSession->Send(std::vector<u8_t>(packet.begin(), packet.end()));
-    }
-}
-
-void CGameRoom::SendGameStartToSessionLocked(u32_t sessionId)
-{
-    auto pSession = CSession_Manager::Get()->Find(sessionId);
-    if (!pSession)
-        return;
-
-    pSession->Send(WrapEnvelope(ePacketType::GameStart, m_lobbyRevision, nullptr, 0));
-}
-
 u64_t CGameRoom::ResolveServerGameTimeMs(u64_t iServerTick)
 {
     return (iServerTick * 1000ull) / DeterministicTime::kTicksPerSecond;
-}
-
-void CGameRoom::SendHelloToSessionLocked(u32_t sessionId, NetEntityId netId, eChampion champion, u8_t team)
-{
-    auto pSession = CSession_Manager::Get()->Find(sessionId);
-    if (!pSession)
-        return;
-
-    flatbuffers::FlatBufferBuilder fbb(128);
-    const auto hello = Shared::Schema::CreateHello(
-        fbb,
-        sessionId,
-        netId,
-        m_tickIndex,
-        ResolveServerGameTimeMs(m_tickIndex),
-        static_cast<u8_t>(champion),
-        team);
-    fbb.Finish(hello);
-    auto helloBuffer = fbb.Release();
-
-    auto packet = WrapEnvelope(
-        ePacketType::Hello,
-        m_lobbyRevision,
-        helloBuffer.data(),
-        static_cast<u32_t>(helloBuffer.size()));
-    pSession->Send(std::move(packet));
-}
-
-bool CGameRoom::TryAttachSessionToDisconnectedHumanSlot(u32_t sessionId, EntityID& outEntity)
-{
-    outEntity = NULL_ENTITY;
-
-    for (LobbySlotState& slot : m_lobbySlots)
-    {
-        if (!slot.bHuman ||
-            slot.sessionId != 0 ||
-            slot.netId == NULL_NET_ENTITY ||
-            slot.champion == eChampion::END ||
-            slot.champion == eChampion::NONE)
-        {
-            continue;
-        }
-
-        const EntityID entity = m_entityMap.FromNet(slot.netId);
-        if (entity == NULL_ENTITY || !m_world.IsAlive(entity))
-            continue;
-
-        slot.sessionId = sessionId;
-        slot.bReady = (m_roomPhase == eRoomPhase::InGame);
-        m_sessionToSlot[sessionId] = slot.slotId;
-        m_sessionToEntity[sessionId] = entity;
-        outEntity = entity;
-        return true;
-    }
-
-    return false;
 }
 
 bool CGameRoom::DebugSetHealthByNetId(NetEntityId netId, f32_t value)
@@ -4680,6 +3493,31 @@ EntityID CGameRoom::SpawnServerJungleFromStageEntry(
     health.fMaximum = maxHp;
     m_world.AddComponent<HealthComponent>(entity, health);
 
+    const f32_t attackDamage = ResolveStageJungleAttackDamage(entry.subKind);
+    const f32_t attackCooldown = ResolveStageJungleAttackCooldown(entry.subKind);
+    const f32_t attackSpeed = 1.f / attackCooldown;
+
+    StatComponent stat{};
+    stat.championId = eChampion::NONE;
+    stat.level = 1;
+    stat.hpMax = maxHp;
+    stat.baseAd = attackDamage;
+    stat.ad = attackDamage;
+    stat.baseArmor = 20.f;
+    stat.armor = stat.baseArmor;
+    stat.baseMr = 20.f;
+    stat.mr = stat.baseMr;
+    stat.baseAttackSpeed = attackSpeed;
+    stat.attackSpeedRatio = attackSpeed;
+    stat.attackSpeed = attackSpeed;
+    stat.attackRange = ResolveStageJungleAttackRange(entry.subKind);
+    stat.moveSpeed = ResolveStageJungleMoveSpeed(entry.subKind);
+    stat.bDirty = false;
+    m_world.AddComponent<StatComponent>(entity, stat);
+
+    m_world.AddComponent<SkillStateComponent>(entity, SkillStateComponent{});
+    m_world.AddComponent<JungleAIComponent>(entity, JungleAIComponent{});
+
     SpatialAgentComponent spatial{};
     spatial.kind = eSpatialKind::JungleMob;
     spatial.team = TeamByte(eTeam::Neutral);
@@ -5016,7 +3854,6 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
     const f32_t selfRadius = (std::max)(0.2f, self.radius);
 
     const u32_t blockerMask =
-        SpatialMask(eSpatialKind::Champion) |
         SpatialMask(eSpatialKind::Minion) |
         SpatialMask(eSpatialKind::JungleMob) |
         SpatialMask(eSpatialKind::Turret) |
@@ -5039,6 +3876,7 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
     u32_t blockerCount = 0u;
     u32_t staticCount = 0u;
     u32_t dynamicCount = 0u;
+    u32_t softMinionCount = 0u;
 
     for (EntityID other : blockers)
     {
@@ -5050,7 +3888,8 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         }
 
         const SpatialAgentComponent& agent = m_world.GetComponent<SpatialAgentComponent>(other);
-        if (!IsMoveBlockingKind(agent.kind))
+        const bool_t bSoftMinion = agent.kind == eSpatialKind::Minion;
+        if (!bSoftMinion && !IsMoveBlockingKind(agent.kind))
             continue;
 
         if (m_world.HasComponent<HealthComponent>(other))
@@ -5078,14 +3917,19 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
 
         const bool_t bStatic = IsStaticMoveBlockingKind(agent.kind);
         const f32_t otherRadius = (std::max)(0.2f, agent.radius);
-        const f32_t padding = bStatic ? 0.20f : 0.04f;
-        const f32_t minDist = selfRadius + otherRadius + padding;
+        const f32_t padding = bStatic ? 0.20f : (bSoftMinion ? 0.f : 0.04f);
+        const f32_t radiusScale = bSoftMinion
+            ? ServerMinionTuning::kMinionSoftSeparationRadiusScale
+            : 1.f;
+        const f32_t minDist = (selfRadius + otherRadius) * radiusScale + padding;
         if (distSq >= minDist * minDist)
             continue;
 
         const f32_t dist = std::sqrt(distSq);
         const f32_t penetration = minDist - dist;
-        const f32_t weight = bStatic ? 1.0f : 0.55f;
+        const f32_t weight = bStatic
+            ? 1.0f
+            : (bSoftMinion ? ServerMinionTuning::kMinionSoftSeparationWeight : 0.55f);
 
         vPush.x += (vAway.x / dist) * penetration * weight;
         vPush.z += (vAway.z / dist) * penetration * weight;
@@ -5093,6 +3937,8 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         ++blockerCount;
         if (bStatic)
             ++staticCount;
+        else if (bSoftMinion)
+            ++softMinionCount;
         else
             ++dynamicCount;
     }
@@ -5102,7 +3948,10 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         return false;
 
     const f32_t pushLen = std::sqrt(pushLenSq);
-    const f32_t pushStep = (std::min)((std::max)(0.08f, fStep), 0.35f);
+    const f32_t maxPushStep = softMinionCount > 0u && staticCount == 0u && dynamicCount == 0u
+        ? ServerMinionTuning::kMinionSoftSeparationMaxStep
+        : 0.35f;
+    const f32_t pushStep = (std::min)((std::max)(0.08f, fStep), maxPushStep);
     const Vec3 vCandidate{
         vPos.x + (vPush.x / pushLen) * pushStep,
         vPos.y,
@@ -5128,11 +3977,11 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         const Engine::CNavGrid::Cell posCell = ResolveDebugCell(m_pNavGrid.get(), vPos);
         const Engine::CNavGrid::Cell nextCell = ResolveDebugCell(m_pNavGrid.get(), vGuarded);
 
-        char msg[448]{};
+        char msg[512]{};
         sprintf_s(
             msg,
             "[MinionMove][Depenetrate] tick=%llu entity=%u posCell=(%d,%d) nextCell=(%d,%d) "
-            "push=(%.3f,%.3f) blockers=%u static=%u dynamic=%u from=(%.2f,%.2f) to=(%.2f,%.2f)\n",
+            "push=(%.3f,%.3f) blockers=%u static=%u dynamic=%u softMinion=%u from=(%.2f,%.2f) to=(%.2f,%.2f)\n",
             static_cast<unsigned long long>(tc.tickIndex),
             static_cast<u32_t>(entity),
             posCell.x,
@@ -5144,6 +3993,7 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
             blockerCount,
             staticCount,
             dynamicCount,
+            softMinionCount,
             vPos.x,
             vPos.z,
             vGuarded.x,
@@ -5764,6 +4614,18 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
 
     InventoryComponent inventory{};
     m_world.AddComponent<InventoryComponent>(entity, inventory);
+
+    RuneLoadoutComponent runeLoadout{};
+    runeLoadout.eRunes[0] = eRuneId::LethalTempo;
+    runeLoadout.iCount = 1u;
+    m_world.AddComponent<RuneLoadoutComponent>(entity, runeLoadout);
+    m_world.AddComponent<RuneRuntimeComponent>(entity, RuneRuntimeComponent{});
+
+    ChampionScoreComponent score{};
+    m_world.AddComponent<ChampionScoreComponent>(entity, score);
+
+    SummonerSpellStateComponent summonerSpellState{};
+    m_world.AddComponent<SummonerSpellStateComponent>(entity, summonerSpellState);
 
     ChampionComponent champion{};
     champion.id = slot.champion;

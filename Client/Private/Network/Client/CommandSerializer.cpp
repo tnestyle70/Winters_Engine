@@ -46,6 +46,8 @@ namespace
             return "LevelSkill";
         case eCommandKind::AIDebugControl:
             return "AIDebugControl";
+        case eCommandKind::Flash:
+            return "Flash";
         default:
             return "None";
         }
@@ -240,6 +242,22 @@ void CCommandSerializer::SendRecall(CClientNetwork& net)
     SendSingle(net, wire);
 }
 
+void CCommandSerializer::SendFlash(CClientNetwork& net, const Vec3& groundPos,
+    const Vec3& direction)
+{
+    if (!IsValidMoveGroundPos(groundPos))
+        return;
+
+    GameCommandWire wire{};
+    wire.kind = eCommandKind::Flash;
+    wire.clientTick = m_clientTick++;
+    wire.sequenceNum = m_nextSequenceNum++;
+    wire.groundPos = groundPos;
+    wire.direction = WintersMath::NormalizeXZ(direction, Vec3{}, 0.0001f);
+
+    SendSingle(net, wire);
+}
+
 void CCommandSerializer::SendAIDebugControl(CClientNetwork& net, NetEntityId targetNet,
     eChampionAIAction action, u8_t skillSlot)
 {
@@ -253,6 +271,39 @@ void CCommandSerializer::SendAIDebugControl(CClientNetwork& net, NetEntityId tar
     wire.targetNet = targetNet;
     wire.slot = skillSlot;
     wire.itemId = static_cast<u16_t>(action);
+
+    SendSingle(net, wire);
+}
+
+void CCommandSerializer::SendAIDebugTune(CClientNetwork& net, NetEntityId targetNet,
+    u8_t tuningId, f32_t value)
+{
+    if (targetNet == NULL_NET_ENTITY)
+        return;
+
+    GameCommandWire wire{};
+    wire.kind = eCommandKind::AIDebugControl;
+    wire.clientTick = m_clientTick++;
+    wire.sequenceNum = m_nextSequenceNum++;
+    wire.targetNet = targetNet;
+    wire.slot = tuningId;
+    wire.itemId = kChampionAIDebugTuneRuntimeItemId;
+    wire.groundPos = Vec3{ value, 0.f, 0.f };
+
+    SendSingle(net, wire);
+}
+
+void CCommandSerializer::SendAIDebugResetTuning(CClientNetwork& net, NetEntityId targetNet)
+{
+    if (targetNet == NULL_NET_ENTITY)
+        return;
+
+    GameCommandWire wire{};
+    wire.kind = eCommandKind::AIDebugControl;
+    wire.clientTick = m_clientTick++;
+    wire.sequenceNum = m_nextSequenceNum++;
+    wire.targetNet = targetNet;
+    wire.itemId = kChampionAIDebugResetTuningItemId;
 
     SendSingle(net, wire);
 }

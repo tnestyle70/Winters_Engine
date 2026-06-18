@@ -48,6 +48,9 @@ public:
 
     // ── Draw ──────────────────────────────────────────────────
     void DrawIndexed(ID3D11DeviceContext* context) const;
+    void DrawIndexedRange(ID3D11DeviceContext* context,
+                          uint32_t startIndex,
+                          uint32_t indexCount) const;
 
     void Release();
 

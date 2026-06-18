@@ -28,6 +28,8 @@ enum class eKillFeedObjectKind : u8_t
     Baron,
 };
 
+inline constexpr u32_t kGlobalEffectFlashBlink = 0xF1A50001u;
+
 struct ReplicatedEventComponent
 {
     eReplicatedEventKind kind = eReplicatedEventKind::None;

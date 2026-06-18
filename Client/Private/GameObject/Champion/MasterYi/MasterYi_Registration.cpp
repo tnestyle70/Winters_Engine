@@ -1,4 +1,4 @@
-#include "GamePlay/ChampionRegistry.h"
+﻿#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GameObject/ChampionDef.h"
@@ -74,7 +74,6 @@ namespace
             RegisterSkill(3, eTargetMode::Self, "skinned_mesh_masteryi_spell3", kMasterYi_E_Cast);
             RegisterSkill(4, eTargetMode::Self, "skinned_mesh_masteryi_2013_run_haste", kMasterYi_R_Cast);
 
-            OutputDebugStringA("[MasterYi] Registration complete\n");
         }
     };
 

@@ -423,6 +423,8 @@ void CUIRenderer::Begin(u32_t iScreenWidth, u32_t iScreenHeight, eUISamplerMode 
     m_pImpl->bInFrame = true;
     m_pImpl->pCurrentSRV = nullptr;
     m_pImpl->vertices.clear();
+    if (m_pImpl->vertices.capacity() < 4096u)
+        m_pImpl->vertices.reserve(4096u);
     m_pImpl->SaveState();
 
     UICBFrame cb{};
@@ -468,6 +470,19 @@ void CUIRenderer::End()
     m_pImpl->RestoreState();
 }
 
+void CUIRenderer::ReserveQuads(u32_t iQuadCount)
+{
+    if (!IsReady())
+        return;
+
+    u32_t iVertexCount = iQuadCount * 6u;
+    if (iVertexCount > kMaxUIVertices)
+        iVertexCount = kMaxUIVertices;
+
+    if (m_pImpl->vertices.capacity() < iVertexCount)
+        m_pImpl->vertices.reserve(iVertexCount);
+}
+
 void CUIRenderer::DrawImage(void* pTextureSRV,
     f32_t fX, f32_t fY, f32_t fW, f32_t fH,
     const Vec4& vUVRect,
@@ -498,16 +513,15 @@ void CUIRenderer::DrawImage(void* pTextureSRV,
     const f32_t u1 = vUVRect.z;
     const f32_t v1 = vUVRect.w;
 
-    const UIVertex vtx[6] = {
-        { x0, y0, u0, v0, vColor.x, vColor.y, vColor.z, vColor.w },
-        { x1, y0, u1, v0, vColor.x, vColor.y, vColor.z, vColor.w },
-        { x1, y1, u1, v1, vColor.x, vColor.y, vColor.z, vColor.w },
-        { x0, y0, u0, v0, vColor.x, vColor.y, vColor.z, vColor.w },
-        { x1, y1, u1, v1, vColor.x, vColor.y, vColor.z, vColor.w },
-        { x0, y1, u0, v1, vColor.x, vColor.y, vColor.z, vColor.w },
-    };
-
-    m_pImpl->vertices.insert(m_pImpl->vertices.end(), vtx, vtx + 6);
+    const size_t base = m_pImpl->vertices.size();
+    m_pImpl->vertices.resize(base + 6u);
+    UIVertex* pVtx = m_pImpl->vertices.data() + base;
+    pVtx[0] = { x0, y0, u0, v0, vColor.x, vColor.y, vColor.z, vColor.w };
+    pVtx[1] = { x1, y0, u1, v0, vColor.x, vColor.y, vColor.z, vColor.w };
+    pVtx[2] = { x1, y1, u1, v1, vColor.x, vColor.y, vColor.z, vColor.w };
+    pVtx[3] = { x0, y0, u0, v0, vColor.x, vColor.y, vColor.z, vColor.w };
+    pVtx[4] = { x1, y1, u1, v1, vColor.x, vColor.y, vColor.z, vColor.w };
+    pVtx[5] = { x0, y1, u0, v1, vColor.x, vColor.y, vColor.z, vColor.w };
 }
 
 void CUIRenderer::DrawImageCircle(void* pTextureSRV,

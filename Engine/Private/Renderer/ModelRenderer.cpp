@@ -11,6 +11,7 @@
 #include "Resource/ResourceCache.h"
 #include "Framework/CEngineApp.h"
 #include "GameInstance.h"
+#include "ProfilerAPI.h"
 #include "Resource/Skeleton.h"
 #include "Resource/Animation.h"
 #include "Resource/Animator.h"
@@ -23,6 +24,60 @@ using namespace Engine;
 namespace
 {
     constexpr f32_t kYawTraceHalfTurnTolerance = 0.35f;
+
+    // GPU bone palette: structured buffer SRV (t8) so 512+ bone Elden Ring
+    // rigs skin in one draw. Replaces the old 256/512 cbuffer palette.
+    constexpr u32_t kMaxGPUBones = 1024;
+
+    struct BoneMatrixSRVBuffer
+    {
+        ID3D11Buffer* pBuffer = nullptr;
+        ID3D11ShaderResourceView* pSRV = nullptr;
+
+        [[nodiscard]] bool Create(ID3D11Device* pDevice)
+        {
+            D3D11_BUFFER_DESC desc{};
+            desc.ByteWidth = sizeof(DirectX::XMFLOAT4X4) * kMaxGPUBones;
+            desc.Usage = D3D11_USAGE_DYNAMIC;
+            desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+            desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+            desc.StructureByteStride = sizeof(DirectX::XMFLOAT4X4);
+            if (FAILED(pDevice->CreateBuffer(&desc, nullptr, &pBuffer)))
+                return false;
+
+            D3D11_SHADER_RESOURCE_VIEW_DESC srv{};
+            srv.Format = DXGI_FORMAT_UNKNOWN;
+            srv.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+            srv.Buffer.FirstElement = 0;
+            srv.Buffer.NumElements = kMaxGPUBones;
+            return SUCCEEDED(pDevice->CreateShaderResourceView(pBuffer, &srv, &pSRV));
+        }
+
+        void Update(ID3D11DeviceContext* pContext, const std::vector<DirectX::XMFLOAT4X4>& matrices)
+        {
+            if (!pBuffer)
+                return;
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            if (SUCCEEDED(pContext->Map(pBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+            {
+                const u32_t count = min((u32_t)matrices.size(), kMaxGPUBones);
+                memcpy(mapped.pData, matrices.data(), count * sizeof(DirectX::XMFLOAT4X4));
+                pContext->Unmap(pBuffer, 0);
+            }
+        }
+
+        void BindVS(ID3D11DeviceContext* pContext, UINT slot) const
+        {
+            pContext->VSSetShaderResources(slot, 1, &pSRV);
+        }
+
+        void Release()
+        {
+            if (pSRV) { pSRV->Release(); pSRV = nullptr; }
+            if (pBuffer) { pBuffer->Release(); pBuffer = nullptr; }
+        }
+    };
 
     ID3D11Device* GetNativeDX11Device(IRHIDevice* pDevice)
     {
@@ -77,7 +132,7 @@ struct ModelRenderer::Impl
     // 인스턴스별 상수 버퍼 (데이터가 프레임/오브젝트마다 다르므로 인스턴스별)
     DX11ConstantBuffer<CBPerFrame>      cbPerFrame;
     DX11ConstantBuffer<CBPerObject>     cbPerObject;
-    DX11ConstantBuffer<CBBoneMatrices>  cbBones;
+    BoneMatrixSRVBuffer                 bonesSRV;
     unique_ptr<CMaterialPBR>            pMaterialPBR;
 
     // 공유 모델 데이터 (ResourceCache 경유)
@@ -92,10 +147,13 @@ struct ModelRenderer::Impl
 
     bool_t                              bUsePBR = false;
     bool_t                              bSkinnedReady = false;
+    bool_t                              bForceStaticMeshPath = false;
     bool_t                              bReady = false;
     bool_t                              bMaterialOverrideEnabled = false;
     Vec4                                vMaterialOverrideColor{ 0.f, 0.f, 0.f, 0.f };
     Vec4                                vMaterialOverrideParams{ 0.f, 0.f, 0.f, 0.f };
+    Mat4                                matWorld{};
+    bool_t                              bHasWorldMatrix = false;
     bool_t                              bYawTraceEnabled = false;
     bool_t                              bYawTraceHasPrevWorldYaw = false;
     u64_t                               yawTraceSnapshotTick = 0;
@@ -153,6 +211,12 @@ bool ModelRenderer::Initialize(const string& strFbxPath, const wchar_t* pHlslPat
     m_pImpl->pSharedModel = app.GetResourceCache().LoadModel(pDevice, strFbxPath);
     if (!m_pImpl->pSharedModel)
         return false;
+    if (m_pImpl->pSharedModel->HasValidAABB())
+    {
+        m_pImpl->m_vLocalAABBMin = m_pImpl->pSharedModel->GetLocalAABBMin();
+        m_pImpl->m_vLocalAABBMax = m_pImpl->pSharedModel->GetLocalAABBMax();
+        m_pImpl->m_bAABBValid = true;
+    }
 
     // ── 인스턴스별 Animator + 스키닝 파이프라인 ──────────────
     if (m_pImpl->pSharedModel->HasSkeleton())
@@ -174,7 +238,7 @@ bool ModelRenderer::Initialize(const string& strFbxPath, const wchar_t* pHlslPat
         m_pImpl->pSharedSkinnedShader   = m_pImpl->bUsePBR ? app.GetSkinnedPBRShader() : app.GetSkinnedShader();
         m_pImpl->pSharedSkinnedPipeline = m_pImpl->bUsePBR ? app.GetSkinnedPBRPipeline() : app.GetSkinnedPipeline();
         if (!m_pImpl->pSharedSkinnedShader || !m_pImpl->pSharedSkinnedPipeline ||
-            !m_pImpl->cbBones.Create(pNativeDevice))
+            !m_pImpl->bonesSRV.Create(pNativeDevice))
         {
             OutputDebugStringA("[ModelRenderer] Shared skinned shader/pipeline missing\n");
             return false;
@@ -184,6 +248,18 @@ bool ModelRenderer::Initialize(const string& strFbxPath, const wchar_t* pHlslPat
 
     m_pImpl->bReady = true;
     return true;
+}
+
+bool ModelRenderer::PrewarmModel(const std::string& strFbxPath)
+{
+    auto& app = CEngineApp::Get();
+
+    IRHIDevice* pDevice = CGameInstance::Get()->Get_RHIDevice();
+
+    if (!pDevice)
+        return false;
+
+    return app.GetResourceCache().LoadModel(pDevice, strFbxPath) != nullptr;
 }
 
 void ModelRenderer::SetYawTraceContext(
@@ -217,9 +293,19 @@ void ModelRenderer::ClearYawTraceContext()
     m_pImpl->yawTraceExpectedForward = {};
 }
 
+void ModelRenderer::SetForceStaticMeshPath(bool_t bEnabled)
+{
+    if (!m_pImpl)
+        return;
+
+    m_pImpl->bForceStaticMeshPath = bEnabled;
+}
+
 void ModelRenderer::UpdateTransform(const Mat4& matWorld)
 {
     if (!m_pImpl->bReady) return;
+    m_pImpl->matWorld = matWorld;
+    m_pImpl->bHasWorldMatrix = true;
 
     IRHIDevice* pDevice = CGameInstance::Get()->Get_RHIDevice();
     auto* pContext = GetNativeDX11Context(pDevice);
@@ -349,6 +435,31 @@ void ModelRenderer::Render()
     RenderWithVisibility(mask);
 }
 
+void ModelRenderer::RenderFrustumCulled(const Mat4& matViewProj)
+{
+    if (!m_pImpl->bReady || !m_pImpl->pSharedModel)
+        return;
+
+    if (!m_pImpl->bHasWorldMatrix)
+    {
+        Render();
+        return;
+    }
+
+    const Mat4 matLocalToClip(
+        m_pImpl->matWorld.ToXMMATRIX() * matViewProj.ToXMMATRIX());
+    bool_t bAnyVisible = true;
+    VisibilityMask mask{};
+    {
+        WINTERS_PROFILE_SCOPE("ModelRenderer::BuildClipVisibilityMask");
+        mask = m_pImpl->pSharedModel->BuildClipVisibilityMask(matLocalToClip, &bAnyVisible);
+    }
+    if (!bAnyVisible)
+        return;
+
+    RenderWithVisibility(mask);
+}
+
 void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
 {
     if (!m_pImpl->bReady || !m_pImpl->pSharedModel) return;
@@ -360,15 +471,19 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
     ID3D11ShaderResourceView* pAmbientOcclusionSRV = m_pImpl->pAmbientOcclusionSRV;
 
     // ── 스키닝 렌더링 ──
-    if (m_pImpl->bSkinnedReady && m_pImpl->pSharedModel->HasSkeleton())
+    const bool_t bUseSkinnedPath =
+        !m_pImpl->bForceStaticMeshPath &&
+        m_pImpl->bSkinnedReady &&
+        m_pImpl->pSharedModel->HasSkeleton();
+
+    if (bUseSkinnedPath)
     {
+        WINTERS_PROFILE_SCOPE("ModelRenderer::RenderSkinned");
+
         if (m_pImpl->pInstanceAnimator)
         {
-            CBBoneMatrices boneData = {};
-            const auto& matrices = m_pImpl->pInstanceAnimator->GetFinalBoneMatrices();
-            u32_t count = min((u32_t)matrices.size(), 256u);
-            memcpy(boneData.bones, matrices.data(), count * sizeof(DirectX::XMFLOAT4X4));
-            m_pImpl->cbBones.Update(pContext, boneData);
+            m_pImpl->bonesSRV.Update(pContext,
+                m_pImpl->pInstanceAnimator->GetFinalBoneMatrices());
         }
 
         m_pImpl->pSharedSkinnedShader->Bind(pContext);
@@ -387,7 +502,7 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
             pContext->PSSetShaderResources(5, 1, &pAmbientOcclusionSRV);
 
         m_pImpl->cbPerObject.Bind(pContext, 1);
-        m_pImpl->cbBones.BindVS(pContext, 2);
+        m_pImpl->bonesSRV.BindVS(pContext, 8);
 
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_pImpl->pSharedModel->RenderWithMask(pDevice, mask);
@@ -401,6 +516,8 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
     }
 
     // ── 정적 메시 렌더링 ──
+    WINTERS_PROFILE_SCOPE("ModelRenderer::RenderStatic");
+
     m_pImpl->pSharedMeshShader->Bind(pContext);
     m_pImpl->pSharedMeshPipeline->Bind(pContext);
     if (m_pImpl->bUsePBR)
@@ -437,6 +554,40 @@ void ModelRenderer::RenderNormalPass(DX11Shader* pMeshShader,
     RenderNormalPassWithVisibility(pMeshShader, pMeshPipeline, pSkinnedShader, pSkinnedPipeline, mask);
 }
 
+void ModelRenderer::RenderNormalPassFrustumCulled(DX11Shader* pMeshShader,
+    DX11Pipeline* pMeshPipeline,
+    DX11Shader* pSkinnedShader,
+    DX11Pipeline* pSkinnedPipeline,
+    const Mat4& matViewProj)
+{
+    if (!m_pImpl->bReady || !m_pImpl->pSharedModel)
+        return;
+
+    if (!m_pImpl->bHasWorldMatrix)
+    {
+        RenderNormalPass(pMeshShader, pMeshPipeline, pSkinnedShader, pSkinnedPipeline);
+        return;
+    }
+
+    const Mat4 matLocalToClip(
+        m_pImpl->matWorld.ToXMMATRIX() * matViewProj.ToXMMATRIX());
+    bool_t bAnyVisible = true;
+    VisibilityMask mask{};
+    {
+        WINTERS_PROFILE_SCOPE("ModelRenderer::BuildClipVisibilityMask");
+        mask = m_pImpl->pSharedModel->BuildClipVisibilityMask(matLocalToClip, &bAnyVisible);
+    }
+    if (!bAnyVisible)
+        return;
+
+    RenderNormalPassWithVisibility(
+        pMeshShader,
+        pMeshPipeline,
+        pSkinnedShader,
+        pSkinnedPipeline,
+        mask);
+}
+
 void ModelRenderer::RenderNormalPassWithVisibility(DX11Shader* pMeshShader,
     DX11Pipeline* pMeshPipeline,
     DX11Shader* pSkinnedShader,
@@ -451,25 +602,29 @@ void ModelRenderer::RenderNormalPassWithVisibility(DX11Shader* pMeshShader,
     if (!pContext)
         return;
 
-    if (m_pImpl->bSkinnedReady && m_pImpl->pSharedModel->HasSkeleton())
+    const bool_t bUseSkinnedPath =
+        !m_pImpl->bForceStaticMeshPath &&
+        m_pImpl->bSkinnedReady &&
+        m_pImpl->pSharedModel->HasSkeleton();
+
+    if (bUseSkinnedPath)
     {
+        WINTERS_PROFILE_SCOPE("ModelRenderer::RenderSkinned");
+
         if (!pSkinnedShader || !pSkinnedPipeline)
             return;
 
         if (m_pImpl->pInstanceAnimator)
         {
-            CBBoneMatrices boneData = {};
-            const auto& matrices = m_pImpl->pInstanceAnimator->GetFinalBoneMatrices();
-            u32_t count = min((u32_t)matrices.size(), 256u);
-            memcpy(boneData.bones, matrices.data(), count * sizeof(DirectX::XMFLOAT4X4));
-            m_pImpl->cbBones.Update(pContext, boneData);
+            m_pImpl->bonesSRV.Update(pContext,
+                m_pImpl->pInstanceAnimator->GetFinalBoneMatrices());
         }
 
         pSkinnedShader->Bind(pContext);
         pSkinnedPipeline->Bind(pContext);
         m_pImpl->cbPerFrame.BindVS(pContext, 0);
         m_pImpl->cbPerObject.BindVS(pContext, 1);
-        m_pImpl->cbBones.BindVS(pContext, 2);
+        m_pImpl->bonesSRV.BindVS(pContext, 8);
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         m_pImpl->pSharedModel->RenderWithMask(pDevice, mask);
         pSkinnedShader->Unbind(pContext);
@@ -478,6 +633,8 @@ void ModelRenderer::RenderNormalPassWithVisibility(DX11Shader* pMeshShader,
 
     if (!pMeshShader || !pMeshPipeline)
         return;
+
+    WINTERS_PROFILE_SCOPE("ModelRenderer::RenderStatic");
 
     pMeshShader->Bind(pContext);
     pMeshPipeline->Bind(pContext);
@@ -608,6 +765,23 @@ bool ModelRenderer::HasSkeleton() const
     return m_pImpl && m_pImpl->pSharedModel && m_pImpl->pSharedModel->HasSkeleton();
 }
 
+bool ModelRenderer::TryResolveBoneWorldPosition(const string& strBoneName,
+    const Mat4& matEntityWorld,
+    const Vec3& vLocalOffset,
+    Vec3& vOutWorldPos) const
+{
+    if (strBoneName.empty() || !m_pImpl || !m_pImpl->pInstanceAnimator)
+        return false;
+
+    XMFLOAT4X4 matBoneGlobal{};
+    if (!m_pImpl->pInstanceAnimator->TryGetBoneGlobalTransform(strBoneName, matBoneGlobal))
+        return false;
+
+    const Mat4 matBoneLocal(matBoneGlobal);
+    vOutWorldPos = (matBoneLocal * matEntityWorld).TransformPoint(vLocalOffset);
+    return true;
+}
+
 bool ModelRenderer::UsesPBR() const
 {
     return m_pImpl ? m_pImpl->bUsePBR : false;
@@ -705,7 +879,7 @@ void ModelRenderer::Shutdown()
 
         m_pImpl->cbPerFrame.Release();
         m_pImpl->cbPerObject.Release();
-        m_pImpl->cbBones.Release();
+        m_pImpl->bonesSRV.Release();
 
         // 공유 셰이더/파이프라인 포인터는 nullptr 만 (소유권 없음, CEngineApp 이 해제)
         m_pImpl->pSharedMeshShader = nullptr;
@@ -715,10 +889,15 @@ void ModelRenderer::Shutdown()
 
         m_pImpl->bUsePBR = false;
         m_pImpl->bSkinnedReady = false;
+        m_pImpl->bForceStaticMeshPath = false;
         m_pImpl->bReady = false;
+        m_pImpl->bHasWorldMatrix = false;
         m_pImpl->bMaterialOverrideEnabled = false;
         m_pImpl->vMaterialOverrideColor = Vec4{ 0.f, 0.f, 0.f, 0.f };
         m_pImpl->vMaterialOverrideParams = Vec4{ 0.f, 0.f, 0.f, 0.f };
+        m_pImpl->m_vLocalAABBMin = { FLT_MAX, FLT_MAX, FLT_MAX };
+        m_pImpl->m_vLocalAABBMax = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
+        m_pImpl->m_bAABBValid = false;
     }
 }
 

@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Kalista/Kalista_Skills.h"
+﻿#include "GameObject/Champion/Kalista/Kalista_Skills.h"
 #include "GameObject/Champion/Kalista/KalistaFxPresets.h"
 #include "GameObject/Champion/Kalista/KalistaProjectileSystem.h"
 #include "GameObject/Champion/Kalista/KalistaRendSystem.h"
@@ -208,7 +208,6 @@ namespace Kalista
             duration,
             ctx.actionSeq,
             bDashAnimPlayed ? 1u : 0u);
-        ::OutputDebugStringA(dbg);
 
         if (ctx.startLocalDash)
             ctx.startLocalDash(dashDir);

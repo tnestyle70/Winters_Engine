@@ -2,7 +2,6 @@
 #include "ECS/Systems/EntityBlueprintRegistry.h"
 #include "ECS/World.h"
 
-//Spawn이 어디에있음??
 
 HRESULT CEntityBlueprintRegistry::Initialize(uint32_t iNumLevels)
 {

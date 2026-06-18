@@ -28,10 +28,13 @@ cbuffer CBPerObject : register(b1)
     float4 g_vMaterialOverrideParams;
 };
 
-cbuffer CBBones : register(b2)
+// 1024+ bone rigs (Elden Ring bosses): bone palette moved from a cbuffer to a
+// structured buffer SRV. row_major preserves the old CBBones memory layout.
+struct SkinBoneMatrix
 {
-    row_major matrix g_BoneMatrices[256];
+    row_major float4x4 m;
 };
+StructuredBuffer<SkinBoneMatrix> g_BoneMatrices : register(t8);
 
 Texture2D g_DiffuseMap : register(t0);
 Texture2D g_AmbientOcclusionMap : register(t5);
@@ -152,10 +155,10 @@ PS_INPUT VS(VS_INPUT input)
 {
     PS_INPUT output;
     const matrix skinMatrix =
-        g_BoneMatrices[input.iBoneIndices.x] * input.fBoneWeights.x +
-        g_BoneMatrices[input.iBoneIndices.y] * input.fBoneWeights.y +
-        g_BoneMatrices[input.iBoneIndices.z] * input.fBoneWeights.z +
-        g_BoneMatrices[input.iBoneIndices.w] * input.fBoneWeights.w;
+        g_BoneMatrices[input.iBoneIndices.x].m * input.fBoneWeights.x +
+        g_BoneMatrices[input.iBoneIndices.y].m * input.fBoneWeights.y +
+        g_BoneMatrices[input.iBoneIndices.z].m * input.fBoneWeights.z +
+        g_BoneMatrices[input.iBoneIndices.w].m * input.fBoneWeights.w;
 
     const float4 skinned = mul(float4(input.vPosition, 1.0f), skinMatrix);
     const float3 skinnedNormal = mul(float4(input.vNormal, 0.0f), skinMatrix).xyz;

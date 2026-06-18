@@ -24,6 +24,7 @@ enum class eNativeHandleType : u32_t
     DX12SwapChain,
     DX12CommandList,
     DX12Resource,
+    DX11Resource,
 };
 
 using eRHINativeType = eNativeHandleType;

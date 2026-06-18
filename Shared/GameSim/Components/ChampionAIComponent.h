@@ -10,6 +10,7 @@ enum class eChampionAIState : u8_t
 	MoveToOuterTurret,
 	WaitForWave,
 	LaneCombat,
+	Diving,
 	Retreat,
 	Recalling,
 	Dead,
@@ -22,6 +23,7 @@ enum class eChampionAIAction : u8_t
 	AttackMinion,
 	AttackChampion,
 	AttackStructure,
+	UseFlashEscape,
 	Retreat,
 	Recall,
 };
@@ -30,9 +32,114 @@ enum class eChampionAIIntent : u8_t
 {
 	FarmMinion,
 	AttackChampion,
+	ExecuteDive,
 	SiegeStructure,
 	Retreat,
 	Recall,
+};
+
+enum class eChampionAIDebugControlMode : u8_t
+{
+	Observe,
+	SingleDecision,
+	ForceAction,
+	TuneRuntime,
+};
+
+enum class eChampionAIDivePhase : u8_t
+{
+	None,
+	EngageQ,
+	ArmW,
+	BasicAttack,
+	ExtraBasicAttack,
+	FlashExit,
+	ExitMove,
+};
+
+enum class eChampionAIDecisionBlockReason : u8_t
+{
+	None,
+	NoTarget,
+	TargetDead,
+	TargetUntargetable,
+	TargetOutOfRange,
+	SelfLowHp,
+	TurretDanger,
+	SkillCooldown,
+	FlashNotReady,
+	ActionLocked,
+	StateBlocked,
+	InvalidPath,
+	CommandRejected,
+};
+
+enum class eChampionAITuningId : u8_t
+{
+	ChampionScanRange,
+	MinionScanRange,
+	StructureScanRange,
+	LeashRange,
+	RetreatHpRatio,
+	ReengageHpRatio,
+	ChampionScoreMargin,
+	TurretDangerThreshold,
+	PostComboBASelfHpMinRatio,
+	PostComboBAEnemyHpMargin,
+	PostComboBAWindow,
+	LowHpExecuteThreshold,
+	DiveScanRange,
+	DiveExtraBAWindow,
+	Count,
+};
+
+struct ChampionAIDecisionTraceEntry
+{
+	u64_t tick = 0;
+	eChampionAIState state = eChampionAIState::MoveToOuterTurret;
+	eChampionAIIntent intent = eChampionAIIntent::FarmMinion;
+	eChampionAIAction action = eChampionAIAction::MoveToSafeAnchor;
+	eChampionAIDivePhase divePhase = eChampionAIDivePhase::None;
+	eChampionAIDecisionBlockReason blockReason = eChampionAIDecisionBlockReason::None;
+	u8_t commandKind = 0;
+	u8_t commandSlot = 0;
+	EntityID target = NULL_ENTITY;
+	Vec3 commandPos{ 0.f, 0.f, 0.f };
+	f32_t championScore = 0.f;
+	f32_t farmScore = 0.f;
+	f32_t structureScore = 0.f;
+	f32_t selfHpRatio = 1.f;
+	f32_t enemyHpRatio = 1.f;
+	f32_t enemyDistance = 999.f;
+	f32_t turretDanger = 0.f;
+};
+
+struct ChampionAITuningParam
+{
+	f32_t fDefault = 0.f;
+	f32_t fCurrent = 0.f;
+	f32_t fMin = 0.f;
+	f32_t fMax = 1.f;
+	bool_t bOverride = false;
+};
+
+struct ChampionAITuning
+{
+	bool_t bOverrideProfile = false;
+	ChampionAITuningParam championScanRange{ 9.f, 9.f, 1.f, 40.f, false };
+	ChampionAITuningParam minionScanRange{ 12.f, 12.f, 1.f, 40.f, false };
+	ChampionAITuningParam structureScanRange{ 18.f, 18.f, 1.f, 60.f, false };
+	ChampionAITuningParam leashRange{ 14.f, 14.f, 1.f, 60.f, false };
+	ChampionAITuningParam retreatHpRatio{ 0.10f, 0.10f, 0.01f, 0.90f, false };
+	ChampionAITuningParam reengageHpRatio{ 0.25f, 0.25f, 0.01f, 1.f, false };
+	ChampionAITuningParam championScoreMargin{ 0.10f, 0.10f, 0.f, 1.f, false };
+	ChampionAITuningParam turretDangerThreshold{ 0.85f, 0.85f, 0.f, 1.f, false };
+	ChampionAITuningParam postComboBASelfHpMinRatio{ 0.10f, 0.10f, 0.f, 1.f, false };
+	ChampionAITuningParam postComboBAEnemyHpMargin{ 0.f, 0.f, -1.f, 1.f, false };
+	ChampionAITuningParam postComboBAWindow{ 0.80f, 0.80f, 0.f, 5.f, false };
+	ChampionAITuningParam lowHpExecuteThreshold{ 0.10f, 0.10f, 0.01f, 0.50f, false };
+	ChampionAITuningParam diveScanRange{ 11.f, 11.f, 1.f, 40.f, false };
+	ChampionAITuningParam diveExtraBAWindow{ 1.80f, 1.80f, 0.f, 5.f, false };
 };
 
 inline constexpr u32_t kChampionAIActionBitMoveToSafeAnchor = 1u << 0;
@@ -41,6 +148,7 @@ inline constexpr u32_t kChampionAIActionBitAttackMinion = 1u << 2;
 inline constexpr u32_t kChampionAIActionBitAttackChampion = 1u << 3;
 inline constexpr u32_t kChampionAIActionBitAttackStructure = 1u << 4;
 inline constexpr u32_t kChampionAIActionBitRetreat = 1u << 5;
+inline constexpr u32_t kChampionAIActionBitUseFlashEscape = 1u << 6;
 
 inline constexpr u32_t kChampionAIDebugPresentFlag = 1u << 7;
 inline constexpr u32_t kChampionAIStateShift = 8u;
@@ -54,10 +162,24 @@ inline constexpr u32_t kChampionAIAvailableActionMask = 0x3Fu << kChampionAIAvai
 inline constexpr u32_t kChampionAIAvailableSkillShift = 26u;
 inline constexpr u32_t kChampionAIAvailableSkillMask = 0xFu << kChampionAIAvailableSkillShift;
 inline constexpr u32_t kChampionAIDebugOverrideFlag = 1u << 30;
+inline constexpr u32_t kChampionAIDebugCanAttackChampionFlag = 1u << 0;
+inline constexpr u32_t kChampionAIDebugPostComboBAAllowedFlag = 1u << 1;
 inline constexpr u16_t kChampionAIDebugClearOverrideItemId = 0xFFFFu;
+inline constexpr u16_t kChampionAIDebugTuneRuntimeItemId = 0xFFFEu;
+inline constexpr u16_t kChampionAIDebugResetTuningItemId = 0xFFFDu;
 inline constexpr u8_t kChampionAIDebugForceActionSkillSlot = 0xFFu;
 inline constexpr u8_t kChampionAIDebugSingleDecisionCount = 1u;
 inline constexpr u8_t kChampionAIDebugForceDecisionCount = 12u;
+inline constexpr u8_t kChampionAIDebugTraceCapacity = 16u;
+
+// 봇 의사결정 주체. 새 봇 유형은 ChampionAIBrain.cpp에 brain 구현을 추가하고
+// 스폰 시 이 값만 지정하면 된다 (Shared/GameSim/Systems/ChampionAI/ChampionAIBrain.h 참고).
+enum class eChampionAIBrainType : u8_t
+{
+	RuleBased = 0,   // 점수 기반 룰 (현행 기본)
+	PlayerLike,      // 사람같은 봇 — 태세 유지/교전 보수성 강화
+	Decision,        // 외부 판단 모듈 연동용 (모듈 연결 전까지 RuleBased 위임)
+};
 
 struct ChampionAIComponent
 {
@@ -65,6 +187,7 @@ struct ChampionAIComponent
 	eTeam team = eTeam::Blue;
 	u8_t difficulty = 1;
 	u8_t lane = 1;
+	eChampionAIBrainType brainType = eChampionAIBrainType::RuleBased;
 
 	eChampionAIState state = eChampionAIState::MoveToOuterTurret;
 	eChampionAIAction lastAction = eChampionAIAction::MoveToSafeAnchor;
@@ -79,7 +202,11 @@ struct ChampionAIComponent
 	EntityID targetStructure = NULL_ENTITY;
 	EntityID alliedWave = NULL_ENTITY;
 	EntityID comboTarget = NULL_ENTITY;
+	EntityID lowHpEnemyChampion = NULL_ENTITY;
+	EntityID diveTarget = NULL_ENTITY;
+	eChampionAIDivePhase divePhase = eChampionAIDivePhase::None;
 	u8_t comboStep = 0;
+	u8_t diveExtraBACount = 0;
 
 	f32_t decisionTimer = 0.f;
 	f32_t decisionInterval = 0.20f;
@@ -90,18 +217,51 @@ struct ChampionAIComponent
 	f32_t structureScanRange = 18.f;
 	f32_t waveJoinRange = 8.f;
 	f32_t leashRange = 14.f;
-	f32_t attackChampionChance = 0.30f;
-	f32_t lastDecisionRoll = 1.f;
-	f32_t retreatHpRatio = 0.35f;
-	f32_t reengageHpRatio = 0.55f;
+	ChampionAITuning tuning{};
+	f32_t retreatHpRatio = 0.10f;
+	f32_t reengageHpRatio = 0.25f;
+	f32_t fChampionScoreMargin = 0.10f;
+	f32_t fTurretDangerThreshold = 0.85f;
+	f32_t fPostComboBASelfHpMinRatio = 0.10f;
+	f32_t fPostComboBAEnemyHpMargin = 0.f;
+	f32_t fPostComboBAWindow = 0.80f;
+	f32_t fPostComboBATimer = 0.f;
+	f32_t fLowHpExecuteThreshold = 0.10f;
+	f32_t fDiveScanRange = 11.f;
+	f32_t fDiveExtraBAWindow = 1.80f;
+	f32_t fDiveExtraBATimer = 0.f;
+	f32_t fChampionDecisionScore = 0.f;
+	f32_t fFarmDecisionScore = 0.f;
+	f32_t fStructureDecisionScore = 0.f;
+	f32_t fDecisionSelfHpRatio = 1.f;
+	f32_t fDecisionEnemyHpRatio = 1.f;
+	f32_t fDecisionEnemyDistance = 999.f;
+	f32_t fDecisionAttackRange = 1.5f;
+	f32_t fDecisionTurretDanger = 0.f;
+	f32_t fDecisionLowHpEnemyRatio = 1.f;
+	f32_t fDecisionLowHpEnemyDistance = 999.f;
+	f32_t fDecisionChampionScanRange = 0.f;
+	f32_t fDecisionDiveScanRange = 0.f;
+	f32_t fDecisionFlashRange = 0.f;
+	u8_t debugLastCommandKind = 0;
+	u8_t debugLastCommandSlot = 0;
+	EntityID debugLastCommandTarget = NULL_ENTITY;
+	Vec3 debugLastCommandPos{};
+	eChampionAIDecisionBlockReason debugLastBlockReason = eChampionAIDecisionBlockReason::None;
+	ChampionAIDecisionTraceEntry debugDecisionTrace[kChampionAIDebugTraceCapacity] = {};
+	u8_t debugDecisionTraceHead = 0u;
+	u8_t debugDecisionTraceCount = 0u;
 	u32_t nextCommandSequence = 1;
 
 	bool_t bWaveJoined = false;
 	bool_t bStructureWaveTanking = false;
 	bool_t bInsideEnemyTurretDanger = false;
+	bool_t bCanAttackChampion = false;
+	bool_t bPostComboBAAllowed = false;
 
 	u32_t debugAvailableActionMask = 0;
 	u32_t debugAvailableSkillMask = 0;
+	eChampionAIDebugControlMode debugControlMode = eChampionAIDebugControlMode::Observe;
 	eChampionAIAction debugForcedAction = eChampionAIAction::FollowWave;
 	u8_t debugForcedSkillSlot = 0;
 	u8_t debugForcedDecisionCount = 0;
@@ -116,9 +276,47 @@ struct ChampionAIDebugComponent
 	eChampionAIIntent intent = eChampionAIIntent::FarmMinion;
 	u32_t netId = 0;
 	u32_t targetNetId = 0;
+	u32_t lowHpEnemyNetId = 0;
+	u32_t diveTargetNetId = 0;
+	u32_t lastCommandTargetNetId = 0;
+	u8_t lastCommandKind = 0;
+	u8_t lastCommandSlot = 0;
+	eChampionAIDivePhase divePhase = eChampionAIDivePhase::None;
+	eChampionAIDecisionBlockReason lastBlockReason = eChampionAIDecisionBlockReason::None;
 	u32_t availableActionMask = 0;
 	u32_t availableSkillMask = 0;
 	bool_t bOverridePending = false;
+	bool_t bCanAttackChampion = false;
+	bool_t bPostComboBAAllowed = false;
+	f32_t fChampionDecisionScore = 0.f;
+	f32_t fFarmDecisionScore = 0.f;
+	f32_t fStructureDecisionScore = 0.f;
+	f32_t fSelfHpRatio = 1.f;
+	f32_t fEnemyHpRatio = 1.f;
+	f32_t fEnemyDistance = 999.f;
+	f32_t fAttackRange = 1.5f;
+	f32_t fTurretDanger = 0.f;
+	f32_t fLowHpEnemyRatio = 1.f;
+	f32_t fLowHpEnemyDistance = 999.f;
+	f32_t fChampionScanRange = 0.f;
+	f32_t fMinionScanRange = 0.f;
+	f32_t fStructureScanRange = 0.f;
+	f32_t fLeashRange = 0.f;
+	f32_t fRetreatHpRatio = 0.f;
+	f32_t fReengageHpRatio = 0.f;
+	f32_t fChampionScoreMargin = 0.f;
+	f32_t fTurretDangerThreshold = 0.f;
+	f32_t fPostComboBASelfHpMinRatio = 0.f;
+	f32_t fPostComboBAEnemyHpMargin = 0.f;
+	f32_t fPostComboBAWindow = 0.f;
+	f32_t fLowHpExecuteThreshold = 0.f;
+	f32_t fDiveScanRange = 0.f;
+	f32_t fDiveExtraBAWindow = 0.f;
+	f32_t fFlashRange = 0.f;
+	f32_t fPostComboBATimer = 0.f;
 	f32_t moveSpeed = 0.f;
 	Vec3 snapshotPos{ 0.f, 0.f, 0.f };
+	Vec3 lastCommandPos{ 0.f, 0.f, 0.f };
+	ChampionAIDecisionTraceEntry debugDecisionTrace[kChampionAIDebugTraceCapacity] = {};
+	u8_t debugDecisionTraceCount = 0u;
 };

@@ -10,7 +10,8 @@ enum CommandKind : ubyte {
     UseItem = 6,
     Recall = 7,
     RecallCancel = 8,
-    AIDebugControl = 9
+    AIDebugControl = 9,
+    Flash = 10
 }
 
 struct Vec3 {

@@ -6,12 +6,10 @@ namespace Winters::Asset
 {
 	//모든 .xxxx 포맷의 선두 16Bytes
 	// Stage 1 SHA256 + Stage 9 Ed25519 서명은 MVP 이후 별도 커밋.
-	//이게 뭔 소리임??
 	constexpr char WINTERS_MAGIC[4] = { 'W', 'I', 'N', 'T' };
 
 	enum WintersFileFlag : uint32_t
 	{
-		//이게 뭔 소리??
 		WF_NONE = 0,
 		WF_LZ4 = 1u << 0, //payload LZ4 compressed(MVP 미지원)
 		WF_HAS_SHA256 = 1u << 1,

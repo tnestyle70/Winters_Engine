@@ -1,5 +1,6 @@
 #pragma once
 #include <atomic>
+#include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <memory>       // std::unique_ptr — Deque 를 힙에 놓고 포인터로 벡터 보관
@@ -91,4 +92,8 @@ private:
     //Global MPMC Queue + per-worker local deque hybrid
     std::mutex m_GlobalMutex;
     std::queue<WorkItem> m_GlobalQueue;
+
+    // 유휴 워커는 yield 스핀 대신 짧은 타임아웃 블로킹 대기로 CPU를 양보한다.
+    std::mutex m_WakeMutex;
+    std::condition_variable m_WakeCV;
 };

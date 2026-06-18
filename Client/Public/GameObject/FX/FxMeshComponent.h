@@ -19,6 +19,9 @@ struct FxMeshComponent
 
     EntityID attachTo = NULL_ENTITY;
     Vec3     vAttachOffset = { 0.f, 0.f, 0.f };
+    FxAnchorDesc anchor{};
+    FxLifecycleDesc lifecycle{};
+    bool_t bAnchorResolvedLastFrame = false;
 
     // 3-axis rotation in radians: pitch(X), yaw(Y), roll(Z).
     Vec3 vRotation = { 0.f, 0.f, 0.f };

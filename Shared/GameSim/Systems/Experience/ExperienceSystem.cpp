@@ -7,6 +7,7 @@
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Definitions/GoldRewardDef.h"
+#include "Shared/GameSim/Feedback/GameplayFeedbackQueue.h"
 #include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
 #include "Shared/GameSim/Core/World/World.h"
@@ -219,12 +220,12 @@ void CExperienceSystem::GrantExperience(CWorld& world, EntityID entity, f32_t am
             stat.bDirty = true;
         }
     }
-
     if (bLeveled && world.HasComponent<SkillRankComponent>(entity))
         CSkillRankSystem::SyncPointsForLevel(world.GetComponent<SkillRankComponent>(entity), xp.level);
 }
 
-void CExperienceSystem::GrantKillRewards(CWorld& world, EntityID killer, EntityID victim)
+void CExperienceSystem::GrantKillRewards(CWorld& world, const TickContext& tc,
+    EntityID killer, EntityID victim)
 {
     if (killer == NULL_ENTITY ||
         victim == NULL_ENTITY ||
@@ -248,7 +249,8 @@ void CExperienceSystem::GrantKillRewards(CWorld& world, EntityID killer, EntityI
         if (!reward)
             return;
 
-        GrantGold(world, killer, reward->gold.killerGold);
+        const u32_t goldAmount = GrantGold(world, killer, reward->gold.killerGold);
+        (void)GameplayFeedback::EnqueueGoldRewardFeedback(world, tc, killer, victim, goldAmount);
 
         const std::vector<EntityID> recipients = CollectNearbyExperienceRecipients(
             world, rewardTeam, killer, victim, ResolveExperienceShareRadius(*reward));
@@ -263,7 +265,8 @@ void CExperienceSystem::GrantKillRewards(CWorld& world, EntityID killer, EntityI
         if (!reward)
             return;
 
-        GrantGold(world, killer, reward->gold.killerGold);
+        const u32_t goldAmount = GrantGold(world, killer, reward->gold.killerGold);
+        (void)GameplayFeedback::EnqueueGoldRewardFeedback(world, tc, killer, victim, goldAmount);
 
         const std::vector<EntityID> recipients = CollectNearbyExperienceRecipients(
             world, rewardTeam, killer, victim, ResolveExperienceShareRadius(*reward));
@@ -297,15 +300,20 @@ f32_t CExperienceSystem::ResolveChampionKillExperience(CWorld& world, EntityID v
     return (std::max)(0.f, nextLevelXp * reward->experience.victimNextLevelXPFactor);
 }
 
-void CExperienceSystem::GrantGold(CWorld& world, EntityID entity, f32_t amount)
+u32_t CExperienceSystem::GrantGold(CWorld& world, EntityID entity, f32_t amount)
 {
     if (entity == NULL_ENTITY ||
         amount <= 0.f ||
         !world.IsAlive(entity) ||
         !world.HasComponent<GoldComponent>(entity))
     {
-        return;
+        return 0u;
     }
 
-    world.GetComponent<GoldComponent>(entity).amount += RoundRewardGold(amount);
+    const u32_t goldAmount = RoundRewardGold(amount);
+    if (goldAmount == 0u)
+        return 0u;
+
+    world.GetComponent<GoldComponent>(entity).amount += goldAmount;
+    return goldAmount;
 }

@@ -6,6 +6,7 @@
 
 #include <DirectXMath.h>
 #include <d3d11.h>
+#include <cmath>
 #include <cstring>
 #include <wrl/client.h>
 
@@ -28,6 +29,7 @@ namespace
     struct FogWorldVertex
     {
         f32_t x, y, z;
+        f32_t u, v;
     };
 
     struct FogWorldCB
@@ -66,10 +68,11 @@ namespace
         D3D11_INPUT_ELEMENT_DESC layout[] =
         {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, sizeof(f32_t) * 3, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
         HRESULT hr = pNativeDevice->CreateInputLayout(
             layout,
-            1,
+            2,
             shader.GetVSBlob()->GetBufferPointer(),
             shader.GetVSBlob()->GetBufferSize(),
             pInputLayout.GetAddressOf());
@@ -151,6 +154,9 @@ struct CFogOfWarRenderer::Impl
     IRHIDevice* pDevice = nullptr;
     Microsoft::WRL::ComPtr<ID3D11Texture2D> pTexture;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> pSRV;
+    // Impl means implementation details kept out of the public renderer header.
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> pMinimapOverlayTexture;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> pMinimapOverlaySRV;
     Microsoft::WRL::ComPtr<ID3D11Buffer> pWorldVB;
     Microsoft::WRL::ComPtr<ID3D11Buffer> pWorldIB;
     Microsoft::WRL::ComPtr<ID3D11Buffer> pWorldCB;
@@ -222,6 +228,28 @@ std::unique_ptr<CFogOfWarRenderer> CFogOfWarRenderer::Create(IRHIDevice* pDevice
     if (!p->m_pImpl->bWorldOverlayReady)
         OutputDebugStringA("[FogOfWarRenderer] world overlay resources failed\n");
 
+    D3D11_TEXTURE2D_DESC overlayDesc = desc;
+    overlayDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    overlayDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+    hr = pNativeDevice->CreateTexture2D(
+        &overlayDesc, nullptr, p->m_pImpl->pMinimapOverlayTexture.GetAddressOf());
+
+    if (SUCCEEDED(hr))
+    {
+        D3D11_SHADER_RESOURCE_VIEW_DESC overlaySrvDesc{};
+        overlaySrvDesc.Format = overlayDesc.Format;
+        overlaySrvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        overlaySrvDesc.Texture2D.MipLevels = 1;
+        hr = pNativeDevice->CreateShaderResourceView(
+            p->m_pImpl->pMinimapOverlayTexture.Get(),
+            &overlaySrvDesc,
+            p->m_pImpl->pMinimapOverlaySRV.GetAddressOf());
+    }
+
+    if (FAILED(hr))
+        OutputDebugStringA("[FogOfWarRenderer] minimap overlay SRV create failed\n");
+
     return p;
 }
 
@@ -244,30 +272,78 @@ void CFogOfWarRenderer::UpdateTexture(const u8_t* pData, u32_t dim)
         std::memcpy(pDst + y * mapped.RowPitch, pData + y * dim, dim);
 
     pContext->Unmap(m_pImpl->pTexture.Get(), 0);
+
+    // R8 stores one normalized 8-bit visibility value per fog texel.
+    if (m_pImpl->pMinimapOverlayTexture)
+    {
+        D3D11_MAPPED_SUBRESOURCE overlayMapped{};
+        if (SUCCEEDED(pContext->Map(m_pImpl->pMinimapOverlayTexture.Get(),
+            0, D3D11_MAP_WRITE_DISCARD, 0, &overlayMapped)))
+        {
+            // Convert the single-channel fog data into an RGBA minimap overlay.
+            for (u32_t y = 0; y < dim; ++y)
+            {
+                u8_t* pRow = reinterpret_cast<u8_t*>(overlayMapped.pData) + y * overlayMapped.RowPitch;
+                for (u32_t x = 0; x < dim; ++x)
+                {
+                    const u8_t value = pData[y * dim + x];
+                    const u8_t alpha = value >= 250 ? 0 : (value >= 127 ? 112 : 214);
+                    // BGRA bytes: near-black fog color plus alpha from visibility.
+                    pRow[x * 4 + 0] = 3;
+                    pRow[x * 4 + 1] = 7;
+                    pRow[x * 4 + 2] = 8;
+                    pRow[x * 4 + 3] = alpha;
+                }
+            }
+            // Unmap uploads the CPU-written overlay bytes so the SRV can be sampled by UI rendering.
+            pContext->Unmap(m_pImpl->pMinimapOverlayTexture.Get(), 0);
+        }
+    }
 }
 
-void* CFogOfWarRenderer::Get_NativeSRV() const
+void* CFogOfWarRenderer::GetNativeSRV() const
 {
     return m_pImpl ? static_cast<void*>(m_pImpl->pSRV.Get()) : nullptr;
 }
 
-void CFogOfWarRenderer::RenderWorldOverlay(IRHIDevice* pDevice,
-    const Mat4& matViewProj, f32_t fWorldSize, f32_t fYOffset)
+void* CFogOfWarRenderer::GetMinimapOverlaySRV() const
 {
-    if (!m_pImpl || !m_pImpl->bWorldOverlayReady || fWorldSize <= 0.f)
+    return m_pImpl ? static_cast<void*>(m_pImpl->pMinimapOverlaySRV.Get()) : nullptr;
+}
+
+
+void CFogOfWarRenderer::RenderWorldOverlay(IRHIDevice* pDevice,
+    const Mat4& matViewProj,
+    const Vec2& vWorldAtUv00,
+    const Vec2& vWorldAtUv10,
+    const Vec2& vWorldAtUv01,
+    f32_t fYOffset)
+{
+    if (!m_pImpl || !m_pImpl->bWorldOverlayReady)
         return;
 
     ID3D11DeviceContext* pContext = GetNativeDX11Context(pDevice ? pDevice : m_pImpl->pDevice);
     if (!pContext)
         return;
 
-    const f32_t half = fWorldSize * 0.5f;
+    const f32_t ux = vWorldAtUv10.x - vWorldAtUv00.x;
+    const f32_t uz = vWorldAtUv10.y - vWorldAtUv00.y;
+    const f32_t vx = vWorldAtUv01.x - vWorldAtUv00.x;
+    const f32_t vz = vWorldAtUv01.y - vWorldAtUv00.y;
+    if (std::fabs(ux * vz - uz * vx) <= 0.0001f)
+        return;
+
+    const Vec2 vWorldAtUv11{
+        vWorldAtUv10.x + vWorldAtUv01.x - vWorldAtUv00.x,
+        vWorldAtUv10.y + vWorldAtUv01.y - vWorldAtUv00.y
+    };
+
     const FogWorldVertex vertices[4] =
     {
-        { -half, fYOffset, -half },
-        {  half, fYOffset, -half },
-        {  half, fYOffset,  half },
-        { -half, fYOffset,  half },
+        { vWorldAtUv00.x, fYOffset, vWorldAtUv00.y, 0.f, 0.f },
+        { vWorldAtUv10.x, fYOffset, vWorldAtUv10.y, 1.f, 0.f },
+        { vWorldAtUv11.x, fYOffset, vWorldAtUv11.y, 1.f, 1.f },
+        { vWorldAtUv01.x, fYOffset, vWorldAtUv01.y, 0.f, 1.f },
     };
 
     D3D11_MAPPED_SUBRESOURCE mapped{};
@@ -283,7 +359,7 @@ void CFogOfWarRenderer::RenderWorldOverlay(IRHIDevice* pDevice,
 
     FogWorldCB cb{};
     cb.matViewProj = matViewProj.m;
-    cb.vWorldRect = DirectX::XMFLOAT4(-half, -half, fWorldSize, fWorldSize);
+    cb.vWorldRect = DirectX::XMFLOAT4(0.f, 0.f, 1.f, 1.f);
     cb.vFogParams = DirectX::XMFLOAT4(0.64f, 0.28f, 0.50f, 0.f);
     cb.vUnexploredColor = DirectX::XMFLOAT4(0.026f, 0.038f, 0.035f, 1.f);
     cb.vExploredColor = DirectX::XMFLOAT4(0.070f, 0.088f, 0.076f, 1.f);

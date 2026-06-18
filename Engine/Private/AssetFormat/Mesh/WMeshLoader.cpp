@@ -8,7 +8,7 @@ namespace Winters::Asset
     // 상한선 — 악의적 파일 방어
     static constexpr uint32_t MAX_VERTICES = 10'000'000;
     static constexpr uint32_t MAX_SUBMESHES = 2048;
-    static constexpr uint32_t MAX_BONES = 512;
+    static constexpr uint32_t MAX_BONES = 1024;
 
     static bool ValidateMeta(const MeshMetaHeader& h)
     {

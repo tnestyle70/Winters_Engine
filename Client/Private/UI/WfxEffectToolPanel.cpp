@@ -36,6 +36,18 @@ namespace
         "DepthTestWriteOn", "DepthTestWriteOff", "OverlayNoDepth", "SoftParticle"
     };
 
+    constexpr const char* kAnchorTypeNames[] = {
+        "Entity", "World", "Bone", "Socket", "Submesh", "TargetSegment"
+    };
+
+    constexpr const char* kAnchorFallbackNames[] = {
+        "None", "Entity", "WorldPosition"
+    };
+
+    constexpr const char* kLifecycleModeNames[] = {
+        "Burst", "Timed", "WhileState", "ManualStop", "LoopUntilSignal"
+    };
+
     struct ToolState
     {
         UI::CWfxAssetCatalog catalog;
@@ -544,6 +556,45 @@ namespace
             bool bBillboard = emitter.bBillboard;
             if (ImGui::Checkbox("Camera Facing Billboard", &bBillboard))
                 emitter.bBillboard = bBillboard;
+
+            int anchorType = static_cast<int>(emitter.anchor.eAnchorType);
+            if (ImGui::Combo("Anchor Type", &anchorType,
+                kAnchorTypeNames,
+                IM_ARRAYSIZE(kAnchorTypeNames)))
+            {
+                emitter.anchor.eAnchorType = static_cast<eFxAnchorType>(anchorType);
+            }
+            InputTextString("Anchor Name", emitter.anchor.strAnchorName);
+            ImGui::DragFloat3("Anchor Offset", &emitter.anchor.vAnchorOffset.x, 0.02f, -20.f, 20.f, "%.3f");
+            if (ImGui::Button("Copy Attach Offset To Anchor"))
+                emitter.anchor.vAnchorOffset = emitter.vAttachOffset;
+
+            bool bInheritRotation = emitter.anchor.bInheritRotation;
+            if (ImGui::Checkbox("Anchor Inherit Rotation", &bInheritRotation))
+                emitter.anchor.bInheritRotation = bInheritRotation;
+
+            int anchorFallback = static_cast<int>(emitter.anchor.eFallback);
+            if (ImGui::Combo("Anchor Fallback", &anchorFallback,
+                kAnchorFallbackNames,
+                IM_ARRAYSIZE(kAnchorFallbackNames)))
+            {
+                emitter.anchor.eFallback = static_cast<eFxAnchorFallback>(anchorFallback);
+            }
+
+            int lifecycleMode = static_cast<int>(emitter.lifecycle.eLifecycleMode);
+            if (ImGui::Combo("Lifecycle Mode", &lifecycleMode,
+                kLifecycleModeNames,
+                IM_ARRAYSIZE(kLifecycleModeNames)))
+            {
+                emitter.lifecycle.eLifecycleMode = static_cast<eFxLifecycleMode>(lifecycleMode);
+            }
+            ImGui::DragFloat("Stop Fade Out", &emitter.lifecycle.fStopFadeOut, 0.005f, 0.f, 10.f, "%.3f");
+            bool bDetachOnStop = emitter.lifecycle.bDetachOnStop;
+            if (ImGui::Checkbox("Detach On Stop", &bDetachOnStop))
+                emitter.lifecycle.bDetachOnStop = bDetachOnStop;
+            bool bKillWhenAnchorInvalid = emitter.lifecycle.bKillWhenAnchorInvalid;
+            if (ImGui::Checkbox("Kill When Anchor Invalid", &bKillWhenAnchorInvalid))
+                emitter.lifecycle.bKillWhenAnchorInvalid = bKillWhenAnchorInvalid;
 
             ImGui::TreePop();
         }

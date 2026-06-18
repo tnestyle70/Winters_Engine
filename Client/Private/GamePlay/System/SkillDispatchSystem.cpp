@@ -24,7 +24,6 @@ namespace Systems
 	bool CSkillDispatchSystem::BuildCastCommand(const PulseCommand& pulse, EntityID caster, 
 		const AbilityDef& def, CWorld& world, CastCommand& outCommand)
 	{
-		//와 진짜 던전스랑 비교해서 구조가 왜 이렇게 복잡해졌지? Entity ECS 때문에 이런 건가??
 		outCommand.casterEntity = caster;
 		outCommand.slot = pulse.iSlot;
 		outCommand.targetEntity = pulse.target;

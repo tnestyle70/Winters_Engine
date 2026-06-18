@@ -13,7 +13,7 @@
       "fade_in": 0.01,
       "fade_out": 0.25,
       "width": 0.64,
-      "color": [1.62, 1.14, 0.46, 0.88],
+      "color": [1.62, 1.30, 0.72, 0.88],
       "uv_scroll": [0.0, -1.45],
       "attach_offset": [0.0, 0.0, 0.0],
       "end_offset": [0.0, 0.0, 0.0],
@@ -30,7 +30,7 @@
       "fade_in": 0.01,
       "fade_out": 0.28,
       "width": 0.92,
-      "color": [1.35, 0.92, 0.32, 0.44],
+      "color": [1.35, 1.05, 0.55, 0.44],
       "uv_scroll": [0.0, -0.90],
       "ribbon_point_count": 5,
       "blockable_by_wind_wall": true
@@ -47,7 +47,7 @@
       "fade_out": 0.22,
       "segment_t": 0.16,
       "scale": [0.019, 0.019, 0.019],
-      "color": [1.45, 1.10, 0.48, 0.74]
+      "color": [1.50, 1.20, 0.62, 0.74]
     },
     {
       "name": "e2_chain_tip",
@@ -61,7 +61,7 @@
       "segment_t": 1.0,
       "width": 1.45,
       "height": 1.45,
-      "color": [1.90, 1.25, 0.42, 0.94],
+      "color": [1.95, 1.50, 0.72, 0.94],
       "billboard": true,
       "blockable_by_wind_wall": true
     },

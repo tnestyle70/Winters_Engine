@@ -10,6 +10,9 @@ struct ServerMinionTuning final
 
 	static constexpr f32_t kPathAgentRadius = 0.5f;
 	static constexpr f32_t kMinionLaneClearanceRadius = 0.5f;
+	static constexpr f32_t kMinionSoftSeparationRadiusScale = 0.65f;
+	static constexpr f32_t kMinionSoftSeparationWeight = 0.35f;
+	static constexpr f32_t kMinionSoftSeparationMaxStep = 0.18f;
 	static constexpr f32_t kLanePathRebuildIntervalSec = 1.00f;
 	static constexpr f32_t kChasePathRebuildIntervalSec = 0.60f;
 	static constexpr f32_t kPathTargetRefreshDistanceSq = 1.0f;
@@ -25,5 +28,7 @@ struct ServerMinionTuning final
 
 	static constexpr u64_t kWaveIntervalTicks = 900u;
 	static constexpr u64_t kInitialWaveDelayTicks = 300u;
+	// 웨이브 내 미니언을 한 마리씩 시간차로 내보내는 간격 (30Hz 기준 10틱 ≈ 0.33초)
+	static constexpr u64_t kPerMinionSpawnDelayTicks = 10u;
 	static constexpr f32_t kWaveStartX = 5.0f;
 };

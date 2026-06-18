@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{E5555555-5555-5555-5555-555555555555}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>GameSim</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <VcpkgEnableManifest>false</VcpkgEnableManifest>
+    <VcpkgEnabled>false</VcpkgEnabled>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)..\Bin\Debug\</OutDir>
+    <IntDir>$(ProjectDir)..\Bin\Intermediate\Debug\</IntDir>
+    <TargetName>WintersGameSim</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)..\Bin\Release\</OutDir>
+    <IntDir>$(ProjectDir)..\Bin\Intermediate\Release\</IntDir>
+    <TargetName>WintersGameSim</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..\..;$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\..\EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command>$(MSBuildThisFileDirectory)..\..\..\UpdateLib.bat</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;NOMINMAX;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <FloatingPointModel>Precise</FloatingPointModel>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..\..;$(MSBuildThisFileDirectory)..\..;$(MSBuildThisFileDirectory)..\..\..\EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+    </ClCompile>
+    <PreBuildEvent>
+      <Command>$(MSBuildThisFileDirectory)..\..\..\UpdateLib.bat</Command>
+    </PreBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Champions\Annie\AnnieGameSim.cpp" />
+    <ClCompile Include="..\Champions\Ashe\AsheGameSim.cpp" />
+    <ClCompile Include="..\Champions\Fiora\FioraGameSim.cpp" />
+    <ClCompile Include="..\Champions\Irelia\IreliaGameSim.cpp" />
+    <ClCompile Include="..\Champions\Jax\JaxGameSim.cpp" />
+    <ClCompile Include="..\Champions\Kalista\KalistaGameSim.cpp" />
+    <ClCompile Include="..\Champions\Kindred\KindredGameSim.cpp" />
+    <ClCompile Include="..\Champions\LeeSin\LeeSinGameSim.cpp" />
+    <ClCompile Include="..\Champions\MasterYi\MasterYiGameSim.cpp" />
+    <ClCompile Include="..\Champions\Riven\RivenGameSim.cpp" />
+    <ClCompile Include="..\Champions\Sylas\SylasGameSim.cpp" />
+    <ClCompile Include="..\Champions\Viego\ViegoGameSim.cpp" />
+    <ClCompile Include="..\Champions\Yasuo\YasuoGameSim.cpp" />
+    <ClCompile Include="..\Champions\Yone\YoneGameSim.cpp" />
+    <ClCompile Include="..\Champions\Zed\ZedGameSim.cpp" />
+    <ClCompile Include="..\Definitions\ChampionRuntimeDefaults.cpp" />
+    <ClCompile Include="..\Definitions\MapSpawnPoints.cpp" />
+    <ClCompile Include="..\Generated\ChampionGameData.generated.cpp" />
+    <ClCompile Include="..\Registries\ChampionGameData\ChampionGameDataDB.cpp" />
+    <ClCompile Include="..\Registries\ChampionStats\ChampionStatsRegistry.cpp" />
+    <ClCompile Include="..\Registries\Reward\RewardRegistry.cpp" />
+    <ClCompile Include="..\Registries\SkillScaling\SkillScalingRegistry.cpp" />
+    <ClCompile Include="..\Registries\Skin\SkinRegistry.cpp" />
+    <ClCompile Include="..\Systems\AreaAura\AreaAuraSystem.cpp" />
+    <ClCompile Include="..\Systems\AttackChase\AttackChaseSystem.cpp" />
+    <ClCompile Include="..\Systems\Buff\BuffSystem.cpp" />
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAIBrain.cpp" />
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAIPolicy.cpp" />
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAISystem.cpp" />
+    <ClCompile Include="..\Systems\Combat\CombatActionSystem.cpp" />
+    <ClCompile Include="..\Systems\Combat\CombatFormula.cpp" />
+    <ClCompile Include="..\Systems\CommandExecutor\CommandExecutor.cpp" />
+    <ClCompile Include="..\Systems\Damage\DamagePipeline.cpp" />
+    <ClCompile Include="..\Systems\Damage\DamageQueueSystem.cpp" />
+    <ClCompile Include="..\Systems\Death\DeathSystem.cpp" />
+    <ClCompile Include="..\Systems\Experience\ExperienceSystem.cpp" />
+    <ClCompile Include="..\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp" />
+    <ClCompile Include="..\Systems\GameplayStateQuery\GameplayStateQuery.cpp" />
+    <ClCompile Include="..\Systems\JungleAI\JungleAISystem.cpp" />
+    <ClCompile Include="..\Systems\Move\MoveSystem.cpp" />
+    <ClCompile Include="..\Systems\Recall\RecallSystem.cpp" />
+    <ClCompile Include="..\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp" />
+    <ClCompile Include="..\Systems\Rune\RuneSystem.cpp" />
+    <ClCompile Include="..\Systems\SkillCooldown\SkillCooldownSystem.cpp" />
+    <ClCompile Include="..\Systems\SkillRank\SkillRankSystem.cpp" />
+    <ClCompile Include="..\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp" />
+    <ClCompile Include="..\Systems\Stat\StatSystem.cpp" />
+    <ClCompile Include="..\Systems\StatusEffect\StatusEffectSystem.cpp" />
+    <ClCompile Include="..\Systems\WaypointPatrol\WaypointPatrolSystem.cpp" />
+  </ItemGroup>
+  <Target Name="FlatcCodegen" BeforeTargets="ClCompile">
+    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\..\Schemas\run_codegen.bat&quot;" />
+  </Target>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

@@ -5,7 +5,8 @@
 #include "Shared/GameSim/Components/KindredSimComponent.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
-#include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
+#include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -166,12 +167,6 @@ namespace
             << caster << "\n";
     }
 
-    constexpr u16_t MakeStatusStackGroup(eChampion champion, u8_t slot)
-    {
-        return static_cast<u16_t>(
-            (static_cast<u32_t>(champion) << 8) | static_cast<u32_t>(slot));
-    }
-
     void EnqueuePhysicalDamage(
         CWorld& world,
         EntityID source,
@@ -234,19 +229,83 @@ namespace
         return bestTarget;
     }
 
-    void ApplyMountingDreadSlow(CWorld& world, EntityID caster, EntityID target)
+    void ApplyMountingDreadSlow(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target)
     {
-        StatusEffectApplyDesc slow{};
-        slow.effectId = eStatusEffectId::GenericSlow;
-        slow.stackPolicy = eStatusStackPolicy::RefreshDuration;
-        slow.sourceEntity = caster;
-        slow.stackGroup = MakeStatusStackGroup(
+        GameplayStatus::ApplySlow(
+            world,
+            tc,
+            target,
+            caster,
             eChampion::KINDRED,
+            eSkillSlot::E,
+            kKindredESlowDurationSec,
+            kKindredESlowMoveSpeedMul);
+    }
+
+    u16_t BuildKindredEEffectFlags(u8_t stage, u8_t rank)
+    {
+        return static_cast<u16_t>(
+            (static_cast<u16_t>(stage & 0x0fu) << 12) |
+            (static_cast<u16_t>(rank & 0x0fu) << 8) |
+            static_cast<u16_t>(eSkillSlot::E));
+    }
+
+    Vec3 ResolveEntityPosition(CWorld& world, EntityID entity)
+    {
+        if (entity != NULL_ENTITY && world.HasComponent<TransformComponent>(entity))
+            return world.GetComponent<TransformComponent>(entity).GetPosition();
+        return {};
+    }
+
+    Vec3 ResolveEffectDirection(CWorld& world, EntityID caster, EntityID target)
+    {
+        if (caster == NULL_ENTITY || target == NULL_ENTITY ||
+            !world.HasComponent<TransformComponent>(caster) ||
+            !world.HasComponent<TransformComponent>(target))
+        {
+            return {};
+        }
+
+        const Vec3 casterPos = world.GetComponent<TransformComponent>(caster).GetPosition();
+        const Vec3 targetPos = world.GetComponent<TransformComponent>(target).GetPosition();
+        return WintersMath::DirectionXZ(casterPos, targetPos);
+    }
+
+    void EmitMountingDreadStackEffect(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target,
+        u8_t stackCount)
+    {
+        const u8_t clampedStack =
+            static_cast<u8_t>(std::min<u32_t>(3u, stackCount));
+        if (clampedStack == 0u || target == NULL_ENTITY)
+            return;
+
+        ReplicatedEventComponent event{};
+        event.kind = eReplicatedEventKind::EffectTrigger;
+        event.sourceEntity = caster;
+        event.targetEntity = target;
+        event.effectId = MakeGameplayHookId(eChampion::KINDRED, GameplayHookVariant::E_CastFrame);
+        event.skillId = static_cast<u16_t>(
+            (static_cast<u32_t>(eChampion::KINDRED) << 8) |
             static_cast<u8_t>(eSkillSlot::E));
-        slow.stateFlags = kGameplayStateSlowedFlag;
-        slow.fDurationSec = kKindredESlowDurationSec;
-        slow.fMoveSpeedMul = kKindredESlowMoveSpeedMul;
-        GameplayStatus::ApplyStatusEffect(world, target, slow);
+        event.slot = static_cast<u8_t>(eSkillSlot::E);
+        event.rank = 1;
+        event.flags = BuildKindredEEffectFlags(
+            static_cast<u8_t>(clampedStack + 1u),
+            event.rank);
+        event.position = ResolveEntityPosition(world, target);
+        event.direction = ResolveEffectDirection(world, caster, target);
+        event.durationMs = clampedStack >= 3u ? 850u : 620u;
+        event.startTick = tc.tickIndex;
+
+        EnqueueReplicatedEvent(world, event);
     }
 
     void OnW(GameplayHookContext& ctx)
@@ -269,14 +328,19 @@ namespace
 
     void OnE(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld || !ctx.pCommand || ctx.pCommand->targetEntity == NULL_ENTITY)
+        if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx ||
+            ctx.pCommand->targetEntity == NULL_ENTITY)
             return;
 
         KindredSimComponent& state = EnsureKindredState(*ctx.pWorld, ctx.casterEntity);
         state.markedTarget = ctx.pCommand->targetEntity;
         state.mountingDreadHitCount = 0;
         state.fEMarkRemainingSec = kKindredEMarkDurationSec;
-        ApplyMountingDreadSlow(*ctx.pWorld, ctx.casterEntity, ctx.pCommand->targetEntity);
+        ApplyMountingDreadSlow(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            ctx.pCommand->targetEntity);
 
         std::cout << "[KindredSim] E mounting dread mark caster="
             << ctx.casterEntity << " target=" << ctx.pCommand->targetEntity << "\n";
@@ -372,6 +436,7 @@ namespace KindredGameSim
 
     f32_t ConsumeBasicAttackDamage(
         CWorld& world,
+        const TickContext& tc,
         EntityID caster,
         EntityID target,
         eTeam casterTeam,
@@ -388,6 +453,8 @@ namespace KindredGameSim
 
         state.mountingDreadHitCount =
             static_cast<u8_t>(std::min<u32_t>(3u, state.mountingDreadHitCount + 1u));
+        EmitMountingDreadStackEffect(world, tc, caster, target, state.mountingDreadHitCount);
+
         if (state.mountingDreadHitCount < 3u)
             return baseDamage;
 

@@ -14,7 +14,7 @@
       "fade_out": 0.4500,
       "width": 3.4000,
       "height": 3.4000,
-      "color": [0.5500, 0.9500, 1.8000, 0.5500],
+      "color": [0.7000, 0.9800, 1.8000, 0.5500],
       "attach_offset": [0.0000, 0.0300, 0.0000],
       "billboard": false,
       "depth_write": false
@@ -31,7 +31,7 @@
       "fade_out": 0.6000,
       "width": 5.5000,
       "height": 2.2000,
-      "color": [0.4500, 0.8500, 1.5000, 0.4500],
+      "color": [0.6000, 0.9000, 1.5500, 0.4500],
       "attach_offset": [0.0000, 0.0300, 0.0000],
       "billboard": false,
       "depth_write": false
@@ -47,7 +47,7 @@
       "fade_out": 0.1800,
       "width": 2.6000,
       "height": 2.6000,
-      "color": [0.8500, 1.1000, 2.0000, 0.9000],
+      "color": [1.3000, 1.2800, 2.0500, 0.9500],
       "attach_offset": [0.0000, 0.0300, 0.0000],
       "billboard": true,
       "depth_write": false

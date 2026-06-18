@@ -1,4 +1,4 @@
-#include "GamePlay/ChampionRegistry.h"
+﻿#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -93,10 +93,17 @@ namespace
                 s.champ = eChampion::JAX; s.slot = 3;
                 s.targetMode = eTargetMode::Self;
                 s.cooldownSec = 0.6f; s.rangeMax = 0.f; s.manaCost = 0.f;
-                s.animKey = "spell3_attack1";
-                s.lockDurationSec = 0.7f; s.bOneShot = true;
+                s.animKey = "spell3_idle_cycle";
+                s.lockDurationSec = 2.0f; s.bOneShot = true;
                 s.rotate = eRotateMode::None;
-                s.castFrame = 6.f; s.recoveryFrame = 14.f; s.animPlaySpeed = 1.f;
+                s.stageCount = 2;
+                s.stage2TargetMode = eTargetMode::Self;
+                s.stage2AnimKey = "spell3_attack1";
+                s.stage2LockSec = 0.7f;
+                s.stage2Rotate = eRotateMode::None;
+                s.stageWindowSec = 2.0f;
+                s.castFrame = 1.f; s.recoveryFrame = 48.f; s.animPlaySpeed = 1.f;
+                s.stage2CastFrame = 6.f; s.stage2RecoveryFrame = 14.f; s.stage2PlaySpeed = 1.f;
                 s.castFrameHookId = kJax_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 3, s);
             }
@@ -131,7 +138,6 @@ namespace
             CVisualHookRegistry::Instance().Register(kJax_E_Cast, &Jax::Visual::OnCastFrame_E_Visual);
             CVisualHookRegistry::Instance().Register(kJax_R_Cast, &Jax::Visual::OnCastFrame_R_Visual);
 
-            OutputDebugStringA("[Jax] Registration complete\n");
         }
     };
 

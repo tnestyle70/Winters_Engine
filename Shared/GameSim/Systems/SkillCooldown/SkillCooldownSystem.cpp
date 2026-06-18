@@ -3,6 +3,7 @@
 #include "Shared/GameSim/Components/KalistaPassiveDashComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -145,6 +146,29 @@ namespace
 void CSkillCooldownSystem::Execute(CWorld& world, const TickContext& tc)
 {
     UpdateKalistaPassiveDash(world, tc);
+
+    const auto spellEntities =
+        DeterministicEntityIterator<SummonerSpellStateComponent>::CollectSorted(world);
+    for (EntityID entity : spellEntities)
+    {
+        auto& spells = world.GetComponent<SummonerSpellStateComponent>(entity);
+        for (u8_t i = 0; i < SummonerSpellStateComponent::kSlotCount; ++i)
+        {
+            if (spells.cooldownRemaining[i] > 0.f)
+            {
+                spells.cooldownRemaining[i] -= tc.fDt;
+                if (spells.cooldownRemaining[i] <= 0.f)
+                {
+                    spells.cooldownRemaining[i] = 0.f;
+                    spells.cooldownDuration[i] = 0.f;
+                }
+            }
+            else
+            {
+                spells.cooldownDuration[i] = 0.f;
+            }
+        }
+    }
 
     const auto entities = DeterministicEntityIterator<SkillStateComponent>::CollectSorted(world);
 

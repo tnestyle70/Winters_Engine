@@ -2,10 +2,13 @@
 
 #include "Network/Session.h"
 #include "Network/Session_Manager.h"
+#include "Security/LagCompensation.h"
 #include "Shared/Schemas/Generated/cpp/Command_generated.h"
 
+#include <Windows.h>
 #include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <mutex>
 #include <vector>
 
@@ -36,6 +39,36 @@ void CGameRoom::Phase_DrainCommands(TickContext& tc)
         GameCommand cmd = BuildServerCommand(
             pending.wire, pending.sessionId, controlledEntity, m_entityMap);
         cmd.issuedAtTick = tc.tickIndex;
+        cmd.rewindTicks = 0;
+
+        if (pending.clientTimestampMs != 0)
+        {
+            static u32_t s_commandTimingTraceCount = 0;
+            if (s_commandTimingTraceCount < 64u)
+            {
+                const long long clockDeltaMs =
+                    static_cast<long long>(pending.recvTimeMs) -
+                    static_cast<long long>(pending.clientTimestampMs);
+                const u64_t absDeltaMs = clockDeltaMs < 0
+                    ? static_cast<u64_t>(-clockDeltaMs)
+                    : static_cast<u64_t>(clockDeltaMs);
+                const u64_t observedClampedMs =
+                    (std::min)(absDeltaMs, CLagCompensation::kMaxRewindMs);
+                char msg[256]{};
+                sprintf_s(
+                    msg,
+                    "[LagComp][CommandTiming] sid=%u seq=%u kind=%u clockDeltaMs=%lld observedClampedMs=%llu acceptedTick=%llu execTick=%llu rewindTicks=0\n",
+                    pending.sessionId,
+                    pending.sequenceNum,
+                    static_cast<u32_t>(pending.wire.kind),
+                    clockDeltaMs,
+                    static_cast<unsigned long long>(observedClampedMs),
+                    static_cast<unsigned long long>(pending.acceptedTick),
+                    static_cast<unsigned long long>(tc.tickIndex));
+                OutputDebugStringA(msg);
+                ++s_commandTimingTraceCount;
+            }
+        }
 
         m_pendingExecCommands.push_back(cmd);
         m_lastSimCommandSeqBySession[pending.sessionId] = pending.sequenceNum;
@@ -95,6 +128,7 @@ void CGameRoom::OnCommandBatch(u32_t sessionId, const Shared::Schema::CommandBat
     const u64_t recvMs = static_cast<u64_t>(
         std::chrono::duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch()).count());
+    const u64_t clientTimestampMs = batch->clientTimestampMs();
 
     for (const auto* packet : *batch->commands())
     {
@@ -122,12 +156,12 @@ void CGameRoom::OnCommandBatch(u32_t sessionId, const Shared::Schema::CommandBat
             wire.direction = { pDir->x(), pDir->y(), pDir->z() };
         wire.itemId = packet->itemId();
 
-        EnqueueCommand(sessionId, wire, acceptedTick, recvMs);
+        EnqueueCommand(sessionId, wire, acceptedTick, recvMs, clientTimestampMs);
     }
 }
 
 void CGameRoom::EnqueueCommand(u32_t sessionId, const GameCommandWire& wire,
-    u64_t acceptedTick, u64_t recvTimeMs)
+    u64_t acceptedTick, u64_t recvTimeMs, u64_t clientTimestampMs)
 {
     std::lock_guard lk(m_pendingMutex);
 
@@ -137,6 +171,7 @@ void CGameRoom::EnqueueCommand(u32_t sessionId, const GameCommandWire& wire,
     pending.wire = wire;
     pending.acceptedTick = acceptedTick;
     pending.recvTimeMs = recvTimeMs;
+    pending.clientTimestampMs = clientTimestampMs;
 
     if (wire.kind == eCommandKind::Move)
     {

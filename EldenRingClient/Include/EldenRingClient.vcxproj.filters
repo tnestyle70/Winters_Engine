@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="00. Entry">
+      <UniqueIdentifier>{04f7d26b-9f70-4548-af41-0a00a1348274}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. App">
+      <UniqueIdentifier>{3bb14d72-fc16-43ec-b0d3-1f6e5d7d4418}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Scene">
+      <UniqueIdentifier>{bf3ed33b-ac05-4374-bfae-0326e2b13e2b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Scene\00. AssetProbe">
+      <UniqueIdentifier>{b580a8aa-3181-4455-8104-f6d43f1a9d37}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render">
+      <UniqueIdentifier>{e215068b-42bb-43ce-b227-9d51fc7122e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Render\00. Settings">
+      <UniqueIdentifier>{28cbb3c6-a857-463d-a01d-29d57b94fb63}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Asset">
+      <UniqueIdentifier>{191ab5f1-d5f4-4b5f-a771-bf85d07434da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. Tool">
+      <UniqueIdentifier>{230e665e-632f-4bd7-9631-3eb3706b351c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="98. Build">
+      <UniqueIdentifier>{7175f834-a277-4c01-8627-41d3f02088f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="99. Defines">
+      <UniqueIdentifier>{63290058-2559-4dec-b650-243ed02a6662}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Private\main.cpp">
+      <Filter>00. Entry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\EldenRingApp.cpp">
+      <Filter>01. App</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\EldenAssetProbeScene.cpp">
+      <Filter>02. Scene\00. AssetProbe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\EldenRingRHITestCubeRenderer.cpp">
+      <Filter>03. Render</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Public\EldenRingApp.h">
+      <Filter>01. App</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\EldenRingProbeScene.h">
+      <Filter>02. Scene\00. AssetProbe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\EldenRingRenderSettings.h">
+      <Filter>03. Render\00. Settings</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\EldenRingRHITestCubeRenderer.h">
+      <Filter>03. Render</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\CMakeLists.txt">
+      <Filter>98. Build</Filter>
+    </None>
+  </ItemGroup>
+</Project>

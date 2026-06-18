@@ -35,11 +35,28 @@ i32_t CSkeleton::FindBoneIndex(const string& strName) const
 }
 
 void CSkeleton::ComputeFinalTransforms(const vector<XMFLOAT4X4>& vecLocalTransforms,
-	vector<XMFLOAT4X4>& vecOutFinal) const
+	vector<XMFLOAT4X4>& vecOutFinal,
+	vector<XMFLOAT4X4>* pOutGlobal) const
+{
+	vector<XMMATRIX> vecGlobalScratch;
+	ComputeFinalTransformsWithScratch(
+		vecLocalTransforms,
+		vecOutFinal,
+		vecGlobalScratch,
+		pOutGlobal);
+}
+
+void CSkeleton::ComputeFinalTransformsWithScratch(
+	const vector<XMFLOAT4X4>& vecLocalTransforms,
+	vector<XMFLOAT4X4>& vecOutFinal,
+	vector<XMMATRIX>& vecGlobalScratch,
+	vector<XMFLOAT4X4>* pOutGlobal) const
 {
 	u32_t iBoneCount = (u32_t)m_vecBones.size();
 	vecOutFinal.resize(iBoneCount);
-	vector<XMMATRIX> vecGlobal(iBoneCount);
+	if (pOutGlobal)
+		pOutGlobal->resize(iBoneCount);
+	vecGlobalScratch.resize(iBoneCount);
 
 	XMMATRIX matGlobalInvRoot = XMLoadFloat4x4(&m_matGlobalInverseRoot);
 
@@ -47,12 +64,14 @@ void CSkeleton::ComputeFinalTransforms(const vector<XMFLOAT4X4>& vecLocalTransfo
 	{
 		XMMATRIX matLocal = XMLoadFloat4x4(&vecLocalTransforms[i]);
 		if (m_vecBones[i].iParentIndex >= 0)
-			vecGlobal[i] = matLocal * vecGlobal[m_vecBones[i].iParentIndex];
+			vecGlobalScratch[i] = matLocal * vecGlobalScratch[m_vecBones[i].iParentIndex];
 		else
-			vecGlobal[i] = matLocal;
+			vecGlobalScratch[i] = matLocal;
 
 		XMMATRIX matOffset = XMLoadFloat4x4(&m_vecBones[i].matOffset);
 		// Assimp 표준: Final = Offset × Global × GlobalInverseRoot
-		XMStoreFloat4x4(&vecOutFinal[i], matOffset * vecGlobal[i] * matGlobalInvRoot);
+		XMStoreFloat4x4(&vecOutFinal[i], matOffset * vecGlobalScratch[i] * matGlobalInvRoot);
+		if (pOutGlobal)
+			XMStoreFloat4x4(&(*pOutGlobal)[i], vecGlobalScratch[i]);
 	}
 }

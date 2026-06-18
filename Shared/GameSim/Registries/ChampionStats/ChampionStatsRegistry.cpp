@@ -1,6 +1,6 @@
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 
-#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 
 CChampionStatsRegistry& CChampionStatsRegistry::Instance()
 {
@@ -26,5 +26,5 @@ ChampionStatsDef CChampionStatsRegistry::Resolve(eChampion ID) const
     if (const ChampionStatsDef* pDef = Find(ID))
         return *pDef;
 
-    return BuildDefaultChampionStatsDef(ID);
+    return ChampionGameDataDB::ResolveStats(ID);
 }

@@ -6,13 +6,26 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Engine", "Engine\Include\Engine.vcxproj", "{E1111111-1111-1111-1111-111111111111}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Server", "Server\Include\Server.vcxproj", "{E3333333-3333-3333-3333-333333333333}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E1111111-1111-1111-1111-111111111111} = {E1111111-1111-1111-1111-111111111111}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Client", "Client\Include\Client.vcxproj", "{E2222222-2222-2222-2222-222222222222}"
 	ProjectSection(ProjectDependencies) = postProject
 		{E1111111-1111-1111-1111-111111111111} = {E1111111-1111-1111-1111-111111111111}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GameSim", "Shared\GameSim\Include\GameSim.vcxproj", "{E5555555-5555-5555-5555-555555555555}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E1111111-1111-1111-1111-111111111111} = {E1111111-1111-1111-1111-111111111111}
+	EndProjectSection
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WintersAssetConverter", "Tools\WintersAssetConverter\WintersAssetConverter.vcxproj", "{E4444444-4444-4444-4444-444444444444}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SimLab", "Tools\SimLab\SimLab.vcxproj", "{E6666666-6666-6666-6666-666666666666}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E1111111-1111-1111-1111-111111111111} = {E1111111-1111-1111-1111-111111111111}
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "04. Shared", "04. Shared", "{AD60FBA8-A423-4511-AD7E-9B738D30970C}"
 EndProject
@@ -333,7 +346,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", 
 		Shared\GameSim\Components\AttackChaseComponent.h = Shared\GameSim\Components\AttackChaseComponent.h
 		Shared\GameSim\Components\BuffComponent.h = Shared\GameSim\Components\BuffComponent.h
 		Shared\GameSim\Components\ChampionAIComponent.h = Shared\GameSim\Components\ChampionAIComponent.h
+		Shared\GameSim\Components\ChampionAssistCredit.h = Shared\GameSim\Components\ChampionAssistCredit.h
 		Shared\GameSim\Components\ChampionComponent.h = Shared\GameSim\Components\ChampionComponent.h
+		Shared\GameSim\Components\ChampionScore.h = Shared\GameSim\Components\ChampionScore.h
 		Shared\GameSim\Components\CombatActionComponent.h = Shared\GameSim\Components\CombatActionComponent.h
 		Shared\GameSim\Components\DamageRequestComponent.h = Shared\GameSim\Components\DamageRequestComponent.h
 		Shared\GameSim\Components\FioraSimComponent.h = Shared\GameSim\Components\FioraSimComponent.h
@@ -343,11 +358,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", 
 		Shared\GameSim\Components\InventoryComponent.h = Shared\GameSim\Components\InventoryComponent.h
 		Shared\GameSim\Components\IreliaSimComponent.h = Shared\GameSim\Components\IreliaSimComponent.h
 		Shared\GameSim\Components\JaxSimComponent.h = Shared\GameSim\Components\JaxSimComponent.h
+		Shared\GameSim\Components\JungleAIComponent.h = Shared\GameSim\Components\JungleAIComponent.h
 		Shared\GameSim\Components\KalistaPassiveDashComponent.h = Shared\GameSim\Components\KalistaPassiveDashComponent.h
 		Shared\GameSim\Components\KindredSimComponent.h = Shared\GameSim\Components\KindredSimComponent.h
 		Shared\GameSim\Components\LeeSinSimComponent.h = Shared\GameSim\Components\LeeSinSimComponent.h
 		Shared\GameSim\Components\ManaComponent.h = Shared\GameSim\Components\ManaComponent.h
 		Shared\GameSim\Components\MasterYiComponent.h = Shared\GameSim\Components\MasterYiComponent.h
+		Shared\GameSim\Components\MatchScore.h = Shared\GameSim\Components\MatchScore.h
 		Shared\GameSim\Components\MoveTargetComponent.h = Shared\GameSim\Components\MoveTargetComponent.h
 		Shared\GameSim\Components\NetAnimationComponent.h = Shared\GameSim\Components\NetAnimationComponent.h
 		Shared\GameSim\Components\NetEntityIdComponent.h = Shared\GameSim\Components\NetEntityIdComponent.h
@@ -357,6 +374,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", 
 		Shared\GameSim\Components\ReplicatedEventComponent.h = Shared\GameSim\Components\ReplicatedEventComponent.h
 		Shared\GameSim\Components\ReplicatedStateComponent.h = Shared\GameSim\Components\ReplicatedStateComponent.h
 		Shared\GameSim\Components\RespawnComponent.h = Shared\GameSim\Components\RespawnComponent.h
+		Shared\GameSim\Components\RuneComponent.h = Shared\GameSim\Components\RuneComponent.h
 		Shared\GameSim\Components\ShadowCloneComponent.h = Shared\GameSim\Components\ShadowCloneComponent.h
 		Shared\GameSim\Components\SkillProjectileComponent.h = Shared\GameSim\Components\SkillProjectileComponent.h
 		Shared\GameSim\Components\SkillRankComponent.h = Shared\GameSim\Components\SkillRankComponent.h
@@ -376,6 +394,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Definitions", "Definitions", "{4F905DC4-C4CA-4AD0-840A-82A098F6A642}"
 	ProjectSection(SolutionItems) = preProject
 		Shared\GameSim\Definitions\ChampionDef.h = Shared\GameSim\Definitions\ChampionDef.h
+		Shared\GameSim\Definitions\ChampionGameData.h = Shared\GameSim\Definitions\ChampionGameData.h
 		Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp = Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp
 		Shared\GameSim\Definitions\ChampionRuntimeDefaults.h = Shared\GameSim\Definitions\ChampionRuntimeDefaults.h
 		Shared\GameSim\Definitions\ChampionStatsDef.h = Shared\GameSim\Definitions\ChampionStatsDef.h
@@ -385,7 +404,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Definitions", "Definitions"
 		Shared\GameSim\Definitions\MapDataFormats.h = Shared\GameSim\Definitions\MapDataFormats.h
 		Shared\GameSim\Definitions\MapSpawnPoints.cpp = Shared\GameSim\Definitions\MapSpawnPoints.cpp
 		Shared\GameSim\Definitions\MapSpawnPoints.h = Shared\GameSim\Definitions\MapSpawnPoints.h
-		Shared\GameSim\Definitions\ReplicatedStateComponent.h = Shared\GameSim\Definitions\ReplicatedStateComponent.h
 		Shared\GameSim\Definitions\SkillDef.h = Shared\GameSim\Definitions\SkillDef.h
 		Shared\GameSim\Definitions\SkillScalingTable.h = Shared\GameSim\Definitions\SkillScalingTable.h
 		Shared\GameSim\Definitions\SkinDef.h = Shared\GameSim\Definitions\SkinDef.h
@@ -647,6 +665,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Stat", "Stat", "{38CC4E24-E
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "StatusEffect", "StatusEffect", "{3E6E5B5A-CF4B-4374-8AD6-DB109579B646}"
 	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\StatusEffect\StatusEffectRequests.h = Shared\GameSim\Systems\StatusEffect\StatusEffectRequests.h
 		Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp = Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp
 		Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.h = Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.h
 	EndProjectSection
@@ -784,6 +803,37 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Yone", "Yone", "{E15FD410-9
 		Data\LoL\FX\Champions\Yone\w_spirit_cleave.wfx = Data\LoL\FX\Champions\Yone\w_spirit_cleave.wfx
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "04. Feedback", "04. Feedback", "{8AD5BD3A-59DF-439C-BE9C-889C8BFC9562}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ChampionGameData", "ChampionGameData", "{A9D28169-9FD7-41E4-8F4C-723B6976C041}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Registries\ChampionGameData\ChampionGameDataDB.cpp = Shared\GameSim\Registries\ChampionGameData\ChampionGameDataDB.cpp
+		Shared\GameSim\Registries\ChampionGameData\ChampionGameDataDB.h = Shared\GameSim\Registries\ChampionGameData\ChampionGameDataDB.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Rune", "Rune", "{45FCF0FC-051C-4A96-B969-253D4F100268}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\Rune\RuneSystem.cpp = Shared\GameSim\Systems\Rune\RuneSystem.cpp
+		Shared\GameSim\Systems\Rune\RuneSystem.h = Shared\GameSim\Systems\Rune\RuneSystem.h
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EldenRingClient", "EldenRingClient\Include\EldenRingClient.vcxproj", "{B62DF1FE-946B-462E-80A3-444FE1CCF16E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E1111111-1111-1111-1111-111111111111} = {E1111111-1111-1111-1111-111111111111}
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "JungleAI", "JungleAI", "{D88E3547-980D-4344-808C-8FB5CA47C852}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Systems\JungleAI\JungleAISystem.cpp = Shared\GameSim\Systems\JungleAI\JungleAISystem.cpp
+		Shared\GameSim\Systems\JungleAI\JungleAISystem.h = Shared\GameSim\Systems\JungleAI\JungleAISystem.h
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Feedback", "Feedback", "{87D04BE5-D2C6-41F4-8396-D320C6EBC1D2}"
+	ProjectSection(SolutionItems) = preProject
+		Shared\GameSim\Feedback\GameplayFeedback.h = Shared\GameSim\Feedback\GameplayFeedback.h
+		Shared\GameSim\Feedback\GameplayFeedbackQueue.h = Shared\GameSim\Feedback\GameplayFeedbackQueue.h
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -802,10 +852,22 @@ Global
 		{E2222222-2222-2222-2222-222222222222}.Debug|x64.Build.0 = Debug|x64
 		{E2222222-2222-2222-2222-222222222222}.Release|x64.ActiveCfg = Release|x64
 		{E2222222-2222-2222-2222-222222222222}.Release|x64.Build.0 = Release|x64
+		{E5555555-5555-5555-5555-555555555555}.Debug|x64.ActiveCfg = Debug|x64
+		{E5555555-5555-5555-5555-555555555555}.Debug|x64.Build.0 = Debug|x64
+		{E5555555-5555-5555-5555-555555555555}.Release|x64.ActiveCfg = Release|x64
+		{E5555555-5555-5555-5555-555555555555}.Release|x64.Build.0 = Release|x64
+		{E6666666-6666-6666-6666-666666666666}.Debug|x64.ActiveCfg = Debug|x64
+		{E6666666-6666-6666-6666-666666666666}.Debug|x64.Build.0 = Debug|x64
+		{E6666666-6666-6666-6666-666666666666}.Release|x64.ActiveCfg = Release|x64
+		{E6666666-6666-6666-6666-666666666666}.Release|x64.Build.0 = Release|x64
 		{E4444444-4444-4444-4444-444444444444}.Debug|x64.ActiveCfg = Debug|x64
 		{E4444444-4444-4444-4444-444444444444}.Debug|x64.Build.0 = Debug|x64
 		{E4444444-4444-4444-4444-444444444444}.Release|x64.ActiveCfg = Release|x64
 		{E4444444-4444-4444-4444-444444444444}.Release|x64.Build.0 = Release|x64
+		{B62DF1FE-946B-462E-80A3-444FE1CCF16E}.Debug|x64.ActiveCfg = Debug|x64
+		{B62DF1FE-946B-462E-80A3-444FE1CCF16E}.Debug|x64.Build.0 = Debug|x64
+		{B62DF1FE-946B-462E-80A3-444FE1CCF16E}.Release|x64.ActiveCfg = Release|x64
+		{B62DF1FE-946B-462E-80A3-444FE1CCF16E}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -918,6 +980,14 @@ Global
 		{25ABF2C4-B65E-44B9-8C02-40C7B8416075} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
 		{394FDF2C-BE05-4167-9FA3-300AA0E67DEE} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
 		{E15FD410-97D3-42F5-91DC-F85795CB42EB} = {4B162E7D-AFD9-4442-BB74-17E7CCC0D4F3}
+		{8AD5BD3A-59DF-439C-BE9C-889C8BFC9562} = {AD60FBA8-A423-4511-AD7E-9B738D30970C}
+		{A9D28169-9FD7-41E4-8F4C-723B6976C041} = {05BA66B6-583E-47F6-B91F-DBBDB41C5AB3}
+		{45FCF0FC-051C-4A96-B969-253D4F100268} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{B62DF1FE-946B-462E-80A3-444FE1CCF16E} = {47D997FB-CC45-4BF1-B5C3-19AA54710538}
+		{D88E3547-980D-4344-808C-8FB5CA47C852} = {6EF7C8A9-BCEB-4A10-B302-B8B7FC822ECE}
+		{87D04BE5-D2C6-41F4-8396-D320C6EBC1D2} = {806C11A8-DF5B-413C-8C05-F2C107621C26}
+		{E5555555-5555-5555-5555-555555555555} = {806C11A8-DF5B-413C-8C05-F2C107621C26}
+		{E6666666-6666-6666-6666-666666666666} = {0069B82D-6E7C-4A6F-8358-1871662EB04B}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A0C25645-38FC-4ADB-91B9-14996F8289C7}

@@ -12,7 +12,8 @@ namespace
     constexpr const char* kCueBAHit = "Jax.BA.Hit";
     constexpr const char* kCueQLeap = "Jax.Q.Leap";
     constexpr const char* kCueWEmpower = "Jax.W.Empower";
-    constexpr const char* kCueECounter = "Jax.E.CounterStrike";
+    constexpr const char* kCueECounterGuard = "Jax.E.CounterGuard";
+    constexpr const char* kCueECounterRelease = "Jax.E.CounterRelease";
     constexpr const char* kCueRAura = "Jax.R.Aura";
     constexpr const char* kCueRThirdHit = "Jax.R.ThirdHit";
 
@@ -34,6 +35,8 @@ namespace
         L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_dome_flames.png";
     constexpr const wchar_t* kPathESparkTex =
         L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_spark.png";
+    constexpr const wchar_t* kPathEWaveTex =
+        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_wave06.png";
     constexpr const wchar_t* kPathRAuraTex =
         L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_r_buf_glow.png";
     constexpr const wchar_t* kPathRBuffOuterTex =
@@ -118,7 +121,7 @@ namespace Jax::Fx
 
         SpawnBillboard(world, target, pos, { 0.f, 1.05f, 0.f },
             kPathBaHitFlashTex, 1.55f, 1.55f, fLifetime,
-            { 1.55f, 0.85f, 0.28f, 1.f }, true, eBlendPreset::Additive,
+            { 1.85f, 1.22f, 0.55f, 1.f }, true, eBlendPreset::Additive,
             0.01f, fLifetime * 0.55f);
 
         SpawnBillboard(world, target, pos, { 0.f, 1.18f, 0.f },
@@ -139,7 +142,7 @@ namespace Jax::Fx
 
         SpawnBillboard(world, owner, pos, { 0.f, 1.0f, 0.f },
             kPathQTrailTex, 2.2f, 1.35f, fLifetime,
-            { 1.15f, 0.62f, 0.22f, 0.72f }, true, eBlendPreset::Additive,
+            { 1.10f, 0.82f, 0.28f, 0.72f }, true, eBlendPreset::Additive,
             0.02f, fLifetime * 0.65f);
 
         SpawnBillboard(world, owner, pos, { 0.f, 1.15f, 0.f },
@@ -163,22 +166,22 @@ namespace Jax::Fx
 
         SpawnBillboard(world, owner, pos, { 0.f, 1.35f, 0.f },
             kPathWSparkTex, 1.35f, 1.35f, fDuration * 0.45f,
-            { 1.85f, 0.80f, 0.24f, 1.0f }, true, eBlendPreset::Additive,
+            { 1.95f, 0.60f, 0.16f, 1.0f }, true, eBlendPreset::Additive,
             0.02f, fDuration * 0.30f);
     }
 
-    void SpawnECounterSlash(CWorld& world, EntityID owner, f32_t fLifetime,
+    void SpawnECounterGuard(CWorld& world, EntityID owner, f32_t fLifetime,
         Engine::CFxStaticMeshRenderer* pRenderer)
     {
         if (owner == NULL_ENTITY) return;
 
         const Vec3 pos = ResolveEntityWorldPos(world, owner);
-        if (PlayJaxCue(world, kCueECounter, owner, pos, { 0.f, 0.f, 1.f }, pRenderer))
+        if (PlayJaxCue(world, kCueECounterGuard, owner, pos, { 0.f, 0.f, 1.f }, pRenderer))
             return;
 
         SpawnBillboard(world, owner, pos, { 0.f, 0.05f, 0.f },
-            kPathEGroundTex, 4.6f, 4.6f, fLifetime,
-            { 0.45f, 0.78f, 1.35f, 0.55f }, false, eBlendPreset::Additive,
+            kPathEGroundTex, 6.8f, 6.8f, fLifetime,
+            { 0.55f, 0.80f, 1.40f, 0.40f }, false, eBlendPreset::Additive,
             0.06f, fLifetime * 0.30f);
 
         SpawnBillboard(world, owner, pos, { 0.f, 1.0f, 0.f },
@@ -186,10 +189,26 @@ namespace Jax::Fx
             { 1.45f, 0.58f, 0.18f, 0.82f }, true, eBlendPreset::Additive,
             0.03f, fLifetime * 0.35f);
 
+    }
+
+    void SpawnECounterRelease(CWorld& world, EntityID owner, f32_t fLifetime,
+        Engine::CFxStaticMeshRenderer* pRenderer)
+    {
+        if (owner == NULL_ENTITY) return;
+
+        const Vec3 pos = ResolveEntityWorldPos(world, owner);
+        if (PlayJaxCue(world, kCueECounterRelease, owner, pos, { 0.f, 0.f, 1.f }, pRenderer))
+            return;
+
         SpawnBillboard(world, owner, pos, { 0.f, 1.2f, 0.f },
-            kPathESparkTex, 2.2f, 2.2f, 0.34f,
-            { 1.85f, 0.88f, 0.30f, 1.0f }, true, eBlendPreset::Additive,
-            0.01f, 0.24f, fLifetime * 0.78f);
+            kPathESparkTex, 2.4f, 2.4f, fLifetime,
+            { 1.55f, 1.70f, 1.95f, 1.0f }, true, eBlendPreset::Additive,
+            0.01f, fLifetime * 0.70f);
+
+        SpawnBillboard(world, owner, pos, { 0.f, 0.08f, 0.f },
+            kPathEWaveTex, 6.0f, 2.2f, fLifetime,
+            { 0.85f, 1.10f, 1.50f, 0.62f }, false, eBlendPreset::Additive,
+            0.01f, fLifetime * 0.70f);
     }
 
     void SpawnRBuffAura(CWorld& world, EntityID owner, f32_t fDuration,

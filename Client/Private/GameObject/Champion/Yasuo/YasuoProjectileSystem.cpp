@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Yasuo/YasuoProjectileSystem.h"
+﻿#include "GameObject/Champion/Yasuo/YasuoProjectileSystem.h"
 #include "GameObject/FX/WindWallSystem.h"
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -139,7 +139,6 @@ void CYasuoProjectileSystem::Execute(CWorld& world, f32_t dt)
                                 projectile.fDamage,
                                 champion.hp,
                                 projectile.fStunSec);
-                            ::OutputDebugStringA(dbg);
                         }));
 
                 if (projectile.kind == eYasuoProjectileKind::EQRing)

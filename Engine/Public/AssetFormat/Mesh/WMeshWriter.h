@@ -12,6 +12,7 @@ namespace Winters::Asset
     {
         bool  bWriteBounds = true;
         bool  bMirrorX     = false;
+        bool  bIncludeLayerOverlays = false;
         float fScale       = 1.f;
 
         const std::unordered_map<std::string, uint32_t>* pSkelNameToIdx = nullptr;

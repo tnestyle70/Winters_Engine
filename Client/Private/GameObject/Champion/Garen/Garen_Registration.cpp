@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Garen/Garen_Skills.h"
+﻿#include "GameObject/Champion/Garen/Garen_Skills.h"
 
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
@@ -26,7 +26,7 @@ namespace
         }
     }
 
-    //훅을 만드는 게 서버에 보낼 무언가를 전송한다는 뜻인 걸까?
+    //?낆쓣 留뚮뱶??寃??쒕쾭??蹂대궪 臾댁뼵媛瑜??꾩넚?쒕떎???살씤 嫄멸퉴?
     void DispatchGarenVisualHook(VisualHookContext& visualCtx)
     {
         SkillHookContext skillCtx{};
@@ -68,7 +68,6 @@ namespace
 
                 CSkillHookRegistry::Instance().Register(hookId, &Garen::OnCastFrame);
             }
-            OutputDebugStringA("[Garen] Registration complete\n");
         }
     };
 

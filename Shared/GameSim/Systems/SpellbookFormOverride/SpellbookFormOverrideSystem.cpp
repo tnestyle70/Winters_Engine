@@ -98,6 +98,7 @@ SkillOverrideResolveResult CSpellbookFormOverrideSystem::ResolveSkill(
 			result.hookSlot = spellbook.sourceSlot;
 			result.cooldownChampion = baseChampion;
 			result.cooldownSlot = localSlot;
+			result.sourceRank = spellbook.sourceRank;
 			result.bOverridden = true;
 			result.bConsumeSpellbookOnAccept = true;
 		}

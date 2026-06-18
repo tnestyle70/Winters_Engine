@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Fiora/Fiora_Skills.h"
+﻿#include "GameObject/Champion/Fiora/Fiora_Skills.h"
 #include "GameObject/Champion/Fiora/Fiora_Components.h"
 #include "GameObject/Champion/Fiora/Fiora_FxPresets.h"
 #include "GamePlay/Systems/Damage.h"
@@ -38,7 +38,6 @@ namespace Fiora
             char dbg[128];
             sprintf_s(dbg, "[Fiora BA] target=%u dmg=%.1f\n",
                 static_cast<u32_t>(target), fDamage);
-            OutputDebugStringA(dbg);
         }
 
         EntityID FindEnemyInCone(CWorld& world, EntityID caster, eTeam casterTeam,
@@ -103,7 +102,6 @@ namespace Fiora
             char dbg[160];
             sprintf_s(dbg, "[Fiora Q] origin=(%.1f,%.1f,%.1f) hit=%u\n",
                 vOrigin.x, vOrigin.y, vOrigin.z, static_cast<u32_t>(hitTarget));
-            OutputDebugStringA(dbg);
         }
 
         void ArmRiposte(CWorld& world, EntityID caster)
@@ -112,7 +110,6 @@ namespace Fiora
             auto& fs = world.GetComponent<FioraStateComponent>(caster);
             fs.bRiposteActive = true;
             fs.fRiposteTimer = fs.fRiposteWindowSec;
-            OutputDebugStringA("[Fiora W] Riposte armed\n");
         }
 
         void ActivateBladework(CWorld& world, EntityID caster)
@@ -122,7 +119,6 @@ namespace Fiora
             fs.bBladeworkActive = true;
             fs.fBladeworkTimer = 5.0f;
             fs.bladeworkHitsRemaining = 2;
-            OutputDebugStringA("[Fiora E] Bladework activated (next 2 BA enhanced)\n");
         }
 
         void MarkGrandChallenge(CWorld& world, EntityID caster, eTeam casterTeam,
@@ -139,7 +135,6 @@ namespace Fiora
 
             char dbg[128];
             sprintf_s(dbg, "[Fiora R] target=%u marked\n", static_cast<u32_t>(target));
-            OutputDebugStringA(dbg);
         }
     }
 

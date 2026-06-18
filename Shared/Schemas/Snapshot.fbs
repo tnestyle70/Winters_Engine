@@ -15,6 +15,28 @@ enum EntityKind : ubyte {
     EffectAnchor = 9
 }
 
+table AIDebugTraceRow {
+    tick:ulong;
+    state:ubyte;
+    intent:ubyte;
+    action:ubyte;
+    divePhase:ubyte;
+    blockReason:ubyte;
+    commandKind:ubyte;
+    commandSlot:ubyte;
+    targetNet:uint;
+    commandPosX:float;
+    commandPosY:float;
+    commandPosZ:float;
+    championScore:float;
+    farmScore:float;
+    structureScore:float;
+    selfHpRatio:float;
+    enemyHpRatio:float;
+    enemyDistance:float;
+    turretDanger:float;
+}
+
 table EntitySnapshot {
     netId:uint;
     championId:ubyte;
@@ -65,6 +87,64 @@ table EntitySnapshot {
     attackRange:float;
     critChance:float;
     abilityHaste:float;
+
+    kills:ushort;
+    deaths:ushort;
+    assists:ushort;
+    summonerSpellIds:[ushort];
+    summonerSpellCooldowns:[float];
+    summonerSpellCooldownDurations:[float];
+
+    aiDebugAvailableActionMask:uint;
+    aiDebugAvailableSkillMask:uint;
+    aiDebugTargetNet:uint;
+    aiDebugLowHpEnemyNet:uint;
+    aiDebugDiveTargetNet:uint;
+    aiDebugLastCommandTargetNet:uint;
+    aiDebugLastCommandKind:ubyte;
+    aiDebugLastCommandSlot:ubyte;
+    aiDebugDivePhase:ubyte;
+    aiDebugFlags:uint;
+    aiDebugChampionScore:float;
+    aiDebugFarmScore:float;
+    aiDebugStructureScore:float;
+    aiDebugSelfHpRatio:float;
+    aiDebugEnemyHpRatio:float;
+    aiDebugEnemyDistance:float;
+    aiDebugAttackRange:float;
+    aiDebugTurretDanger:float;
+    aiDebugLowHpEnemyRatio:float;
+    aiDebugLowHpEnemyDistance:float;
+    aiDebugChampionScanRange:float;
+    aiDebugDiveScanRange:float;
+    aiDebugFlashRange:float;
+    aiDebugPostComboBATimer:float;
+    aiDebugLastCommandPosX:float;
+    aiDebugLastCommandPosY:float;
+    aiDebugLastCommandPosZ:float;
+    aiDebugLastBlockReason:ubyte;
+    aiDebugMinionScanRange:float;
+    aiDebugStructureScanRange:float;
+    aiDebugLeashRange:float;
+    aiDebugRetreatHpRatio:float;
+    aiDebugReengageHpRatio:float;
+    aiDebugChampionScoreMargin:float;
+    aiDebugTurretDangerThreshold:float;
+    aiDebugPostComboBASelfHpMinRatio:float;
+    aiDebugPostComboBAEnemyHpMargin:float;
+    aiDebugPostComboBAWindow:float;
+    aiDebugLowHpExecuteThreshold:float;
+    aiDebugDiveExtraBAWindow:float;
+    aiDebugTrace:[AIDebugTraceRow];
+    lethalTempoStacks:ubyte;
+
+    baseChampionId:ubyte;
+    visualChampionId:ubyte;
+    skillChampionId:ubyte;
+    skillSlotMask:ubyte;
+    spellbookChampionId:ubyte;
+    spellbookSlot:ubyte;
+    spellbookRemaining:float;
 }
 
 table Snapshot {
@@ -75,6 +155,15 @@ table Snapshot {
     lastAckedCommandSeq:uint;
     yourNetId:uint;
     deltaBaseTick:ulong;
+
+    blueTotalKills:ushort;
+    redTotalKills:ushort;
+    blueDestroyedTurrets:ushort;
+    redDestroyedTurrets:ushort;
+    blueDragons:ushort;
+    redDragons:ushort;
+    blueBarons:ushort;
+    redBarons:ushort;
 }
 
 root_type Snapshot;

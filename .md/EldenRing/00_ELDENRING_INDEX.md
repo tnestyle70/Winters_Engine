@@ -28,6 +28,10 @@ WintersEngine.dll
 | `08_SESSION_ROADMAP.md` | 실제 세션 단위 진행 순서와 완료 기준 |
 | `09_ASSET_EXTRACTION_SURVEY_2026_05_25.md` | 2026-05-25 asset extract 전수 조사, FBX/texture inventory, Winters converter smoke test |
 | `10_ASSET_PIPELINE_TOOLING.md` | MATBIN/FXR parser, Blender 자동 material mapping, Winters binary 준비 도구 |
+| `11_SHARED_RHI_RENDERING_ENTRY.md` | LoL/Elden 공용 RHI 렌더링 진입 결정 |
+| `12_UE5_REFERENCE_DX12_RHI_EDITOR_BIG_PICTURE.md` | UE5 reference, DX12 RHI, Elden editor 전체 큰그림 |
+| `13_HKX_ANIMATION_PIPELINE.md` | anibnd HKX -> Soulstruct -> FBX -> `.wanim` 샘플 애니메이션 변환 파이프라인 |
+| `14_PIPELINE_V2_RUNTIME_CONTRACT.md` | 파이프라인 V2 전체 흐름, Winters 런타임 에셋 계약, 신구 비교, 내부 정보 커버리지 |
 
 ## 현재 로컬 입력 자산
 

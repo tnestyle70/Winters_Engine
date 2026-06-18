@@ -1,4 +1,4 @@
-#include "GamePlay/ChampionRegistry.h"
+﻿#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GameObject/ChampionDef.h"
@@ -73,7 +73,6 @@ namespace
             RegisterSkill(3, eTargetMode::UnitTarget, "skinned_mesh_lamb_spell3", kKindred_E_Cast);
             RegisterSkill(4, eTargetMode::GroundTarget, "skinned_mesh_lamb_spell4", kKindred_R_Cast);
 
-            OutputDebugStringA("[Kindred] Registration complete\n");
         }
     };
 

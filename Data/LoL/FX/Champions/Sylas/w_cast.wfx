@@ -14,7 +14,7 @@
       "fade_in": 0.01,
       "fade_out": 0.26,
       "scale": [0.024, 0.024, 0.024],
-      "color": [1.70, 1.22, 0.48, 0.82],
+      "color": [1.72, 1.35, 0.55, 0.82],
       "attach_offset": [0.0, 0.88, 0.0]
     },
     {
@@ -28,7 +28,7 @@
       "fade_out": 0.22,
       "width": 2.25,
       "height": 2.25,
-      "color": [2.10, 1.52, 0.58, 0.95],
+      "color": [2.15, 1.70, 0.72, 0.95],
       "attach_offset": [0.0, 1.15, 0.0],
       "billboard": true
     },
@@ -44,7 +44,7 @@
       "fade_out": 0.30,
       "width": 2.85,
       "height": 2.85,
-      "color": [1.12, 0.62, 2.05, 0.70],
+      "color": [1.12, 0.62, 2.05, 0.50],
       "attach_offset": [0.0, 1.08, 0.0],
       "billboard": true
     },
@@ -60,7 +60,7 @@
       "fade_out": 0.27,
       "start_radius": 0.35,
       "end_radius": 2.15,
-      "color": [1.65, 1.08, 0.38, 0.70],
+      "color": [1.68, 1.22, 0.46, 0.70],
       "attach_offset": [0.0, 0.08, 0.0],
       "billboard": false
     }

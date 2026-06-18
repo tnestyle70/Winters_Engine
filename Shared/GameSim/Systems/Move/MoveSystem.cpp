@@ -7,6 +7,7 @@
 #include "Shared/GameSim/Components/NetAnimationComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -34,9 +35,36 @@ namespace
             kYawHalfTurnTolerance;
     }
 
-    Vec3 GameplayForwardFromVisualYaw(eChampion champion, f32_t yaw)
+    f32_t ResolveEntityVisualYawOffset(
+        CWorld& world,
+        EntityID entity,
+        const StatComponent& stat)
     {
-        const f32_t gameplayYaw = yaw - GetDefaultChampionVisualYawOffset(champion);
+        if (entity != NULL_ENTITY && world.HasComponent<JungleComponent>(entity))
+            return WintersMath::kPi;
+
+        return ChampionGameDataDB::ResolveVisualYawOffset(stat.championId);
+    }
+
+    f32_t ResolveVisualYawFromDirection(const Vec3& direction, f32_t visualYawOffset)
+    {
+        return WintersMath::NormalizeRadians(
+            WintersMath::YawFromDirectionXZ(direction, visualYawOffset));
+    }
+
+    f32_t ResolveVisualYawNear(
+        const Vec3& direction,
+        f32_t referenceYaw,
+        f32_t visualYawOffset)
+    {
+        return MakeChampionVisualYawNear(
+            ResolveVisualYawFromDirection(direction, visualYawOffset),
+            referenceYaw);
+    }
+
+    Vec3 GameplayForwardFromVisualYaw(f32_t yaw, f32_t visualYawOffset)
+    {
+        const f32_t gameplayYaw = yaw - visualYawOffset;
         return Vec3{ std::sinf(gameplayYaw), 0.f, std::cosf(gameplayYaw) };
     }
 
@@ -124,9 +152,7 @@ namespace
 
     bool_t IsMoveBlockingKind(eSpatialKind kind)
     {
-        return kind == eSpatialKind::Champion ||
-            kind == eSpatialKind::Minion ||
-            kind == eSpatialKind::JungleMob;
+        return kind == eSpatialKind::JungleMob;
     }
 
     f32_t ResolveAgentRadius(CWorld& world, EntityID entity)
@@ -304,7 +330,15 @@ namespace
 
         const u8_t slot = SlotFromActionAnimation(currentAnim);
         const u8_t stage = StageFromActionAnimationFlags(anim.flags);
-        const u64_t lockTicks = GetDefaultChampionSkillActionLockTicks(stat.championId, slot, stage);
+        if (stat.championId == eChampion::JAX &&
+            currentAnim == eNetAnimId::SkillE &&
+            slot == static_cast<u8_t>(eSkillSlot::E) &&
+            stage == 1u)
+        {
+            return false;
+        }
+
+        const u64_t lockTicks = ChampionGameDataDB::ResolveSkillActionLockTicks(stat.championId, slot, stage);
         return (tc.tickIndex - anim.animStartTick) < lockTicks;
     }
 
@@ -565,8 +599,10 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
             bMoveYawOpposed,
             bFacingLocked);
         const Vec3 rot = transform.GetRotation();
+        const f32_t visualYawOffset =
+            ResolveEntityVisualYawOffset(world, entity, stat);
         const f32_t resolvedYaw =
-            ResolveChampionVisualYawNear(stat.championId, yawDirection, rot.y);
+            ResolveVisualYawNear(yawDirection, rot.y, visualYawOffset);
         transform.SetRotation({
             rot.x,
             resolvedYaw,
@@ -575,16 +611,16 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
         static u32_t s_moveSystemYawTraceCount = 0;
         const f32_t yawDelta = NormalizeChampionVisualYaw(resolvedYaw - rot.y);
         const f32_t moveYaw =
-            ResolveChampionVisualYawFromDirection(stat.championId, dir);
+            ResolveVisualYawFromDirection(dir, visualYawOffset);
         const f32_t intentYaw =
             (traceFacingDirection.x != 0.f || traceFacingDirection.z != 0.f)
-                ? ResolveChampionVisualYawFromDirection(stat.championId, traceFacingDirection)
+                ? ResolveVisualYawFromDirection(traceFacingDirection, visualYawOffset)
                 : moveYaw;
         const Vec3 activeDirection =
             WintersMath::DirectionXZ(pos, activeTarget, Vec3{});
         const f32_t activeYaw =
             (activeDirection.x != 0.f || activeDirection.z != 0.f)
-                ? ResolveChampionVisualYawFromDirection(stat.championId, activeDirection)
+                ? ResolveVisualYawFromDirection(activeDirection, visualYawOffset)
                 : moveYaw;
         const f32_t appliedVsMove =
             NormalizeChampionVisualYaw(resolvedYaw - moveYaw);
@@ -594,8 +630,8 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
             NormalizeChampionVisualYaw(resolvedYaw - activeYaw);
         const f32_t intentVsMoveDot =
             traceFacingDirection.x * dir.x + traceFacingDirection.z * dir.z;
-        const Vec3 previousForward = GameplayForwardFromVisualYaw(stat.championId, rot.y);
-        const Vec3 appliedForward = GameplayForwardFromVisualYaw(stat.championId, resolvedYaw);
+        const Vec3 previousForward = GameplayForwardFromVisualYaw(rot.y, visualYawOffset);
+        const Vec3 appliedForward = GameplayForwardFromVisualYaw(resolvedYaw, visualYawOffset);
         const f32_t prevVsAppliedDot =
             previousForward.x * appliedForward.x + previousForward.z * appliedForward.z;
         const bool_t bHalfTurn = IsYawHalfTurn(yawDelta);

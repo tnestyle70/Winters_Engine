@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Irelia/IreliaFxPresets.h"
+﻿#include "GameObject/Champion/Irelia/IreliaFxPresets.h"
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxMeshSystem.h"
 #include "GameObject/FX/FxCuePlayer.h"
@@ -12,7 +12,7 @@
 
 namespace
 {
-    // ── 텍스처 경로 const (LoL 본체 머티리얼 PNG) ──
+    // ?? ?띿뒪泥?寃쎈줈 const (LoL 蹂몄껜 癒명떚由ъ뼹 PNG) ??
     constexpr const wchar_t* kPathQTrail =
         L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_q_dark_trail.png";
     constexpr const wchar_t* kPathQMark =
@@ -31,7 +31,7 @@ namespace
         L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_temp_w_ambientglow.png";
     constexpr const wchar_t* kPathShards =
         L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_shards.png";
-    //  W2 release 2-layer 합성 (blade_erode 는 kPathWBlade 로 SpawnWStage2Slash 가 사용)
+    //  W2 release 2-layer ?⑹꽦 (blade_erode ??kPathWBlade 濡?SpawnWStage2Slash 媛 ?ъ슜)
     constexpr const wchar_t* kPathWSwipeBlades =
         L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_w_swipe_blades.png";
     constexpr const wchar_t* kPathWMisGlow =
@@ -46,7 +46,7 @@ namespace
     constexpr const wchar_t* kPathRWallDecal =
         L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_r_hit_wall_dissarm_muzzle.png";
 
-    // ── E mesh ──
+    // ?? E mesh ??
     constexpr const char* kPathEBeamFbx = "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx";
     constexpr const wchar_t* kPathEBeamTex = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_beam_mult.png";
 
@@ -63,7 +63,7 @@ namespace
     constexpr const wchar_t* kPathLensflareStreak =
         L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_lensflare_streak.png";
 
-    // ── R 부채꼴 칼날 (E sword 와 동일 mesh + 본체 머티리얼 텍스처) ──
+    // ?? R 遺梨꾧섦 移쇰궇 (E sword ? ?숈씪 mesh + 蹂몄껜 癒명떚由ъ뼹 ?띿뒪泥? ??
     constexpr const char*    kPathRBladeFbx = "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_blade.fbx";
     constexpr const wchar_t* kPathRBladeTex = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_blades_passive_4_texture.png";
 
@@ -121,10 +121,10 @@ EntityID IreliaFx::SpawnQMark(CWorld& world, EntityID target, f32_t fLifeTime)
 {
     FxBillboardComponent mark{};
     mark.attachTo = target;
-    //오프셋 일부로 줄임 - 원작 반영
+    //?ㅽ봽???쇰?濡?以꾩엫 - ?먯옉 諛섏쁺
     mark.vAttachOffset = { 0.f, 1.f, 0.f };
     mark.texturePath = kPathQMark;
-    //크기 확대
+    //?ш린 ?뺣?
     mark.fWidth = 1.8f;
     mark.fHeight = 1.8f;
     mark.fLifetime = fLifeTime;
@@ -147,7 +147,7 @@ IreliaFx::IreliaWHoldFxIds IreliaFx::SpawnWSpinLayers(CWorld& world, EntityID ow
     wfx.fFadeIn = 0.06f;
     wfx.fFadeOut = 0.25f;
     wfx.bBillboard = true;
-    wfx.vColor = { 0.7f, 1.0f, 1.5f, 0.85f };
+    wfx.vColor = { 0.95f, 1.05f, 1.7f, 0.85f };
     wfx.blendMode = eBlendPreset::Additive;
     wfx.iAtlasCols = 2;
     wfx.iAtlasRows = 2;
@@ -202,10 +202,10 @@ EntityID IreliaFx::SpawnWSpin(CWorld& world, EntityID owner, f32_t fLifetime)
 {
     FxBillboardComponent wfx{};
     wfx.attachTo = owner;
-    //오프셋
+    //?ㅽ봽??
     wfx.vAttachOffset = { 0.f, 1.f, 0.f };
     wfx.texturePath = kPathWSpin;
-    //크기 키움!
+    //?ш린 ?ㅼ?!
     wfx.fWidth = 2.f;
     wfx.fHeight = 3.f;
     wfx.fLifetime = fLifetime;
@@ -222,7 +222,7 @@ void IreliaFx::SpawnWReleaseLayers(CWorld& world, EntityID owner, f32_t fLifetim
     const Vec4& vBladesColor, const Vec4& vGlowColor,
     const Vec3& vAttachOffset)
 {
-    // ★ DIAG (검증 후 제거 예정) — W2 release 호출 확인
+    // ??DIAG (寃利????쒓굅 ?덉젙) ??W2 release ?몄텧 ?뺤씤
     {
         char dbg[256];
         sprintf_s(dbg,
@@ -231,10 +231,9 @@ void IreliaFx::SpawnWReleaseLayers(CWorld& world, EntityID owner, f32_t fLifetim
             vAttachOffset.x, vAttachOffset.y, vAttachOffset.z,
             vBladesColor.x, vBladesColor.y, vBladesColor.z, vBladesColor.w,
             vGlowColor.x,   vGlowColor.y,   vGlowColor.z,   vGlowColor.w);
-        ::OutputDebugStringA(dbg);
     }
 
-    // Layer 1: swipe_blades (RGBA 칼날 실루엣, AlphaBlend)
+    // Layer 1: swipe_blades (RGBA 移쇰궇 ?ㅻ（?? AlphaBlend)
     FxBillboardComponent base{};
     base.attachTo      = owner;
     base.vAttachOffset = vAttachOffset;
@@ -247,7 +246,7 @@ void IreliaFx::SpawnWReleaseLayers(CWorld& world, EntityID owner, f32_t fLifetim
     base.blendMode     = eBlendPreset::AlphaBlend;
     SpawnBillboardAsset(world, base, "Irelia_W_Release_Blades");
 
-    // Layer 2: mis_glow (luminance, Additive 블루 tint)
+    // Layer 2: mis_glow (luminance, Additive 釉붾（ tint)
     FxBillboardComponent glow = base;
     glow.texturePath = kPathWMisGlow;
     glow.vColor      = vGlowColor;
@@ -274,14 +273,14 @@ void IreliaFx::SpawnWReleaseLayers(CWorld& world, EntityID owner, f32_t fLifetim
     shard.blendMode = eBlendPreset::Additive;
     SpawnRuntimeBillboard(world, shard);
 
-    // blade_erode 는 SpawnWStage2Slash 가 forward 슬래시로 2장 spawn — 여기선 제외.
+    // blade_erode ??SpawnWStage2Slash 媛 forward ?щ옒?쒕줈 2??spawn ???ш린???쒖쇅.
 }
 
 EntityID IreliaFx::SpawnEBlade(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
     const Vec3& vGround, EntityID owner, f32_t fScale, const Vec3& vRotation,
     f32_t fWorldYawSpinSpeed)
 {
-    // IreliaBladeSystem 의 기존 SpawnPlaced 그대로 위임 (caller 단순화 목적)
+    // IreliaBladeSystem ??湲곗〈 SpawnPlaced 洹몃?濡??꾩엫 (caller ?⑥닚??紐⑹쟻)
     return CIreliaBladeSystem::SpawnPlaced(world, pRenderer, vGround, owner,
         fScale, vRotation, fWorldYawSpinSpeed);
 }
@@ -298,7 +297,7 @@ EntityID IreliaFx::SpawnEBeam(CWorld& world, Engine::CFxStaticMeshRenderer* pRen
     beam.vScale      = { fBaseScale * fGirth,
                          fBaseScale * fGirth,
                          fBaseScale * fLength * fAxisScale };
-    beam.vColor      = { 0.78f, 0.88f, 2.35f, 0.88f };
+    beam.vColor      = { 0.45f, 0.55f, 1.8f, 0.85f };
     beam.blendMode   = eBlendPreset::Additive;
     beam.bDepthWrite = false;
     beam.fFadeIn     = 0.02f;
@@ -359,7 +358,7 @@ void IreliaFx::SpawnRBladeFan(CWorld& world, Engine::CFxStaticMeshRenderer* pRen
             blade.vScale = { bladeScale, bladeScale, bladeScale };
             blade.modelPath = kPathRBladeFbx;
             blade.texturePath = kPathRBladeTex;
-            blade.vColor = { 0.5f, 0.8f, 1.6f, 1.0f };
+            blade.vColor = { 0.7f, 0.9f, 1.45f, 1.0f };
             blade.blendMode = eBlendPreset::AlphaBlend;
             blade.fLifetime = lifetime;
             blade.fStartDelay = startDelay;
@@ -646,10 +645,10 @@ EntityID IreliaFx::SpawnRPulse(CWorld& world, const Vec3& vOrigin, const Vec3& v
     rfx.fWidth = fWidth;
     rfx.fHeight = fHeight;
     rfx.fYaw = std::atan2f(vForward.x, vForward.z) + fYawOffset;
-    rfx.bBillboard = false;     // 지면 회전 모드
+    rfx.bBillboard = false;     // 吏硫??뚯쟾 紐⑤뱶
     rfx.fLifetime = fLifetime;
     rfx.fFadeOut = fLifetime * 0.35f;
-    rfx.vColor = { 0.65f, 0.95f, 1.65f, 0.85f };
+    rfx.vColor = { 1.0f, 1.08f, 1.55f, 0.9f };
     rfx.blendMode = eBlendPreset::Additive;
 
     const EntityID pulseId = SpawnBillboardAsset(world, rfx, "Irelia_R_Pulse");
@@ -691,7 +690,7 @@ void IreliaFx::SpawnRHitLayers(CWorld& world, const Vec3& vHitPos, const Vec3& v
     ring.fFadeIn = 0.03f;
     ring.fFadeOut = 0.45f;
     ring.bBillboard = false;
-    ring.vColor = { 0.55f, 0.95f, 1.8f, 0.55f };
+    ring.vColor = { 0.7f, 0.98f, 1.8f, 0.55f };
     ring.blendMode = eBlendPreset::Additive;
     SpawnRuntimeBillboard(world, ring);
 
@@ -702,7 +701,7 @@ void IreliaFx::SpawnRHitLayers(CWorld& world, const Vec3& vHitPos, const Vec3& v
     wall.fStartDelay = 0.08f;
     wall.fLifetime = fLifetime + 0.4f;
     wall.fFadeOut = 0.6f;
-    wall.vColor = { 0.45f, 0.85f, 1.5f, 0.45f };
+    wall.vColor = { 0.6f, 0.9f, 1.55f, 0.45f };
     SpawnRuntimeBillboard(world, wall);
 
     FxBillboardComponent flash = ring;
@@ -713,6 +712,6 @@ void IreliaFx::SpawnRHitLayers(CWorld& world, const Vec3& vHitPos, const Vec3& v
     flash.fFadeIn = 0.01f;
     flash.fFadeOut = 0.18f;
     flash.bBillboard = true;
-    flash.vColor = { 0.85f, 1.1f, 2.0f, 0.9f };
+    flash.vColor = { 1.3f, 1.28f, 2.05f, 0.95f };
     SpawnRuntimeBillboard(world, flash);
 }

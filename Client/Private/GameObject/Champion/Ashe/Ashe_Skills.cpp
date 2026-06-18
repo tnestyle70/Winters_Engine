@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Ashe/Ashe_Skills.h"
+﻿#include "GameObject/Champion/Ashe/Ashe_Skills.h"
 #include "GameObject/Champion/Ashe/Ashe_Components.h"
 #include "GameObject/Champion/Ashe/Ashe_FxPresets.h"
 #include "GameObject/Champion/Ashe/AsheVisualCueCatalog.h"
@@ -35,7 +35,6 @@ namespace Ashe
         {
             char dbg[96];
             sprintf_s(dbg, "[Ashe Frost] target=%u slow stub\n", static_cast<u32_t>(target));
-            OutputDebugStringA(dbg);
         }
 
         Vec3 ResolveVisualPosition(CWorld& world, EntityID entity)
@@ -155,7 +154,6 @@ namespace Ashe
         char dbg[128];
         sprintf_s(dbg, "[Ashe BA] target=%u dmg=%.1f\n",
             static_cast<u32_t>(target), fDamage);
-        OutputDebugStringA(dbg);
     }
 
     void OnCastFrame_Q(SkillHookContext& ctx)
@@ -169,7 +167,6 @@ namespace Ashe
             char dbg[96];
             sprintf_s(dbg, "[Ashe Q] not ready (stacks=%u/%u)\n",
                 as.focusStacks, as.focusThreshold);
-            OutputDebugStringA(dbg);
             return;
         }
 
@@ -177,7 +174,6 @@ namespace Ashe
         as.fQTimer = as.fQDurationSec;
         as.focusStacks = 0;
 
-        OutputDebugStringA("[Ashe Q] Ranger's Focus activated\n");
     }
 
     void OnCastFrame_W(SkillHookContext& ctx)
@@ -208,7 +204,6 @@ namespace Ashe
 
         char dbg[128];
         sprintf_s(dbg, "[Ashe W] %u arrows fired\n", arrowCount);
-        OutputDebugStringA(dbg);
     }
 
     void OnCastFrame_E(SkillHookContext& ctx)
@@ -230,7 +225,6 @@ namespace Ashe
         char dbg[160];
         sprintf_s(dbg, "[Ashe E] Hawkshot dest=(%.1f,%.1f,%.1f) duration=%.1fs\n",
             dest.x, dest.y, dest.z, as.fHawkshotVisionDurationSec);
-        OutputDebugStringA(dbg);
     }
 
     void OnCastFrame_R(SkillHookContext& ctx)
@@ -250,7 +244,6 @@ namespace Ashe
         char dbg[128];
         sprintf_s(dbg, "[Ashe R] Crystal Arrow fired dir=(%.2f,%.2f,%.2f)\n",
             dir.x, dir.y, dir.z);
-        OutputDebugStringA(dbg);
     }
 
     namespace Gameplay

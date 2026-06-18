@@ -1,6 +1,9 @@
 #include "WintersPCH.h"
 #include "Core/JobSystem.h"
 #include "Core/JobCounter.h"
+#include "ProfilerAPI.h"
+
+#include <cstdio>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -72,6 +75,7 @@ void CJobSystem::Shutdown()
         return;
 
     m_bShutdown.store(true, std::memory_order_release);
+    m_WakeCV.notify_all();
     for (auto& w : m_vecWorkers)
     {
         if (w.joinable())
@@ -142,7 +146,10 @@ void CJobSystem::EnqueueJob(WorkItem&& item)
     if (t_iWorkerIdx >= 0 && static_cast<std::uint32_t>(t_iWorkerIdx) < N)
     {
         if (m_vecDeques[t_iWorkerIdx]->Push(item))
+        {
+            m_WakeCV.notify_one();
             return;
+        }
         //overflow
     }
     //main 외부 / overflow - global queue
@@ -150,13 +157,19 @@ void CJobSystem::EnqueueJob(WorkItem&& item)
         std::lock_guard<std::mutex> lk(m_GlobalMutex);
         m_GlobalQueue.push(std::move(item));
     }
-
+    m_WakeCV.notify_one();
 }
 
 // ─── Worker 루프 ───────────────────────────────────────────────
 void CJobSystem::WorkerLoop(std::uint32_t iWorkerIdx)
 {
     t_iWorkerIdx = static_cast<std::int32_t>(iWorkerIdx);
+
+#ifdef WINTERS_PROFILING
+    char szThreadName[32];
+    std::snprintf(szThreadName, sizeof(szThreadName), "JobWorker %u", iWorkerIdx);
+    WINTERS_PROFILE_THREAD_NAME(szThreadName);
+#endif
     if (GetExecutionMode() == eJobExecutionMode::FiberShell && !IsThreadAFiber())
     {
         t_hThreadFiber = ConvertThreadToFiber(nullptr);
@@ -165,7 +178,13 @@ void CJobSystem::WorkerLoop(std::uint32_t iWorkerIdx)
     while (!m_bShutdown.load(std::memory_order_acquire))
     {
         if (!TryExecuteOneJob(iWorkerIdx))
-            std::this_thread::yield();
+        {
+            // yield 스핀은 외부 CPU 부하와 경쟁하며 코어를 태운다.
+            // 짧은 타임아웃 대기로 전환해 잡이 없을 땐 실제로 잠든다.
+            // (타임아웃이 있어 steal 전용 깨우기 누락도 1ms 안에 회복)
+            std::unique_lock<std::mutex> lk(m_WakeMutex);
+            m_WakeCV.wait_for(lk, std::chrono::milliseconds(1));
+        }
     }
 
     if (t_hThreadFiber && IsThreadAFiber())

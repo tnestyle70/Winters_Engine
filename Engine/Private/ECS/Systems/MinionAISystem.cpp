@@ -10,6 +10,7 @@
 #include "ProfilerAPI.h"
 
 #include <algorithm>
+#include <cmath>
 #include <limits>
 #include <vector>
 
@@ -26,7 +27,7 @@ static void FaceToward(TransformComponent& transform, const Vec3& targetPos)
         return;
 
     Vec3 rot = transform.GetRotation();
-    rot.y = WintersMath::YawFromDirectionXZ(dir);
+    rot.y = static_cast<f32_t>(std::atan2(-dir.x, -dir.z));
     transform.SetRotation(rot);
 }
 

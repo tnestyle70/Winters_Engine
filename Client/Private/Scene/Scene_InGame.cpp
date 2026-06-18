@@ -1,24 +1,16 @@
-#define _CRT_SECURE_NO_WARNINGS
+﻿#define _CRT_SECURE_NO_WARNINGS
 
 #include "Network/Client/ClientNetwork.h"
 #include "Network/Client/CommandSerializer.h"
 #include "Network/Client/EventApplier.h"
 #include "Network/Client/GameSessionClient.h"
 #include "Network/Client/SnapshotApplier.h"
+#include "Replay/ReplayPlayer.h"
 
 #include <Windows.h>
-#include "Scene/InGameBootstrapBridge.h"
-#include "Scene/InGameChampionStateBridge.h"
-#include "Scene/InGameCombatInputBridge.h"
 #include "Scene/GameplayQuery.h"
-#include "Scene/InGameDebugBridge.h"
-#include "Scene/InGameLifecycleBridge.h"
-#include "Scene/InGameNetworkBridge.h"
-#include "Scene/InGamePlayerControlBridge.h"
-#include "Scene/InGamePlayerTransformBridge.h"
-#include "Scene/InGameRenderBridge.h"
 #include "Scene/InGameRosterSpawner.h"
-#include "Scene/InGameSkillDispatchBridge.h"
+#include "Scene/RenderVisibilityFilter.h"
 #include "Scene/Scene_InGame.h"
 #include "Scene/Scene_Editor.h"
 #include "Manager/Structure_Manager.h"
@@ -32,10 +24,11 @@
 #include "ECS/Systems/MinionAISystem.h"
 #include "ECS/Systems/SpatialHashSystem.h"
 #include "ECS/Systems/BehaviorTreeSystem.h"
-#include "ECS/Systems/GameplayCollisionSystem.h"
 #include "ECS/Systems/MCTSSystem.h"
 #include "ECS/Systems/TurretAISystem.h"
 #include "ECS/Systems/TurretProjectileSystem.h"
+#include "ECS/Systems/MinionPerformanceSystem.h"
+#include "ECS/Systems/YoneSoulSpawnSystem.h"
 #include "ECS/Systems/VisionSystem.h"
 #include "ECS/BushVolumeIndex.h"
 #include "ECS/Components/NavAgentComponent.h"
@@ -57,15 +50,25 @@
 #include "UI/SkillTimingPanel.h"
 #include "UI/ChampionTuner.h"
 #include "UI/EffectTuner.h"
-#include "UI/MinimapPanel.h"
 #include "UI/WfxEffectToolPanel.h"
+#include "UI/MinimapPanel.h"
+#include "Network/Client/NetworkEventTrace.h"
 
 #include "Resource/Animator.h"
 #include "Resource/Animation.h"
 
 #include "GameObject/ChampionDef.h"
-#include "GameObject/Champion/Kalista/Kalista_Tuning.h"
 #include "GameObject/Champion/Zed/ZedFxPresets.h"
+#include "GameObject/Champion/Annie/Annie_Components.h"
+#include "GameObject/Champion/Ashe/Ashe_Components.h"
+#include "GameObject/Champion/Irelia/Irelia_Skills.h"
+#include "GameObject/Champion/Jax/Jax_Components.h"
+#include "GameObject/Champion/Kalista/Kalista_Skills.h"
+#include "GameObject/Champion/Kalista/Kalista_Tuning.h"
+#include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
@@ -76,10 +79,14 @@
 #include "GameContext.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/ReplicatedStateComponent.h"
+#include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
+#include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -102,6 +109,7 @@
 #include "ECS/Components/MeshGroupVisibilityComponent.h"
 
 #include "RHI/IRHIDevice.h"
+#include "RHI/RHITextureLoader.h"
 #include "RHI/RHITypes.h"
 #include "Renderer/FogOfWarRenderer.h"
 
@@ -109,9 +117,17 @@
 #include <cmath>
 #include <cstring>
 #include <cwchar>
+#include <functional>
 #include <vector>
 
 CScene_InGame::CScene_InGame() = default;
+
+CScene_InGame::CScene_InGame(const wstring_t& replayPath)
+    : m_bReplayPlaybackMode(true)
+    , m_strReplayPath(replayPath)
+{
+}
+
 CScene_InGame::~CScene_InGame() = default;
 
 namespace
@@ -186,6 +202,7 @@ namespace
             id == eNetAnimId::SkillW ||
             id == eNetAnimId::SkillE ||
             id == eNetAnimId::SkillR ||
+            id == eNetAnimId::Recall ||
             id == eNetAnimId::ViegoConsumeSoul;
     }
 
@@ -266,6 +283,9 @@ namespace
 
     const SkillDef* FindNetworkSkillDef(eChampion champion, u16_t animId)
     {
+        if (static_cast<eNetAnimId>(animId) == eNetAnimId::Recall)
+            return nullptr;
+
         const u8_t slot = NetworkAnimToSkillSlot(animId);
         const SkillDef* pDef = CSkillRegistry::Instance().Find(champion, slot);
         if (!pDef)
@@ -279,24 +299,43 @@ namespace
         return stage == 0u ? 1u : stage;
     }
 
-    f32_t ResolveNetworkActionDurationSec(eChampion champion, const SkillDef* pDef, u16_t animId, u16_t flags)
+    constexpr u16_t kNetAnimFlagLoop = 0x0800u;
+
+    f32_t DecodePlaybackRateQ8(u16_t playbackRateQ8)
     {
+        const f32_t playSpeed = playbackRateQ8 > 0
+            ? static_cast<f32_t>(playbackRateQ8) / 256.f
+            : 1.f;
+        return std::clamp(playSpeed, 0.05f, 4.f);
+    }
+
+    f32_t ResolveNetworkActionDurationSec(
+        eChampion champion,
+        const SkillDef* pDef,
+        u16_t animId,
+        u16_t flags,
+        u16_t playbackRateQ8)
+    {
+        if (static_cast<eNetAnimId>(animId) == eNetAnimId::Recall)
+            return kRecallDurationSec;
+
         const u8_t slot = NetworkAnimToSkillSlot(animId);
         const u8_t stage = NetworkStageFromFlags(flags);
         const ChampionSkillTimingDefaults timing =
-            GetDefaultChampionSkillTiming(champion, slot, stage);
-        if (timing.lockDurationSec > 0.01f)
-            return timing.lockDurationSec;
+            ChampionGameDataDB::ResolveSkillTiming(champion, slot, stage);
 
-        if (stage >= 2u && pDef && pDef->stage2LockSec > 0.01f)
-            return pDef->stage2LockSec;
+        f32_t durationSec = timing.lockDurationSec;
+        if (durationSec <= 0.01f && stage >= 2u && pDef && pDef->stage2LockSec > 0.01f)
+            durationSec = pDef->stage2LockSec;
+        if (durationSec <= 0.01f && pDef && pDef->lockDurationSec > 0.01f)
+            durationSec = pDef->lockDurationSec;
+        if (durationSec <= 0.01f)
+            durationSec = static_cast<eNetAnimId>(animId) == eNetAnimId::BasicAttack ? 0.45f : 0.6f;
 
-        if (pDef && pDef->lockDurationSec > 0.01f)
-            return pDef->lockDurationSec;
-
-        return static_cast<eNetAnimId>(animId) == eNetAnimId::BasicAttack
-            ? 0.45f
-            : 0.6f;
+        const f32_t authoredSpeed = std::clamp(timing.animPlaySpeed, 0.05f, 4.f);
+        const f32_t playbackSpeed = DecodePlaybackRateQ8(playbackRateQ8);
+        const f32_t speedScale = std::clamp(playbackSpeed / authoredSpeed, 0.2f, 4.f);
+        return durationSec / speedScale;
     }
 
     std::string ResolveNetworkAnimName(const ChampionDef& championDef, const char* pAnimKey)
@@ -327,6 +366,67 @@ namespace
     std::string ResolveNetworkDeathAnimName(const ChampionDef& championDef)
     {
         return ResolveNetworkAnimName(championDef, "death");
+    }
+
+    bool_t HasNetworkLoopFlag(const NetAnimationComponent& anim)
+    {
+        return (anim.flags & kNetAnimFlagLoop) != 0u;
+    }
+
+    std::string ResolveNetworkActionAnimName(
+        eChampion champion,
+        const SkillDef* pSkillDef,
+        const NetAnimationComponent& netAnim)
+    {
+        if (!pSkillDef)
+        {
+            return {};
+        }
+
+        const ChampionDef* pChampionDef = FindClientChampionDef(champion);
+        if (!pChampionDef)
+            return {};
+
+        const u8_t stage = NetworkStageFromFlags(netAnim.flags);
+        const bool_t bStage2 = stage >= 2u;
+        const char* pAnimKey = (bStage2 && pSkillDef->stage2AnimKey)
+            ? pSkillDef->stage2AnimKey
+            : pSkillDef->animKey;
+
+        return ResolveNetworkAnimName(*pChampionDef, pAnimKey);
+    }
+
+    void PlayLoopNetworkActionIfNeeded(
+        eChampion champion,
+        const SkillDef* pSkillDef,
+        const NetAnimationComponent& netAnim,
+        RenderComponent& render)
+    {
+        if (!HasNetworkLoopFlag(netAnim) || !render.pRenderer)
+            return;
+
+        const std::string animName =
+            ResolveNetworkActionAnimName(champion, pSkillDef, netAnim);
+        if (animName.empty())
+            return;
+
+        const Engine::CAnimator* pAnimator = render.pRenderer->GetAnimator();
+        const Engine::CAnimation* pCurrentAnim = pAnimator
+            ? pAnimator->GetCurrentAnimation()
+            : nullptr;
+        if (pAnimator &&
+            pAnimator->IsPlaying() &&
+            pCurrentAnim &&
+            pCurrentAnim->GetName() == animName)
+        {
+            return;
+        }
+
+        render.pRenderer->PlayAnimationByNameAdvanced(
+            animName,
+            true,
+            false,
+            DecodePlaybackRateQ8(netAnim.playbackRateQ8));
     }
 
     void LogNetworkEndTransition(
@@ -393,6 +493,653 @@ namespace
         return context.SelectedChampion;
     }
 
+    constexpr char kBaseMapMeshPath[] =
+        "Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh";
+    constexpr wchar_t kBaseMapMeshPathW[] =
+        L"Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh";
+    constexpr char kFullLayerMapMeshPath[] =
+        "Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh";
+    constexpr wchar_t kFullLayerMapMeshPathW[] =
+        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh";
+    constexpr wchar_t kMapBrushVolumeCsvPath[] =
+        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/manifest/map11_brush_volumes.csv";
+
+    void UI_SendBuyItemCommand(void* pUser, u16_t itemId)
+    {
+        CScene_InGame* pScene = static_cast<CScene_InGame*>(pUser);
+        if (!pScene || !pScene->GetCommandSerializer() || !pScene->GetNetworkView())
+            return;
+
+        pScene->GetCommandSerializer()->SendBuyItem(*pScene->GetNetworkView(), itemId);
+    }
+
+    void UI_SendLevelSkillCommand(void* pUser, u8_t slot)
+    {
+        CScene_InGame* pScene = static_cast<CScene_InGame*>(pUser);
+        if (!pScene || !pScene->GetCommandSerializer() || !pScene->GetNetworkView())
+            return;
+
+        pScene->GetCommandSerializer()->SendLevelSkill(*pScene->GetNetworkView(), slot);
+    }
+
+    RHITextureHandle CreateDefaultRHITexture(IRHIDevice* pDevice, const char* pszDebugName)
+    {
+        if (!pDevice)
+            return {};
+
+        const u32_t whitePixel = 0xFFFFFFFFu;
+        RHITextureDesc desc{};
+        desc.width = 1;
+        desc.height = 1;
+        desc.format = eRHIFormat::R8G8B8A8_UNorm;
+        desc.usageFlags = static_cast<u32_t>(eRHITextureUsage::ShaderResource);
+        desc.debugName = pszDebugName;
+        return pDevice->CreateTexture(desc, &whitePixel, sizeof(whitePixel));
+    }
+
+    bool_t ShouldUseFastSmokeBootstrap()
+    {
+        return HasCommandLineToken(L"--banpick-smoke")
+            && !HasCommandLineToken(L"--smoke-full-ingame");
+    }
+
+    bool_t ShouldSkipSmokeMap()
+    {
+        return ShouldUseFastSmokeBootstrap()
+            && !HasCommandLineToken(L"--smoke-full-map");
+    }
+
+    bool_t ShouldUseFullLayerMap()
+    {
+        return HasCommandLineToken(L"--map-full-layers")
+            || HasCommandLineToken(L"--map11-full-layers")
+            || HasCommandLineToken(L"--map11-brush-test");
+    }
+
+    const char* SelectMapMeshPath()
+    {
+        return ShouldUseFullLayerMap() ? kFullLayerMapMeshPath : kBaseMapMeshPath;
+    }
+
+    const wchar_t* SelectMapSurfacePath()
+    {
+        return ShouldUseFullLayerMap() ? kFullLayerMapMeshPathW : kBaseMapMeshPathW;
+    }
+
+    void SeedPracticeBushesForBootstrap(CWorld& world)
+    {
+        struct BushSeed
+        {
+            Vec3 center;
+            f32_t radius;
+            u32_t bushId;
+        };
+
+        static const BushSeed kBushes[] = {
+            { { -45.f, 0.f,  60.f }, 5.f, 1 },
+            { { -55.f, 0.f,  45.f }, 4.f, 1 },
+            { { -30.f, 0.f,  90.f }, 5.f, 2 },
+            { { -10.f, 0.f,  10.f }, 4.f, 3 },
+            { {  10.f, 0.f, -10.f }, 4.f, 4 },
+            { {  45.f, 0.f, -60.f }, 5.f, 5 },
+            { {  55.f, 0.f, -45.f }, 4.f, 5 },
+            { {  30.f, 0.f, -90.f }, 5.f, 6 },
+            { { -30.f, 0.f,  30.f }, 4.f, 7 },
+            { {  30.f, 0.f, -30.f }, 4.f, 8 },
+            { { -60.f, 0.f,   0.f }, 4.f, 9 },
+            { {  60.f, 0.f,   0.f }, 4.f, 10 },
+        };
+
+        for (const BushSeed& bush : kBushes)
+        {
+            const EntityID entity = world.CreateEntity();
+            BushVolumeComponent component{};
+            component.center = bush.center;
+            component.radius = bush.radius;
+            component.bushId = bush.bushId;
+            world.AddComponent<BushVolumeComponent>(entity, component);
+        }
+    }
+
+    constexpr wchar_t kMapBrushVolumeBinPath[] =
+        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/map11_brush_volumes.wbrush";
+
+    // map11 부쉬 시야 볼륨 바이너리(.wbrush v1, Tools/cook_map11_brush_volumes.py로 쿡).
+    // TODO(wmap): Stage 데이터 .wmap 통합 시 BushEntry(07_STAGE6_WMAP.md)로 승격.
+    struct MapBrushVolumeRecord
+    {
+        u32_t bushId = 0;
+        f32_t worldX = 0.f;
+        f32_t worldZ = 0.f;
+        f32_t radius = 0.f;
+    };
+
+    bool_t SeedMap11BrushesFromBinaryForBootstrap(CWorld& world)
+    {
+        wchar_t resolvedPath[MAX_PATH]{};
+        if (!WintersResolveContentPath(kMapBrushVolumeBinPath, resolvedPath, MAX_PATH))
+            return false;
+
+        FILE* fp = nullptr;
+        if (_wfopen_s(&fp, resolvedPath, L"rb") != 0 || !fp)
+            return false;
+
+        constexpr u32_t kBrushVolumeMagic = 0x48534257u; // 'WBSH'
+        u32_t header[4]{};
+        if (fread(header, sizeof(header), 1, fp) != 1 ||
+            header[0] != kBrushVolumeMagic ||
+            header[1] != 1u ||
+            header[2] == 0u ||
+            header[2] > 4096u)
+        {
+            fclose(fp);
+            return false;
+        }
+
+        u32_t iSeeded = 0;
+        for (u32_t i = 0; i < header[2]; ++i)
+        {
+            MapBrushVolumeRecord record{};
+            if (fread(&record, sizeof(record), 1, fp) != 1)
+                break;
+            if (record.radius <= 0.f)
+                continue;
+
+            const EntityID entity = world.CreateEntity();
+            BushVolumeComponent component{};
+            component.center = { record.worldX, 0.f, record.worldZ };
+            component.radius = record.radius;
+            component.bushId = record.bushId;
+            world.AddComponent<BushVolumeComponent>(entity, component);
+            ++iSeeded;
+        }
+
+        fclose(fp);
+        return iSeeded > 0;
+    }
+
+    bool_t SeedMap11BrushesFromResourceForBootstrap(CWorld& world)
+    {
+        wchar_t resolvedPath[MAX_PATH]{};
+        if (!WintersResolveContentPath(kMapBrushVolumeCsvPath, resolvedPath, MAX_PATH))
+        {
+            return false;
+        }
+
+        FILE* fp = nullptr;
+        if (_wfopen_s(&fp, resolvedPath, L"rt") != 0 || !fp)
+        {
+            return false;
+        }
+
+        u32_t iSeeded = 0;
+        char line[256]{};
+        while (fgets(line, static_cast<int>(sizeof(line)), fp))
+        {
+            if (line[0] == '\0' || line[0] == '#' || line[0] == '\n' || line[0] == '\r')
+                continue;
+
+            u32_t bushId = 0;
+            f32_t x = 0.f;
+            f32_t z = 0.f;
+            f32_t radius = 0.f;
+            if (sscanf_s(line, " %u , %f , %f , %f", &bushId, &x, &z, &radius) != 4)
+                continue;
+
+            if (radius <= 0.f)
+                continue;
+
+            const EntityID entity = world.CreateEntity();
+            BushVolumeComponent component{};
+            component.center = { x, 0.f, z };
+            component.radius = radius;
+            component.bushId = bushId;
+            world.AddComponent<BushVolumeComponent>(entity, component);
+            ++iSeeded;
+        }
+
+        fclose(fp);
+
+        return iSeeded > 0;
+    }
+
+    bool_t s_bWReleasePending = false;
+    EntityID s_NetworkAttackTarget = NULL_ENTITY;
+    u32_t s_uNetworkAttackCommandFrame = 0u;
+    u32_t s_uNetworkAttackMissLogCount = 0u;
+    constexpr u32_t kNetworkAttackCommandIntervalFrames = 6u;
+
+    void ClearNetworkAttackIntent()
+    {
+        s_NetworkAttackTarget = NULL_ENTITY;
+        s_uNetworkAttackCommandFrame = 0u;
+    }
+
+    bool_t HasPendingSkillStage(CScene_InGame& scene, u8_t slot)
+    {
+        CWorld& world = scene.GetWorld();
+        const EntityID player = scene.GetPlayerEntity();
+        if (player == NULL_ENTITY ||
+            !world.HasComponent<SkillStateComponent>(player) ||
+            slot >= 5u)
+        {
+            return false;
+        }
+
+        const auto& skillSlot =
+            world.GetComponent<SkillStateComponent>(player).slots[slot];
+        return skillSlot.currentStage == 1 && skillSlot.stageWindow > 0.f;
+    }
+
+    void ProtectNetworkBasicAttackYaw(CScene_InGame& scene, u32_t commandSeq)
+    {
+        CSnapshotApplier* pSnapshotApplier = scene.GetSnapshotApplier();
+        CClientNetwork* pNetworkView = scene.GetNetworkView();
+        CTransform* pPlayerTransform = scene.GetPlayerTransformPtr();
+        if (commandSeq == 0 ||
+            !pSnapshotApplier ||
+            !pNetworkView ||
+            !pPlayerTransform)
+        {
+            return;
+        }
+
+        pSnapshotApplier->ProtectLocalMoveYaw(
+            pNetworkView->GetMyNetEntityId(),
+            commandSeq,
+            pPlayerTransform->GetRotation().y);
+    }
+
+    bool_t IsLocalSkillLearned(CScene_InGame& scene, uint8_t slot)
+    {
+        if (slot == static_cast<uint8_t>(eSkillSlot::BasicAttack))
+            return true;
+
+        CWorld& world = scene.GetWorld();
+        const EntityID player = scene.GetPlayerEntity();
+        if (!world.HasComponent<SkillRankComponent>(player) ||
+            slot >= SkillRankComponent::kSlotCount)
+        {
+            return false;
+        }
+
+        return world.GetComponent<SkillRankComponent>(player).ranks[slot] > 0;
+    }
+
+    bool_t ShouldLoopLocalSkillAnimation(const SkillDef& def, u8_t skillStage)
+    {
+        if (def.champ == eChampion::JAX &&
+            def.slot == static_cast<u8_t>(eSkillSlot::E) &&
+            skillStage == 1u)
+        {
+            return true;
+        }
+
+        return !def.bOneShot;
+    }
+
+    f32_t& LocalKalistaPassiveDashDurationSec()
+    {
+        static f32_t s_fDurationSec =
+            ChampionGameDataDB::ResolvePassiveDashDurationSec(eChampion::KALISTA);
+        return s_fDurationSec;
+    }
+
+    void NotifyTowerAggroOnChampionHit(CWorld& world, EntityID attacker, EntityID victim)
+    {
+        if (attacker == NULL_ENTITY || victim == NULL_ENTITY)
+            return;
+        if (!world.IsAlive(attacker) || !world.IsAlive(victim))
+            return;
+        if (!world.HasComponent<ChampionComponent>(attacker) ||
+            !world.HasComponent<ChampionComponent>(victim))
+        {
+            return;
+        }
+
+        TowerAggroNotifyComponent notify{};
+        notify.attackerEntity = attacker;
+        notify.victimEntity = victim;
+        notify.priorityDuration = 2.0f;
+
+        if (world.HasComponent<TowerAggroNotifyComponent>(attacker))
+            world.GetComponent<TowerAggroNotifyComponent>(attacker) = notify;
+        else
+            world.AddComponent<TowerAggroNotifyComponent>(attacker, notify);
+    }
+
+    void SetLocalPassiveDashDuration(f32_t duration)
+    {
+        LocalKalistaPassiveDashDurationSec() = (duration < 0.03f) ? 0.03f : duration;
+    }
+
+    f32_t GetLocalPassiveDashDuration()
+    {
+        return LocalKalistaPassiveDashDurationSec();
+    }
+
+    constexpr f32_t kPlayerAvoidancePadding = 0.05f;
+
+    bool_t IsPlayerMoveBlockingKind(eSpatialKind kind)
+    {
+        return kind == eSpatialKind::JungleMob;
+    }
+
+    f32_t ResolveAgentRadius(CWorld& world, EntityID entity)
+    {
+        if (entity != NULL_ENTITY && world.HasComponent<SpatialAgentComponent>(entity))
+            return (std::max)(0.2f, world.GetComponent<SpatialAgentComponent>(entity).radius);
+
+        return 0.5f;
+    }
+
+    ChampionStatsDef ResolvePlayerStatsDef(CWorld& world, EntityID playerEntity)
+    {
+        eChampion champion = eChampion::NONE;
+        if (playerEntity != NULL_ENTITY &&
+            world.HasComponent<ChampionComponent>(playerEntity))
+        {
+            champion = world.GetComponent<ChampionComponent>(playerEntity).id;
+        }
+
+        return CChampionStatsRegistry::Instance().Resolve(champion);
+    }
+
+    f32_t ResolvePlayerMoveSpeed(CWorld& world, EntityID playerEntity)
+    {
+        if (playerEntity != NULL_ENTITY &&
+            world.HasComponent<StatComponent>(playerEntity))
+        {
+            const f32_t moveSpeed =
+                world.GetComponent<StatComponent>(playerEntity).moveSpeed;
+            if (moveSpeed > 0.f)
+                return moveSpeed;
+        }
+
+        return ResolvePlayerStatsDef(world, playerEntity).baseMoveSpeed;
+    }
+
+    f32_t ResolvePlayerArriveRadius(CWorld& world, EntityID playerEntity)
+    {
+        if (playerEntity != NULL_ENTITY &&
+            world.HasComponent<NavAgentComponent>(playerEntity))
+        {
+            const f32_t arriveRadius =
+                world.GetComponent<NavAgentComponent>(playerEntity).fArriveRadius;
+            if (arriveRadius > 0.f)
+                return arriveRadius;
+        }
+
+        return ResolvePlayerStatsDef(world, playerEntity).navArriveRadius;
+    }
+
+    bool_t IsSeparatingCandidate(
+        const Vec3& vCurrent, const Vec3& vCandidate, const Vec3& vBlockerPos, f32_t minDistSq)
+    {
+        const f32_t currentDistSq = WintersMath::DistanceSqXZ(vCurrent, vBlockerPos);
+
+        if (currentDistSq >= minDistSq)
+            return false;
+
+        const f32_t candidateDistSq = WintersMath::DistanceSqXZ(vCandidate, vBlockerPos);
+        return candidateDistSq > currentDistSq + 0.0001f;
+    }
+
+    bool_t IsCandidateClear(
+        CWorld& world,
+        EntityID self,
+        const Vec3& current,
+        const Vec3& candidate,
+        f32_t radius)
+    {
+        bool_t bClear = true;
+        world.ForEach<SpatialAgentComponent, TransformComponent>(
+            std::function<void(EntityID, SpatialAgentComponent&, TransformComponent&)>(
+                [&](EntityID other, SpatialAgentComponent& agent, TransformComponent& tf)
+                {
+                    if (!bClear || other == self)
+                        return;
+                    if (!IsPlayerMoveBlockingKind(agent.kind))
+                        return;
+
+                    if (world.HasComponent<HealthComponent>(other))
+                    {
+                        const auto& health = world.GetComponent<HealthComponent>(other);
+                        if (health.bIsDead || health.fCurrent <= 0.f)
+                            return;
+                    }
+
+                    const f32_t minDist =
+                        radius + (std::max)(0.2f, agent.radius) + kPlayerAvoidancePadding;
+                    const Vec3 otherPos = tf.GetPosition();
+                    const f32_t minDistSq = minDist * minDist;
+                    if (WintersMath::DistanceSqXZ(candidate, otherPos) < minDistSq &&
+                        !IsSeparatingCandidate(current, candidate, otherPos, minDistSq))
+                        bClear = false;
+                }));
+
+        return bClear;
+    }
+
+    Vec3 ResolveAvoidedMoveDirection(
+        CWorld& world,
+        EntityID self,
+        const Vec3& pos,
+        const Vec3& desired,
+        f32_t step,
+        const std::function<bool_t(const Vec3&)>& isStepWalkable)
+    {
+        static constexpr f32_t kAngles[] = {
+            0.f,
+            0.610865f, -0.610865f,
+            1.22173f, -1.22173f,
+            1.570796f, -1.570796f
+        };
+
+        const f32_t radius = ResolveAgentRadius(world, self);
+        for (const f32_t angle : kAngles)
+        {
+            const Vec3 dir = WintersMath::RotateXZ(desired, angle);
+            const Vec3 candidate{
+                pos.x + dir.x * step,
+                pos.y,
+                pos.z + dir.z * step
+            };
+
+            if (!IsCandidateClear(world, self, pos, candidate, radius))
+                continue;
+
+            if (isStepWalkable && !isStepWalkable(candidate))
+                continue;
+
+            return dir;
+        }
+
+        return Vec3{};
+    }
+    // Mouse pick indicator arrows converge toward the accepted move target.
+    void SpawnMovementIndicator(CScene_InGame& scene, const Vec3& center)
+    {
+        static constexpr const wchar_t* kTexturePath =
+            L"Client/Bin/Resource/Texture/UI/movement_indicator.png";
+
+        static constexpr f32_t kLifetime = 0.32f;
+        static constexpr f32_t kStartRadius = 0.95f;
+        static constexpr f32_t kEndRadius = 0.18f;
+        static constexpr f32_t kInwardSpeed = (kStartRadius - kEndRadius) / kLifetime;
+        static constexpr f32_t kYOffset = 0.05f;
+        static constexpr f32_t kWidth = 0.55f;
+        static constexpr f32_t kHeight = 0.90f;
+        static constexpr f32_t kYawOffset = WintersMath::kPi;
+
+        const Vec3 radialDirs[4] = {
+            { 1.f, 0.f, 0.f },
+            { -1.f, 0.f, 0.f },
+            { 0.f, 0.f, 1.f },
+            { 0.f, 0.f, -1.f },
+        };
+
+        for (const Vec3& radial : radialDirs)
+        {
+            const Vec3 inward{ -radial.x, 0.f, -radial.z };
+
+            FxBillboardComponent fx{};
+            fx.renderType = eFxRenderType::GroundDecal;
+            fx.texturePath = kTexturePath;
+            fx.vWorldPos = {
+                center.x + radial.x * kStartRadius,
+                center.y + kYOffset,
+                center.z + radial.z * kStartRadius
+            };
+            fx.vVelocity = { inward.x * kInwardSpeed, 0.f, inward.z * kInwardSpeed };
+            fx.fWidth = kWidth;
+            fx.fHeight = kHeight;
+            fx.fYaw = std::atan2f(inward.x, inward.z) + kYawOffset;
+            fx.vColor = { 1.f, 1.f, 1.f, 0.95f };
+            fx.fLifetime = kLifetime;
+            fx.fFadeIn = 0.02f;
+            fx.fFadeOut = 0.22f;
+            fx.fAlphaClip = 0.02f;
+            fx.blendMode = eBlendPreset::AlphaBlend;
+            fx.depthMode = eFxDepthMode::DepthTestWriteOff;
+            fx.bBillboard = false;
+
+            CFxSystem::Spawn(scene.GetWorld(), fx);
+        }
+    }
+
+    constexpr f32_t kFallbackScreenWidth = 1280.f;
+    constexpr f32_t kFallbackScreenHeight = 720.f;
+
+    Vec3 GameplayForwardFromVisualYaw(eChampion champion, f32_t yaw)
+    {
+        const f32_t gameplayYaw = yaw - ChampionGameDataDB::ResolveVisualYawOffset(champion);
+        return Vec3{ std::sinf(gameplayYaw), 0.f, std::cosf(gameplayYaw) };
+    }
+
+    void FlushTransformForRender(TransformComponent& tf)
+    {
+        if (tf.m_bLocalDirty)
+        {
+            DirectX::XMVECTOR scale = DirectX::XMLoadFloat3(reinterpret_cast<const DirectX::XMFLOAT3*>(&tf.m_LocalScale));
+            DirectX::XMVECTOR rot = DirectX::XMQuaternionRotationRollPitchYaw(
+                tf.m_LocalRotation.x,
+                tf.m_LocalRotation.y,
+                tf.m_LocalRotation.z);
+            DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(reinterpret_cast<const DirectX::XMFLOAT3*>(&tf.m_LocalPosition));
+            DirectX::XMMATRIX local = DirectX::XMMatrixAffineTransformation(scale, DirectX::XMVectorZero(), rot, pos);
+            DirectX::XMStoreFloat4x4(reinterpret_cast<DirectX::XMFLOAT4X4*>(&tf.m_LocalMatrix), local);
+            tf.m_bLocalDirty = false;
+            tf.m_bWorldDirty = true;
+        }
+
+        if (tf.m_bWorldDirty)
+        {
+            tf.m_WorldMatrix = tf.m_LocalMatrix;
+            tf.m_bWorldDirty = false;
+        }
+    }
+
+    Mat4 BuildContactShadowWorld(const TransformComponent& tf,
+        f32_t fSize,
+        f32_t fYOffset)
+    {
+        const Vec3 vPos = tf.GetPosition();
+        const DirectX::XMMATRIX matScale =
+            DirectX::XMMatrixScaling(fSize, 1.f, fSize * 0.72f);
+        const DirectX::XMMATRIX matTrans =
+            DirectX::XMMatrixTranslation(vPos.x, vPos.y + fYOffset, vPos.z);
+
+        Mat4 matWorld{};
+        DirectX::XMStoreFloat4x4(
+            reinterpret_cast<DirectX::XMFLOAT4X4*>(&matWorld.m),
+            matScale * matTrans);
+
+        return matWorld;
+    }
+
+    void RenderAttackRangePreview(
+        CScene_InGame& scene,
+        const Mat4& matViewProjection,
+        IRHIDevice* pDevice,
+        bool_t bUseDX12RHI)
+    {
+        CTransform* pPlayerTransform = scene.GetPlayerTransformPtr();
+        if (!scene.IsShowAttackRange() || !pPlayerTransform)
+            return;
+
+        const f32_t fRadius = GameplayQuery::ResolveAttackRangePreviewRadius(
+            scene.GetWorld(),
+            scene.GetPlayerEntity(),
+            scene.GetPlayerChampionId(),
+            scene.GetBasicAttackRange(),
+            scene.IsNetworkAuthoritativeGameplay());
+
+        const Vec3& vPos = pPlayerTransform->GetPosition();
+        const DirectX::XMMATRIX matScale =
+            DirectX::XMMatrixScaling(fRadius * 2.f, 1.f, fRadius * 2.f);
+        const DirectX::XMMATRIX matTrans =
+            DirectX::XMMatrixTranslation(vPos.x, vPos.y + 0.02f, vPos.z);
+
+        Mat4 matWorld{};
+        DirectX::XMStoreFloat4x4(
+            reinterpret_cast<DirectX::XMFLOAT4X4*>(&matWorld.m),
+            matScale * matTrans);
+
+        if (bUseDX12RHI &&
+            scene.GetRHIUtilityPlaneRenderer() &&
+            scene.GetRHIAttackRangeTexture().IsValid() &&
+            pDevice)
+        {
+            scene.GetRHIUtilityPlaneRenderer()->Draw(
+                pDevice,
+                scene.GetRHIAttackRangeTexture(),
+                matWorld,
+                matViewProjection,
+                { 1.f, 1.f, 1.f, 1.f },
+                { 0.f, 0.f, 1.f, 1.f },
+                { 0.f, 0.f },
+                0.02f,
+                0.f,
+                eBlendPreset::AlphaBlend);
+            return;
+        }
+
+        if (scene.GetAttackRangePlane() && scene.GetAttackRangeTexture())
+        {
+            scene.GetAttackRangePlane()->SetWorld(matWorld);
+            scene.GetAttackRangePlane()->Render(pDevice, matViewProjection);
+        }
+    }
+
+    constexpr wchar_t kMapAmbientPropBinPath[] =
+        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/map11_ambient_props.wamb";
+
+    // map11 앰비언트 프롭 배치(.wamb v1, Tools/cook_map11_ambient_props.py로 쿡).
+    // 좌표는 LoL 공간 그대로이며 스폰 시 맵 메시와 동일한 m_MapTransform으로 변환한다.
+    struct MapAmbientPropRecord
+    {
+        u32_t kind = 0;
+        f32_t lolX = 0.f;
+        f32_t lolY = 0.f;
+        f32_t lolZ = 0.f;
+        f32_t lolYaw = 0.f;
+        f32_t scale = 1.f;
+    };
+
+    struct MapAmbientAssetDesc
+    {
+        const char* pMeshPath;
+        const char* pIdleAnim;
+    };
+
+    constexpr MapAmbientAssetDesc kMapAmbientAssets[] = {
+        { "Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/ambient/sru_bird/sru_bird.wmesh",
+          "sru_bird_idle_tree1" },
+        { "Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/ambient/sru_duck/sru_duck.wmesh",
+          "sru_duck_idle1" },
+    };
+
     void SendServerInGameReady()
     {
         GameContext& context = CGameInstance::Get()->Get_GameContext();
@@ -407,29 +1154,385 @@ namespace
 
         if (context.MySessionId == 0 || context.MySlotId == kInvalidGameRosterSlot)
         {
-            OutputDebugStringA("[Scene_InGame] server ready skipped: missing local slot\n");
             return;
         }
 
-        const bool_t bSent = session.SendLobbyCommand(
-            Shared::Schema::LobbyCommandKind::SetReady,
-            context.MySlotId,
-            eChampion::END,
-            0,
-            1u);
+		const bool_t bSent = session.SendLobbyCommand(
+			Shared::Schema::LobbyCommandKind::SetReady,
+			context.MySlotId,
+			eChampion::END,
+			0,
+			1u);
 
-        if (bSent)
-            OutputDebugStringA("[Scene_InGame] server ready sent after OnEnter\n");
-    }
+		(void)bSent;
+	}
 
 }
 
 bool CScene_InGame::OnEnter()
 {
-    const bool_t bEntered = CInGameBootstrapBridge::Enter(*this);
-    if (bEntered)
-        SendServerInGameReady();
-    return bEntered;
+    const GameContext& gameContext = CGameInstance::Get()->Get_GameContext();
+    Winters::DevSmoke::Log(
+        "[InGameBootstrap] enter useNetworkRoster=%u selected=%u mySlot=%u sid=%u net=%u\n",
+        gameContext.bUseNetworkRoster ? 1u : 0u,
+        static_cast<u32_t>(gameContext.SelectedChampion),
+        static_cast<u32_t>(gameContext.MySlotId),
+        gameContext.MySessionId,
+        gameContext.MyNetId);
+
+    InitializeNetworkSession();
+    m_bNetworkAuthoritativeGameplay =
+        m_bUsingSharedNetwork || m_bReplayPlaybackMode;
+    Winters::DevSmoke::Log("[InGameBootstrap] network initialized\n");
+    Winters::DevSmoke::Log(
+        "[InGameBootstrap] network authoritative gameplay=%u\n",
+        m_bNetworkAuthoritativeGameplay ? 1u : 0u);
+
+    CJobSystem* pJS = CGameInstance::Get()->Get_JobSystem();
+
+    m_pScheduler = std::unique_ptr<CSystemSchedular>(new CSystemSchedular());
+    m_pScheduler->Initialize(pJS);
+    m_World.Initialize_Spatial(LoLSpatialGridDesc());
+
+    {
+        auto pTx = CTransformSystem::Create();
+        pTx->Set_JobSystem(pJS);
+        m_pScheduler->RegisterSystem(std::move(pTx));
+    }
+
+    {
+        auto pSpatial = Engine::CSpatialHashSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pSpatial));
+    }
+
+    {
+        auto pStatus = CStatusEffectSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pStatus));
+    }
+
+    {
+        auto pVision = Engine::CVisionSystem::Create(m_World.Get_SpatialIndex(), &m_BushIndex);
+        const UI::MinimapProjection& MinimapProjection = UI::GetDefaultMinimapProjection();
+        Engine::CVisionSystem::FowProjection FowProjection{};
+        FowProjection.vWorldAtUv00 = MinimapProjection.vWorldAtUv00;
+        FowProjection.vWorldAtUv10 = MinimapProjection.vWorldAtUv10;
+        FowProjection.vWorldAtUv01 = MinimapProjection.vWorldAtUv01;
+        pVision->SetFowProjection(FowProjection);
+        m_pVisionSystem = pVision.get();
+        m_pScheduler->RegisterSystem(std::move(pVision));
+    }
+
+    CStructure_Manager::Get()->Initialize(&m_World);
+    CJungle_Manager::Get()->Initialize(&m_World);
+    CMinion_Manager::Get()->Initialize(&m_World);
+    CMinion_Manager::Get()->PrewarmNetworkVisualResources();
+
+    wchar_t stagePath[MAX_PATH] = {};
+    if (CMapDataIO::Get_StagePathW(1, stagePath, MAX_PATH))
+    {
+        CMapDataIO::Load_Stage(stagePath);
+        Winters::DevSmoke::Log("[InGameBootstrap] Stage1 loaded\n");
+    }
+
+    BootstrapChampionModules();
+    Winters::DevSmoke::Log("[InGameBootstrap] champion modules bootstrapped\n");
+
+    m_pCamera = CDynamicCamera::Create(
+        { 0.f, 10.f, -10.f }, { 0.f, 0.f, 1.f }, { 0.f, 1.f, 0.f });
+
+    bool_t bMapInit = false;
+    if (ShouldSkipSmokeMap())
+    {
+        Winters::DevSmoke::Log("[InGameBootstrap] map init skipped for smoke\n");
+    }
+    else
+    {
+        Winters::DevSmoke::Log("[InGameBootstrap] map init begin\n");
+        bMapInit = m_Map.Initialize(SelectMapMeshPath(), L"Shaders/Mesh3D.hlsl");
+        Winters::DevSmoke::Log("[InGameBootstrap] map init done ok=%u\n", bMapInit ? 1u : 0u);
+    }
+    m_MapTransform.SetPosition(0.f, 0.f, 0.f);
+    m_MapTransform.SetScale({ -0.01f, 0.01f, 0.01f });
+    m_MapTransform.SetRotation(m_vMapRotation);
+    InitializeMapSurfaceSampler(bMapInit, SelectMapSurfacePath());
+    SpawnMapAmbientProps();
+
+    Winters::DevSmoke::Log("[InGameBootstrap] CreateECSEntities begin\n");
+    CreateECSEntities();
+    Winters::DevSmoke::Log("[InGameBootstrap] CreateECSEntities done player=%u total=%u\n",
+        static_cast<u32_t>(m_PlayerEntity),
+        m_World.GetEntityCount());
+    if (!SeedMap11BrushesFromBinaryForBootstrap(m_World) &&
+        !SeedMap11BrushesFromResourceForBootstrap(m_World))
+    {
+        SeedPracticeBushesForBootstrap(m_World);
+    }
+    m_BushIndex.Build(m_World);
+    if (m_pVisionSystem)
+        m_pVisionSystem->ForceRebuildNextFrame();
+
+    const eChampion selectedChampion = GetPlayerChampionId();
+    if (CGameInstance::Get()->Get_GameContext().bUseNetworkRoster
+        || selectedChampion == eChampion::RIVEN
+        || selectedChampion == eChampion::EZREAL
+        || selectedChampion == eChampion::FIORA
+        || selectedChampion == eChampion::JAX
+        || selectedChampion == eChampion::ANNIE
+        || selectedChampion == eChampion::ASHE
+        || selectedChampion == eChampion::YONE)
+    {
+        BindPlayerToECSChampion(m_PlayerEntity);
+    }
+
+    CGameInstance::Get()->UI_Bind_World(&m_World);
+    CGameInstance::Get()->UI_Set_InGameBuyItemCallback(&UI_SendBuyItemCommand, this);
+    CGameInstance::Get()->UI_Set_LevelSkillCallback(&UI_SendLevelSkillCommand, this);
+
+    CMinion_Manager::Get()->Set_Enabled(!m_bNetworkAuthoritativeGameplay);
+    wchar_t navGridPath[MAX_PATH] = {};
+    if (CMapDataIO::GetNavGridPathW(1, navGridPath, MAX_PATH))
+    {
+        m_pNavGrid = Engine::CNavGrid::LoadFromFile(navGridPath);
+    }
+
+    if (!m_pNavGrid)
+    {
+        m_pNavGrid = CreateMapNavGrid();
+        m_pNavGrid->SetAllWalkable(true);
+    }
+
+
+    if (m_pNavGrid)
+        Engine::CPathfinder::PrewarmReachabilityCache(m_pNavGrid.get());
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pNav = CNavigationSystem::Create();
+        pNav->Set_Grid(m_pNavGrid.get());
+        pNav->Set_JobSystem(pJS);
+        m_pScheduler->RegisterSystem(std::move(pNav));
+    }
+    else
+    {
+        Winters::DevSmoke::Log("[InGameBootstrap] client navigation skipped for network authority\n");
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pAI = CMinionAISystem::Create();
+        pAI->Set_JobSystem(pJS);
+        m_pScheduler->RegisterSystem(std::move(pAI));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pMinionPerformance = Engine::CMinionPerformanceSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pMinionPerformance));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pTurretAI = Engine::CTurretAISystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pTurretAI));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pTurretProjectiles = Engine::CTurretProjectileSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pTurretProjectiles));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pBT = Engine::CBehaviorTreeSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pBT));
+    }
+
+    {
+        auto pYoneSoul = CYoneSoulSpawnSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pYoneSoul));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pMCTS = Engine::CMCTSSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pMCTS));
+    }
+
+    Mark_StructuresOnNavGrid();
+
+    {
+        CGameInstance* pGI = CGameInstance::Get();
+        IRHIDevice* pRhiDevice = pGI->Get_RHIDevice();
+        const bool_t bUseDX12RHI = pRhiDevice && pRhiDevice->GetBackend() == eRHIBackend::DX12;
+
+        if (bUseDX12RHI)
+        {
+            m_pRHIUtilityPlaneRenderer = CRHIFxSpriteRenderer::Create(pRhiDevice);
+            m_hRHIAttackRangeTex = RHI_CreateTextureFromFile(
+                pRhiDevice,
+                L"Client/Bin/Resource/Texture/UI/UI_AttackRange.png",
+                "RHI_AttackRangeTexture");
+            if (!m_hRHIAttackRangeTex.IsValid())
+                m_hRHIAttackRangeTex = CreateDefaultRHITexture(pRhiDevice, "RHI_AttackRangeFallback");
+
+        }
+        else
+        {
+            m_pAttackRangePlane = CPlaneRenderer::Create(
+                pRhiDevice,
+                pGI->Get_UIPlaneShader(),
+                pGI->Get_UIPlanePipeline());
+
+            m_pAttackRangeTex = CTexture::Create(
+                pRhiDevice,
+                L"Client/Bin/Resource/Texture/UI/UI_AttackRange.png",
+                eTexSamplerMode::Clamp);
+
+            if (!m_pAttackRangeTex)
+            {
+                MSG_BOX("Attack Range Texture load failed");
+                m_pAttackRangeTex = CTexture::CreateDefault(pRhiDevice);
+            }
+
+            if (m_pAttackRangePlane && m_pAttackRangeTex)
+            {
+                m_pAttackRangePlane->SetTexture(m_pAttackRangeTex.get());
+                m_pAttackRangePlane->SetBlendCache(
+                    pGI->Get_BlendStateCache(),
+                    eBlendPreset::AlphaBlend);
+            }
+
+            m_pContactShadowPlane = CPlaneRenderer::Create(
+                pRhiDevice,
+                pGI->Get_ContactShadowShader(),
+                pGI->Get_ContactShadowPipeline());
+
+            if (m_pContactShadowPlane)
+            {
+                m_pContactShadowPlane->SetBlendCache(
+                    pGI->Get_BlendStateCache(),
+                    eBlendPreset::AlphaBlend);
+                m_pContactShadowPlane->SetFxParams(
+                    { 0.015f, 0.018f, 0.020f, 0.44f },
+                    { 0.f, 0.f, 1.f, 1.f },
+                    { 0.f, 0.f },
+                    0.003f,
+                    0.f);
+            }
+        }
+
+        if (!bUseDX12RHI)
+        {
+            m_pWhiteTexture = CTexture::CreateDefault(pRhiDevice);
+            m_pNormalPass = Engine::CNormalPass::Create(pRhiDevice, g_iWinSizeX, g_iWinSizeY);
+            m_pSSAOPass = Engine::CSSAOPass::Create(pRhiDevice, g_iWinSizeX, g_iWinSizeY);
+            if (m_pSSAOPass)
+            {
+                m_pSSAOPass->SetEnabled(false);
+                m_pSSAOPass->SetRadius(1.1f);
+                m_pSSAOPass->SetIntensity(1.25f);
+            }
+            m_pFogOfWarRenderer = CFogOfWarRenderer::Create(
+                pRhiDevice, Engine::CVisionSystem::FOW_TEX_DIM);
+        }
+    }
+    Winters::DevSmoke::Log("[InGameBootstrap] render helpers ready\n");
+
+    {
+        CGameInstance* pGI = CGameInstance::Get();
+        IRHIDevice* pRhiDevice = pGI->Get_RHIDevice();
+
+        m_pFxSystem = CFxSystem::Create(
+            pRhiDevice,
+            pGI->Get_FxSpriteShader(),
+            pGI->Get_FxSpritePipeline(),
+            pGI->Get_BlendStateCache());
+        m_pFxBeamSystem = CFxBeamSystem::Create(
+            pRhiDevice,
+            pGI->Get_FxSpriteShader(),
+            pGI->Get_FxSpritePipeline(),
+            pGI->Get_BlendStateCache());
+
+        m_pFxMeshRenderer = Engine::CFxStaticMeshRenderer::Create(
+            pRhiDevice,
+            pGI->Get_MeshShader(),
+            pGI->Get_MeshPipeline(),
+            pGI->Get_FxMeshShader(),
+            pGI->Get_FxMeshPipeline(),
+            pGI->Get_BlendStateCache());
+        if (m_pEventApplier)
+            m_pEventApplier->SetFxMeshRenderer(m_pFxMeshRenderer.get());
+        m_pFxMeshSystem = CFxMeshSystem::Create(m_pFxMeshRenderer.get());
+
+        m_pIreliaBladeSystem = CIreliaBladeSystem::Create();
+        m_pWindWallSystem = CWindWallSystem::Create();
+        m_pYasuoProjectileSystem = CYasuoProjectileSystem::Create();
+        m_pPendingHitSystem = CPendingHitSystem::Create();
+        m_pKalistaProjectileSystem = CKalistaProjectileSystem::Create();
+        m_pKalistaRendSystem = CKalistaRendSystem::Create();
+    }
+    Winters::DevSmoke::Log("[InGameBootstrap] skill fx systems ready\n");
+
+    if (m_pFxMeshRenderer && ShouldUseFastSmokeBootstrap())
+    {
+        Winters::DevSmoke::Log("[InGameBootstrap] FX mesh preload skipped for smoke\n");
+    }
+    else if (m_pFxMeshRenderer)
+    {
+        static const struct { const char* fbx; const wchar_t* tex; } kIreliaFx[] = {
+            { "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_blade.fbx",
+              L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_blades_passive_4_texture.png" },
+            { "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx",
+              L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_beam_mult.png" },
+        };
+        for (const auto& it : kIreliaFx)
+            m_pFxMeshRenderer->PreloadMesh(it.fbx, it.tex);
+
+        static const struct { const char* fbx; const wchar_t* tex; } kYasuoFx[] = {
+            { "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_base_q_tornado_blade_cas.fbx",
+              L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_base_e_tonado_blend.png" },
+            { "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_w_windwall_mesh.fbx",
+              L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_w_windwall_dust.png" },
+            { "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_base_r_sword_wind2.fbx",
+              L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_r_sword_glow.png" },
+        };
+        for (const auto& it : kYasuoFx)
+            m_pFxMeshRenderer->PreloadMesh(it.fbx, it.tex);
+
+        static const struct { const char* fbx; const wchar_t* tex; } kKalistaFx[] = {
+            { "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_q_mis_spear.fbx",
+              L"Client/Bin/Resource/Texture/FX/Kalista/kalista_base_q_mis_glow_color.png" },
+            { "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_e_spear_hold.fbx",
+              L"Client/Bin/Resource/Texture/FX/Kalista/kalista_base_e_spear_glow.png" },
+        };
+        for (const auto& it : kKalistaFx)
+            m_pFxMeshRenderer->PreloadMesh(it.fbx, it.tex);
+    }
+
+    CGameInstance::Get()->UI_Set_PlayerChampion(GetPlayerChampionId());
+
+    Winters::DevSmoke::Log("[InGameBootstrap] done player=%u champion=%u\n",
+        static_cast<u32_t>(m_PlayerEntity),
+        static_cast<u32_t>(GetPlayerChampionId()));
+
+
+    if (m_bReplayPlaybackMode)
+    {
+        std::string error;
+        m_pReplayPlayer = CReplayPlayer::LoadFromFile(m_strReplayPath, error);
+        if (!m_pReplayPlayer)
+        {
+            m_strReplayStatus = error.empty() ? "Replay load failed" : error;
+            return true;
+        }
+
+        m_strReplayStatus = "Replay loaded";
+        return true;
+    }
+
+    SendServerInGameReady();
+    return true;
 }
 
 void CScene_InGame::AssignPureECSChampionAlias(eChampion id, EntityID entity)
@@ -581,19 +1684,7 @@ void CScene_InGame::CreateECSEntities()
         m_NetworkChampionPrevPos,
         [this](eChampion champion, eTeam team)
         {
-            ChampionSpawnContext spawnContext{
-                m_World,
-                m_ChampionRenderers,
-                m_NetworkChampionPrevPos,
-                m_NetworkChampionMoveGraceSec,
-                m_NetworkChampionMoving
-            };
-
-            ChampionSpawnRequest request{};
-            request.champion = champion;
-            request.team = team;
-
-            return CChampionSpawnService::Spawn(spawnContext, request).entity;
+            return SpawnChampionEntity(champion, team);
         },
         [this](eChampion champion, EntityID entity)
         {
@@ -618,7 +1709,7 @@ void CScene_InGame::CreateECSEntities()
     if (m_World.HasComponent<ChampionComponent>(m_PlayerEntity))
         m_PlayerTeam = m_World.GetComponent<ChampionComponent>(m_PlayerEntity).team;
 
-    CInGameNetworkBridge::ReplayLastHelloIfShared(m_bUsingSharedNetwork);
+    ReplayLastNetworkHelloIfShared();
 
     char dbg[192]{};
     sprintf_s(dbg, "[ECS:RosterOnly] created=%d total=%u player=%u champion=%u\n",
@@ -628,39 +1719,392 @@ void CScene_InGame::CreateECSEntities()
         static_cast<u32_t>(GetPlayerChampionId()));
     Winters::DevSmoke::Log("%s", dbg);
 }
+
+void CScene_InGame::SpawnMapAmbientProps()
+{
+    m_AmbientProps.clear();
+
+    wchar_t resolvedPath[MAX_PATH]{};
+    if (!WintersResolveContentPath(kMapAmbientPropBinPath, resolvedPath, MAX_PATH))
+        return;
+
+    FILE* fp = nullptr;
+    if (_wfopen_s(&fp, resolvedPath, L"rb") != 0 || !fp)
+        return;
+
+    constexpr u32_t kAmbientPropMagic = 0x424D4157u; // 'WAMB'
+    u32_t header[4]{};
+    if (fread(header, sizeof(header), 1, fp) != 1 ||
+        header[0] != kAmbientPropMagic ||
+        header[1] != 1u ||
+        header[2] == 0u ||
+        header[2] > 1024u)
+    {
+        fclose(fp);
+        return;
+    }
+
+    const Mat4 mapWorld = m_MapTransform.GetWorldMatrix();
+    const DirectX::XMMATRIX xmMapWorld =
+        DirectX::XMLoadFloat4x4(reinterpret_cast<const DirectX::XMFLOAT4X4*>(&mapWorld.m));
+
+    constexpr u32_t kAssetCount =
+        static_cast<u32_t>(sizeof(kMapAmbientAssets) / sizeof(kMapAmbientAssets[0]));
+
+    for (u32_t i = 0; i < header[2]; ++i)
+    {
+        MapAmbientPropRecord record{};
+        if (fread(&record, sizeof(record), 1, fp) != 1)
+            break;
+        if (record.kind >= kAssetCount)
+            continue;
+
+        const MapAmbientAssetDesc& asset = kMapAmbientAssets[record.kind];
+        auto pRenderer = std::make_unique<ModelRenderer>();
+        if (!pRenderer->Initialize(asset.pMeshPath, L"Shaders/Mesh3D.hlsl"))
+        {
+            Winters::DevSmoke::Log("[MapAmbient] init failed kind=%u\n", record.kind);
+            continue;
+        }
+        pRenderer->PlayAnimationByName(asset.pIdleAnim, true);
+
+        const DirectX::XMFLOAT3 lolPos{ record.lolX, record.lolY, record.lolZ };
+        const DirectX::XMVECTOR vWorld = DirectX::XMVector3TransformCoord(
+            DirectX::XMLoadFloat3(&lolPos), xmMapWorld);
+        Vec3 worldPos{
+            DirectX::XMVectorGetX(vWorld),
+            DirectX::XMVectorGetY(vWorld),
+            DirectX::XMVectorGetZ(vWorld)
+        };
+        (void)TryProjectToMapSurface(worldPos, 0.02f);
+
+        MapAmbientProp prop{};
+        prop.pRenderer = std::move(pRenderer);
+        prop.transform.SetPosition(worldPos);
+        // X-flip 맵이라 LoL yaw는 부호가 반전된 채 맵 회전에 더해진다.
+        prop.transform.SetRotation({ 0.f, m_vMapRotation.y - record.lolYaw, 0.f });
+        const f32_t fScale = 0.01f * record.scale;
+        prop.transform.SetScale({ fScale, fScale, fScale });
+        m_AmbientProps.push_back(std::move(prop));
+    }
+
+    fclose(fp);
+
+    Winters::DevSmoke::Log(
+        "[MapAmbient] spawned %zu ambient props\n", m_AmbientProps.size());
+}
+
+EntityID CScene_InGame::SpawnChampionEntity(eChampion champion, eTeam team)
+{
+    ChampionSpawnContext spawnContext{
+        m_World,
+        m_ChampionRenderers,
+        m_NetworkChampionPrevPos,
+        m_NetworkChampionMoveGraceSec,
+        m_NetworkChampionMoving
+    };
+
+    ChampionSpawnRequest request{};
+    request.champion = champion;
+    request.team = team;
+
+    return CChampionSpawnService::Spawn(spawnContext, request).entity;
+}
+
+void CScene_InGame::InitializeNetworkSession()
+{
+    const GameContext& gameContext = CGameInstance::Get()->Get_GameContext();
+    const bool_t bUseNetworkRoster = gameContext.bUseNetworkRoster;
+    const bool_t bDisableLiveNetwork = m_bReplayPlaybackMode;
+
+    m_pEntityIdMap = std::make_unique<EntityIdMap>();
+    m_pNetworkView = nullptr;
+    m_bUsingSharedNetwork = false;
+
+    if (!bDisableLiveNetwork)
+    {
+        if (bUseNetworkRoster && CGameSessionClient::Instance().IsConnected())
+        {
+            m_bUsingSharedNetwork = true;
+            m_pNetworkView = CGameSessionClient::Instance().GetNetwork();
+        }
+        else
+        {
+            m_pNetwork = CClientNetwork::Create();
+            m_pNetworkView = m_pNetwork.get();
+        }
+    }
+
+    m_pSnapshotApplier = CSnapshotApplier::Create();
+    m_pEventApplier = CEventApplier::Create();
+    m_pCommandSerializer = CCommandSerializer::Create();
+
+    if (m_pSnapshotApplier)
+    {
+        m_pSnapshotApplier->SetOnNewEntityCallback(
+            [this](u32_t netId, u8_t championId, u8_t team) -> EntityID
+            {
+                (void)netId;
+                return SpawnChampionEntity(
+                    static_cast<eChampion>(championId),
+                    static_cast<eTeam>(team));
+            });
+        //viego soul callback function
+        m_pSnapshotApplier->SetOnChampionVisualChangedCallback(
+            [this](EntityID entity, u8_t championId, u8_t)
+            {
+                ChampionSpawnContext spawnContext{
+                    m_World,
+                    m_ChampionRenderers,
+                    m_NetworkChampionPrevPos,
+                    m_NetworkChampionMoveGraceSec,
+                    m_NetworkChampionMoving
+                };
+                if (CChampionSpawnService::AttachVisual(
+                        spawnContext,
+                        entity,
+                        static_cast<eChampion>(championId)) &&
+                    entity == m_PlayerEntity)
+                {
+                    BindPlayerToECSChampion(entity);
+                }
+            });
+        m_pSnapshotApplier->SetOnRemoveEntityCallback(
+            [this](EntityID entity)
+            {
+                m_ChampionRenderers.erase(entity);
+                m_NetworkChampionPrevPos.erase(entity);
+                m_NetworkChampionMoveGraceSec.erase(entity);
+                m_NetworkChampionMoving.erase(entity);
+                m_NetworkActorInterpStates.erase(entity);
+            });
+        m_pSnapshotApplier->SetOnAuthoritativeSnapshot(
+            [this](
+                u64_t serverTick,
+                u64_t iServerTimeMs,
+                u32_t lastAckedCommandSeq,
+                u32_t localNetId)
+            {
+                CGameInstance::Get()->UI_SetGameContextServerTimeMs(iServerTimeMs);
+                OnAuthoritativeSnapshot(
+                    serverTick,
+                    iServerTimeMs,
+                    lastAckedCommandSeq,
+                    localNetId);
+            });
+    }
+
+    if (bDisableLiveNetwork)
+        return;
+
+    if (!m_pNetworkView || !m_pSnapshotApplier || !m_pEventApplier || !m_pEntityIdMap)
+        return;
+
+    CGameSessionClient::FrameCallback frameHandler =
+        [this](ePacketType type, u32_t sequence, const u8_t* payload, u32_t len)
+        {
+            (void)sequence;
+
+            if (!m_pEntityIdMap || !m_pSnapshotApplier || !m_pEventApplier)
+                return;
+
+            EntityIdMap& entityMap = *m_pEntityIdMap;
+            CSnapshotApplier& snapshotApplier = *m_pSnapshotApplier;
+            CEventApplier& eventApplier = *m_pEventApplier;
+
+            if (type == ePacketType::Hello)
+            {
+                u32_t myNetId = 0;
+                u32_t mySessionId = 0;
+                snapshotApplier.OnHello(
+                    m_World,
+                    entityMap,
+                    payload,
+                    len,
+                    &myNetId,
+                    &mySessionId);
+
+                const GameContext& context = CGameInstance::Get()->Get_GameContext();
+                const u32_t bindNetId = myNetId != 0
+                    ? myNetId
+                    : (context.bUseNetworkRoster ? context.MyNetId : 0);
+                const u32_t bindSessionId = mySessionId != 0
+                    ? mySessionId
+                    : (context.bUseNetworkRoster ? context.MySessionId : 0);
+
+                if (m_pNetworkView)
+                {
+                    m_pNetworkView->SetMyNetEntityId(bindNetId);
+                    m_pNetworkView->SetMySessionId(bindSessionId);
+                }
+
+                const EntityID localNetEntity = bindNetId != 0
+                    ? entityMap.FromNet(bindNetId)
+                    : NULL_ENTITY;
+                Winters::DevSmoke::Log(
+                    "[InGameNetwork] hello myNet=%u mySid=%u bindNet=%u bindSid=%u entity=%u\n",
+                    myNetId,
+                    mySessionId,
+                    bindNetId,
+                    bindSessionId,
+                    static_cast<u32_t>(localNetEntity));
+                if (localNetEntity != NULL_ENTITY)
+                {
+                    m_PlayerEntity = localNetEntity;
+                    BindPlayerToECSChampion(m_PlayerEntity);
+                }
+            }
+            else if (type == ePacketType::Snapshot)
+            {
+                static u32_t s_snapshotLogCount = 0;
+                if (s_snapshotLogCount < 3u)
+                {
+                    Winters::DevSmoke::Log(
+                        "[InGameNetwork] snapshot len=%u index=%u\n",
+                        len,
+                        s_snapshotLogCount);
+                    ++s_snapshotLogCount;
+                }
+                snapshotApplier.OnSnapshot(m_World, entityMap, payload, len);
+            }
+            else if (type == ePacketType::Event)
+            {
+                eventApplier.OnEvent(m_World, entityMap, payload, len);
+            }
+        };
+
+    if (m_bUsingSharedNetwork)
+        CGameSessionClient::Instance().SetGameFrameCallback(std::move(frameHandler));
+    else
+        m_pNetworkView->SetFrameCallback(std::move(frameHandler));
+    Winters::DevSmoke::Log("[Scene] callbacks registered (snapshot/event/cmd/network)\n");
+
+    if (bUseNetworkRoster)
+    {
+        Winters::DevSmoke::Log(m_bUsingSharedNetwork
+            ? "[Scene_InGame] Reusing BanPick TCP session.\n"
+            : "[Scene_InGame] Network roster active without shared session; local roster only.\n");
+    }
+    else if (m_pNetworkView->Connect("127.0.0.1", 9000))
+    {
+        Winters::DevSmoke::Log("[Scene_InGame] Connected to local Winters server.\n");
+    }
+    else
+    {
+        Winters::DevSmoke::Log("[Scene_InGame] Server not reachable; running local-only mode.\n");
+    }
+}
+
+bool_t CScene_InGame::PumpNetwork()
+{
+    const bool_t bNetworkActive = (m_pNetworkView && m_pNetworkView->IsConnected());
+    if (!bNetworkActive)
+        return false;
+
+    if (m_bUsingSharedNetwork)
+        CGameSessionClient::Instance().Pump();
+    else
+        m_pNetworkView->PumpReceivedFrames();
+
+    return true;
+}
+
+void CScene_InGame::ReplayLastNetworkHelloIfShared()
+{
+    if (m_bUsingSharedNetwork)
+        CGameSessionClient::Instance().ReplayLastHelloToGameFrameCallback();
+}
+
 bool CScene_InGame::HasPlayerTransform() const
 {
-    return CInGamePlayerTransformBridge::HasPlayerTransform(*this);
+    return m_pPlayerTransform != nullptr;
 }
 
 Vec3 CScene_InGame::GetPlayerPosition() const
 {
-    return CInGamePlayerTransformBridge::GetPlayerPosition(*this);
+    if (m_pPlayerTransform)
+        return m_pPlayerTransform->GetPosition();
+    return Vec3{};
 }
 
 void CScene_InGame::SetPlayerPosition(const Vec3& v)
 {
-    CInGamePlayerTransformBridge::SetPlayerPosition(*this, v);
+    if (!m_pPlayerTransform)
+        return;
+
+    m_pPlayerTransform->SetPosition(v);
+    if (m_PlayerEntity == NULL_ENTITY)
+        return;
+    if (!m_World.HasComponent<TransformComponent>(m_PlayerEntity))
+        return;
+    if (m_pPlayerTransform != &m_PlayerEntityTransformCache)
+        return;
+
+    m_World.GetComponent<TransformComponent>(m_PlayerEntity).SetPosition(v);
 }
 
 f32_t CScene_InGame::GetPlayerYaw() const
 {
-    return CInGamePlayerTransformBridge::GetPlayerYaw(*this);
+    return m_pPlayerTransform ? m_pPlayerTransform->GetRotation().y : 0.f;
 }
 
 void CScene_InGame::SetPlayerYaw(f32_t yaw)
 {
-    CInGamePlayerTransformBridge::SetPlayerYaw(*this, yaw);
+    if (!m_pPlayerTransform)
+        return;
+
+    Vec3 rot = m_pPlayerTransform->GetRotation();
+    const f32_t previousYaw = rot.y;
+    const f32_t normalizedYaw = NormalizeChampionVisualYaw(yaw);
+    const f32_t resolvedYaw = MakeChampionVisualYawNear(normalizedYaw, previousYaw);
+    m_pPlayerTransform->SetRotation({ rot.x, resolvedYaw, rot.z });
+
+    if (m_PlayerEntity == NULL_ENTITY)
+        return;
+    if (!m_World.HasComponent<TransformComponent>(m_PlayerEntity))
+        return;
+    if (m_pPlayerTransform != &m_PlayerEntityTransformCache)
+        return;
+
+    auto& tf = m_World.GetComponent<TransformComponent>(m_PlayerEntity);
+    Vec3 ecsRot = tf.GetRotation();
+    ecsRot.y = resolvedYaw;
+    tf.SetRotation(ecsRot);
 }
 
 void CScene_InGame::SyncPlayerEntityTransformFromECS()
 {
-    CInGamePlayerTransformBridge::SyncFromECS(*this);
+    if (m_PlayerEntity == NULL_ENTITY)
+        return;
+    if (!m_World.HasComponent<TransformComponent>(m_PlayerEntity))
+        return;
+
+    if (m_bNetworkAuthoritativeGameplay &&
+        m_bKalistaPassiveDashActive)
+    {
+        SyncPlayerEntityTransformToECS();
+        return;
+    }
+
+    auto& tf = m_World.GetComponent<TransformComponent>(m_PlayerEntity);
+    m_PlayerEntityTransformCache.SetPosition(tf.GetPosition());
+    m_PlayerEntityTransformCache.SetRotation(tf.GetRotation());
+    m_PlayerEntityTransformCache.SetScale(tf.GetScale());
 }
 
 void CScene_InGame::SyncPlayerEntityTransformToECS()
 {
-    CInGamePlayerTransformBridge::SyncToECS(*this);
+    if (m_PlayerEntity == NULL_ENTITY)
+        return;
+    if (!m_World.HasComponent<TransformComponent>(m_PlayerEntity))
+        return;
+    if (m_pPlayerTransform != &m_PlayerEntityTransformCache)
+        return;
+
+    auto& tf = m_World.GetComponent<TransformComponent>(m_PlayerEntity);
+    tf.SetPosition(m_PlayerEntityTransformCache.GetPosition());
+    tf.SetRotation(m_PlayerEntityTransformCache.GetRotation());
+    tf.SetScale(m_PlayerEntityTransformCache.GetScale());
 }
 
 void CScene_InGame::CaptureNetworkActorInterpolationStarts()
@@ -905,7 +2349,8 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                                 champ.id,
                                 pSkillDef,
                                 pNetAnim->animId,
-                                pNetAnim->flags);
+                                pNetAnim->flags,
+                                pNetAnim->playbackRateQ8);
                         actionState.transitionDurationSec =
                             pSkillDef ? pSkillDef->endTransitionDuration : 0.f;
                         if (pSkillDef)
@@ -930,9 +2375,11 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                                     : "";
                             }
                         }
+                        actionState.bLoopAction = HasNetworkLoopFlag(*pNetAnim);
                         actionState.bActionActive = true;
-                        actionState.bBaseAnimationPending = true;
+                        actionState.bBaseAnimationPending = !actionState.bLoopAction;
                         actionState.bPassiveDashTriggered = false;
+                        PlayLoopNetworkActionIfNeeded(champ.id, pSkillDef, *pNetAnim, rc);
                     }
                 }
                 else if (actionState.baseSeq != pNetAnim->actionSeq)
@@ -943,6 +2390,7 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                     {
                         actionState.bActionActive = false;
                         actionState.bTransitionActive = false;
+                        actionState.bLoopAction = false;
                         actionState.transitionRemainingSec = 0.f;
                     }
                 }
@@ -957,7 +2405,7 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
 
             const bool_t bLocalActionProtected =
                 e == m_PlayerEntity &&
-                CInGameChampionStateBridge::IsLocalActionProtected(*this);
+                IsLocalActionProtected();
             if (bLocalActionProtected)
             {
                 m_NetworkChampionMoving[e] = bMoving;
@@ -968,18 +2416,25 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             {
                 m_NetworkChampionMoving[e] = bMoving;
                 actionState.bDesiredMoving = bMoving;
+                if (actionState.bLoopAction && pNetAnim)
+                {
+                    const SkillDef* pLoopSkillDef =
+                        FindNetworkSkillDef(champ.id, pNetAnim->animId);
+                    PlayLoopNetworkActionIfNeeded(champ.id, pLoopSkillDef, *pNetAnim, rc);
+                }
+
                 actionState.actionRemainingSec -= dt;
                 if (actionState.actionRemainingSec > 0.f)
                     return;
 
+                actionState.bLoopAction = false;
                 if (e == m_PlayerEntity && champ.id == eChampion::KALISTA)
                 {
                     actionState.bActionActive = false;
                     if (!actionState.bPassiveDashTriggered)
                     {
                         const bool_t bDashStarted =
-                            CInGameChampionStateBridge::TriggerNetworkPassiveDashFromAction(
-                            *this,
+                            TriggerNetworkPassiveDashFromAction(
                             actionState.animId,
                             actionState.actionSeq,
                             actionState.bDesiredMoving);
@@ -991,11 +2446,11 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                         else
                         {
                             actionState.passiveDashInputGraceSec =
-                                Kalista::GetTuning().passiveDashInputGraceSec;
+                                ChampionGameDataDB::ResolvePassiveDashInputGraceSec(eChampion::KALISTA);
                             actionState.bBaseAnimationPending = true;
                         }
                     }
-                    if (CInGameChampionStateBridge::IsLocalActionProtected(*this))
+                    if (IsLocalActionProtected())
                     {
                         m_NetworkChampionMoving[e] = bMoving;
                         return;
@@ -1013,6 +2468,7 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                     ResetNetworkAnimatorSpeed(rc);
                     rc.pRenderer->PlayAnimationByName(transitionAnim, false);
                     actionState.bTransitionActive = true;
+                    actionState.bTransitionMoving = bMoving;
                     actionState.transitionRemainingSec = actionState.transitionDurationSec;
                     LogNetworkEndTransition(
                         e,
@@ -1035,12 +2491,23 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             {
                 m_NetworkChampionMoving[e] = bMoving;
                 actionState.bDesiredMoving = bMoving;
-                actionState.transitionRemainingSec -= dt;
-                if (actionState.transitionRemainingSec > 0.f)
-                    return;
 
-                actionState.bTransitionActive = false;
-                actionState.bBaseAnimationPending = true;
+                // 전환 중 이동 상태가 바뀌면 전환 애니메이션을 끊고 즉시 기본 애니메이션으로 넘어간다.
+                if (bMoving != actionState.bTransitionMoving)
+                {
+                    actionState.bTransitionActive = false;
+                    actionState.transitionRemainingSec = 0.f;
+                    actionState.bBaseAnimationPending = true;
+                }
+                else
+                {
+                    actionState.transitionRemainingSec -= dt;
+                    if (actionState.transitionRemainingSec > 0.f)
+                        return;
+
+                    actionState.bTransitionActive = false;
+                    actionState.bBaseAnimationPending = true;
+                }
             }
 
             if (actionState.bBaseAnimationPending)
@@ -1094,26 +2561,27 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
 
 Vec3 CScene_InGame::GetPlayerForward() const
 {
-    return CInGamePlayerTransformBridge::GetPlayerForward(*this);
+    const f32_t yaw =
+        GetPlayerYaw() -
+        ChampionGameDataDB::ResolveVisualYawOffset(GetPlayerChampionId());
+    return { sinf(yaw), 0.f, cosf(yaw) };
 }
 
 void CScene_InGame::OnUpdate(f32_t dt)
 {
-    static int s_frameCount = 0;
-    ++s_frameCount;
-    if (s_frameCount <= 3)
-    {
-        char dbg[64];
-        sprintf_s(dbg, "[OnUpdate #%d] enter\n", s_frameCount);
-        OutputDebugStringA(dbg);
-    }
-
     WINTERS_PROFILE_SCOPE("Scene_InGame::OnUpdate");
+
+    CGameInstance::Get()->UI_Set_StatusPanelOpen(CInput::Get().IsKeyDown(VK_TAB));
+
     if (m_bNetworkAuthoritativeGameplay && m_bNetworkActorInterpolationEnabled)
         CaptureNetworkActorInterpolationStarts();
 
-    const bool_t bNetworkActive =
-        CInGameNetworkBridge::Pump(m_pNetworkView, m_bUsingSharedNetwork);
+    const bool_t bNetworkActive = m_bReplayPlaybackMode
+        ? false
+        : PumpNetwork();
+
+    if (m_bReplayPlaybackMode)
+        UpdateReplayPlayback(dt);
 
     const u64_t appliedSnapshotTick = m_pSnapshotApplier
         ? m_pSnapshotApplier->GetLastAppliedServerTick()
@@ -1131,7 +2599,6 @@ void CScene_InGame::OnUpdate(f32_t dt)
         WINTERS_PROFILE_SCOPE("SyncECS");
         SyncPlayerEntityTransformFromECS();
     }
-    if (s_frameCount <= 3) OutputDebugStringA("  [A] after SyncECS\n");
     {
         WINTERS_PROFILE_SCOPE("Scheduler");
 
@@ -1147,7 +2614,6 @@ void CScene_InGame::OnUpdate(f32_t dt)
         m_pVisionSystem->ClearFowTextureDirty();
     }
 
-    if (s_frameCount <= 3) OutputDebugStringA("  [B] after Scheduler\n");
 
     if (m_bNetworkAuthoritativeGameplay &&
         bNetworkActive &&
@@ -1158,7 +2624,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
     SyncPlayerEntityTransformFromECS();
 
-    if (bNetworkActive)
+    if (bNetworkActive || m_bReplayPlaybackMode)
         UpdateNetworkChampionLocomotion(dt);
 
     ProjectGameplayActorsToMapSurface();
@@ -1174,10 +2640,12 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
     ProjectGameplayActorsToMapSurface();
 
-    UpdateTargeting();
-
     bool bSkipGroundMove = false;
-    UpdateCombatInput(bSkipGroundMove);
+    if (!m_bReplayPlaybackMode)
+    {
+        UpdateTargeting();
+        UpdateCombatInput(bSkipGroundMove);
+    }
 
     if (ShouldRunInGameSkillSmoke())
     {
@@ -1253,7 +2721,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
         {
             if (m_pPlayerRenderer && !m_bNetworkAuthoritativeGameplay)
             {
-                if (CInGameChampionStateBridge::CanResumeBaseAnimation(*this))
+                if (CanResumeBaseAnimation())
                 {
                     m_pPlayerRenderer->PlayAnimationByName(m_bMoving ?
                         m_pPlayerRunAnim : m_pPlayerIdleAnim);
@@ -1298,13 +2766,11 @@ void CScene_InGame::OnUpdate(f32_t dt)
                 {
                     sprintf_s(buf, "[FrameEvent] CAST slot=%u anim=%s frame=%.1f\n",
                         d.slot, d.animKey ? d.animKey : "?", curF);
-                    OutputDebugStringA(buf);
                     Winters::DevSmoke::Log("%s", buf);
                 }
                 if (bRecoveryHit)
                 {
                     sprintf_s(buf, "[FrameEvent] RECOVERY slot=%u frame=%.1f\n", d.slot, curF);
-                    OutputDebugStringA(buf);
                     Winters::DevSmoke::Log("%s", buf);
                 }
             }
@@ -1375,8 +2841,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
                     ctx.pFxMeshRenderer = m_pFxMeshRenderer.get();
                     ctx.applyTargetDamage = [this](EntityID target, f32_t damage)
                         {
-                            CInGameChampionStateBridge::ApplyLocalChampionDamage(
-                                *this,
+                            ApplyLocalChampionDamage(
                                 target,
                                 damage,
                                 "SkillHookDamage");
@@ -1421,19 +2886,19 @@ void CScene_InGame::OnUpdate(f32_t dt)
                     ctx.fGlobalAnimSpeed = m_fGlobalAnimSpeed;
                     ctx.startLocalDash = [this](const Vec3& dir)
                         {
-                            CInGameChampionStateBridge::StartLocalPassiveDash(*this, dir);
+                            StartLocalPassiveDash(dir);
                         };
                     ctx.setLocalDashDuration = [this](f32_t duration)
                         {
-                            CInGameChampionStateBridge::SetLocalPassiveDashDuration(duration);
+                            SetLocalPassiveDashDuration(duration);
                         };
                     ctx.getLocalDashDuration = [this]() -> f32_t
                         {
-                            return CInGameChampionStateBridge::GetLocalPassiveDashDuration();
+                            return GetLocalPassiveDashDuration();
                         };
                     ctx.setLocalActionAnimActive = [this](bool_t active)
                         {
-                            CInGameChampionStateBridge::SetLocalActionAnimActive(*this, active);
+                            SetLocalActionAnimActive(active);
                         };
                     recoveryHandled = CSkillHookRegistry::Instance().Dispatch(
                         m_pActiveSkillDef->recoveryHookId, ctx
@@ -1451,14 +2916,11 @@ void CScene_InGame::OnUpdate(f32_t dt)
         }
     }
 
-    if (m_pFxSystem)          m_pFxSystem->Update(m_World, dt);
-    if (m_pFxBeamSystem)      m_pFxBeamSystem->Update(m_World, dt);
-    if (m_pFxMeshSystem) m_pFxMeshSystem->Update(m_World, dt);
     ZedFx::TickShadowCloneModels(m_World, dt);
-    CInGameChampionStateBridge::UpdateLocalRuntime(*this, dt);
+    UpdateLocalChampionRuntime(dt);
     UpdateFlashCooldown(dt);
 
-    CInGameChampionStateBridge::Update(*this, dt);
+    UpdateChampionStateTimers(dt);
 
     // [B-6.6] player cooldown / stage window
     if (m_PlayerEntity != NULL_ENTITY
@@ -1493,16 +2955,11 @@ void CScene_InGame::OnUpdate(f32_t dt)
     if (m_pCamera)
         m_pCamera->Update(dt, CInput::Get());
 
-    CInGamePlayerControlBridge::Update(
-        *this,
-        dt,
-        bNetworkActive,
-        bSkipGroundMove,
-        bActionLockedBefore);
+    if (!m_bReplayPlaybackMode)
+    {
+        UpdatePlayerControl(dt, bNetworkActive, bSkipGroundMove, bActionLockedBefore);
+    }
 
-    m_fElapsed += dt;
-
-    m_CubeTransform.SetRotationX(m_fElapsed * 0.8f);
 
     //ECS owned ModelRenderer
     {
@@ -1518,20 +2975,31 @@ void CScene_InGame::OnUpdate(f32_t dt)
         );
     }
 
-    CInGameChampionStateBridge::UpdateLocalPostAnimation(*this);
+    for (MapAmbientProp& prop : m_AmbientProps)
+    {
+        if (prop.pRenderer)
+            prop.pRenderer->Update(dt);
+    }
+
+    CJungle_Manager::Get()->Update(dt);
+
+    if (m_pFxSystem)          m_pFxSystem->Update(m_World, dt);
+    if (m_pFxBeamSystem)      m_pFxBeamSystem->Update(m_World, dt);
+    if (m_pFxMeshSystem)      m_pFxMeshSystem->Update(m_World, dt);
+
+    UpdateLocalPostAnimation();
 
     {
-        static int s_fc = 0;
-        ++s_fc;
-        if (s_fc <= 3) OutputDebugStringA("  [C] before MinionMgr::Tick\n");
         if (m_bNetworkAuthoritativeGameplay)
-            CMinion_Manager::Get()->TickVisuals(dt);
+        {
+            const Mat4 minionVisualVP = m_pCamera ? m_pCamera->GetViewProjection() : Mat4();
+            CMinion_Manager::Get()->TickVisuals(dt, m_pCamera ? &minionVisualVP : nullptr);
+        }
         else
+        {
             CMinion_Manager::Get()->Tick(dt);
-        if (!m_bNetworkAuthoritativeGameplay && m_pGameplayCollisionSystem)
-            m_pGameplayCollisionSystem->Execute(m_World, dt);
+        }
         ProjectGameplayActorsToMapSurface();
-        if (s_fc <= 3) OutputDebugStringA("  [D] after MinionMgr::Tick\n");
     }
 
     const bool_t bAttackHold = CInput::Get().IsKeyDown('A');
@@ -1560,6 +3028,10 @@ void CScene_InGame::OnImGui()
         m_bShowAIDebug = !m_bShowAIDebug;
     if (input.IsKeyPressed(VK_F8))
         m_bShowUITuner = !m_bShowUITuner;
+    if (input.IsKeyPressed(VK_F7))
+        m_bShowWfxEffectTool = !m_bShowWfxEffectTool;
+    if (input.IsKeyPressed(VK_F6))
+        m_bShowReplayControl = !m_bShowReplayControl;
     if (input.IsKeyPressed(VK_F10))
         m_bShowLegacyInGameDebug = !m_bShowLegacyInGameDebug;
     if (input.IsKeyPressed(VK_F1))
@@ -1573,28 +3045,69 @@ void CScene_InGame::OnImGui()
     }
 
     if (m_bShowAIDebug)
+    {
+        WINTERS_PROFILE_SCOPE("UI::AIDebug");
         UI::CAIDebugPanel::Render(m_World, this);
+    }
 
     if (m_bShowRenderDebug)
+    {
+        WINTERS_PROFILE_SCOPE("UI::RenderDebug");
         UI::CRenderDebugPanel::Render(this);
+    }
 
     if (m_bShowUITuner)
+    {
+        WINTERS_PROFILE_SCOPE("UI::Tuner");
         CGameInstance::Get()->UI_OnImGui_Tuner();
+    }
 
-    UI::CWfxEffectToolPanel::Render(this);
+    if (m_bShowWfxEffectTool)
+    {
+        WINTERS_PROFILE_SCOPE("UI::WfxEffectTool");
+        UI::CWfxEffectToolPanel::Render(this);
+    }
+
+    if (m_bReplayPlaybackMode || m_bShowReplayControl || m_bReplayStopRequested)
+    {
+        WINTERS_PROFILE_SCOPE("UI::Replay");
+        DrawReplayControlPanel();
+    }
 
     if (!m_bShowLegacyInGameDebug)
         return;
 
-    InGameDebugBridgeDesc debugDesc{
-        *this,
-        m_World,
-        m_pFogOfWarRenderer.get(),
-        m_pCamera.get(),
-        m_PlayerTeam,
-        m_bLogFrameEvents
-    };
-    CInGameDebugBridge::Render(debugDesc);
+    UI::CCombatDebugPanel::Render(m_World, this);
+    UI::CMapTunerPanel::Render(this);
+    UI::CChampionTuner::Render(this);
+    UI::CEffectTuner::Render(this);
+    UI::CRenderDebugPanel::Render(this);
+    UI::CSkillTimingPanel::Render(this);
+    CNetworkEventTrace::Instance().DrawImGui();
+
+    ImGui::SetNextWindowSize(ImVec2(220.f, 120.f), ImGuiCond_FirstUseEver);
+    ImGui::SetNextWindowSizeConstraints(ImVec2(180.f, 90.f), ImVec2(360.f, 220.f));
+    if (ImGui::Begin("Camera"))
+    {
+        if (m_pCamera)
+        {
+            Vec3 eye = m_pCamera->GetEye();
+            ImGui::Text("Eye: (%.1f, %.1f, %.1f)", eye.x, eye.y, eye.z);
+        }
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+        if (m_pCamera)
+        {
+            bool bFollow = m_pCamera->IsFollowMode();
+            if (ImGui::Checkbox("Follow Mode (F2)", &bFollow))
+                m_pCamera->SetFollowMode(bFollow);
+        }
+        ImGui::Checkbox("Log Frame Events", reinterpret_cast<bool*>(&m_bLogFrameEvents));
+    }
+    ImGui::End();
+
+    if (m_pCamera)
+        m_pCamera->OnImGui();
+    CMinion_Manager::Get()->OnImGui_Tuner();
 }
 
 void CScene_InGame::OnLateUpdate(f32_t /*dt*/)
@@ -1603,25 +3116,398 @@ void CScene_InGame::OnLateUpdate(f32_t /*dt*/)
 
 void CScene_InGame::OnRender()
 {
-    CInGameRenderBridge::Render(*this);
+    Mat4 vp = m_pCamera->GetViewProjection();
+    const Vec3 cameraWorld = m_pCamera ? m_pCamera->GetEye() : Vec3{};
+    const u64_t lastSnapshotTick = m_pSnapshotApplier
+        ? m_pSnapshotApplier->GetLastAppliedServerTick()
+        : 0ull;
+    u32_t yawTraceNetId = 0;
+    u32_t yawTraceCommandSeq = 0;
+    f32_t yawTraceProtectedYaw = 0.f;
+    const bool_t bHasYawTraceProtection = m_pSnapshotApplier &&
+        m_pSnapshotApplier->GetLocalMoveYawProtectionDebug(
+            yawTraceNetId,
+            yawTraceCommandSeq,
+            yawTraceProtectedYaw);
+    (void)yawTraceNetId;
+    (void)yawTraceProtectedYaw;
+    CGameInstance* pGameInstance = CGameInstance::Get();
+    IRHIDevice* pDevice = pGameInstance->Get_RHIDevice();
+    void* pAmbientOcclusionSRV =
+        m_pWhiteTexture ? m_pWhiteTexture->GetNativeSRV() : nullptr;
+    const bool_t bUseDX12RHI = pDevice && pDevice->GetBackend() == eRHIBackend::DX12;
+    const bool_t bUseDX11RHI = pDevice && pDevice->GetBackend() == eRHIBackend::DX11;
+    const bool_t bSSAOEnabled = m_pSSAOPass && m_pSSAOPass->GetEnabled();
+
+    const u8_t localTeam = UI::QueryLocalTeam(m_World);
+    const bool_t bRevealAllForPlayback = ShouldRevealAllForPlayback();
+
+    if (bUseDX11RHI && m_pNormalPass && bSSAOEnabled)
+    {
+        WINTERS_PROFILE_SCOPE("Render::NormalPass");
+        m_pNormalPass->Begin(pDevice);
+
+        m_Map.UpdateCamera(vp, cameraWorld);
+        m_Map.UpdateTransform(m_MapTransform.GetWorldMatrix());
+        m_Map.RenderNormalPassFrustumCulled(
+            m_pNormalPass->GetStaticShader(),
+            m_pNormalPass->GetStaticPipeline(),
+            m_pNormalPass->GetSkinnedShader(),
+            m_pNormalPass->GetSkinnedPipeline(),
+            vp);
+
+        m_World.ForEach<ChampionComponent, RenderComponent, TransformComponent>(
+            [&](EntityID e, ChampionComponent&, RenderComponent& rc, TransformComponent& tf)
+            {
+                if (rc.bSceneManaged || !rc.bVisible || !rc.pRenderer)
+                    return;
+                if (!UI::IsRenderableForLocal(m_World, e, localTeam, bRevealAllForPlayback))
+                    return;
+
+                FlushTransformForRender(tf);
+                rc.pRenderer->UpdateCamera(vp, cameraWorld);
+                rc.pRenderer->UpdateTransform(tf.GetWorldMatrix());
+                if (m_World.HasComponent<MeshGroupVisibilityComponent>(e)
+                    && m_World.GetComponent<MeshGroupVisibilityComponent>(e).bEnabled)
+                {
+                    const auto& visibility = m_World.GetComponent<MeshGroupVisibilityComponent>(e);
+                    rc.pRenderer->RenderNormalPassWithVisibility(
+                        m_pNormalPass->GetStaticShader(),
+                        m_pNormalPass->GetStaticPipeline(),
+                        m_pNormalPass->GetSkinnedShader(),
+                        m_pNormalPass->GetSkinnedPipeline(),
+                        visibility.mask);
+                }
+                else
+                {
+                    rc.pRenderer->RenderNormalPassFrustumCulled(
+                        m_pNormalPass->GetStaticShader(),
+                        m_pNormalPass->GetStaticPipeline(),
+                        m_pNormalPass->GetSkinnedShader(),
+                        m_pNormalPass->GetSkinnedPipeline(),
+                        vp);
+                }
+            });
+
+        m_pNormalPass->End(pDevice);
+
+        if (m_pSSAOPass && m_pSSAOPass->GetEnabled())
+        {
+            WINTERS_PROFILE_SCOPE("Render::SSAO");
+            m_pSSAOPass->Execute(
+                pDevice,
+                m_pNormalPass->GetDepthSRVNative(),
+                m_pNormalPass->GetNormalSRVNative(),
+                vp);
+
+            if (m_pSSAOPass->GetOutputSRVNative())
+                pAmbientOcclusionSRV = m_pSSAOPass->GetOutputSRVNative();
+        }
+    }
+
+    {
+        WINTERS_PROFILE_SCOPE("Map::Render");
+        WINTERS_PROFILE_COUNT("Map::MeshCount", m_Map.GetMeshCount());
+
+        {
+            WINTERS_PROFILE_SCOPE("Map::UpdateCamera");
+            m_Map.UpdateCamera(vp, cameraWorld);
+        }
+        {
+            WINTERS_PROFILE_SCOPE("Map::UpdateTransform");
+            m_Map.UpdateTransform(m_MapTransform.GetWorldMatrix());
+        }
+        {
+            WINTERS_PROFILE_SCOPE("Map::SetAmbientOcclusion");
+            m_Map.SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
+        }
+        {
+            WINTERS_PROFILE_SCOPE("Map::DrawFrustumCulled");
+            m_Map.RenderFrustumCulled(vp);
+        }
+    }
+
+    {
+        WINTERS_PROFILE_SCOPE("Champion::Render");
+        m_World.ForEach<ChampionComponent, RenderComponent, TransformComponent>(
+            [&](EntityID e, ChampionComponent& champion, RenderComponent& rc,
+                TransformComponent& tf)
+            {
+                if (rc.bSceneManaged) return;
+                if (!rc.bVisible || !rc.pRenderer) return;
+                if (!UI::IsRenderableForLocal(m_World, e, localTeam, bRevealAllForPlayback)) return;
+                FlushTransformForRender(tf);
+                rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
+                rc.pRenderer->UpdateCamera(vp, cameraWorld);
+                const bool_t bLocalYawTraceTarget =
+                    IsNetworkAuthoritativeGameplay() &&
+                    e == GetPlayerEntity();
+                if (bLocalYawTraceTarget && bHasYawTraceProtection)
+                {
+                    rc.pRenderer->SetYawTraceContext(
+                        lastSnapshotTick,
+                        static_cast<u32_t>(e),
+                        static_cast<u32_t>(champion.id),
+                        yawTraceCommandSeq,
+                        tf.GetRotation().y,
+                        GameplayForwardFromVisualYaw(champion.id, tf.GetRotation().y));
+                }
+                else if (bLocalYawTraceTarget)
+                {
+                    rc.pRenderer->ClearYawTraceContext();
+                }
+                rc.pRenderer->UpdateTransform(tf.GetWorldMatrix());
+                if (m_World.HasComponent<MeshGroupVisibilityComponent>(e)
+                    && m_World.GetComponent<MeshGroupVisibilityComponent>(e).bEnabled)
+                {
+                    const auto& visibility = m_World.GetComponent<MeshGroupVisibilityComponent>(e);
+                    rc.pRenderer->RenderWithVisibility(visibility.mask);
+                }
+                else
+                {
+                    rc.pRenderer->RenderFrustumCulled(vp);
+                }
+            }
+        );
+    }
+
+    {
+        WINTERS_PROFILE_SCOPE("Structure::Render");
+        CStructure_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV, bRevealAllForPlayback);
+    }
+    {
+        WINTERS_PROFILE_SCOPE("Jungle::Render");
+        CJungle_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV);
+    }
+    CMinion_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV, bRevealAllForPlayback);
+
+    for (MapAmbientProp& prop : m_AmbientProps)
+    {
+        if (!prop.pRenderer)
+            continue;
+        prop.pRenderer->UpdateCamera(vp, cameraWorld);
+        prop.pRenderer->UpdateTransform(prop.transform.GetWorldMatrix());
+        prop.pRenderer->RenderFrustumCulled(vp);
+    }
+
+    if (!bUseDX12RHI && m_pContactShadowPlane)
+    {
+        WINTERS_PROFILE_SCOPE("ContactShadow::Render");
+        m_World.ForEach<ChampionComponent, RenderComponent, TransformComponent>(
+            [&](EntityID e, ChampionComponent&, RenderComponent& rc, TransformComponent& tf)
+            {
+                if (rc.bSceneManaged || !rc.bVisible || !rc.pRenderer)
+                    return;
+                if (!UI::IsRenderableForLocal(m_World, e, localTeam, bRevealAllForPlayback))
+                    return;
+
+                FlushTransformForRender(tf);
+                m_pContactShadowPlane->SetWorld(
+                    BuildContactShadowWorld(tf, 1.22f, 0.055f));
+                m_pContactShadowPlane->Render(pDevice, vp);
+            });
+    }
+
+    if (!bRevealAllForPlayback && m_pFogOfWarRenderer)
+    {
+        WINTERS_PROFILE_SCOPE("FogOfWar::Render");
+        const Engine::CVisionSystem::FowProjection Projection =
+            m_pVisionSystem
+                ? m_pVisionSystem->GetFowProjection()
+                : Engine::CVisionSystem::FowProjection{};
+        m_pFogOfWarRenderer->RenderWorldOverlay(
+            pDevice,
+            vp,
+            Projection.vWorldAtUv00,
+            Projection.vWorldAtUv10,
+            Projection.vWorldAtUv01,
+            0.05f);
+    }
+
+    {
+        WINTERS_PROFILE_SCOPE("DebugDraw::Render");
+        UI::CDebugDrawSystem::Render(m_World, this, vp);
+    }
+
+    {
+        WINTERS_PROFILE_SCOPE("AttackRange::Render");
+        RenderAttackRangePreview(*this, vp, pDevice, bUseDX12RHI);
+    }
+
+    if (m_pFxMeshSystem && m_pCamera)
+        m_pFxMeshSystem->Render(m_World, m_pCamera.get());
+    if (m_pFxBeamSystem && m_pCamera)
+        m_pFxBeamSystem->Render(m_World, m_pCamera.get());
+    if (m_pFxSystem && m_pCamera)
+        m_pFxSystem->Render(m_World, m_pCamera.get());
+
+    {
+        WINTERS_PROFILE_SCOPE("UIOverlay::Render");
+        CGameInstance::Get()->UI_Render_Overlay(vp);
+    }
+
+    {
+        WINTERS_PROFILE_SCOPE("Minimap::Render");
+        const ImVec2 DisplaySize = ImGui::GetIO().DisplaySize;
+        const f32_t fScreenWidth =
+            DisplaySize.x > 0.f ? DisplaySize.x : kFallbackScreenWidth;
+        const f32_t fScreenHeight =
+            DisplaySize.y > 0.f ? DisplaySize.y : kFallbackScreenHeight;
+
+        UI::MinimapFrameState MinimapState{};
+        UI::BuildMinimapFrameState(
+            m_World,
+            m_pFogOfWarRenderer.get(),
+            GetPlayerTeam(),
+            fScreenWidth,
+            fScreenHeight,
+            bRevealAllForPlayback,
+            MinimapState);
+        UI::CMinimapPanel::RenderRuntime(MinimapState);
+    }
 }
 
-void CScene_InGame::OnSnapshot(const u8_t* bytes, u32_t len)
+void CScene_InGame::UpdateReplayPlayback(f32_t dt)
 {
-    CInGameNetworkBridge::ApplySnapshot(
+    if (!m_pReplayPlayer || !m_pEntityIdMap || !m_pSnapshotApplier || !m_pEventApplier)
+        return;
+
+    if (m_pReplayPlayer->Update(
+        dt,
         m_World,
-        m_pSnapshotApplier.get(),
-        m_pEntityIdMap.get(),
-        bytes,
-        len);
-    ProjectGameplayActorsToMapSurface();
-    // Sim-5 will replay unacked local inputs after this authority snapshot is applied.
+        *m_pEntityIdMap,
+        *m_pSnapshotApplier,
+        *m_pEventApplier))
+    {
+        ProjectGameplayActorsToMapSurface();
+    }
+}
+
+bool_t CScene_InGame::SendStopReplayRequest()
+{
+    if (m_bReplayPlaybackMode || m_bReplayStopRequested)
+        return m_bReplayStopRequested;
+
+    CGameSessionClient& session = CGameSessionClient::Instance();
+    if (!session.IsConnected())
+    {
+        m_strReplayStatus = "Replay stop requires server session";
+        return false;
+    }
+
+    m_bReplayStopRequested = session.SendLobbyCommand(
+        Shared::Schema::LobbyCommandKind::StopReplay,
+        0,
+        eChampion::END,
+        0,
+        1u);
+
+    m_strReplayStatus = m_bReplayStopRequested
+        ? "Replay stop requested"
+        : "Replay stop request failed";
+    return m_bReplayStopRequested;
+}
+
+void CScene_InGame::DrawReplayControlPanel()
+{
+    ImGui::SetNextWindowSize(ImVec2(280.f, 116.f), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin("Replay"))
+    {
+        ImGui::End();
+        return;
+    }
+
+    if (m_bReplayPlaybackMode)
+    {
+        if (m_pReplayPlayer)
+        {
+            bool_t bPaused = m_pReplayPlayer->IsPaused();
+            if (ImGui::Checkbox("Pause", &bPaused))
+                m_pReplayPlayer->SetPaused(bPaused);
+
+            f32_t speed = m_pReplayPlayer->GetPlaybackRate();
+            if (ImGui::SliderFloat("Speed", &speed, 0.25f, 4.f))
+                m_pReplayPlayer->SetPlaybackRate(speed);
+
+            ImGui::Text(
+                "Tick: %llu / %llu",
+                static_cast<unsigned long long>(m_pReplayPlayer->GetCurrentTick()),
+                static_cast<unsigned long long>(m_pReplayPlayer->GetLastTick()));
+        }
+
+        ImGui::TextUnformatted(m_strReplayStatus.empty() ? "Replay playback" : m_strReplayStatus.c_str());
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::Button("Stop"))
+        SendStopReplayRequest();
+
+    ImGui::TextUnformatted(m_strReplayStatus.empty() ? "Recording on server" : m_strReplayStatus.c_str());
+    ImGui::End();
 }
 
 void CScene_InGame::OnExit()
 {
+    CGameInstance::Get()->UI_Set_StatusPanelOpen(false);
     SetHoveredTarget(NULL_ENTITY, eTeam::TEAM_END);
-    CInGameLifecycleBridge::Shutdown(*this);
+
+    CGameInstance::Get()->UI_Set_InGameBuyItemCallback(nullptr, nullptr);
+    CGameInstance::Get()->UI_Set_LevelSkillCallback(nullptr, nullptr);
+    CGameInstance::Get()->UI_Bind_World(nullptr);
+    UI::CMinimapPanel::ShutdownRuntime();
+
+    if (m_bUsingSharedNetwork)
+    {
+        CGameSessionClient::Instance().SetGameFrameCallback(nullptr);
+    }
+    else if (m_pNetwork)
+    {
+        m_pNetwork->Disconnect();
+    }
+
+    m_pCommandSerializer.reset();
+    m_pEventApplier.reset();
+    m_pSnapshotApplier.reset();
+    m_pNetwork.reset();
+    m_pNetworkView = nullptr;
+    m_bUsingSharedNetwork = false;
+    m_pEntityIdMap.reset();
+    m_bNetworkAuthoritativeGameplay = false;
+
+    m_Map.Shutdown();
+
+    if (m_pFxBeamSystem)   m_pFxBeamSystem.reset();
+    if (m_pFxMeshSystem)   m_pFxMeshSystem.reset();
+    if (m_pFxMeshRenderer) m_pFxMeshRenderer.reset();
+
+    m_AmbientProps.clear();
+    m_ChampionRenderers.clear();
+    m_NetworkChampionPrevPos.clear();
+    m_NetworkChampionMoveGraceSec.clear();
+    m_NetworkChampionMoving.clear();
+    m_NetworkActorInterpStates.clear();
+    m_uNetworkActorInterpSnapshotTick = 0;
+    m_NetworkActionAnimStates.clear();
+    m_pSSAOPass.reset();
+    m_pNormalPass.reset();
+    m_pFogOfWarRenderer.reset();
+    m_pVisionSystem = nullptr;
+    m_BushIndex.Clear();
+    m_pWhiteTexture.reset();
+    m_pRHIUtilityPlaneRenderer.reset();
+    if (IRHIDevice* pDevice = CGameInstance::Get()->Get_RHIDevice())
+    {
+        if (m_hRHIAttackRangeTex.IsValid())
+            pDevice->DestroyTexture(m_hRHIAttackRangeTex);
+    }
+    m_hRHIAttackRangeTex = {};
+    m_pAttackRangeTex.reset();
+    m_pAttackRangePlane.reset();
+    CMinion_Manager::Get()->Set_Enabled(false);
+    CMinion_Manager::Get()->Shutdown();
+    CJungle_Manager::Get()->Shutdown();
+    CStructure_Manager::Get()->Shutdown();
 }
 
 void CScene_InGame::SetEntityHoverOutline(EntityID entity, bool_t bEnabled)
@@ -1667,14 +3553,1464 @@ void CScene_InGame::SetHoveredTarget(EntityID entity, eTeam team)
     }
 }
 
+void CScene_InGame::UpdateChampionStateTimers(f32_t dt)
+{
+    m_World.ForEach<YasuoStateComponent>(
+        [dt](EntityID, YasuoStateComponent& ys)
+        {
+            if (ys.qStackTimer > 0.f)
+            {
+                ys.qStackTimer -= dt;
+                if (ys.qStackTimer <= 0.f) ys.qStackCount = 0;
+            }
+            if (ys.eActiveTimer > 0.f)
+            {
+                ys.eActiveTimer -= dt;
+                if (ys.eActiveTimer <= 0.f) ys.bEActive = false;
+            }
+        });
+
+    if (m_PlayerEntity != NULL_ENTITY
+        && m_World.HasComponent<RivenStateComponent>(m_PlayerEntity))
+    {
+        auto& rs = m_World.GetComponent<RivenStateComponent>(m_PlayerEntity);
+        if (rs.qStackTimer > 0.f)
+        {
+            rs.qStackTimer -= dt;
+            if (rs.qStackTimer <= 0.f)
+            {
+                rs.qStackTimer = 0.f;
+                rs.qStackCount = 0;
+            }
+        }
+
+        if (rs.bUlted)
+        {
+            rs.fUltTimer -= dt;
+            if (rs.fUltTimer <= 0.f)
+            {
+                rs.bUlted = false;
+                rs.fUltTimer = 0.f;
+                m_pPlayerIdleAnim = "riven_idle1";
+                m_pPlayerRunAnim = "riven_run";
+                if (m_pPlayerRenderer)
+                {
+                    m_pPlayerRenderer->PlayAnimationByName(
+                        m_bMoving ? m_pPlayerRunAnim : m_pPlayerIdleAnim,
+                        true);
+                }
+            }
+        }
+
+        if (rs.fShieldTimer > 0.f)
+        {
+            rs.fShieldTimer -= dt;
+            if (rs.fShieldTimer <= 0.f)
+            {
+                rs.fShieldTimer = 0.f;
+                rs.fShieldRemaining = 0.f;
+            }
+        }
+    }
+
+    if (m_PlayerEntity != NULL_ENTITY
+        && m_World.HasComponent<JaxStateComponent>(m_PlayerEntity))
+    {
+        auto& js = m_World.GetComponent<JaxStateComponent>(m_PlayerEntity);
+        if (js.bEmpowerActive && js.fEmpowerTimer > 0.f)
+        {
+            js.fEmpowerTimer -= dt;
+            if (js.fEmpowerTimer <= 0.f)
+            {
+                js.bEmpowerActive = false;
+                js.fEmpowerTimer = 0.f;
+            }
+        }
+
+        if (js.bCounterActive && js.fCounterTimer > 0.f)
+        {
+            js.fCounterTimer -= dt;
+            if (js.fCounterTimer <= 0.f)
+            {
+                js.bCounterActive = false;
+                js.fCounterTimer = 0.f;
+            }
+        }
+
+        if (js.bUltActive && js.fUltTimer > 0.f)
+        {
+            js.fUltTimer -= dt;
+            if (js.fUltTimer <= 0.f)
+            {
+                js.bUltActive = false;
+                js.fUltTimer = 0.f;
+                js.ultAttackCounter = 0;
+            }
+        }
+    }
+
+    if (m_PlayerEntity != NULL_ENTITY
+        && m_World.HasComponent<AnnieStateComponent>(m_PlayerEntity))
+    {
+        auto& as = m_World.GetComponent<AnnieStateComponent>(m_PlayerEntity);
+        if (as.bEShieldActive && as.fEShieldTimer > 0.f)
+        {
+            as.fEShieldTimer -= dt;
+            if (as.fEShieldTimer <= 0.f)
+            {
+                as.bEShieldActive = false;
+                as.fEShieldTimer = 0.f;
+            }
+        }
+
+        if (as.bTibbersActive && as.fTibbersTimer > 0.f)
+        {
+            as.fTibbersTimer -= dt;
+            if (as.fTibbersTimer <= 0.f)
+            {
+                as.bTibbersActive = false;
+                as.fTibbersTimer = 0.f;
+                as.vTibbersPos = {};
+            }
+        }
+    }
+
+    if (m_PlayerEntity != NULL_ENTITY
+        && m_World.HasComponent<AsheStateComponent>(m_PlayerEntity))
+    {
+        auto& as = m_World.GetComponent<AsheStateComponent>(m_PlayerEntity);
+        if (as.bQActive && as.fQTimer > 0.f)
+        {
+            as.fQTimer -= dt;
+            if (as.fQTimer <= 0.f)
+            {
+                as.bQActive = false;
+                as.fQTimer = 0.f;
+            }
+        }
+    }
+}
+
+void CScene_InGame::UpdateLocalChampionRuntime(f32_t dt)
+{
+    if (m_pIreliaBladeSystem)
+        m_pIreliaBladeSystem->Execute(m_World, dt);
+    if (m_pWindWallSystem)
+        m_pWindWallSystem->Execute(m_World, dt);
+
+    if (m_bKalistaPassiveDashActive)
+        UpdateLocalPassiveDash(dt);
+
+    if (m_bYasuoDashActive)
+        UpdateLocalTargetDash(dt);
+    if (m_bYasuoRActive)
+        UpdateLocalUltimateSequence(dt);
+
+    if (m_pPendingHitSystem)
+        m_pPendingHitSystem->Execute(m_World, dt);
+    if (m_pYasuoProjectileSystem)
+        m_pYasuoProjectileSystem->Execute(m_World, dt);
+    if (m_pKalistaProjectileSystem)
+        m_pKalistaProjectileSystem->Execute(m_World, dt);
+    if (m_pKalistaRendSystem)
+        m_pKalistaRendSystem->Execute(m_World, dt);
+
+    Irelia::UpdateLocalBladeState(
+        m_World,
+        m_pFxMeshRenderer.get(),
+        m_PlayerEntity,
+        m_PlayerTeam,
+        dt,
+        ResolveMouseMapSurfacePos(),
+        !m_bNetworkAuthoritativeGameplay);
+}
+
+bool_t CScene_InGame::CanResumeBaseAnimation() const
+{
+    return !m_bKalistaPassiveDashActive && !m_bKalistaPassiveDashAnimActive;
+}
+
+bool_t CScene_InGame::IsLocalActionProtected() const
+{
+    return m_fLastActionTimer > 0.f ||
+        m_fEndTransitionTimer > 0.f ||
+        m_bDashActive ||
+        m_bKalistaPassiveDashActive;
+}
+
+void CScene_InGame::UpdateLocalPostAnimation()
+{
+    if (m_bKalistaPassiveDashAnimActive && !m_bKalistaPassiveDashActive)
+    {
+        const Engine::CAnimator* pAnim = m_pPlayerRenderer
+            ? m_pPlayerRenderer->GetAnimator()
+            : nullptr;
+        if (!pAnim || !pAnim->IsPlaying())
+        {
+            if (m_pPlayerRenderer && !m_bNetworkAuthoritativeGameplay)
+            {
+                m_pPlayerRenderer->PlayAnimationByName(
+                    m_bMoving ? m_pPlayerRunAnim : m_pPlayerIdleAnim);
+            }
+            m_bKalistaPassiveDashAnimActive = false;
+        }
+    }
+}
+
+void CScene_InGame::ResetLocalSkillRuntimeState()
+{
+    Kalista::ClearPassiveDashRequest();
+    m_bKalistaPassiveDashAnimActive = false;
+    m_bKalistaPassiveDashMoveCommandPending = false;
+    m_bKalistaPassiveDashTriggerAfterMove = false;
+    m_uKalistaPassiveDashTriggerAnimId = 0;
+    m_uKalistaPassiveDashTriggerActionSeq = 0;
+    m_vKalistaPassiveDashFaceDir = {};
+    m_bKalistaPassiveDashHasFaceDir = false;
+}
+
+bool_t CScene_InGame::TryQueueLocalPassiveDashFromCursor()
+{
+    const eChampion champ = GetPlayerChampionId();
+    if (champ != eChampion::KALISTA)
+        return false;
+
+    u8_t passiveSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+    bool_t bNetworkGraceWindow = false;
+    u16_t networkAnimId = 0;
+    u32_t networkActionSeq = 0;
+    bool_t bPassiveDashWindow =
+        m_pActiveSkillDef &&
+        (m_pActiveSkillDef->slot == 0 || m_pActiveSkillDef->slot == 1) &&
+        !m_bRecoveryFrameFired;
+
+    if (bPassiveDashWindow)
+    {
+        passiveSlot = m_pActiveSkillDef->slot;
+    }
+    else if (m_bNetworkAuthoritativeGameplay && m_PlayerEntity != NULL_ENTITY)
+    {
+        const auto it = m_NetworkActionAnimStates.find(m_PlayerEntity);
+        if (it != m_NetworkActionAnimStates.end())
+        {
+            const auto animId = static_cast<eNetAnimId>(it->second.animId);
+            const bool_t bPassiveAnim =
+                animId == eNetAnimId::BasicAttack || animId == eNetAnimId::SkillQ;
+            const bool_t bGraceOpen =
+                !it->second.bActionActive && it->second.passiveDashInputGraceSec > 0.f;
+            if (bPassiveAnim &&
+                !it->second.bPassiveDashTriggered &&
+                (it->second.bActionActive || bGraceOpen))
+            {
+                passiveSlot = (animId == eNetAnimId::SkillQ)
+                    ? static_cast<u8_t>(eSkillSlot::Q)
+                    : static_cast<u8_t>(eSkillSlot::BasicAttack);
+                bPassiveDashWindow = true;
+                bNetworkGraceWindow = bGraceOpen;
+                networkAnimId = it->second.animId;
+                networkActionSeq = it->second.actionSeq;
+            }
+        }
+    }
+
+    if (!bPassiveDashWindow || !m_pPlayerTransform || !m_pCamera)
+        return false;
+
+    const Vec3 origin = m_pPlayerTransform->GetPosition();
+    Vec3 dashTarget = ResolveMouseMapSurfacePos();
+
+    if (passiveSlot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+        std::fabsf(dashTarget.x) + std::fabsf(dashTarget.z) <= 0.001f)
+    {
+        const Vec3 forward = GetPlayerForward();
+        dashTarget = {
+            origin.x + forward.x,
+            origin.y,
+            origin.z + forward.z
+        };
+    }
+
+    const f32_t dx = dashTarget.x - origin.x;
+    const f32_t dz = dashTarget.z - origin.z;
+    const f32_t len = std::sqrtf(dx * dx + dz * dz);
+    if (len > 0.1f)
+    {
+        const Vec3 dashDir{ dx / len, 0.f, dz / len };
+        Vec3 faceDir = m_bKalistaPassiveDashHasFaceDir
+            ? m_vKalistaPassiveDashFaceDir
+            : GetPlayerForward();
+
+        if (!m_bKalistaPassiveDashHasFaceDir && m_pActiveSkillDef)
+        {
+            const auto& activeCmd = m_ActiveSkillCommandStorage;
+            if (passiveSlot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+                activeCmd.targetEntityId != NULL_ENTITY &&
+                m_World.HasComponent<TransformComponent>(activeCmd.targetEntityId))
+            {
+                const Vec3 targetPos =
+                    m_World.GetComponent<TransformComponent>(activeCmd.targetEntityId).GetPosition();
+                faceDir = WintersMath::DirectionXZ(origin, targetPos, faceDir);
+            }
+            else if (activeCmd.direction.x != 0.f || activeCmd.direction.z != 0.f)
+            {
+                faceDir = activeCmd.direction;
+            }
+        }
+
+        SetKalistaPassiveDashFaceDir(
+            WintersMath::NormalizeXZ(faceDir, GetPlayerForward(), 0.0001f));
+        Kalista::QueuePassiveDash(dashDir);
+        if (m_bNetworkAuthoritativeGameplay)
+        {
+            m_bKalistaPassiveDashMoveCommandPending = true;
+            m_bKalistaPassiveDashTriggerAfterMove = bNetworkGraceWindow;
+            m_uKalistaPassiveDashTriggerAnimId = networkAnimId;
+            m_uKalistaPassiveDashTriggerActionSeq = networkActionSeq;
+        }
+    }
+
+    return true;
+}
+
+bool_t CScene_InGame::TriggerNetworkPassiveDashFromAction(u16_t animId, u32_t actionSeq, bool_t bServerDashLikely)
+{
+    if (GetPlayerChampionId() != eChampion::KALISTA)
+        return false;
+    if (m_PlayerEntity == NULL_ENTITY)
+        return false;
+
+    const auto netAnim = static_cast<eNetAnimId>(animId);
+    const u8_t slot = (netAnim == eNetAnimId::SkillQ)
+        ? static_cast<u8_t>(eSkillSlot::Q)
+        : static_cast<u8_t>(eSkillSlot::BasicAttack);
+
+    if (netAnim != eNetAnimId::BasicAttack && netAnim != eNetAnimId::SkillQ)
+        return false;
+
+    if (!Kalista::HasPassiveDashRequest())
+        return false;
+
+    if (actionSeq != 0u &&
+        m_uKalistaLastPassiveDashActionSeq == actionSeq)
+    {
+        Kalista::ClearPassiveDashRequest();
+        return false;
+    }
+
+    if (m_bKalistaPassiveDashActive ||
+        m_bKalistaPassiveDashAnimActive)
+    {
+        Kalista::ClearPassiveDashRequest();
+        return false;
+    }
+
+    const SkillDef* pDef = CSkillRegistry::Instance().Find(eChampion::KALISTA, slot);
+    if (!pDef)
+        pDef = FindSkillDef(eChampion::KALISTA, slot);
+    if (!pDef)
+        return false;
+
+    SkillHookContext ctx{};
+    ctx.pWorld = &m_World;
+    ctx.casterEntity = m_PlayerEntity;
+    ctx.casterTeam = m_PlayerTeam;
+    ctx.pDef = pDef;
+    ctx.pCasterRenderer = m_pPlayerRenderer;
+    ctx.fGlobalAnimSpeed = m_fGlobalAnimSpeed;
+    ctx.actionSeq = actionSeq;
+    ctx.startLocalDash = [this](const Vec3& dir)
+        {
+            StartLocalPassiveDash(dir);
+        };
+    ctx.setLocalDashDuration = [](f32_t duration)
+        {
+            SetLocalPassiveDashDuration(duration);
+        };
+    ctx.getLocalDashDuration = []() -> f32_t
+        {
+            return GetLocalPassiveDashDuration();
+        };
+    ctx.setLocalActionAnimActive = [this](bool_t active)
+        {
+            SetLocalActionAnimActive(active);
+        };
+    ctx.bPlayPassiveDashAnimation = true;
+
+    const bool_t bWasDashActive =
+        m_bKalistaPassiveDashActive ||
+        m_bKalistaPassiveDashAnimActive;
+    Kalista::OnRecoveryFrame_PassiveDash(ctx);
+    const bool_t bDashStarted =
+        !bWasDashActive &&
+        (m_bKalistaPassiveDashActive ||
+            m_bKalistaPassiveDashAnimActive);
+    if (bDashStarted)
+        m_uKalistaLastPassiveDashActionSeq = actionSeq;
+    return bDashStarted;
+}
+
+bool_t CScene_InGame::ValidateLocalSkillStart(const SkillDef& def)
+{
+    if (def.champ == eChampion::YASUO
+        && def.slot == static_cast<uint8_t>(eSkillSlot::R))
+    {
+        if (m_bNetworkAuthoritativeGameplay)
+            return true;
+
+        if (!m_pPlayerTransform)
+            return false;
+
+        const EntityID airborne = FindAirborneEnemyNear(
+            m_pPlayerTransform->GetPosition(),
+            Yasuo::GetTuning().rSearchRadius);
+        if (airborne == NULL_ENTITY)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void CScene_InGame::StartLocalTargetDash(EntityID target)
+{
+    if (!m_pPlayerTransform) return;
+    if (!m_World.HasComponent<TransformComponent>(target)) return;
+
+    const Vec3 targetPos = m_World.GetComponent<TransformComponent>(target).m_LocalPosition;
+    m_vYasuoDashStart = m_pPlayerTransform->GetPosition();
+    m_vYasuoDashEnd = { targetPos.x, m_vYasuoDashStart.y, targetPos.z };
+    m_fYasuoDashElapsed = 0.f;
+    m_bYasuoDashActive = true;
+    m_YasuoDashTargetEntity = target;
+}
+
+void CScene_InGame::StartLocalUltimateDash(EntityID airborne)
+{
+    if (!m_pPlayerTransform) return;
+    if (!m_World.HasComponent<TransformComponent>(airborne)) return;
+
+    const Vec3 targetPos = m_World.GetComponent<TransformComponent>(airborne).m_LocalPosition;
+    m_vYasuoDashStart = m_pPlayerTransform->GetPosition();
+    m_vYasuoDashEnd = { targetPos.x, targetPos.y + 0.5f, targetPos.z };
+    m_fYasuoDashElapsed = 0.f;
+    m_bYasuoDashActive = true;
+    m_YasuoDashTargetEntity = airborne;
+    m_bYasuoRActive = true;
+    m_fYasuoRElapsed = 0.f;
+    m_fYasuoRPrevHitTime = 0.f;
+    m_iYasuoRHitsFired = 0;
+    m_YasuoRTarget = airborne;
+}
+
+void CScene_InGame::StartLocalPassiveDash(const Vec3& vForward)
+{
+    if (!m_pPlayerTransform)
+        return;
+
+    const Vec3 vOrigin = m_pPlayerTransform->GetPosition();
+
+    m_vKalistaPassiveDashStart = vOrigin;
+    const f32_t dashDist =
+        ChampionGameDataDB::ResolvePassiveDashDistance(eChampion::KALISTA);
+    m_vKalistaPassiveDashEnd = {
+        vOrigin.x + vForward.x * dashDist,
+        vOrigin.y,
+        vOrigin.z + vForward.z * dashDist
+    };
+    m_fKalistaPassiveDashElapsed = 0.f;
+    m_bKalistaPassiveDashActive = true;
+    if (m_bKalistaPassiveDashHasFaceDir)
+    {
+        const f32_t yaw = ResolveChampionVisualYawNear(
+            GetPlayerChampionId(),
+            m_vKalistaPassiveDashFaceDir,
+            GetPlayerYaw());
+        SetPlayerYaw(yaw);
+    }
+
+    m_vPlayerDest = m_vKalistaPassiveDashEnd;
+
+    if (m_PlayerEntity != NULL_ENTITY
+        && m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
+    {
+        auto& agent = m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
+        agent.vTarget = m_vKalistaPassiveDashEnd;
+        agent.bHasGoal = false;
+        agent.bPathDirty = false;
+    }
+}
+
+
+
+void CScene_InGame::SetLocalActionAnimActive(bool_t active)
+{
+    m_bKalistaPassiveDashAnimActive = active;
+}
+
+EntityID CScene_InGame::FindAirborneEnemyNear(const Vec3& origin, f32_t radius)
+{
+    EntityID closest = NULL_ENTITY;
+    f32_t bestDist2 = radius * radius;
+
+    m_World.ForEach<ChampionComponent, TransformComponent>(
+        [&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
+        {
+            if (champion.team == m_PlayerTeam) return;
+            if (!m_World.HasComponent<StunComponent>(entity)) return;
+
+            const f32_t dx = transform.m_LocalPosition.x - origin.x;
+            const f32_t dz = transform.m_LocalPosition.z - origin.z;
+            const f32_t dist2 = dx * dx + dz * dz;
+            if (dist2 < bestDist2)
+            {
+                bestDist2 = dist2;
+                closest = entity;
+            }
+        });
+
+    return closest;
+}
+
+void CScene_InGame::ApplyLocalChampionDamage(EntityID target, f32_t fDamage, const char* pDebugLabel)
+{
+    if (target == NULL_ENTITY || target == m_PlayerEntity) return;
+    if (!m_World.HasComponent<ChampionComponent>(target)) return;
+
+    auto& champion = m_World.GetComponent<ChampionComponent>(target);
+    if (champion.team == m_PlayerTeam) return;
+
+    champion.hp = (champion.hp > fDamage) ? (champion.hp - fDamage) : 0.f;
+
+    if (m_World.HasComponent<HealthComponent>(target))
+    {
+        auto& hp = m_World.GetComponent<HealthComponent>(target);
+        hp.fCurrent = champion.hp;
+        hp.fMaximum = champion.maxHp;
+        hp.bIsDead = (hp.fCurrent <= 0.f);
+    }
+
+    NotifyTowerAggroOnChampionHit(m_World, m_PlayerEntity, target);
+
+}
+
+void CScene_InGame::UpdateLocalTargetDash(f32_t dt)
+{
+    if (!m_pPlayerTransform)
+    {
+        m_bYasuoDashActive = false;
+        m_YasuoDashTargetEntity = NULL_ENTITY;
+        return;
+    }
+
+    m_fYasuoDashElapsed += dt;
+    const f32_t dashDuration = Yasuo::GetTuning().eDashDuration;
+    f32_t t = (dashDuration > 0.01f)
+        ? (m_fYasuoDashElapsed / dashDuration) : 1.f;
+    if (t >= 1.f)
+    {
+        t = 1.f;
+        if (!m_bYasuoRActive
+            && m_YasuoDashTargetEntity != NULL_ENTITY
+            && m_World.HasComponent<ChampionComponent>(m_YasuoDashTargetEntity))
+        {
+            ApplyLocalChampionDamage(
+                m_YasuoDashTargetEntity,
+                Yasuo::GetTuning().eDamage,
+                "Yasuo Hit");
+        }
+        m_bYasuoDashActive = false;
+        m_YasuoDashTargetEntity = NULL_ENTITY;
+    }
+
+    const Vec3 pos{
+        m_vYasuoDashStart.x + (m_vYasuoDashEnd.x - m_vYasuoDashStart.x) * t,
+        m_vYasuoDashStart.y + (m_vYasuoDashEnd.y - m_vYasuoDashStart.y) * t,
+        m_vYasuoDashStart.z + (m_vYasuoDashEnd.z - m_vYasuoDashStart.z) * t
+    };
+    m_pPlayerTransform->SetPosition(pos);
+
+    if (m_PlayerEntity != NULL_ENTITY
+        && m_World.HasComponent<TransformComponent>(m_PlayerEntity))
+    {
+        m_World.GetComponent<TransformComponent>(m_PlayerEntity).m_LocalPosition = pos;
+    }
+}
+
+void CScene_InGame::UpdateLocalUltimateSequence(f32_t dt)
+{
+    if (m_bYasuoDashActive)
+        return;
+
+    m_fYasuoRElapsed += dt;
+    constexpr i32_t kMaxHits = 5;
+    while (m_iYasuoRHitsFired < kMaxHits
+        && m_YasuoRTarget != NULL_ENTITY
+        && m_World.HasComponent<ChampionComponent>(m_YasuoRTarget)
+        && m_fYasuoRElapsed >= (static_cast<f32_t>(m_iYasuoRHitsFired + 1) * Yasuo::GetTuning().rHitInterval))
+    {
+        ApplyLocalChampionDamage(
+            m_YasuoRTarget,
+            Yasuo::GetTuning().rPerHitDamage,
+            "Yasuo Hit");
+        m_iYasuoRHitsFired += 1;
+        m_fYasuoRPrevHitTime = m_fYasuoRElapsed;
+    }
+
+    if (m_fYasuoRElapsed >= Yasuo::GetTuning().rSequenceDuration)
+    {
+        m_bYasuoRActive = false;
+        m_YasuoRTarget = NULL_ENTITY;
+        m_iYasuoRHitsFired = 0;
+        m_fYasuoRPrevHitTime = 0.f;
+    }
+}
+
+void CScene_InGame::UpdateLocalPassiveDash(f32_t dt)
+{
+    if (!m_pPlayerTransform)
+    {
+        m_bKalistaPassiveDashActive = false;
+        m_vKalistaPassiveDashFaceDir = {};
+        m_bKalistaPassiveDashHasFaceDir = false;
+        return;
+    }
+
+    m_fKalistaPassiveDashElapsed += dt;
+    const f32_t dashDuration = GetLocalPassiveDashDuration();
+    f32_t t = (dashDuration > 0.01f)
+        ? (m_fKalistaPassiveDashElapsed / dashDuration) : 1.f;
+    if (t >= 1.f)
+    {
+        t = 1.f;
+        m_bKalistaPassiveDashActive = false;
+    }
+
+    const Vec3 pos{
+        m_vKalistaPassiveDashStart.x + (m_vKalistaPassiveDashEnd.x - m_vKalistaPassiveDashStart.x) * t,
+        m_vKalistaPassiveDashStart.y,
+        m_vKalistaPassiveDashStart.z + (m_vKalistaPassiveDashEnd.z - m_vKalistaPassiveDashStart.z) * t
+    };
+
+    m_pPlayerTransform->SetPosition(pos);
+
+    if (m_PlayerEntity != NULL_ENTITY
+        && m_World.HasComponent<TransformComponent>(m_PlayerEntity))
+    {
+        m_World.GetComponent<TransformComponent>(m_PlayerEntity).m_LocalPosition = pos;
+    }
+
+    if (m_bKalistaPassiveDashHasFaceDir)
+    {
+        const f32_t yaw = ResolveChampionVisualYawNear(
+            GetPlayerChampionId(),
+            m_vKalistaPassiveDashFaceDir,
+            GetPlayerYaw());
+        SetPlayerYaw(yaw);
+    }
+
+    if (!m_bKalistaPassiveDashActive)
+    {
+        m_vKalistaPassiveDashFaceDir = {};
+        m_bKalistaPassiveDashHasFaceDir = false;
+    }
+}
+
+bool_t CScene_InGame::PredictLocalMoveYaw(const Vec3& facingTarget, f32_t& outYaw)
+{
+    CTransform* playerTransform = GetPlayerTransformPtr();
+    if (!playerTransform)
+        return false;
+
+    const Vec3 origin = playerTransform->GetPosition();
+    const Vec3 direction{
+        facingTarget.x - origin.x,
+        0.f,
+        facingTarget.z - origin.z
+    };
+    if ((direction.x * direction.x + direction.z * direction.z) <= 0.0001f)
+        return false;
+
+    const f32_t yaw =
+        ResolveChampionVisualYawNear(
+            GetPlayerChampionId(),
+            direction,
+            playerTransform->GetRotation().y);
+    outYaw = yaw;
+
+    SetPlayerYaw(yaw);
+    return true;
+}
+
+void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t bSkipGroundMove, bool_t bActionLockedBefore)
+{
+    const bool_t bActionLocked = (m_fLastActionTimer > 0.f);
+
+    if (m_pPlayerRenderer &&
+        (!bNetworkActive || m_bKalistaPassiveDashAnimActive))
+    {
+        auto* pAnim = m_pPlayerRenderer->GetAnimator();
+        if (pAnim)
+        {
+            f32_t s;
+            if (m_bKalistaPassiveDashAnimActive)
+            {
+                s = m_fGlobalAnimSpeed * Kalista::GetTuning().passiveDashAnimSpeed;
+            }
+            else if (bActionLocked)
+            {
+                const f32_t skillSpeed = m_pActiveSkillDef ? m_pActiveSkillDef->animPlaySpeed : 1.f;
+                s = m_fAttackSpeedMul * m_fGlobalAnimSpeed * skillSpeed;
+            }
+            else
+            {
+                s = m_fGlobalAnimSpeed;
+            }
+            pAnim->SetPlaySpeed(s);
+        }
+    }
+
+    if (m_pPlayerTransform && m_pPlayerRenderer)
+    {
+        auto& input = CInput::Get();
+        const bool bImGuiMouse = ImGui::GetIO().WantCaptureMouse;
+        const bool_t bMoveIntent = bNetworkActive
+            ? input.IsRButtonPressed()
+            : input.IsRButtonDown();
+        const bool_t bPassiveDashAnimBlocksMove =
+            !bNetworkActive && m_bKalistaPassiveDashAnimActive;
+
+        if (!bImGuiMouse &&
+            !bSkipGroundMove &&
+            (bNetworkActive || !bActionLocked) &&
+            !m_bKalistaPassiveDashActive &&
+            !bPassiveDashAnimBlocksMove &&
+            bMoveIntent)
+        {
+            Vec3 ground = ResolveMouseMapSurfacePos();
+            Vec3 resolvedGround = ground;
+            Vec3 predictedFacingTarget = ground;
+
+            const bool_t bValidGround = fabsf(ground.x) + fabsf(ground.z) > 0.001f;
+            bool_t bAcceptedMoveTarget = false;
+            if (bValidGround)
+            {
+                bAcceptedMoveTarget = TryResolveWalkableMoveTarget(
+                    ground,
+                    resolvedGround,
+                    &predictedFacingTarget);
+            }
+
+
+
+            if (bAcceptedMoveTarget)
+            {
+                Vec3 moveIntent = ground;
+                predictedFacingTarget = moveIntent;
+
+                if (input.IsRButtonPressed())
+                    SpawnMovementIndicator(*this, resolvedGround);
+
+                if (bNetworkActive && m_pCommandSerializer && m_pNetworkView)
+                {
+                    const bool_t bKalistaPassiveDashMove =
+                        m_bKalistaPassiveDashMoveCommandPending;
+                    const Vec3 moveFacingDirection = m_pPlayerTransform
+                        ? WintersMath::DirectionXZ(
+                            m_pPlayerTransform->GetPosition(),
+                            ground,
+                            Vec3{})
+                        : Vec3{};
+                    static u32_t s_moveSendPrepTraceCount = 0;
+                    if (s_moveSendPrepTraceCount < 512u)
+                    {
+                        const Vec3 playerPos = m_pPlayerTransform
+                            ? m_pPlayerTransform->GetPosition()
+                            : Vec3{};
+                        const Vec3 rawDir =
+                            WintersMath::DirectionXZ(playerPos, ground, Vec3{});
+                        const f32_t rawYaw = std::atan2f(rawDir.x, rawDir.z);
+                        const f32_t sendYaw = std::atan2f(
+                            moveFacingDirection.x,
+                            moveFacingDirection.z);
+                        char msg[1024]{};
+                        sprintf_s(
+                            msg,
+                            "[YawTrace][ClientMoveSendPrep] mouse=(%d,%d) valid=%u accepted=%u player=(%.3f,%.3f,%.3f) ground=(%.3f,%.3f,%.3f) resolved=(%.3f,%.3f,%.3f) moveIntent=(%.3f,%.3f,%.3f) predictedFacing=(%.3f,%.3f,%.3f) rawDir=(%.3f,%.3f) sendDir=(%.3f,%.3f) rawYaw=%.4f sendYaw=%.4f rawVsSendDot=%.4f\n",
+                            static_cast<int>(input.GetMouseX()),
+                            static_cast<int>(input.GetMouseY()),
+                            bValidGround ? 1u : 0u,
+                            bAcceptedMoveTarget ? 1u : 0u,
+                            playerPos.x,
+                            playerPos.y,
+                            playerPos.z,
+                            ground.x,
+                            ground.y,
+                            ground.z,
+                            resolvedGround.x,
+                            resolvedGround.y,
+                            resolvedGround.z,
+                            moveIntent.x,
+                            moveIntent.y,
+                            moveIntent.z,
+                            predictedFacingTarget.x,
+                            predictedFacingTarget.y,
+                            predictedFacingTarget.z,
+                            rawDir.x,
+                            rawDir.z,
+                            moveFacingDirection.x,
+                            moveFacingDirection.z,
+                            rawYaw,
+                            sendYaw,
+                            rawDir.x * moveFacingDirection.x + rawDir.z * moveFacingDirection.z);
+                        Winters::DevSmoke::Log("%s", msg);
+                        ++s_moveSendPrepTraceCount;
+                    }
+                    const u32_t moveSeq =
+                        m_pCommandSerializer->SendMove(
+                            *m_pNetworkView,
+                            moveIntent,
+                            moveFacingDirection);
+                    if (moveSeq != 0u)
+                    {
+                        RecordNetworkMovePrediction(
+                            moveSeq,
+                            resolvedGround,
+                            moveFacingDirection);
+                    }
+                    if (bKalistaPassiveDashMove)
+                    {
+                        const bool_t bTriggerAfterMove =
+                            m_bKalistaPassiveDashTriggerAfterMove;
+                        const u16_t triggerAnimId =
+                            m_uKalistaPassiveDashTriggerAnimId;
+                        const u32_t triggerActionSeq =
+                            m_uKalistaPassiveDashTriggerActionSeq;
+
+                        m_bKalistaPassiveDashMoveCommandPending = false;
+                        m_bKalistaPassiveDashTriggerAfterMove = false;
+                        m_uKalistaPassiveDashTriggerAnimId = 0;
+                        m_uKalistaPassiveDashTriggerActionSeq = 0;
+
+                        if (moveSeq != 0u && bTriggerAfterMove)
+                        {
+                            const bool_t bDashStarted =
+                                TriggerNetworkPassiveDashFromAction(
+                                    triggerAnimId,
+                                    triggerActionSeq,
+                                    true);
+                            if (bDashStarted &&
+                                m_PlayerEntity != NULL_ENTITY)
+                            {
+                                auto it = m_NetworkActionAnimStates.find(m_PlayerEntity);
+                                if (it != m_NetworkActionAnimStates.end())
+                                {
+                                    it->second.bPassiveDashTriggered = true;
+                                    it->second.passiveDashInputGraceSec = 0.f;
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        f32_t predictedYaw = 0.f;
+                        if (PredictLocalMoveYaw(predictedFacingTarget, predictedYaw) &&
+                            m_pSnapshotApplier)
+                        {
+                            m_pSnapshotApplier->ProtectLocalMoveYaw(
+                                m_pNetworkView->GetMyNetEntityId(),
+                                moveSeq,
+                                predictedYaw);
+                        }
+                    }
+                    if (m_PlayerEntity != NULL_ENTITY)
+                    {
+                        f32_t& moveGrace =
+                            m_NetworkChampionMoveGraceSec[m_PlayerEntity];
+                        moveGrace = (std::max)(moveGrace, 0.16f);
+                        m_NetworkChampionMoving[m_PlayerEntity] = true;
+
+                        if (!bKalistaPassiveDashMove &&
+                            !m_bMoving &&
+                            m_pPlayerRenderer &&
+                            m_pPlayerRunAnim)
+                        {
+                            m_pPlayerRenderer->PlayAnimationByName(
+                                m_pPlayerRunAnim,
+                                true);
+                        }
+                        m_bMoving = true;
+                    }
+
+                    m_vPlayerDest = resolvedGround;
+                    if (m_PlayerEntity != NULL_ENTITY &&
+                        m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
+                    {
+                        auto& agent = m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
+                        agent.vTarget = resolvedGround;
+                        agent.bHasGoal = true;
+                        agent.bPathDirty = true;
+                        agent.pathCellsX.clear();
+                        agent.pathCellsY.clear();
+                        agent.iPathIndex = 0;
+                    }
+                }
+                else
+                {
+                    m_vPlayerDest = resolvedGround;
+
+                    if (m_PlayerEntity != NULL_ENTITY &&
+                        m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
+                    {
+                        auto& agent = m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
+                        agent.vTarget = resolvedGround;
+                        agent.bHasGoal = true;
+                        agent.bPathDirty = true;
+                        agent.pathCellsX.clear();
+                        agent.pathCellsY.clear();
+                        agent.iPathIndex = 0;
+                    }
+                }
+            }
+            else if (input.IsRButtonPressed())
+            {
+                m_bKalistaPassiveDashMoveCommandPending = false;
+                m_bKalistaPassiveDashTriggerAfterMove = false;
+                m_uKalistaPassiveDashTriggerAnimId = 0;
+                m_uKalistaPassiveDashTriggerActionSeq = 0;
+            }
+        }
+
+        Vec3 cur = m_pPlayerTransform->GetPosition();
+        if (!bNetworkActive)
+        {
+            Vec3 resolvedCur{};
+            if (TryResolveNearestWalkablePosition(cur, resolvedCur, 8))
+            {
+                if (WintersMath::DistanceSqXZ(resolvedCur, cur) > 0.0001f)
+                {
+                    cur = resolvedCur;
+                    m_pPlayerTransform->SetPosition(cur);
+                    if (m_PlayerEntity != NULL_ENTITY &&
+                        m_World.HasComponent<TransformComponent>(m_PlayerEntity))
+                    {
+                        m_World.GetComponent<TransformComponent>(m_PlayerEntity).SetPosition(cur);
+                    }
+                    m_vPlayerDest.y = cur.y;
+                }
+            }
+        }
+        Vec3 localMoveTarget = m_vPlayerDest;
+        const f32_t playerArriveRadius =
+            ResolvePlayerArriveRadius(m_World, m_PlayerEntity);
+        const f32_t playerMoveSpeed =
+            ResolvePlayerMoveSpeed(m_World, m_PlayerEntity);
+        bool_t bLocalPathControlled = false;
+        bool_t bLocalPathReady = false;
+        if (!bNetworkActive &&
+            m_pNavGrid &&
+            m_PlayerEntity != NULL_ENTITY &&
+            m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
+        {
+            bLocalPathControlled = true;
+            auto& agent = m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
+            if (agent.bHasGoal && !agent.bPathDirty)
+            {
+                const size_t pathCount =
+                    (std::min)(agent.pathCellsX.size(), agent.pathCellsY.size());
+                while (agent.iPathIndex < pathCount)
+                {
+                    Vec3 waypoint = m_pNavGrid->CellToWorld(
+                        agent.pathCellsX[agent.iPathIndex],
+                        agent.pathCellsY[agent.iPathIndex]);
+                    if (!TryProjectToMapSurface(waypoint, 0.05f))
+                        waypoint.y = cur.y;
+
+                    if (WintersMath::DistanceSqXZ(cur, waypoint) >
+                        playerArriveRadius * playerArriveRadius)
+                    {
+                        localMoveTarget = waypoint;
+                        bLocalPathReady = true;
+                        break;
+                    }
+
+                    ++agent.iPathIndex;
+                }
+
+                if (agent.iPathIndex >= pathCount)
+                {
+                    agent.bHasGoal = false;
+                    agent.pathCellsX.clear();
+                    agent.pathCellsY.clear();
+                    agent.iPathIndex = 0;
+                    localMoveTarget = cur;
+                }
+            }
+            else
+            {
+                localMoveTarget = cur;
+            }
+        }
+
+        Vec3 delta = { localMoveTarget.x - cur.x, 0.f, localMoveTarget.z - cur.z };
+        f32_t dist = sqrtf(delta.x * delta.x + delta.z * delta.z);
+
+        bool wasMoving = m_bMoving;
+
+        if (bNetworkActive)
+        {
+            const bool_t bNetworkMoving = IsNetworkChampionMoving(m_PlayerEntity);
+            SyncPlayerEntityTransformFromECS();
+            cur = m_pPlayerTransform->GetPosition();
+            m_bMoving = bNetworkMoving;
+        }
+        else if (!bActionLocked &&
+            !m_bKalistaPassiveDashActive &&
+            dist > playerArriveRadius)
+        {
+            if (bLocalPathControlled && !bLocalPathReady)
+            {
+                m_bMoving = false;
+                if (m_PlayerEntity != NULL_ENTITY &&
+                    m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
+                {
+                    auto& agent = m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
+                    if (!agent.bHasGoal)
+                        m_vPlayerDest = cur;
+                }
+            }
+            else
+            {
+                f32_t inv = 1.f / dist;
+                Vec3 dir = { delta.x * inv, 0.f, delta.z * inv };
+                f32_t step = playerMoveSpeed * dt;
+                if (step > dist) step = dist;
+
+                const f32_t navRadius = ResolveAgentRadius(m_World, m_PlayerEntity);
+                const Vec3 moveDir = ResolveAvoidedMoveDirection(
+                    m_World,
+                    m_PlayerEntity,
+                    cur,
+                    dir,
+                    step,
+                    [&](const Vec3& candidate)
+                    {
+                        return IsWalkableMoveSegment(cur, candidate, navRadius);
+                    });
+
+                if (fabsf(moveDir.x) + fabsf(moveDir.z) > 0.0001f)
+                {
+                    Vec3 next = cur;
+                    next.x += moveDir.x * step;
+                    next.z += moveDir.z * step;
+                    if (!IsWalkableMoveSegment(cur, next, navRadius))
+                    {
+                        m_bMoving = false;
+                        m_vPlayerDest = cur;
+                        if (m_PlayerEntity != NULL_ENTITY &&
+                            m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
+                        {
+                            auto& agent = m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
+                            agent.bHasGoal = false;
+                            agent.bPathDirty = false;
+                        }
+                    }
+                    else
+                    {
+                        cur = next;
+                        (void)TryProjectToMapSurface(cur, 0.05f);
+
+                        SetPlayerPosition(cur);
+
+                        f32_t yaw =
+                            ResolveChampionVisualYawNear(
+                                GetPlayerChampionId(),
+                                moveDir,
+                                GetPlayerYaw());
+                        SetPlayerYaw(yaw);
+
+                        m_bMoving = true;
+                    }
+                }
+                else
+                {
+                    m_bMoving = false;
+                }
+            }
+        }
+        else
+        {
+            m_bMoving = false;
+        }
+
+        const bool bInTransition = (m_fEndTransitionTimer > 0.f);
+        if (!m_bKalistaPassiveDashActive
+            && !m_bKalistaPassiveDashAnimActive
+            && !bNetworkActive
+            && !bActionLocked
+            && bInTransition
+            && m_bMoving != m_bEndTransitionMoving)
+        {
+            // 전환 중 이동 상태가 바뀌면 end-transition을 끊고 기본 애니메이션으로 즉시 전환.
+            m_fEndTransitionTimer = 0.f;
+            m_pPendingEndAnim = nullptr;
+            m_pPlayerRenderer->PlayAnimationByName(
+                m_bMoving ? m_pPlayerRunAnim : m_pPlayerIdleAnim
+            );
+        }
+        else if (!m_bKalistaPassiveDashActive
+            && !m_bKalistaPassiveDashAnimActive
+            && !bNetworkActive
+            && !bActionLocked
+            && !bInTransition
+            && m_bMoving != wasMoving)
+        {
+            m_pPlayerRenderer->PlayAnimationByName(
+                m_bMoving ? m_pPlayerRunAnim : m_pPlayerIdleAnim
+            );
+        }
+        else if (!m_bKalistaPassiveDashActive
+            && !m_bKalistaPassiveDashAnimActive
+            && !bNetworkActive
+            && bActionLockedBefore
+            && !bActionLocked
+            && m_pPlayerRenderer)
+        {
+            const char* pTransition = nullptr;
+            f32_t fDur = 0.f;
+            if (m_pLastDispatchedSkill)
+            {
+                pTransition = m_bMoving
+                    ? m_pLastDispatchedSkill->endTransitionRunAnim
+                    : m_pLastDispatchedSkill->endTransitionIdleAnim;
+                fDur = m_pLastDispatchedSkill->endTransitionDuration;
+            }
+
+            if (pTransition && fDur > 0.01f)
+            {
+                m_pPlayerRenderer->PlayAnimationByName(pTransition, false);
+                m_pPendingEndAnim = pTransition;
+                m_fEndTransitionTimer = fDur;
+                m_bEndTransitionMoving = m_bMoving;
+            }
+            else
+            {
+                m_pPlayerRenderer->PlayAnimationByName(
+                    m_bMoving ? m_pPlayerRunAnim : m_pPlayerIdleAnim
+                );
+            }
+        }
+    }
+
+    if (!bNetworkActive)
+        SyncPlayerEntityTransformToECS();
+}
+
+void CScene_InGame::ProtectNetworkAttackYaw(
+    CClientNetwork* pNetworkView,
+    u32_t commandSeq,
+    const Vec3& facingTarget)
+{
+    if (commandSeq == 0 ||
+        !pNetworkView ||
+        !m_pSnapshotApplier ||
+        !m_pPlayerTransform)
+    {
+        return;
+    }
+
+    const Vec3 origin = m_pPlayerTransform->GetPosition();
+    const Vec3 facingDirection =
+        WintersMath::DirectionXZ(origin, facingTarget, Vec3{});
+    if (facingDirection.x == 0.f && facingDirection.z == 0.f)
+        return;
+
+    const f32_t predictedYaw = ResolveChampionVisualYawNear(
+        GetPlayerChampionId(),
+        facingDirection,
+        m_pPlayerTransform->GetRotation().y);
+
+    SetPlayerYaw(predictedYaw);
+    m_pSnapshotApplier->ProtectLocalMoveYaw(
+        pNetworkView->GetMyNetEntityId(),
+        commandSeq,
+        predictedYaw);
+    if (GetPlayerChampionId() == eChampion::KALISTA)
+    {
+        SetKalistaPassiveDashFaceDir(facingDirection);
+    }
+}
+
+void CScene_InGame::DriveNetworkAttackIntent(bool& outSkipGroundMove)
+{
+    if (s_NetworkAttackTarget == NULL_ENTITY)
+        return;
+
+    outSkipGroundMove = true;
+
+    if (!m_bNetworkAuthoritativeGameplay ||
+        !GameplayQuery::IsValidAttackTarget(
+            m_World,
+            m_PlayerEntity,
+            s_NetworkAttackTarget,
+            m_PlayerTeam))
+    {
+        ClearNetworkAttackIntent();
+        outSkipGroundMove = false;
+        return;
+    }
+
+    if (!m_pCommandSerializer || !m_pNetworkView || !m_pEntityIdMap)
+    {
+        Winters::DevSmoke::Log("[BA] network basic-attack intent skipped: network objects missing\n");
+        return;
+    }
+
+    if (s_uNetworkAttackCommandFrame < kNetworkAttackCommandIntervalFrames)
+    {
+        ++s_uNetworkAttackCommandFrame;
+        return;
+    }
+    s_uNetworkAttackCommandFrame = 0u;
+
+    const NetEntityId targetNet = m_pEntityIdMap->ToNet(s_NetworkAttackTarget);
+    if (targetNet == NULL_NET_ENTITY)
+    {
+        char dbg[192]{};
+        sprintf_s(dbg,
+            "[BA] network basic-attack intent cleared: target has no netId entity=%u\n",
+            static_cast<u32_t>(s_NetworkAttackTarget));
+        Winters::DevSmoke::Log("%s", dbg);
+        ClearNetworkAttackIntent();
+        outSkipGroundMove = false;
+        return;
+    }
+
+    Vec3 cursorGround{};
+    Vec3 direction{};
+    if (m_PlayerEntity != NULL_ENTITY &&
+        m_World.HasComponent<TransformComponent>(m_PlayerEntity) &&
+        m_World.HasComponent<TransformComponent>(s_NetworkAttackTarget))
+    {
+        const Vec3 origin = m_World.GetComponent<TransformComponent>(m_PlayerEntity).GetPosition();
+        cursorGround = m_World.GetComponent<TransformComponent>(s_NetworkAttackTarget).GetPosition();
+        const f32_t dx = cursorGround.x - origin.x;
+        const f32_t dz = cursorGround.z - origin.z;
+        const f32_t lenSq = dx * dx + dz * dz;
+        if (lenSq > 0.0001f)
+        {
+            const f32_t invLen = 1.f / std::sqrtf(lenSq);
+            direction = Vec3{ dx * invLen, 0.f, dz * invLen };
+        }
+    }
+    else if (m_pCamera)
+    {
+        cursorGround = ResolveMouseMapSurfacePos();
+
+        if (m_PlayerEntity != NULL_ENTITY &&
+            m_World.HasComponent<TransformComponent>(m_PlayerEntity))
+        {
+            const Vec3 origin = m_World.GetComponent<TransformComponent>(m_PlayerEntity).GetPosition();
+            const f32_t dx = cursorGround.x - origin.x;
+            const f32_t dz = cursorGround.z - origin.z;
+            const f32_t lenSq = dx * dx + dz * dz;
+            if (lenSq > 0.0001f)
+            {
+                const f32_t invLen = 1.f / std::sqrtf(lenSq);
+                direction = Vec3{ dx * invLen, 0.f, dz * invLen };
+            }
+        }
+    }
+
+    const u32_t attackSeq =
+        m_pCommandSerializer->SendBasicAttack(
+            *m_pNetworkView,
+            targetNet,
+            cursorGround,
+            direction);
+    ProtectNetworkAttackYaw(m_pNetworkView, attackSeq, cursorGround);
+    ClearNetworkAttackIntent();
+    outSkipGroundMove = true;
+}
+
 void CScene_InGame::UpdateTargeting()
 {
-    CInGameCombatInputBridge::UpdateTargeting(*this);
+    SetHoveredTarget(NULL_ENTITY, eTeam::TEAM_END);
+
+    const CDynamicCamera* pCamera = GetCameraPtr();
+    if (!pCamera)
+        return;
+    if (ImGui::GetIO().WantCaptureMouse)
+        return;
+
+    const auto ray = CInput::Get().GetMouseWorldRay(
+        *pCamera, static_cast<i32_t>(g_iWinSizeX),
+        static_cast<i32_t>(g_iWinSizeY));
+
+    EntityID hoveredEntity = NULL_ENTITY;
+    eTeam hoveredTeam = eTeam::TEAM_END;
+
+    GameplayQuery::TryFindHoverTarget(
+        GetWorld(),
+        GetPlayerEntity(),
+        GetPlayerTeam(),
+        ray.Origin,
+        ray.Dir,
+        GetChampionHitRadius(),
+        GetChampionHitHeight(),
+        hoveredEntity,
+        hoveredTeam);
+    SetHoveredTarget(hoveredEntity, hoveredTeam);
 }
 
 void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
 {
-    CInGameCombatInputBridge::UpdateCombatInput(*this, outSkipGroundMove);
+    outSkipGroundMove = false;
+
+    if (!HasPlayerRenderer())
+        return;
+
+    if (IsPlayerStunned())
+        return;
+
+    auto& in = CInput::Get();
+    const bool bImGuiMouse = ImGui::GetIO().WantCaptureMouse;
+    const bool bImGuiKbd = ImGui::GetIO().WantCaptureKeyboard;
+    const bool_t bAttackMoveClick =
+        !bImGuiMouse && in.IsKeyDown('A') && in.IsLButtonPressed();
+    const bool_t bBasicAttackClick =
+        !bImGuiMouse && (in.IsRButtonPressed() || bAttackMoveClick);
+
+    if (!bImGuiKbd)
+    {
+        if (in.IsKeyPressed('P'))
+            CGameInstance::Get()->UI_Toggle_InGameShop();
+
+        if (in.IsKeyPressed('B') && IsNetworkAuthoritativeGameplay())
+        {
+            CCommandSerializer* pCommandSerializer = GetCommandSerializer();
+            CClientNetwork* pNetworkView = GetNetworkView();
+            if (pCommandSerializer && pNetworkView && pNetworkView->IsConnected())
+            {
+                ClearNetworkAttackIntent();
+                pCommandSerializer->SendRecall(*pNetworkView);
+            }
+        }
+
+        if (in.IsKeyPressed('Q'))
+        {
+            ClearNetworkAttackIntent();
+            DispatchSkillInput(static_cast<uint8_t>(eSkillSlot::Q));
+        }
+        if (in.IsKeyPressed('F'))
+        {
+            ClearNetworkAttackIntent();
+            TriggerFlash();
+        }
+
+        const u8_t wSlot = static_cast<u8_t>(eSkillSlot::W);
+        if (in.IsKeyPressed('W'))
+        {
+            if (!HasPendingSkillStage(*this, wSlot))
+            {
+                ClearNetworkAttackIntent();
+                const bool_t bDispatched = DispatchSkillInput(wSlot);
+                s_bWReleasePending = bDispatched && HasPendingSkillStage(*this, wSlot);
+            }
+        }
+        else if (in.IsKeyReleased('W') &&
+            (s_bWReleasePending || HasPendingSkillStage(*this, wSlot)))
+        {
+            ClearNetworkAttackIntent();
+            DispatchSkillInput(wSlot, 2u);
+            s_bWReleasePending = false;
+        }
+
+        if (in.IsKeyPressed('E'))
+        {
+            ClearNetworkAttackIntent();
+            DispatchSkillInput(static_cast<uint8_t>(eSkillSlot::E));
+        }
+
+        if (in.IsKeyPressed('R'))
+        {
+            ClearNetworkAttackIntent();
+            DispatchSkillInput(static_cast<uint8_t>(eSkillSlot::R));
+        }
+    }
+
+    if (IsNetworkAuthoritativeGameplay())
+    {
+        if (bBasicAttackClick)
+        {
+            TryQueueLocalPassiveDashFromCursor();
+
+            const Vec3 vCursorGround = ResolveMouseMapSurfacePos();
+            const EntityID target = GameplayQuery::FindAttackTargetNearCursor(
+                GetWorld(),
+                GetPlayerEntity(),
+                GetHoveredEntity(),
+                GetPlayerTeam(),
+                vCursorGround,
+                bAttackMoveClick,
+                GetPlayerChampionId(),
+                GetBasicAttackRange());
+
+            if (target == NULL_ENTITY)
+            {
+                if (s_uNetworkAttackMissLogCount < 32u)
+                {
+                    Winters::DevSmoke::Log(
+                        "[BA] network attack intent miss hover=%u hoverTeam=%d playerTeam=%d\n",
+                        static_cast<u32_t>(GetHoveredEntity()),
+                        static_cast<i32_t>(GetHoveredTeam()),
+                        static_cast<i32_t>(GetPlayerTeam()));
+                    ++s_uNetworkAttackMissLogCount;
+                }
+                ClearNetworkAttackIntent();
+            }
+            else
+            {
+                s_NetworkAttackTarget = target;
+                s_uNetworkAttackCommandFrame = kNetworkAttackCommandIntervalFrames;
+                char dbg[128]{};
+                sprintf_s(dbg,
+                    "[BA] network attack intent target=%u hover=%u\n",
+                    static_cast<u32_t>(s_NetworkAttackTarget),
+                    static_cast<u32_t>(GetHoveredEntity()));
+                Winters::DevSmoke::Log("%s", dbg);
+            }
+        }
+
+        DriveNetworkAttackIntent(outSkipGroundMove);
+        if (outSkipGroundMove)
+            return;
+    }
+
+    if (!IsNetworkAuthoritativeGameplay() && bBasicAttackClick)
+    {
+        if (TryQueueLocalPassiveDashFromCursor())
+        {
+            outSkipGroundMove = true;
+        }
+        else
+        {
+            if (GetLastActionTimer() > 0.f
+                && GetLastActionLabel()
+                && std::strncmp(GetLastActionLabel(), "attack", 6) == 0)
+            {
+                PreemptAction("Move");
+            }
+
+            const bool fired = DispatchSkillInput(static_cast<uint8_t>(eSkillSlot::BasicAttack));
+            if (fired)
+                outSkipGroundMove = true;
+            else
+            {
+                PreemptAction("Move");
+            }
+        }
+    }
 }
 
 void CScene_InGame::FirePlayerAction(const char* actionKey)
@@ -1711,7 +5047,7 @@ void CScene_InGame::PreemptAction(const char* reasonLabel)
     m_fLastActionTimer = 0.f;
     m_pActiveSkillDef = nullptr;
     m_fActivePrevFrame = 0.f;
-    CInGameChampionStateBridge::ResetLocalSkillRuntimeState(*this);
+    ResetLocalSkillRuntimeState();
     m_pLastActionLabel = reasonLabel ? reasonLabel : "(preempt)";
 
     m_fEndTransitionTimer = 0.f;
@@ -1721,9 +5057,6 @@ void CScene_InGame::PreemptAction(const char* reasonLabel)
     m_fDashElapsed = 0.f;
     m_DashTargetEntity = NULL_ENTITY;
 
-    char dbg[96];
-    sprintf_s(dbg, "[Preempt] reason=%s\n", m_pLastActionLabel);
-    OutputDebugStringA(dbg);
 }
 
 void CScene_InGame::UpdateDash(f32_t dt)
@@ -1752,7 +5085,6 @@ void CScene_InGame::UpdateDash(f32_t dt)
             basicAttackSlot.cooldownRemaining = 0.f;
             basicAttackSlot.cooldownDuration = 0.f;
         }
-        OutputDebugStringA("[Dash] completed, BA cooldown reset\n");
         return;
     }
     const Vec3 p
@@ -1781,26 +5113,586 @@ void CScene_InGame::UpdateDash(f32_t dt)
     }
 }
 
-bool CScene_InGame::DispatchSkillInput(uint8_t slot)
+void CScene_InGame::SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& cmd, u8_t skillStage)
 {
-    return CInGameSkillDispatchBridge::DispatchSkillInput(*this, slot);
+    if (!m_pNetworkView || !m_pCommandSerializer)
+        return;
+    if (!m_pNetworkView->IsConnected())
+        return;
+
+    NetEntityId targetNet = NULL_NET_ENTITY;
+    if (cmd.targetEntityId != NULL_ENTITY && m_pEntityIdMap)
+        targetNet = m_pEntityIdMap->ToNet(cmd.targetEntityId);
+
+    if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+    {
+        const u32_t attackSeq = m_pCommandSerializer->SendBasicAttack(
+            *m_pNetworkView,
+            targetNet,
+            cmd.groundPos,
+            cmd.direction);
+        ProtectNetworkBasicAttackYaw(*this, attackSeq);
+    }
+    else
+    {
+        m_pCommandSerializer->SendCastSkill(
+            *m_pNetworkView,
+            slot,
+            targetNet,
+            cmd.groundPos,
+            cmd.direction,
+            skillStage);
+    }
+}
+
+bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
+{
+    if (!m_pPlayerRenderer || m_PlayerEntity == NULL_ENTITY)
+    {
+        Winters::DevSmoke::Log(
+            "[SkillDispatch] rejected slot=%u reason=no-player renderer=%u entity=%u\n",
+            static_cast<u32_t>(slot),
+            m_pPlayerRenderer ? 1u : 0u,
+            static_cast<u32_t>(m_PlayerEntity));
+        return false;
+    }
+
+    if (slot == static_cast<uint8_t>(eSkillSlot::BasicAttack)
+        && m_World.HasComponent<DisarmComponent>(m_PlayerEntity))
+        return false;
+
+    using namespace Engine;
+    eChampion champ = GetPlayerChampionId();
+    u8_t lookupSlot = slot;
+    if (m_World.HasComponent<SpellbookOverrideComponent>(m_PlayerEntity))
+    {
+        const auto& spellbook =
+            m_World.GetComponent<SpellbookOverrideComponent>(m_PlayerEntity);
+        if (spellbook.bActive && spellbook.localSlot == slot)
+        {
+            champ = spellbook.sourceChampion;
+            lookupSlot = spellbook.sourceSlot;
+        }
+    }
+    else if (m_World.HasComponent<FormOverrideComponent>(m_PlayerEntity))
+    {
+        const auto& form = m_World.GetComponent<FormOverrideComponent>(m_PlayerEntity);
+        if (form.bActive &&
+            form.skillChampion != eChampion::END &&
+            form.skillChampion != eChampion::NONE &&
+            slot < 8u &&
+            (form.skillSlotMask & static_cast<u8_t>(1u << slot)) != 0u)
+        {
+            champ = form.skillChampion;
+        }
+    }
+    const SkillDef* def = CSkillRegistry::Instance().Find(champ, lookupSlot);
+    if (!def)
+        def = FindSkillDef(champ, lookupSlot);
+    if (!def)
+    {
+        Winters::DevSmoke::Log(
+            "[SkillDispatch] rejected slot=%u champ=%u reason=no-def\n",
+            static_cast<u32_t>(slot),
+            static_cast<u32_t>(champ));
+        return false;
+    }
+
+    if (!m_World.HasComponent<SkillStateComponent>(m_PlayerEntity))
+    {
+        Winters::DevSmoke::Log(
+            "[SkillDispatch] rejected slot=%u champ=%u reason=no-skill-state entity=%u\n",
+            static_cast<u32_t>(slot),
+            static_cast<u32_t>(champ),
+            static_cast<u32_t>(m_PlayerEntity));
+        return false;
+    }
+
+    if (!IsLocalSkillLearned(*this, slot))
+    {
+        Winters::DevSmoke::Log(
+            "[SkillDispatch] rejected slot=%u champ=%u reason=unlearned\n",
+            static_cast<u32_t>(slot),
+            static_cast<u32_t>(champ));
+        return false;
+    }
+
+    if (!ValidateLocalSkillStart(*def))
+        return false;
+
+    auto& slotState = m_World.GetComponent<SkillStateComponent>(m_PlayerEntity).slots[slot];
+
+    const bool_t bRequestedStage2 = requestedStage >= 2u;
+    const bool_t bLocalStage2Ready =
+        slotState.currentStage == 1 && slotState.stageWindow > 0.f;
+
+    if (def->stageCount == 2 && (bLocalStage2Ready || bRequestedStage2))
+    {
+        SkillDef s2 = *def;
+        s2.targetMode = def->stage2TargetMode;
+        s2.animKey = def->stage2AnimKey ? def->stage2AnimKey : def->animKey;
+        s2.lockDurationSec = def->stage2LockSec > 0.f ? def->stage2LockSec : def->lockDurationSec;
+        s2.rotate = def->stage2Rotate;
+        s2.animPlaySpeed = def->stage2PlaySpeed;
+        s2.castFrame = def->stage2CastFrame;
+        s2.recoveryFrame = def->stage2RecoveryFrame;
+        s2.stageCount = 1;
+
+        CastSkillCommand cmd{};
+        cmd.slot = slot;
+        if (!BuildCastCommand(s2, cmd))
+            return false;
+
+        if (m_bNetworkAuthoritativeGameplay)
+            RotatePlayerToward(s2.rotate, cmd);
+
+        SendNetworkSkillCommand(slot, cmd, 2);
+        if (bRequestedStage2 && !bLocalStage2Ready)
+        {
+            Winters::DevSmoke::Log(
+                "[SkillDispatch] forced stage2 slot=%u champ=%u localWindow=%.2f\n",
+                static_cast<u32_t>(slot),
+                static_cast<u32_t>(champ),
+                slotState.stageWindow);
+        }
+
+        if (m_bNetworkAuthoritativeGameplay)
+        {
+            slotState.currentStage = 0;
+            slotState.stageWindow = 0.f;
+            return true;
+        }
+
+        ApplyLocalPrediction(cmd, s2, 2);
+
+        slotState.currentStage = 0;
+        slotState.stageWindow = 0.f;
+        slotState.cooldownRemaining = def->cooldownSec;
+        slotState.cooldownDuration = def->cooldownSec;
+        return true;
+    }
+
+    if (slot != static_cast<uint8_t>(eSkillSlot::BasicAttack)
+        && slotState.cooldownRemaining > 0.f)
+    {
+        return false;
+    }
+
+    CastSkillCommand cmd{};
+    cmd.slot = slot;
+    if (!BuildCastCommand(*def, cmd))
+    {
+        Winters::DevSmoke::Log(
+            "[SkillDispatch] rejected slot=%u champ=%u mode=%u reason=build-command\n",
+            static_cast<u32_t>(slot),
+            static_cast<u32_t>(champ),
+            static_cast<u32_t>(def->targetMode));
+        return false;
+    }
+
+    if (m_bNetworkAuthoritativeGameplay)
+    {
+        RotatePlayerToward(def->rotate, cmd);
+        SendNetworkSkillCommand(slot, cmd, 1);
+        if (def->stageCount == 2)
+        {
+            slotState.currentStage = 1;
+            slotState.stageWindow = def->stageWindowSec;
+        }
+        return true;
+    }
+
+    if (def->stageCount == 2)
+    {
+        SendNetworkSkillCommand(slot, cmd, 1);
+        ApplyLocalPrediction(cmd, *def, 1);
+
+        slotState.currentStage = 1;
+        slotState.stageWindow = def->stageWindowSec;
+        return true;
+    }
+
+    SendNetworkSkillCommand(slot, cmd, 1);
+    ApplyLocalPrediction(cmd, *def);
+    Winters::DevSmoke::Log(
+        "[SkillDispatch] accepted slot=%u champ=%u hook=0x%08X anim=%s\n",
+        static_cast<u32_t>(slot),
+        static_cast<u32_t>(champ),
+        def->castFrameHookId,
+        def->animKey ? def->animKey : "(null)");
+    if (slot != static_cast<uint8_t>(eSkillSlot::BasicAttack))
+    {
+        slotState.cooldownRemaining = def->cooldownSec;
+        slotState.cooldownDuration = def->cooldownSec;
+    }
+
+    return true;
 }
 
 bool CScene_InGame::BuildCastCommand(const SkillDef& def, CastSkillCommand& outCmd)
 {
-    return CInGameSkillDispatchBridge::BuildCastCommand(*this, def, outCmd);
+    eTargetMode mode = def.targetMode;
+
+    if (mode == eTargetMode::Conditional)
+    {
+        mode = eTargetMode::Direction;
+    }
+
+    outCmd.resolvedTargetMode = static_cast<uint8_t>(mode);
+
+    switch (mode)
+    {
+    case eTargetMode::Self:
+    {
+        outCmd.targetEntityId = m_PlayerEntity;
+        return true;
+    }
+    case eTargetMode::UnitTarget:
+    {
+        if (!IsEnemyOfPlayer(m_HoveredEntity))
+            return false;
+        outCmd.targetEntityId = m_HoveredEntity;
+        return true;
+    }
+    case eTargetMode::GroundTarget:
+    {
+        if (!m_pCamera) return false;
+        Vec3 ground = ResolveMouseMapSurfacePos();
+        outCmd.groundPos = ground;
+        return true;
+    }
+    case eTargetMode::Direction:
+    {
+        if (!m_pCamera) return false;
+        Vec3 cursor = ResolveMouseMapSurfacePos();
+        const Vec3 origin = m_pPlayerTransform ? m_pPlayerTransform->GetPosition() : Vec3{};
+        f32_t dx = cursor.x - origin.x;
+        f32_t dz = cursor.z - origin.z;
+        f32_t len2 = dx * dx + dz * dz;
+
+        if (len2 < 1e-3f)
+        {
+            Vec3 fwd = m_pCamera->GetForward();
+            dx = fwd.x;
+            dz = fwd.z;
+            len2 = dx * dx + dz * dz;
+            if (len2 < 1e-4f) return false;
+        }
+
+        const f32_t len = sqrtf(len2);
+        outCmd.direction = { dx / len, 0.f, dz / len };
+        return true;
+    }
+    default:
+        return false;
+    }
 }
+
 void CScene_InGame::ApplyLocalPrediction(const CastSkillCommand& cmd, const SkillDef& def, u8_t skillStage)
 {
-    CInGameSkillDispatchBridge::ApplyLocalPrediction(*this, cmd, def, skillStage);
+    if (m_bNetworkAuthoritativeGameplay)
+    {
+        Winters::DevSmoke::Log(
+            "[SkillDispatch] local prediction blocked in network authority slot=%u\n",
+            static_cast<u32_t>(def.slot));
+        return;
+    }
+
+    RotatePlayerToward(def.rotate, cmd);
+
+    if (def.animKey && m_pPlayerRenderer)
+    {
+        using namespace Engine;
+        const eChampion champ = GetPlayerChampionId();
+        const ChampionDef* cd = FindClientChampionDef(champ);
+        if (cd)
+        {
+            std::string key = def.animKey;
+            if (key == "attack") key = cd->basicAttackKey;
+
+            if (def.keySwapHookId != 0)
+            {
+                VisualHookContext visualCtx{};
+                visualCtx.pWorld = &m_World;
+                visualCtx.casterEntity = m_PlayerEntity;
+                visualCtx.pDef = &def;
+                visualCtx.pCommand = &cmd;
+                visualCtx.pKeyOut = &key;
+                visualCtx.pFxMeshRenderer = m_pFxMeshRenderer.get();
+                const bool visualKeyHandled =
+                    CVisualHookRegistry::Instance().Dispatch(def.keySwapHookId, visualCtx);
+
+                if (!visualKeyHandled)
+                {
+                    SkillHookContext ctx{};
+                    ctx.pWorld = &m_World;
+                    ctx.casterEntity = m_PlayerEntity;
+                    ctx.casterTeam = m_PlayerTeam;
+                    ctx.pDef = &def;
+                    ctx.pCommand = &cmd;
+                    ctx.skillStage = skillStage;
+                    ctx.pKeyOut = &key;
+                    ctx.pFxMeshRenderer = m_pFxMeshRenderer.get();
+                    CSkillHookRegistry::Instance().Dispatch(def.keySwapHookId, ctx);
+                }
+            }
+
+            const std::string full = std::string(cd->animPrefix) + key;
+            m_pPlayerRenderer->PlayAnimationByName(
+                full,
+                ShouldLoopLocalSkillAnimation(def, skillStage));
+
+            m_pLastActionLabel = def.animKey;
+            m_fLastActionTimer = def.lockDurationSec > 0.f ? def.lockDurationSec : 1.2f;
+
+            m_ActiveSkillDefStorage = def;
+            m_ActiveSkillCommandStorage = cmd;
+            m_pActiveSkillDef = &m_ActiveSkillDefStorage;
+            m_fActivePrevFrame = 0.f;
+            m_bCastFrameFired = false;
+            m_bRecoveryFrameFired = false;
+            ResetLocalSkillRuntimeState();
+            m_pLastDispatchedSkill = &m_ActiveSkillDefStorage;
+        }
+    }
+
+    bool acceptedHandled = false;
+    if (def.onCastAcceptedHookId != 0)
+    {
+        GameCommand gameCommand{};
+        gameCommand.kind = (def.slot == static_cast<uint8_t>(eSkillSlot::BasicAttack))
+            ? eCommandKind::BasicAttack
+            : eCommandKind::CastSkill;
+        gameCommand.issuerEntity = m_PlayerEntity;
+        gameCommand.slot = def.slot;
+        gameCommand.targetEntity = cmd.targetEntityId;
+        gameCommand.groundPos = cmd.groundPos;
+        gameCommand.direction = cmd.direction;
+
+        TickContext tickCtx{};
+        tickCtx.fDt = 0.f;
+        tickCtx.localPlayer = m_PlayerEntity;
+
+        GameplayHookContext gameCtx{};
+        gameCtx.pWorld = &m_World;
+        gameCtx.casterEntity = m_PlayerEntity;
+        gameCtx.casterTeam = m_PlayerTeam;
+        gameCtx.casterChampion = def.champ;
+        gameCtx.skillRank = 1;
+        gameCtx.pDef = &def;
+        gameCtx.pCommand = &gameCommand;
+        gameCtx.pTickCtx = &tickCtx;
+        const bool gameplayAcceptedHandled =
+            CGameplayHookRegistry::Instance().Dispatch(def.onCastAcceptedHookId, gameCtx);
+
+        VisualHookContext visualCtx{};
+        visualCtx.pWorld = &m_World;
+        visualCtx.casterEntity = m_PlayerEntity;
+        visualCtx.pDef = &def;
+        visualCtx.pCommand = &cmd;
+        visualCtx.skillStage = skillStage;
+        visualCtx.pFxMeshRenderer = m_pFxMeshRenderer.get();
+        const bool hasLegacyAcceptedHook =
+            CSkillHookRegistry::Instance().Has(def.onCastAcceptedHookId);
+        const bool suppressVisualAcceptedForLegacy =
+            hasLegacyAcceptedHook && def.champ == eChampion::IRELIA;
+        bool visualAcceptedHandled = false;
+        if (!suppressVisualAcceptedForLegacy)
+        {
+            visualAcceptedHandled =
+                CVisualHookRegistry::Instance().Dispatch(def.onCastAcceptedHookId, visualCtx);
+        }
+
+        SkillHookContext ctx{};
+        ctx.pWorld = &m_World;
+        ctx.casterEntity = m_PlayerEntity;
+        ctx.casterTeam = m_PlayerTeam;
+        ctx.pDef = &def;
+        ctx.pCommand = &cmd;
+        ctx.skillStage = skillStage;
+        ctx.pFxMeshRenderer = m_pFxMeshRenderer.get();
+        ctx.startPointDash = [this](const Vec3& start, const Vec3& end, f32_t duration, EntityID target)
+            {
+                m_bDashActive = true;
+                m_fDashElapsed = 0.f;
+                m_fDashDuration = duration;
+                m_vDashStart = start;
+                m_vDashEnd = end;
+                m_DashTargetEntity = target;
+            };
+        ctx.startTargetDash = [this](EntityID target)
+            {
+                StartLocalTargetDash(target);
+            };
+        ctx.startUltimateDash = [this](EntityID target)
+            {
+                StartLocalUltimateDash(target);
+            };
+        ctx.findAirborneTarget = [this](const Vec3& origin, f32_t radius) -> EntityID
+            {
+                return FindAirborneEnemyNear(origin, radius);
+            };
+        ctx.applyTargetDamage = [this](EntityID target, f32_t damage)
+            {
+                ApplyLocalChampionDamage(
+                    target,
+                    damage,
+                    "SkillHookDamage");
+            };
+        ctx.setLocalLoopAnimations = [this](const char* idle, const char* run, bool_t playNow)
+            {
+                m_pPlayerIdleAnim = idle;
+                m_pPlayerRunAnim = run;
+                if (playNow && m_pPlayerRenderer)
+                    m_pPlayerRenderer->PlayAnimationByName(idle, true);
+            };
+        ctx.getLocalDashDuration = [this]() -> f32_t
+            {
+                return m_fDashDuration;
+            };
+        const bool legacyAcceptedHandled =
+            CSkillHookRegistry::Instance().Dispatch(def.onCastAcceptedHookId, ctx);
+
+        acceptedHandled = gameplayAcceptedHandled || visualAcceptedHandled || legacyAcceptedHandled;
+        Winters::DevSmoke::Log(
+            "[SkillDispatch] acceptedHook slot=%u champ=%u hook=0x%08X stage=%u gameplay=%u visual=%u legacy=%u\n",
+            static_cast<u32_t>(def.slot),
+            static_cast<u32_t>(def.champ),
+            def.onCastAcceptedHookId,
+            static_cast<u32_t>(skillStage),
+            gameplayAcceptedHandled ? 1u : 0u,
+            visualAcceptedHandled ? 1u : 0u,
+            legacyAcceptedHandled ? 1u : 0u);
+    }
+    (void)acceptedHandled;
+
+    using namespace Engine;
+
+    m_bCastFrameFired = false;
+    m_bRecoveryFrameFired = false;
+    ResetLocalSkillRuntimeState();
+
+    m_pActiveSkillDef = &m_ActiveSkillDefStorage;
+    m_fActivePrevFrame = 0.f;
+
+    char buf[192];
+    const char* modeName = "?";
+    switch (static_cast<eTargetMode>(cmd.resolvedTargetMode))
+    {
+    case eTargetMode::Self:         modeName = "Self";         break;
+    case eTargetMode::UnitTarget:   modeName = "UnitTarget";   break;
+    case eTargetMode::GroundTarget: modeName = "GroundTarget"; break;
+    case eTargetMode::Direction:    modeName = "Direction";    break;
+    default: break;
+    }
+    sprintf_s(buf, "[Cast] slot=%u mode=%s anim=%s target=%u ground=(%.1f,%.1f,%.1f) dir=(%.2f,%.2f)\n",
+        cmd.slot, modeName, def.animKey ? def.animKey : "(null)",
+        cmd.targetEntityId,
+        cmd.groundPos.x, cmd.groundPos.y, cmd.groundPos.z,
+        cmd.direction.x, cmd.direction.z);
+    Winters::DevSmoke::Log("%s", buf);
+}
+
+void CScene_InGame::OnAuthoritativeSnapshot(
+    u64_t serverTick,
+    u64_t serverTimeMs,
+    u32_t lastAckedCommandSeq,
+    u32_t localNetId)
+{
+    (void)serverTimeMs;
+    (void)localNetId;
+
+    PruneAckedNetworkMovePredictions(lastAckedCommandSeq);
+
+    WINTERS_PROFILE_COUNT("Net::ServerTick", serverTick);
+    WINTERS_PROFILE_COUNT("Net::LastAckedSeq", lastAckedCommandSeq);
+    WINTERS_PROFILE_COUNT("Prediction::PendingMoves",
+        static_cast<u64_t>(m_NetworkMovePredictions.size()));
+}
+
+void CScene_InGame::RecordNetworkMovePrediction(
+    u32_t commandSeq,
+    const Vec3& vPredictedTarget,
+    const Vec3& vFacingDirection)
+{
+    if (commandSeq == 0u)
+        return;
+
+    NetworkMovePrediction prediction{};
+    prediction.commandSeq = commandSeq;
+    prediction.vPredictedTarget = vPredictedTarget;
+    prediction.vFacingDirection = vFacingDirection;
+
+    m_NetworkMovePredictions.push_back(prediction);
+    while (m_NetworkMovePredictions.size() > 64u)
+        m_NetworkMovePredictions.pop_front();
+
+    WINTERS_PROFILE_COUNT("Prediction::RecordedMove", 1u);
+}
+
+void CScene_InGame::PruneAckedNetworkMovePredictions(u32_t lastAckedCommandSeq)
+{
+    if (lastAckedCommandSeq == 0u)
+        return;
+
+    m_uLastAckedMovePredictionSeq = lastAckedCommandSeq;
+
+    uint64_t prunedCount = 0;
+    while (!m_NetworkMovePredictions.empty() &&
+        m_NetworkMovePredictions.front().commandSeq <= lastAckedCommandSeq)
+    {
+        m_NetworkMovePredictions.pop_front();
+        ++prunedCount;
+    }
+
+    if (prunedCount > 0)
+        WINTERS_PROFILE_COUNT("Prediction::AckPruned", prunedCount);
 }
 
 void CScene_InGame::RotatePlayerToward(eRotateMode mode, const CastSkillCommand& cmd)
 {
-    CInGameSkillDispatchBridge::RotatePlayerToward(*this, mode, cmd);
+    if (mode == eRotateMode::None || !m_pPlayerTransform) return;
+
+    const Vec3 origin = m_pPlayerTransform->GetPosition();
+    Vec3 target = origin;
+
+    if (mode == eRotateMode::TowardsTarget
+        && cmd.targetEntityId != NULL_ENTITY
+        && m_World.HasComponent<TransformComponent>(cmd.targetEntityId))
+    {
+        target = m_World.GetComponent<TransformComponent>(cmd.targetEntityId).m_LocalPosition;
+    }
+    else if (mode == eRotateMode::TowardsCursor)
+    {
+        const bool bHasDir = (fabsf(cmd.direction.x) + fabsf(cmd.direction.z)) > 1e-4f;
+        target = bHasDir
+            ? Vec3{ origin.x + cmd.direction.x, origin.y, origin.z + cmd.direction.z }
+        : cmd.groundPos;
+    }
+
+    const f32_t dx = target.x - origin.x;
+    const f32_t dz = target.z - origin.z;
+    if (dx * dx + dz * dz < 1e-4f) return;
+
+    const f32_t yaw = ResolveChampionVisualYawNear(
+        GetPlayerChampionId(),
+        Vec3{ dx, 0.f, dz },
+        GetPlayerYaw());
+    SetPlayerYaw(yaw);
+
+    if (GetPlayerChampionId() == eChampion::KALISTA &&
+        (cmd.slot == static_cast<u8_t>(eSkillSlot::BasicAttack) ||
+            cmd.slot == static_cast<u8_t>(eSkillSlot::Q)))
+    {
+        m_vKalistaPassiveDashFaceDir =
+            WintersMath::NormalizeXZ(Vec3{ dx, 0.f, dz }, Vec3{}, 0.0001f);
+        m_bKalistaPassiveDashHasFaceDir =
+            m_vKalistaPassiveDashFaceDir.x != 0.f ||
+            m_vKalistaPassiveDashFaceDir.z != 0.f;
+    }
 }
 
-void CScene_InGame::InitializeMapSurfaceSampler(bool_t bMapLoaded)
+void CScene_InGame::InitializeMapSurfaceSampler(bool_t bMapLoaded, const wchar_t* pSurfaceMeshPath)
 {
     m_pMapSurfaceSampler.reset();
     if (!bMapLoaded)
@@ -1808,13 +5700,15 @@ void CScene_InGame::InitializeMapSurfaceSampler(bool_t bMapLoaded)
 
     unique_ptr<Engine::CMapSurfaceSampler> sampler(new Engine::CMapSurfaceSampler());
     wchar_t surfacePath[MAX_PATH]{};
+    const wchar_t* pPath = (pSurfaceMeshPath && pSurfaceMeshPath[0] != L'\0')
+        ? pSurfaceMeshPath
+        : L"Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh";
     if (!WintersResolveContentPath(
-        L"Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh",
+        pPath,
         surfacePath,
         MAX_PATH) ||
         !sampler->LoadFromWMesh(surfacePath, m_MapTransform.GetWorldMatrix()))
     {
-        OutputDebugStringA("[MapSurface] load failed; y projection disabled\n");
         return;
     }
 
@@ -1895,18 +5789,6 @@ void CScene_InGame::BakeMapWalkableNavGrid()
         seeds,
         desc);
 
-    char msg[192]{};
-    sprintf_s(
-        msg,
-        "[NavGrid] terrain bake ok=%u walkable=%u seeds=%zu baseY=%.2f band=%.2f normalY=%.2f step=%.2f\n",
-        bBaked ? 1u : 0u,
-        m_pNavGrid->CountWalkableCells(),
-        seeds.size(),
-        desc.playableBaseY,
-        desc.playableHeightBand,
-        desc.minNormalY,
-        desc.maxStepHeight);
-    OutputDebugStringA(msg);
 }
 
 void CScene_InGame::RebuildMapWalkableNavGridForDebug()
@@ -1935,83 +5817,23 @@ void CScene_InGame::RebuildClientPathNavGrid()
     m_pPathNavGrid = m_pNavGrid->BuildInflated(0.5f);
     if (!m_pPathNavGrid)
     {
-        OutputDebugStringA("[NavGrid] path grid inflate failed\n");
         return;
     }
 
-    char msg[192]{};
-    sprintf_s(
-        msg,
-        "[NavGrid] path grid inflated radius=0.50 authored=%u path=%u authoredHash=%08X pathHash=%08X\n",
-        m_pNavGrid->CountWalkableCells(),
-        m_pPathNavGrid->CountWalkableCells(),
-        m_pNavGrid->ComputeContentHash(),
-        m_pPathNavGrid->ComputeContentHash());
-    OutputDebugStringA(msg);
+    CPathfinder::PrewarmReachabilityCache(m_pPathNavGrid.get());
+
 }
 
 bool_t CScene_InGame::TryProjectToMapSurface(Vec3& ioPos, f32_t fYOffset) const
 {
-    const Vec3 before = ioPos;
     if (!m_pMapSurfaceSampler)
-    {
-        static u32_t s_projectNoSamplerTraceCount = 0;
-        if (false && s_projectNoSamplerTraceCount < 64u)
-        {
-            char msg[256]{};
-            sprintf_s(
-                msg,
-                "[YawTrace][ProjectMapSurface] result=no-sampler in=(%.3f,%.3f,%.3f) yOffset=%.3f\n",
-                before.x,
-                before.y,
-                before.z,
-                fYOffset);
-            OutputDebugStringA(msg);
-            ++s_projectNoSamplerTraceCount;
-        }
         return false;
-    }
 
     f32_t height = 0.f;
     if (!m_pMapSurfaceSampler->SampleHeight(ioPos.x, ioPos.z, height))
-    {
-        static u32_t s_projectFailTraceCount = 0;
-        if (false && s_projectFailTraceCount < 128u)
-        {
-            char msg[256]{};
-            sprintf_s(
-                msg,
-                "[YawTrace][ProjectMapSurface] result=sample-fail in=(%.3f,%.3f,%.3f) yOffset=%.3f\n",
-                before.x,
-                before.y,
-                before.z,
-                fYOffset);
-            OutputDebugStringA(msg);
-            ++s_projectFailTraceCount;
-        }
         return false;
-    }
 
     ioPos.y = height + fYOffset;
-    static u32_t s_projectTraceCount = 0;
-    if (false && s_projectTraceCount < 512u)
-    {
-        char msg[320]{};
-        sprintf_s(
-            msg,
-            "[YawTrace][ProjectMapSurface] result=ok in=(%.3f,%.3f,%.3f) out=(%.3f,%.3f,%.3f) height=%.3f yOffset=%.3f\n",
-            before.x,
-            before.y,
-            before.z,
-            ioPos.x,
-            ioPos.y,
-            ioPos.z,
-            height,
-            fYOffset);
-        if (false)
-            OutputDebugStringA(msg);
-        ++s_projectTraceCount;
-    }
     return true;
 }
 
@@ -2043,24 +5865,6 @@ bool_t CScene_InGame::TryResolveNearestWalkablePosition(
     if (!TryProjectToMapSurface(outPos, 0.05f))
         outPos.y = rawPos.y;
 
-    static u32_t s_snapLogCount = 0;
-    if (s_snapLogCount < 32u)
-    {
-        char msg[224]{};
-        sprintf_s(
-            msg,
-            "[MoveTarget] snap-out blocked=(%d,%d) nearest=(%d,%d) pos=(%.2f,%.2f)->(%.2f,%.2f)\n",
-            cell.x,
-            cell.y,
-            nearest.x,
-            nearest.y,
-            rawPos.x,
-            rawPos.z,
-            outPos.x,
-            outPos.z);
-        OutputDebugStringA(msg);
-        ++s_snapLogCount;
-    }
 
     return true;
 }
@@ -2077,29 +5881,6 @@ bool_t CScene_InGame::TryResolveWalkableMoveTarget(
     const Vec3 playerPos = m_pPlayerTransform->GetPosition();
     CNavGrid::Cell start = pGrid->WorldToCell(playerPos);
     const CNavGrid::Cell rawGoal = pGrid->WorldToCell(rawTarget);
-    static u32_t s_resolveEnterTraceCount = 0;
-    if (false && s_resolveEnterTraceCount < 512u)
-    {
-        const Vec3 rawDir = WintersMath::DirectionXZ(playerPos, rawTarget, Vec3{});
-        char msg[512]{};
-        sprintf_s(
-            msg,
-            "[YawTrace][ClientResolveEnter] pos=(%.3f,%.3f,%.3f) raw=(%.3f,%.3f,%.3f) rawDir=(%.3f,%.3f) start=(%d,%d) rawGoal=(%d,%d)\n",
-            playerPos.x,
-            playerPos.y,
-            playerPos.z,
-            rawTarget.x,
-            rawTarget.y,
-            rawTarget.z,
-            rawDir.x,
-            rawDir.z,
-            start.x,
-            start.y,
-            rawGoal.x,
-            rawGoal.y);
-        OutputDebugStringA(msg);
-        ++s_resolveEnterTraceCount;
-    }
 
     auto ProjectMoveTarget = [&](Vec3& ioTarget)
         {
@@ -2113,21 +5894,6 @@ bool_t CScene_InGame::TryResolveWalkableMoveTarget(
             if (std::fabs(surfaceDeltaY) <= kMoveTargetMaxSurfaceDeltaY)
                 return;
 
-            static u32_t s_badSurfaceLogCount = 0;
-            if (s_badSurfaceLogCount < 64u)
-            {
-                char msg[224]{};
-                sprintf_s(
-                    msg,
-                    "[MoveTarget] reject-surface-y playerY=%.3f sampledY=%.3f delta=%.3f xz=(%.3f,%.3f)\n",
-                    playerPos.y,
-                    ioTarget.y,
-                    surfaceDeltaY,
-                    ioTarget.x,
-                    ioTarget.z);
-                OutputDebugStringA(msg);
-                ++s_badSurfaceLogCount;
-            }
             ioTarget.y = playerPos.y;
         };
 
@@ -2136,67 +5902,14 @@ bool_t CScene_InGame::TryResolveWalkableMoveTarget(
         CNavGrid::Cell nearestStart{};
         if (!pGrid->TryFindNearestWalkableCell(start, 8, nearestStart))
             return false;
-        static u32_t s_startBlockedLogCount = 0;
-        if (s_startBlockedLogCount < 64u)
-        {
-            char msg[224]{};
-            sprintf_s(
-                msg,
-                "[MoveTarget] start-blocked player=(%.2f,%.2f) cell=(%d,%d) nearest=(%d,%d)\n",
-                playerPos.x,
-                playerPos.z,
-                start.x,
-                start.y,
-                nearestStart.x,
-                nearestStart.y);
-            OutputDebugStringA(msg);
-            ++s_startBlockedLogCount;
-        }
         start = nearestStart;
     }
 
     if (!pGrid->IsInBounds(rawGoal.x, rawGoal.y))
-    {
-        char msg[192]{};
-        sprintf_s(
-            msg,
-            "[MoveTarget] reject=out-of-nav-bounds goal=(%d,%d) origin=(%.2f,%.2f)\n",
-            rawGoal.x,
-            rawGoal.y,
-            pGrid->Get_OriginX(),
-            pGrid->Get_OriginZ());
-        OutputDebugStringA(msg);
         return false;
-    }
 
     const bool_t bRawGoalWalkable = pGrid->IsWalkable(rawGoal.x, rawGoal.y);
     const bool_t bRawSegmentWalkable = pGrid->SegmentWalkable(playerPos, rawTarget, 0.f);
-    static u32_t s_resolveCheckTraceCount = 0;
-    if (false && s_resolveCheckTraceCount < 512u)
-    {
-        const Vec3 rawDir = WintersMath::DirectionXZ(playerPos, rawTarget, Vec3{});
-        char msg[640]{};
-        sprintf_s(
-            msg,
-            "[YawTrace][ClientResolveCheck] pos=(%.3f,%.3f,%.3f) raw=(%.3f,%.3f,%.3f) rawDir=(%.3f,%.3f) start=(%d,%d) goal=(%d,%d) rawGoalWalkable=%u segmentWalkable=%u\n",
-            playerPos.x,
-            playerPos.y,
-            playerPos.z,
-            rawTarget.x,
-            rawTarget.y,
-            rawTarget.z,
-            rawDir.x,
-            rawDir.z,
-            start.x,
-            start.y,
-            rawGoal.x,
-            rawGoal.y,
-            bRawGoalWalkable ? 1u : 0u,
-            bRawSegmentWalkable ? 1u : 0u);
-        if (false)
-            OutputDebugStringA(msg);
-        ++s_resolveCheckTraceCount;
-    }
 
     if (bRawGoalWalkable && bRawSegmentWalkable)
     {
@@ -2204,42 +5917,6 @@ bool_t CScene_InGame::TryResolveWalkableMoveTarget(
         ProjectMoveTarget(outTarget);
         if (pOutFirstWaypoint)
             *pOutFirstWaypoint = outTarget;
-        const Vec3 rawDir = WintersMath::DirectionXZ(playerPos, rawTarget, Vec3{});
-        const Vec3 resolvedDir = WintersMath::DirectionXZ(playerPos, outTarget, Vec3{});
-        const f32_t rawVsResolvedDot =
-            rawDir.x * resolvedDir.x + rawDir.z * resolvedDir.z;
-        const bool_t bRawOpposesResolved =
-            (rawDir.x != 0.f || rawDir.z != 0.f) &&
-            (resolvedDir.x != 0.f || resolvedDir.z != 0.f) &&
-            rawVsResolvedDot < -0.10f;
-        char msg[768]{};
-        sprintf_s(
-            msg,
-            "[YawTrace][ClientResolve] mode=direct pos=(%.3f,%.3f,%.3f) raw=(%.3f,%.3f,%.3f) resolved=(%.3f,%.3f,%.3f) first=(%.3f,%.3f,%.3f) rawDir=(%.3f,%.3f) resolvedDir=(%.3f,%.3f) rawVsResolvedDot=%.4f rawOppResolved=%u start=(%d,%d) goal=(%d,%d)\n",
-            playerPos.x,
-            playerPos.y,
-            playerPos.z,
-            rawTarget.x,
-            rawTarget.y,
-            rawTarget.z,
-            outTarget.x,
-            outTarget.y,
-            outTarget.z,
-            outTarget.x,
-            outTarget.y,
-            outTarget.z,
-            rawDir.x,
-            rawDir.z,
-            resolvedDir.x,
-            resolvedDir.z,
-            rawVsResolvedDot,
-            bRawOpposesResolved ? 1u : 0u,
-            start.x,
-            start.y,
-            rawGoal.x,
-            rawGoal.y);
-        if (false)
-            OutputDebugStringA(msg);
         return true;
     }
 
@@ -2253,13 +5930,6 @@ bool_t CScene_InGame::TryResolveWalkableMoveTarget(
         resolved,
         &path))
     {
-        char msg[160]{};
-        sprintf_s(
-            msg,
-            "[MoveTarget] raw blocked goal=(%d,%d) reject=no-reachable-cell\n",
-            rawGoal.x,
-            rawGoal.y);
-        OutputDebugStringA(msg);
         return false;
     }
 
@@ -2271,7 +5941,6 @@ bool_t CScene_InGame::TryResolveWalkableMoveTarget(
         *pOutFirstWaypoint = outTarget;
         const std::vector<CNavGrid::Cell> smoothedPath =
             SmoothClientMovePathCells(*pGrid, path);
-        bool_t bFirstWaypointOpposed = false;
         if (smoothedPath.size() > 1)
         {
             Vec3 waypoint = pGrid->CellToWorld(
@@ -2281,80 +5950,14 @@ bool_t CScene_InGame::TryResolveWalkableMoveTarget(
 
             Vec3 intentFacingTarget = rawTarget;
             ProjectMoveTarget(intentFacingTarget);
-            bFirstWaypointOpposed = IsFacingCandidateOpposedToIntent(
+            const bool_t bFirstWaypointOpposed = IsFacingCandidateOpposedToIntent(
                 playerPos,
                 intentFacingTarget,
                 waypoint);
             *pOutFirstWaypoint = bFirstWaypointOpposed ? intentFacingTarget : waypoint;
         }
-
-        const Vec3 rawDir = WintersMath::DirectionXZ(playerPos, rawTarget, Vec3{});
-        const Vec3 resolvedDir = WintersMath::DirectionXZ(playerPos, outTarget, Vec3{});
-        const Vec3 firstDir = WintersMath::DirectionXZ(playerPos, *pOutFirstWaypoint, Vec3{});
-        const f32_t rawVsResolvedDot =
-            rawDir.x * resolvedDir.x + rawDir.z * resolvedDir.z;
-        const f32_t rawVsFirstDot =
-            rawDir.x * firstDir.x + rawDir.z * firstDir.z;
-        const bool_t bRawOpposesResolved =
-            (rawDir.x != 0.f || rawDir.z != 0.f) &&
-            (resolvedDir.x != 0.f || resolvedDir.z != 0.f) &&
-            rawVsResolvedDot < -0.10f;
-        const bool_t bRawOpposesFirst =
-            (rawDir.x != 0.f || rawDir.z != 0.f) &&
-            (firstDir.x != 0.f || firstDir.z != 0.f) &&
-            rawVsFirstDot < -0.10f;
-
-        char msg[1024]{};
-        sprintf_s(
-            msg,
-            "[YawTrace][ClientResolve] mode=path pos=(%.3f,%.3f,%.3f) raw=(%.3f,%.3f,%.3f) resolved=(%.3f,%.3f,%.3f) first=(%.3f,%.3f,%.3f) rawDir=(%.3f,%.3f) resolvedDir=(%.3f,%.3f) firstDir=(%.3f,%.3f) rawVsResolvedDot=%.4f rawVsFirstDot=%.4f rawOppResolved=%u rawOppFirst=%u opposed=%u start=(%d,%d) goal=(%d,%d) corrected=(%d,%d) rawPath=%zu\n",
-            playerPos.x,
-            playerPos.y,
-            playerPos.z,
-            rawTarget.x,
-            rawTarget.y,
-            rawTarget.z,
-            outTarget.x,
-            outTarget.y,
-            outTarget.z,
-            pOutFirstWaypoint->x,
-            pOutFirstWaypoint->y,
-            pOutFirstWaypoint->z,
-            rawDir.x,
-            rawDir.z,
-            resolvedDir.x,
-            resolvedDir.z,
-            firstDir.x,
-            firstDir.z,
-            rawVsResolvedDot,
-            rawVsFirstDot,
-            bRawOpposesResolved ? 1u : 0u,
-            bRawOpposesFirst ? 1u : 0u,
-            bFirstWaypointOpposed ? 1u : 0u,
-            start.x,
-            start.y,
-            rawGoal.x,
-            rawGoal.y,
-            resolved.x,
-            resolved.y,
-            path.size());
-        if (false)
-            OutputDebugStringA(msg);
     }
 
-    if (false && (resolved.x != rawGoal.x || resolved.y != rawGoal.y))
-    {
-        char msg[192]{};
-        sprintf_s(
-            msg,
-            "[MoveTarget] raw goal=(%d,%d) bfs-corrected=(%d,%d) path=%zu\n",
-            rawGoal.x,
-            rawGoal.y,
-            resolved.x,
-            resolved.y,
-            path.size());
-        OutputDebugStringA(msg);
-    }
 
     return true;
 }
@@ -2379,8 +5982,6 @@ Vec3 CScene_InGame::ResolveMouseMapSurfacePos() const
     const CInput::MouseRay ray =
         input.GetMouseWorldRay(*m_pCamera, screenW, screenH);
     Vec3 ground = input.GetMouseGroundPos(*m_pCamera, screenW, screenH);
-    const Vec3 hitY0 = ground;
-    const Vec3 beforeProject = ground;
     bool_t bProjected = false;
 
     if (m_pMapSurfaceSampler && m_pMapSurfaceSampler->IsReady())
@@ -2438,48 +6039,6 @@ Vec3 CScene_InGame::ResolveMouseMapSurfacePos() const
     if (!bProjected)
         bProjected = TryProjectToMapSurface(ground, 0.f);
 
-    static u32_t s_mouseGroundTraceCount = 0;
-    if (s_mouseGroundTraceCount < 512u)
-    {
-        const Vec3 camEye = m_pCamera->GetEye();
-        const Vec3 camAt = m_pCamera->GetAt();
-        const Vec3 playerPos = m_pPlayerTransform
-            ? m_pPlayerTransform->GetPosition()
-            : Vec3{};
-        char msg[1024]{};
-        sprintf_s(
-            msg,
-            "[YawTrace][MouseGround] mouse=(%d,%d) camEye=(%.3f,%.3f,%.3f) camAt=(%.3f,%.3f,%.3f) rayOrigin=(%.3f,%.3f,%.3f) rayDir=(%.3f,%.3f,%.3f) hitY0=(%.3f,%.3f,%.3f) beforeProject=(%.3f,%.3f,%.3f) afterProject=(%.3f,%.3f,%.3f) player=(%.3f,%.3f,%.3f) projected=%u\n",
-            static_cast<int>(input.GetMouseX()),
-            static_cast<int>(input.GetMouseY()),
-            camEye.x,
-            camEye.y,
-            camEye.z,
-            camAt.x,
-            camAt.y,
-            camAt.z,
-            ray.Origin.x,
-            ray.Origin.y,
-            ray.Origin.z,
-            ray.Dir.x,
-            ray.Dir.y,
-            ray.Dir.z,
-            hitY0.x,
-            hitY0.y,
-            hitY0.z,
-            beforeProject.x,
-            beforeProject.y,
-            beforeProject.z,
-            ground.x,
-            ground.y,
-            ground.z,
-            playerPos.x,
-            playerPos.y,
-            playerPos.z,
-            bProjected ? 1u : 0u);
-        OutputDebugStringA(msg);
-        ++s_mouseGroundTraceCount;
-    }
     return ground;
 }
 
@@ -2519,7 +6078,6 @@ void CScene_InGame::ProjectGameplayActorsToMapSurface()
 
 void CScene_InGame::TriggerFlash()
 {
-    if (m_fFlashCooldownLeft > 0.f) return;
     if (!m_pPlayerTransform || !m_pCamera) return;
 
     const Vec3 cursor = ResolveMouseMapSurfacePos();
@@ -2530,20 +6088,28 @@ void CScene_InGame::TriggerFlash()
     if (lenSq < 0.001f) return;
 
     const f32_t len = std::sqrt(lenSq);
-    const f32_t useLen = (len > m_fFlashRange) ? m_fFlashRange : len;
     const f32_t nx = dx / len;
     const f32_t nz = dz / len;
+    const Vec3 direction{ nx, 0.f, nz };
+
+    if (m_bNetworkAuthoritativeGameplay &&
+        m_pCommandSerializer &&
+        m_pNetworkView &&
+        m_pNetworkView->IsConnected())
+    {
+        m_pCommandSerializer->SendFlash(*m_pNetworkView, cursor, direction);
+        return;
+    }
+
+    if (m_fFlashCooldownLeft > 0.f) return;
+
+    const f32_t useLen = (len > m_fFlashRange) ? m_fFlashRange : len;
     Vec3 dest{ origin.x + nx * useLen, origin.y, origin.z + nz * useLen };
     (void)TryProjectToMapSurface(dest, 0.05f);
 
     SetPlayerPosition(dest);
 
     m_fFlashCooldownLeft = m_fFlashCooldown;
-
-    char dbg[160]{};
-    sprintf_s(dbg, "[Flash] (%.1f,%.1f) -> (%.1f,%.1f) len=%.2f\n",
-        origin.x, origin.z, dest.x, dest.z, useLen);
-    ::OutputDebugStringA(dbg);
 }
 
 void CScene_InGame::UpdateFlashCooldown(f32_t dt)
@@ -2587,13 +6153,5 @@ void CScene_InGame::Mark_StructuresOnNavGrid()
             }
         }
     }
-    char msg[192]{};
-    sprintf_s(
-        msg,
-        "[NavGrid] %u structures marked as blocked walkable=%u hash=%08X\n",
-        iCount,
-        m_pNavGrid->CountWalkableCells(),
-        m_pNavGrid->ComputeContentHash());
-    OutputDebugStringA(msg);
     RebuildClientPathNavGrid();
 }

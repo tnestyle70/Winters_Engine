@@ -8,6 +8,8 @@
 #include "Manager/Structure_Manager.h"
 #include "Manager/Jungle_Manager.h"
 #include "Manager/Navigation/NavGrid.h"
+#include "Shared/GameSim/Components/ChampionAIComponent.h"
+#include "Shared/GameSim/Components/ChampionComponent.h"
 #include "DynamicCamera.h"
 #include "EngineConfig.h"                   // g_iWinSizeX / g_iWinSizeY
 #include "WintersMath.h"
@@ -125,6 +127,133 @@ namespace
         default:             return 0xFFC8C8C8u;
         }
     }
+
+    bool DrawWorldCircleXZ(
+        ImDrawList* pDraw,
+        const DirectX::XMMATRIX& mVP,
+        const Vec3& center,
+        f32_t radius,
+        ImU32 col,
+        f32_t thickness = 1.5f)
+    {
+        if (radius <= 0.01f || radius > 200.f)
+            return false;
+
+        constexpr int kSegments = 64;
+        bool_t bAny = false;
+        Vec3 prev{};
+        bool_t bHasPrev = false;
+        for (int i = 0; i <= kSegments; ++i)
+        {
+            const f32_t a = WintersMath::kTwoPi *
+                static_cast<f32_t>(i) / static_cast<f32_t>(kSegments);
+            const Vec3 p{
+                center.x + std::cos(a) * radius,
+                center.y,
+                center.z + std::sin(a) * radius
+            };
+            if (bHasPrev)
+                bAny = DrawWorldLine(pDraw, mVP, prev, p, col, thickness) || bAny;
+            prev = p;
+            bHasPrev = true;
+        }
+
+        return bAny;
+    }
+
+    const char* ChampionAIStateLabel(eChampionAIState state)
+    {
+        switch (state)
+        {
+        case eChampionAIState::MoveToOuterTurret: return "MoveToOuter";
+        case eChampionAIState::WaitForWave: return "WaitWave";
+        case eChampionAIState::LaneCombat: return "LaneCombat";
+        case eChampionAIState::Diving: return "Diving";
+        case eChampionAIState::Retreat: return "Retreat";
+        case eChampionAIState::Recalling: return "Recalling";
+        case eChampionAIState::Dead: return "Dead";
+        default: return "Unknown";
+        }
+    }
+
+    const char* ChampionAIActionLabel(eChampionAIAction action)
+    {
+        switch (action)
+        {
+        case eChampionAIAction::MoveToSafeAnchor: return "MoveSafe";
+        case eChampionAIAction::FollowWave: return "FollowWave";
+        case eChampionAIAction::AttackMinion: return "AttackMinion";
+        case eChampionAIAction::AttackChampion: return "AttackChampion";
+        case eChampionAIAction::AttackStructure: return "AttackStructure";
+        case eChampionAIAction::UseFlashEscape: return "FlashEscape";
+        case eChampionAIAction::Retreat: return "Retreat";
+        case eChampionAIAction::Recall: return "Recall";
+        default: return "Unknown";
+        }
+    }
+
+    const char* ChampionAIIntentLabel(eChampionAIIntent intent)
+    {
+        switch (intent)
+        {
+        case eChampionAIIntent::FarmMinion: return "Farm";
+        case eChampionAIIntent::AttackChampion: return "Fight";
+        case eChampionAIIntent::ExecuteDive: return "ExecuteDive";
+        case eChampionAIIntent::SiegeStructure: return "Siege";
+        case eChampionAIIntent::Retreat: return "Retreat";
+        case eChampionAIIntent::Recall: return "Recall";
+        default: return "Unknown";
+        }
+    }
+
+    const char* ChampionAIDivePhaseLabel(eChampionAIDivePhase phase)
+    {
+        switch (phase)
+        {
+        case eChampionAIDivePhase::None: return "None";
+        case eChampionAIDivePhase::EngageQ: return "Q";
+        case eChampionAIDivePhase::ArmW: return "W";
+        case eChampionAIDivePhase::BasicAttack: return "BA";
+        case eChampionAIDivePhase::ExtraBasicAttack: return "ExtraBA";
+        case eChampionAIDivePhase::FlashExit: return "FlashExit";
+        case eChampionAIDivePhase::ExitMove: return "ExitMove";
+        default: return "Unknown";
+        }
+    }
+
+    const char* ChampionAICommandLabel(u8_t kind)
+    {
+        switch (kind)
+        {
+        case 1u: return "Move";
+        case 2u: return "Skill";
+        case 3u: return "BA";
+        case 7u: return "Recall";
+        case 10u: return "Flash";
+        default: return "None";
+        }
+    }
+
+    const char* ChampionAIBlockReasonLabel(eChampionAIDecisionBlockReason reason)
+    {
+        switch (reason)
+        {
+        case eChampionAIDecisionBlockReason::None: return "None";
+        case eChampionAIDecisionBlockReason::NoTarget: return "NoTarget";
+        case eChampionAIDecisionBlockReason::TargetDead: return "Dead";
+        case eChampionAIDecisionBlockReason::TargetUntargetable: return "Untargetable";
+        case eChampionAIDecisionBlockReason::TargetOutOfRange: return "OutOfRange";
+        case eChampionAIDecisionBlockReason::SelfLowHp: return "SelfLowHp";
+        case eChampionAIDecisionBlockReason::TurretDanger: return "TurretDanger";
+        case eChampionAIDecisionBlockReason::SkillCooldown: return "Cooldown";
+        case eChampionAIDecisionBlockReason::FlashNotReady: return "NoFlash";
+        case eChampionAIDecisionBlockReason::ActionLocked: return "ActionLocked";
+        case eChampionAIDecisionBlockReason::StateBlocked: return "StateBlocked";
+        case eChampionAIDecisionBlockReason::InvalidPath: return "InvalidPath";
+        case eChampionAIDecisionBlockReason::CommandRejected: return "Rejected";
+        default: return "Unknown";
+        }
+    }
 }
 
 namespace UI
@@ -143,6 +272,8 @@ namespace UI
         if (pScene->IsDbgShowColliders())  DrawColliders(world, pScene, pDraw, mVP);
         if (pScene->IsDbgShowChampions())  DrawChampions(world, pScene, pDraw, mVP);
         if (pScene->IsDbgShowMinionMovement()) DrawMinionMovement(world, pScene, pDraw, mVP);
+        if (pScene->IsDbgShowChampionAIText() || pScene->IsDbgShowChampionAIRanges())
+            DrawChampionAIDebug(world, pScene, pDraw, mVP);
     }
 
     // R-8: GetOrigin() 없음 → Get_OriginX/Z 분리 + int32_t
@@ -380,6 +511,87 @@ namespace UI
                         static_cast<u32_t>(state.BlockedMoveFrames));
                     pDraw->AddText(labelPos, 0xFFFFFFFFu, label);
                 }
+            });
+    }
+
+    void CDebugDrawSystem::DrawChampionAIDebug(
+        CWorld& w,
+        CScene_InGame* s,
+        ImDrawList* pDraw,
+        const DirectX::XMMATRIX& mVP)
+    {
+        if (!s)
+            return;
+
+        const bool_t bShowText = s->IsDbgShowChampionAIText();
+        const bool_t bShowRanges = s->IsDbgShowChampionAIRanges();
+        if (!bShowText && !bShowRanges)
+            return;
+
+        w.ForEach<ChampionAIDebugComponent, ChampionComponent, TransformComponent>(
+            [&](EntityID entity, ChampionAIDebugComponent& debug, ChampionComponent& champion, TransformComponent& tf)
+            {
+                if (!debug.bPresent)
+                    return;
+
+                const Vec3 pos = tf.GetPosition();
+                const Vec3 circleCenter{ pos.x, pos.y + 0.10f, pos.z };
+
+                if (bShowRanges)
+                {
+                    DrawWorldCircleXZ(pDraw, mVP, circleCenter,
+                        debug.fChampionScanRange, 0x70FFD060u, 1.25f);
+                    DrawWorldCircleXZ(pDraw, mVP, Vec3{ pos.x, pos.y + 0.13f, pos.z },
+                        debug.fMinionScanRange, 0x6040A0FFu, 1.0f);
+                    DrawWorldCircleXZ(pDraw, mVP, Vec3{ pos.x, pos.y + 0.16f, pos.z },
+                        debug.fDiveScanRange, 0x90FF40B0u, 1.75f);
+                    DrawWorldCircleXZ(pDraw, mVP, Vec3{ pos.x, pos.y + 0.19f, pos.z },
+                        debug.fStructureScanRange, 0x50FFFFFFu, 1.0f);
+                    DrawWorldCircleXZ(pDraw, mVP, Vec3{ pos.x, pos.y + 0.22f, pos.z },
+                        debug.fAttackRange, 0xA0FFFFFFu, 1.5f);
+                    DrawWorldCircleXZ(pDraw, mVP, Vec3{ pos.x, pos.y + 0.28f, pos.z },
+                        debug.fFlashRange, 0x8030FF80u, 1.25f);
+                }
+
+                if (!bShowText)
+                    return;
+
+                ImVec2 labelPos{};
+                if (!WorldToScreen(mVP, Vec3{ pos.x, pos.y + 2.6f, pos.z }, labelPos))
+                    return;
+
+                labelPos.x += 44.f;
+                labelPos.y -= 8.f;
+
+                char label[512]{};
+                sprintf_s(
+                    label,
+                    "AI e%u %s\nstate=%s intent=%s\naction=%s block=%s\ncmd=%s s%u\nscore c/f/s %.2f/%.2f/%.2f\nscan c/m/s/d %.1f/%.1f/%.1f/%.1f flash=%.1f\nlowHP net=%u %.0f%% d=%.1f\nphase=%s dive=%u target=%u",
+                    static_cast<u32_t>(entity),
+                    champion.team == eTeam::Red ? "Red" : "Blue",
+                    ChampionAIStateLabel(debug.state),
+                    ChampionAIIntentLabel(debug.intent),
+                    ChampionAIActionLabel(debug.action),
+                    ChampionAIBlockReasonLabel(debug.lastBlockReason),
+                    ChampionAICommandLabel(debug.lastCommandKind),
+                    static_cast<u32_t>(debug.lastCommandSlot),
+                    debug.fChampionDecisionScore,
+                    debug.fFarmDecisionScore,
+                    debug.fStructureDecisionScore,
+                    debug.fChampionScanRange,
+                    debug.fMinionScanRange,
+                    debug.fStructureScanRange,
+                    debug.fDiveScanRange,
+                    debug.fFlashRange,
+                    debug.lowHpEnemyNetId,
+                    debug.fLowHpEnemyRatio * 100.f,
+                    debug.fLowHpEnemyDistance,
+                    ChampionAIDivePhaseLabel(debug.divePhase),
+                    debug.diveTargetNetId,
+                    debug.targetNetId);
+
+                pDraw->AddText(ImVec2(labelPos.x + 1.f, labelPos.y + 1.f), 0xE0000000u, label);
+                pDraw->AddText(labelPos, 0xFFFFFFFFu, label);
             });
     }
 }

@@ -55,7 +55,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\External\imgui;$(ProjectDir)..\External\imgui\backends;$(ProjectDir)..\Private;$(ProjectDir)..\Public;$(ProjectDir)..\Public\ECS;$(ProjectDir)..\Public\ECS\Components;$(ProjectDir)..\Public\ECS\Systems;$(ProjectDir)..\Public\Sound;$(ProjectDir)..\ThirdPartyLib\Assimp\Inc;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Inc;$(ProjectDir)..\ThirdPartyLib\FMOD\Inc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\External\imgui;$(ProjectDir)..\External\imgui\backends;$(ProjectDir)..\External\tracy;$(ProjectDir)..\Private;$(ProjectDir)..\Public;$(ProjectDir)..\Public\ECS;$(ProjectDir)..\Public\ECS\Components;$(ProjectDir)..\Public\ECS\Systems;$(ProjectDir)..\Public\Sound;$(ProjectDir)..\ThirdPartyLib\Assimp\Inc;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Inc;$(ProjectDir)..\ThirdPartyLib\FMOD\Inc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -68,7 +68,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(ProjectDir)..\ThirdPartyLib\Assimp\Lib\Debug;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Lib\Debug;$(ProjectDir)..\ThirdPartyLib\FMOD\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;windowscodecs.lib;ole32.lib;assimp-vc143-mtd.lib;DirectXTK.lib;fmod_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;windowscodecs.lib;ole32.lib;assimp-vc143-mtd.lib;DirectXTK.lib;fmod_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <!-- 빌드 후: EngineSDK 배포 + Client에 DLL 복사 -->
     <PostBuildEvent>
@@ -84,7 +84,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\External\imgui;$(ProjectDir)..\External\imgui\backends;$(ProjectDir)..\Private;$(ProjectDir)..\Public;$(ProjectDir)..\Public\ECS;$(ProjectDir)..\Public\ECS\Components;$(ProjectDir)..\Public\ECS\Systems;$(ProjectDir)..\Public\Sound;$(ProjectDir)..\ThirdPartyLib\Assimp\Inc;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Inc;$(ProjectDir)..\ThirdPartyLib\FMOD\Inc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\External\imgui;$(ProjectDir)..\External\imgui\backends;$(ProjectDir)..\External\tracy;$(ProjectDir)..\Private;$(ProjectDir)..\Public;$(ProjectDir)..\Public\ECS;$(ProjectDir)..\Public\ECS\Components;$(ProjectDir)..\Public\ECS\Systems;$(ProjectDir)..\Public\Sound;$(ProjectDir)..\ThirdPartyLib\Assimp\Inc;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Inc;$(ProjectDir)..\ThirdPartyLib\FMOD\Inc;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -98,7 +98,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(ProjectDir)..\ThirdPartyLib\Assimp\Lib\Release;$(ProjectDir)..\ThirdPartyLib\DirectXTK\Lib\Release;$(ProjectDir)..\ThirdPartyLib\FMOD\Lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;windowscodecs.lib;ole32.lib;assimp-vc143-mt.lib;DirectXTK.lib;fmod_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>d3d11.lib;d3d12.lib;dxgi.lib;d3dcompiler.lib;dxguid.lib;windowscodecs.lib;ole32.lib;assimp-vc143-mt.lib;DirectXTK.lib;fmod_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(MSBuildThisFileDirectory)..\..\UpdateLib.bat</Command>
@@ -108,6 +108,7 @@
   <!-- 소스 파일 -->
   <ItemGroup>
     <ClCompile Include="..\External\imgui\backends\imgui_impl_dx11.cpp" />
+    <ClCompile Include="..\External\imgui\backends\imgui_impl_dx12.cpp" />
     <ClCompile Include="..\External\imgui\backends\imgui_impl_win32.cpp" />
     <ClCompile Include="..\External\imgui\imgui.cpp" />
     <ClCompile Include="..\External\imgui\imgui_demo.cpp" />
@@ -292,6 +293,11 @@
     <ClCompile Include="..\Private\Core\JobSystem.cpp" />
     <ClCompile Include="..\Private\Core\Profiler\CPUProfiler.cpp" />
     <ClCompile Include="..\Private\Core\Profiler\ProfilerStableView.cpp" />
+    <ClCompile Include="..\Private\Core\Profiler\TracyClientImpl.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles>
+      </ForcedIncludeFiles>
+    </ClCompile>
     <ClCompile Include="..\Private\Core\WintersPCH.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -305,10 +311,8 @@
     <ClCompile Include="..\Private\ECS\Systems\EntityBlueprint.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\EntityBlueprintRegistry.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\MCTSSystem.cpp" />
-    <ClCompile Include="..\Private\ECS\Systems\GameplayCollisionSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\MinionAISystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\MinionPerformanceSystem.cpp" />
-    <ClCompile Include="..\Private\ECS\Systems\MinionSeparationSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\NavigationSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\SpatialHashSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\StatusEffectSystem.cpp" />
@@ -352,6 +356,7 @@
     <ClCompile Include="..\Private\Resource\Texture.cpp" />
     <ClCompile Include="..\Private\RHI\DX11\BlendStateCache.cpp" />
     <ClCompile Include="..\Private\RHI\DX11\SamplerStateCache.cpp" />
+    <ClCompile Include="..\Private\RHI\DX12\DX12Device.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_Manager.cpp" />
     <ClCompile Include="..\Private\Sound\Sound_Manager.cpp" />
     <ClCompile Include="..\Private\Timer_Manager.cpp" />
@@ -366,6 +371,7 @@
     <ClCompile Include="..\Private\RHI\DX11\DX11Buffer.cpp" />
     <ClCompile Include="..\Private\RHI\DX11\DX11Pipeline.cpp" />
     <ClCompile Include="..\Private\RHI\RHITextureLoader.cpp" />
+    <ClCompile Include="..\Private\RHI\RHIShaderCompiler.cpp" />
     <ClCompile Include="..\Private\Scripting\LuaRuntime.cpp" />
     <ClCompile Include="..\Private\Framework\CEngineApp.cpp" />
     <ClCompile Include="..\Private\Renderer\CCamera.cpp" />
@@ -374,6 +380,7 @@
   <!-- 헤더 파일 (내부) -->
   <ItemGroup>
     <ClInclude Include="..\Private\Manager\UI\ChampionHUDPanel.h" />
+    <ClInclude Include="..\Private\RHI\DX12\DX12Device.h" />
     <ClInclude Include="..\Public\Manager\UI\ChampionHUDState.h" />
     <ClInclude Include="..\Public\AssetFormat\Anim\WAnimFormat.h" />
     <ClInclude Include="..\Public\AssetFormat\Anim\WAnimLoader.h" />
@@ -427,10 +434,8 @@
     <ClInclude Include="..\Public\ECS\Systems\EntityBlueprint.h" />
     <ClInclude Include="..\Public\ECS\Systems\EntityBlueprintRegistry.h" />
     <ClInclude Include="..\Public\ECS\Systems\MCTSSystem.h" />
-    <ClInclude Include="..\Public\ECS\Systems\GameplayCollisionSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\MinionAISystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\MinionPerformanceSystem.h" />
-    <ClInclude Include="..\Public\ECS\Systems\MinionSeparationSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\NavigationSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\SpatialHashSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\StatusEffectSystem.h" />
@@ -494,6 +499,7 @@
     <ClInclude Include="..\Public\RHI\RHIDescriptors.h" />
     <ClInclude Include="..\Public\RHI\RHIHandles.h" />
     <ClInclude Include="..\Public\RHI\RHISurface.h" />
+    <ClInclude Include="..\Public\RHI\RHIShaderCompiler.h" />
     <ClInclude Include="..\Public\RHI\RHITextureLoader.h" />
     <ClInclude Include="..\Public\RHI\RHITypes.h" />
     <ClInclude Include="..\Public\Scene\Scene_Manager.h" />

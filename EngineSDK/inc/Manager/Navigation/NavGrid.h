@@ -43,6 +43,8 @@ public:
     bool_t LineCellsWalkableForRadius(Cell from, Cell to, f32_t radiusWorld) const;
     uint32_t CountWalkableCells() const;
     uint32_t ComputeContentHash() const;
+    uint32_t GetRevision() const { return m_uRevision; }
+    uint64_t GetCacheId() const { return m_uCacheId; }
     std::unique_ptr<CNavGrid> BuildInflated(f32_t radiusWorld) const;
 
     f32_t        Get_OriginX() const { return m_fOriginX; }
@@ -56,6 +58,10 @@ public:
 private:
     CNavGrid() = default;
 
+    void BumpRevision();
+
+    uint64_t             m_uCacheId = 0ull;
+    uint32_t             m_uRevision = 1u;
     f32_t                m_fOriginX = 0.f;
     f32_t                m_fOriginZ = 0.f;
     std::vector<uint8_t> m_vecBits;   // kByteSize

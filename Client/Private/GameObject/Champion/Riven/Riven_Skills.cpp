@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Riven/Riven_Skills.h"
+﻿#include "GameObject/Champion/Riven/Riven_Skills.h"
 
 #include "ECS/World.h"
 #include "ECS/Components/GameplayComponents.h"
@@ -157,6 +157,5 @@ namespace Riven::Visual
         char dbg[96]{};
         sprintf_s(dbg, "[Riven Q Anim] stack=%u key=%s\n",
             static_cast<u32_t>(rs.qStackCount), ctx.pKeyOut->c_str());
-        ::OutputDebugStringA(dbg);
     }
 }

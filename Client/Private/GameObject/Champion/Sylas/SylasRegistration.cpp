@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Sylas/SylasSkills.h"
+﻿#include "GameObject/Champion/Sylas/SylasSkills.h"
 
 #include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
@@ -16,7 +16,7 @@ namespace
 	constexpr u32_t kSylasWCast = MakeHookId(eChampion::SYLAS, HookVariant::W_CastFrame);
 	constexpr u32_t kSylasECast = MakeHookId(eChampion::SYLAS, HookVariant::E_CastFrame);
 	constexpr u32_t kSylasRCast = MakeHookId(eChampion::SYLAS, HookVariant::R_CastFrame);
-	//사거리
+	//?ш굅由?
 	f32_t ResolveRange(u8_t slot)
 	{
 		switch (static_cast<eSkillSlot>(slot))
@@ -46,7 +46,7 @@ namespace
 		s.recoveryFrame = 12.f;
 		s.animPlaySpeed = 1.f;
 		s.castFrameHookId = hookId;
-		//사일러스 E 사슬 투사체 
+		//?ъ씪?ъ뒪 E ?ъ뒳 ?ъ궗泥?
 		if (slot == static_cast<u8_t>(eSkillSlot::E))
 		{
 			s.stageCount = 2;
@@ -78,8 +78,10 @@ namespace
 			cd.defaultTexturePath = L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_tx_cm.png";
 			for (u32_t i = 0; i < kChampionTextureSlotMax; ++i)
 				cd.texturePath[i] = cd.defaultTexturePath;
-			cd.texturePath[2] = L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_chain_lock_tx_cm.png";
-			cd.texturePath[3] = L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_chain_lock_tx_cm.png";
+			cd.texturePath[2] = L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png";
+			cd.texturePath[3] = L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png";
+			cd.texturePath[4] = L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png";
+			cd.texturePath[5] = L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png";
 			cd.spawnPosition = { -27.f, 1.f, 6.f };
 			cd.spawnScale = 0.01f;
 			cd.displayName = "Sylas";
@@ -96,7 +98,6 @@ namespace
 			CVisualHookRegistry::Instance().Register(kSylasECast, &Sylas::Visual::OnECastFrame);
 			CVisualHookRegistry::Instance().Register(kSylasRCast, &Sylas::Visual::OnRCastFrame);
 
-			OutputDebugStringA("[Sylas] Registration complete\n");
 		}
 	};
 

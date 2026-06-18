@@ -79,6 +79,8 @@ FxAsset LegacyFx::MakeAssetFromBillboard(const FxBillboardComponent& src,
     emitter.maxParticles = 1;
     emitter.strTexturePath = CopyWidePath(src.texturePath);
     emitter.vAttachOffset = src.vAttachOffset;
+    emitter.anchor = src.anchor;
+    emitter.lifecycle = src.lifecycle;
     emitter.vVelocity = src.vVelocity;
     emitter.vColor = src.vColor;
     emitter.fWidth = src.fWidth;
@@ -128,6 +130,8 @@ FxAsset LegacyFx::MakeAssetFromMesh(const FxMeshComponent& src,
     emitter.strTexturePath = CopyWidePath(src.texturePath);
     emitter.strErodeTexturePath = CopyWidePath(src.erodeTexturePath);
     emitter.vAttachOffset = src.vAttachOffset;
+    emitter.anchor = src.anchor;
+    emitter.lifecycle = src.lifecycle;
     emitter.vVelocity = src.vVelocity;
     emitter.vScale = src.vScale;
     emitter.vRotation = src.vRotation;
@@ -212,6 +216,8 @@ FxAsset LegacyFx::MakeAssetFromRibbon(const FxRibbonComponent& src,
     emitter.maxParticles = (std::max)(2u, src.iPointCount);
     emitter.strTexturePath = CopyWidePath(src.texturePath);
     emitter.vAttachOffset = src.vStartOffset;
+    emitter.anchor = src.anchor;
+    emitter.lifecycle = src.lifecycle;
     emitter.vEndOffset = Subtract(src.vEndOffset, src.vStartOffset);
     emitter.vVelocity = src.vVelocity;
     emitter.vColor = src.vColor;
@@ -284,6 +290,8 @@ FxBillboardComponent LegacyFx::BillboardFromAsset(const CFxAssetRegistry& regist
     fx.vWorldPos = vWorldPos;
     fx.attachTo = attachTo;
     fx.vAttachOffset = pEmitter->vAttachOffset;
+    fx.anchor = pEmitter->anchor;
+    fx.lifecycle = pEmitter->lifecycle;
     fx.vVelocity = pEmitter->vVelocity;
     fx.SetTexturePath(pEmitter->strTexturePath);
     fx.vColor = pEmitter->vColor;
@@ -327,6 +335,8 @@ FxMeshComponent LegacyFx::MeshFromAsset(const CFxAssetRegistry& registry,
     fx.vWorldPos = vWorldPos;
     fx.attachTo = attachTo;
     fx.vAttachOffset = pEmitter->vAttachOffset;
+    fx.anchor = pEmitter->anchor;
+    fx.lifecycle = pEmitter->lifecycle;
     fx.vVelocity = pEmitter->vVelocity;
     fx.vScale = pEmitter->vScale;
     fx.vRotation = pEmitter->vRotation;
@@ -394,6 +404,8 @@ FxRibbonComponent LegacyFx::RibbonFromAsset(const CFxAssetRegistry& registry,
     fx.attachTo = attachTo;
     const Vec3 vEndDelta = ResolveEndDelta(*pEmitter);
     fx.vStartOffset = pEmitter->vAttachOffset;
+    fx.anchor = pEmitter->anchor;
+    fx.lifecycle = pEmitter->lifecycle;
     fx.vEndOffset = Add(pEmitter->vAttachOffset, vEndDelta);
     fx.vVelocity = pEmitter->vVelocity;
     fx.SetTexturePath(pEmitter->strTexturePath);

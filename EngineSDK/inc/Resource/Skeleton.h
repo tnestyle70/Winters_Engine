@@ -22,7 +22,13 @@ public:
 
 	void ComputeFinalTransforms(
 		const vector<XMFLOAT4X4>& vecLocalTransforms,
-		vector<XMFLOAT4X4>& vecOutFinal) const;
+		vector<XMFLOAT4X4>& vecOutFinal,
+		vector<XMFLOAT4X4>* pOutGlobal = nullptr) const;
+	void ComputeFinalTransformsWithScratch(
+		const vector<XMFLOAT4X4>& vecLocalTransforms,
+		vector<XMFLOAT4X4>& vecOutFinal,
+		vector<XMMATRIX>& vecGlobalScratch,
+		vector<XMFLOAT4X4>* pOutGlobal = nullptr) const;
 
 	u32_t GetBoneCount() const { return (u32_t)m_vecBones.size(); }
 	const BoneInfo& GetBone(u32_t iIndex) const { return m_vecBones[iIndex]; }

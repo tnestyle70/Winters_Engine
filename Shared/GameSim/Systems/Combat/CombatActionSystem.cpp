@@ -16,6 +16,7 @@
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+#include "Shared/GameSim/Systems/Rune/RuneSystem.h"
 
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
@@ -60,9 +61,11 @@ namespace
 
     f32_t ResolveBasicAttackDamage(
         CWorld& world,
+        const TickContext& tc,
         EntityID source,
         EntityID target,
-        eTeam sourceTeam)
+        eTeam sourceTeam,
+        u16_t actionFlags)
     {
         f32_t damage = 55.f;
         if (world.HasComponent<StatComponent>(source))
@@ -77,13 +80,13 @@ namespace
             return FioraGameSim::ConsumeBasicAttackDamage(world, source, damage);
         if (champion == eChampion::JAX)
             return JaxGameSim::ConsumeBasicAttackDamage(
-                world, source, target, sourceTeam, damage);
+                world, source, target, sourceTeam, actionFlags, damage);
         if (champion == eChampion::ASHE)
             return AsheGameSim::ConsumeBasicAttackDamage(
-                world, source, target, sourceTeam, damage);
+                world, tc, source, target, sourceTeam, damage);
         if (champion == eChampion::KINDRED)
             return KindredGameSim::ConsumeBasicAttackDamage(
-                world, source, target, sourceTeam, damage);
+                world, tc, source, target, sourceTeam, damage);
 
         return damage;
     }
@@ -244,7 +247,7 @@ namespace
             return false;
 
         const f32_t damage =
-            ResolveBasicAttackDamage(world, source, target, sourceTeam);
+            ResolveBasicAttackDamage(world, tc, source, target, sourceTeam, action.uFlags);
 
         DamageRequest request{};
         request.source = source;
@@ -252,8 +255,11 @@ namespace
         request.sourceTeam = sourceTeam;
         request.type = eDamageType::Physical;
         request.flatAmount = damage;
+        request.iSourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+        request.eSourceKind = eDamageSourceKind::BasicAttack;
         request.flags = DamageFlag_OnHit;
         EnqueueDamageRequest(world, request);
+        CRuneSystem::OnBasicAttackHitChampion(world, tc, source, target);
 
         if (ResolveChampion(world, source) == eChampion::IRELIA)
             return true;

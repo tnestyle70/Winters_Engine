@@ -5,6 +5,7 @@
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/RuneComponent.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
@@ -125,6 +126,14 @@ void CStatSystem::Recompute(CWorld& world, EntityID entity, StatComponent& stat)
             moveSpeedMul *= buff.moveSpeedMul;
         }
         stat.moveSpeed *= moveSpeedMul;
+    }
+
+    if (world.HasComponent<RuneRuntimeComponent>(entity))
+    {
+        const RuneRuntimeComponent& runes = world.GetComponent<RuneRuntimeComponent>(entity);
+        stat.bonusAttackSpeed +=
+            static_cast<f32_t>(runes.iLethalTempoStacks) *
+            RuneTuning::kLethalTempoAttackSpeedPerStack;
     }
 
     stat.ad = stat.baseAd + stat.bonusAd;

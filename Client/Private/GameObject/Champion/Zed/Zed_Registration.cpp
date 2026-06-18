@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Zed/Zed_Skills.h"
+﻿#include "GameObject/Champion/Zed/Zed_Skills.h"
 
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
@@ -86,7 +86,6 @@ namespace
                     });
             }
 
-            OutputDebugStringA("[Zed] Registration complete\n");
         }
     };
 

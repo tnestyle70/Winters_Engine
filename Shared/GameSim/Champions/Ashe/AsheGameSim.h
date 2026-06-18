@@ -14,6 +14,7 @@ namespace AsheGameSim
 
     f32_t ConsumeBasicAttackDamage(
         CWorld& world,
+        const TickContext& tc,
         EntityID caster,
         EntityID target,
         eTeam casterTeam,

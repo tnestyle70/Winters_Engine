@@ -45,6 +45,8 @@ Operational (마이크로, 매 프레임)   스킬샷 예측, 평타 무빙, 궁
 | 팀 협동 Blackboard | [11_TEAM_BLACKBOARD.md](11_TEAM_BLACKBOARD.md) |
 | 난이도 프리셋 (Intro~Grandmaster) | [12_DIFFICULTY.md](12_DIFFICULTY.md) |
 | 디버깅 / ImGui 에디터 통합 / Replay | [13_DEBUG_EDITOR.md](13_DEBUG_EDITOR.md) |
+| NYPC Competition ML Lab → Winters LoL AI 통합 경계 | [14_NYPC_COMPETITION_ML_LAB_BRIDGE.md](14_NYPC_COMPETITION_ML_LAB_BRIDGE.md) |
+| NYPC → MobaZero 연구 플랫폼/포트폴리오 로드맵 | [15_MOBAZERO_RESEARCH_PLATFORM_ROADMAP.md](15_MOBAZERO_RESEARCH_PLATFORM_ROADMAP.md) |
 
 ## Codex 구현 계획서
 

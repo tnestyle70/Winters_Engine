@@ -12,6 +12,67 @@
 #include <algorithm>
 #include <cmath>
 
+namespace
+{
+    Vec3 FowTexelToWorld(
+        const Engine::CVisionSystem::FowProjection& Projection,
+        u32_t TexelX,
+        u32_t TexelZ,
+        u32_t Dim)
+    {
+        //texel을 월드 좌표에 투영 시킨다
+        const f32_t u = (static_cast<f32_t>(TexelX) + 0.5f) / static_cast<f32_t>(Dim);
+        const f32_t v = (static_cast<f32_t>(TexelZ) + 0.5f) / static_cast<f32_t>(Dim);
+
+        const f32_t ux = Projection.vWorldAtUv10.x - Projection.vWorldAtUv00.x;
+        const f32_t uz = Projection.vWorldAtUv10.y - Projection.vWorldAtUv00.y;
+        const f32_t vx = Projection.vWorldAtUv01.x - Projection.vWorldAtUv00.x;
+        const f32_t vz = Projection.vWorldAtUv01.y - Projection.vWorldAtUv00.y;
+
+        return Vec3{
+            Projection.vWorldAtUv00.x + ux * u + vx * v,
+            0.f,
+            Projection.vWorldAtUv00.y + uz * u + vz * v
+        };
+    }
+
+    f32_t ResolveFowTexelWorldSize(
+        const Engine::CVisionSystem::FowProjection& Projection,
+        u32_t Dim)
+    {
+        const f32_t ux = Projection.vWorldAtUv10.x - Projection.vWorldAtUv00.x;
+        const f32_t uz = Projection.vWorldAtUv10.y - Projection.vWorldAtUv00.y;
+        const f32_t vx = Projection.vWorldAtUv01.x - Projection.vWorldAtUv00.x;
+        const f32_t vz = Projection.vWorldAtUv01.y - Projection.vWorldAtUv00.y;
+
+        const f32_t uLen = std::sqrt(ux * ux + uz * uz);
+        const f32_t vLen = std::sqrt(vx * vx + vz * vz);
+        return (std::min)(uLen, vLen) / static_cast<f32_t>(Dim);
+    }
+
+    bool_t WorldToFowUv(
+        const Engine::CVisionSystem::FowProjection& Projection,
+        const Vec3& vWorldPos,
+        f32_t& fOutU,
+        f32_t& fOutV)
+    {
+        const f32_t ux = Projection.vWorldAtUv10.x - Projection.vWorldAtUv00.x;
+        const f32_t uz = Projection.vWorldAtUv10.y - Projection.vWorldAtUv00.y;
+        const f32_t vx = Projection.vWorldAtUv01.x - Projection.vWorldAtUv00.x;
+        const f32_t vz = Projection.vWorldAtUv01.y - Projection.vWorldAtUv00.y;
+        const f32_t det = ux * vz - uz * vx;
+        if (std::fabs(det) <= 0.0001f)
+            return false;
+
+        const f32_t wx = vWorldPos.x - Projection.vWorldAtUv00.x;
+        const f32_t wz = vWorldPos.z - Projection.vWorldAtUv00.y;
+
+        fOutU = (wx * vz - wz * vx) / det;
+        fOutV = (ux * wz - uz * wx) / det;
+        return true;
+    }
+}
+
 NS_BEGIN(Engine)
 
 std::unique_ptr<CVisionSystem> CVisionSystem::Create(CSpatialIndex* pIndex,
@@ -41,6 +102,16 @@ void CVisionSystem::Execute(CWorld& world, f32_t fTimeDelta)
     UpdateBushOccupancy(world);
     TickVisibility(world);
     UpdateFowTexture(world);
+}
+
+void CVisionSystem::SetFowProjection(const FowProjection& Projection)
+{
+    if (!Projection.IsValid())
+        return;
+
+    m_FowProjection = Projection;
+    m_bForceRebuild = true;
+    m_bFowTextureDirty = true;
 }
 
 void CVisionSystem::UpdateBushOccupancy(CWorld& world)
@@ -252,8 +323,13 @@ void CVisionSystem::UpdateFowTexture(CWorld& world)
             value = ExploredValue;
     }
 
-    constexpr f32_t cellWorld = FOW_TEX_WORLD_SIZE / static_cast<f32_t>(FOW_TEX_DIM);
-    constexpr f32_t halfWorld = FOW_TEX_WORLD_SIZE * 0.5f;
+    const FowProjection Projection = m_FowProjection;
+    if (!Projection.IsValid())
+        return;
+
+    const f32_t cellWorld = ResolveFowTexelWorldSize(Projection, FOW_TEX_DIM);
+    if (cellWorld <= 0.f)
+        return;
 
     world.ForEach<TransformComponent, VisionSourceComponent, SpatialAgentComponent>(
         function<void(EntityID, TransformComponent&, VisionSourceComponent&, SpatialAgentComponent&)>(
@@ -269,26 +345,34 @@ void CVisionSystem::UpdateFowTexture(CWorld& world)
                 const f32_t r2 = r * r;
                 const f32_t feather = std::clamp(r * 0.18f, cellWorld * 2.f, cellWorld * 7.f);
                 const f32_t coreRadius = std::max(0.f, r - feather);
-                const i32_t cellRadius = static_cast<i32_t>(std::ceil(r / cellWorld));
-                const i32_t cx = static_cast<i32_t>((srcPos.x + halfWorld) / cellWorld);
-                const i32_t cz = static_cast<i32_t>((srcPos.z + halfWorld) / cellWorld);
 
-                for (i32_t dz = -cellRadius; dz <= cellRadius; ++dz)
+                f32_t srcU = 0.f;
+                f32_t srcV = 0.f;
+                if (!WorldToFowUv(Projection, srcPos, srcU, srcV))
+                    return;
+
+                const f32_t texelRadius = r / cellWorld;
+                const i32_t minX = (std::max)(0,
+                    static_cast<i32_t>(std::floor(srcU * FOW_TEX_DIM - texelRadius - 2.f)));
+                const i32_t maxX = (std::min)(static_cast<i32_t>(FOW_TEX_DIM) - 1,
+                    static_cast<i32_t>(std::ceil(srcU * FOW_TEX_DIM + texelRadius + 2.f)));
+                const i32_t minZ = (std::max)(0,
+                    static_cast<i32_t>(std::floor(srcV * FOW_TEX_DIM - texelRadius - 2.f)));
+                const i32_t maxZ = (std::min)(static_cast<i32_t>(FOW_TEX_DIM) - 1,
+                    static_cast<i32_t>(std::ceil(srcV * FOW_TEX_DIM + texelRadius + 2.f)));
+
+                for (i32_t qz = minZ; qz <= maxZ; ++qz)
                 {
-                    for (i32_t dx = -cellRadius; dx <= cellRadius; ++dx)
+                    for (i32_t qx = minX; qx <= maxX; ++qx)
                     {
-                        const i32_t qx = cx + dx;
-                        const i32_t qz = cz + dz;
-                        if (qx < 0 || qx >= static_cast<i32_t>(FOW_TEX_DIM))
-                            continue;
-                        if (qz < 0 || qz >= static_cast<i32_t>(FOW_TEX_DIM))
-                            continue;
+                        const Vec3 samplePos = FowTexelToWorld(
+                            Projection,
+                            static_cast<u32_t>(qx),
+                            static_cast<u32_t>(qz),
+                            FOW_TEX_DIM);
 
-                        const f32_t wx = (static_cast<f32_t>(qx) + 0.5f) * cellWorld - halfWorld;
-                        const f32_t wz = (static_cast<f32_t>(qz) + 0.5f) * cellWorld - halfWorld;
-
-                        const f32_t tx = wx - srcPos.x;
-                        const f32_t tz = wz - srcPos.z;
+                        const f32_t tx = samplePos.x - srcPos.x;
+                        const f32_t tz = samplePos.z - srcPos.z;
                         const f32_t distSq = tx * tx + tz * tz;
                         if (distSq > r2)
                             continue;

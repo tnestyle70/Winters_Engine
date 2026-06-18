@@ -1,0 +1,2351 @@
+{
+  "schemaVersion": 1,
+  "summonerSpells": [
+    {
+      "spellId": 4,
+      "rangeMax": 4.25,
+      "cooldownSec": 300.0,
+      "gameplayPolicyId": 0,
+      "visualCueId": 0
+    }
+  ],
+  "champions": [
+    {
+      "champion": "IRELIA",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 65.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.9,
+        "attackSpeedRatio": 0.9,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 2.1,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 2.1,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.46,
+              "animPlaySpeed": 1.25,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.36,
+              "animPlaySpeed": 1.2,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 2,
+          "stageWindowSec": 4.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 5.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "lockDurationSec": 0.4,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 2,
+          "stageWindowSec": 3.5,
+          "cooldownSec": 0.6,
+          "rangeMax": 9.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.9,
+              "animPlaySpeed": 1.05,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "lockDurationSec": 0.45,
+              "animPlaySpeed": 1.05,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 12.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.65,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "YASUO",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 2.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 2.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 5.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 4.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.25,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 4.75,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.4,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 14.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "KALISTA",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 5.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.5,
+          "rangeMax": 5.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.2,
+          "rangeMax": 11.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.3,
+              "animPlaySpeed": 2.8,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 18.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 3.0,
+          "rangeMax": 12.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.4,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 120.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ],
+      "passiveDash": {
+        "distance": 2.0,
+        "durationSec": 0.2,
+        "inputGraceSec": 0.2
+      }
+    },
+    {
+      "champion": "GAREN",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 1.65,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 3.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 4.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "ZED",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.5,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 9.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.7,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 2,
+          "stageWindowSec": 5.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 6.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "lockDurationSec": 0.25,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 2.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 6.25,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "RIVEN",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 1.5,
+          "rangeMax": 4.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.45,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 2.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.8,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "EZREAL",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 5.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.5,
+          "rangeMax": 5.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.65,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.2,
+          "rangeMax": 11.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.2,
+          "rangeMax": 10.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.2,
+          "rangeMax": 4.75,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.2,
+          "rangeMax": 200.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "FIORA",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 1.67,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 4.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.4,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 5.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 2.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "JAX",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 1.67,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 7.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 2,
+          "stageWindowSec": 2.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 2.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "lockDurationSec": 0.7,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "LEESIN",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 2,
+          "stageWindowSec": 3.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 11.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 2,
+          "stageWindowSec": 3.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 7.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "lockDurationSec": 0.45,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 2,
+          "stageWindowSec": 3.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 4.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "lockDurationSec": 0.45,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 3.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "KINDRED",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 5.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 5.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 5.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 8.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 5.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "MASTERYI",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "ANNIE",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 6.25,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 6.25,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.8,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 4.0,
+          "rangeMax": 6.25,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 8.0,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 12.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.4,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 100.0,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.2,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "ASHE",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 50.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.58,
+        "attackSpeedRatio": 0.58,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 6.0,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 1.72,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.7,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 0.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 9.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 25.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 200.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.0,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "VIEGO",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.75,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 4.0,
+          "rangeMax": 5.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 2,
+          "stageWindowSec": 4.0,
+          "cooldownSec": 8.0,
+          "rangeMax": 8.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.7,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "lockDurationSec": 0.3,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 14.0,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.75,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 100.0,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.8,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "YONE",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.75,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.9,
+              "animPlaySpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 4.0,
+          "rangeMax": 4.75,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.9,
+              "animPlaySpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 16.0,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.9,
+              "animPlaySpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 22.0,
+          "rangeMax": 4.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.75,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 120.0,
+          "rangeMax": 10.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 1.2,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "champion": "SYLAS",
+      "dataVersion": 1,
+      "visualYawOffset": 3.14159265,
+      "stats": {
+        "baseHp": 600.0,
+        "hpPerLevel": 100.0,
+        "baseMana": 300.0,
+        "manaPerLevel": 50.0,
+        "baseAd": 55.0,
+        "adPerLevel": 3.5,
+        "baseAp": 0.0,
+        "apPerLevel": 0.0,
+        "baseArmor": 30.0,
+        "armorPerLevel": 4.0,
+        "baseMr": 30.0,
+        "mrPerLevel": 1.25,
+        "baseAttackSpeed": 0.6,
+        "attackSpeedRatio": 0.6,
+        "attackSpeedPerLevel": 0.025,
+        "baseAttackRange": 1.5,
+        "baseMoveSpeed": 5.0,
+        "navArriveRadius": 0.15,
+        "spatialRadius": 0.75,
+        "sightRange": 19.0
+      },
+      "skills": [
+        {
+          "slot": 0,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 0.6,
+          "rangeMax": 1.5,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.6,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 1,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 4.0,
+          "rangeMax": 4.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.55,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 2,
+          "targetMode": "Conditional",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 5.0,
+          "rangeMax": 5.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.45,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 3,
+          "targetMode": "Conditional",
+          "stageCount": 2,
+          "stageWindowSec": 3.0,
+          "cooldownSec": 6.0,
+          "rangeMax": 6.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.35,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "lockDurationSec": 0.5,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "slot": 4,
+          "targetMode": "UnitTarget",
+          "stageCount": 1,
+          "stageWindowSec": 0.0,
+          "cooldownSec": 10.0,
+          "rangeMax": 10.0,
+          "manaCost": 0.0,
+          "skillId": 0,
+          "scalingTableId": 0,
+          "gameplayPolicyId": 0,
+          "visualCueId": 0,
+          "stages": [
+            {
+              "lockDurationSec": 0.8,
+              "animPlaySpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

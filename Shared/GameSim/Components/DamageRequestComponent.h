@@ -21,6 +21,15 @@ enum eDamageFlags : uint32_t
     DamageFlag_OnHit = 1u << 2,
 };
 
+enum class eDamageSourceKind : uint8_t
+{
+    Unknown = 0,
+    BasicAttack = 1,
+    Skill = 2,
+    Item = 3,
+    Rune = 4,
+};
+
 struct DamageRequest
 {
     EntityID source = NULL_ENTITY;
@@ -31,6 +40,8 @@ struct DamageRequest
     f32_t amount = 0.f;
     uint16_t skillId = 0;
     uint8_t rank = 1;
+    uint8_t iSourceSlot = 0;
+    eDamageSourceKind eSourceKind = eDamageSourceKind::Unknown;
     uint8_t _pad = 0;
     f32_t adRatioOverride = 0.f;
     f32_t bonusAdRatioOverride = 0.f;

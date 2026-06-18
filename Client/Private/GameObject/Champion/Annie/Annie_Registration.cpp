@@ -1,4 +1,4 @@
-#include "GamePlay/ChampionRegistry.h"
+﻿#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -117,7 +117,6 @@ namespace
             CVisualHookRegistry::Instance().Register(kAnn_E_Accepted, &Annie::Visual::OnCastFrame_E_Visual);
             CVisualHookRegistry::Instance().Register(kAnn_R_Accepted, &Annie::Visual::OnCastFrame_R_Visual);
 
-            OutputDebugStringA("[Annie] Registration complete\n");
         }
     };
 

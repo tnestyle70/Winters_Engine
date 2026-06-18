@@ -2,9 +2,11 @@
 
 #include "GameContext.h"
 #include "IScene.h"
+#include "Replay/ReplayLibrary.h"
 #include "UI/ImageScenePresenter.h"
 
 #include <memory>
+#include <vector>
 
 class CScene_CustomMode final : public IScene
 {
@@ -39,6 +41,8 @@ private:
 	bool_t CompactLocalBotRemoval(GameContext& context, u32_t beginSlot, u32_t endSlot, u8_t slotId);
 	void SetBotLane(u8_t slotId, u8_t lane);
 	bool_t SetBotChampion(u8_t slotId, eChampion champion);
+	void RenderReplayPanel();
+	void OpenReplay(const wstring_t& path);
 	void RenderRosterOverlay();
 	void RenderBotChampionButton(u8_t slotId, f32_t width, f32_t height);
 	void RenderTeamRoster(const GameContext& context, u32_t beginSlot, u32_t endSlot,
@@ -48,4 +52,5 @@ private:
 	bool_t m_bServerLobbyActive = false;
 	bool_t m_bSceneTransitionStarted = false;
 	u8_t m_SelectedSlotId = 0;
+	std::vector<ReplayListItem> m_vReplayItems;
 };

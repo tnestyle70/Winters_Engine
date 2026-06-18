@@ -1,4 +1,4 @@
-#include "Network/Client/ClientNetwork.h"
+﻿#include "Network/Client/ClientNetwork.h"
 #include "Network/Client/GameSessionClient.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/Network/PacketEnvelope.h"
@@ -189,7 +189,6 @@ bool CGameSessionClient::SendLobbyCommand(
 	if (!IsConnected())
 	{
 		m_strLastLobbyMessage = "client reject: lobby server is not connected";
-		OutputDebugStringA("[GameSessionClient] lobby command rejected locally: disconnected\n");
 		return false;
 	}
 
@@ -214,14 +213,12 @@ bool CGameSessionClient::SendLobbyCommand(
 	if (!m_pNetwork->Send(std::move(packet)))
 	{
 		m_strLastLobbyMessage = "client reject: send failed";
-		OutputDebugStringA("[GameSessionClient] lobby command send failed\n");
 		return false;
 	}
 
 	std::string log = "[GameSessionClient] send lobby command ";
 	log += m_strLastLobbyCommandText;
 	log += "\n";
-	OutputDebugStringA(log.c_str());
 	return true;
 }
 
@@ -258,7 +255,6 @@ void CGameSessionClient::OnFrame(ePacketType type, u32_t sequence, const u8_t* p
 	{
 		++m_uGameStartCount;
 		if (m_uGameStartCount > 1)
-			OutputDebugStringA("[GameSessionClient] duplicate GameStart packet received\n");
 		m_bServerLoading = false;
 		m_bGameStarting = true;
 	}
@@ -280,7 +276,6 @@ void CGameSessionClient::OnFrame(ePacketType type, u32_t sequence, const u8_t* p
 			IsConnected() ? 1u : 0u,
 			m_bServerLoading ? 1u : 0u,
 			m_bGameStarting ? 1u : 0u);
-		OutputDebugStringA(msg);
 		++s_yawFrameLogCount;
 	}
 
@@ -296,7 +291,6 @@ void CGameSessionClient::OnLobbyState(const u8_t* payload, u32_t len)
 	flatbuffers::Verifier verifier(payload, len);
 	if (!Shared::Schema::VerifyLobbyStateBuffer(verifier))
 	{
-		OutputDebugStringA("[GameSessionClient] invalid LobbyState\n");
 		return;
 	}
 

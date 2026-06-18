@@ -110,6 +110,58 @@ namespace
         }
     }
 
+    const char* AnchorTypeToString(eFxAnchorType value)
+    {
+        switch (value)
+        {
+        case eFxAnchorType::World:
+            return "World";
+        case eFxAnchorType::Bone:
+            return "Bone";
+        case eFxAnchorType::Socket:
+            return "Socket";
+        case eFxAnchorType::Submesh:
+            return "Submesh";
+        case eFxAnchorType::TargetSegment:
+            return "TargetSegment";
+        case eFxAnchorType::Entity:
+        default:
+            return "Entity";
+        }
+    }
+
+    const char* AnchorFallbackToString(eFxAnchorFallback value)
+    {
+        switch (value)
+        {
+        case eFxAnchorFallback::None:
+            return "None";
+        case eFxAnchorFallback::WorldPosition:
+            return "WorldPosition";
+        case eFxAnchorFallback::Entity:
+        default:
+            return "Entity";
+        }
+    }
+
+    const char* LifecycleModeToString(eFxLifecycleMode value)
+    {
+        switch (value)
+        {
+        case eFxLifecycleMode::Burst:
+            return "Burst";
+        case eFxLifecycleMode::WhileState:
+            return "WhileState";
+        case eFxLifecycleMode::ManualStop:
+            return "ManualStop";
+        case eFxLifecycleMode::LoopUntilSignal:
+            return "LoopUntilSignal";
+        case eFxLifecycleMode::Timed:
+        default:
+            return "Timed";
+        }
+    }
+
     bool_t EnsureParentDirectory(const wstring_t& path, std::string& outError)
     {
         std::error_code ec;
@@ -169,6 +221,39 @@ namespace
         file << suffix << '\n';
     }
 
+    void WriteAnchorField(std::ofstream& file,
+        const FxAnchorDesc& anchor,
+        const char* suffix)
+    {
+        file << "      \"anchor\": {\n";
+        file << "        \"type\": \"" << AnchorTypeToString(anchor.eAnchorType) << "\",\n";
+        file << "        \"name\": \"" << EscapeJson(anchor.strAnchorName) << "\",\n";
+        file << "        \"offset\": ";
+        WriteVec3(file, anchor.vAnchorOffset);
+        file << ",\n";
+        file << "        \"inherit_rotation\": ";
+        WriteBool(file, anchor.bInheritRotation);
+        file << ",\n";
+        file << "        \"fallback\": \"" << AnchorFallbackToString(anchor.eFallback) << "\"\n";
+        file << "      }" << suffix << '\n';
+    }
+
+    void WriteLifecycleField(std::ofstream& file,
+        const FxLifecycleDesc& lifecycle,
+        const char* suffix)
+    {
+        file << "      \"lifecycle\": {\n";
+        file << "        \"mode\": \"" << LifecycleModeToString(lifecycle.eLifecycleMode) << "\",\n";
+        file << "        \"stop_fade_out\": " << lifecycle.fStopFadeOut << ",\n";
+        file << "        \"detach_on_stop\": ";
+        WriteBool(file, lifecycle.bDetachOnStop);
+        file << ",\n";
+        file << "        \"kill_when_anchor_invalid\": ";
+        WriteBool(file, lifecycle.bKillWhenAnchorInvalid);
+        file << '\n';
+        file << "      }" << suffix << '\n';
+    }
+
     void WriteEmitter(std::ofstream& file,
         const FxEmitterDesc& emitter,
         bool_t bLast)
@@ -197,6 +282,8 @@ namespace
         file << "      \"grow_duration\": " << emitter.fGrowDuration << ",\n";
         WriteVec4Field(file, "color", emitter.vColor, ",");
         WriteVec3Field(file, "attach_offset", emitter.vAttachOffset, ",");
+        WriteAnchorField(file, emitter.anchor, ",");
+        WriteLifecycleField(file, emitter.lifecycle, ",");
         WriteVec3Field(file, "end_offset", emitter.vEndOffset, ",");
         WriteVec3Field(file, "velocity", emitter.vVelocity, ",");
         WriteVec3Field(file, "scale", emitter.vScale, ",");

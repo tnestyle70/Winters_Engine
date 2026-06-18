@@ -1,7 +1,8 @@
-#include "GameObject/FX/FxSystem.h"
+﻿#include "GameObject/FX/FxSystem.h"
 #include "ECS/CCommandBuffer.h"
 #include "ECS/World.h"
 #include "ECS/Components/TransformComponent.h"
+#include "GameObject/FX/FxAnchorResolver.h"
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "GameObject/FX/FxBeamSystem.h"
 #include "Renderer/PlaneRenderer.h"
@@ -15,6 +16,7 @@
 #include "ProfilerAPI.h"
 #include <DirectXMath.h>
 #include <algorithm>
+#include <cmath>
 #include <vector>
 #include <utility>
 
@@ -25,6 +27,37 @@ namespace
         return type == eFxRenderType::Billboard ||
             type == eFxRenderType::GroundDecal ||
             type == eFxRenderType::ShockwaveRing;
+    }
+
+    constexpr f32_t kFxRenderNearDistance = 8.f;
+    constexpr f32_t kFxRenderMaxDistance = 70.f;
+
+    bool_t IsFxRenderRelevant(
+        const Vec3& vWorldPos,
+        const Vec3& vCameraPos,
+        const Vec3& vCameraForward,
+        f32_t fBoundsRadius)
+    {
+        const f32_t dx = vWorldPos.x - vCameraPos.x;
+        const f32_t dy = vWorldPos.y - vCameraPos.y;
+        const f32_t dz = vWorldPos.z - vCameraPos.z;
+        const f32_t distSq = dx * dx + dy * dy + dz * dz;
+
+        const f32_t nearDist = kFxRenderNearDistance + fBoundsRadius;
+        if (distSq <= nearDist * nearDist)
+            return true;
+
+        const f32_t maxDist = kFxRenderMaxDistance + fBoundsRadius;
+        if (distSq > maxDist * maxDist)
+            return false;
+
+        const f32_t invLen = 1.f / std::sqrt((std::max)(distSq, 0.0001f));
+        const f32_t dot =
+            (dx * invLen) * vCameraForward.x +
+            (dy * invLen) * vCameraForward.y +
+            (dz * invLen) * vCameraForward.z;
+
+        return dot > -0.25f;
     }
 
     FxBillboardComponent BuildBillboardFromEmitter(
@@ -41,6 +74,8 @@ namespace
         fx.vWorldPos = vWorldPos;
         fx.attachTo = attachTo;
         fx.vAttachOffset = emitter.vAttachOffset;
+        fx.anchor = emitter.anchor;
+        fx.lifecycle = emitter.lifecycle;
         fx.vVelocity = emitter.vVelocity;
         fx.SetTexturePath(emitter.strTexturePath);
         fx.fWidth = emitter.fWidth;
@@ -177,7 +212,7 @@ void CFxSystem::Update(CWorld& world, f32_t fTimeDelta)
     WINTERS_PROFILE_SCOPE("Fx::Update");
 
     std::vector<EntityID> vecDelete;
-    //ForEach 함수로 EntityID의 FxBillboardComponent를 순회하면서 업데이트를 해준다
+    //ForEach ?⑥닔濡?EntityID??FxBillboardComponent瑜??쒗쉶?섎㈃???낅뜲?댄듃瑜??댁???
     world.ForEach<FxBillboardComponent>(
         std::function<void(EntityID, FxBillboardComponent&)>(
             [&](EntityID e, FxBillboardComponent& fx)
@@ -195,17 +230,22 @@ void CFxSystem::Update(CWorld& world, f32_t fTimeDelta)
 
                 fx.fElapsed += fEffectiveDelta;
 
-                if (fx.attachTo != NULL_ENTITY
-                    && world.HasComponent<TransformComponent>(fx.attachTo))
+                Vec3 vResolvedAnchor{};
+                if (FxAnchor::TryResolveWorldPosition(
+                    world,
+                    fx.attachTo,
+                    fx.anchor,
+                    fx.vAttachOffset,
+                    fx.vWorldPos,
+                    vResolvedAnchor))
                 {
-                    const Vec3& tp = world.GetComponent<TransformComponent>(fx.attachTo).m_LocalPosition;
-                    fx.vWorldPos = { tp.x + fx.vAttachOffset.x,
-                                     tp.y + fx.vAttachOffset.y,
-                                     tp.z + fx.vAttachOffset.z };
+                    fx.vWorldPos = vResolvedAnchor;
+                    fx.bAnchorResolvedLastFrame = true;
                 }
                 else
                 {
-                    // [Phase T-8r] 투사체 모드 — vVelocity (m/s) 적용
+                    fx.bAnchorResolvedLastFrame = false;
+                    // [Phase T-8r] ?ъ궗泥?紐⑤뱶 ??vVelocity (m/s) ?곸슜
                     fx.vWorldPos.x += fx.vVelocity.x * fEffectiveDelta;
                     fx.vWorldPos.y += fx.vVelocity.y * fEffectiveDelta;
                     fx.vWorldPos.z += fx.vVelocity.z * fEffectiveDelta;
@@ -233,6 +273,10 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
     const Vec3 vCamRight = pCamera->GetRight();
     const Vec3 vCamUp = pCamera->GetUp();
     const Vec3 vCamFwd = pCamera->GetForward();
+    const Vec3 vCamPos = pCamera->GetEye();
+
+    uint64_t drawCount = 0;
+    uint64_t cullSkippedCount = 0;
 
     world.ForEach<FxBillboardComponent>(
         std::function<void(EntityID, FxBillboardComponent&)>(
@@ -241,6 +285,13 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                 if (fx.bPendingDelete || fx.fLifetime <= 0.f) return;
                 if (fx.fStartDelay > 0.f) return;
                 if (!fx.texturePath) return;
+
+                const f32_t boundsRadius = (std::max)(fx.fWidth, fx.fHeight) * 0.75f;
+                if (!IsFxRenderRelevant(fx.vWorldPos, vCamPos, vCamFwd, boundsRadius))
+                {
+                    ++cullSkippedCount;
+                    return;
+                }
 
                 Engine::CTexture* pTex = nullptr;
                 RHITextureHandle hRHITexture{};
@@ -255,7 +306,7 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                     if (!pTex) return;
                 }
 
-                // ──  페이드 알파 계산 ──
+                // ??  ?섏씠???뚰뙆 怨꾩궛 ??
                 f32_t fadeAlpha = 1.f;
                 if (fx.fFadeIn > 0.f && fx.fElapsed < fx.fFadeIn)
                     fadeAlpha *= fx.fElapsed / fx.fFadeIn;
@@ -282,7 +333,7 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                     drawHeight = diameter;
                 }
 
-                // ──  아틀라스 frame index → UV rect ──
+                // ??  ?꾪??쇱뒪 frame index ??UV rect ??
                 Vec4 uvRect = { 0.f, 0.f, 1.f, 1.f };
                 const u32_t atlasCols = (fx.iAtlasCols > 0) ? fx.iAtlasCols : 1;
                 const u32_t atlasRows = (fx.iAtlasRows > 0) ? fx.iAtlasRows : 1;
@@ -305,16 +356,16 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                     uvRect = { u0, v0, u1, v1 };
                 }
 
-                // ── UV 스크롤 누적 ──
+                // ?? UV ?ㅽ겕濡??꾩쟻 ??
                 const Vec2 uvScroll = { fx.fUvScrollU * fx.fElapsed,
                                         fx.fUvScrollV * fx.fElapsed };
 
-                // ── Tint 와 fadeAlpha 합성 ──
+                // ?? Tint ? fadeAlpha ?⑹꽦 ??
                 const Vec4 tint = { fx.vColor.x, fx.vColor.y, fx.vColor.z,
                                     fx.vColor.w * fadeAlpha };
 
-                // ── PlaneRenderer 에 FxParams 세팅 ──
-                // ── Blend 적용 ──
+                // ?? PlaneRenderer ??FxParams ?명똿 ??
+                // ?? Blend ?곸슜 ??
                 if (!bUseRHI)
                     m_pPlane->SetBlendCache(m_pBlendCache, fx.blendMode);
 
@@ -325,7 +376,7 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
 
                 if (fx.bBillboard)
                 {
-                    // 카메라 바라보는 쿼드 — quad(XZ plane) 를 (Right, -Fwd, Up) 축으로 회전 후 스케일
+                    // 移대찓??諛붾씪蹂대뒗 荑쇰뱶 ??quad(XZ plane) 瑜?(Right, -Fwd, Up) 異뺤쑝濡??뚯쟾 ???ㅼ???
                     const XMVECTOR vR = XMVectorSet(vCamRight.x, vCamRight.y, vCamRight.z, 0.f);
                     const XMVECTOR vU = XMVectorSet(vCamUp.x, vCamUp.y, vCamUp.z, 0.f);
                     const XMVECTOR vN = XMVectorSet(-vCamFwd.x, -vCamFwd.y, -vCamFwd.z, 0.f);
@@ -391,7 +442,12 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                     m_pPlane->ResetFxParams();
                     m_pPlane->SetBlendCache(m_pBlendCache, eBlendPreset::AlphaBlend);
                 }
+
+                ++drawCount;
             }));
+
+    WINTERS_PROFILE_COUNT("Fx::Drawn", drawCount);
+    WINTERS_PROFILE_COUNT("Fx::CullSkipped", cullSkippedCount);
 }
 
 Engine::CTexture* CFxSystem::GetOrLoadTexture(const wchar_t* wszPath)
@@ -405,7 +461,6 @@ Engine::CTexture* CFxSystem::GetOrLoadTexture(const wchar_t* wszPath)
     auto p = Engine::CTexture::Create(m_pDevice, key, Engine::eTexSamplerMode::Clamp);
     if (!p)
     {
-        ::OutputDebugStringW((L"[FxSystem] Texture load fail: " + key + L"\n").c_str());
         return nullptr;
     }
     Engine::CTexture* raw = p.get();
@@ -426,7 +481,6 @@ RHITextureHandle CFxSystem::GetOrLoadRHITexture(const wchar_t* wszPath)
     RHITextureHandle handle = RHI_CreateTextureFromFile(m_pDevice, key.c_str(), "FxSystemRHITexture");
     if (!handle.IsValid())
     {
-        ::OutputDebugStringW((L"[FxSystem] RHI texture load fail: " + key + L"\n").c_str());
         return {};
     }
 

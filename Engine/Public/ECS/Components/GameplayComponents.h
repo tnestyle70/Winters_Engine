@@ -292,15 +292,16 @@ struct StunComponent
 enum class eStatusEffectId : uint16_t
 {
     None = 0,
-    GenericStun,
-    GenericSlow,
-    GenericDisarm,
-    ViegoMist,
-    AsheVolleySlow,
-    AsheCrystalArrowStun,
-    KalistaFateCallUntargetable,
-    JaxCounterStrike,
-    ZedDeathMark,
+    GenericStun = 1,
+    GenericSlow = 2,
+    GenericDisarm = 3,
+    ViegoMist = 4,
+    AsheVolleySlow = 5,
+    AsheCrystalArrowStun = 6,
+    KalistaFateCallUntargetable = 7,
+    JaxCounterStrike = 8,
+    ZedDeathMark = 9,
+    GenericAirborne = 10,
 };
 
 enum class eStatusStackPolicy : uint8_t
@@ -319,6 +320,8 @@ inline constexpr u32_t kGameplayStateUntargetableFlag = 1u << 4;
 inline constexpr u32_t kGameplayStateCannotMoveFlag = 1u << 5;
 inline constexpr u32_t kGameplayStateCannotAttackFlag = 1u << 6;
 inline constexpr u32_t kGameplayStateCannotCastFlag = 1u << 7;
+inline constexpr u32_t kGameplayStateAirborneFlag = 1u << 8;
+inline constexpr u32_t kGameplayStateDodgesBasicAttacksFlag = 1u << 9;
 
 inline constexpr u8_t kMaxStatusEffectInstances = 16;
 
@@ -363,7 +366,6 @@ struct SlowComponent
     f32_t fMoveSpeedMul = 0.5f;
     EntityID sourceEntity = NULL_ENTITY;
 };
-//무력해제??
 struct DisarmComponent
 {
     f32_t fRemaining = 0.f;

@@ -8,13 +8,7 @@ CChampionRegistry& CChampionRegistry::Instance()
 
 void CChampionRegistry::Add(eChampion id, const ChampionDef& def)
 {
-	auto [it, inserted] = m_Map.try_emplace(id, def);
-	if (!inserted)
-	{
-		char buf[160];
-		sprintf_s(buf, "[ChampionRegistry] DUPLICATE ID=%u\n", static_cast<u32_t>(id));
-		OutputDebugStringA(buf);
-	}
+	m_Map.try_emplace(id, def);
 }
 
 const ChampionDef* CChampionRegistry::Find(eChampion id) const

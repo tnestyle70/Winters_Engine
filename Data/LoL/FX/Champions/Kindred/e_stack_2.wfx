@@ -1,0 +1,70 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Kindred.E.Stack2",
+  "emitters": [
+    {
+      "name": "e_stack2_ring",
+      "render_type": "GroundDecal",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_e_stack_2.png",
+      "lifetime": 1.35,
+      "width": 2.62,
+      "height": 2.62,
+      "color": [0.86, 1.02, 1.26, 0.88],
+      "attach_offset": [0.0, 0.10, 0.0],
+      "fade_in": 0.03,
+      "fade_out": 0.44,
+      "alpha_clip": 0.0,
+      "billboard": false
+    },
+    {
+      "name": "e_stack2_muzzle_flash",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_e_muzzle_cas.png",
+      "lifetime": 0.38,
+      "width": 1.35,
+      "height": 1.35,
+      "color": [0.72, 1.12, 1.26, 0.70],
+      "attach_offset": [0.0, 1.20, 0.0],
+      "fade_in": 0.01,
+      "fade_out": 0.22,
+      "billboard": true
+    },
+    {
+      "name": "e_stack2_hit_flare",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_e_hit_flare.png",
+      "lifetime": 0.42,
+      "start_delay": 0.03,
+      "width": 1.42,
+      "height": 1.42,
+      "color": [0.85, 1.12, 1.24, 0.74],
+      "attach_offset": [0.0, 1.20, 0.0],
+      "fade_in": 0.01,
+      "fade_out": 0.24,
+      "billboard": true
+    },
+    {
+      "name": "e_stack2_sparks",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/kindred_base_q_hit_sparks.png",
+      "lifetime": 0.32,
+      "start_delay": 0.04,
+      "width": 1.12,
+      "height": 1.12,
+      "color": [0.58, 1.20, 1.26, 0.56],
+      "attach_offset": [0.0, 1.26, 0.0],
+      "fade_in": 0.01,
+      "fade_out": 0.18,
+      "billboard": true
+    }
+  ]
+}

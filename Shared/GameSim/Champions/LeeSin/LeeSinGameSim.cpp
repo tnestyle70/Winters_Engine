@@ -8,6 +8,7 @@
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -26,6 +27,11 @@ namespace
     constexpr f32_t kLeeSinQ2Damage = 95.f;
     constexpr f32_t kLeeSinQDashGap = 1.0f;
     constexpr f32_t kLeeSinQDashDurationSec = 0.18f;
+    constexpr f32_t kLeeSinERadius = 3.5f;
+    constexpr f32_t kLeeSinESlowDurationSec = 1.5f;
+    constexpr f32_t kLeeSinESlowMoveSpeedMul = 0.60f;
+    constexpr f32_t kLeeSinRDamage = 150.f;
+    constexpr f32_t kLeeSinRAirborneDurationSec = 1.0f;
 
     void ClearMove(CWorld& world, EntityID entity)
     {
@@ -150,6 +156,80 @@ namespace
         std::cout << "[LeeSinSim] Q2 resonating strike caster="
             << ctx.casterEntity << " target=" << target << "\n";
     }
+
+    void ApplyTempestCrippleSlow(CWorld& world, const TickContext& tc, EntityID caster, eTeam casterTeam)
+    {
+        if (!world.HasComponent<TransformComponent>(caster))
+            return;
+
+        const Vec3 origin = world.GetComponent<TransformComponent>(caster).GetPosition();
+        const f32_t radiusSq = kLeeSinERadius * kLeeSinERadius;
+
+        world.ForEach<ChampionComponent, TransformComponent>(
+            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
+                [&](EntityID target, ChampionComponent& champion, TransformComponent& transform)
+                {
+                    if (target == caster || champion.team == casterTeam)
+                        return;
+                    if (WintersMath::DistanceSqXZ(origin, transform.GetPosition()) > radiusSq)
+                        return;
+
+                    GameplayStatus::ApplySlow(
+                        world,
+                        tc,
+                        target,
+                        caster,
+                        eChampion::LEESIN,
+                        eSkillSlot::E,
+                        kLeeSinESlowDurationSec,
+                        kLeeSinESlowMoveSpeedMul);
+                }));
+    }
+
+    void OnE(GameplayHookContext& ctx)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+            return;
+
+        ApplyTempestCrippleSlow(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            ctx.casterTeam);
+
+        std::cout << "[LeeSinSim] E slow caster="
+            << ctx.casterEntity << "\n";
+    }
+
+    void OnR(GameplayHookContext& ctx)
+    {
+        if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx)
+            return;
+
+        const EntityID target = ctx.pCommand->targetEntity;
+        if (target == NULL_ENTITY || !ctx.pWorld->IsAlive(target))
+            return;
+
+        EnqueuePhysicalDamage(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            target,
+            ctx.casterTeam,
+            kLeeSinRDamage,
+            static_cast<u8_t>(eSkillSlot::R),
+            ctx.skillRank);
+        GameplayStatus::ApplyAirborne(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            target,
+            ctx.casterEntity,
+            eChampion::LEESIN,
+            eSkillSlot::R,
+            kLeeSinRAirborneDurationSec);
+
+        std::cout << "[LeeSinSim] R dragon rage caster="
+            << ctx.casterEntity << " target=" << target << "\n";
+    }
 }
 
 namespace LeeSinGameSim
@@ -162,6 +242,10 @@ namespace LeeSinGameSim
 
         CGameplayHookRegistry::Instance().Register(
             MakeGameplayHookId(eChampion::LEESIN, GameplayHookVariant::Q_CastFrame), &OnQ);
+        CGameplayHookRegistry::Instance().Register(
+            MakeGameplayHookId(eChampion::LEESIN, GameplayHookVariant::E_CastFrame), &OnE);
+        CGameplayHookRegistry::Instance().Register(
+            MakeGameplayHookId(eChampion::LEESIN, GameplayHookVariant::R_CastFrame), &OnR);
 
         s_bRegistered = true;
         std::cout << "[LeeSinSim] hooks registered\n";

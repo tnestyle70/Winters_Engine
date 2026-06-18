@@ -36,8 +36,12 @@ public:
 	static unique_ptr<CTexture> CreateDefault(IRHIDevice* pDevice);
 
 private:
+	void EnsureMipsOnBind(IRHIDevice* pDevice);
+
 	void* m_pSRV = nullptr;
 	void* m_pSampler = nullptr;
+	// 로더 스레드에서는 immediate context를 쓸 수 없어 mip 생성을 첫 Bind(렌더 스레드)로 미룬다.
+	bool_t m_bMipsPending = false;
 };
 
 NS_END

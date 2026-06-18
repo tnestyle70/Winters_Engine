@@ -55,6 +55,33 @@
       "targets": [
         "WintersEngine"
       ]
+    },
+    {
+      "name": "elden-debug",
+      "displayName": "Build WintersElden Debug with Ninja",
+      "configurePreset": "msvc-ninja",
+      "configuration": "Debug",
+      "targets": [
+        "WintersElden"
+      ]
+    },
+    {
+      "name": "elden-release",
+      "displayName": "Build WintersElden Release with Ninja",
+      "configurePreset": "msvc-ninja",
+      "configuration": "Release",
+      "targets": [
+        "WintersElden"
+      ]
+    },
+    {
+      "name": "elden-vs-debug",
+      "displayName": "Build WintersElden Debug with Visual Studio generator",
+      "configurePreset": "vs2022",
+      "configuration": "Debug",
+      "targets": [
+        "WintersElden"
+      ]
     }
   ]
 }

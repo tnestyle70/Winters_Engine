@@ -5,7 +5,7 @@
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
@@ -194,12 +194,12 @@ f32_t GameplayQuery::ResolvePlayerAttackRange(
         if (stat.attackRange > 0.f)
             return stat.attackRange;
 
-        const StatComponent statFallback = BuildDefaultChampionStat(stat.championId);
+        const StatComponent statFallback = ChampionGameDataDB::BuildStat(stat.championId);
         if (statFallback.attackRange > 0.f)
             return statFallback.attackRange;
     }
 
-    const StatComponent championFallback = BuildDefaultChampionStat(playerChampion);
+    const StatComponent championFallback = ChampionGameDataDB::BuildStat(playerChampion);
     return championFallback.attackRange > 0.f ? championFallback.attackRange : fFallbackRange;
 }
 

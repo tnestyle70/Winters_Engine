@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Yasuo/Yasuo_Skills.h"
+﻿#include "GameObject/Champion/Yasuo/Yasuo_Skills.h"
 
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
@@ -120,7 +120,6 @@ namespace
             CSkillHookRegistry::Instance().Register(kYas_E_OnCastAccepted, &Yasuo::OnCastAccepted_E);
             CSkillHookRegistry::Instance().Register(kYas_R_OnCastAccepted, &Yasuo::OnCastAccepted_R);
 
-            OutputDebugStringA("[Yasuo] Registration complete\n");
         }
     };
 

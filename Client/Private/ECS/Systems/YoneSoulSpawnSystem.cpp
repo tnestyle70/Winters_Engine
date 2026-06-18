@@ -11,6 +11,8 @@
 #include "Renderer/ModelRenderer.h"
 
 #include "GameObject/FX/FxBillboardComponent.h"
+#include "GameObject/FX/FxRibbonComponent.h"
+#include "GameObject/FX/FxBeamSystem.h"
 #include "GameObject/FX/FxSystem.h"
 
 #include <Windows.h>
@@ -21,6 +23,8 @@ namespace
 {
     constexpr const wchar_t* kYoneSoulOuterGlowTexture =
         L"Client/Bin/Resource/Texture/Character/Yone/particles/aura_self.png";
+    constexpr const wchar_t* kYoneSoulEyeTrailTexture =
+        L"Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_e_blue_flame.png";
 
     Vec4 MakeYoneSoulBodyOverrideColor()
     {
@@ -56,6 +60,57 @@ namespace
         fx.fAlphaClip = 0.02f;
         fx.fUvScrollV = -0.08f;
         return CFxSystem::Spawn(world, fx);
+    }
+
+    EntityID SpawnYoneSoulEyeTrail(CWorld& world,
+        EntityID owner,
+        const char* pszBoneName,
+        f32_t fDurationSec)
+    {
+        if (owner == NULL_ENTITY || !pszBoneName || pszBoneName[0] == 0)
+            return NULL_ENTITY;
+
+        const f32_t fLifetime = fDurationSec > 0.1f ? fDurationSec : 0.1f;
+        Vec3 vFallbackPos{};
+        if (world.HasComponent<TransformComponent>(owner))
+        {
+            const Vec3& p = world.GetComponent<TransformComponent>(owner).GetPosition();
+            vFallbackPos = { p.x, p.y + 1.55f, p.z };
+        }
+
+        FxRibbonComponent ribbon{};
+        ribbon.attachTo = owner;
+        ribbon.vStartOffset = { 0.f, 1.55f, 0.f };
+        ribbon.vEndOffset = { 0.f, 1.55f, -0.35f };
+        ribbon.anchor.eAnchorType = eFxAnchorType::Bone;
+        ribbon.anchor.eFallback = eFxAnchorFallback::Entity;
+        ribbon.anchor.strAnchorName = pszBoneName;
+        ribbon.anchor.vAnchorOffset = { 0.f, 0.f, 0.f };
+        ribbon.SetTexturePath(kYoneSoulEyeTrailTexture);
+        ribbon.fWidth = 0.18f;
+        ribbon.fLifetime = fLifetime;
+        ribbon.fFadeIn = 0.05f;
+        ribbon.fFadeOut = 0.35f;
+        ribbon.fUvScrollV = -0.35f;
+        ribbon.fAlphaClip = 0.02f;
+        ribbon.vColor = { 0.26f, 0.72f, 2.1f, 0.68f };
+        ribbon.blendMode = eBlendPreset::Additive;
+        ribbon.depthMode = eFxDepthMode::DepthTestWriteOff;
+        ribbon.bHistoryTrail = true;
+        ribbon.fTrailSampleInterval = 0.018f;
+        ribbon.fTrailHeadWidthScale = 1.0f;
+        ribbon.fTrailTailWidthScale = 0.12f;
+        ribbon.fTrailHeadAlphaScale = 1.0f;
+        ribbon.fTrailTailAlphaScale = 0.05f;
+
+        constexpr u32_t kPointCount = 14u;
+        for (u32_t i = 0; i < kPointCount; ++i)
+        {
+            ribbon.SetPoint(i, vFallbackPos);
+            ribbon.pointAges[i] = static_cast<f32_t>(i) * 0.018f;
+        }
+
+        return CFxBeamSystem::Spawn(world, ribbon);
     }
 }
 
@@ -128,12 +183,11 @@ void CYoneSoulSpawnSystem::SpawnSoul(CWorld& world, EntityID owner)
     }
 
     auto pRenderer = std::make_unique<ModelRenderer>();
-    if (!pRenderer->Initialize("Client/Bin/Resource/Texture/Character/Yone/yone.fbx",
-        L"Shaders/Mesh3D.hlsl"))
-    {
-        OutputDebugStringA("[YoneSoulSpawnSystem] soul renderer init failed\n");
-        return;
-    }
+	if (!pRenderer->Initialize("Client/Bin/Resource/Texture/Character/Yone/yone.fbx",
+		L"Shaders/Mesh3D.hlsl"))
+	{
+		return;
+	}
 
     pRenderer->LoadTextureForAllMeshes(
         L"Client/Bin/Resource/Texture/Character/Yone/yone_base_tx_cm.png");
@@ -177,10 +231,12 @@ void CYoneSoulSpawnSystem::SpawnSoul(CWorld& world, EntityID owner)
 
     state.soulEntity = soul;
     state.soulGlowEntity = SpawnYoneSoulOuterGlow(world, soul, fSoulDurationSec);
-    state.bEActive = true;
-    m_mapSoulRenderers[soul] = std::move(pRenderer);
-
-    OutputDebugStringA("[YoneSoulSpawnSystem] soul entity spawned\n");
+    state.soulEyeTrailLeftEntity =
+        SpawnYoneSoulEyeTrail(world, owner, "L_Eye", fSoulDurationSec);
+    state.soulEyeTrailRightEntity =
+        SpawnYoneSoulEyeTrail(world, owner, "R_Eye", fSoulDurationSec);
+	state.bEActive = true;
+	m_mapSoulRenderers[soul] = std::move(pRenderer);
 }
 
 void CYoneSoulSpawnSystem::DespawnSoul(CWorld& world, EntityID owner, bool_t bReturnBody)
@@ -197,6 +253,20 @@ void CYoneSoulSpawnSystem::DespawnSoul(CWorld& world, EntityID owner, bool_t bRe
         world.DestroyEntity(state.soulGlowEntity);
     state.soulGlowEntity = NULL_ENTITY;
 
+    if (state.soulEyeTrailLeftEntity != NULL_ENTITY &&
+        world.IsAlive(state.soulEyeTrailLeftEntity))
+    {
+        world.DestroyEntity(state.soulEyeTrailLeftEntity);
+    }
+    state.soulEyeTrailLeftEntity = NULL_ENTITY;
+
+    if (state.soulEyeTrailRightEntity != NULL_ENTITY &&
+        world.IsAlive(state.soulEyeTrailRightEntity))
+    {
+        world.DestroyEntity(state.soulEyeTrailRightEntity);
+    }
+    state.soulEyeTrailRightEntity = NULL_ENTITY;
+
     if (soul != NULL_ENTITY)
     {
         if (world.IsAlive(soul))
@@ -212,8 +282,6 @@ void CYoneSoulSpawnSystem::DespawnSoul(CWorld& world, EntityID owner, bool_t bRe
     }
 
     state.soulEntity = NULL_ENTITY;
-    state.bEActive = false;
-    state.fETimer = 0.f;
-
-    OutputDebugStringA("[YoneSoulSpawnSystem] soul entity despawned\n");
+	state.bEActive = false;
+	state.fETimer = 0.f;
 }

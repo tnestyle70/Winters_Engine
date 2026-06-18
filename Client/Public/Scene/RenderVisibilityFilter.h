@@ -29,7 +29,11 @@ namespace UI
         return localTeam;
     }
 
-    inline bool_t IsRenderableForLocal(CWorld& world, EntityID entity, u8_t localTeam)
+    inline bool_t IsRenderableForLocal(
+        CWorld& world,
+        EntityID entity,
+        u8_t localTeam,
+        bool_t bIgnoreFogOfWar = false)
     {
         if (entity == NULL_ENTITY)
             return true;
@@ -53,6 +57,9 @@ namespace UI
 
         if (bInvisible)
             return false;
+
+        if (bIgnoreFogOfWar)
+            return true;
 
 #if defined(_DEBUG) && !defined(WINTERS_DISABLE_AI_VISIBILITY_DEBUG)
         return true;

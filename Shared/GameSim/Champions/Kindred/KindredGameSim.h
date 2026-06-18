@@ -14,6 +14,7 @@ namespace KindredGameSim
 	f32_t GetUltimateDurationSec();
 	f32_t ConsumeBasicAttackDamage(
 		CWorld& world,
+		const TickContext& tc,
 		EntityID caster,
 		EntityID target,
 		eTeam casterTeam,

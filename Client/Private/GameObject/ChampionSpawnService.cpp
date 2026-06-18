@@ -20,12 +20,14 @@
 #include "GameObject/Champion/Jax/Jax_Components.h"
 #include "GameObject/Champion/Yone/Yone_Components.h"
 #include "GameObject/Champion/Yone/Yone_MeshGroups.h"
+#include "GameObject/SkillDef.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionRegistry.h"
+#include "GamePlay/SkillRegistry.h"
 #include "Shared/GameSim/Components/NetAnimationComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
@@ -33,6 +35,55 @@
 
 namespace
 {
+	// 등록된 애니 키가 실제 모델 클립과 일치하지 않으면 디버그 출력으로 알린다.
+	void ValidateChampionAnimKeys(const ChampionDef& def, ModelRenderer& renderer)
+	{
+#if defined(_DEBUG)
+		const char* pPrefix = def.animPrefix ? def.animPrefix : "";
+		auto FullName = [&](const char* pKey)
+		{
+			std::string full(pKey);
+			if (pPrefix[0] != '\0' && full.find(pPrefix) == std::string::npos)
+				full.insert(0, pPrefix);
+			return full;
+		};
+		auto LogMiss = [&](const char* pLabel, const char* pKey)
+		{
+			if (!pKey)
+				return;
+			const std::string full = FullName(pKey);
+			if (renderer.HasAnimationByName(full))
+				return;
+			char msg[224]{};
+			sprintf_s(msg, "[AnimKeyMiss] champion=%u %s=%s\n",
+				static_cast<u32_t>(def.id), pLabel, full.c_str());
+			OutputDebugStringA(msg);
+		};
+
+		LogMiss("idle", def.idleAnimKey);
+		LogMiss("run", def.runAnimKey);
+		LogMiss("attack", def.basicAttackKey);
+		for (u8_t slot = 0; slot < 5u; ++slot)
+		{
+			const SkillDef* pSkill = CSkillRegistry::Instance().Find(def.id, slot);
+			if (!pSkill)
+				continue;
+			char label[16]{};
+			sprintf_s(label, "slot%u", static_cast<u32_t>(slot));
+			LogMiss(label, pSkill->animKey);
+			if (pSkill->stage2AnimKey)
+			{
+				char label2[16]{};
+				sprintf_s(label2, "slot%u_s2", static_cast<u32_t>(slot));
+				LogMiss(label2, pSkill->stage2AnimKey);
+			}
+		}
+#else
+		(void)def;
+		(void)renderer;
+#endif
+	}
+
 	const ChampionDef* FindSpawnChampionDef(eChampion id)
 	{
 		const ChampionCatalogEntry* pEntry = CChampionCatalog::Instance().Find(id);
@@ -117,19 +168,12 @@ ChampionSpawnResult CChampionSpawnService::Spawn(
 	const ChampionDef* pDef = FindSpawnChampionDef(request.champion);
 	if (!pDef || !pDef->fbxPath)
 	{
-		char msg[160]{};
-		sprintf_s(msg, "[ChampionSpawnService] missing ChampionDef/fbxPath ID=%u\n",
-			static_cast<u32_t>(request.champion));
-		OutputDebugStringA(msg);
 		return result;
 	}
 
 	std::unique_ptr<ModelRenderer> pRenderer = std::make_unique<ModelRenderer>();
 	if (!pRenderer->Initialize(pDef->fbxPath, pDef->shaderPath))
 	{
-		char msg[256]{};
-		sprintf_s(msg, "[ChampionSpawnService] ModelRenderer init failed: %s\n", pDef->fbxPath);
-		OutputDebugStringA(msg);
 		return result;
 	}
 
@@ -147,6 +191,8 @@ ChampionSpawnResult CChampionSpawnService::Spawn(
 		const std::string IdleFull = std::string(pDef->animPrefix) + pDef->idleAnimKey;
 		pRenderer->PlayAnimationByName(IdleFull, true);
 	}
+
+	ValidateChampionAnimKeys(*pDef, *pRenderer);
 
 	const EntityID entity = context.world.CreateEntity();
 	const Vec3 spawnPosition = request.bUseCatalogSpawnPosition
@@ -230,23 +276,6 @@ ChampionSpawnResult CChampionSpawnService::Spawn(
 	result.entity = entity;
 	result.pRenderer = context.renderers[entity].get();
 	result.pDef = pDef;
-
-	if (false)
-	{
-		char msg[512]{};
-		sprintf_s(msg, "[YawTrace][ChampionSpawn] ID=%u entity=%u team=%u pos=(%.3f,%.3f,%.3f) scale=%.4f yawOffset=%.4f mesh=%s texture=%ls\n",
-			static_cast<u32_t>(request.champion),
-			static_cast<u32_t>(entity),
-			static_cast<u32_t>(request.team),
-			spawnPosition.x,
-			spawnPosition.y,
-			spawnPosition.z,
-			pDef->spawnScale,
-			GetDefaultChampionVisualYawOffset(request.champion),
-			pDef->fbxPath ? pDef->fbxPath : "",
-			pDef->defaultTexturePath ? pDef->defaultTexturePath : L"");
-		OutputDebugStringA(msg);
-	}
 
 	return result;
 }

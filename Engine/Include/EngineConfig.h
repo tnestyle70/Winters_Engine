@@ -39,6 +39,6 @@ struct EngineConfig
     bool_t allowRHIFallback = true;
 
     // ── 렌더링 ───────────────────────────────────────────────
-    bool     vsync        = true;    // VSync 활성화 여부
-    uint32   targetFPS    = 60;      // 렌더 프레임 상한. 0이면 제한 없음
+    bool     vsync        = true;    // Present VSync 사용 여부
+    uint32   targetFPS    = 60;      // CPU frame limiter. 0이면 제한 없음
 };

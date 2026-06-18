@@ -1,10 +1,17 @@
 #include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
 
+#include "Shared/GameSim/Components/ChampionComponent.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
+#include "Shared/GameSim/Components/SkillRankComponent.h"
+#include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/SylasSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
@@ -22,6 +29,7 @@ namespace
     constexpr f32_t kSylasE2ChainHitRadius = 0.55f;
     constexpr f32_t kSylasE2DashGap = 0.85f;
     constexpr f32_t kSylasE2DashDurationSec = 0.22f;
+    constexpr f32_t kSylasE2AirborneDurationSec = 0.75f;
     constexpr f32_t kSylasE2BaseDamage = 65.f;
     constexpr f32_t kSylasE2DamagePerRank = 25.f;
 
@@ -161,7 +169,7 @@ namespace
         if (dir.x == 0.f && dir.z == 0.f)
             return;
 
-        f32_t range = GetDefaultChampionSkillRange(eChampion::SYLAS,
+        f32_t range = ChampionGameDataDB::ResolveSkillRange(eChampion::SYLAS,
             static_cast<u8_t>(eSkillSlot::E));
         if (range <= 0.f)
             range = 6.f;
@@ -202,6 +210,133 @@ namespace
         else
             StartDirectionalDash(*ctx.pWorld, ctx.casterEntity, ResolveCommandDirection(ctx));
     }
+
+    bool_t IsValidChampion(eChampion champion)
+    {
+        return champion != eChampion::NONE && champion != eChampion::END;
+    }
+
+    bool_t IsAliveChampion(CWorld& world, EntityID entity)
+    {
+        if (entity == NULL_ENTITY ||
+            !world.IsAlive(entity) ||
+            !world.HasComponent<ChampionComponent>(entity))
+        {
+            return false;
+        }
+
+        if (world.HasComponent<HealthComponent>(entity))
+        {
+            const auto& health = world.GetComponent<HealthComponent>(entity);
+            if (health.bIsDead || health.fCurrent <= 0.f)
+                return false;
+        }
+
+        return true;
+    }
+
+    eChampion ResolveHijackSourceChampion(CWorld& world, EntityID target)
+    {
+        if (!world.HasComponent<ChampionComponent>(target))
+            return eChampion::END;
+
+        return world.GetComponent<ChampionComponent>(target).id;
+    }
+
+    u8_t ResolveHijackRank(CWorld& world, EntityID caster, EntityID target)
+    {
+        const u8_t rSlot = static_cast<u8_t>(eSkillSlot::R);
+        if (world.HasComponent<SkillRankComponent>(caster))
+        {
+            const auto& casterRanks = world.GetComponent<SkillRankComponent>(caster);
+            if (casterRanks.ranks[rSlot] > 0u)
+                return casterRanks.ranks[rSlot];
+        }
+        if (world.HasComponent<SkillRankComponent>(target))
+        {
+            const auto& targetRanks = world.GetComponent<SkillRankComponent>(target);
+            if (targetRanks.ranks[rSlot] > 0u)
+                return targetRanks.ranks[rSlot];
+        }
+        return 1u;
+    }
+
+    bool_t CanHijackUltimateInternal(CWorld& world, EntityID caster, EntityID target)
+    {
+        if (!IsAliveChampion(world, caster) || !IsAliveChampion(world, target))
+            return false;
+        if (!world.HasComponent<TransformComponent>(caster) ||
+            !world.HasComponent<TransformComponent>(target))
+        {
+            return false;
+        }
+        if (!GameplayStateQuery::CanBeTargetedBy(world, caster, target))
+            return false;
+
+        const auto& casterChampion = world.GetComponent<ChampionComponent>(caster);
+        const auto& targetChampion = world.GetComponent<ChampionComponent>(target);
+        if (casterChampion.id != eChampion::SYLAS)
+            return false;
+        if (casterChampion.team == targetChampion.team &&
+            casterChampion.team != eTeam::Neutral)
+        {
+            return false;
+        }
+
+        const eChampion stolenChampion = ResolveHijackSourceChampion(world, target);
+        if (!IsValidChampion(stolenChampion) || stolenChampion == eChampion::SYLAS)
+            return false;
+
+        f32_t range = ChampionGameDataDB::ResolveSkillRange(
+            eChampion::SYLAS,
+            static_cast<u8_t>(eSkillSlot::R));
+        if (range <= 0.f)
+            range = 10.f;
+        const f32_t effectiveRange =
+            range +
+            GameplayStateQuery::ResolveGameplayRadius(world, caster) +
+            GameplayStateQuery::ResolveGameplayRadius(world, target);
+        return WintersMath::DistanceSqXZ(
+            world.GetComponent<TransformComponent>(caster).GetPosition(),
+            world.GetComponent<TransformComponent>(target).GetPosition()) <=
+            effectiveRange * effectiveRange;
+    }
+
+    void OnR(GameplayHookContext& ctx)
+    {
+        if (!ctx.pWorld || !ctx.pCommand)
+            return;
+
+        CWorld& world = *ctx.pWorld;
+        const EntityID caster = ctx.casterEntity;
+        const EntityID target = ctx.pCommand->targetEntity;
+
+        if (world.HasComponent<SpellbookOverrideComponent>(caster))
+            return;
+        if (!CanHijackUltimateInternal(world, caster, target))
+            return;
+
+        SpellbookOverrideComponent spellbook{};
+        spellbook.sourceChampion = ResolveHijackSourceChampion(world, target);
+        spellbook.sourceSlot = static_cast<u8_t>(eSkillSlot::R);
+        spellbook.localSlot = static_cast<u8_t>(eSkillSlot::R);
+        spellbook.sourceRank = ResolveHijackRank(world, caster, target);
+        spellbook.fRemainingSec = 45.f;
+        spellbook.bActive = true;
+
+        world.AddComponent<SpellbookOverrideComponent>(caster, spellbook);
+
+#if defined(_DEBUG)
+        char msg[192]{};
+        sprintf_s(msg,
+            "[SylasHijack] caster=%u target=%u stolenChampion=%u rank=%u\n",
+            static_cast<u32_t>(caster),
+            static_cast<u32_t>(target),
+            static_cast<u32_t>(spellbook.sourceChampion),
+            static_cast<u32_t>(spellbook.sourceRank));
+        WintersOutputAIDebugStringA(msg);
+#endif
+    }
 }
 
 namespace SylasGameSim
@@ -214,6 +349,8 @@ namespace SylasGameSim
 
         CGameplayHookRegistry::Instance().Register(
             MakeGameplayHookId(eChampion::SYLAS, GameplayHookVariant::E_CastFrame), &OnE);
+        CGameplayHookRegistry::Instance().Register(
+            MakeGameplayHookId(eChampion::SYLAS, GameplayHookVariant::R_CastFrame), &OnR);
 
         s_bRegistered = true;
     }
@@ -272,7 +409,12 @@ namespace SylasGameSim
             world.RemoveComponent<SylasDashComponent>(entity);
     }
 
-    void ApplyChainHit(CWorld& world, EntityID source, EntityID target)
+    bool_t CanHijackUltimate(CWorld& world, EntityID caster, EntityID target)
+    {
+        return CanHijackUltimateInternal(world, caster, target);
+    }
+
+    void ApplyChainHit(CWorld& world, const TickContext& tc, EntityID source, EntityID target)
     {
         if (source == NULL_ENTITY ||
             target == NULL_ENTITY ||
@@ -283,5 +425,13 @@ namespace SylasGameSim
         }
 
         StartTargetDash(world, source, target);
+        GameplayStatus::ApplyAirborne(
+            world,
+            tc,
+            target,
+            source,
+            eChampion::SYLAS,
+            eSkillSlot::E,
+            kSylasE2AirborneDurationSec);
     }
 }

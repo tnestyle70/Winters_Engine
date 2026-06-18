@@ -2,7 +2,6 @@
 #include <Windows.h>
 #include "Renderer/CCamera.h"
 #include "Core/CInput.h"
-#include <cmath>
 
 void CCamera::Ready(const Vec3& vEye, const Vec3& vAt, const Vec3& vUp,
                     f32_t fFov, f32_t fAspect, f32_t fNear, f32_t fFar)
@@ -45,21 +44,8 @@ Mat4 CCamera::GetViewProjection() const
 
 void CCamera::Update(f32_t deltaTime, const CInput& input)
 {
-    // Tab 토글
-    if (input.IsKeyDown(VK_TAB))
-    {
-        if (!m_bTabCheck) { m_bTabCheck = true; m_bFix = !m_bFix; }
-    }
-    else { m_bTabCheck = false; }
-
     // WASD 이동
     Key_Input(deltaTime, input);
-
-    // Tab ON이면 FPS 마우스 회전 (Raw Input 기반, 커서 워프 불필요)
-    if (m_bFix)
-    {
-        Mouse_Move(input);
-    }
 
     RecalcView();
 }
@@ -101,37 +87,6 @@ void CCamera::Key_Input(f32_t deltaTime, const CInput& input)
     {   m_vEye += vRight * speed; 
         m_vAt += vRight * speed; 
     }
-}
-
-void CCamera::Mouse_Move(const CInput& input)
-{
-    f32_t dx = input.GetMouseDeltaX();
-    f32_t dy = input.GetMouseDeltaY();
-    if (std::abs(dx) < 0.001f && std::abs(dy) < 0.001f) return;
-
-    using namespace DirectX;
-    XMFLOAT3 fLook = { m_vAt.x - m_vEye.x, m_vAt.y - m_vEye.y, m_vAt.z - m_vEye.z };
-    XMVECTOR vLook = XMLoadFloat3(&fLook);
-
-    // 상하 회전 (Right축 기준)
-    if (std::abs(dy) > 0.001f)
-    {
-        XMMATRIX matInv = XMMatrixInverse(nullptr, XMLoadFloat4x4(&m_ViewMatrix.m));
-        XMFLOAT4X4 cam;
-        XMStoreFloat4x4(&cam, matInv);
-        XMFLOAT3 fRight = { cam._11, cam._12, cam._13 };
-        vLook = XMVector3TransformNormal(vLook, XMMatrixRotationAxis(XMLoadFloat3(&fRight), dy * 0.01f));
-    }
-
-    // 좌우 회전 (Y축 기준)
-    if (std::abs(dx) > 0.001f)
-    {
-        vLook = XMVector3TransformNormal(vLook, XMMatrixRotationAxis(XMVectorSet(0,1,0,0), dx * 0.01f));
-    }
-
-    XMFLOAT3 r;
-    XMStoreFloat3(&r, vLook);
-    m_vAt = { m_vEye.x + r.x, m_vEye.y + r.y, m_vEye.z + r.z };
 }
 
 void CCamera::RecalcView()

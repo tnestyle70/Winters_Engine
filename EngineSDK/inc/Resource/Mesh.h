@@ -15,6 +15,7 @@ public:
 	CMesh& operator=(const CMesh&) = delete;
 
 	void Render(IRHIDevice* pDevice);
+	void RenderIndexRange(IRHIDevice* pDevice, u32_t iStartIndex, u32_t iIndexCount);
 
 	u32_t GetIndexCount() const { return m_iIndexCount; }
 	u32_t GetMaterialIndex() const { return m_iMaterialIndex; }

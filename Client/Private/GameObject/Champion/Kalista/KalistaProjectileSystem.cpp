@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Kalista/KalistaProjectileSystem.h"
+﻿#include "GameObject/Champion/Kalista/KalistaProjectileSystem.h"
 #include "GameObject/Champion/Kalista/KalistaRendSystem.h"
 #include "GameObject/FX/FxMeshComponent.h"
 #include "ECS/Components/TransformComponent.h"
@@ -89,7 +89,6 @@ void CKalistaProjectileSystem::Execute(CWorld& world, f32_t dt)
                                 static_cast<u32_t>(target),
                                 projectile.fDamage,
                                 champion.hp);
-                            ::OutputDebugStringA(dbg);
 
                             projectile.bHasHit = true;
                         }));

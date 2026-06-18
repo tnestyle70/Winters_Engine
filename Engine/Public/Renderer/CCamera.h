@@ -57,8 +57,4 @@ protected:
 private:
     // FPS 카메라 기본 동작 (디버그/에디터용)
     void Key_Input(f32_t deltaTime, const CInput& input);
-    void Mouse_Move(const CInput& input);
-
-    bool    m_bFix      = false;
-    bool    m_bTabCheck = false;
 };

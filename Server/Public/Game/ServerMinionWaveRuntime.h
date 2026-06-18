@@ -50,7 +50,13 @@ public:
 	static u8_t ResolveWaypointLane(eTeam team, u8_t lane);
 
 private:
-	void SpawnWave(const SpawnCallback& spawn);
+	struct PendingSpawn
+	{
+		u64_t dueTick = 0u;
+		SpawnRequest request{};
+	};
+
+	void EnqueueWave(u64_t tickIndex);
 	const std::vector<Vec3>& GetActiveWaypoints(eTeam team, u8_t lane) const;
 	void ClearResolvedWaypoints();
 
@@ -58,5 +64,6 @@ private:
 	u32_t m_waveIndex = 0u;
 	std::vector<Vec3> m_wayPoints[2][3];
 	std::vector<Vec3> m_navWayPoints[2][3];
+	std::vector<PendingSpawn> m_pendingSpawns;
 	CServerMinionFlowField m_flowField{};
 };

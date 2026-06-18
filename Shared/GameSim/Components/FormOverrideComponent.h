@@ -5,6 +5,7 @@
 
 struct FormOverrideComponent
 {
+	eChampion baseChampion = eChampion::END;
 	eChampion visualChampion = eChampion::END;
 	eChampion skillChampion = eChampion::END;
 	u8_t skillSlotMask = 0x0Fu;

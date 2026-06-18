@@ -21,4 +21,5 @@ public:
 
 private:
 	bool m_bInitialized = false;
+	IRHIDevice* m_pDevice = nullptr;
 };

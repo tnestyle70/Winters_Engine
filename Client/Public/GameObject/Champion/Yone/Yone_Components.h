@@ -12,6 +12,8 @@ struct YoneStateComponent
     Vec3 vOriginalPosition{};
     EntityID soulEntity = NULL_ENTITY;
     EntityID soulGlowEntity = NULL_ENTITY;
+    EntityID soulEyeTrailLeftEntity = NULL_ENTITY;
+    EntityID soulEyeTrailRightEntity = NULL_ENTITY;
 };
 
 enum class eYoneSoulRequestAction : u8_t

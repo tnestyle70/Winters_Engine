@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Yasuo/Yasuo_Skills.h"
+﻿#include "GameObject/Champion/Yasuo/Yasuo_Skills.h"
 
 #include "ECS/World.h"
 #include "ECS/Components/GameplayComponents.h"
@@ -7,7 +7,7 @@
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
 #include "GameObject/Champion/Yasuo/YasuoFxPresets.h"
 #include "GameObject/FX/WindWallSystem.h"
-#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 
 #include <cmath>
 #include <cstdio>
@@ -35,7 +35,7 @@ namespace
         if (world.HasComponent<TransformComponent>(caster))
         {
             const f32_t yaw = world.GetComponent<TransformComponent>(caster).GetRotation().y -
-                GetDefaultChampionVisualYawOffset(eChampion::YASUO);
+                ChampionGameDataDB::ResolveVisualYawOffset(eChampion::YASUO);
             return WintersMath::NormalizeXZ(Vec3{ std::sinf(yaw), 0.f, std::cosf(yaw) });
         }
 
@@ -156,7 +156,6 @@ namespace Yasuo
         const EntityID airborne = ctx.findAirborneTarget(origin, tuning.rSearchRadius);
         if (airborne == NULL_ENTITY || !world.HasComponent<TransformComponent>(airborne))
         {
-            ::OutputDebugStringA("[Yasuo R] No airborne (Stun) target - skip\n");
             return;
         }
 
@@ -277,6 +276,5 @@ namespace Yasuo::Visual
         char dbg[96]{};
         sprintf_s(dbg, "[Yasuo Q Anim] stack=%u key=%s\n",
             static_cast<u32_t>(ys.qStackCount), ctx.pKeyOut->c_str());
-        ::OutputDebugStringA(dbg);
     }
 }

@@ -6,7 +6,7 @@ NS_BEGIN(Engine)
 struct VectorKey
 {
 	f64_t dTime; //fDeltaTime? 
-	float3_t vValue; //vValue??
+	float3_t vValue;
 };
 
 struct QuatKey

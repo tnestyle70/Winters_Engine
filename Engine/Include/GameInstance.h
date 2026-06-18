@@ -74,11 +74,18 @@ public: // UI
         const Vec4& vUVRect,
         const Vec4& vColor);
     void UI_End_RawImagePass();
+    void UI_Draw_RawImageCircle(void* pTextureSRV,
+        f32_t fX, f32_t fY, f32_t fW, f32_t fH,
+        const Vec4& vUVRect,
+        const Vec4& vColor,
+        u32_t iSegmentCount = 48);
     void UI_OnImGui_Tuner();
     void UI_Set_ActiveLuaScreen(const char* pScreenID);
     void UI_Reload_Lua();
     void UI_Toggle_InGameShop();
     void UI_Set_InGameShopOpen(bool_t bOpen);
+    void UI_Toggle_StatusPanel();
+    void UI_Set_StatusPanelOpen(bool_t bOpen);
     void UI_Set_ShowHealthBars(bool_t b);
     void UI_Set_PlayerChampion(eChampion champ);
     void UI_Set_EnemyHoverCursor(bool_t bEnemyHover);
@@ -87,6 +94,10 @@ public: // UI
     void UI_Set_LevelSkillCallback(void(*pfn)(void*, u8_t), void* pUser);
     void UI_Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
         u8_t iDamageType, bool_t bWasCrit, bool_t bKilled);
+    void UI_Push_WorldText(const Vec3& vWorldPos, const char* pText,
+        const Vec4& vColor, f32_t fLifetime);
+    void UI_Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
+        f32_t fLifetime);
     //Kill, Slay, Destroy Log
     void UI_Push_KillFeedBanner(eChampion eSourceChampion, eChampion eTargetChampion,
         u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage);
@@ -107,7 +118,9 @@ public: // Profiler
     void Profiler_Begin();
     void Profiler_End();
     void Profiler_Toggle();
+    bool_t Profiler_IsOverlayVisible() const;
     void Profiler_DrawOverlay();
+    bool_t Profiler_SaveJson(const char* pPath);
     class CCPUProfiler* Get_CPUProfiler() { return m_pProfiler.get(); }
 
 public: // JobSystem

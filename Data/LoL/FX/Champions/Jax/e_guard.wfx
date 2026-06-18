@@ -1,0 +1,38 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Jax.E.CounterGuard",
+  "emitters": [
+    {
+      "name": "e_guard_ground",
+      "render_type": "GroundDecal",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_ground.png",
+      "lifetime": 4.0,
+      "fade_in": 0.06,
+      "fade_out": 0.45,
+      "width": 6.80,
+      "height": 6.80,
+      "color": [0.55, 0.80, 1.40, 0.40],
+      "attach_offset": [0.0, 0.05, 0.0],
+      "billboard": false
+    },
+    {
+      "name": "e_guard_flame",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_dome_flames.png",
+      "lifetime": 4.0,
+      "start_delay": 0.03,
+      "fade_in": 0.05,
+      "fade_out": 0.45,
+      "width": 4.10,
+      "height": 4.10,
+      "color": [1.55, 0.60, 0.16, 0.82],
+      "attach_offset": [0.0, 1.02, 0.0],
+      "billboard": true
+    }
+  ]
+}

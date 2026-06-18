@@ -62,6 +62,7 @@ bool CScene_CustomMode::OnEnter()
 		L"Client/Bin/Resource/Texture/UI/CustomMode1.png",
 		1280,
 		720);
+	m_vReplayItems = CReplayLibrary::ListLocalReplays();
 
 	m_bServerLobbyActive = CGameSessionClient::Instance().Connect("127.0.0.1", 9000);
 	if (!m_bServerLobbyActive)
@@ -128,6 +129,7 @@ void CScene_CustomMode::OnRender()
 void CScene_CustomMode::OnImGui()
 {
 	RenderRosterOverlay();
+	RenderReplayPanel();
 }
 
 void CScene_CustomMode::HandleInput()
@@ -188,6 +190,55 @@ void CScene_CustomMode::StartMatchLoadingScene()
 		{
 			return std::unique_ptr<IScene>(new CScene_InGame());
 		}, 3.f);
+
+	CGameInstance::Get()->Change_Scene(
+		static_cast<u32_t>(eSceneID::MatchLoading),
+		std::move(pLoadingMatch));
+}
+
+void CScene_CustomMode::RenderReplayPanel()
+{
+	ImGui::SetNextWindowSize(ImVec2(360.f, 220.f), ImGuiCond_FirstUseEver);
+	if (!ImGui::Begin("Replay Files"))
+	{
+		ImGui::End();
+		return;
+	}
+
+	if (ImGui::Button("Refresh"))
+		m_vReplayItems = CReplayLibrary::ListLocalReplays();
+
+	if (m_vReplayItems.empty())
+	{
+		ImGui::TextUnformatted("No .wrpl files");
+		ImGui::End();
+		return;
+	}
+
+	for (const ReplayListItem& item : m_vReplayItems)
+	{
+		ImGui::PushID(item.path.c_str());
+		ImGui::TextUnformatted(item.displayName.c_str());
+		ImGui::SameLine();
+		if (ImGui::Button("Play"))
+			OpenReplay(item.path);
+		ImGui::PopID();
+	}
+
+	ImGui::End();
+}
+
+void CScene_CustomMode::OpenReplay(const wstring_t& path)
+{
+	if (m_bSceneTransitionStarted)
+		return;
+
+	m_bSceneTransitionStarted = true;
+	auto pLoadingMatch = CScene_MatchLoading::Create(
+		[path]() -> std::unique_ptr<IScene>
+		{
+			return std::unique_ptr<IScene>(new CScene_InGame(path));
+		}, 1.f);
 
 	CGameInstance::Get()->Change_Scene(
 		static_cast<u32_t>(eSceneID::MatchLoading),

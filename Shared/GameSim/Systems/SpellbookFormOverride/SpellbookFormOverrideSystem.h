@@ -15,6 +15,7 @@ struct SkillOverrideResolveResult
 	u8_t localSlot = 0;
 	u8_t hookSlot = 0;
 	u8_t cooldownSlot = 0;
+	u8_t sourceRank = 0;
 	bool_t bOverridden = false;
 	bool_t bConsumeSpellbookOnAccept = false;
 };

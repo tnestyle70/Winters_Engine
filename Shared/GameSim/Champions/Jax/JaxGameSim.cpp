@@ -1,12 +1,19 @@
 #include "Shared/GameSim/Champions/Jax/JaxGameSim.h"
 
+#include "Shared/GameSim/Components/CombatActionComponent.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/JaxSimComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
+#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ReplicatedEventComponent.h"
+#include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -23,6 +30,7 @@ namespace
     constexpr f32_t kJaxQGap = 1.0f;
     constexpr f32_t kJaxQDashDurationSec = 0.22f;
     constexpr f32_t kJaxQDamage = 70.f;
+    constexpr f32_t kJaxEStunDurationSec = 1.0f;
 
     struct JaxDashComponent
     {
@@ -86,6 +94,7 @@ namespace
 
     void EnqueueCircleDamage(
         CWorld& world,
+        const TickContext& tc,
         EntityID source,
         eTeam sourceTeam,
         const Vec3& origin,
@@ -112,7 +121,120 @@ namespace
                 }));
 
         for (EntityID target : targets)
+        {
             EnqueuePhysicalDamage(world, source, target, sourceTeam, amount, slot, 1);
+            if (slot == static_cast<u8_t>(eSkillSlot::E))
+            {
+                GameplayStatus::ApplyStun(
+                    world,
+                    tc,
+                    target,
+                    source,
+                    eChampion::JAX,
+                    eSkillSlot::E,
+                    kJaxEStunDurationSec,
+                    eStatusEffectId::JaxCounterStrike);
+            }
+        }
+    }
+
+    u16_t EncodeJaxEPlaybackRateQ8()
+    {
+        const ChampionSkillTimingDefaults timing = ChampionGameDataDB::ResolveSkillTiming(
+            eChampion::JAX,
+            static_cast<u8_t>(eSkillSlot::E),
+            2u);
+        const f32_t clamped = std::max(0.05f, std::min(4.f, timing.animPlaySpeed));
+        return static_cast<u16_t>(clamped * 256.f + 0.5f);
+    }
+
+    u16_t BuildJaxEStage2Flags(u8_t rank)
+    {
+        return static_cast<u16_t>(
+            (static_cast<u16_t>(2u) << 12) |
+            (static_cast<u16_t>(rank & 0x0fu) << 8) |
+            static_cast<u16_t>(eSkillSlot::E));
+    }
+
+    void StartJaxEReleaseAnimation(CWorld& world, EntityID caster, const TickContext& tc)
+    {
+        auto& anim = world.HasComponent<NetAnimationComponent>(caster)
+            ? world.GetComponent<NetAnimationComponent>(caster)
+            : world.AddComponent<NetAnimationComponent>(caster, NetAnimationComponent{});
+
+        ++anim.actionSeq;
+        anim.animId = static_cast<u16_t>(eNetAnimId::SkillE);
+        anim.animPhaseFrame = 0;
+        anim.animStartTick = tc.tickIndex;
+        anim.playbackRateQ8 = EncodeJaxEPlaybackRateQ8();
+        anim.flags = static_cast<u16_t>(2u << 12);
+        anim.priority = 0;
+    }
+
+    void ClearJaxEStageWindow(CWorld& world, EntityID caster)
+    {
+        if (!world.HasComponent<SkillStateComponent>(caster))
+            return;
+
+        auto& slot = world.GetComponent<SkillStateComponent>(caster)
+            .slots[static_cast<u8_t>(eSkillSlot::E)];
+        slot.currentStage = 0;
+        slot.stageWindow = 0.f;
+    }
+
+    void EnqueueJaxEReleaseVisual(CWorld& world, EntityID caster, const TickContext& tc, u8_t rank)
+    {
+        ReplicatedEventComponent effectEvent{};
+        effectEvent.kind = eReplicatedEventKind::EffectTrigger;
+        effectEvent.sourceEntity = caster;
+        effectEvent.effectId = MakeGameplayHookId(eChampion::JAX, GameplayHookVariant::E_CastFrame);
+        effectEvent.slot = static_cast<u8_t>(eSkillSlot::E);
+        effectEvent.rank = rank;
+        effectEvent.flags = BuildJaxEStage2Flags(rank);
+        effectEvent.startTick = tc.tickIndex;
+        effectEvent.durationMs = 700;
+
+        if (world.HasComponent<TransformComponent>(caster))
+            effectEvent.position = world.GetComponent<TransformComponent>(caster).GetPosition();
+
+        EnqueueReplicatedEvent(world, effectEvent);
+    }
+
+    void ReleaseJaxCounterStrike(
+        CWorld& world,
+        EntityID caster,
+        const TickContext& tc,
+        JaxSimComponent& state,
+        bool_t bEmitVisual)
+    {
+        if (!state.bCounterStrikeActive)
+            return;
+
+        state.bCounterStrikeActive = false;
+        state.counterTimerSec = 0.f;
+        ClearJaxEStageWindow(world, caster);
+
+        if (bEmitVisual)
+        {
+            StartJaxEReleaseAnimation(world, caster, tc);
+            EnqueueJaxEReleaseVisual(world, caster, tc, state.counterRank);
+        }
+
+        if (world.HasComponent<TransformComponent>(caster) &&
+            world.HasComponent<ChampionComponent>(caster))
+        {
+            const auto& champion = world.GetComponent<ChampionComponent>(caster);
+            const Vec3 origin = world.GetComponent<TransformComponent>(caster).GetPosition();
+            EnqueueCircleDamage(
+                world,
+                tc,
+                caster,
+                champion.team,
+                origin,
+                state.counterRadius,
+                state.counterDamage,
+                static_cast<u8_t>(eSkillSlot::E));
+        }
     }
 
     void StartTargetDash(CWorld& world, EntityID caster, EntityID target)
@@ -190,8 +312,18 @@ namespace
             return;
 
         JaxSimComponent& state = EnsureJaxState(*ctx.pWorld, ctx.casterEntity);
+        if (ctx.pCommand && ctx.pCommand->itemId == 2u)
+        {
+            TickContext fallbackTick{};
+            const TickContext& tickCtx = ctx.pTickCtx ? *ctx.pTickCtx : fallbackTick;
+            ReleaseJaxCounterStrike(*ctx.pWorld, ctx.casterEntity, tickCtx, state, false);
+            std::cout << "[JaxSim] E counter release caster=" << ctx.casterEntity << "\n";
+            return;
+        }
+
         state.bCounterStrikeActive = true;
         state.counterTimerSec = state.counterDurationSec;
+        state.counterRank = ctx.skillRank;
         ClearMove(*ctx.pWorld, ctx.casterEntity);
         std::cout << "[JaxSim] E counter start caster=" << ctx.casterEntity << "\n";
     }
@@ -211,11 +343,26 @@ namespace
 
 namespace JaxGameSim
 {
+    bool_t TryConsumeEmpowerForBasicAttack(CWorld& world, EntityID caster)
+    {
+        if (!world.HasComponent<JaxSimComponent>(caster))
+            return false;
+
+        JaxSimComponent& state = world.GetComponent<JaxSimComponent>(caster);
+        if (!state.bEmpowerActive)
+            return false;
+
+        state.bEmpowerActive = false;
+        state.empowerTimerSec = 0.f;
+        return true;
+    }
+
     f32_t ConsumeBasicAttackDamage(
         CWorld& world,
         EntityID caster,
         EntityID /*target*/,
         eTeam /*casterTeam*/,
+        u16_t actionFlags,
         f32_t baseDamage)
     {
         if (!world.HasComponent<JaxSimComponent>(caster))
@@ -224,12 +371,8 @@ namespace JaxGameSim
         JaxSimComponent& state = world.GetComponent<JaxSimComponent>(caster);
         f32_t damage = baseDamage;
 
-        if (state.bEmpowerActive)
-        {
+        if ((actionFlags & CombatActionFlags::JaxEmpower) != 0u)
             damage += state.empowerBonusDamage;
-            state.bEmpowerActive = false;
-            state.empowerTimerSec = 0.f;
-        }
 
         if (state.bUltActive)
         {
@@ -307,23 +450,7 @@ namespace JaxGameSim
                     {
                         state.counterTimerSec = std::max(0.f, state.counterTimerSec - tc.fDt);
                         if (state.counterTimerSec <= 0.f)
-                        {
-                            state.bCounterStrikeActive = false;
-                            if (world.HasComponent<TransformComponent>(entity) &&
-                                world.HasComponent<ChampionComponent>(entity))
-                            {
-                                const auto& champion = world.GetComponent<ChampionComponent>(entity);
-                                const Vec3 origin = world.GetComponent<TransformComponent>(entity).GetPosition();
-                                EnqueueCircleDamage(
-                                    world,
-                                    entity,
-                                    champion.team,
-                                    origin,
-                                    state.counterRadius,
-                                    state.counterDamage,
-                                    static_cast<u8_t>(eSkillSlot::E));
-                            }
-                        }
+                            ReleaseJaxCounterStrike(world, entity, tc, state, true);
                     }
 
                     if (state.bUltActive)

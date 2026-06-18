@@ -198,6 +198,67 @@ namespace Winters::Asset
         return ToRuntimePath(candidate);
     }
 
+    static std::filesystem::path FindTextureInModelDir(
+        const std::filesystem::path& modelDir,
+        const char* pFilename)
+    {
+        if (!pFilename || !pFilename[0])
+            return {};
+
+        const std::filesystem::path candidate = modelDir / WidenAscii(pFilename);
+        if (std::filesystem::exists(candidate))
+            return candidate;
+
+        return {};
+    }
+
+    static std::wstring ResolveKnownChampionDiffusePath(
+        const std::filesystem::path& modelDir,
+        const char* pMaterialName)
+    {
+        if (!pMaterialName || !pMaterialName[0])
+            return {};
+
+        const std::string championDir =
+            ToLowerAscii(NarrowAscii(modelDir.filename().wstring()));
+        const std::string materialName = ToLowerAscii(pMaterialName);
+        std::filesystem::path texturePath;
+
+        if (championDir == "viego")
+        {
+            if (materialName == "defaultmaterial" ||
+                materialName == "default" ||
+                materialName == "body")
+            {
+                texturePath = FindTextureInModelDir(modelDir, "viego_base_body_tx_cm.png");
+            }
+            else if (materialName == "sword" || materialName == "crown")
+            {
+                texturePath = FindTextureInModelDir(modelDir, "viego_base_crown_sword_tx_cm.png");
+            }
+            else if (materialName == "wraith")
+            {
+                texturePath = FindTextureInModelDir(modelDir, "viego_base_wraith_tx_cm.png");
+            }
+        }
+        else if (championDir == "sylas")
+        {
+            if (materialName == "defaultmaterial" ||
+                materialName == "sylas_base_mat")
+            {
+                texturePath = FindTextureInModelDir(modelDir, "sylas_base_tx_cm.png");
+            }
+            else if (materialName.find("gauntlet") != std::string::npos ||
+                materialName.find("chain") != std::string::npos ||
+                materialName.find("shackle") != std::string::npos)
+            {
+                texturePath = FindTextureInModelDir(modelDir, "sylas_base_shackles_tx_cm.png");
+            }
+        }
+
+        return texturePath.empty() ? std::wstring{} : ToRuntimePath(texturePath);
+    }
+
     bool CWMaterialWriter::WriteFromAssimp(
         const aiScene* pScene,
         const wchar_t* pSourceModelPath,
@@ -232,6 +293,13 @@ namespace Winters::Asset
             if (TryGetMaterialBaseColorPath(pMaterial, diffusePath))
             {
                 const std::wstring resolved = ResolveDiffusePath(pScene, modelDir, diffusePath);
+                if (!resolved.empty())
+                    wcsncpy_s(entry.diffuse_path, WMAT_MAX_PATH, resolved.c_str(), _TRUNCATE);
+            }
+            else
+            {
+                const std::wstring resolved =
+                    ResolveKnownChampionDiffusePath(modelDir, pName);
                 if (!resolved.empty())
                     wcsncpy_s(entry.diffuse_path, WMAT_MAX_PATH, resolved.c_str(), _TRUNCATE);
             }

@@ -27,6 +27,7 @@ public:
 
 	bool	Initialize(const std::string& strFbxPath,
 		const wchar_t* pHlslPath = L"Shaders/Mesh3D.hlsl");
+	static bool PrewarmModel(const std::string& strFbxPath);
 	void	UpdateTransform(const Mat4& matWorld);
 	void	SetYawTraceContext(u64_t snapshotTick,
 		u32_t entity,
@@ -35,14 +36,21 @@ public:
 		f32_t expectedYaw,
 		const Vec3& expectedForward);
 	void	ClearYawTraceContext();
+	void	SetForceStaticMeshPath(bool_t bEnabled);
 	void	UpdateCamera(const Mat4& matViewProj);
 	void	UpdateCamera(const Mat4& matViewProj, const Vec3& vCameraWorld);
 	void	Render();
+	void	RenderFrustumCulled(const Mat4& matViewProj);
 	void	RenderWithVisibility(const VisibilityMask& mask);
 	void	RenderNormalPass(DX11Shader* pMeshShader,
 		DX11Pipeline* pMeshPipeline,
 		DX11Shader* pSkinnedShader,
 		DX11Pipeline* pSkinnedPipeline);
+	void	RenderNormalPassFrustumCulled(DX11Shader* pMeshShader,
+		DX11Pipeline* pMeshPipeline,
+		DX11Shader* pSkinnedShader,
+		DX11Pipeline* pSkinnedPipeline,
+		const Mat4& matViewProj);
 	void	RenderNormalPassWithVisibility(DX11Shader* pMeshShader,
 		DX11Pipeline* pMeshPipeline,
 		DX11Shader* pSkinnedShader,
@@ -70,6 +78,10 @@ public:
 	bool HasAnimationByName(const std::string& strKeyword) const;
 	f32_t GetAnimationDurationSecondsByName(const std::string& strKeyword) const;
 	bool HasSkeleton() const;
+	bool TryResolveBoneWorldPosition(const std::string& strBoneName,
+		const Mat4& matEntityWorld,
+		const Vec3& vLocalOffset,
+		Vec3& vOutWorldPos) const;
 	bool UsesPBR() const;
 	void SetAmbientOcclusionSRV(void* pNativeSRV);
 	void SetMaterialOverrideColor(const Vec4& color, bool_t bEnabled);

@@ -36,6 +36,9 @@ public:
     void SetDepthMode(eFxDepthMode eMode);
 
     void Render(IRHIDevice* pDevice, const Mat4& matViewProj);
+    bool_t BeginBatch(IRHIDevice* pDevice, const Mat4& matViewProj);
+    void RenderBatched();
+    void EndBatch();
 
 public:
     void SetFxParams(const CBFxParams& params);

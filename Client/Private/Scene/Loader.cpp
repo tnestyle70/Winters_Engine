@@ -1,4 +1,4 @@
-#include "Scene/Loader.h"
+﻿#include "Scene/Loader.h"
 #include "GameInstance.h"
 #include "ECS/Systems/EntityBlueprint.h"
 #include "ECS/World.h"
@@ -10,6 +10,7 @@
 #include "GameObject/ChampionDef.h"
 #include "GameObject/FX/FxCuePlayer.h"
 #include "GamePlay/ChampionCatalog.h"
+#include "Scene/InGameRosterSpawner.h"
 #include "Scene/LobbyRosterHelpers.h"
 
 #include <chrono>
@@ -137,7 +138,7 @@ void CLoader::PreloadInGameAssets()
             : eChampion::EZREAL;
 
         PreloadChampionAssets(eFallbackChampion);
-        PreloadChampionAssets(eChampion::SYLAS);
+        PreloadChampionAssets(CInGameRosterSpawner::ResolvePracticeBotChampion());
         SetProgress(0.95f);
         return;
     }
@@ -204,7 +205,7 @@ void CLoader::Register_Blueprints_InGame()
 {
     const uint32_t SCENE = static_cast<uint32_t>(eSceneID::InGame);
 
-    //무슨 원리로 Entity가 추가되게 되는 거지?
+    //臾댁뒯 ?먮━濡?Entity媛 異붽??섍쾶 ?섎뒗 嫄곗??
     CEntityBlueprint blueprint;
     blueprint.Add([](CWorld& world, EntityID entity)
         {
@@ -224,11 +225,8 @@ void CLoader::Register_Blueprints_InGame()
             {
                 world.AddComponent<ServerIdComponent>(entity);
             });
-    const HRESULT hr = CGameInstance::Get()->Add_Blueprint(SCENE, L"Sylas", std::move(blueprint));
-    if (SUCCEEDED(hr))
-        OutputDebugStringA("[Loader] Sylas Blueprint registered\n");
-    else
-        OutputDebugStringA("[Loader] Sylas Blueprint already registered or registration failed\n");
+	const HRESULT hr = CGameInstance::Get()->Add_Blueprint(SCENE, L"Sylas", std::move(blueprint));
+	(void)hr;
 }
 
 NS_END

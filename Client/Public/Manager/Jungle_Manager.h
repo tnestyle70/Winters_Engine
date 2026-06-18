@@ -33,6 +33,10 @@ public:
         Krug = 4,
         Gromp = 5,
         Wolf = 6,
+        Razorbeak = 7,
+        RazorbeakMini = 8,
+        WolfMini = 9,
+        KrugMini = 10,
     };
 
     HRESULT Initialize(CWorld* pWorld);
@@ -41,6 +45,7 @@ public:
     HRESULT Save_ToFile(FILE* pFile) const;
     HRESULT Load_FromFile(FILE* pFile);
 
+    void    Update(f32_t dt);
     void    Render(const Mat4& matViewProj, const Vec3& vCameraWorld = Vec3{},
         void* pAmbientOcclusionSRV = nullptr);
 
@@ -56,18 +61,35 @@ public:
     TransformComponent* Get_Transform(uint32_t iIndex);
     bool_t              Get_Visible(uint32_t iIndex) const;
     void                Set_Visible(uint32_t iIndex, bool_t bVisible);
+    EntityID            Find_NetworkBindCandidate(
+        eJungleSub sub,
+        const Vec3& vPos,
+        f32_t maxDistance) const;
 
     f32_t Get_DefaultScale() const { return m_fDefaultScale; }
     void  Set_DefaultScale(f32_t s) { m_fDefaultScale = s; }
 
 private:
+    struct JungleVisualState
+    {
+        u16_t baseAnimId = 0;
+        u16_t lastActionAnimId = 0;
+        u32_t lastActionSeq = 0;
+        f32_t actionTimer = 0.f;
+        f32_t animUpdateAccumulator = 0.f;
+        bool_t bAction = false;
+        bool_t bDead = false;
+    };
+
     static const char* ResolveModelPath(eJungleSub sub);
+    void  Apply_NetworkAnimation(EntityID entity, ModelRenderer& renderer, f32_t dt);
     void  Make_AutoName(eJungleSub sub, char* pOutBuf, size_t capacity);
     EntityID Spawn_FromEntry(const Winters::Map::JungleEntry& entry);
 
     CWorld* m_pWorld = nullptr;
     std::vector<EntityID>                                         m_vecEntities;
     std::unordered_map<EntityID, std::unique_ptr<ModelRenderer>>  m_mapRenderers;
+    std::unordered_map<EntityID, JungleVisualState>               m_mapVisualStates;
     std::vector<std::string>                                      m_vecNames;
 
     f32_t    m_fDefaultScale = 0.01f;

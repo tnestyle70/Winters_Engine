@@ -55,6 +55,39 @@ namespace
         s_localOnly = (bSmoke && !bHumanRoster && !bFullRoster) ? 1 : 0;
         return s_localOnly == 1;
     }
+
+}
+
+eChampion CInGameRosterSpawner::ResolvePracticeBotChampion()
+{
+    const wchar_t* pCommandLine = GetCommandLineW();
+    const wchar_t* pToken =
+        pCommandLine ? wcsstr(pCommandLine, L"--practice-bot=") : nullptr;
+    if (!pToken)
+        return eChampion::SYLAS;
+
+    pToken += wcslen(L"--practice-bot=");
+    wchar_t name[32]{};
+    for (u32_t i = 0; i < 31u && pToken[i] && pToken[i] != L' '; ++i)
+        name[i] = pToken[i];
+
+    struct { const wchar_t* pName; eChampion champion; } kTable[] = {
+        { L"IRELIA", eChampion::IRELIA }, { L"YASUO", eChampion::YASUO },
+        { L"KALISTA", eChampion::KALISTA }, { L"SYLAS", eChampion::SYLAS },
+        { L"VIEGO", eChampion::VIEGO }, { L"ANNIE", eChampion::ANNIE },
+        { L"ASHE", eChampion::ASHE }, { L"FIORA", eChampion::FIORA },
+        { L"GAREN", eChampion::GAREN }, { L"RIVEN", eChampion::RIVEN },
+        { L"ZED", eChampion::ZED }, { L"EZREAL", eChampion::EZREAL },
+        { L"YONE", eChampion::YONE }, { L"JAX", eChampion::JAX },
+        { L"MASTERYI", eChampion::MASTERYI }, { L"KINDRED", eChampion::KINDRED },
+        { L"LEESIN", eChampion::LEESIN },
+    };
+    for (const auto& row : kTable)
+    {
+        if (_wcsicmp(name, row.pName) == 0)
+            return row.champion;
+    }
+    return eChampion::SYLAS;
 }
 
 void CInGameRosterSpawner::EnsureLocalRosterFallback(GameContext& context)
@@ -85,7 +118,7 @@ void CInGameRosterSpawner::EnsureLocalRosterFallback(GameContext& context)
     practiceBot.team = 1;
     practiceBot.bBot = true;
     practiceBot.netId = 1005;
-    practiceBot.champion = eChampion::SYLAS;
+    practiceBot.champion = ResolvePracticeBotChampion();
     practiceBot.botDifficulty = 2;
 
     Winters::DevSmoke::Log(

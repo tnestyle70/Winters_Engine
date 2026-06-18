@@ -21,6 +21,11 @@ enum class eCombatActionMovePolicy : u8_t
     LockUntilEnd = 3,
 };
 
+namespace CombatActionFlags
+{
+    constexpr u16_t JaxEmpower = 0x0001u;
+}
+
 struct CombatActionComponent
 {
     eCombatActionKind eKind = eCombatActionKind::None;

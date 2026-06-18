@@ -1,4 +1,4 @@
-#include "GamePlay/ChampionRegistry.h"
+﻿#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -119,7 +119,6 @@ namespace
             CVisualHookRegistry::Instance().Register(kAsh_E_Cast, &Ashe::Visual::OnCastFrame_E_Visual);
             CVisualHookRegistry::Instance().Register(kAsh_R_Cast, &Ashe::Visual::OnCastFrame_R_Visual);
 
-            OutputDebugStringA("[Ashe] Registration complete\n");
         }
     };
 

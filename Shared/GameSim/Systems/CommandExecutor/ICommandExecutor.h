@@ -68,6 +68,7 @@ enum class eCommandKind : uint8_t
     Recall = 7,
     RecallCancel = 8,
     AIDebugControl = 9,
+    Flash = 10,
 };
 
 struct GameCommandWire
@@ -125,6 +126,7 @@ private:
     void HandleRecall(CWorld&, const TickContext&, const GameCommand&);
     void HandleRecallCancel(CWorld&, const TickContext&, const GameCommand&);
     void HandleAIDebugControl(CWorld&, const TickContext&, const GameCommand&);
+    void HandleFlash(CWorld&, const TickContext&, const GameCommand&);
 };
 
 GameCommand BuildServerCommand(const GameCommandWire& wire,

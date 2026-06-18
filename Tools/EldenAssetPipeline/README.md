@@ -110,6 +110,35 @@ Tools\Bin\Debug\WintersAssetConverter.exe info ^
   "C:\Users\tnest\Desktop\EldenRing\_winters_probe\sfx\WP_A_7051.wmesh"
 ```
 
+Convert sample HKX animations for cooked FullGame characters into `.wanim`:
+
+```bat
+python Tools\EldenAssetPipeline\elden_pipeline.py convert-hkx-anim ^
+  --game-root "C:\Program Files (x86)\Steam\steamapps\common\ELDEN RING\Game" ^
+  --resource-root "Client\Bin\Resource\EldenRing" ^
+  --work-root "C:\Users\tnest\Desktop\EldenRingExtract\_full_pipeline" ^
+  --blender "C:\Users\tnest\Downloads\blender-4.2.18-windows-x64\blender-4.2.18-windows-x64\blender.exe" ^
+  --converter "Tools\Bin\Debug\WintersAssetConverter.exe" ^
+  --character c2060 --max-anims 6 ^
+  --out "C:\Users\tnest\Desktop\EldenRingExtract\_full_pipeline\runs\hkx_anim_sample.json"
+```
+
+See `.md/EldenRing/13_HKX_ANIMATION_PIPELINE.md` for the chain, pass criteria, and known limits.
+
+Re-cook FullGame characters into the runtime (LoL-convention) layout the engine loader expects
+(same-stem wmesh/wskel/wmat + anims/ + textures/ with repo-relative diffuse paths):
+
+```bat
+python Tools\EldenAssetPipeline\elden_pipeline.py cook-runtime-character ^
+  --resource-root "Client\Bin\Resource\EldenRing" ^
+  --converter "Tools\Bin\Debug\WintersAssetConverter.exe" ^
+  --repo-root "C:\Users\tnest\Desktop\Winters" ^
+  --character c2060 --character c2010 ^
+  --out "C:\Users\tnest\Desktop\EldenRingExtract\_full_pipeline\runs\runtime_cook.json"
+```
+
+See `.md/EldenRing/14_PIPELINE_V2_RUNTIME_CONTRACT.md` for the full runtime asset contract.
+
 ## Notes
 
 - `parse-matbin` consumes WitchyBND XML, not raw MATBIN binaries.

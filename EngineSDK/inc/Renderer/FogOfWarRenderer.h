@@ -22,9 +22,12 @@ public:
 
     void UpdateTexture(const u8_t* pData, u32_t dim);
     void RenderWorldOverlay(IRHIDevice* pDevice, const Mat4& matViewProj,
-        f32_t fWorldSize, f32_t fYOffset);
-    void* Get_NativeSRV() const;
-
+        const Vec2& vWorldAtUv00,
+        const Vec2& vWorldAtUv10,
+        const Vec2& vWorldAtUv01,
+        f32_t fYOffset);
+    void* GetNativeSRV() const;
+    void* GetMinimapOverlaySRV() const;
 private:
     CFogOfWarRenderer() = default;
 

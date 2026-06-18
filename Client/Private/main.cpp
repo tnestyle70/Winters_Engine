@@ -9,6 +9,7 @@
 #include "WintersEngine.h"
 #include "GameApp.h"
 #include "Defines.h"
+#include <cstdlib>
 #include <cwchar>
 
 extern "C"
@@ -19,15 +20,68 @@ extern "C"
 
 namespace
 {
-    eEngineRHIBackend ParseRequestedRHIBackend()
+    constexpr uint32_t kDefaultTargetFPS = 60u;
+
+    const wchar_t* GetCommandLineText()
     {
         const wchar_t* pCommandLine = ::GetCommandLineW();
-        if (!pCommandLine)
-            return eEngineRHIBackend::DX11;
+        return pCommandLine ? pCommandLine : L"";
+    }
 
-        if (wcsstr(pCommandLine, L"--rhi=dx11") || wcsstr(pCommandLine, L"/rhi:dx11"))
+    bool_t HasCommandLineFlag(const wchar_t* pLongFlag, const wchar_t* pShortFlag = nullptr)
+    {
+        const wchar_t* pCommandLine = GetCommandLineText();
+        return (pLongFlag && wcsstr(pCommandLine, pLongFlag)) ||
+            (pShortFlag && wcsstr(pCommandLine, pShortFlag));
+    }
+
+    const wchar_t* FindCommandLineValue(const wchar_t* pPrefix)
+    {
+        if (!pPrefix)
+            return nullptr;
+
+        const wchar_t* pFound = wcsstr(GetCommandLineText(), pPrefix);
+        return pFound ? pFound + wcslen(pPrefix) : nullptr;
+    }
+
+    uint32_t ParseRequestedTargetFPS()
+    {
+        if (HasCommandLineFlag(L"--fps=0", L"/fps:0") ||
+            HasCommandLineFlag(L"--uncapped", L"/uncapped"))
+        {
+            return 0u;
+        }
+
+        const wchar_t* pValue = FindCommandLineValue(L"--fps=");
+        if (!pValue)
+            pValue = FindCommandLineValue(L"/fps:");
+        if (!pValue)
+            return kDefaultTargetFPS;
+
+        wchar_t* pEnd = nullptr;
+        const unsigned long parsed = std::wcstoul(pValue, &pEnd, 10);
+        if (pEnd == pValue)
+            return kDefaultTargetFPS;
+
+        return static_cast<uint32_t>(parsed);
+    }
+
+    bool_t ParseRequestedVSync()
+    {
+        if (HasCommandLineFlag(L"--vsync", L"/vsync"))
+            return true;
+        if (HasCommandLineFlag(L"--no-vsync", L"/no-vsync"))
+            return false;
+        return false;
+    }
+
+    eEngineRHIBackend ParseRequestedRHIBackend()
+    {
+        if (HasCommandLineFlag(L"--rhi=dx11", L"/rhi:dx11"))
             return eEngineRHIBackend::DX11;
-        if (wcsstr(pCommandLine, L"--rhi=null") || wcsstr(pCommandLine, L"/rhi:null"))
+        if (HasCommandLineFlag(L"--rhi=dx12", L"/rhi:dx12"))
+            return eEngineRHIBackend::DX12;
+        if (HasCommandLineFlag(L"--rhi=null", L"/rhi:null"))
             return eEngineRHIBackend::Null;
 
         return eEngineRHIBackend::DX11;
@@ -49,7 +103,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
     config.allowRHIFallback = true;
     config.windowWidth = 1280;
     config.windowHeight = 720;
-    config.vsync = true;
+    config.vsync = ParseRequestedVSync();
+    config.targetFPS = ParseRequestedTargetFPS();
     config.fullscreen = false;
     config.iNumScenes = static_cast<uint32_t>(eSceneID::End);
 

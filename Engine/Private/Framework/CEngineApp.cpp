@@ -9,6 +9,7 @@
 #include "RHI/DX11/DX11Shader.h"
 #include "RHI/DX11/DX11Pipeline.h"
 #include "RHI/DX11/BlendStateCache.h"
+#include "RHI/DX12/DX12Device.h"
 
 #pragma push_macro("new")
 #undef new
@@ -73,6 +74,16 @@ namespace
         return config.vsync && config.targetFPS == 0u;
     }
 
+    void BuildProfilerCapturePath(char* pOut, size_t sizeBytes)
+    {
+        CreateDirectoryW(L"Profiles", nullptr);
+
+        SYSTEMTIME st{};
+        GetLocalTime(&st);
+        sprintf_s(pOut, sizeBytes, "Profiles/profiler_%04u%02u%02u_%02u%02u%02u.json",
+            st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+    }
+
     std::unique_ptr<IRHIDevice> CreateDX11DeviceForWindow(CWin32Window& window, const EngineConfig& config)
     {
         DeviceDesc devDesc;
@@ -82,6 +93,18 @@ namespace
         devDesc.vsync      = ShouldUsePresentationVSync(config);
         devDesc.fullscreen = config.fullscreen;
         return CDX11Device::Create(devDesc);
+    }
+
+    std::unique_ptr<IRHIDevice> CreateDX12DeviceForWindow(CWin32Window& window,
+        const EngineConfig& config)
+    {
+        DX12DeviceDesc devDesc;
+        devDesc.hwnd = window.GetHandle();
+        devDesc.width = config.windowWidth;
+        devDesc.height = config.windowHeight;
+        devDesc.vsync = ShouldUsePresentationVSync(config);
+        devDesc.fullscreen = config.fullscreen;
+        return CDX12Device::Create(devDesc);
     }
 }
 
@@ -102,6 +125,7 @@ bool CEngineApp::Initialize(IWintersApp* pGameApp, const EngineConfig& config)
     m_spInstance = this;
     m_pGameApp  = pGameApp;
     m_uTargetFPS = config.targetFPS;
+
     if (config.vsync && m_uTargetFPS > 0u)
     {
         OutputDebugStringA("[CEngineApp] targetFPS cap active; RHI Present VSync disabled\n");
@@ -127,8 +151,19 @@ bool CEngineApp::Initialize(IWintersApp* pGameApp, const EngineConfig& config)
         return m_pDevice != nullptr;
     };
 
+    const auto tryDX12 = [&]() -> bool_t
+    {
+        m_pDevice = CreateDX12DeviceForWindow(m_Window, config);
+        if (m_pDevice)
+            OutputDebugStringA("[CEngineApp] RHI backend selected: DX12\n");
+        return m_pDevice != nullptr;
+    };
+
     switch (config.rhiBackend)
     {
+    case eEngineRHIBackend::DX12:
+        tryDX12();
+        break;
     case eEngineRHIBackend::DX11:
     case eEngineRHIBackend::Auto:
         tryDX11();
@@ -161,14 +196,22 @@ bool CEngineApp::Initialize(IWintersApp* pGameApp, const EngineConfig& config)
     }
 
 
-    m_bDX11RuntimeEnabled = true;
+    m_bSceneRuntimeEnabled = true;
+    m_bDX11RuntimeEnabled = (m_pDevice->GetBackend() == eRHIBackend::DX11);
+    m_bImGuiRuntimeEnabled =
+        m_bDX11RuntimeEnabled || (m_pDevice->GetBackend() == eRHIBackend::DX12);
 
-    if(!m_ImGui.Initialize(m_Window.GetHandle(), m_pDevice.get()))
+    if (m_bImGuiRuntimeEnabled)
     {
-        OutputDebugStringA("[CEngineApp] ImGui initialization failed\n");
-        return false;
+        if (!m_ImGui.Initialize(m_Window.GetHandle(), m_pDevice.get()))
+        {
+            OutputDebugStringA("[CEngineApp] ImGui initialization failed\n");
+            return false;
+        }
     }
 
+    if (m_bDX11RuntimeEnabled)
+    {
 
     m_ResourceCache.Initialize(m_pDevice.get());
 
@@ -204,6 +247,12 @@ bool CEngineApp::Initialize(IWintersApp* pGameApp, const EngineConfig& config)
         return false;
     }
 
+    }
+    else
+    {
+        OutputDebugStringA("[CEngineApp] Non-DX11 backend: skipping legacy DX11 renderer bootstrap\n");
+    }
+
     if (FAILED(CGameInstance::Get()->Add_Timer(L"Timer_Default")))
     {
         OutputDebugStringA("[CEngineApp] Add_Timer(Timer_Default) failed\n");
@@ -224,46 +273,77 @@ bool CEngineApp::Initialize(IWintersApp* pGameApp, const EngineConfig& config)
 
 int32 CEngineApp::Run()
 {
-    const bool_t bLimitFrameRate = m_uTargetFPS > 0u;
+    bool_t bLimitFrameRate = m_uTargetFPS > 0u;
     const FrameClock::duration targetFrameDuration = bLimitFrameRate
         ? std::chrono::duration_cast<FrameClock::duration>(
             std::chrono::duration<f64_t>(1.0 / static_cast<f64_t>(m_uTargetFPS)))
         : FrameClock::duration::zero();
     const CScopedFrameTimerResolution timerResolution(bLimitFrameRate);
 
+    WINTERS_PROFILE_THREAD_NAME("MainThread");
+
     while (m_bRunning)
     {
         const auto frameStart = FrameClock::now();
-
-        CGameInstance::Get()->Profiler_Begin();
-        WINTERS_PROFILE_SCOPE("Frame");
-
-        if (CInput::Get().IsKeyPressed(VK_F3))
-            CGameInstance::Get()->Profiler_Toggle();
-
-        if (!m_Window.PumpMessages())
-        {
-            m_bRunning = false;
-            break;
-        }
-
-        CGameInstance::Get()->Update_TimeDelta(L"Timer_Default");
-        float32 deltaTime = CGameInstance::Get()->Get_TimeDelta(L"Timer_Default");
-
-        CGameInstance::Get()->Tick_Engine();
+        bool_t bSaveProfilerJson = false;
+        bool_t bOpenProfilerOverlayAfterSave = false;
 
         {
-            WINTERS_PROFILE_SCOPE("Update");
-            Update(deltaTime);
-        }
-        {
-            WINTERS_PROFILE_SCOPE("Render");
-            Render();
+            CGameInstance::Get()->Profiler_Begin();
+            WINTERS_PROFILE_SCOPE("Frame");
+
+            if (!m_Window.PumpMessages())
+            {
+                m_bRunning = false;
+            }
+            else
+            {
+                if (CInput::Get().IsKeyPressed(VK_F3))
+                    CGameInstance::Get()->Profiler_Toggle();
+                if (CInput::Get().IsKeyPressed(VK_F4))
+                {
+                    bSaveProfilerJson = true;
+                    bOpenProfilerOverlayAfterSave = true;
+                }
+                // F11: 캡 해제 측정용 프레임 리미터 토글 (targetFPS 설정이 있을 때만 의미)
+                if (m_uTargetFPS > 0u && CInput::Get().IsKeyPressed(VK_F11))
+                    bLimitFrameRate = !bLimitFrameRate;
+
+                CGameInstance::Get()->Update_TimeDelta(L"Timer_Default");
+                float32 deltaTime = CGameInstance::Get()->Get_TimeDelta(L"Timer_Default");
+
+                CGameInstance::Get()->Tick_Engine();
+
+                {
+                    WINTERS_PROFILE_SCOPE("Update");
+                    Update(deltaTime);
+                }
+                {
+                    WINTERS_PROFILE_SCOPE("Render");
+                    Render();
+                }
+
+                WINTERS_PROFILE_COUNT("Frame::LimiterActive", bLimitFrameRate ? 1u : 0u);
+                WINTERS_PROFILE_COUNT("Frame::TargetFPS", m_uTargetFPS);
+            }
         }
 
         CGameInstance::Get()->Profiler_End();
+        WINTERS_PROFILE_FRAME_MARK;
+        if (bSaveProfilerJson)
+        {
+            char capturePath[96] = {};
+            BuildProfilerCapturePath(capturePath, sizeof(capturePath));
+            CGameInstance::Get()->Profiler_SaveJson(capturePath);
+            CGameInstance::Get()->Profiler_SaveJson("profiler.json");
+        }
+        if (bOpenProfilerOverlayAfterSave && !CGameInstance::Get()->Profiler_IsOverlayVisible())
+            CGameInstance::Get()->Profiler_Toggle();
 
         CInput::Get().EndFrame();
+
+        if (!m_bRunning)
+            break;
 
         if (bLimitFrameRate)
             SleepUntilFrameTarget(frameStart + targetFrameDuration);
@@ -275,7 +355,7 @@ int32 CEngineApp::Run()
 
 void CEngineApp::Update(f32_t deltaTime)
 {
-    if (!m_bDX11RuntimeEnabled)
+    if (!m_bSceneRuntimeEnabled)
     {
         if (m_pGameApp)
             m_pGameApp->OnUpdate(deltaTime);
@@ -283,40 +363,144 @@ void CEngineApp::Update(f32_t deltaTime)
     }
 
     auto* pSceneManager = CGameInstance::Get()->Get_SceneManager();
-    pSceneManager->Update(deltaTime);
-    pSceneManager->LateUpdate(deltaTime);
+    if (pSceneManager)
+    {
+        pSceneManager->Update(deltaTime);
+        pSceneManager->LateUpdate(deltaTime);
+    }
 }
 
 void CEngineApp::Render()
 {
-    m_pDevice->BeginFrame(0.08f, 0.08f, 0.12f, 1.f);
+    if (!m_pDevice)
+        return;
+
+    {
+        WINTERS_PROFILE_SCOPE("Render::BeginFrame");
+        // 기본 클리어 색. WINTERS_CLEAR_RGB="r,g,b" 환경변수로 오버라이드 가능
+        // (예: EldenRing 쇼케이스의 하늘색 배경). 미설정 시 기존 어두운 남색.
+        static f32_t s_clear[3] = { 0.08f, 0.08f, 0.12f };
+        static bool s_clearInit = false;
+        if (!s_clearInit)
+        {
+            s_clearInit = true;
+            char buf[64]{};
+            size_t len = 0;
+            if (getenv_s(&len, buf, sizeof(buf), "WINTERS_CLEAR_RGB") == 0 && len > 0)
+            {
+                float r = 0.f, g = 0.f, b = 0.f;
+                if (sscanf_s(buf, "%f,%f,%f", &r, &g, &b) == 3)
+                {
+                    s_clear[0] = r; s_clear[1] = g; s_clear[2] = b;
+                }
+            }
+        }
+        m_pDevice->BeginFrame(s_clear[0], s_clear[1], s_clear[2], 1.f);
+    }
+
+    auto* pSceneManager = CGameInstance::Get()->Get_SceneManager();
 
     if (m_bDX11RuntimeEnabled)
     {
-        m_ImGui.BeginFrame();
+        {
+            WINTERS_PROFILE_SCOPE("ImGui::BeginFrame");
+            m_ImGui.BeginFrame();
+        }
 
-        auto* pSceneManager = CGameInstance::Get()->Get_SceneManager();
-        pSceneManager->Render();
-
-        pSceneManager->ImGui();
+        if (pSceneManager)
+        {
+            {
+                WINTERS_PROFILE_SCOPE("Scene::Render");
+                pSceneManager->Render();
+            }
+            {
+                WINTERS_PROFILE_SCOPE("Scene::ImGui");
+                pSceneManager->ImGui();
+            }
+        }
 
         if (m_pGameApp)
+        {
+            WINTERS_PROFILE_SCOPE("App::ImGui");
             m_pGameApp->OnImGui();
+        }
 
-        DebugRender();
+        {
+            WINTERS_PROFILE_SCOPE("EngineDebug::Render");
+            DebugRender();
+        }
 
-        //Profiler Overlay(F3 Toggle)
-        CGameInstance::Get()->Profiler_DrawOverlay();
+        // Profiler overlay: F3 toggles, F4 opens after JSON capture.
+        if (CGameInstance::Get()->Profiler_IsOverlayVisible())
+        {
+            WINTERS_PROFILE_SCOPE("ProfilerOverlay::Render");
+            CGameInstance::Get()->Profiler_DrawOverlay();
+        }
 
-        m_ImGui.EndFrame();
+        {
+            WINTERS_PROFILE_SCOPE("ImGui::EndFrame");
+            m_ImGui.EndFrame();
+        }
 
-        CGameInstance::Get()->UI_Render_Cursor();
+        {
+            WINTERS_PROFILE_SCOPE("UI::Cursor");
+            CGameInstance::Get()->UI_Render_Cursor();
+        }
+    }
+    else if (m_bSceneRuntimeEnabled)
+    {
+        if (m_bImGuiRuntimeEnabled)
+        {
+            WINTERS_PROFILE_SCOPE("ImGui::BeginFrame");
+            m_ImGui.BeginFrame();
+        }
+
+        if (pSceneManager)
+        {
+            WINTERS_PROFILE_SCOPE("Scene::Render");
+            pSceneManager->Render();
+        }
+
+        if (m_pGameApp)
+        {
+            WINTERS_PROFILE_SCOPE("App::Render");
+            m_pGameApp->OnRender();
+        }
+
+        if (m_bImGuiRuntimeEnabled)
+        {
+            if (pSceneManager)
+            {
+                WINTERS_PROFILE_SCOPE("Scene::ImGui");
+                pSceneManager->ImGui();
+            }
+
+            if (m_pGameApp)
+            {
+                WINTERS_PROFILE_SCOPE("App::ImGui");
+                m_pGameApp->OnImGui();
+            }
+
+            {
+                WINTERS_PROFILE_SCOPE("EngineDebug::Render");
+                DebugRender();
+            }
+
+            {
+                WINTERS_PROFILE_SCOPE("ImGui::EndFrame");
+                m_ImGui.EndFrame();
+            }
+        }
     }
     else if (m_pGameApp)
     {
+        WINTERS_PROFILE_SCOPE("App::Render");
         m_pGameApp->OnRender();
     }
-    m_pDevice->EndFrame();
+    {
+        WINTERS_PROFILE_SCOPE("Render::EndFrame");
+        m_pDevice->EndFrame();
+    }
 }
 
 void CEngineApp::DebugRender()
@@ -365,9 +549,14 @@ void CEngineApp::Shutdown()
         m_ResourceCache.Clear();
 
         ReleaseSharedShaders();
-
-        m_ImGui.ShutDown();
     }
+
+    if (m_bImGuiRuntimeEnabled)
+        m_ImGui.ShutDown();
+
+    m_bSceneRuntimeEnabled = false;
+    m_bDX11RuntimeEnabled = false;
+    m_bImGuiRuntimeEnabled = false;
 
     CGameInstance::Get()->Shutdown_Engine();
 

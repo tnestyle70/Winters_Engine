@@ -51,6 +51,12 @@ void CCPUProfiler::EndFrame()
 	m_vCurrentCounters.clear();
 	m_vLastScopeStats.swap(m_vCurrentScopeStats);
 	m_vCurrentScopeStats.clear();
+
+#ifdef WINTERS_PROFILING
+	// 프레임 확정 카운터를 Tracy plot 으로 전송 (이름은 string literal 이라 수명 보장).
+	for (const auto& c : m_vLastCounters)
+		TracyPlot(c.pName, static_cast<int64_t>(c.value));
+#endif
 }
 
 void CCPUProfiler::PushScope(const char* pName)
@@ -111,7 +117,9 @@ void CCPUProfiler::AddCounter(const char* pName, uint64_t delta)
 	std::lock_guard<std::mutex> lk(m_Mutex);
 	for (auto& c : m_vCurrentCounters)
 	{
-		if (c.pName == pName)
+		// 포인터 비교는 DLL/번역단위 간 동일 리터럴이 다른 주소를 가질 때
+		// 같은 카운터를 중복 행으로 만든다 (scope 통계와 동일하게 strcmp 비교).
+		if (SameProfilerName(c.pName, pName))
 		{
 			c.value += delta;
 			return;

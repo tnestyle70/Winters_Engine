@@ -1,6 +1,5 @@
 #pragma once
 #include "IScene.h"
-#include "Renderer/CubeRenderer.h"
 #include "DynamicCamera.h"
 #include "Core/CTransform.h"
 #include "Renderer/ModelRenderer.h"
@@ -13,7 +12,6 @@
 #include "Renderer/RHIFxSpriteRenderer.h"
 #include "Resource/Texture.h"
 #include "RHI/RHIHandles.h"
-#include "Shared/GameSim/Core/Determinism/DeterministicRng.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
 
 #include "ECS/World.h"
@@ -34,14 +32,11 @@
 #include "GameObject/FX/FxMeshSystem.h"
 #include "GameObject/FX/FxMeshComponent.h"
 #include "GameObject/Champion/Irelia/IreliaBladeSystem.h"
-#include "GameObject/Champion/Irelia/Irelia_Tuning.h"
-#include "GameObject/Champion/Kalista/Kalista_Tuning.h"
 #include "Renderer/FxStaticMeshRenderer.h"
 
 #include "GameObject/FX/WindWallSystem.h"
 #include "GameObject/Champion/Yasuo/YasuoProjectileSystem.h"
 #include "GameObject/Champion/Yasuo/PendingHitSystem.h"
-#include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
 #include "GameObject/Champion/Kalista/KalistaProjectileSystem.h"
 #include "GameObject/Champion/Kalista/KalistaRendSystem.h"
 #include "GameObject/Champion/Kalista/KalistaFxPresets.h"
@@ -51,41 +46,26 @@
 #include <imgui.h>
 #pragma pop_macro("new")
 
+#include <deque>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 class CClientNetwork;
 class CCommandSerializer;
+class CReplayPlayer;
 class CSnapshotApplier;
-class CInGameBootstrapBridge;
-class CInGameChampionStateBridge;
-class CInGameCombatInputBridge;
-class CInGameLifecycleBridge;
-class CInGamePlayerControlBridge;
-class CInGamePlayerTransformBridge;
-class CInGameRenderBridge;
-class CInGameSkillDispatchBridge;
 
 namespace Engine
 {
-    class CGameplayCollisionSystem;
-    class CMinionSeparationSystem;
     class CMapSurfaceSampler;
 }
 
 class CScene_InGame final : public IScene
 {
-    friend class CInGameBootstrapBridge;
-    friend class CInGameChampionStateBridge;
-    friend class CInGameCombatInputBridge;
-    friend class CInGameLifecycleBridge;
-    friend class CInGamePlayerControlBridge;
-    friend class CInGamePlayerTransformBridge;
-    friend class CInGameRenderBridge;
-    friend class CInGameSkillDispatchBridge;
-
 public:
     CScene_InGame();
+    explicit CScene_InGame(const wstring_t& replayPath);
     ~CScene_InGame() override;
 
     bool OnEnter()              override;
@@ -93,7 +73,6 @@ public:
     void OnUpdate(f32_t dt)     override;
     void OnLateUpdate(f32_t dt) override;
     void OnRender()             override;
-    void OnSnapshot(const u8_t* bytes, u32_t len);
     void OnImGui()              override;
 
 public:
@@ -118,6 +97,8 @@ public:
 
     bool_t HasPlayerRenderer() const { return m_pPlayerRenderer != nullptr; }
     bool_t IsNetworkAuthoritativeGameplay() const { return m_bNetworkAuthoritativeGameplay; }
+    bool_t IsReplayPlaybackMode() const { return m_bReplayPlaybackMode; }
+    bool_t ShouldRevealAllForPlayback() const { return m_bReplayPlaybackMode; }
     CCommandSerializer* GetCommandSerializer() const { return m_pCommandSerializer.get(); }
     CClientNetwork* GetNetworkView() const { return m_pNetworkView; }
     CSnapshotApplier* GetSnapshotApplier() const { return m_pSnapshotApplier.get(); }
@@ -192,6 +173,10 @@ public:
     void     SetDbgShowChampions(bool_t b) { m_bDbgShowChampions = b; }
     bool_t   IsDbgShowMinionMovement() const { return m_bDbgShowMinionMovement; }
     void     SetDbgShowMinionMovement(bool_t b) { m_bDbgShowMinionMovement = b; }
+    bool_t   IsDbgShowChampionAIText() const { return m_bDbgShowChampionAIText; }
+    void     SetDbgShowChampionAIText(bool_t b) { m_bDbgShowChampionAIText = b; }
+    bool_t   IsDbgShowChampionAIRanges() const { return m_bDbgShowChampionAIRanges; }
+    void     SetDbgShowChampionAIRanges(bool_t b) { m_bDbgShowChampionAIRanges = b; }
     f32_t    GetDbgNavRadius() const { return m_fDbgNavRadius; }
     void     SetDbgNavRadius(f32_t r) { m_fDbgNavRadius = r; }
     f32_t    GetNavPlayableBaseY() const { return m_fNavPlayableBaseY; }
@@ -227,20 +212,25 @@ public:
     bool_t IsWalkableMoveSegment(const Vec3& from, const Vec3& to, f32_t radiusWorld = 0.f) const;
     bool_t TryResolveNearestWalkablePosition(const Vec3& rawPos, Vec3& outPos, int32_t maxRadius = 8) const;
     void RebuildClientPathNavGrid();
-    Engine::CGameplayCollisionSystem* GetGameplayCollisionSystem() const { return m_pGameplayCollisionSystem.get(); }
-    Engine::CMinionSeparationSystem* GetMinionSeparationSystem() const { return m_pMinionSeparationSystem; }
+    void UpdateReplayPlayback(f32_t dt);
+    void DrawReplayControlPanel();
+    bool_t SendStopReplayRequest();
 
 private:
-    bool_t m_bShowAIDebug = true;
-    bool_t m_bShowUITuner = true;
+    bool_t m_bShowAIDebug = false;
+    bool_t m_bShowUITuner = false;
+    bool_t m_bShowWfxEffectTool = false;
+    bool_t m_bShowReplayControl = false;
     bool_t m_bShowLegacyInGameDebug = false;
-    bool_t m_bShowRenderDebug = true;
-    bool_t m_bDbgShowNavGrid = true;
+    bool_t m_bShowRenderDebug = false;
+    bool_t m_bDbgShowNavGrid = false;
     bool_t m_bDbgShowPathNavGrid = false;
-    bool_t m_bDbgShowStructures = true;
+    bool_t m_bDbgShowStructures = false;
     bool_t m_bDbgShowColliders = true;
     bool_t m_bDbgShowChampions = true;
-    bool_t m_bDbgShowMinionMovement = true;
+    bool_t m_bDbgShowMinionMovement = false;
+    bool_t m_bDbgShowChampionAIText = false;
+    bool_t m_bDbgShowChampionAIRanges = false;
     f32_t  m_fDbgNavRadius = 40.f;
     f32_t  m_fNavPlayableBaseY = 0.5f;
     f32_t  m_fNavPlayableHeightBand = 1.25f;
@@ -259,12 +249,11 @@ private:
     unique_ptr<CSnapshotApplier> m_pSnapshotApplier;
     unique_ptr<CEventApplier> m_pEventApplier;
     unique_ptr<CCommandSerializer> m_pCommandSerializer;
-    DeterministicRng m_localRng{ 0x9E3779B97F4A7C15ull };
-
-    // Cube (placeholder)
-    CubeRenderer    m_Cube;
-    CTransform      m_CubeTransform;
-    f32_t           m_fElapsed = 0.f;
+    bool_t m_bReplayPlaybackMode = false;
+    wstring_t m_strReplayPath;
+    unique_ptr<CReplayPlayer> m_pReplayPlayer;
+    std::string m_strReplayStatus;
+    bool_t m_bReplayStopRequested = false;
 
     // Camera
     unique_ptr<CDynamicCamera> m_pCamera;
@@ -281,10 +270,9 @@ private:
     std::unique_ptr<CFogOfWarRenderer> m_pFogOfWarRenderer;
     CBushVolumeIndex m_BushIndex;
     Engine::CVisionSystem* m_pVisionSystem = nullptr;
-    unique_ptr<Engine::CGameplayCollisionSystem> m_pGameplayCollisionSystem;
-    Engine::CMinionSeparationSystem* m_pMinionSeparationSystem = nullptr;
     const char* m_pPendingEndAnim = nullptr;
     f32_t       m_fEndTransitionTimer = 0.f;
+    bool_t      m_bEndTransitionMoving = false;
     const SkillDef* m_pLastDispatchedSkill = nullptr;
 
     // Map mesh
@@ -354,7 +342,31 @@ private:
 
     void UpdateDash(f32_t dt);
 
-    bool DispatchSkillInput(uint8_t slot);
+    void UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t bSkipGroundMove, bool_t bActionLockedBefore);
+    bool_t PredictLocalMoveYaw(const Vec3& facingTarget, f32_t& outYaw);
+    void UpdateChampionStateTimers(f32_t dt);
+    void UpdateLocalChampionRuntime(f32_t dt);
+    void UpdateLocalPostAnimation();
+    bool_t CanResumeBaseAnimation() const;
+    bool_t IsLocalActionProtected() const;
+    void ResetLocalSkillRuntimeState();
+    bool_t TryQueueLocalPassiveDashFromCursor();
+    bool_t TriggerNetworkPassiveDashFromAction(u16_t animId, u32_t actionSeq, bool_t bServerDashLikely);
+    bool_t ValidateLocalSkillStart(const SkillDef& def);
+    void StartLocalTargetDash(EntityID target);
+    void StartLocalUltimateDash(EntityID airborne);
+    void StartLocalPassiveDash(const Vec3& vForward);
+    void SetLocalActionAnimActive(bool_t active);
+    EntityID FindAirborneEnemyNear(const Vec3& origin, f32_t radius);
+    void ApplyLocalChampionDamage(EntityID target, f32_t fDamage, const char* pDebugLabel);
+    void UpdateLocalTargetDash(f32_t dt);
+    void UpdateLocalUltimateSequence(f32_t dt);
+    void UpdateLocalPassiveDash(f32_t dt);
+
+    bool DispatchSkillInput(uint8_t slot, u8_t requestedStage = 0);
+    void SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& cmd, u8_t skillStage = 1);
+    void ProtectNetworkAttackYaw(CClientNetwork* pNetworkView, u32_t commandSeq, const Vec3& facingTarget);
+    void DriveNetworkAttackIntent(bool& outSkipGroundMove);
     void ApplyLocalPrediction(const CastSkillCommand& cmd, const SkillDef& def, u8_t skillStage = 1);
     bool BuildCastCommand(const SkillDef& def, CastSkillCommand& outCmd);
 
@@ -362,7 +374,7 @@ private:
 
     void Mark_StructuresOnNavGrid();
 
-    void InitializeMapSurfaceSampler(bool_t bMapLoaded);
+    void InitializeMapSurfaceSampler(bool_t bMapLoaded, const wchar_t* pSurfaceMeshPath);
     unique_ptr<CNavGrid> CreateMapNavGrid() const;
     void BakeMapWalkableNavGrid();
     bool_t TryProjectToMapSurface(Vec3& ioPos, f32_t fYOffset = 0.f) const;
@@ -380,6 +392,14 @@ private:
     void BeginNetworkActorInterpolationForSnapshot(u64_t serverTick);
     void ApplyNetworkActorInterpolation(f32_t dt);
     void UpdateNetworkChampionLocomotion(f32_t dt);
+    void OnAuthoritativeSnapshot(u64_t serverTick,
+        u64_t serverTimeMs,
+        u32_t lastAckedCommandSeq,
+        u32_t localNetId);
+    void RecordNetworkMovePrediction(u32_t commandSeq,
+        const Vec3& vPredictedTarget,
+        const Vec3& vFacingDirection);
+    void PruneAckedNetworkMovePredictions(u32_t lastAckedCommandSeq);
     bool_t IsNetworkChampionMoving(EntityID entity) const;
 
     CWorld   m_World;
@@ -392,6 +412,14 @@ private:
     EntityID m_YoneEntity = NULL_ENTITY;
 
     std::unordered_map<EntityID, std::unique_ptr<ModelRenderer>> m_ChampionRenderers{};
+
+    // 맵 앰비언트 프롭(새/오리) — 게임플레이 무관 장식이라 ECS 없이 scene이 직접 소유/렌더한다.
+    struct MapAmbientProp
+    {
+        std::unique_ptr<ModelRenderer> pRenderer;
+        CTransform transform;
+    };
+    std::vector<MapAmbientProp> m_AmbientProps{};
     std::unordered_map<EntityID, Vec3>   m_NetworkChampionPrevPos{};
     std::unordered_map<EntityID, f32_t>  m_NetworkChampionMoveGraceSec{};
     std::unordered_map<EntityID, bool_t> m_NetworkChampionMoving{};
@@ -413,6 +441,16 @@ private:
     std::unordered_map<EntityID, NetworkSnapshotInterpState> m_NetworkActorInterpStates{};
     u64_t  m_uNetworkActorInterpSnapshotTick = 0;
     bool_t m_bNetworkActorInterpolationEnabled = true;
+    struct NetworkMovePrediction
+    {
+        u32_t commandSeq = 0;
+        Vec3 vPredictedTarget{};
+        Vec3 vFacingDirection{};
+        f32_t fAgeSec = 0.f;
+    };
+    std::deque<NetworkMovePrediction> m_NetworkMovePredictions{};
+    u32_t m_uLastAckedMovePredictionSeq = 0;
+    f32_t m_fLocalCorrectionBlendSec = 0.08f;
     struct NetworkActionAnimationState
     {
         u32_t actionSeq = 0;
@@ -423,9 +461,11 @@ private:
         f32_t transitionDurationSec = 0.f;
         bool_t bActionActive = false;
         bool_t bTransitionActive = false;
+        bool_t bLoopAction = false;
         bool_t bBaseAnimationPending = false;
         bool_t bBaseAnimationInitialized = false;
         bool_t bDesiredMoving = false;
+        bool_t bTransitionMoving = false;
         bool_t bPassiveDashTriggered = false;
         f32_t passiveDashInputGraceSec = 0.f;
         std::string transitionIdleAnim{};
@@ -436,6 +476,11 @@ private:
     EntityID m_MapEntity = NULL_ENTITY;
 
     void CreateECSEntities();
+    EntityID SpawnChampionEntity(eChampion champion, eTeam team);
+    void InitializeNetworkSession();
+    bool_t PumpNetwork();
+    void ReplayLastNetworkHelloIfShared();
+    void SpawnMapAmbientProps();
 
     std::unique_ptr<CFxSystem>                       m_pFxSystem;
     std::unique_ptr<CFxBeamSystem>                   m_pFxBeamSystem;
@@ -493,180 +538,9 @@ private:
         Vec3 GetPlayerForward() const;
 
 public:
-    f32_t GetBladeTravelSpeed() const { return Irelia::GetTuning().bladeTravelSpeed; }
-    f32_t GetBladeStunSec()     const { return Irelia::GetTuning().bladeStunSec; }
-    f32_t GetBladeScale()       const { return Irelia::GetTuning().bladeScale; }
-    f32_t GetBladePitch()       const { return Irelia::GetTuning().bladePitch; }
-    f32_t GetBladeYaw()         const { return Irelia::GetTuning().bladeYaw; }
-    f32_t GetBladeRoll()        const { return Irelia::GetTuning().bladeRoll; }
-    f32_t GetBeamScaleAxis()    const { return Irelia::GetTuning().beamScaleAxis; }
-    f32_t GetBeamGirth()        const { return Irelia::GetTuning().beamGirth; }
-    f32_t GetBeamMeshBaseScale() const { return Irelia::GetTuning().beamMeshBaseScale; }
-    f32_t GetBeamYawOffset()    const { return Irelia::GetTuning().beamYawOffset; }
-    f32_t GetWaveLength()       const { return Irelia::GetTuning().waveLength; }
-    f32_t GetWaveWidth()        const { return Irelia::GetTuning().waveWidth; }
-    f32_t GetWaveSpeed()        const { return Irelia::GetTuning().waveSpeed; }
-    f32_t GetWaveMaxDist()      const { return Irelia::GetTuning().waveMaxDist; }
-    f32_t GetWaveDamage()       const { return Irelia::GetTuning().waveDamage; }
-    f32_t GetRFxWidth()         const { return Irelia::GetTuning().rFxWidth; }
-    f32_t GetRFxHeight()        const { return Irelia::GetTuning().rFxHeight; }
-    f32_t GetRFxYOffset()       const { return Irelia::GetTuning().rFxYOffset; }
-    f32_t GetRFxFwdOffset()     const { return Irelia::GetTuning().rFxFwdOffset; }
-    f32_t GetRFxYawOffset()     const { return Irelia::GetTuning().rFxYawOffset; }
-    void  SetBladeTravelSpeed(f32_t v) { Irelia::GetTuning().bladeTravelSpeed = v; }
-    void  SetBladeStunSec(f32_t v) { Irelia::GetTuning().bladeStunSec = v; }
-    void  SetBladeScale(f32_t v) { Irelia::GetTuning().bladeScale = (v < 0.001f) ? 0.001f : v; }
-    void  SetBladePitch(f32_t v) { Irelia::GetTuning().bladePitch = v; }
-    void  SetBladeYaw(f32_t v) { Irelia::GetTuning().bladeYaw = v; }
-    void  SetBladeRoll(f32_t v) { Irelia::GetTuning().bladeRoll = v; }
-    f32_t GetBladeSpinSpeed() const { return Irelia::GetTuning().bladeSpinSpeed; }
-    void  SetBladeSpinSpeed(f32_t v) { Irelia::GetTuning().bladeSpinSpeed = v; }
-    Vec4  GetEBladeColor() const { return Irelia::GetTuning().eBladeColor; }
-    void  SetEBladeColor(const Vec4& v) { Irelia::GetTuning().eBladeColor = v; }
-    Vec4  GetEGroundGlowColor() const { return Irelia::GetTuning().eGroundGlowColor; }
-    void  SetEGroundGlowColor(const Vec4& v) { Irelia::GetTuning().eGroundGlowColor = v; }
-    Vec4  GetEGroundCoreColor() const { return Irelia::GetTuning().eGroundCoreColor; }
-    void  SetEGroundCoreColor(const Vec4& v) { Irelia::GetTuning().eGroundCoreColor = v; }
-    Vec4  GetECloseSparkColor() const { return Irelia::GetTuning().eCloseSparkColor; }
-    void  SetECloseSparkColor(const Vec4& v) { Irelia::GetTuning().eCloseSparkColor = v; }
-    Vec4  GetECloseBeamColor() const { return Irelia::GetTuning().eCloseBeamColor; }
-    void  SetECloseBeamColor(const Vec4& v) { Irelia::GetTuning().eCloseBeamColor = v; }
-    f32_t GetEGroundYOffset() const { return Irelia::GetTuning().eGroundYOffset; }
-    void  SetEGroundYOffset(f32_t v) { Irelia::GetTuning().eGroundYOffset = v; }
-    f32_t GetEGroundGlowSize() const { return Irelia::GetTuning().eGroundGlowSize; }
-    void  SetEGroundGlowSize(f32_t v) { Irelia::GetTuning().eGroundGlowSize = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetEGroundCoreSize() const { return Irelia::GetTuning().eGroundCoreSize; }
-    void  SetEGroundCoreSize(f32_t v) { Irelia::GetTuning().eGroundCoreSize = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetEGroundSpinSpeed() const { return Irelia::GetTuning().eGroundSpinSpeed; }
-    void  SetEGroundSpinSpeed(f32_t v) { Irelia::GetTuning().eGroundSpinSpeed = v; }
-    f32_t GetECloseSparkSize() const { return Irelia::GetTuning().eCloseSparkSize; }
-    void  SetECloseSparkSize(f32_t v) { Irelia::GetTuning().eCloseSparkSize = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetECloseBeamWidth() const { return Irelia::GetTuning().eCloseBeamWidth; }
-    void  SetECloseBeamWidth(f32_t v) { Irelia::GetTuning().eCloseBeamWidth = (v < 0.05f) ? 0.05f : v; }
-    void  SetBeamScaleAxis(f32_t v) { Irelia::GetTuning().beamScaleAxis = (v < 0.1f) ? 0.1f : v; }
-    void  SetBeamGirth(f32_t v) { Irelia::GetTuning().beamGirth = (v < 0.05f) ? 0.05f : v; }
-    void  SetBeamMeshBaseScale(f32_t v) { Irelia::GetTuning().beamMeshBaseScale = (v < 0.001f) ? 0.001f : v; }
-    void  SetBeamYawOffset(f32_t v) { Irelia::GetTuning().beamYawOffset = v; }
-    void  SetWaveLength(f32_t v) { Irelia::GetTuning().waveLength = v; }
-    void  SetWaveWidth(f32_t v) { Irelia::GetTuning().waveWidth = v; }
-    void  SetWaveSpeed(f32_t v) { Irelia::GetTuning().waveSpeed = v; }
-    void  SetWaveMaxDist(f32_t v) { Irelia::GetTuning().waveMaxDist = v; }
-    void  SetWaveDamage(f32_t v) { Irelia::GetTuning().waveDamage = v; }
-    void  SetRFxWidth(f32_t v) { Irelia::GetTuning().rFxWidth = (v < 0.5f) ? 0.5f : v; }
-    void  SetRFxHeight(f32_t v) { Irelia::GetTuning().rFxHeight = (v < 0.5f) ? 0.5f : v; }
-    void  SetRFxYOffset(f32_t v) { Irelia::GetTuning().rFxYOffset = v; }
-    void  SetRFxFwdOffset(f32_t v) { Irelia::GetTuning().rFxFwdOffset = v; }
-    void  SetRFxYawOffset(f32_t v) { Irelia::GetTuning().rFxYawOffset = v; }
-
-    f32_t GetWLayerLifetime()    const { return Irelia::GetTuning().wLayerLifetime; }
-    void  SetWLayerLifetime(f32_t v) { Irelia::GetTuning().wLayerLifetime = (v < 0.05f) ? 0.05f : v; }
-    f32_t GetWLayerSize()        const { return Irelia::GetTuning().wLayerSize; }
-    void  SetWLayerSize(f32_t v) { Irelia::GetTuning().wLayerSize = (v < 0.1f) ? 0.1f : v; }
-    Vec4  GetWLayerBladesColor() const { return Irelia::GetTuning().wLayerBladesColor; }
-    void  SetWLayerBladesColor(const Vec4& v) { Irelia::GetTuning().wLayerBladesColor = v; }
-    Vec4  GetWLayerGlowColor()   const { return Irelia::GetTuning().wLayerGlowColor; }
-    void  SetWLayerGlowColor(const Vec4& v) { Irelia::GetTuning().wLayerGlowColor = v; }
-
-    bool  GetRTriangleMode()    const { return Irelia::GetTuning().bRTriangleMode; }
-    void  SetRTriangleMode(bool b) { Irelia::GetTuning().bRTriangleMode = b; }
-    f32_t GetRTipBoost()        const { return Irelia::GetTuning().rTipBoost; }
-    void  SetRTipBoost(f32_t v) { Irelia::GetTuning().rTipBoost = (v < 0.f) ? 0.f : v; }
-    f32_t GetRSideShrink()      const { return Irelia::GetTuning().rSideShrink; }
-    void  SetRSideShrink(f32_t v) {
-        Irelia::GetTuning().rSideShrink = (v < 0.f) ? 0.f : (v > 0.9f ? 0.9f : v);
-    }
-
-    f32_t GetYasuoQSpeed() const { return Yasuo::GetTuning().qSpeed; }
-    void  SetYasuoQSpeed(f32_t v) { Yasuo::GetTuning().qSpeed = (v < 5.f) ? 5.f : v; }
-    f32_t GetYasuoQLifetime() const { return Yasuo::GetTuning().qLifetime; }
-    void  SetYasuoQLifetime(f32_t v) { Yasuo::GetTuning().qLifetime = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetYasuoQTornadoSpeed() const { return Yasuo::GetTuning().qTornadoSpeed; }
-    void  SetYasuoQTornadoSpeed(f32_t v) { Yasuo::GetTuning().qTornadoSpeed = (v < 1.f) ? 1.f : v; }
-    f32_t GetYasuoQTornadoLifetime() const { return Yasuo::GetTuning().qTornadoLifetime; }
-    void  SetYasuoQTornadoLifetime(f32_t v) { Yasuo::GetTuning().qTornadoLifetime = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetYasuoQTornadoScale() const { return Yasuo::GetTuning().qTornadoScale; }
-    void  SetYasuoQTornadoScale(f32_t v) { Yasuo::GetTuning().qTornadoScale = (v < 0.001f) ? 0.001f : v; }
-    f32_t GetYasuoWLifetime() const { return Yasuo::GetTuning().wLifetime; }
-    void  SetYasuoWLifetime(f32_t v) { Yasuo::GetTuning().wLifetime = (v < 0.5f) ? 0.5f : v; }
-    f32_t GetYasuoWWidth() const { return Yasuo::GetTuning().wWidth; }
-    void  SetYasuoWWidth(f32_t v) { Yasuo::GetTuning().wWidth = (v < 0.5f) ? 0.5f : v; }
-    f32_t GetYasuoWHeight() const { return Yasuo::GetTuning().wHeight; }
-    void  SetYasuoWHeight(f32_t v) { Yasuo::GetTuning().wHeight = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetYasuoEDashDuration() const { return Yasuo::GetTuning().eDashDuration; }
-    void  SetYasuoEDashDuration(f32_t v) { Yasuo::GetTuning().eDashDuration = (v < 0.05f) ? 0.05f : v; }
-    f32_t GetYasuoRSearchRadius() const { return Yasuo::GetTuning().rSearchRadius; }
-    void  SetYasuoRSearchRadius(f32_t v) { Yasuo::GetTuning().rSearchRadius = (v < 1.f) ? 1.f : v; }
-    f32_t GetYasuoRSequenceDuration() const { return Yasuo::GetTuning().rSequenceDuration; }
-    void  SetYasuoRSequenceDuration(f32_t v) { Yasuo::GetTuning().rSequenceDuration = (v < 0.1f) ? 0.1f : v; }
-
-    //Yasuo Damage
-    f32_t GetYasuoQDamage() const { return Yasuo::GetTuning().qDamage; }
-    void  SetYasuoQDamage(f32_t v) { Yasuo::GetTuning().qDamage = (v < 0.f) ? 0.f : v; }
-    f32_t GetYasuoQTornadoDamage() const { return Yasuo::GetTuning().qTornadoDamage; }
-    void  SetYasuoQTornadoDamage(f32_t v) { Yasuo::GetTuning().qTornadoDamage = (v < 0.f) ? 0.f : v; }
-    f32_t GetYasuoQTornadoStunSec() const { return Yasuo::GetTuning().qTornadoStunSec; }
-    void  SetYasuoQTornadoStunSec(f32_t v) { Yasuo::GetTuning().qTornadoStunSec = (v < 0.f) ? 0.f : v; }
-    f32_t GetYasuoEDamage() const { return Yasuo::GetTuning().eDamage; }
-    void  SetYasuoEDamage(f32_t v) { Yasuo::GetTuning().eDamage = (v < 0.f) ? 0.f : v; }
-    f32_t GetYasuoRPerHitDamage() const { return Yasuo::GetTuning().rPerHitDamage; }
-    void  SetYasuoRPerHitDamage(f32_t v) { Yasuo::GetTuning().rPerHitDamage = (v < 0.f) ? 0.f : v; }
-    f32_t GetYasuoRHitInterval() const { return Yasuo::GetTuning().rHitInterval; }
-    void  SetYasuoRHitInterval(f32_t v) { Yasuo::GetTuning().rHitInterval = (v < 0.05f) ? 0.05f : v; }
-    Vec4  GetYasuoQTornadoColor() const { return Yasuo::GetTuning().qTornadoColor; }
-    void  SetYasuoQTornadoColor(const Vec4& v) { Yasuo::GetTuning().qTornadoColor = v; }
-    f32_t GetYasuoWMeshScale() const { return Yasuo::GetTuning().wMeshScale; }
-    void  SetYasuoWMeshScale(f32_t v) { Yasuo::GetTuning().wMeshScale = (v < 0.001f) ? 0.001f : v; }
-    f32_t GetFlashRange() const { return m_fFlashRange; }
-    void  SetFlashRange(f32_t v) { m_fFlashRange = (v < 0.5f) ? 0.5f : v; }
-    f32_t GetFlashCooldown() const { return m_fFlashCooldown; }
-    void  SetFlashCooldown(f32_t v) { m_fFlashCooldown = (v < 1.f) ? 1.f : v; }
-    f32_t GetFlashCooldownLeft() const { return m_fFlashCooldownLeft; }
-    f32_t GetYasuoQHitDelay() const { return Yasuo::GetTuning().qHitDelay; }
-    void  SetYasuoQHitDelay(f32_t v) { Yasuo::GetTuning().qHitDelay = (v < 0.f) ? 0.f : v; }
-    f32_t GetYasuoEQDelay() const { return Yasuo::GetTuning().eqDelay; }
-    void  SetYasuoEQDelay(f32_t v) { Yasuo::GetTuning().eqDelay = (v < 0.f) ? 0.f : v; }
-    f32_t GetYasuoEQRadius() const { return Yasuo::GetTuning().eqRadius; }
-    void  SetYasuoEQRadius(f32_t v) { Yasuo::GetTuning().eqRadius = (v < 0.5f) ? 0.5f : v; }
-    f32_t GetYasuoEQDamage() const { return Yasuo::GetTuning().eqDamage; }
-    void  SetYasuoEQDamage(f32_t v) { Yasuo::GetTuning().eqDamage = (v < 0.f) ? 0.f : v; }
-
-    f32_t GetKalistaQSpeed() const { return Kalista::GetTuning().qSpeed; }
-    void  SetKalistaQSpeed(f32_t v) { Kalista::GetTuning().qSpeed = (v < 5.f) ? 5.f : v; }
-    f32_t GetKalistaQMaxDist() const { return Kalista::GetTuning().qMaxDist; }
-    void  SetKalistaQMaxDist(f32_t v) { Kalista::GetTuning().qMaxDist = (v < 1.f) ? 1.f : v; }
-    f32_t GetKalistaQRadius() const { return Kalista::GetTuning().qRadius; }
-    void  SetKalistaQRadius(f32_t v) { Kalista::GetTuning().qRadius = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetKalistaQDamage() const { return Kalista::GetTuning().qDamage; }
-    void  SetKalistaQDamage(f32_t v) { Kalista::GetTuning().qDamage = (v < 0.f) ? 0.f : v; }
-    f32_t GetKalistaBAFlySpearScale() const { return Kalista::GetTuning().baFlySpearScale; }
-    void  SetKalistaBAFlySpearScale(f32_t v) { Kalista::GetTuning().baFlySpearScale = (v < 0.0001f) ? 0.0001f : v; }
-    f32_t GetKalistaBAStuckSpearScale() const { return Kalista::GetTuning().baStuckSpearScale; }
-    void  SetKalistaBAStuckSpearScale(f32_t v) { Kalista::GetTuning().baStuckSpearScale = (v < 0.0001f) ? 0.0001f : v; }
-    f32_t GetKalistaQFlySpearScale() const { return Kalista::GetTuning().qFlySpearScale; }
-    void  SetKalistaQFlySpearScale(f32_t v) { Kalista::GetTuning().qFlySpearScale = (v < 0.0001f) ? 0.0001f : v; }
-    f32_t GetKalistaQStuckSpearScale() const { return Kalista::GetTuning().qStuckSpearScale; }
-    void  SetKalistaQStuckSpearScale(f32_t v) { Kalista::GetTuning().qStuckSpearScale = (v < 0.0001f) ? 0.0001f : v; }
-    f32_t GetKalistaPassiveDashDist() const { return Kalista::GetTuning().passiveDashDist; }
-    void  SetKalistaPassiveDashDist(f32_t v) { Kalista::GetTuning().passiveDashDist = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetKalistaPassiveDashDuration() const { return Kalista::GetTuning().passiveDashDuration; }
-    void  SetKalistaPassiveDashDuration(f32_t v) { Kalista::GetTuning().passiveDashDuration = (v < 0.03f) ? 0.03f : v; }
-    f32_t GetKalistaPassiveDashAnimSpeed() const { return Kalista::GetTuning().passiveDashAnimSpeed; }
-    void  SetKalistaPassiveDashAnimSpeed(f32_t v) { Kalista::GetTuning().passiveDashAnimSpeed = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetKalistaPassiveDashInputGrace() const { return Kalista::GetTuning().passiveDashInputGraceSec; }
-    void  SetKalistaPassiveDashInputGrace(f32_t v) { Kalista::GetTuning().passiveDashInputGraceSec = (v < 0.f) ? 0.f : v; }
     void  SetKalistaPassiveDashFaceDir(const Vec3& v)
     {
         m_vKalistaPassiveDashFaceDir = v;
         m_bKalistaPassiveDashHasFaceDir = v.x != 0.f || v.z != 0.f;
     }
-    f32_t GetKalistaERendBaseDmg() const { return Kalista::GetTuning().rendBaseDamage; }
-    void  SetKalistaERendBaseDmg(f32_t v) { Kalista::GetTuning().rendBaseDamage = (v < 0.f) ? 0.f : v; }
-    f32_t GetKalistaRendStackDmg() const { return Kalista::GetTuning().rendStackDamage; }
-    void  SetKalistaRendStackDmg(f32_t v) { Kalista::GetTuning().rendStackDamage = (v < 0.f) ? 0.f : v; }
-    f32_t GetKalistaERendWispSize() const { return Kalista::GetTuning().eRendWispSize; }
-    void  SetKalistaERendWispSize(f32_t v) { Kalista::GetTuning().eRendWispSize = (v < 0.1f) ? 0.1f : v; }
-    f32_t GetKalistaERendWispLifetime() const { return Kalista::GetTuning().eRendWispLifetime; }
-    void  SetKalistaERendWispLifetime(f32_t v) { Kalista::GetTuning().eRendWispLifetime = (v < 0.03f) ? 0.03f : v; }
-    f32_t GetKalistaERendWispFps() const { return Kalista::GetTuning().eRendWispAtlasFps; }
-    void  SetKalistaERendWispFps(f32_t v) { Kalista::GetTuning().eRendWispAtlasFps = (v < 1.f) ? 1.f : v; }
 };

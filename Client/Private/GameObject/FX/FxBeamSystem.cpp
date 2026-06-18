@@ -1,6 +1,7 @@
-#include "GameObject/FX/FxBeamSystem.h"
+﻿#include "GameObject/FX/FxBeamSystem.h"
 #include "ECS/World.h"
 #include "ECS/Components/TransformComponent.h"
+#include "GameObject/FX/FxAnchorResolver.h"
 #include "Renderer/PlaneRenderer.h"
 #include "Renderer/RHIFxSpriteRenderer.h"
 #include "Renderer/FxShaderConstants.h"
@@ -47,15 +48,58 @@ namespace
         return dx * dx + dz * dz;
     }
 
+    constexpr f32_t kFxBeamClipMargin = 0.18f;
+    constexpr u64_t kFxBeamSegmentBudget = 64u;
+
+    bool_t IsClipPointRelevant(const Mat4& matVP, const Vec3& vWorld, f32_t fMargin)
+    {
+        XMVECTOR v = XMVectorSet(vWorld.x, vWorld.y, vWorld.z, 1.f);
+        v = XMVector4Transform(v, matVP.ToXMMATRIX());
+
+        const f32_t w = XMVectorGetW(v);
+        if (w <= 0.01f)
+            return false;
+
+        const f32_t x = XMVectorGetX(v) / w;
+        const f32_t y = XMVectorGetY(v) / w;
+        const f32_t z = XMVectorGetZ(v) / w;
+
+        return x >= -1.f - fMargin &&
+            x <= 1.f + fMargin &&
+            y >= -1.f - fMargin &&
+            y <= 1.f + fMargin &&
+            z >= -fMargin &&
+            z <= 1.f + fMargin;
+    }
+
+    bool_t IsSegmentRelevantForCamera(const Mat4& matVP, const Vec3& vStart, const Vec3& vEnd)
+    {
+        if (IsClipPointRelevant(matVP, vStart, kFxBeamClipMargin) ||
+            IsClipPointRelevant(matVP, vEnd, kFxBeamClipMargin))
+        {
+            return true;
+        }
+
+        const Vec3 vMid{
+            (vStart.x + vEnd.x) * 0.5f,
+            (vStart.y + vEnd.y) * 0.5f,
+            (vStart.z + vEnd.z) * 0.5f
+        };
+        return IsClipPointRelevant(matVP, vMid, kFxBeamClipMargin);
+    }
+
     Vec3 ResolveRibbonHeadWorldPos(CWorld& world, const FxRibbonComponent& ribbon, f32_t fTimeDelta)
     {
-        if (ribbon.attachTo != NULL_ENTITY &&
-            world.HasComponent<TransformComponent>(ribbon.attachTo))
+        Vec3 vResolvedAnchor{};
+        if (FxAnchor::TryResolveWorldPosition(
+            world,
+            ribbon.attachTo,
+            ribbon.anchor,
+            ribbon.vStartOffset,
+            ribbon.points[0],
+            vResolvedAnchor))
         {
-            const Vec3& p = world.GetComponent<TransformComponent>(ribbon.attachTo).m_LocalPosition;
-            return { p.x + ribbon.vStartOffset.x,
-                     p.y + ribbon.vStartOffset.y,
-                     p.z + ribbon.vStartOffset.z };
+            return vResolvedAnchor;
         }
 
         return { ribbon.points[0].x + ribbon.vVelocity.x * fTimeDelta,
@@ -193,6 +237,8 @@ namespace
         ribbon.attachTo = attachTo;
         ribbon.vStartOffset = emitter.vAttachOffset;
         ribbon.vEndOffset = emitter.vEndOffset;
+        ribbon.anchor = emitter.anchor;
+        ribbon.lifecycle = emitter.lifecycle;
         ribbon.vVelocity = emitter.vVelocity;
         ribbon.SetTexturePath(emitter.strTexturePath);
         ribbon.fWidth = emitter.fWidth;
@@ -399,25 +445,45 @@ void CFxBeamSystem::Update(CWorld& world, f32_t fTimeDelta)
                 {
                     AdvanceHistoryRibbon(world, ribbon, fTimeDelta);
                 }
-                else if (ribbon.attachTo != NULL_ENTITY
-                    && world.HasComponent<TransformComponent>(ribbon.attachTo))
-                {
-                    const Vec3& p = world.GetComponent<TransformComponent>(ribbon.attachTo).m_LocalPosition;
-                    ribbon.SetPoint(0, { p.x + ribbon.vStartOffset.x,
-                                         p.y + ribbon.vStartOffset.y,
-                                         p.z + ribbon.vStartOffset.z });
-                    ribbon.SetPoint(1, { p.x + ribbon.vEndOffset.x,
-                                         p.y + ribbon.vEndOffset.y,
-                                         p.z + ribbon.vEndOffset.z });
-                }
                 else
                 {
-                    for (u32_t i = 0; i < ribbon.iPointCount; ++i)
+                    Vec3 vStart{};
+                    const bool_t bResolvedStart = FxAnchor::TryResolveWorldPosition(
+                        world,
+                        ribbon.attachTo,
+                        ribbon.anchor,
+                        ribbon.vStartOffset,
+                        ribbon.points[0],
+                        vStart);
+
+                    if (bResolvedStart)
                     {
-                        ribbon.points[i].x += ribbon.vVelocity.x * fTimeDelta;
-                        ribbon.points[i].y += ribbon.vVelocity.y * fTimeDelta;
-                        ribbon.points[i].z += ribbon.vVelocity.z * fTimeDelta;
-                        ribbon.pointAges[i] += fTimeDelta;
+                        ribbon.SetPoint(0, vStart);
+                        Vec3 vEnd{};
+                        if (FxAnchor::TryResolveEntityWorldPosition(
+                            world,
+                            ribbon.attachTo,
+                            ribbon.vEndOffset,
+                            vEnd))
+                        {
+                            ribbon.SetPoint(1, vEnd);
+                        }
+                        else
+                        {
+                            ribbon.SetPoint(1, FxAnchor::Add(vStart, ribbon.vEndOffset));
+                        }
+                        ribbon.bAnchorResolvedLastFrame = true;
+                    }
+                    else
+                    {
+                        ribbon.bAnchorResolvedLastFrame = false;
+                        for (u32_t i = 0; i < ribbon.iPointCount; ++i)
+                        {
+                            ribbon.points[i].x += ribbon.vVelocity.x * fTimeDelta;
+                            ribbon.points[i].y += ribbon.vVelocity.y * fTimeDelta;
+                            ribbon.points[i].z += ribbon.vVelocity.z * fTimeDelta;
+                            ribbon.pointAges[i] += fTimeDelta;
+                        }
                     }
                 }
 
@@ -441,6 +507,11 @@ void CFxBeamSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
         return;
 
     const Mat4 matVP = pCamera->GetViewProjection();
+    const bool_t bUsePlaneBatch =
+        !bUseRHI && m_pPlane && m_pPlane->BeginBatch(m_pDevice, matVP);
+    u64_t uDrawSegments = 0;
+    u64_t uCullSkipped = 0;
+    u64_t uBudgetSkipped = 0;
 
     world.ForEach<FxBeamComponent>(
         std::function<void(EntityID, FxBeamComponent&)>(
@@ -477,7 +548,19 @@ void CFxBeamSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                     fAge,
                     fNormalizedAge);
 
-                DrawSegment(
+                if (!IsSegmentRelevantForCamera(matVP, beam.vStartWorldPos, beam.vEndWorldPos))
+                {
+                    ++uCullSkipped;
+                    return;
+                }
+
+                if (uDrawSegments >= kFxBeamSegmentBudget)
+                {
+                    ++uBudgetSkipped;
+                    return;
+                }
+
+                if (DrawSegment(
                     beam.vStartWorldPos,
                     beam.vEndWorldPos,
                     beam.fWidth,
@@ -485,7 +568,11 @@ void CFxBeamSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                     beam.blendMode,
                     eFxDepthMode::OverlayNoDepth,
                     fxParams,
-                    matVP);
+                    matVP,
+                    bUsePlaneBatch))
+                {
+                    ++uDrawSegments;
+                }
             }));
 
     world.ForEach<FxRibbonComponent>(
@@ -558,7 +645,19 @@ void CFxBeamSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                         i + 1u,
                         fAge + ribbon.pointAges[i + 1u]);
 
-                    DrawSegment(
+                    if (!IsSegmentRelevantForCamera(matVP, start, end))
+                    {
+                        ++uCullSkipped;
+                        continue;
+                    }
+
+                    if (uDrawSegments >= kFxBeamSegmentBudget)
+                    {
+                        ++uBudgetSkipped;
+                        continue;
+                    }
+
+                    if (DrawSegment(
                         start,
                         end,
                         ribbon.fWidth * widthScale,
@@ -566,9 +665,20 @@ void CFxBeamSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                         ribbon.blendMode,
                         ribbon.depthMode,
                         segmentParams,
-                        matVP);
+                        matVP,
+                        bUsePlaneBatch))
+                    {
+                        ++uDrawSegments;
+                    }
                 }
             }));
+
+    if (bUsePlaneBatch)
+        m_pPlane->EndBatch();
+
+    WINTERS_PROFILE_COUNT("FxBeam::Segments", uDrawSegments);
+    WINTERS_PROFILE_COUNT("FxBeam::CullSkipped", uCullSkipped);
+    WINTERS_PROFILE_COUNT("FxBeam::BudgetSkipped", uBudgetSkipped);
 
     if (!bUseRHI)
     {
@@ -590,7 +700,6 @@ Engine::CTexture* CFxBeamSystem::GetOrLoadTexture(const wchar_t* wszPath)
     auto p = Engine::CTexture::Create(m_pDevice, key, Engine::eTexSamplerMode::Clamp);
     if (!p)
     {
-        ::OutputDebugStringW((L"[FxBeamSystem] Texture load fail: " + key + L"\n").c_str());
         return nullptr;
     }
 
@@ -612,7 +721,6 @@ RHITextureHandle CFxBeamSystem::GetOrLoadRHITexture(const wchar_t* wszPath)
     RHITextureHandle handle = RHI_CreateTextureFromFile(m_pDevice, key.c_str(), "FxBeamSystemRHITexture");
     if (!handle.IsValid())
     {
-        ::OutputDebugStringW((L"[FxBeamSystem] RHI texture load fail: " + key + L"\n").c_str());
         return {};
     }
 
@@ -620,11 +728,12 @@ RHITextureHandle CFxBeamSystem::GetOrLoadRHITexture(const wchar_t* wszPath)
     return handle;
 }
 
-void CFxBeamSystem::DrawSegment(const Vec3& vStart, const Vec3& vEnd, f32_t fWidth,
+bool_t CFxBeamSystem::DrawSegment(const Vec3& vStart, const Vec3& vEnd, f32_t fWidth,
     const wchar_t* wszTexturePath, eBlendPreset blendMode,
     eFxDepthMode depthMode,
     const CBFxParams& fxParams,
-    const Mat4& matVP)
+    const Mat4& matVP,
+    bool_t bUsePlaneBatch)
 {
     const bool_t bUseRHI = m_pDevice && m_pDevice->GetBackend() == eRHIBackend::DX12;
     Engine::CTexture* pTex = nullptr;
@@ -634,23 +743,23 @@ void CFxBeamSystem::DrawSegment(const Vec3& vStart, const Vec3& vEnd, f32_t fWid
     {
         hRHITexture = GetOrLoadRHITexture(wszTexturePath);
         if (!hRHITexture.IsValid())
-            return;
+            return false;
     }
     else
     {
         pTex = GetOrLoadTexture(wszTexturePath);
         if (!pTex)
-            return;
+            return false;
     }
 
     if ((bUseRHI && !m_pRHISprite) || (!bUseRHI && !m_pPlane))
-        return;
+        return false;
 
     const f32_t dx = vEnd.x - vStart.x;
     const f32_t dz = vEnd.z - vStart.z;
     const f32_t length = std::sqrt(dx * dx + dz * dz);
     if (length <= 0.001f)
-        return;
+        return false;
 
     const Vec3 mid{
         (vStart.x + vEnd.x) * 0.5f,
@@ -684,8 +793,13 @@ void CFxBeamSystem::DrawSegment(const Vec3& vStart, const Vec3& vEnd, f32_t fWid
         m_pPlane->SetDepthMode(depthMode);
         m_pPlane->SetTexture(pTex);
         m_pPlane->SetWorld(world);
-        m_pPlane->Render(m_pDevice, matVP);
+        if (bUsePlaneBatch)
+            m_pPlane->RenderBatched();
+        else
+            m_pPlane->Render(m_pDevice, matVP);
     }
+
+    return true;
 }
 
 void CFxBeamSystem::Shutdown()

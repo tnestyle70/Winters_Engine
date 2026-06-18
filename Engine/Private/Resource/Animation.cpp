@@ -1,7 +1,6 @@
 #include "Resource/Animation.h"
 #include "Resource/Skeleton.h"
 
-//이거 진짜 해당 클래스가 어디에 속하는지 알기 쉽게 하기 위해서 적어둔 거 아니지???
 using namespace Engine;
 using namespace DirectX;
 
@@ -19,13 +18,18 @@ namespace
 		if (t >= keys.back().dTime)
 			return lastSegment;
 
-		for (u32_t i = 0; i < lastSegment; ++i)
+		u32_t lo = 1;
+		u32_t hi = static_cast<u32_t>(keys.size() - 1);
+		while (lo < hi)
 		{
-			if (t < keys[i + 1].dTime)
-				return i;
+			const u32_t mid = lo + ((hi - lo) >> 1);
+			if (keys[mid].dTime <= t)
+				lo = mid + 1;
+			else
+				hi = mid;
 		}
 
-		return lastSegment;
+		return lo - 1;
 	}
 
 	u32_t FindQuatKeySegment(const vector<QuatKey>& keys, f64_t t)
@@ -40,13 +44,18 @@ namespace
 		if (t >= keys.back().dTime)
 			return lastSegment;
 
-		for (u32_t i = 0; i < lastSegment; ++i)
+		u32_t lo = 1;
+		u32_t hi = static_cast<u32_t>(keys.size() - 1);
+		while (lo < hi)
 		{
-			if (t < keys[i + 1].dTime)
-				return i;
+			const u32_t mid = lo + ((hi - lo) >> 1);
+			if (keys[mid].dTime <= t)
+				lo = mid + 1;
+			else
+				hi = mid;
 		}
 
-		return lastSegment;
+		return lo - 1;
 	}
 }
 

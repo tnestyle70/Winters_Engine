@@ -6,6 +6,7 @@
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -23,6 +24,10 @@ namespace
     constexpr f32_t kFioraQRange = 4.0f;
     constexpr f32_t kFioraQRadius = 1.0f;
     constexpr f32_t kFioraQDamage = 70.f;
+    constexpr f32_t kFioraWRange = 6.0f;
+    constexpr f32_t kFioraWRadius = 0.8f;
+    constexpr f32_t kFioraWSlowDurationSec = 1.5f;
+    constexpr f32_t kFioraWSlowMoveSpeedMul = 0.50f;
     constexpr f32_t kFioraRDamage = 80.f;
     constexpr f32_t kFioraQDashDurationSec = 0.25f;
 
@@ -176,13 +181,41 @@ namespace
 
     void OnW(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld)
+        if (!ctx.pWorld || !ctx.pTickCtx ||
+            !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
             return;
 
-        FioraSimComponent& state = EnsureFioraState(*ctx.pWorld, ctx.casterEntity);
+        CWorld& world = *ctx.pWorld;
+        FioraSimComponent& state = EnsureFioraState(world, ctx.casterEntity);
         state.bRiposteActive = true;
         state.riposteTimerSec = state.riposteWindowSec;
-        ClearMove(*ctx.pWorld, ctx.casterEntity);
+        ClearMove(world, ctx.casterEntity);
+
+        const Vec3 origin =
+            world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
+        const Vec3 direction = ctx.pCommand
+            ? WintersMath::NormalizeXZ(ctx.pCommand->direction)
+            : Vec3{ 0.f, 0.f, 1.f };
+        const EntityID hitTarget = FindEnemyInCone(
+            world,
+            ctx.casterEntity,
+            ctx.casterTeam,
+            origin,
+            direction,
+            kFioraWRange,
+            kFioraWRadius);
+        if (hitTarget != NULL_ENTITY)
+        {
+            GameplayStatus::ApplySlow(
+                world,
+                *ctx.pTickCtx,
+                hitTarget,
+                ctx.casterEntity,
+                eChampion::FIORA,
+                eSkillSlot::W,
+                kFioraWSlowDurationSec,
+                kFioraWSlowMoveSpeedMul);
+        }
 
         std::cout << "[FioraSim] W riposte caster=" << ctx.casterEntity << "\n";
     }

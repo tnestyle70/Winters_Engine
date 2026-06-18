@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Jax/Jax_Skills.h"
+﻿#include "GameObject/Champion/Jax/Jax_Skills.h"
 #include "GameObject/Champion/Jax/Jax_Components.h"
 #include "GameObject/Champion/Jax/Jax_FxPresets.h"
 #include "GamePlay/Systems/Damage.h"
@@ -56,7 +56,6 @@ namespace Jax
                             char dbg[128];
                             sprintf_s(dbg, "[Jax R AOE] hits=%u dmg=%.1f\n",
                                 hits, js.fUltAOEDamage);
-                            OutputDebugStringA(dbg);
                         }
                     }
                 }
@@ -67,7 +66,6 @@ namespace Jax
             char dbg[128];
             sprintf_s(dbg, "[Jax BA] target=%u dmg=%.1f\n",
                 static_cast<u32_t>(target), fDamage);
-            OutputDebugStringA(dbg);
         }
 
         u32_t ApplyAOEDamageInRadius(CWorld& world, EntityID caster, eTeam casterTeam,
@@ -137,7 +135,6 @@ namespace Jax
             sprintf_s(dbg, "[Jax Q] origin=(%.1f,%.1f,%.1f) dest=(%.1f,%.1f,%.1f) target=%u\n",
                 vOrigin.x, vOrigin.y, vOrigin.z, vDest.x, vDest.y, vDest.z,
                 static_cast<u32_t>(target));
-            OutputDebugStringA(dbg);
         }
 
         void ArmEmpower(CWorld& world, EntityID caster)
@@ -148,27 +145,15 @@ namespace Jax
             js.bEmpowerActive = true;
             js.fEmpowerTimer = js.fEmpowerWindowSec;
 
-            OutputDebugStringA("[Jax W] Empower armed (next BA enhanced)\n");
         }
 
-        void ActivateCounterStrike(CWorld& world, EntityID caster, eTeam casterTeam)
+        void ActivateCounterStrike(CWorld& world, EntityID caster)
         {
             if (!world.HasComponent<JaxStateComponent>(caster)) return;
-            if (!world.HasComponent<TransformComponent>(caster)) return;
 
             auto& js = world.GetComponent<JaxStateComponent>(caster);
-            const Vec3 vOrigin = world
-                .GetComponent<TransformComponent>(caster).GetPosition();
-
-            const u32_t hits = ApplyAOEDamageInRadius(world,
-                caster, casterTeam, vOrigin, 1.8f, 60.f);
-
             js.bCounterActive = true;
             js.fCounterTimer = js.fCounterWindowSec;
-
-            char dbg[128];
-            sprintf_s(dbg, "[Jax E] hits=%u counter armed\n", hits);
-            OutputDebugStringA(dbg);
         }
 
         void ActivateGrandmastersMight(CWorld& world, EntityID caster)
@@ -180,7 +165,6 @@ namespace Jax
             js.fUltTimer = js.fUltDurationSec;
             js.ultAttackCounter = 0;
 
-            OutputDebugStringA("[Jax R] Grandmaster's Might activated (8s)\n");
         }
     }
 
@@ -207,7 +191,17 @@ namespace Jax
     void OnCastFrame_E(SkillHookContext& ctx)
     {
         if (!ctx.pWorld) return;
-        ActivateCounterStrike(*ctx.pWorld, ctx.casterEntity, ctx.casterTeam);
+        if (ctx.skillStage >= 2u)
+        {
+            if (ctx.pWorld->HasComponent<JaxStateComponent>(ctx.casterEntity))
+            {
+                auto& js = ctx.pWorld->GetComponent<JaxStateComponent>(ctx.casterEntity);
+                js.bCounterActive = false;
+                js.fCounterTimer = 0.f;
+            }
+            return;
+        }
+        ActivateCounterStrike(*ctx.pWorld, ctx.casterEntity);
     }
 
     void OnCastFrame_R(SkillHookContext& ctx)
@@ -241,7 +235,17 @@ namespace Jax
         void OnCastFrame_E(GameplayHookContext& ctx)
         {
             if (!ctx.pWorld) return;
-            ActivateCounterStrike(*ctx.pWorld, ctx.casterEntity, ctx.casterTeam);
+            if (ctx.pCommand && ctx.pCommand->itemId == 2u)
+            {
+                if (ctx.pWorld->HasComponent<JaxStateComponent>(ctx.casterEntity))
+                {
+                    auto& js = ctx.pWorld->GetComponent<JaxStateComponent>(ctx.casterEntity);
+                    js.bCounterActive = false;
+                    js.fCounterTimer = 0.f;
+                }
+                return;
+            }
+            ActivateCounterStrike(*ctx.pWorld, ctx.casterEntity);
         }
 
         void OnCastFrame_R(GameplayHookContext& ctx)
@@ -273,14 +277,18 @@ namespace Jax
         void OnCastFrame_W_Visual(VisualHookContext& ctx)
         {
             if (!ctx.pWorld) return;
-            Fx::SpawnWEmpowerGlow(*ctx.pWorld, ctx.casterEntity, 4.0f);
+            Fx::SpawnWEmpowerGlow(*ctx.pWorld, ctx.casterEntity, 5.0f);
         }
 
         void OnCastFrame_E_Visual(VisualHookContext& ctx)
         {
             if (!ctx.pWorld) return;
-            Fx::SpawnECounterSlash(*ctx.pWorld, ctx.casterEntity, 2.0f,
-                ctx.pFxMeshRenderer);
+            if (ctx.skillStage >= 2u)
+                Fx::SpawnECounterRelease(*ctx.pWorld, ctx.casterEntity, 0.45f,
+                    ctx.pFxMeshRenderer);
+            else
+                Fx::SpawnECounterGuard(*ctx.pWorld, ctx.casterEntity, 4.0f,
+                    ctx.pFxMeshRenderer);
         }
 
         void OnCastFrame_R_Visual(VisualHookContext& ctx)

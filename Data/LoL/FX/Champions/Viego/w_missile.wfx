@@ -14,7 +14,7 @@
       "fade_out": 0.18,
       "width": 1.45,
       "height": 1.15,
-      "color": [0.65, 1.65, 1.12, 1.0],
+      "color": [1.10, 1.65, 1.70, 1.0],
       "attach_offset": [0.0, 0.12, 0.00],
       "billboard": true,
       "blockable_by_wind_wall": true
@@ -31,7 +31,7 @@
       "fade_out": 0.24,
       "width": 2.00,
       "height": 1.00,
-      "color": [0.35, 1.20, 0.85, 0.55],
+      "color": [0.38, 1.20, 0.92, 0.55],
       "attach_offset": [0.0, 0.00, -0.65],
       "uv_scroll": [0.0, -0.90],
       "billboard": false,
@@ -49,7 +49,7 @@
       "fade_out": 0.18,
       "scale": [0.017, 0.017, 0.017],
       "world_yaw_spin_speed": 4.0,
-      "color": [0.55, 1.55, 1.05, 0.90],
+      "color": [0.65, 1.55, 1.42, 0.90],
       "attach_offset": [0.0, 0.00, 0.00],
       "blockable_by_wind_wall": true
     },
@@ -66,7 +66,7 @@
       "fade_out": 0.18,
       "scale": [0.018, 0.018, 0.018],
       "world_yaw_spin_speed": 5.5,
-      "color": [0.75, 1.80, 1.25, 0.75],
+      "color": [0.80, 1.80, 1.70, 0.75],
       "attach_offset": [0.0, 0.00, 0.00],
       "blockable_by_wind_wall": true
     },
@@ -82,7 +82,7 @@
       "fade_out": 0.22,
       "scale": [0.015, 0.015, 0.015],
       "world_yaw_spin_speed": 3.5,
-      "color": [0.28, 1.05, 0.78, 0.55],
+      "color": [0.32, 1.05, 0.92, 0.55],
       "attach_offset": [0.0, -0.30, -0.30],
       "blockable_by_wind_wall": true
     },
@@ -98,7 +98,7 @@
       "fade_in": 0.02,
       "fade_out": 0.25,
       "scale": [0.018, 0.018, 0.018],
-      "color": [0.25, 1.00, 0.75, 0.50],
+      "color": [0.28, 1.00, 0.80, 0.50],
       "attach_offset": [0.0, -0.10, -0.80],
       "blockable_by_wind_wall": true
     }

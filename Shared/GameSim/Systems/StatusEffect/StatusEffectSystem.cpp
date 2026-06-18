@@ -1,6 +1,7 @@
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 
 #include "ECS/World.h"
+#include "Shared/GameSim/Feedback/GameplayFeedbackQueue.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Core/World/World.h"
@@ -109,23 +110,54 @@ namespace
         if (std::find(entities.begin(), entities.end(), entity) == entities.end())
             entities.push_back(entity);
     }
-}
 
-namespace GameplayStatus
-{
-    void ApplyStatusEffect(CWorld& world, EntityID target, const StatusEffectApplyDesc& desc)
+    bool_t ApplyStatusEffectInternal(
+        CWorld& world,
+        EntityID target,
+        const StatusEffectApplyDesc& desc)
     {
         if (target == NULL_ENTITY ||
             !world.IsAlive(target) ||
             desc.effectId == eStatusEffectId::None ||
             desc.fDurationSec <= 0.f)
         {
-            return;
+            return false;
         }
 
         StatusEffectComponent& effects = EnsureStatusEffects(world, target);
         UpsertEffect(effects, desc);
-        RebuildGameplayState(world, target);
+        GameplayStatus::RebuildGameplayState(world, target);
+        return true;
+    }
+}
+
+namespace GameplayStatus
+{
+    void ApplyStatusEffect(
+        CWorld& world,
+        EntityID target,
+        const StatusEffectApplyDesc& desc)
+    {
+        (void)ApplyStatusEffectInternal(world, target, desc);
+    }
+
+    void ApplyStatusEffect(
+        CWorld& world,
+        EntityID target,
+        const StatusEffectApplyDesc& desc,
+        const TickContext& tc)
+    {
+        if (!ApplyStatusEffectInternal(world, target, desc))
+            return;
+
+        const GameplayFeedback::WorldTextFeedbackKind feedbackKind =
+            GameplayFeedback::ResolveStatusFeedbackKind(desc.effectId, desc.stateFlags);
+        (void)GameplayFeedback::EnqueueWorldTextFeedback(
+            world,
+            tc,
+            desc.sourceEntity,
+            target,
+            feedbackKind);
     }
 
     void TickStatusEffects(CWorld& world, const TickContext& tc)

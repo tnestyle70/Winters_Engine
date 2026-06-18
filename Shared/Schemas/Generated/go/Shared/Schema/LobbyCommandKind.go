@@ -18,6 +18,7 @@ const (
 	LobbyCommandKindCancelStart      LobbyCommandKind = 8
 	LobbyCommandKindSetEditPolicy    LobbyCommandKind = 9
 	LobbyCommandKindSetBotLane       LobbyCommandKind = 10
+	LobbyCommandKindStopReplay       LobbyCommandKind = 11
 )
 
 var EnumNamesLobbyCommandKind = map[LobbyCommandKind]string{
@@ -32,6 +33,7 @@ var EnumNamesLobbyCommandKind = map[LobbyCommandKind]string{
 	LobbyCommandKindCancelStart:      "CancelStart",
 	LobbyCommandKindSetEditPolicy:    "SetEditPolicy",
 	LobbyCommandKindSetBotLane:       "SetBotLane",
+	LobbyCommandKindStopReplay:       "StopReplay",
 }
 
 var EnumValuesLobbyCommandKind = map[string]LobbyCommandKind{
@@ -46,6 +48,7 @@ var EnumValuesLobbyCommandKind = map[string]LobbyCommandKind{
 	"CancelStart":      LobbyCommandKindCancelStart,
 	"SetEditPolicy":    LobbyCommandKindSetEditPolicy,
 	"SetBotLane":       LobbyCommandKindSetBotLane,
+	"StopReplay":       LobbyCommandKindStopReplay,
 }
 
 func (v LobbyCommandKind) String() string {

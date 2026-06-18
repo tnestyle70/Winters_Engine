@@ -38,14 +38,7 @@ CSkillRegistry& CSkillRegistry::Instance()
 void CSkillRegistry::Add(eChampion champ, u8_t slot, const SkillDef& def)
 {
 	const u32_t key = MakeSkillKey(champ, slot);
-	auto [it, inserted] = m_Map.try_emplace(key, ApplyVerificationTiming(def));
-	if (!inserted)
-	{
-		char buf[160];
-		sprintf_s(buf, "[SkillRegistry] DUPLICATE champ=%u slot=%u\n",
-			static_cast<u32_t>(champ), static_cast<u32_t>(slot));
-		OutputDebugStringA(buf);
-	}
+	m_Map.try_emplace(key, ApplyVerificationTiming(def));
 }
 
 const SkillDef* CSkillRegistry::Find(eChampion champ, u8_t slot) const

@@ -27,8 +27,13 @@ public:
 		const Vec3& groundPos = {}, const Vec3& direction = {});
 	void SendBuyItem(CClientNetwork& net, u16_t itemId);
 	void SendRecall(CClientNetwork& net);
+	void SendFlash(CClientNetwork& net, const Vec3& groundPos,
+		const Vec3& direction);
 	void SendAIDebugControl(CClientNetwork& net, NetEntityId targetNet,
 		eChampionAIAction action, u8_t skillSlot = 0);
+	void SendAIDebugTune(CClientNetwork& net, NetEntityId targetNet,
+		u8_t tuningId, f32_t value);
+	void SendAIDebugResetTuning(CClientNetwork& net, NetEntityId targetNet);
 	void SendAIDebugClear(CClientNetwork& net, NetEntityId targetNet);
 	void SendLevelSkill(CClientNetwork& net, u8_t slot);
 

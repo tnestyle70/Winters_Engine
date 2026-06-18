@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Yone/Yone_Skills.h"
+﻿#include "GameObject/Champion/Yone/Yone_Skills.h"
 #include "GameObject/Champion/Yone/Yone_Components.h"
 #include "GameObject/Champion/Yone/Yone_FxPresets.h"
 #include "GameObject/Champion/Yone/Yone_MeshGroups.h"
@@ -53,12 +53,10 @@ namespace Yone
             if (target != NULL_ENTITY)
                 ApplyDamage(world, caster, casterTeam, target, 75.f);
 
-            OutputDebugStringA("[Yone Q] Mortal Steel smoke hook\n");
         }
 
         void ApplySpiritCleave()
         {
-            OutputDebugStringA("[Yone W] Spirit Cleave smoke hook\n");
         }
 
         void ApplySoulUnbound(CWorld& world, EntityID caster, const Vec3& direction)
@@ -92,7 +90,6 @@ namespace Yone
                 };
                 AddOrReplaceSoulRequest(world, caster, req);
 
-                OutputDebugStringA("[Yone E] Soul Unbound spawn requested\n");
             }
             else
             {
@@ -101,7 +98,6 @@ namespace Yone
                 req.fDurationSec = 0.f;
                 AddOrReplaceSoulRequest(world, caster, req);
 
-                OutputDebugStringA("[Yone E] Soul Unbound return requested\n");
             }
         }
 
@@ -111,7 +107,6 @@ namespace Yone
             if (target != NULL_ENTITY)
                 ApplyDamage(world, caster, casterTeam, target, 150.f);
 
-            OutputDebugStringA("[Yone R] Fate Sealed smoke hook\n");
         }
 
         Vec3 ResolveVisualPosition(CWorld& world, EntityID entity)

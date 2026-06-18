@@ -58,6 +58,30 @@ enum class eRHIBindingType : u32_t
     Sampler,
 };
 
+enum class eRHIFilter : u32_t
+{
+    Point,
+    Linear,
+    Anisotropic,
+};
+
+enum class eRHIAddressMode : u32_t
+{
+    Wrap,
+    Clamp,
+    Border,
+};
+
+struct WINTERS_ENGINE RHISamplerDesc
+{
+    eRHIFilter filter = eRHIFilter::Linear;
+    eRHIAddressMode addressU = eRHIAddressMode::Wrap;
+    eRHIAddressMode addressV = eRHIAddressMode::Wrap;
+    eRHIAddressMode addressW = eRHIAddressMode::Wrap;
+    u32_t maxAnisotropy = 1;
+    const char* debugName = nullptr;
+};
+
 enum class eRHIShaderVisibility : u32_t
 {
     Vertex = 1u << 0,

@@ -61,11 +61,19 @@ def material_images(bpy, mat) -> list[dict]:
 
 
 def write_inspect_json(bpy, path: str, input_fbx: str) -> None:
+    def object_record(obj):
+        record = {"name": obj.name, "type": obj.type}
+        if obj.type == "MESH" and obj.data:
+            record["vertices"] = len(obj.data.vertices)
+            record["polygons"] = len(obj.data.polygons)
+            record["materialSlots"] = len(obj.material_slots)
+        return record
+
     data = {
         "schema": "winters.elden.blender_material_inspect.v1",
         "input": input_fbx.replace("\\", "/"),
         "objects": [
-            {"name": obj.name, "type": obj.type}
+            object_record(obj)
             for obj in bpy.data.objects
         ],
         "materials": [

@@ -4,6 +4,7 @@
 #include "ECS/World.h"
 #include "ECS/Entity.h"
 #include <cstdio>
+#include <deque>
 #include <unordered_map>
 
 enum class eMinionType : uint32_t { Melee = 0, Ranged = 1, Siege = 2, Super = 3, Tibbers = 4, End };
@@ -25,9 +26,10 @@ public:
     void    Shutdown();
 
     void    Tick(f32_t fDeltaTime);
-    void    TickVisuals(f32_t fDeltaTime);
+    void    TickVisuals(f32_t fDeltaTime, const Mat4* pViewProj = nullptr);
     void    Render(const Mat4& matVP, const Vec3& vCameraWorld = Vec3{},
-        void* pAmbientOcclusionSRV = nullptr);
+        void* pAmbientOcclusionSRV = nullptr,
+        bool_t bIgnoreFogOfWar = false);
     void    Clear();
 
     void    Set_Enabled(bool_t b) { m_bEnabled = b; m_fSpawnTimer = 0.f; }
@@ -38,10 +40,16 @@ public:
 
     void    OnImGui_Tuner();
     void    DEBUG_SpawnWaveNow();
+    void PrewarmNetworkVisualResources();
 
     static void GetWayPoints(eMinionTeam eTeam, eMinionWay eWay,
         const Vec3** ppOut, uint32_t* pCountOut);
     static const char* ResolveModelPath(eMinionType eType, eMinionTeam eTeam);
+    void QueueNetworkVisual(EntityID entity, eMinionType eType, eMinionTeam eTeam);
+    uint32_t ProcessQueueNetworkVisual(uint32_t maxCreates);
+    uint32_t GetQueuedNetworkVisualCount() const {
+        return static_cast<uint32_t>(m_deqPendingNetworkVisuals.size());
+    }
     bool_t  Ensure_NetworkVisual(EntityID entity, eMinionType eType, eMinionTeam eTeam);
     void    Release_NetworkVisual(EntityID entity);
 
@@ -96,10 +104,26 @@ private:
         uint16_t lastAnimId = 0;
         uint8_t baseState = 0xff;
         f32_t phaseTimer = 0.f;
+        bool_t bPendingAttack = false;
+    };
+
+    struct NetworkVisualRequest
+    {
+        EntityID entity = NULL_ENTITY;
+        eMinionType type = eMinionType::Melee;
+        eMinionTeam team = eMinionTeam::Blue;
     };
 
     void     DoSpawnWave();
     EntityID Spawn_Minion(eMinionType eType, eMinionTeam eTeam, eMinionWay eWay);
+    std::unique_ptr<ModelRenderer> AcquireNetworkRenderer(
+        eMinionType eType,
+        eMinionTeam eTeam,
+        const char* pPath);
+    void PoolNetworkRenderer(
+        eMinionType eType,
+        eMinionTeam eTeam,
+        std::unique_ptr<ModelRenderer> pRenderer);
     void     UpdateMinionVisual(EntityID entity,
         MinionStateComponent& ms,
         RenderComponent& rc,
@@ -110,6 +134,8 @@ private:
     std::vector<EntityID>                                        m_vecSpawnedThisTick;
     std::unordered_map<EntityID, std::unique_ptr<ModelRenderer>> m_mapRenderers;
     std::unordered_map<EntityID, MinionVisualPlaybackState>       m_mapVisualStates;
+    std::deque<NetworkVisualRequest> m_deqPendingNetworkVisuals;
+    std::vector<std::unique_ptr<ModelRenderer>> m_vecNetworkRendererPool[2][5];
 
     f32_t   m_fSpawnTimer = 0.f;
     f32_t   m_fSpawnInterval = 20.f;

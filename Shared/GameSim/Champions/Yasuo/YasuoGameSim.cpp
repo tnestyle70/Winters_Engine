@@ -7,6 +7,7 @@
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -156,12 +157,24 @@ namespace
 
     bool_t IsAirborne(CWorld& world, EntityID target)
     {
-        return target != NULL_ENTITY &&
-            world.IsAlive(target) &&
-            world.HasComponent<YasuoAirborneComponent>(target);
+        if (target == NULL_ENTITY || !world.IsAlive(target))
+            return false;
+
+        if (world.HasComponent<YasuoAirborneComponent>(target))
+            return true;
+
+        return world.HasComponent<GameplayStateComponent>(target) &&
+            (world.GetComponent<GameplayStateComponent>(target).stateFlags &
+                kGameplayStateAirborneFlag) != 0u;
     }
 
-    void ApplyAirborne(CWorld& world, EntityID source, EntityID target, f32_t durationSec)
+    void ApplyAirborne(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID source,
+        EntityID target,
+        eSkillSlot slot,
+        f32_t durationSec)
     {
         if (target == NULL_ENTITY ||
             !world.IsAlive(target) ||
@@ -192,16 +205,17 @@ namespace
             world.AddComponent<YasuoAirborneComponent>(target, airborne);
         }
 
-        StunComponent stun{};
-        stun.fRemaining = durationSec;
-        stun.sourceEntity = source;
-        if (world.HasComponent<StunComponent>(target))
-            world.GetComponent<StunComponent>(target) = stun;
-        else
-            world.AddComponent<StunComponent>(target, stun);
-
         if (world.HasComponent<MoveTargetComponent>(target))
             world.GetComponent<MoveTargetComponent>(target).bHasTarget = false;
+
+        GameplayStatus::ApplyAirborne(
+            world,
+            tc,
+            target,
+            source,
+            eChampion::YASUO,
+            slot,
+            durationSec);
     }
 
     bool_t StartDashThroughTarget(CWorld& world, EntityID caster, EntityID target)
@@ -250,7 +264,7 @@ namespace
         return true;
     }
 
-    bool_t PlaceCasterForUltimate(CWorld& world, const TickContext* pTickCtx, EntityID caster, EntityID target)
+    bool_t PlaceCasterForUltimate(CWorld& world, const TickContext& tc, EntityID caster, EntityID target)
     {
         if (caster == NULL_ENTITY ||
             target == NULL_ENTITY ||
@@ -271,10 +285,10 @@ namespace
             casterPos.y,
             targetPos.z - dir.z * kYasuoRLandingDistance
         };
-        if (pTickCtx && pTickCtx->pWalkable)
+        if (tc.pWalkable)
         {
             Vec3 guardedLandPos = landPos;
-            if (pTickCtx->pWalkable->TryClampMoveSegmentXZ(casterPos, landPos, 0.5f, guardedLandPos))
+            if (tc.pWalkable->TryClampMoveSegmentXZ(casterPos, landPos, 0.5f, guardedLandPos))
                 landPos = guardedLandPos;
             else
                 landPos = casterPos;
@@ -336,7 +350,7 @@ namespace
 
     void OnQ(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld)
+        if (!ctx.pWorld || !ctx.pTickCtx)
             return;
 
         CWorld& world = *ctx.pWorld;
@@ -450,8 +464,15 @@ namespace
             return;
         }
 
-        ApplyAirborne(world, ctx.casterEntity, target, kYasuoRHoldAirborneSec);
-        const bool_t bPlaced = PlaceCasterForUltimate(world, ctx.pTickCtx, ctx.casterEntity, target);
+        ApplyAirborne(
+            world,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            target,
+            eSkillSlot::R,
+            kYasuoRHoldAirborneSec);
+        const bool_t bPlaced =
+            PlaceCasterForUltimate(world, *ctx.pTickCtx, ctx.casterEntity, target);
         EnqueueTargetDamage(
             world,
             ctx.casterEntity,
@@ -515,9 +536,15 @@ namespace YasuoGameSim
         return best;
     }
 
-    void ApplyTornadoAirborne(CWorld& world, EntityID source, EntityID target)
+    void ApplyTornadoAirborne(CWorld& world, const TickContext& tc, EntityID source, EntityID target)
     {
-        ApplyAirborne(world, source, target, kYasuoAirborneDurationSec);
+        ApplyAirborne(
+            world,
+            tc,
+            source,
+            target,
+            eSkillSlot::Q,
+            kYasuoAirborneDurationSec);
         std::cout << "[YasuoSim] airborne target=" << target
             << " source=" << source
             << " duration=" << kYasuoAirborneDurationSec << "\n";

@@ -12,6 +12,12 @@ namespace Engine
     {
         EntityID LocalEntity = NULL_ENTITY;
         eChampion Champion = eChampion::IRELIA;
+        std::array<eChampion, 4> SkillIconChampions{
+            eChampion::IRELIA,
+            eChampion::IRELIA,
+            eChampion::IRELIA,
+            eChampion::IRELIA
+        };
 
         f32_t Hp = 640.f;
         f32_t MaxHp = 640.f;
@@ -32,6 +38,7 @@ namespace Engine
         std::array<u16_t, 6> InventoryItemIds{};
         std::array<u8_t, 5> SkillRanks{};
         u8_t SkillPoints = 0;
+        u8_t LethalTempoStacks = 0;
         bool_t bShopOpen = false;
         bool_t bStunned = false;
         std::array<f32_t, 4> Cooldowns{};

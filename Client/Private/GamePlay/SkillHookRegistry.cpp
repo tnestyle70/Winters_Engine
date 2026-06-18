@@ -10,13 +10,7 @@ CSkillHookRegistry& CSkillHookRegistry::Instance()
 
 void CSkillHookRegistry::Register(u32_t hookId, HookFn fn)
 {
-	auto [it, inserted] = m_Map.try_emplace(hookId, std::move(fn));
-	if (!inserted)
-	{
-		char buf[160];
-		sprintf_s(buf, "[SkillHookRegistry] DUPLICATE hookId=0x%08X - keeping first\n", hookId);
-		OutputDebugStringA(buf);
-	}
+	m_Map.try_emplace(hookId, std::move(fn));
 }
 
 bool CSkillHookRegistry::Dispatch(u32_t hookId, SkillHookContext& ctx) const

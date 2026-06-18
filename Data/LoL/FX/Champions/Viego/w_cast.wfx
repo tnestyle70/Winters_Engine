@@ -34,7 +34,7 @@
       "grow_duration": 0.08,
       "width": 5.40,
       "height": 1.10,
-      "color": [0.35, 1.15, 0.85, 0.55],
+      "color": [0.35, 1.15, 0.78, 0.55],
       "attach_offset": [0.0, 0.06, 2.50],
       "uv_scroll": [0.0, 1.20],
       "billboard": false,
@@ -68,7 +68,7 @@
       "fade_in": 0.02,
       "fade_out": 0.20,
       "scale": [0.016, 0.016, 0.016],
-      "color": [0.25, 0.95, 0.75, 0.45],
+      "color": [0.25, 0.95, 0.65, 0.45],
       "attach_offset": [0.0, 0.10, 1.20],
       "blockable_by_wind_wall": true
     }

@@ -4,6 +4,7 @@
 
 #include "Game/ServerMinionFlowField.h"
 #include "Game/ServerMinionTuning.h"
+#include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
@@ -363,12 +364,16 @@ namespace
             return false;
         if (!world.HasComponent<TransformComponent>(candidate))
             return false;
-        if (world.HasComponent<MinionComponent>(candidate) &&
+        // lane 0xff = any-lane attacker (Tibbers 등 소환수): lane 필터를 건너뛴다.
+        const bool_t bAnyLane = myLane == 0xffu;
+        if (!bAnyLane &&
+            world.HasComponent<MinionComponent>(candidate) &&
             world.GetComponent<MinionComponent>(candidate).laneType != myLane)
         {
             return false;
         }
-        if (world.HasComponent<MinionStateComponent>(candidate) &&
+        if (!bAnyLane &&
+            world.HasComponent<MinionStateComponent>(candidate) &&
             world.GetComponent<MinionStateComponent>(candidate).lane != myLane)
         {
             return false;
@@ -381,7 +386,7 @@ namespace
         if (world.HasComponent<StructureComponent>(candidate))
         {
             const StructureComponent& structure = world.GetComponent<StructureComponent>(candidate);
-            if (structure.lane != myLane && structure.lane != kLaneBase)
+            if (!bAnyLane && structure.lane != myLane && structure.lane != kLaneBase)
                 return false;
         }
 
@@ -751,6 +756,43 @@ void CGameRoom::Phase_ServerMinionAI(TickContext& tc)
                     PathBuildBudget,
                     bMoved,
                     MinionStateComponent::Chase);
+            }
+        }
+        else if (m_world.HasComponent<AnnieTibbersComponent>(entity))
+        {
+            state.attackTargetId = NULL_ENTITY;
+            const auto& tibbers = m_world.GetComponent<AnnieTibbersComponent>(entity);
+            const bool_t bOwnerValid =
+                tibbers.owner != NULL_ENTITY &&
+                m_world.IsAlive(tibbers.owner) &&
+                m_world.HasComponent<TransformComponent>(tibbers.owner);
+            if (bOwnerValid)
+            {
+                const Vec3 ownerPos =
+                    m_world.GetComponent<TransformComponent>(tibbers.owner).GetPosition();
+                constexpr f32_t kTibbersFollowDistance = 2.5f;
+                if (WintersMath::DistanceSqXZ(pos, ownerPos) >
+                    kTibbersFollowDistance * kTibbersFollowDistance)
+                {
+                    (void)TryMoveServerMinionToward(
+                        entity,
+                        state,
+                        transform,
+                        ownerPos,
+                        kTibbersFollowDistance,
+                        tc,
+                        PathBuildBudget,
+                        bMoved,
+                        MinionStateComponent::Chase);
+                }
+                else
+                {
+                    state.current = MinionStateComponent::Idle;
+                }
+            }
+            else
+            {
+                state.current = MinionStateComponent::Idle;
             }
         }
         else

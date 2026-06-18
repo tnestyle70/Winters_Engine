@@ -88,6 +88,21 @@ void DX11Buffer::DrawIndexed(ID3D11DeviceContext* context) const
         context->Draw(m_VertexCount, 0);
 }
 
+void DX11Buffer::DrawIndexedRange(
+    ID3D11DeviceContext* context,
+    uint32_t startIndex,
+    uint32_t indexCount) const
+{
+    assert(context);
+    if (indexCount == 0)
+        return;
+
+    if (m_pIndexBuffer)
+        context->DrawIndexed(indexCount, startIndex, 0);
+    else
+        context->Draw(indexCount, startIndex);
+}
+
 void DX11Buffer::Release()
 {
     if (m_pIndexBuffer)

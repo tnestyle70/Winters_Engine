@@ -1,7 +1,6 @@
 #include "Network/Client/ClientNetwork.h"
 #include "Dev/SmokeLog.h"
 
-#include <iostream>
 #include <cstring>
 #include <atomic>
 #include <cstdio>
@@ -101,7 +100,6 @@ bool CClientNetwork::Connect(const char* host, u16_t port)
     m_recvAccum.clear();
     m_recvThread = std::thread(&CClientNetwork::RecvThread, this);
     
-    std::cout << "[ClientNetwork] connected " << host << ":" << port << "\n";
     Winters::DevSmoke::Log(
         "[ClientNetwork] connected host=%s port=%u\n",
         host ? host : "-",

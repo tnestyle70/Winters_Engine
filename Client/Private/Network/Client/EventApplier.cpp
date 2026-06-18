@@ -1,4 +1,4 @@
-#include "Network/Client/EventApplier.h"
+﻿#include "Network/Client/EventApplier.h"
 #include "Network/Client/NetworkEventTrace.h"
 #include "GameInstance.h"
 
@@ -26,10 +26,14 @@
 #include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
+#include "GameObject/Champion/Ezreal/Ezreal_FxPresets.h"
 #include "Resource/Animator.h"
 #include "Renderer/ModelRenderer.h"
+#include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ReplicatedEventComponent.h"
+#include "Shared/GameSim/Feedback/GameplayFeedback.h"
 
 #include <cmath>
 #include <cstring>
@@ -136,10 +140,19 @@ namespace
         }
     }
 
+    constexpr u16_t kNetAnimFlagLoop = 0x0800u;
+
     bool_t IsOneShotNetAnim(u16_t animId)
     {
         const auto id = static_cast<eNetAnimId>(animId);
-        return id != eNetAnimId::Idle && id != eNetAnimId::Run;
+        return id != eNetAnimId::Idle &&
+            id != eNetAnimId::Run &&
+            id != eNetAnimId::Recall;
+    }
+
+    bool_t ShouldLoopNetworkAnimation(u16_t animId, u16_t flags)
+    {
+        return (flags & kNetAnimFlagLoop) != 0u || !IsOneShotNetAnim(animId);
     }
 
     bool_t IsNewerActionSeq(u32_t seq, u32_t previousSeq)
@@ -184,6 +197,19 @@ namespace
         }
 
         return std::string(key);
+    }
+
+    std::string ResolveRecallAnimName(const ChampionDef& cd, const ModelRenderer& renderer)
+    {
+        const std::string recall = PrefixAnim(cd, "recall");
+        if (!recall.empty() && renderer.HasAnimationByName(recall))
+            return recall;
+
+        const std::string channel = PrefixAnim(cd, "channel");
+        if (!channel.empty() && renderer.HasAnimationByName(channel))
+            return channel;
+
+        return recall;
     }
 
     u8_t SlotFromEffectFlags(u16_t flags)
@@ -293,7 +319,7 @@ namespace
         }
     }
 
-    const char* ResolveEffectTriggerCue(eChampion hookChampion, u8_t slot)
+    const char* ResolveEffectTriggerCue(eChampion hookChampion, u8_t slot, u8_t skillStage)
     {
         if (hookChampion != eChampion::KINDRED)
             return nullptr;
@@ -307,12 +333,56 @@ namespace
         case eSkillSlot::W:
             return "Kindred.W.Zone";
         case eSkillSlot::E:
+            switch (skillStage)
+            {
+            case 2:
+                return "Kindred.E.Stack1";
+            case 3:
+                return "Kindred.E.Stack2";
+            case 4:
+                return "Kindred.E.Stack3";
+            default:
+                break;
+            }
             return "Kindred.E.Mark";
         case eSkillSlot::R:
             return "Kindred.R.Zone";
         default:
             return nullptr;
         }
+    }
+
+    struct FeedbackLabel
+    {
+        GameplayFeedback::WorldTextFeedbackKind eKind =
+            GameplayFeedback::WorldTextFeedbackKind::None;
+        const char* pText = nullptr;
+        Vec4 vColor{ 0.96f, 0.92f, 0.78f, 1.f };
+    };
+
+    const FeedbackLabel* FindFeedbackLabel(GameplayFeedback::WorldTextFeedbackKind kind)
+    {
+        static const FeedbackLabel kFeedbackLabels[] =
+        {
+            { GameplayFeedback::WorldTextFeedbackKind::Dodge, "회피!", Vec4{ 0.96f, 0.92f, 0.78f, 1.f } },
+            { GameplayFeedback::WorldTextFeedbackKind::Slow, "느려짐", Vec4{ 0.58f, 0.78f, 1.0f, 1.f } },
+            { GameplayFeedback::WorldTextFeedbackKind::Stun, "기절!", Vec4{ 1.0f, 0.82f, 0.32f, 1.f } },
+            { GameplayFeedback::WorldTextFeedbackKind::Airborne, "공중에 뜸!", Vec4{ 0.72f, 0.88f, 1.0f, 1.f } },
+            { GameplayFeedback::WorldTextFeedbackKind::Disarm, "무장 해제!", Vec4{ 0.96f, 0.92f, 0.78f, 1.f } },
+            { GameplayFeedback::WorldTextFeedbackKind::Untargetable, "대상 지정 불가!", Vec4{ 0.96f, 0.92f, 0.78f, 1.f } },
+            { GameplayFeedback::WorldTextFeedbackKind::Invisible, "은신", Vec4{ 0.96f, 0.92f, 0.78f, 1.f } },
+            { GameplayFeedback::WorldTextFeedbackKind::Shield, "보호막", Vec4{ 0.96f, 0.92f, 0.78f, 1.f } },
+            { GameplayFeedback::WorldTextFeedbackKind::Heal, "회복!", Vec4{ 0.96f, 0.92f, 0.78f, 1.f } },
+            { GameplayFeedback::WorldTextFeedbackKind::Crit, "치명타!", Vec4{ 0.96f, 0.92f, 0.78f, 1.f } },
+        };
+
+        for (const FeedbackLabel& label : kFeedbackLabels)
+        {
+            if (label.eKind == kind)
+                return &label;
+        }
+
+        return nullptr;
     }
 
     u64_t BuildCueKey(u32_t a, u32_t b, u32_t c, u64_t d, u32_t e)
@@ -422,7 +492,7 @@ void CEventApplier::OnEvent(
         ApplyDamage(world, entityMap, packet->damage());
         break;
     case Shared::Schema::EventKind::KillFeed:
-        ApplyKillFeed(world, entityMap, packet->killFeed());
+        ApplyKillFeed(world, entityMap, packet->killFeed(), packet->serverTick());
         break;
     default:
         break;
@@ -540,7 +610,6 @@ void CEventApplier::ApplyProjectileSpawn(
                         world.DestroyEntity(spawned);
                 }
 
-                OutputDebugStringA("[TurretProjectileFx] Turret projectile cue spawned without MeshParticle; removed non-mesh emitters.\n");
                 bPlayedProjectileWfxCue = false;
             }
         }
@@ -647,6 +716,57 @@ void CEventApplier::ApplyEffectTrigger(
         return;
 
     const u32_t effectId = ev->effectId();
+    if (effectId == kGlobalEffectFlashBlink)
+    {
+        const Vec3 origin{ ev->posX(), ev->posY(), ev->posZ() };
+        const Vec3 delta{ ev->dirX(), ev->dirY(), ev->dirZ() };
+        const Vec3 dest{ origin.x + delta.x, origin.y + delta.y, origin.z + delta.z };
+        const f32_t lifetime = ev->durationMs() > 0
+            ? static_cast<f32_t>(ev->durationMs()) / 1000.f
+            : 0.4f;
+        Ezreal::Fx::SpawnEFlash(world, origin, dest, lifetime);
+        return;
+    }
+
+    GameplayFeedback::WorldTextFeedbackKind worldTextKind =
+        GameplayFeedback::WorldTextFeedbackKind::None;
+    if (GameplayFeedback::TryResolveWorldTextEffectId(effectId, worldTextKind))
+    {
+        EntityID attachTo = NULL_ENTITY;
+        if (ev->targetNet() != NULL_NET_ENTITY)
+            attachTo = entityMap.FromNet(ev->targetNet());
+        if (attachTo == NULL_ENTITY && ev->sourceNet() != NULL_NET_ENTITY)
+            attachTo = entityMap.FromNet(ev->sourceNet());
+
+        Vec3 pos{ ev->posX(), ev->posY(), ev->posZ() };
+        if (attachTo != NULL_ENTITY && world.HasComponent<TransformComponent>(attachTo))
+            pos = world.GetComponent<TransformComponent>(attachTo).GetPosition();
+        pos.y += 2.75f;
+
+        const f32_t lifetime = ev->durationMs() > 0
+            ? static_cast<f32_t>(ev->durationMs()) / 1000.f
+            : 0.7f;
+
+        if (worldTextKind == GameplayFeedback::WorldTextFeedbackKind::Gold)
+        {
+            const u32_t goldAmount =
+                GameplayFeedback::UnpackWorldTextGoldAmount(ev->flags());
+            CGameInstance::Get()->UI_Push_GoldText(pos, goldAmount, lifetime);
+            return;
+        }
+
+        const FeedbackLabel* pLabel = FindFeedbackLabel(worldTextKind);
+        if (!pLabel || !pLabel->pText)
+            return;
+
+        CGameInstance::Get()->UI_Push_WorldText(
+            pos,
+            pLabel->pText,
+            pLabel->vColor,
+            lifetime);
+        return;
+    }
+
     const u8_t eventSlot = (ev->flags() & 0x00ffu) != 0u
         ? SlotFromEffectFlags(ev->flags())
         : SlotFromHookId(effectId);
@@ -692,8 +812,7 @@ void CEventApplier::ApplyEffectTrigger(
     {
         const bool_t bAlreadyDrivenByNetAnim =
             world.HasComponent<NetAnimationComponent>(source) &&
-            world.GetComponent<NetAnimationComponent>(source).animId ==
-            static_cast<u16_t>(eNetAnimId::BasicAttack);
+            IsOneShotNetAnim(world.GetComponent<NetAnimationComponent>(source).animId);
 
         if (!bAlreadyDrivenByNetAnim)
         {
@@ -757,14 +876,41 @@ void CEventApplier::ApplyEffectTrigger(
         ctx.skillStage = skillStage;
         ctx.pFxMeshRenderer = m_pFxMeshRenderer;
 
-        if (CVisualHookRegistry::Instance().Dispatch(effectId, ctx))
+        const bool_t bVisualHandled =
+            CVisualHookRegistry::Instance().Dispatch(effectId, ctx);
+
+#if defined(_DEBUG)
+        if (hookChampion == eChampion::IRELIA)
+        {
+            static u32_t s_ireliaCueTraceCount = 0;
+            if (s_ireliaCueTraceCount < 64u)
+            {
+                char msg[320]{};
+                sprintf_s(msg,
+                    "[IreliaReplayCue][Client] slot=%u stage=%u effect=0x%08X source=%u target=%u def=%u visual=%u pos=(%.2f,%.2f,%.2f)\n",
+                    static_cast<u32_t>(slot),
+                    static_cast<u32_t>(skillStage),
+                    effectId,
+                    static_cast<u32_t>(source),
+                    static_cast<u32_t>(target),
+                    pDef ? 1u : 0u,
+                    bVisualHandled ? 1u : 0u,
+                    command.groundPos.x,
+                    command.groundPos.y,
+                    command.groundPos.z);
+                ++s_ireliaCueTraceCount;
+            }
+        }
+#endif
+
+        if (bVisualHandled)
             return;
     }
 
     const f32_t lifetime = ev->durationMs() > 0
         ? static_cast<f32_t>(ev->durationMs()) / 1000.f
         : 0.75f;
-    if (const char* pszCueName = ResolveEffectTriggerCue(hookChampion, hookSlot))
+    if (const char* pszCueName = ResolveEffectTriggerCue(hookChampion, hookSlot, skillStage))
     {
         FxCueContext fx{};
         fx.vWorldPos = pos;
@@ -830,9 +976,29 @@ void CEventApplier::ApplyDamage(
 void CEventApplier::ApplyKillFeed(
     CWorld& world,
     EntityIdMap& entityMap,
-    const Shared::Schema::KillFeedEvent* ev)
+    const Shared::Schema::KillFeedEvent* ev,
+    u64_t serverTick)
 {
     if (!ev)
+        return;
+
+    const u8_t objectKind = static_cast<u8_t>(ev->objectKind());
+    const u32_t packedPresentation =
+        (static_cast<u32_t>(ev->sourceChampion()) << 24) |
+        (static_cast<u32_t>(ev->targetChampion()) << 16) |
+        (static_cast<u32_t>(ev->sourceTeam()) << 8) |
+        static_cast<u32_t>(ev->targetTeam());
+    const u64_t killFeedKey = BuildCueKey(
+        ev->sourceNet(),
+        ev->targetNet(),
+        objectKind,
+        serverTick,
+        packedPresentation);
+
+    if (m_seenKillFeedKeys.size() > 4096u)
+        m_seenKillFeedKeys.clear();
+
+    if (!m_seenKillFeedKeys.insert(killFeedKey).second)
         return;
 
     const eTeam localTeam = ResolveLocalTeamForKillFeed(world);
@@ -841,7 +1007,6 @@ void CEventApplier::ApplyKillFeed(
     const bool_t bSourceAlly = sourceTeam == localTeam;
     const bool_t bTargetAlly = targetTeam == localTeam;
 
-    const u8_t objectKind = static_cast<u8_t>(ev->objectKind());
     if (objectKind == kKillFeedObjectChampion)
     {
         const EntityID localEntity = FindLocalPlayerEntity(world);
@@ -891,7 +1056,28 @@ void CEventApplier::PlayNetworkAnimation(
         return;
 
     const auto& champion = world.GetComponent<ChampionComponent>(entity);
-    const ChampionDef* cd = FindClientChampionDefForEvent(champion.id);
+    eChampion animationChampion = champion.id;
+    const u8_t animSlot = SlotFromNetAnim(animId);
+    if (world.HasComponent<FormOverrideComponent>(entity))
+    {
+        const auto& form = world.GetComponent<FormOverrideComponent>(entity);
+        if (form.bActive &&
+            form.skillChampion != eChampion::END &&
+            form.skillChampion != eChampion::NONE &&
+            animSlot < 8u &&
+            (form.skillSlotMask & static_cast<u8_t>(1u << animSlot)) != 0u)
+        {
+            animationChampion = form.skillChampion;
+        }
+        else if (form.bActive &&
+            form.visualChampion != eChampion::END &&
+            form.visualChampion != eChampion::NONE &&
+            animId != static_cast<u16_t>(eNetAnimId::SkillR))
+        {
+            animationChampion = form.visualChampion;
+        }
+    }
+    const ChampionDef* cd = FindClientChampionDefForEvent(animationChampion);
     if (!cd)
         return;
 
@@ -905,6 +1091,9 @@ void CEventApplier::PlayNetworkAnimation(
     case eNetAnimId::Run:
         animName = PrefixAnim(*cd, cd->runAnimKey);
         break;
+    case eNetAnimId::Recall:
+        animName = ResolveRecallAnimName(*cd, *render.pRenderer);
+        break;
     case eNetAnimId::BasicAttack:
         animName = PrefixAnim(*cd, cd->basicAttackKey);
         break;
@@ -917,13 +1106,13 @@ void CEventApplier::PlayNetworkAnimation(
     case eNetAnimId::SkillR:
     {
         const u8_t slot = SlotFromNetAnim(animId);
-        const SkillDef* def = CSkillRegistry::Instance().Find(champion.id, slot);
+        const SkillDef* def = CSkillRegistry::Instance().Find(animationChampion, slot);
         if (!def)
-            def = FindSkillDef(champion.id, slot);
+            def = FindSkillDef(animationChampion, slot);
         const u8_t stage = StageFromEffectFlags(flags);
         const bool_t bStage2 = stage >= 2u;
         const char* pAnimKey = nullptr;
-        if (champion.id == eChampion::YASUO && id == eNetAnimId::SkillQ)
+        if (animationChampion == eChampion::YASUO && id == eNetAnimId::SkillQ)
         {
             pAnimKey = ResolveYasuoQAnimKey(stage);
         }
@@ -947,14 +1136,31 @@ void CEventApplier::PlayNetworkAnimation(
 
     if (!animName.empty())
     {
-        if (Engine::CAnimator* pAnimator = render.pRenderer->GetAnimator())
+        const f32_t playSpeed = playbackRateQ8 > 0
+            ? static_cast<f32_t>(playbackRateQ8) / 256.f
+            : 1.f;
+        const bool_t bPlayed = render.pRenderer->PlayAnimationByNameAdvanced(
+            animName.c_str(),
+            ShouldLoopNetworkAnimation(animId, flags),
+            false,
+            playSpeed);
+#if defined(_DEBUG)
+        if (!bPlayed)
         {
-            const f32_t playSpeed = playbackRateQ8 > 0
-                ? static_cast<f32_t>(playbackRateQ8) / 256.f
-                : 1.f;
-            pAnimator->SetPlaySpeed(playSpeed);
+            static u32_t s_animMissTraceCount = 0;
+            if (s_animMissTraceCount < 64u)
+            {
+                char msg[192]{};
+                sprintf_s(msg,
+                    "[NetAnimMiss] champion=%u animId=%u name=%s\n",
+                    static_cast<u32_t>(animationChampion),
+                    static_cast<u32_t>(animId),
+                    animName.c_str());
+                OutputDebugStringA(msg);
+                ++s_animMissTraceCount;
+            }
         }
-        render.pRenderer->PlayAnimationByName(animName.c_str(), !IsOneShotNetAnim(animId));
+#endif
     }
 }
 

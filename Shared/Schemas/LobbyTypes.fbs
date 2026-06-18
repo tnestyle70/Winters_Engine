@@ -20,7 +20,8 @@ enum LobbyCommandKind : ubyte {
     StartGame = 7,
     CancelStart = 8,
     SetEditPolicy = 9,
-    SetBotLane = 10
+    SetBotLane = 10,
+    StopReplay = 11
 }
 
 enum LobbySeatKind : ubyte {

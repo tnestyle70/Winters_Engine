@@ -58,7 +58,9 @@ private:
     CWin32Window m_Window = {};
     unique_ptr<IRHIDevice> m_pDevice = { nullptr };
     bool m_bRunning = false;
+    bool m_bSceneRuntimeEnabled = false;
     bool m_bDX11RuntimeEnabled = false;
+    bool m_bImGuiRuntimeEnabled = false;
     bool m_bGameInitialized = false;
     bool m_bShutdown = false;
     uint32 m_uTargetFPS = 60;

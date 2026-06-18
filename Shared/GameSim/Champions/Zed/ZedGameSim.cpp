@@ -10,12 +10,13 @@
 #include "Shared/GameSim/Components/ZedSimComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
-#include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include <algorithm>
 #include <cmath>
@@ -40,6 +41,8 @@ namespace
     constexpr f32_t kZedEDamage = 65.f;
     constexpr f32_t kZedEDamagePerRank = 20.f;
     constexpr f32_t kZedERadius = 2.75f;
+    constexpr f32_t kZedESlowDurationSec = 1.5f;
+    constexpr f32_t kZedESlowMoveSpeedMul = 0.60f;
 
     constexpr f32_t kZedRVanishDurationSec = 0.75f;
     constexpr f32_t kZedRMarkDurationSec = 3.f;
@@ -98,7 +101,7 @@ namespace
 
         const f32_t visualYaw = world.GetComponent<TransformComponent>(caster).GetRotation().y;
         return WintersMath::DirectionFromYawXZ(
-            visualYaw - GetDefaultChampionVisualYawOffset(eChampion::ZED));
+            visualYaw - ChampionGameDataDB::ResolveVisualYawOffset(eChampion::ZED));
     }
 
     void SetZedShadowState(
@@ -129,7 +132,7 @@ namespace
 
         const f32_t visualYaw = world.GetComponent<TransformComponent>(entity).GetRotation().y;
         return WintersMath::DirectionFromYawXZ(
-            visualYaw - GetDefaultChampionVisualYawOffset(championId));
+            visualYaw - ChampionGameDataDB::ResolveVisualYawOffset(championId));
     }
 
     Vec3 ResolveDeathMarkLandingPosition(
@@ -419,7 +422,7 @@ namespace
 
     void OnQ(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld)
+        if (!ctx.pWorld || !ctx.pTickCtx)
             return;
 
         CWorld& world = *ctx.pWorld;
@@ -537,6 +540,15 @@ namespace
                 damage,
                 static_cast<u8_t>(eSkillSlot::E),
                 ctx.skillRank);
+            GameplayStatus::ApplySlow(
+                world,
+                *ctx.pTickCtx,
+                target,
+                ctx.casterEntity,
+                eChampion::ZED,
+                eSkillSlot::E,
+                kZedESlowDurationSec,
+                kZedESlowMoveSpeedMul);
         }
 
         std::cout << "[ZedSim] E slash caster="

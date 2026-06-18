@@ -295,6 +295,17 @@ void CGameInstance::UI_End_RawImagePass()
 		m_pUI_Manager->End_RawImagePass();
 }
 
+void CGameInstance::UI_Draw_RawImageCircle(
+	void* pTextureSRV,
+	f32_t fX, f32_t fY, f32_t fW, f32_t fH,
+	const Vec4& vUVRect, const Vec4& vColor, u32_t iSegmentCount)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->Draw_RawImageCircle(
+			pTextureSRV, fX, fY, fW, fH,
+			vUVRect, vColor, iSegmentCount);
+}
+
 void CGameInstance::UI_OnImGui_Tuner()
 {
 	if (m_pUI_Manager) m_pUI_Manager->OnImGui_Tuner();
@@ -322,6 +333,18 @@ void CGameInstance::UI_Set_InGameShopOpen(bool_t bOpen)
 {
 	if (m_pUI_Manager)
 		m_pUI_Manager->SetInGameShopOpen(bOpen);
+}
+
+void CGameInstance::UI_Toggle_StatusPanel()
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->ToggleStatusPanel();
+}
+
+void CGameInstance::UI_Set_StatusPanelOpen(bool_t bOpen)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->SetStatusPanelOpen(bOpen);
 }
 
 void CGameInstance::UI_Set_ShowHealthBars(bool_t b)
@@ -363,6 +386,20 @@ void CGameInstance::UI_Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
 {
 	if (m_pUI_Manager)
 		m_pUI_Manager->Push_DamageNumber(vWorldPos, fAmount, iDamageType, bWasCrit, bKilled);
+}
+
+void CGameInstance::UI_Push_WorldText(const Vec3& vWorldPos, const char* pText,
+	const Vec4& vColor, f32_t fLifetime)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->Push_WorldText(vWorldPos, pText, vColor, fLifetime);
+}
+
+void CGameInstance::UI_Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
+	f32_t fLifetime)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->Push_GoldText(vWorldPos, iGoldAmount, fLifetime);
 }
 
 void CGameInstance::UI_Push_KillFeedBanner(eChampion eSourceChampion,
@@ -436,8 +473,18 @@ void CGameInstance::Profiler_Toggle()
 		m_pProfilerOverlay->Toggle();
 }
 
+bool_t CGameInstance::Profiler_IsOverlayVisible() const
+{
+	return m_pProfilerOverlay && m_pProfilerOverlay->IsVisible();
+}
+
 void CGameInstance::Profiler_DrawOverlay()
 {
 	if (m_pProfilerOverlay)
 		m_pProfilerOverlay->Draw();
+}
+
+bool_t CGameInstance::Profiler_SaveJson(const char* pPath)
+{
+	return m_pProfilerOverlay && m_pProfilerOverlay->CaptureToJson(pPath, true);
 }

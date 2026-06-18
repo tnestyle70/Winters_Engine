@@ -14,7 +14,7 @@
       "fade_out": 0.22,
       "width": 4.80,
       "height": 0.72,
-      "color": [0.36, 1.00, 1.35, 0.78],
+      "color": [0.55, 1.00, 1.28, 0.66],
       "attach_offset": [0.0, 0.06, 2.20],
       "billboard": false,
       "blockable_by_wind_wall": true
@@ -30,7 +30,7 @@
       "fade_out": 0.18,
       "width": 3.50,
       "height": 0.82,
-      "color": [0.48, 1.08, 1.45, 0.90],
+      "color": [0.72, 1.05, 1.32, 0.90],
       "attach_offset": [0.0, 1.08, 2.00],
       "billboard": false,
       "blockable_by_wind_wall": true
@@ -63,7 +63,7 @@
       "fade_in": 0.02,
       "fade_out": 0.26,
       "scale": [0.018, 0.018, 0.018],
-      "color": [0.45, 1.00, 1.25, 0.62],
+      "color": [0.65, 0.95, 1.15, 0.52],
       "attach_offset": [0.0, 0.86, 2.35],
       "blockable_by_wind_wall": true
     },

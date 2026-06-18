@@ -69,7 +69,8 @@ private:
     void ApplyKillFeed(
         CWorld& world,
         EntityIdMap& entityMap,
-        const Shared::Schema::KillFeedEvent* ev);
+        const Shared::Schema::KillFeedEvent* ev,
+        u64_t serverTick);
 
     void PlayNetworkAnimation(
         CWorld& world,
@@ -84,5 +85,6 @@ private:
     std::unordered_map<NetEntityId, u32_t> m_lastAnimationSeq;
     std::unordered_set<u64_t> m_seenEffectCueKeys;
     std::unordered_set<u64_t> m_seenProjectileCueKeys;
+    std::unordered_set<u64_t> m_seenKillFeedKeys;
     Engine::CFxStaticMeshRenderer* m_pFxMeshRenderer = nullptr;
 };

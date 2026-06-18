@@ -11,7 +11,7 @@
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
-#include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/GameplayComponents.h"
@@ -50,7 +50,8 @@ namespace
     constexpr u32_t kEShieldBuffDefId = (static_cast<u32_t>(eChampion::ANNIE) << 16) | 3u;
 
     constexpr u8_t kTibbersRoleType = 4;
-    constexpr u8_t kTibbersLane = 1;
+    // 0xff = any-lane: 서버 미니언 AI의 lane 타겟 필터를 우회한다 (소환수 전용).
+    constexpr u8_t kTibbersLane = 0xff;
     constexpr f32_t kTibbersDurationSec = 45.f;
     constexpr f32_t kTibbersMoveSpeed = 5.2f;
     constexpr f32_t kTibbersAttackRange = 2.2f;
@@ -167,23 +168,24 @@ namespace
         EnqueueDamageRequest(world, request);
     }
 
-    void ApplyStun(CWorld& world, EntityID source, EntityID target, u8_t slot)
+    void ApplyStun(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID source,
+        EntityID target,
+        eSkillSlot slot)
     {
         if (!IsAliveDamageTarget(world, target))
             return;
 
-        StatusEffectApplyDesc stun{};
-        stun.effectId = eStatusEffectId::GenericStun;
-        stun.stackPolicy = eStatusStackPolicy::RefreshDuration;
-        stun.sourceEntity = source;
-        stun.stackGroup = SkillIdForSlot(slot);
-        stun.stateFlags =
-            kGameplayStateStunnedFlag |
-            kGameplayStateCannotMoveFlag |
-            kGameplayStateCannotAttackFlag |
-            kGameplayStateCannotCastFlag;
-        stun.fDurationSec = kStunDurationSec;
-        GameplayStatus::ApplyStatusEffect(world, target, stun);
+        GameplayStatus::ApplyStun(
+            world,
+            tc,
+            target,
+            source,
+            eChampion::ANNIE,
+            slot,
+            kStunDurationSec);
     }
 
     bool_t ConsumeStunReady(AnnieSimComponent& state)
@@ -365,7 +367,7 @@ namespace
         world.AddComponent<TransformComponent>(tibbers, transform);
 
         MinionStateComponent state{};
-        state.current = MinionStateComponent::LaneMove;
+        state.current = MinionStateComponent::Idle;
         state.currentWaypoint = 0;
         state.team = ownerTeam;
         state.type = kTibbersRoleType;
@@ -468,7 +470,7 @@ namespace
             ctx.skillRank,
             RankedDamage(kQBaseDamage, kQDamagePerRank, ctx.skillRank));
         if (bShouldStun)
-            ApplyStun(world, ctx.casterEntity, target, static_cast<u8_t>(eSkillSlot::Q));
+            ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::Q);
 
         AddStunStack(state);
     }
@@ -503,7 +505,7 @@ namespace
                 ctx.skillRank,
                 RankedDamage(kWBaseDamage, kWDamagePerRank, ctx.skillRank));
             if (bShouldStun)
-                ApplyStun(world, ctx.casterEntity, target, static_cast<u8_t>(eSkillSlot::W));
+                ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::W);
         }
 
         AddStunStack(state);
@@ -570,7 +572,7 @@ namespace
                 ctx.skillRank,
                 RankedDamage(kRBaseDamage, kRDamagePerRank, ctx.skillRank));
             if (bShouldStun)
-                ApplyStun(world, ctx.casterEntity, target, static_cast<u8_t>(eSkillSlot::R));
+                ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::R);
         }
 
         SpawnTibbersMinion(world, *ctx.pTickCtx, ctx.casterEntity, ctx.casterTeam, center, ctx.skillRank);

@@ -14,7 +14,7 @@
       "fade_out": 0.16,
       "width": 0.95,
       "height": 0.95,
-      "color": [0.52, 0.78, 1.00, 0.95],
+      "color": [1.00, 0.70, 0.32, 0.95],
       "attach_offset": [0.0, 1.48, 0.25],
       "billboard": true
     },
@@ -30,7 +30,7 @@
       "fade_out": 0.18,
       "width": 1.35,
       "height": 1.35,
-      "color": [0.40, 0.70, 1.00, 0.68],
+      "color": [0.68, 0.90, 0.90, 0.62],
       "attach_offset": [0.0, 1.15, 0.10],
       "uv_scroll": [0.0, -0.35],
       "billboard": true
@@ -47,7 +47,7 @@
       "fade_out": 0.18,
       "width": 0.78,
       "height": 0.78,
-      "color": [0.70, 0.90, 1.00, 0.80],
+      "color": [1.00, 0.86, 0.45, 0.85],
       "attach_offset": [0.0, 1.30, 0.35],
       "billboard": true
     }

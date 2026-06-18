@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Irelia/Irelia_Skills.h"
+﻿#include "GameObject/Champion/Irelia/Irelia_Skills.h"
 
 #include "ECS/World.h"
 #include "ECS/Components/GameplayComponents.h"
@@ -13,7 +13,7 @@
 #include "GameObject/FX/FxMeshSystem.h"
 #include "GameObject/FX/FxRibbonComponent.h"
 #include "GamePlay/VisualHookRegistry.h"
-#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 
 #include <Windows.h>
 #include <cmath>
@@ -69,7 +69,7 @@ namespace
         {
             const f32_t yaw =
                 world.GetComponent<TransformComponent>(casterEntity).GetRotation().y -
-                GetDefaultChampionVisualYawOffset(eChampion::IRELIA);
+                ChampionGameDataDB::ResolveVisualYawOffset(eChampion::IRELIA);
             return { std::sinf(yaw), 0.f, std::cosf(yaw) };
         }
 
@@ -121,7 +121,7 @@ namespace
 
 namespace Irelia
 {
-    //E Blade 삭제 헬퍼
+    //E Blade ??젣 ?ы띁
     constexpr const f32_t kESecondAutoDelay = 2.f;
     constexpr const f32_t kEBladeExpireDelay = 0.5f;
 
@@ -433,7 +433,6 @@ namespace Irelia
             p1.x, p1.y, p1.z,
             p2.x, p2.y, p2.z,
             dist);
-        ::OutputDebugStringA(dbg);
 
         FxCueContext fx{};
         fx.vWorldPos = p1;
@@ -526,7 +525,6 @@ namespace Irelia
             pStart.x, pStart.y, pStart.z,
             pEnd.x, pEnd.y, pEnd.z,
             duration, target);
-        ::OutputDebugStringA(dbg);
     }
 
     void OnCastAccepted_W(SkillHookContext& ctx)
@@ -567,7 +565,7 @@ namespace Irelia
             t.bladeScale,
             rotation,
             t.bladeSpinSpeed);
-        //stage2 일 경우 삭제 예약
+        //stage2 ??寃쎌슦 ??젣 ?덉빟
         if (ctx.skillStage >= 2)
         {
             state.sword2Id = bladeId;
@@ -739,7 +737,7 @@ namespace Irelia
 
         UpdateWAimCue(world, state, casterEntity, vCursorGround);
 
-        //stale sword 정리 직후, beam 생성 로직 전에 추가
+        //stale sword ?뺣━ 吏곹썑, beam ?앹꽦 濡쒖쭅 ?꾩뿉 異붽?
         if (state.sword1Id == NULL_ENTITY)
         {
             state.bEAutoSecondPending = false;

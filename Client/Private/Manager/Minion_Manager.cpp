@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+﻿#define _CRT_SECURE_NO_WARNINGS
 #include "Manager/Minion_Manager.h"
 #include "Map/MapDataFormats.h"
 #include "ECS/Components/TransformComponent.h"
@@ -9,6 +9,7 @@
 #include "ECS/Components/VisionComponents.h"
 #include "ECS/Components/NavAgentComponent.h"
 #include "ECS/Components/MinionPerformanceComponents.h"
+#include "ECS/SpatialIndex.h"
 #include "ProfilerAPI.h"
 #include "Scene/RenderVisibilityFilter.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
@@ -16,6 +17,7 @@
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
+#include <vector>
 
 #pragma push_macro("new")
 #undef new
@@ -31,11 +33,47 @@ namespace
     static constexpr const wchar_t* kTibbersTexturePath =
         L"Client/Bin/Resource/Texture/Character/Annie/tibber_base.png";
     static constexpr f32_t kTibbersVisualScale = 0.01f;
+    static constexpr f32_t kMinionBaseAnimUpdateInterval = 1.f / 8.f;
+    static constexpr f32_t kMinionHighPriorityAnimUpdateInterval = 1.f / 16.f;
+    static constexpr uint64_t kMinionAnimUpdateBudget = 3u;
+    static constexpr f32_t kMinionScreenCullMargin = 48.f;
+    static constexpr uint32_t kNetworkVisualBindBudgetPerFrame = 3u;
 
-    void OutputMinionDebug(const char* msg)
+	void OutputMinionDebug(const char* msg)
+	{
+		(void)msg;
+	}
+
+    f32_t ResolveMinionAnimPhase(EntityID entity, f32_t interval)
     {
-        if constexpr (kMinionDebugOutput)
-            ::OutputDebugStringA(msg);
+        uint32_t h = entity * 747796405u + 2891336453u;
+        h = ((h >> ((h >> 28u) + 4u)) ^ h) * 277803737u;
+        h = (h >> 22u) ^ h;
+        return interval * static_cast<f32_t>(h & 1023u) / 1024.f;
+    }
+
+    bool_t IsWorldPointNearScreen(const Mat4& matViewProj, const Vec3& vWorld)
+    {
+        const ImVec2 display = ImGui::GetIO().DisplaySize;
+        if (display.x <= 0.f || display.y <= 0.f)
+            return true;
+
+        XMVECTOR v = XMVectorSet(vWorld.x, vWorld.y, vWorld.z, 1.f);
+        v = XMVector4Transform(v, matViewProj.ToXMMATRIX());
+
+        const f32_t w = XMVectorGetW(v);
+        if (w <= 0.01f)
+            return false;
+
+        const f32_t nx = XMVectorGetX(v) / w;
+        const f32_t ny = XMVectorGetY(v) / w;
+        const f32_t sx = (nx * 0.5f + 0.5f) * display.x;
+        const f32_t sy = (1.f - (ny * 0.5f + 0.5f)) * display.y;
+
+        return sx >= -kMinionScreenCullMargin &&
+            sx <= display.x + kMinionScreenCullMargin &&
+            sy >= -kMinionScreenCullMargin &&
+            sy <= display.y + kMinionScreenCullMargin;
     }
 
     void FlushTransformForRender(TransformComponent& tf)
@@ -98,6 +136,60 @@ namespace
         return candidateDistSq > currentDistSq + 0.0001f;
     }
 
+    bool_t DoesEntityBlockCandidate(
+        CWorld* pWorld,
+        EntityID self,
+        EntityID other,
+        const Vec3& current,
+        const Vec3& candidate,
+        f32_t radius)
+    {
+        if (!pWorld)
+            return false;
+        if (other == self)
+            return false;
+        if (!pWorld->IsAlive(other) ||
+            !pWorld->HasComponent<SpatialAgentComponent>(other) ||
+            !pWorld->HasComponent<TransformComponent>(other))
+        {
+            return false;
+        }
+
+        const auto& agent = pWorld->GetComponent<SpatialAgentComponent>(other);
+        if (!IsMinionMoveBlockingKind(agent.kind))
+            return false;
+
+        if (pWorld->HasComponent<HealthComponent>(other))
+        {
+            const auto& health = pWorld->GetComponent<HealthComponent>(other);
+            if (health.bIsDead || health.fCurrent <= 0.f)
+                return false;
+        }
+
+        const f32_t minDist =
+            radius + (std::max)(0.2f, agent.radius) + kMinionAvoidancePadding;
+        const Vec3 otherPos = pWorld->GetComponent<TransformComponent>(other).GetPosition();
+        const f32_t minDistSq = minDist * minDist;
+        return WintersMath::DistanceSqXZ(candidate, otherPos) < minDistSq &&
+            !IsSeparatingCandidate(current, candidate, otherPos, minDistSq);
+    }
+
+    bool_t IsCandidateClearAgainstEntities(
+        CWorld* pWorld,
+        EntityID self,
+        const Vec3& current,
+        const Vec3& candidate,
+        f32_t radius,
+        const std::vector<EntityID>& candidates)
+    {
+        for (EntityID other : candidates)
+        {
+            if (DoesEntityBlockCandidate(pWorld, self, other, current, candidate, radius))
+                return false;
+        }
+        return true;
+    }
+
     bool_t IsCandidateClear(
         CWorld* pWorld,
         EntityID self,
@@ -111,26 +203,11 @@ namespace
         bool_t bClear = true;
         pWorld->ForEach<SpatialAgentComponent, TransformComponent>(
             function<void(EntityID, SpatialAgentComponent&, TransformComponent&)>(
-                [&](EntityID other, SpatialAgentComponent& agent, TransformComponent& tf)
+                [&](EntityID other, SpatialAgentComponent&, TransformComponent&)
                 {
                     if (!bClear || other == self)
                         return;
-                    if (!IsMinionMoveBlockingKind(agent.kind))
-                        return;
-
-                    if (pWorld->HasComponent<HealthComponent>(other))
-                    {
-                        const auto& health = pWorld->GetComponent<HealthComponent>(other);
-                        if (health.bIsDead || health.fCurrent <= 0.f)
-                            return;
-                    }
-
-                    const f32_t minDist =
-                        radius + (std::max)(0.2f, agent.radius) + kMinionAvoidancePadding;
-                    const Vec3 otherPos = tf.GetPosition();
-                    const f32_t minDistSq = minDist * minDist;
-                    if (WintersMath::DistanceSqXZ(candidate, otherPos) < minDistSq &&
-                        !IsSeparatingCandidate(current, candidate, otherPos, minDistSq))
+                    if (DoesEntityBlockCandidate(pWorld, self, other, current, candidate, radius))
                         bClear = false;
                 }));
 
@@ -152,6 +229,27 @@ namespace
         };
 
         const f32_t radius = ResolveAgentRadius(pWorld, self);
+        static thread_local std::vector<EntityID> s_vecSpatialCandidates;
+        const std::vector<EntityID>* pSpatialCandidates = nullptr;
+        if (pWorld)
+        {
+            if (CSpatialIndex* pSpatial = pWorld->Get_SpatialIndex())
+            {
+                s_vecSpatialCandidates.clear();
+                constexpr u32_t kMoveBlockerMask =
+                    SpatialMask(eSpatialKind::Champion) |
+                    SpatialMask(eSpatialKind::Minion) |
+                    SpatialMask(eSpatialKind::JungleMob);
+                pSpatial->QueryRadius(
+                    pos,
+                    radius + step + kMinionAvoidancePadding,
+                    kMoveBlockerMask,
+                    0u,
+                    s_vecSpatialCandidates);
+                pSpatialCandidates = &s_vecSpatialCandidates;
+            }
+        }
+
         for (const f32_t angle : kAngles)
         {
             const Vec3 dir = WintersMath::RotateXZ(desired, angle);
@@ -161,7 +259,11 @@ namespace
                 pos.z + dir.z * step
             };
 
-            if (IsCandidateClear(pWorld, self, pos, candidate, radius))
+            const bool_t bClear = pSpatialCandidates
+                ? IsCandidateClearAgainstEntities(
+                    pWorld, self, pos, candidate, radius, *pSpatialCandidates)
+                : IsCandidateClear(pWorld, self, pos, candidate, radius);
+            if (bClear)
                 return dir;
         }
 
@@ -170,7 +272,7 @@ namespace
 
 }
 
-static constexpr f32_t kArriveRadius = 0.8f;   // 웨이포인트 도달 판정
+static constexpr f32_t kArriveRadius = 0.8f;   // ?⑥씠?ъ씤???꾨떖 ?먯젙
 static constexpr f32_t kDefaultMinionScale = 0.006f;
 static constexpr f32_t kFallbackMinionAttackSeconds = 0.75f;
 static constexpr f32_t kMinionRecoverSeconds = 0.22f;
@@ -218,23 +320,6 @@ namespace
         return nullptr;
     }
 
-    const char* ResolveMinionRecoverAnimationKeyword(ModelRenderer& renderer)
-    {
-        static constexpr const char* kRecoverKeywords[] = {
-            "return",
-            "recover",
-            "winddown"
-        };
-
-        for (const char* pKeyword : kRecoverKeywords)
-        {
-            if (renderer.HasAnimationByName(pKeyword))
-                return pKeyword;
-        }
-
-        return nullptr;
-    }
-
     f32_t ResolveMinionAnimationSeconds(
         ModelRenderer& renderer,
         const char* pKeyword,
@@ -248,18 +333,18 @@ namespace
     }
 }
 
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
 // Initialize / Shutdown / Clear
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
 HRESULT CMinion_Manager::Initialize(CWorld* pWorld)
 {
-    // Phase 5-A 후속: m_pWorld 재바인딩을 guard 앞으로 (Structure_Manager 와 동일 이유).
+    // Phase 5-A ?꾩냽: m_pWorld ?щ컮?몃뵫??guard ?욎쑝濡?(Structure_Manager ? ?숈씪 ?댁쑀).
     m_pWorld = pWorld;
     if (m_bInitialized) return S_OK;
     m_fSpawnTimer  = 0.f;
     m_bInitialized = true;
 
-    // 웨이포인트가 비어 있으면 기본값 적재 (Stage1.dat 로드가 뒤이어 덮어씀)
+    // ?⑥씠?ъ씤?멸? 鍮꾩뼱 ?덉쑝硫?湲곕낯媛??곸옱 (Stage1.dat 濡쒕뱶媛 ?ㅼ씠????뼱?)
     bool empty = true;
     for (auto& row : m_vecWaypoints)
         for (auto& v : row)
@@ -273,7 +358,7 @@ void CMinion_Manager::Shutdown()
     Clear();
     m_pWorld       = nullptr;
     m_bInitialized = false;
-    // 주의: m_vecWaypoints 는 유지 (Editor/InGame 씬 전환 간 데이터 보존)
+    // 二쇱쓽: m_vecWaypoints ???좎? (Editor/InGame ???꾪솚 媛??곗씠??蹂댁〈)
 }
 
 void CMinion_Manager::Clear()
@@ -284,20 +369,27 @@ void CMinion_Manager::Clear()
     m_vecSpawnedThisTick.clear();
     m_mapRenderers.clear();
     m_mapVisualStates.clear();
+    m_deqPendingNetworkVisuals.clear();
+    for (auto& teamPool : m_vecNetworkRendererPool)
+    {
+        for (auto& typePool : teamPool)
+            typePool.clear();
+    }
+
     m_iCurrentRound = kRoundsPerWave;
     m_fNextRoundCountdown = 0.f;
 }
 
-// ─────────────────────────────────────────────────────────────
-// Tick — 스폰 타이머 + 웨이포인트 이동
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
+// Tick ???ㅽ룿 ??대㉧ + ?⑥씠?ъ씤???대룞
+// ?????????????????????????????????????????????????????????????
 void CMinion_Manager::Tick(f32_t fDeltaTime)
 {
     WINTERS_PROFILE_SCOPE("Minion::Tick");
     if (!m_pWorld || !m_bEnabled) return;
     m_vecSpawnedThisTick.clear();
     m_fSpawnTimer += fDeltaTime;
-    //Wave Trigger - 웨이브 전체 스폰 주기 관리
+    //Wave Trigger - ?⑥씠釉??꾩껜 ?ㅽ룿 二쇨린 愿由?
     if (m_fSpawnTimer >= m_fSpawnInterval)
     {
         m_fSpawnTimer = 0.f;
@@ -343,14 +435,14 @@ void CMinion_Manager::Tick(f32_t fDeltaTime)
                 });
         }));
 
-    // 라운드 진행
+    // ?쇱슫??吏꾪뻾
     m_fNextRoundCountdown -= fDeltaTime;
     if (m_fNextRoundCountdown <= 0.f && m_iCurrentRound < kRoundsPerWave)
     {
         const eMinionType type = (m_iCurrentRound < 3)
             ? eMinionType::Melee : eMinionType::Ranged;
 
-        // 3 lanes × 2 teams = 6마리 동시 스폰
+        // 3 lanes 횞 2 teams = 6留덈━ ?숈떆 ?ㅽ룿
         for (auto way : { eMinionWay::Top, eMinionWay::Mid, eMinionWay::Bottom })
             for (auto team : { eMinionTeam::Blue, eMinionTeam::Red })
             {
@@ -360,7 +452,7 @@ void CMinion_Manager::Tick(f32_t fDeltaTime)
             }
 
         ++m_iCurrentRound;
-        m_fNextRoundCountdown = m_fSpawnDelay;   // += 대신 = 로 catch-up 방지
+        m_fNextRoundCountdown = m_fSpawnDelay;   // += ???= 濡?catch-up 諛⑹?
     }
 
     {
@@ -376,9 +468,9 @@ void CMinion_Manager::Tick(f32_t fDeltaTime)
                     vel.fSpeed = 0.f;
                     return;
                 }
-                // Phase 5-A 후속: AI 가 타겟 교전 중이면 웨이포인트 이동 중단.
-                //  CMinionAISystem 이 ms.current = Attack 으로 설정 → Manager 는 여기서 return.
-                //  타겟을 잃으면 AI 가 ms.current = Idle 로 되돌리므로 자동 복귀.
+                // Phase 5-A ?꾩냽: AI 媛 ?寃?援먯쟾 以묒씠硫??⑥씠?ъ씤???대룞 以묐떒.
+                //  CMinionAISystem ??ms.current = Attack ?쇰줈 ?ㅼ젙 ??Manager ???ш린??return.
+                //  ?寃잛쓣 ?껋쑝硫?AI 媛 ms.current = Idle 濡??섎룎由щ?濡??먮룞 蹂듦?.
                 if (ms.current == MinionStateComponent::Attack ||
                     ms.current == MinionStateComponent::Chase ||
                     ms.current == MinionStateComponent::Dead)
@@ -473,9 +565,14 @@ void CMinion_Manager::UpdateMinionVisual(
         ? pNetAnim->animId
         : static_cast<uint16_t>(eNetAnimId::None);
     const uint32_t actionSeq = pNetAnim ? pNetAnim->actionSeq : 0u;
+    const eNetAnimId netAnimId = static_cast<eNetAnimId>(animId);
+    const bool_t bNetworkBaseAnimation =
+        pNetAnim &&
+        (netAnimId == eNetAnimId::Run ||
+            netAnimId == eNetAnimId::Idle);
     const bool_t bNetworkBasicAttack =
         pNetAnim &&
-        static_cast<eNetAnimId>(animId) == eNetAnimId::BasicAttack &&
+        netAnimId == eNetAnimId::BasicAttack &&
         actionSeq != 0u &&
         (visual.lastActionSeq != actionSeq || visual.lastAnimId != animId);
     const bool_t bLocalBasicAttack =
@@ -489,6 +586,12 @@ void CMinion_Manager::UpdateMinionVisual(
         visual.lastAnimId = animId;
         ms.bAttackAnimRequested = false;
 
+        if (visual.phase == eMinionVisualPhase::Recover)
+        {
+            visual.bPendingAttack = true;
+            return;
+        }
+
         if (rc.pRenderer->HasAnimationByName("attack"))
         {
             rc.pRenderer->PlayAnimationByNameAdvanced("attack", false, false, 1.f);
@@ -499,7 +602,7 @@ void CMinion_Manager::UpdateMinionVisual(
                 kFallbackMinionAttackSeconds);
             visual.baseState = kInvalidMinionVisualBaseState;
             ms.visualState = MinionStateComponent::Attack;
-            ms.animUpdateAccumulator = 1.f / 30.f;
+            ms.animUpdateAccumulator = kMinionHighPriorityAnimUpdateInterval;
             return;
         }
 
@@ -507,22 +610,21 @@ void CMinion_Manager::UpdateMinionVisual(
         visual.baseState = kInvalidMinionVisualBaseState;
     }
 
+    if (bNetworkBaseAnimation &&
+        (visual.phase == eMinionVisualPhase::Attack ||
+            visual.phase == eMinionVisualPhase::Recover))
+    {
+        visual.phase = eMinionVisualPhase::Base;
+        visual.phaseTimer = 0.f;
+        visual.baseState = kInvalidMinionVisualBaseState;
+        visual.bPendingAttack = false;
+    }
+
     if (visual.phase == eMinionVisualPhase::Attack)
     {
         visual.phaseTimer -= fDeltaTime;
         if (visual.phaseTimer > 0.f)
             return;
-
-        if (const char* pRecoverKeyword = ResolveMinionRecoverAnimationKeyword(*rc.pRenderer))
-        {
-            rc.pRenderer->PlayAnimationByNameAdvanced(pRecoverKeyword, false, false, 1.f);
-            visual.phase = eMinionVisualPhase::Recover;
-            visual.phaseTimer = ResolveMinionAnimationSeconds(
-                *rc.pRenderer,
-                pRecoverKeyword,
-                kMinionRecoverSeconds);
-            return;
-        }
 
         if (rc.pRenderer->HasAnimationByName("attack"))
         {
@@ -547,6 +649,22 @@ void CMinion_Manager::UpdateMinionVisual(
         if (visual.phaseTimer > 0.f)
             return;
 
+        if (visual.bPendingAttack && rc.pRenderer->HasAnimationByName("attack"))
+        {
+            visual.bPendingAttack = false;
+            rc.pRenderer->PlayAnimationByNameAdvanced("attack", false, false, 1.f);
+            visual.phase = eMinionVisualPhase::Attack;
+            visual.phaseTimer = ResolveMinionAnimationSeconds(
+                *rc.pRenderer,
+                "attack",
+                kFallbackMinionAttackSeconds);
+            visual.baseState = kInvalidMinionVisualBaseState;
+            ms.visualState = MinionStateComponent::Attack;
+            ms.animUpdateAccumulator = kMinionHighPriorityAnimUpdateInterval;
+            return;
+        }
+
+        visual.bPendingAttack = false;
         visual.phase = eMinionVisualPhase::Base;
         visual.baseState = kInvalidMinionVisualBaseState;
     }
@@ -570,19 +688,35 @@ void CMinion_Manager::UpdateMinionVisual(
     ms.bAttackAnimRequested = false;
 }
 
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
 // Render
-// ─────────────────────────────────────────────────────────────
-void CMinion_Manager::TickVisuals(f32_t fDeltaTime)
+// ?????????????????????????????????????????????????????????????
+void CMinion_Manager::TickVisuals(f32_t fDeltaTime, const Mat4* pViewProj)
 {
     if (!m_pWorld)
         return;
 
-    m_pWorld->ForEach<MinionStateComponent, RenderComponent>(
-        [this, fDeltaTime](EntityID id, MinionStateComponent& ms, RenderComponent& rc)
+    ProcessQueueNetworkVisual(kNetworkVisualBindBudgetPerFrame);
+
+    const u8_t localTeam = UI::QueryLocalTeam(*m_pWorld);
+
+    m_pWorld->ForEach<MinionStateComponent, RenderComponent, TransformComponent>(
+        [this, fDeltaTime, localTeam, pViewProj](
+            EntityID id,
+            MinionStateComponent& ms,
+            RenderComponent& rc,
+            TransformComponent& tf)
         {
+            if (!rc.bVisible || !rc.pRenderer)
+                return;
+            if (!UI::IsRenderableForLocal(*m_pWorld, id, localTeam, false))
+                return;
+            if (pViewProj && !IsWorldPointNearScreen(*pViewProj, tf.GetPosition()))
+                return;
+
             UpdateMinionVisual(id, ms, rc, fDeltaTime);
-        });
+        }
+    );
 
     m_pWorld->ForEach<MinionStateComponent, RenderComponent>(
         [fDeltaTime](EntityID, MinionStateComponent& ms, RenderComponent& rc)
@@ -601,8 +735,17 @@ void CMinion_Manager::TickVisuals(f32_t fDeltaTime)
         WINTERS_PROFILE_SCOPE("Minion::AnimUpdate");
         uint64_t animCount = 0;
         uint64_t skippedCount = 0;
-        m_pWorld->ForEach<MinionStateComponent, RenderComponent>(
-            [fDeltaTime, &animCount, &skippedCount](EntityID, MinionStateComponent& ms, RenderComponent& rc)
+        uint64_t visibilitySkippedCount = 0;
+        uint64_t screenSkippedCount = 0;
+        uint64_t budgetSkippedCount = 0;
+        m_pWorld->ForEach<MinionStateComponent, RenderComponent, TransformComponent>(
+            [this, fDeltaTime, localTeam, pViewProj,
+                &animCount, &skippedCount, &visibilitySkippedCount,
+                &screenSkippedCount, &budgetSkippedCount](
+                EntityID id,
+                MinionStateComponent& ms,
+                RenderComponent& rc,
+                TransformComponent& tf)
             {
                 if (!rc.bVisible || !rc.pRenderer)
                     return;
@@ -611,13 +754,27 @@ void CMinion_Manager::TickVisuals(f32_t fDeltaTime)
                     ++skippedCount;
                     return;
                 }
+                if (!UI::IsRenderableForLocal(*m_pWorld, id, localTeam, false))
+                {
+                    ++skippedCount;
+                    ++visibilitySkippedCount;
+                    ms.animUpdateAccumulator = 0.f;
+                    return;
+                }
+                if (pViewProj && !IsWorldPointNearScreen(*pViewProj, tf.GetPosition()))
+                {
+                    ++skippedCount;
+                    ++screenSkippedCount;
+                    ms.animUpdateAccumulator = 0.f;
+                    return;
+                }
 
                 const bool_t bHighPriorityAnim =
                     ms.current == MinionStateComponent::Attack ||
                     ms.current == MinionStateComponent::Dead;
                 const f32_t updateInterval = bHighPriorityAnim
-                    ? (1.f / 30.f)
-                    : ms.animUpdateInterval;
+                    ? kMinionHighPriorityAnimUpdateInterval
+                    : (std::max)(ms.animUpdateInterval, kMinionBaseAnimUpdateInterval);
 
                 ms.animUpdateAccumulator += fDeltaTime;
                 if (ms.animUpdateAccumulator < updateInterval)
@@ -626,38 +783,67 @@ void CMinion_Manager::TickVisuals(f32_t fDeltaTime)
                     return;
                 }
 
+                if (!bHighPriorityAnim && animCount >= kMinionAnimUpdateBudget)
+                {
+                    ++skippedCount;
+                    ++budgetSkippedCount;
+                    return;
+                }
+
                 rc.pRenderer->Update(ms.animUpdateAccumulator);
-                ms.animUpdateAccumulator = 0.f;
+                ms.animUpdateAccumulator = std::fmod(ms.animUpdateAccumulator, updateInterval);
                 ++animCount;
             });
         WINTERS_PROFILE_COUNT("Anim::UpdateCalls", animCount);
         WINTERS_PROFILE_COUNT("Anim::Skipped", skippedCount);
+        WINTERS_PROFILE_COUNT("Anim::VisibilitySkipped", visibilitySkippedCount);
+        WINTERS_PROFILE_COUNT("Anim::ScreenSkipped", screenSkippedCount);
+        WINTERS_PROFILE_COUNT("Anim::BudgetSkipped", budgetSkippedCount);
     }
 }
 
 void CMinion_Manager::Render(const Mat4& matVP, const Vec3& vCameraWorld,
-    void* pAmbientOcclusionSRV)
+    void* pAmbientOcclusionSRV,
+    bool_t bIgnoreFogOfWar)
 {
     WINTERS_PROFILE_SCOPE("Minion::Render");
     if (!m_pWorld) return;
     const u8_t localTeam = UI::QueryLocalTeam(*m_pWorld);
+    uint64_t candidateCount = 0;
+    uint64_t visibleCount = 0;
+    uint64_t fowSkippedCount = 0;
+    uint64_t meshCount = 0;
+
     m_pWorld->ForEach<MinionStateComponent, RenderComponent, TransformComponent>(
         [&](EntityID id, MinionStateComponent&, RenderComponent& rc, TransformComponent& xform)
         {
             if (!rc.bVisible || !rc.pRenderer) return;
-            if (!UI::IsRenderableForLocal(*m_pWorld, id, localTeam)) return;
-            // Update(dt) 는 Tick 의 RenderComponent ForEach 에서 수행 (여기는 렌더만)
+            ++candidateCount;
+            if (!UI::IsRenderableForLocal(*m_pWorld, id, localTeam, bIgnoreFogOfWar))
+            {
+                ++fowSkippedCount;
+                return;
+            }
+
+            ++visibleCount;
+            meshCount += rc.pRenderer->GetMeshCount();
+            // Update(dt) ??Tick ??RenderComponent ForEach ?먯꽌 ?섑뻾 (?ш린???뚮뜑留?
             FlushTransformForRender(xform);
             rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
             rc.pRenderer->UpdateCamera(matVP, vCameraWorld);
             rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
-            rc.pRenderer->Render();
+            rc.pRenderer->RenderFrustumCulled(matVP);
         });
+
+    WINTERS_PROFILE_COUNT("Minion::RenderCandidates", candidateCount);
+    WINTERS_PROFILE_COUNT("Minion::RenderVisible", visibleCount);
+    WINTERS_PROFILE_COUNT("Minion::RenderFowSkipped", fowSkippedCount);
+    WINTERS_PROFILE_COUNT("Minion::RenderMeshCount", meshCount);
 }
 
-// ─────────────────────────────────────────────────────────────
-// Spawn — ECS 엔티티 생성
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
+// Spawn ??ECS ?뷀떚???앹꽦
+// ?????????????????????????????????????????????????????????????
 bool_t CMinion_Manager::Ensure_NetworkVisual(EntityID entity, eMinionType eType, eMinionTeam eTeamParam)
 {
     if (!m_pWorld || entity == NULL_ENTITY)
@@ -686,12 +872,12 @@ bool_t CMinion_Manager::Ensure_NetworkVisual(EntityID entity, eMinionType eType,
         return false;
     }
 
-    auto pRenderer = std::unique_ptr<ModelRenderer>(new ModelRenderer());
-    if (!pRenderer->Initialize(pPath, L"Shaders/Mesh3D.hlsl"))
+    auto pRenderer = AcquireNetworkRenderer(eType, eTeamParam, pPath);
+    if (!pRenderer)
     {
         char msg[512]{};
         sprintf_s(msg,
-            "[MinionVisual] bind FAIL: ModelRenderer::Initialize failed entity=%u type=%u team=%u path=%s\n",
+            "[MinionVisual] bind FAIL: AcquireNetworkRenderer failed entity=%u type=%u team=%u path=%s\n",
             static_cast<u32_t>(entity),
             static_cast<u32_t>(eType),
             static_cast<u32_t>(eTeamParam),
@@ -699,8 +885,6 @@ bool_t CMinion_Manager::Ensure_NetworkVisual(EntityID entity, eMinionType eType,
         OutputMinionDebug(msg);
         return false;
     }
-    if (eType == eMinionType::Tibbers)
-        pRenderer->LoadTextureForAllMeshes(kTibbersTexturePath);
 
     const u32_t animCount = pRenderer->GetAnimationCount();
     if (animCount > 0)
@@ -719,6 +903,9 @@ bool_t CMinion_Manager::Ensure_NetworkVisual(EntityID entity, eMinionType eType,
         MinionStateComponent state{};
         state.team = simTeam;
         state.type = static_cast<u8_t>(eType);
+        state.animUpdateInterval = kMinionBaseAnimUpdateInterval;
+        state.animUpdateAccumulator =
+            ResolveMinionAnimPhase(entity, state.animUpdateInterval);
         m_pWorld->AddComponent<MinionStateComponent>(entity, state);
     }
     else
@@ -726,7 +913,9 @@ bool_t CMinion_Manager::Ensure_NetworkVisual(EntityID entity, eMinionType eType,
         auto& state = m_pWorld->GetComponent<MinionStateComponent>(entity);
         state.team = simTeam;
         state.type = static_cast<u8_t>(eType);
-        state.animUpdateInterval = 1.f / 15.f;
+        state.animUpdateInterval = kMinionBaseAnimUpdateInterval;
+        state.animUpdateAccumulator =
+            ResolveMinionAnimPhase(entity, state.animUpdateInterval);
     }
 
     if (!m_pWorld->HasComponent<MinionComponent>(entity))
@@ -801,7 +990,43 @@ void CMinion_Manager::Release_NetworkVisual(EntityID entity)
     if (entity == NULL_ENTITY)
         return;
 
-    m_mapRenderers.erase(entity);
+    m_deqPendingNetworkVisuals.erase(
+        std::remove_if(
+            m_deqPendingNetworkVisuals.begin(),
+            m_deqPendingNetworkVisuals.end(),
+            [entity](const NetworkVisualRequest& request)
+            {
+                return request.entity == entity;
+            }
+        ),
+        m_deqPendingNetworkVisuals.end()
+    );
+
+    eMinionType type = eMinionType::Melee;
+    eMinionTeam team = eMinionTeam::Blue;
+    if (m_pWorld && m_pWorld->IsAlive(entity) &&
+        m_pWorld->HasComponent<MinionStateComponent>(entity))
+    {
+        const auto& state = m_pWorld->GetComponent<MinionStateComponent>(entity);
+        type = static_cast<eMinionType>(state.type);
+        team = (state.team == eTeam::Red) ? eMinionTeam::Red : eMinionTeam::Blue;
+    }
+
+    if (m_pWorld && m_pWorld->IsAlive(entity) &&
+        m_pWorld->HasComponent<RenderComponent>(entity))
+    {
+        auto& rc = m_pWorld->GetComponent<RenderComponent>(entity);
+        rc.pRenderer = nullptr;
+        rc.bVisible = false;
+        rc.bAnimated = false;
+    }
+
+    auto rendererIt = m_mapRenderers.find(entity);
+    if (rendererIt != m_mapRenderers.end())
+    {
+        PoolNetworkRenderer(type, team, std::move(rendererIt->second));
+        m_mapRenderers.erase(rendererIt);
+    }
     m_mapVisualStates.erase(entity);
     m_vecEntities.erase(
         std::remove(m_vecEntities.begin(), m_vecEntities.end(), entity),
@@ -853,7 +1078,7 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     if (eType == eMinionType::Tibbers)
         pRenderer->LoadTextureForAllMeshes(kTibbersTexturePath);
 
-    // 애니메이션 개수 로그 + 첫 애니 자동 재생 (루프)
+    // ?좊땲硫붿씠??媛쒖닔 濡쒓렇 + 泥??좊땲 ?먮룞 ?ъ깮 (猷⑦봽)
     const uint32_t animCnt = pRenderer->GetAnimationCount();
     {
         char m[256];
@@ -863,10 +1088,10 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
         OutputMinionDebug(m);
     }
 
-    // Spawn_Minion 내부, PlayAnimation(idx) 대신:
+    // Spawn_Minion ?대?, PlayAnimation(idx) ???
     if (animCnt > 0)
     {
-        pRenderer->PlayAnimationByName("run", true);   // 이름 keyword 매칭
+        pRenderer->PlayAnimationByName("run", true);   // ?대쫫 keyword 留ㅼ묶
     }
 
     EntityID id = m_pWorld->CreateEntity();
@@ -884,7 +1109,7 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     ms.lane            = static_cast<uint8_t>(eWay);
     switch (eType)
     {
-    // sightRange 는 항상 attackRange 보다 충분히 크게 (감지 → 추격 → 사거리 진입 흐름 보장).
+    // sightRange ????긽 attackRange 蹂대떎 異⑸텇???ш쾶 (媛먯? ??異붽꺽 ???ш굅由?吏꾩엯 ?먮쫫 蹂댁옣).
     case eMinionType::Melee:  ms.moveSpeed = 4.0f; ms.attackRange = 1.5f;  ms.sightRange = 12.f; ms.attackDamage = 20.f;   break;
     case eMinionType::Ranged: ms.moveSpeed = 4.0f; ms.attackRange = 8.f;   ms.sightRange = 14.f; ms.attackDamage = 30.f;   break;
     case eMinionType::Siege:  ms.moveSpeed = 3.5f; ms.attackRange = 10.0f; ms.sightRange = 16.f; ms.attackDamage = 40.f;  break;
@@ -896,7 +1121,8 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     const u32_t scanSeed = (static_cast<u32_t>(id) * 1103515245u + 12345u) & 7u;
     ms.targetScanCooldown = 0.03f * static_cast<f32_t>(scanSeed);
     ms.targetScanInterval = 0.16f + 0.02f * static_cast<f32_t>(scanSeed % 5u);
-    ms.animUpdateInterval = 1.f / 15.f;
+    ms.animUpdateInterval = kMinionBaseAnimUpdateInterval;
+    ms.animUpdateAccumulator = ResolveMinionAnimPhase(id, ms.animUpdateInterval);
 
     auto& hp = m_pWorld->AddComponent<HealthComponent>(id);
     hp.fMaximum = hp.fCurrent =
@@ -979,20 +1205,96 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     return id;
 }
 
-// ─────────────────────────────────────────────────────────────
-// DoSpawnWave — 3라인 × 2팀, 근접 3 + 원거리 3
-// ─────────────────────────────────────────────────────────────
+std::unique_ptr<ModelRenderer> CMinion_Manager::AcquireNetworkRenderer(
+    eMinionType eType, eMinionTeam eTeam, const char* pPath)
+{
+    const u32_t teamIndex = (eTeam == eMinionTeam::Blue) ? 0u : 1u;
+    const u32_t typeIndex = static_cast<u32_t>(eType);
+    if (typeIndex >= 5u)
+        return nullptr;
+
+    auto& pool = m_vecNetworkRendererPool[teamIndex][typeIndex];
+    if (!pool.empty())
+    {
+        std::unique_ptr<ModelRenderer> pRenderer = std::move(pool.back());
+        pool.pop_back();
+        return pRenderer;
+    }
+
+    std::unique_ptr<ModelRenderer> pRenderer(new ModelRenderer());
+    if (!pRenderer->Initialize(pPath, L"Shaders/Mesh3D.hlsl"))
+        return nullptr;
+
+    if (eType == eMinionType::Tibbers)
+        pRenderer->LoadTextureForAllMeshes(kTibbersTexturePath);
+
+    return pRenderer;
+}
+
+void CMinion_Manager::PoolNetworkRenderer(
+    eMinionType eType, eMinionTeam eTeam, std::unique_ptr<ModelRenderer> pRenderer)
+{
+    if (!pRenderer)
+        return;
+
+    const u32_t teamIndex = (eTeam == eMinionTeam::Blue) ? 0u : 1u;
+    const u32_t typeIndex = static_cast<u32_t>(eType);
+
+    if (typeIndex >= 5u)
+        return;
+
+    m_vecNetworkRendererPool[teamIndex][typeIndex].push_back(std::move(pRenderer));
+}
+
+// ?????????????????????????????????????????????????????????????
+// DoSpawnWave ??3?쇱씤 횞 2?, 洹쇱젒 3 + ?먭굅由?3
+// ?????????????????????????????????????????????????????????????
 void CMinion_Manager::DoSpawnWave()
 {
     m_iCurrentRound = 0;
-    m_fNextRoundCountdown = 0.f;   // 첫 라운드 즉시
+    m_fNextRoundCountdown = 0.f;   // 泥??쇱슫??利됱떆
 }
 
 void CMinion_Manager::DEBUG_SpawnWaveNow() { DoSpawnWave(); }
 
-// ─────────────────────────────────────────────────────────────
+void CMinion_Manager::PrewarmNetworkVisualResources()
+{
+    WINTERS_PROFILE_SCOPE("MinionVisual::Prewarm");
+
+    uint64_t loadedCount = 0u;
+    uint64_t failedCount = 0u;
+
+    for (u32_t teamIndex = 0u;
+        teamIndex < static_cast<u32_t>(eMinionTeam::End);
+        ++teamIndex)
+    {
+        const eMinionTeam team = static_cast<eMinionTeam>(teamIndex);
+
+        for (u32_t typeIndex = 0u;
+            typeIndex < static_cast<u32_t>(eMinionType::End);
+            ++typeIndex)
+        {
+            const eMinionType type = static_cast<eMinionType>(typeIndex);
+            const char* pPath = ResolveModelPath(type, team);
+            if (!pPath)
+            {
+                ++failedCount;
+                continue;
+            }
+
+            if (ModelRenderer::PrewarmModel(pPath))
+                ++loadedCount;
+            else
+                ++failedCount;
+        }
+    }
+    WINTERS_PROFILE_COUNT("MinionVisual::PrewarmLoaded", loadedCount);
+    WINTERS_PROFILE_COUNT("MinionVisual::PrewarmFailed", failedCount);
+}
+
+// ?????????????????????????????????????????????????????????????
 // GetWayPoints / ResolveModelPath
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
 void CMinion_Manager::GetWayPoints(eMinionTeam eTeamParam, eMinionWay eWay,
     const Vec3** ppOut, uint32_t* pCountOut)
 {
@@ -1025,9 +1327,89 @@ const char* CMinion_Manager::ResolveModelPath(eMinionType eType, eMinionTeam eTe
     return paths[ti][mi];
 }
 
-// ─────────────────────────────────────────────────────────────
-// 편집 API
-// ─────────────────────────────────────────────────────────────
+void CMinion_Manager::QueueNetworkVisual(EntityID entity,
+    eMinionType eType, eMinionTeam eTeam)
+{
+    if (!m_pWorld || entity == NULL_ENTITY)
+        return;
+
+    if (static_cast<u32_t>(eType) >= static_cast<u32_t>(eMinionType::End))
+        eType = eMinionType::Melee;
+
+    if (eTeam == eMinionTeam::End)
+        eTeam = eMinionTeam::Blue;
+
+    if (m_pWorld->HasComponent<RenderComponent>(entity))
+    {
+        auto& rc = m_pWorld->GetComponent<RenderComponent>(entity);
+        if (rc.pRenderer)
+            return;
+    }
+
+    for (NetworkVisualRequest& request : m_deqPendingNetworkVisuals)
+    {
+        if (request.entity != entity)
+            continue;
+        request.type = eType;
+        request.team = eTeam;
+        return;
+    }
+    //Minion Infomation type create
+    NetworkVisualRequest  request{};
+
+    request.entity = entity;
+    request.type = eType;
+    request.team = eTeam;
+    //push to deque
+    m_deqPendingNetworkVisuals.push_back(request);
+}
+
+uint32_t CMinion_Manager::ProcessQueueNetworkVisual(uint32_t maxCreates)
+{
+    if (!m_pWorld || maxCreates == 0)
+        return 0u;
+
+    uint32_t createdCount = 0u;
+    uint32_t skippedCount = 0u;
+    uint32_t failedCount = 0u;
+    //Create Minion Procedually
+    while (!m_deqPendingNetworkVisuals.empty() &&
+        createdCount < maxCreates)
+    {
+        const NetworkVisualRequest request = m_deqPendingNetworkVisuals.front();
+        m_deqPendingNetworkVisuals.pop_front();
+
+        if (request.entity == NULL_ENTITY ||
+            !m_pWorld->IsAlive(request.entity))
+        {
+            ++skippedCount;
+            continue;
+        }
+        if (m_pWorld->HasComponent<RenderComponent>(request.entity))
+        {
+            auto& rc = m_pWorld->GetComponent<RenderComponent>(request.entity);
+            if (rc.pRenderer)
+            {
+                ++skippedCount;
+                continue;
+            }
+        }
+        if (Ensure_NetworkVisual(request.entity, request.type, request.team))
+            ++createdCount;
+        else
+            ++failedCount;
+    }
+    WINTERS_PROFILE_COUNT("MinionVisual::Queue", static_cast<uint64_t>(m_deqPendingNetworkVisuals.size()));
+    WINTERS_PROFILE_COUNT("MinionVisual::Created", createdCount);
+    WINTERS_PROFILE_COUNT("MinionVisual::Skipped", skippedCount);
+    WINTERS_PROFILE_COUNT("MinionVisual::Failed", failedCount);
+
+    return createdCount;
+}
+
+// ?????????????????????????????????????????????????????????????
+// ?몄쭛 API
+// ?????????????????????????????????????????????????????????????
 i32_t CMinion_Manager::Add_Waypoint(eMinionTeam team, eMinionWay lane, const Vec3& pos)
 {
     const u32_t t = static_cast<u32_t>(team);
@@ -1085,9 +1467,9 @@ const Vec3* CMinion_Manager::Get_WaypointPtr(eMinionTeam team, eMinionWay lane, 
     return &v[index];
 }
 
-// ─────────────────────────────────────────────────────────────
-// LoadDefaults — 기존 하드코딩 값을 초기 부트스트랩으로
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
+// LoadDefaults ??湲곗〈 ?섎뱶肄붾뵫 媛믪쓣 珥덇린 遺?몄뒪?몃옪?쇰줈
+// ?????????????????????????????????????????????????????????????
 void CMinion_Manager::LoadDefaults()
 {
     for (auto& row : m_vecWaypoints) for (auto& v : row) v.clear();
@@ -1110,9 +1492,9 @@ void CMinion_Manager::LoadDefaults()
     fill(m_vecWaypoints[1][2], defRedBot,  std::size(defRedBot));
 }
 
-// ─────────────────────────────────────────────────────────────
-// Save / Load (Stage1.dat 통합)
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
+// Save / Load (Stage1.dat ?듯빀)
+// ?????????????????????????????????????????????????????????????
 HRESULT CMinion_Manager::Save_ToFile(FILE* pFile) const
 {
     if (!pFile) return E_FAIL;
@@ -1154,13 +1536,13 @@ HRESULT CMinion_Manager::Load_FromFile(FILE* pFile)
         if (e.team >= 2 || e.lane >= 3) continue;
         m_vecWaypoints[e.team][e.lane].push_back({ e.px, e.py, e.pz });
     }
-    if (count == 0) LoadDefaults();   // 빈 스테이지 방지
+    if (count == 0) LoadDefaults();   // 鍮??ㅽ뀒?댁? 諛⑹?
     return S_OK;
 }
 
-// ─────────────────────────────────────────────────────────────
-// OnImGui_Tuner — 멤버 벡터 기반
-// ─────────────────────────────────────────────────────────────
+// ?????????????????????????????????????????????????????????????
+// OnImGui_Tuner ??硫ㅻ쾭 踰≫꽣 湲곕컲
+// ?????????????????????????????????????????????????????????????
 void CMinion_Manager::OnImGui_Tuner()
 {
     if (!ImGui::Begin("Minion Tuner")) { ImGui::End(); return; }

@@ -23,7 +23,6 @@ namespace Systems
 		static std::unique_ptr<CSkillDispatchSystem> Create();
 		//ISystem Jobsystem의 분기를 위한 거 맞지?
 		void Execute(CWorld& world, f32_t dt) override;
-		//왜 2??
 		uint32_t GetPhase() const override { return 2; }
 	private:
 		CSkillDispatchSystem() = default;

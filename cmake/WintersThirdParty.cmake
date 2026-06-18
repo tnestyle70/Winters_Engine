@@ -45,3 +45,11 @@ target_link_libraries(Winters::WindowsGraphicsDX11 INTERFACE
     windowscodecs
     ole32
 )
+
+add_library(Winters::WindowsGraphicsDX12 INTERFACE IMPORTED GLOBAL)
+target_link_libraries(Winters::WindowsGraphicsDX12 INTERFACE
+    d3d12
+    dxgi
+    d3dcompiler
+    dxguid
+)

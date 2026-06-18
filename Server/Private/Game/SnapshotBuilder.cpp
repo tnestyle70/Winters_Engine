@@ -4,6 +4,8 @@
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
+#include "Shared/GameSim/Components/ChampionScore.h"
+#include "Shared/GameSim/Components/MatchScore.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
@@ -14,8 +16,10 @@
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Components/RuneComponent.h"
 //Viego Soul
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
+#include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
@@ -68,6 +72,19 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
     std::vector<flatbuffers::Offset<Shared::Schema::EntitySnapshot>> snapshots;
     snapshots.reserve(sorted.size());
 
+    MatchScoreComponent matchScore{};
+    bool_t bHasMatchScore = false;
+    world.ForEach<MatchScoreComponent>(
+        [&](EntityID, MatchScoreComponent& score)
+        {
+            if (!bHasMatchScore)
+            {
+                matchScore = score;
+                bHasMatchScore = true;
+            }
+        }
+    );
+
     for (const auto& item : sorted)
     {
         const EntityID entity = item.entity;
@@ -102,6 +119,7 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         f32_t xpCurrent = 0.f;
         f32_t xpRequired = 0.f;
         u8_t skillPoints = 0;
+        u8_t lethalTempoStacks = 0;
         u32_t buffMask = 0;
         u32_t statHash = 0;
         u32_t stateFlags = 0;
@@ -113,6 +131,13 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         f32_t projectileSpeed = 0.f;
         f32_t projectileRadius = 0.f;
         f32_t projectileMaxDist = 0.f;
+        u8_t baseChampionId = 0;
+        u8_t visualChampionId = 0;
+        u8_t skillChampionId = 0;
+        u8_t skillSlotMask = 0;
+        u8_t spellbookChampionId = 0;
+        u8_t spellbookSlot = 0;
+        f32_t spellbookRemaining = 0.f;
         Shared::Schema::EntityKind entityKind = Shared::Schema::EntityKind::None;
 
         if (world.HasComponent<HealthComponent>(entity))
@@ -147,6 +172,9 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         {
             const auto& champion = world.GetComponent<ChampionComponent>(entity);
             championId = static_cast<u8_t>(champion.id);
+            baseChampionId = championId;
+            visualChampionId = championId;
+            skillChampionId = championId;
             team = static_cast<u8_t>(champion.team);
             subtype = static_cast<u16_t>(champion.id);
             entityKind = Shared::Schema::EntityKind::Champion;
@@ -176,13 +204,32 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         if (world.HasComponent<FormOverrideComponent>(entity))
         {
             const auto& form = world.GetComponent<FormOverrideComponent>(entity);
-            if (form.bActive &&
-                form.visualChampion != eChampion::END &&
-                form.visualChampion != eChampion::NONE)
+            if (form.bActive)
             {
-                championId = static_cast<u8_t>(form.visualChampion);
-                if (entityKind == Shared::Schema::EntityKind::Champion)
-                    subtype = static_cast<u16_t>(form.visualChampion);
+                if (form.visualChampion != eChampion::END &&
+                    form.visualChampion != eChampion::NONE)
+                {
+                    visualChampionId = static_cast<u8_t>(form.visualChampion);
+                }
+                if (form.skillChampion != eChampion::END &&
+                    form.skillChampion != eChampion::NONE)
+                {
+                    skillChampionId = static_cast<u8_t>(form.skillChampion);
+                    skillSlotMask = form.skillSlotMask;
+                }
+            }
+        }
+
+        if (world.HasComponent<SpellbookOverrideComponent>(entity))
+        {
+            const auto& spellbook = world.GetComponent<SpellbookOverrideComponent>(entity);
+            if (spellbook.bActive &&
+                spellbook.sourceChampion != eChampion::END &&
+                spellbook.sourceChampion != eChampion::NONE)
+            {
+                spellbookChampionId = static_cast<u8_t>(spellbook.sourceChampion);
+                spellbookSlot = spellbook.sourceSlot;
+                spellbookRemaining = spellbook.fRemainingSec;
             }
         }
 
@@ -308,6 +355,45 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             stateFlags |= kSnapshotStateInvisibleFlag;
         }
 
+        u32_t aiDebugAvailableActionMask = 0u;
+        u32_t aiDebugAvailableSkillMask = 0u;
+        u32_t aiDebugTargetNet = NULL_NET_ENTITY;
+        u32_t aiDebugLowHpEnemyNet = NULL_NET_ENTITY;
+        u32_t aiDebugDiveTargetNet = NULL_NET_ENTITY;
+        u32_t aiDebugLastCommandTargetNet = NULL_NET_ENTITY;
+        u8_t aiDebugLastCommandKind = 0u;
+        u8_t aiDebugLastCommandSlot = 0u;
+        u8_t aiDebugDivePhase = 0u;
+        u8_t aiDebugLastBlockReason = 0u;
+        u32_t aiDebugFlags = 0u;
+        f32_t aiDebugChampionScore = 0.f;
+        f32_t aiDebugFarmScore = 0.f;
+        f32_t aiDebugStructureScore = 0.f;
+        f32_t aiDebugSelfHpRatio = 1.f;
+        f32_t aiDebugEnemyHpRatio = 1.f;
+        f32_t aiDebugEnemyDistance = 999.f;
+        f32_t aiDebugAttackRange = 1.5f;
+        f32_t aiDebugTurretDanger = 0.f;
+        f32_t aiDebugLowHpEnemyRatio = 1.f;
+        f32_t aiDebugLowHpEnemyDistance = 999.f;
+        f32_t aiDebugChampionScanRange = 0.f;
+        f32_t aiDebugMinionScanRange = 0.f;
+        f32_t aiDebugStructureScanRange = 0.f;
+        f32_t aiDebugLeashRange = 0.f;
+        f32_t aiDebugRetreatHpRatio = 0.f;
+        f32_t aiDebugReengageHpRatio = 0.f;
+        f32_t aiDebugChampionScoreMargin = 0.f;
+        f32_t aiDebugTurretDangerThreshold = 0.f;
+        f32_t aiDebugPostComboBASelfHpMinRatio = 0.f;
+        f32_t aiDebugPostComboBAEnemyHpMargin = 0.f;
+        f32_t aiDebugPostComboBAWindow = 0.f;
+        f32_t aiDebugLowHpExecuteThreshold = 0.f;
+        f32_t aiDebugDiveScanRange = 0.f;
+        f32_t aiDebugDiveExtraBAWindow = 0.f;
+        f32_t aiDebugFlashRange = 0.f;
+        f32_t aiDebugPostComboBATimer = 0.f;
+        Vec3 aiDebugLastCommandPos{};
+
         if (world.HasComponent<ChampionAIComponent>(entity))
         {
             const auto& ai = world.GetComponent<ChampionAIComponent>(entity);
@@ -329,7 +415,57 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 target = ai.alliedWave;
 
             if (target != NULL_ENTITY)
+            {
                 ownerNet = entityMap.ToNet(target);
+                aiDebugTargetNet = ownerNet;
+            }
+
+            aiDebugAvailableActionMask = ai.debugAvailableActionMask;
+            aiDebugAvailableSkillMask = ai.debugAvailableSkillMask;
+            aiDebugLowHpEnemyNet = ai.lowHpEnemyChampion != NULL_ENTITY
+                ? entityMap.ToNet(ai.lowHpEnemyChampion)
+                : NULL_NET_ENTITY;
+            aiDebugDiveTargetNet = ai.diveTarget != NULL_ENTITY
+                ? entityMap.ToNet(ai.diveTarget)
+                : NULL_NET_ENTITY;
+            aiDebugLastCommandTargetNet = ai.debugLastCommandTarget != NULL_ENTITY
+                ? entityMap.ToNet(ai.debugLastCommandTarget)
+                : NULL_NET_ENTITY;
+            aiDebugLastCommandKind = ai.debugLastCommandKind;
+            aiDebugLastCommandSlot = ai.debugLastCommandSlot;
+            aiDebugDivePhase = static_cast<u8_t>(ai.divePhase);
+            aiDebugLastBlockReason = static_cast<u8_t>(ai.debugLastBlockReason);
+            if (ai.bCanAttackChampion)
+                aiDebugFlags |= kChampionAIDebugCanAttackChampionFlag;
+            if (ai.bPostComboBAAllowed)
+                aiDebugFlags |= kChampionAIDebugPostComboBAAllowedFlag;
+            aiDebugChampionScore = ai.fChampionDecisionScore;
+            aiDebugFarmScore = ai.fFarmDecisionScore;
+            aiDebugStructureScore = ai.fStructureDecisionScore;
+            aiDebugSelfHpRatio = ai.fDecisionSelfHpRatio;
+            aiDebugEnemyHpRatio = ai.fDecisionEnemyHpRatio;
+            aiDebugEnemyDistance = ai.fDecisionEnemyDistance;
+            aiDebugAttackRange = ai.fDecisionAttackRange;
+            aiDebugTurretDanger = ai.fDecisionTurretDanger;
+            aiDebugLowHpEnemyRatio = ai.fDecisionLowHpEnemyRatio;
+            aiDebugLowHpEnemyDistance = ai.fDecisionLowHpEnemyDistance;
+            aiDebugChampionScanRange = ai.fDecisionChampionScanRange;
+            aiDebugMinionScanRange = ai.minionScanRange;
+            aiDebugStructureScanRange = ai.structureScanRange;
+            aiDebugLeashRange = ai.leashRange;
+            aiDebugRetreatHpRatio = ai.retreatHpRatio;
+            aiDebugReengageHpRatio = ai.reengageHpRatio;
+            aiDebugChampionScoreMargin = ai.fChampionScoreMargin;
+            aiDebugTurretDangerThreshold = ai.fTurretDangerThreshold;
+            aiDebugPostComboBASelfHpMinRatio = ai.fPostComboBASelfHpMinRatio;
+            aiDebugPostComboBAEnemyHpMargin = ai.fPostComboBAEnemyHpMargin;
+            aiDebugPostComboBAWindow = ai.fPostComboBAWindow;
+            aiDebugLowHpExecuteThreshold = ai.fLowHpExecuteThreshold;
+            aiDebugDiveScanRange = ai.fDecisionDiveScanRange;
+            aiDebugDiveExtraBAWindow = ai.fDiveExtraBAWindow;
+            aiDebugFlashRange = ai.fDecisionFlashRange;
+            aiDebugPostComboBATimer = ai.fPostComboBATimer;
+            aiDebugLastCommandPos = ai.debugLastCommandPos;
         }
 
         std::vector<f32_t> cooldowns;
@@ -348,6 +484,12 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
 
         u32_t gold = 0;
         std::vector<u16_t> inventoryItemIds;
+        u16_t kills = 0;
+        u16_t deaths = 0;
+        u16_t assists = 0;
+        std::vector<u16_t> summonerSpellIds;
+        std::vector<f32_t> summonerSpellCooldowns;
+        std::vector<f32_t> summonerSpellCooldownDurations;
 
         if (world.HasComponent<GoldComponent>(entity))
             gold = world.GetComponent<GoldComponent>(entity).amount;
@@ -360,6 +502,31 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 inventoryItemIds.push_back(inventory.itemIds[i]);
         }
 
+        if (world.HasComponent<ChampionScoreComponent>(entity))
+        {
+            const ChampionScoreComponent& score =
+                world.GetComponent<ChampionScoreComponent>(entity);
+            kills = score.iKills;
+            deaths = score.iDeaths;
+            assists = score.iAssists;
+            summonerSpellIds.reserve(ChampionScoreComponent::kSummonerSpellSlotCount);
+            for (u8_t i = 0; i < ChampionScoreComponent::kSummonerSpellSlotCount; ++i)
+                summonerSpellIds.push_back(score.iSummonerSpellIds[i]);
+        }
+
+        if (world.HasComponent<SummonerSpellStateComponent>(entity))
+        {
+            const SummonerSpellStateComponent& spells =
+                world.GetComponent<SummonerSpellStateComponent>(entity);
+            summonerSpellCooldowns.reserve(SummonerSpellStateComponent::kSlotCount);
+            summonerSpellCooldownDurations.reserve(SummonerSpellStateComponent::kSlotCount);
+            for (u8_t i = 0; i < SummonerSpellStateComponent::kSlotCount; ++i)
+            {
+                summonerSpellCooldowns.push_back(spells.cooldownRemaining[i]);
+                summonerSpellCooldownDurations.push_back(spells.cooldownDuration[i]);
+            }
+        }
+
         std::vector<u8_t> ranks;
         if (world.HasComponent<SkillRankComponent>(entity))
         {
@@ -370,10 +537,62 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 ranks.push_back(skillRank.ranks[i]);
         }
 
+        if (world.HasComponent<RuneRuntimeComponent>(entity))
+            lethalTempoStacks =
+                world.GetComponent<RuneRuntimeComponent>(entity).iLethalTempoStacks;
+
         const auto cooldownOffset = fbb.CreateVector(cooldowns);
         const auto cooldownDurationOffset = fbb.CreateVector(cooldownDurations);
         const auto rankOffset = fbb.CreateVector(ranks);
         const auto inventoryOffset = fbb.CreateVector(inventoryItemIds);
+        const auto summonerSpellOffset = fbb.CreateVector(summonerSpellIds);
+        const auto summonerSpellCooldownOffset = fbb.CreateVector(summonerSpellCooldowns);
+        const auto summonerSpellCooldownDurationOffset =
+            fbb.CreateVector(summonerSpellCooldownDurations);
+
+        std::vector<flatbuffers::Offset<Shared::Schema::AIDebugTraceRow>> aiDebugTraceRows;
+        if (world.HasComponent<ChampionAIComponent>(entity))
+        {
+            const auto& ai = world.GetComponent<ChampionAIComponent>(entity);
+            const u8_t count = std::min<u8_t>(
+                ai.debugDecisionTraceCount,
+                kChampionAIDebugTraceCapacity);
+            aiDebugTraceRows.reserve(count);
+            const u8_t start = static_cast<u8_t>(
+                (ai.debugDecisionTraceHead + kChampionAIDebugTraceCapacity - count) %
+                kChampionAIDebugTraceCapacity);
+            for (u8_t i = 0u; i < count; ++i)
+            {
+                const u8_t index = static_cast<u8_t>(
+                    (start + i) % kChampionAIDebugTraceCapacity);
+                const ChampionAIDecisionTraceEntry& row = ai.debugDecisionTrace[index];
+                const u32_t rowTargetNet = row.target != NULL_ENTITY
+                    ? entityMap.ToNet(row.target)
+                    : NULL_NET_ENTITY;
+                aiDebugTraceRows.push_back(Shared::Schema::CreateAIDebugTraceRow(
+                    fbb,
+                    row.tick,
+                    static_cast<u8_t>(row.state),
+                    static_cast<u8_t>(row.intent),
+                    static_cast<u8_t>(row.action),
+                    static_cast<u8_t>(row.divePhase),
+                    static_cast<u8_t>(row.blockReason),
+                    row.commandKind,
+                    row.commandSlot,
+                    rowTargetNet,
+                    row.commandPos.x,
+                    row.commandPos.y,
+                    row.commandPos.z,
+                    row.championScore,
+                    row.farmScore,
+                    row.structureScore,
+                    row.selfHpRatio,
+                    row.enemyHpRatio,
+                    row.enemyDistance,
+                    row.turretDanger));
+            }
+        }
+        const auto aiDebugTraceOffset = fbb.CreateVector(aiDebugTraceRows);
 
         if (item.netId == yourNetId && championId != 0)
         {
@@ -432,7 +651,7 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 ++s_snapshotYawTraceCount;
             }
         }
-
+        // Pack the per-entity gameplay and UI fields into the FlatBuffer entity row.
         snapshots.push_back(Shared::Schema::CreateEntitySnapshot(
             fbb,
             item.netId,
@@ -482,7 +701,62 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             attackSpeed,
             attackRange,
             critChance,
-            abilityHaste));
+            abilityHaste,
+            kills,
+            deaths,
+            assists,
+            summonerSpellOffset,
+            summonerSpellCooldownOffset,
+            summonerSpellCooldownDurationOffset,
+            aiDebugAvailableActionMask,
+            aiDebugAvailableSkillMask,
+            aiDebugTargetNet,
+            aiDebugLowHpEnemyNet,
+            aiDebugDiveTargetNet,
+            aiDebugLastCommandTargetNet,
+            aiDebugLastCommandKind,
+            aiDebugLastCommandSlot,
+            aiDebugDivePhase,
+            aiDebugFlags,
+            aiDebugChampionScore,
+            aiDebugFarmScore,
+            aiDebugStructureScore,
+            aiDebugSelfHpRatio,
+            aiDebugEnemyHpRatio,
+            aiDebugEnemyDistance,
+            aiDebugAttackRange,
+            aiDebugTurretDanger,
+            aiDebugLowHpEnemyRatio,
+            aiDebugLowHpEnemyDistance,
+            aiDebugChampionScanRange,
+            aiDebugDiveScanRange,
+            aiDebugFlashRange,
+            aiDebugPostComboBATimer,
+            aiDebugLastCommandPos.x,
+            aiDebugLastCommandPos.y,
+            aiDebugLastCommandPos.z,
+            aiDebugLastBlockReason,
+            aiDebugMinionScanRange,
+            aiDebugStructureScanRange,
+            aiDebugLeashRange,
+            aiDebugRetreatHpRatio,
+            aiDebugReengageHpRatio,
+            aiDebugChampionScoreMargin,
+            aiDebugTurretDangerThreshold,
+            aiDebugPostComboBASelfHpMinRatio,
+            aiDebugPostComboBAEnemyHpMargin,
+            aiDebugPostComboBAWindow,
+            aiDebugLowHpExecuteThreshold,
+            aiDebugDiveExtraBAWindow,
+            aiDebugTraceOffset,
+            lethalTempoStacks,
+            baseChampionId,
+            visualChampionId,
+            skillChampionId,
+            skillSlotMask,
+            spellbookChampionId,
+            spellbookSlot,
+            spellbookRemaining));
     }
 
     const auto entitiesOffset = fbb.CreateVector(snapshots);
@@ -494,8 +768,16 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         entitiesOffset,
         lastAckedSeq,
         yourNetId,
-        0);
-
+        0,
+        matchScore.Blue.iTotalKills,
+        matchScore.Red.iTotalKills,
+        matchScore.Blue.iDestroyedTurrets,
+        matchScore.Red.iDestroyedTurrets,
+        matchScore.Blue.iDragons,
+        matchScore.Red.iDragons,
+        matchScore.Blue.iBarons,
+        matchScore.Red.iBarons);
+    // Finish writes the Snapshot root; Release returns the byte buffer for the server packet path.
     fbb.Finish(snapshot);
     return fbb.Release();
 }

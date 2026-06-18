@@ -287,6 +287,8 @@ namespace Engine
         PushInteger("gold", static_cast<lua_Integer>(m_HudState.Gold));
         PushInteger("level", static_cast<lua_Integer>(m_HudState.Level));
         PushInteger("skillPoints", static_cast<lua_Integer>(m_HudState.SkillPoints));
+        PushInteger("lethalTempoStacks",
+            static_cast<lua_Integer>(m_HudState.LethalTempoStacks));
         lua_pushboolean(pState, m_bInGameShopOpen ? 1 : 0);
         lua_setfield(pState, -2, "shopOpen");
         lua_newtable(pState);

@@ -7,7 +7,7 @@
 
 namespace Winters::Asset
 {
-    static constexpr uint32_t MAX_SKEL_BONES = 512;
+    static constexpr uint32_t MAX_SKEL_BONES = 1024;
     static constexpr uint32_t MAX_SKEL_SOCKETS = 256;
 
     static bool ValidateHeader(const SkelMetaHeader& h)

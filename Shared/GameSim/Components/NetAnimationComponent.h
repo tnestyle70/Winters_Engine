@@ -14,6 +14,7 @@ enum class eNetAnimId : u16_t
     SkillW = 21,
     SkillE = 22,
     SkillR = 23,
+    Recall = 30,
     Death = 50,
     ViegoConsumeSoul = 60,
 };

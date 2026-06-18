@@ -8,6 +8,7 @@
 #include "Resource/Animation.h"
 #include "Resource/Animator.h"
 #include "ECS/Components/MeshGroupVisibilityComponent.h"
+#include "WintersMath.h"
 
 namespace Winters::Asset
 {
@@ -31,13 +32,38 @@ public:
 		u64_t materialHash = 0;
 		char name[20]{};
 	};
+
+	struct LocalBounds
+	{
+		Vec3 vMin{};
+		Vec3 vMax{};
+		bool_t bValid = false;
+	};
+
+	struct CombinedSubmeshRange
+	{
+		u32_t submeshIndex = 0;
+		u32_t indexStart = 0;
+		u32_t indexCount = 0;
+		u32_t materialIndex = 0;
+	};
 	
 	void Render(IRHIDevice* pDevice);
 	void RenderWithMask(IRHIDevice* pDevice, const VisibilityMask& mask);
 
-	u32_t GetMeshCount() const { return (u32_t)m_vecMeshes.size(); }
+	u32_t GetMeshCount() const
+	{
+		return !m_vecSubmeshInfos.empty()
+			? (u32_t)m_vecSubmeshInfos.size()
+			: (u32_t)m_vecMeshes.size();
+	}
 	u32_t GetAnimationCount() const { return m_iAnimCount; }
 	const vector<SubmeshInfo>& GetSubmeshInfos() const { return m_vecSubmeshInfos; }
+	bool_t HasValidAABB() const { return m_LocalBounds.bValid; }
+	Vec3 GetLocalAABBMin() const { return m_LocalBounds.bValid ? m_LocalBounds.vMin : Vec3{}; }
+	Vec3 GetLocalAABBMax() const { return m_LocalBounds.bValid ? m_LocalBounds.vMax : Vec3{}; }
+	VisibilityMask BuildClipVisibilityMask(const Mat4& matLocalToClip,
+		bool_t* pOutAnyVisible = nullptr) const;
 	i32_t FindSubmeshByMaterialHash(u64_t materialHash) const;
 	void DumpSubmeshes(const char* pLabel = nullptr) const;
 
@@ -57,6 +83,7 @@ public:
 	i32_t FindAnimationIndex(const string& strName) const;
 
 	static unique_ptr<CModel> Create(IRHIDevice* pDevice, const string& strFilePath);
+
 private:
 	HRESULT LoadModel(IRHIDevice* pDevice, const string& strFilePath);
 	void LoadCookedTextures(IRHIDevice* pDevice,
@@ -64,14 +91,20 @@ private:
 		const Winters::Asset::WMeshLoaded& wm);
 	void LoadCookedAnimations(const string& strMeshPath,
 		const Winters::Asset::WSkelLoaded& ws);
+	CTexture* ResolveMaterialTexture(u32_t iMeshIndex) const;
+	void RenderCombinedStaticWithMask(IRHIDevice* pDevice, const VisibilityMask& mask);
 
 	//스켈레톤, 애니메이션 로딩
 	unique_ptr<CSkeleton> BuildSkeletonFromStage3(
 		const Winters::Asset::WSkelLoaded& ws,
 		const Winters::Asset::WMeshLoaded& wm);
 
+	unique_ptr<CMesh> m_pCombinedStaticMesh;
+	vector<CombinedSubmeshRange> m_vecCombinedSubmeshRanges;
 	vector<unique_ptr<CMesh>> m_vecMeshes;
 	vector<SubmeshInfo> m_vecSubmeshInfos;
+	vector<LocalBounds> m_vecSubmeshBounds;
+	LocalBounds m_LocalBounds{};
 	vector<unique_ptr<CTexture>> m_vecTextures;
 	vector<CTexture*> m_vecMeshTextureOverrides; //비소유 메시 인덱스 기준
 	unique_ptr<CTexture> m_pDefaultTexture;

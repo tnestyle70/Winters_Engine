@@ -53,7 +53,7 @@ private:
 
     Engine::CTexture* GetOrLoadTexture(const wchar_t* wszPath);
     RHITextureHandle GetOrLoadRHITexture(const wchar_t* wszPath);
-    void DrawSegment(
+    bool_t DrawSegment(
         const Vec3& vStart,
         const Vec3& vEnd,
         f32_t fWidth,
@@ -61,7 +61,8 @@ private:
         eBlendPreset blendMode,
         eFxDepthMode depthMode,
         const CBFxParams& fxParams,
-        const Mat4& matVP);
+        const Mat4& matVP,
+        bool_t bUsePlaneBatch);
 
     std::unique_ptr<CPlaneRenderer> m_pPlane = { nullptr };
     std::unique_ptr<CRHIFxSpriteRenderer> m_pRHISprite = { nullptr };

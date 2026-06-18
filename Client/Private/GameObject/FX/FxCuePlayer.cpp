@@ -1,4 +1,4 @@
-#include "GameObject/FX/FxCuePlayer.h"
+﻿#include "GameObject/FX/FxCuePlayer.h"
 
 #include "GameObject/FX/FxBeamComponent.h"
 #include "GameObject/FX/FxBeamSystem.h"
@@ -103,7 +103,6 @@ namespace
     {
         char szBuffer[192]{};
         sprintf_s(szBuffer, "[FxCuePlayer] Missing cue: %s\n", pszCueName ? pszCueName : "(null)");
-        OutputDebugStringA(szBuffer);
     }
 
     void LogSkippedCueEmitter(const char* pszCueName, const FxEmitterDesc& emitter)
@@ -113,7 +112,6 @@ namespace
             pszCueName ? pszCueName : "(null)",
             emitter.strName.empty() ? "(unnamed)" : emitter.strName.c_str(),
             static_cast<u32_t>(emitter.renderType));
-        OutputDebugStringA(szBuffer);
     }
 
     Vec3 ApplyCueOffset(const Vec3& origin, const Vec3& offset, const Vec3& forward)
@@ -208,6 +206,8 @@ namespace
         fx.vWorldPos = ResolveCueAnchorWorldPos(emitter, ctx, vForward);
         fx.attachTo = ctx.attachTo;
         fx.vAttachOffset = emitter.vAttachOffset;
+        fx.anchor = emitter.anchor;
+        fx.lifecycle = emitter.lifecycle;
         fx.vVelocity = ctx.bOverrideVelocity ? ctx.vVelocity : emitter.vVelocity;
         fx.SetTexturePath(emitter.strTexturePath);
         fx.fWidth = ctx.bOverrideSize ? ctx.fWidthOverride : emitter.fWidth;
@@ -295,6 +295,8 @@ namespace
         ribbon.attachTo = ctx.attachTo;
         ribbon.vStartOffset = emitter.vAttachOffset;
         ribbon.vEndOffset = { end.x - ctx.vWorldPos.x, end.y - ctx.vWorldPos.y, end.z - ctx.vWorldPos.z };
+        ribbon.anchor = emitter.anchor;
+        ribbon.lifecycle = emitter.lifecycle;
         ribbon.vVelocity = ctx.bOverrideVelocity ? ctx.vVelocity : emitter.vVelocity;
         ribbon.SetTexturePath(emitter.strTexturePath);
         ribbon.fWidth = ctx.bOverrideSize ? ctx.fWidthOverride : emitter.fWidth;
@@ -351,6 +353,8 @@ namespace
         mesh.vWorldPos = ResolveCueAnchorWorldPos(emitter, ctx, vForward);
         mesh.attachTo = ctx.attachTo;
         mesh.vAttachOffset = emitter.vAttachOffset;
+        mesh.anchor = emitter.anchor;
+        mesh.lifecycle = emitter.lifecycle;
         mesh.vVelocity = ctx.bOverrideVelocity ? ctx.vVelocity : emitter.vVelocity;
         mesh.vScale = emitter.vScale;
         mesh.fWorldYawSpinSpeed = emitter.fWorldYawSpinSpeed;

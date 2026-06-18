@@ -13,12 +13,13 @@ SamplerState g_Sampler : register(s0);
 struct VS_INPUT
 {
     float3 vPosition : POSITION;
+    float2 vUv : TEXCOORD0;
 };
 
 struct PS_INPUT
 {
     float4 vPosition : SV_POSITION;
-    float3 vWorldPos : TEXCOORD0;
+    float2 vUv : TEXCOORD0;
 };
 
 PS_INPUT VS(VS_INPUT input)
@@ -26,13 +27,13 @@ PS_INPUT VS(VS_INPUT input)
     PS_INPUT output;
     float4 worldPos = float4(input.vPosition, 1.f);
     output.vPosition = mul(worldPos, g_matViewProj);
-    output.vWorldPos = input.vPosition;
+    output.vUv = input.vUv;
     return output;
 }
 
 float4 PS(PS_INPUT input) : SV_TARGET
 {
-    const float2 uv = (input.vWorldPos.xz - g_vWorldRect.xy) / g_vWorldRect.zw;
+    const float2 uv = input.vUv;
 
     if (uv.x < 0.f || uv.x > 1.f || uv.y < 0.f || uv.y > 1.f)
         return float4(g_vUnexploredColor.rgb, g_vFogParams.x);

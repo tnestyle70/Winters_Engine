@@ -378,8 +378,9 @@ namespace
             1.00f,
             {
                 ChampionAISkillRule{ static_cast<u8_t>(eSkillSlot::Q), 0.f, 1.f },
+                ChampionAISkillRule{ static_cast<u8_t>(eSkillSlot::E), 0.f, 0.9f },
             },
-            1
+            2
         };
     }
 
@@ -503,10 +504,9 @@ const ChampionAIComboPlan& GetChampionAIComboPlan(eChampion champion)
         {
             ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::Q), 0, 0.f, 7.0f, 0.35f, 1.00f },
             ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::W), 0, 0.f, 1.75f, 0.35f, 1.00f },
-            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::E), 0, 0.f, 2.5f, 0.35f, 1.00f },
             ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::BasicAttack), 0, 0.f, 1.75f, 0.35f, 1.00f },
         },
-        4
+        3
     };
 
     static constexpr ChampionAIComboPlan s_Fiora{

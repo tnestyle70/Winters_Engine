@@ -1,5 +1,6 @@
 #include "Manager/Navigation/NavGrid.h"
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -10,6 +11,12 @@ namespace
 {
     constexpr u32_t NAVGRID_MAGIC = 0x47564E57u; //WNVG
     constexpr u32_t NAVGRID_VERSION = 1;
+
+    uint64_t AllocateNavGridCacheId()
+    {
+        static std::atomic<uint64_t> sNextId{ 1ull };
+        return sNextId.fetch_add(1ull, std::memory_order_relaxed);
+    }
 
     struct NavGridFileHeader
     {
@@ -69,10 +76,18 @@ namespace
 std::unique_ptr<CNavGrid> CNavGrid::Create(f32_t fOriginX, f32_t fOriginZ)
 {
     auto pInstance = std::unique_ptr<CNavGrid>(new CNavGrid());
+    pInstance->m_uCacheId = AllocateNavGridCacheId();
     pInstance->m_fOriginX = fOriginX;
     pInstance->m_fOriginZ = fOriginZ;
     pInstance->m_vecBits.assign(kByteSize, 0xFF);   // Default walkable; blockers carve cells out.
     return pInstance;
+}
+
+void CNavGrid::BumpRevision()
+{
+    ++m_uRevision;
+    if (m_uRevision == 0u)
+        m_uRevision = 1u;
 }
 
 bool_t CNavGrid::IsWalkable(int32_t iCellX, int32_t iCellY) const
@@ -89,8 +104,15 @@ void CNavGrid::SetWalkable(int32_t iCellX, int32_t iCellY, bool_t bWalkable)
     const uint32_t iIdx = static_cast<uint32_t>(iCellY) * kCellCountX
         + static_cast<uint32_t>(iCellX);
     const uint8_t  iMask = static_cast<uint8_t>(1 << (iIdx & 7));
+
+    const bool_t bWasWalkable = (m_vecBits[iIdx >> 3] & iMask) != 0;
+    if (bWasWalkable == bWalkable)
+        return;
+
     if (bWalkable) m_vecBits[iIdx >> 3] |= iMask;
     else           m_vecBits[iIdx >> 3] &= ~iMask;
+
+    BumpRevision();
 }
 
 void CNavGrid::SetAllWalkable(bool_t bWalkable)
@@ -102,6 +124,8 @@ void CNavGrid::SetAllWalkable(bool_t bWalkable)
         const uint8_t mask = static_cast<uint8_t>((1u << validBits) - 1u);
         m_vecBits.back() &= mask;
     }
+
+    BumpRevision();
 }
 
 CNavGrid::Cell CNavGrid::WorldToCell(const Vec3& vWorld) const
@@ -314,6 +338,7 @@ void CNavGrid::Load_Bits(const uint8_t* pData, size_t iSize)
 {
     if (iSize != kByteSize) return;
     std::memcpy(m_vecBits.data(), pData, kByteSize);
+    BumpRevision();
 }
 
 bool_t CNavGrid::SaveToFile(const wchar_t* pFilePath, const CNavGrid& navGrid)

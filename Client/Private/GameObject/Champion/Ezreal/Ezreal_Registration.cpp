@@ -1,4 +1,4 @@
-#include "GamePlay/ChampionRegistry.h"
+﻿#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -101,7 +101,6 @@ namespace
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 4, s);
 			}
 
-			OutputDebugStringA("[Ezreal] Registration complete\n");
 
 			//Shared Gameplay hook
 			CGameplayHookRegistry::Instance().Register(kEz_BA_Cast,
@@ -115,7 +114,7 @@ namespace
 			CGameplayHookRegistry::Instance().Register(kEz_E_OnAccept,
 				&Ezreal::Gameplay::OnCastAccepted_E);
 
-			// ── Client Visual hook (FX/anim) ──
+			// ?? Client Visual hook (FX/anim) ??
 			CVisualHookRegistry::Instance().Register(kEz_E_KeySwap, 
 				&Ezreal::Visual::OnKeySwap_E);
 			CVisualHookRegistry::Instance().Register(kEz_E_OnAccept,

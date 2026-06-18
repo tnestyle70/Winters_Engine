@@ -6,6 +6,7 @@
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -34,12 +35,6 @@ namespace
             world.AddComponent<AsheSimComponent>(caster, AsheSimComponent{});
 
         return world.GetComponent<AsheSimComponent>(caster);
-    }
-
-    constexpr u16_t MakeStatusStackGroup(eChampion champion, u8_t slot)
-    {
-        return static_cast<u16_t>(
-            (static_cast<u32_t>(champion) << 8) | static_cast<u32_t>(slot));
     }
 
     Vec3 ResolveDirection(const GameplayHookContext& ctx)
@@ -131,16 +126,13 @@ namespace
         const f32_t halfCone = (kConeDeg * 0.5f) * (WintersMath::kPi / 180.f);
         const AsheSimComponent& state = EnsureAsheState(*ctx.pWorld, ctx.casterEntity);
 
-        StatusEffectApplyDesc slow{};
-        slow.effectId = eStatusEffectId::AsheVolleySlow;
-        slow.stackPolicy = eStatusStackPolicy::RefreshDuration;
-        slow.sourceEntity = ctx.casterEntity;
-        slow.stackGroup = MakeStatusStackGroup(
+        const StatusEffectApplyDesc slow = GameplayStatus::MakeSlowDesc(
+            ctx.casterEntity,
             eChampion::ASHE,
-            static_cast<u8_t>(eSkillSlot::W));
-        slow.stateFlags = kGameplayStateSlowedFlag;
-        slow.fDurationSec = state.frostSlowDurationSec;
-        slow.fMoveSpeedMul = kAsheWMoveSpeedMul;
+            eSkillSlot::W,
+            state.frostSlowDurationSec,
+            kAsheWMoveSpeedMul,
+            eStatusEffectId::AsheVolleySlow);
 
         for (u32_t i = 0; i < kArrowCount; ++i)
         {
@@ -176,19 +168,12 @@ namespace
         if (!ctx.pWorld)
             return;
 
-        StatusEffectApplyDesc stun{};
-        stun.effectId = eStatusEffectId::AsheCrystalArrowStun;
-        stun.stackPolicy = eStatusStackPolicy::RefreshDuration;
-        stun.sourceEntity = ctx.casterEntity;
-        stun.stackGroup = MakeStatusStackGroup(
+        const StatusEffectApplyDesc stun = GameplayStatus::MakeStunDesc(
+            ctx.casterEntity,
             eChampion::ASHE,
-            static_cast<u8_t>(eSkillSlot::R));
-        stun.stateFlags =
-            kGameplayStateStunnedFlag |
-            kGameplayStateCannotMoveFlag |
-            kGameplayStateCannotAttackFlag |
-            kGameplayStateCannotCastFlag;
-        stun.fDurationSec = kAsheRStunDurationSec;
+            eSkillSlot::R,
+            kAsheRStunDurationSec,
+            eStatusEffectId::AsheCrystalArrowStun);
 
         SpawnProjectile(
             *ctx.pWorld,
@@ -212,12 +197,23 @@ namespace AsheGameSim
 {
     f32_t ConsumeBasicAttackDamage(
         CWorld& world,
+        const TickContext& tc,
         EntityID caster,
-        EntityID /*target*/,
+        EntityID target,
         eTeam /*casterTeam*/,
         f32_t baseDamage)
     {
         AsheSimComponent& state = EnsureAsheState(world, caster);
+        GameplayStatus::ApplySlow(
+            world,
+            tc,
+            target,
+            caster,
+            eChampion::ASHE,
+            eSkillSlot::BasicAttack,
+            state.frostSlowDurationSec,
+            kAsheWMoveSpeedMul);
+
         if (state.bQActive)
             return baseDamage + state.qBonusDamage;
 

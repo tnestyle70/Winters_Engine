@@ -1,6 +1,7 @@
 #include "Resource/Mesh.h"
 #include "RHI/RHITypes.h"
 #include "RHI/DX11/DX11Buffer.h"
+#include "ProfilerAPI.h"
 
 struct CMesh::Impl
 {
@@ -37,9 +38,27 @@ void CMesh::Render(IRHIDevice* pDevice)
 	if (!pContext || !m_pImpl)
 		return;
 
+	WINTERS_PROFILE_COUNT("Mesh::DrawCalls", 1);
+	WINTERS_PROFILE_COUNT("Mesh::SubmittedIndices", m_iIndexCount);
+
 	m_pImpl->vb.BindVertex(pContext, m_iVertexStride);
 	m_pImpl->ib.BindIndex(pContext);
 	m_pImpl->ib.DrawIndexed(pContext);
+}
+
+void CMesh::RenderIndexRange(IRHIDevice* pDevice, u32_t iStartIndex, u32_t iIndexCount)
+{
+	ID3D11DeviceContext* pContext = static_cast<ID3D11DeviceContext*>(
+		pDevice ? pDevice->GetNativeHandle(eNativeHandleType::DX11DeviceContext) : nullptr);
+	if (!pContext || !m_pImpl || iIndexCount == 0)
+		return;
+
+	WINTERS_PROFILE_COUNT("Mesh::DrawCalls", 1);
+	WINTERS_PROFILE_COUNT("Mesh::SubmittedIndices", iIndexCount);
+
+	m_pImpl->vb.BindVertex(pContext, m_iVertexStride);
+	m_pImpl->ib.BindIndex(pContext);
+	m_pImpl->ib.DrawIndexedRange(pContext, iStartIndex, iIndexCount);
 }
 
 unique_ptr<CMesh> CMesh::Create(IRHIDevice* pDevice, const void* pVertices, u32_t iVertexStride, u32_t iVertexCount,

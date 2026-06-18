@@ -72,12 +72,87 @@ void CTexture::Bind(IRHIDevice* pDevice, u32_t iSlot)
 	if (!pContext)
 		return;
 
+	if (m_bMipsPending)
+		EnsureMipsOnBind(pDevice);
+
 	ID3D11ShaderResourceView* pSRV = static_cast<ID3D11ShaderResourceView*>(m_pSRV);
 	ID3D11SamplerState* pSampler = static_cast<ID3D11SamplerState*>(m_pSampler);
 	if (pSRV)
 		pContext->PSSetShaderResources(iSlot, 1, &pSRV);
 	if (pSampler)
 		pContext->PSSetSamplers(iSlot, 1, &pSampler);
+}
+
+// 1-mip으로 로드된 텍스쳐를 풀 mip 체인 텍스쳐로 교체하고 GenerateMips 수행.
+// immediate context를 사용하므로 반드시 렌더 스레드(Bind 시점)에서만 호출한다.
+void CTexture::EnsureMipsOnBind(IRHIDevice* pDevice)
+{
+	m_bMipsPending = false;
+
+	ID3D11Device* pNativeDevice = GetNativeDX11Device(pDevice);
+	ID3D11DeviceContext* pContext = GetNativeDX11Context(pDevice);
+	ID3D11ShaderResourceView* pOldSRV = static_cast<ID3D11ShaderResourceView*>(m_pSRV);
+	if (!pNativeDevice || !pContext || !pOldSRV)
+		return;
+
+	ID3D11Resource* pResource = nullptr;
+	pOldSRV->GetResource(&pResource);
+	if (!pResource)
+		return;
+
+	ID3D11Texture2D* pTex2D = nullptr;
+	pResource->QueryInterface(__uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pTex2D));
+	pResource->Release();
+	if (!pTex2D)
+		return;
+
+	D3D11_TEXTURE2D_DESC desc{};
+	pTex2D->GetDesc(&desc);
+
+	// 이미 mip 체인이 있거나(DDS 등) MSAA/1x1이면 그대로 둔다.
+	UINT formatSupport = 0;
+	if (desc.MipLevels != 1 ||
+		desc.SampleDesc.Count != 1 ||
+		(desc.Width <= 1 && desc.Height <= 1) ||
+		FAILED(pNativeDevice->CheckFormatSupport(desc.Format, &formatSupport)) ||
+		(formatSupport & D3D11_FORMAT_SUPPORT_MIP_AUTOGEN) == 0)
+	{
+		pTex2D->Release();
+		return;
+	}
+
+	D3D11_TEXTURE2D_DESC mipDesc = desc;
+	mipDesc.MipLevels = 0;
+	mipDesc.Usage = D3D11_USAGE_DEFAULT;
+	mipDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+	mipDesc.CPUAccessFlags = 0;
+	mipDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+
+	ID3D11Texture2D* pMipTex = nullptr;
+	if (FAILED(pNativeDevice->CreateTexture2D(&mipDesc, nullptr, &pMipTex)) || !pMipTex)
+	{
+		pTex2D->Release();
+		return;
+	}
+
+	pContext->CopySubresourceRegion(pMipTex, 0, 0, 0, 0, pTex2D, 0, nullptr);
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc{};
+	srvDesc.Format = desc.Format;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = static_cast<UINT>(-1);
+
+	ID3D11ShaderResourceView* pNewSRV = nullptr;
+	if (SUCCEEDED(pNativeDevice->CreateShaderResourceView(pMipTex, &srvDesc, &pNewSRV)) && pNewSRV)
+	{
+		pContext->GenerateMips(pNewSRV);
+		pOldSRV->Release();
+		m_pSRV = pNewSRV;
+	}
+
+	pMipTex->Release();
+	pTex2D->Release();
 }
 
 unique_ptr<CTexture> CTexture::Create(IRHIDevice* pDevice, const wstring& strFilePath,
@@ -157,17 +232,24 @@ unique_ptr<CTexture> CTexture::Create(IRHIDevice* pDevice, const wstring& strFil
 	}
 	OutputDebugStringA("[CTexture] Texture loaded successfully\n");
 
+	// 로더는 mip 없이 1-mip으로 만들므로 첫 Bind에서 mip 체인을 생성한다.
+	pInstance->m_bMipsPending = true;
+
 	//샘플러 생성 — UI/Decal 는 Clamp, 월드 타일링은 Wrap
 	const D3D11_TEXTURE_ADDRESS_MODE addr =
 		(eMode == eTexSamplerMode::Clamp) ? D3D11_TEXTURE_ADDRESS_CLAMP
 		                                  : D3D11_TEXTURE_ADDRESS_WRAP;
 
 	D3D11_SAMPLER_DESC sampDesc = {};
-	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	// 월드 텍스쳐는 경사면 minification에서 울렁임을 막기 위해 anisotropic 필수.
+	// (MIN_MAG_MIP_LINEAR에서는 MaxAnisotropy가 무시된다)
+	sampDesc.Filter = (eMode == eTexSamplerMode::Clamp)
+		? D3D11_FILTER_MIN_MAG_MIP_LINEAR
+		: D3D11_FILTER_ANISOTROPIC;
 	sampDesc.AddressU = addr;
 	sampDesc.AddressV = addr;
 	sampDesc.AddressW = addr;
-	sampDesc.MaxAnisotropy = 4;
+	sampDesc.MaxAnisotropy = 8;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	hr = pNativeDevice->CreateSamplerState(&sampDesc,
@@ -209,16 +291,20 @@ unique_ptr<CTexture> CTexture::CreateFromMemory(IRHIDevice* pDevice, const void*
 		return nullptr;
 	}
 
+	pInstance->m_bMipsPending = true;
+
 	const D3D11_TEXTURE_ADDRESS_MODE addr =
 		(eMode == eTexSamplerMode::Clamp) ? D3D11_TEXTURE_ADDRESS_CLAMP
 		                                  : D3D11_TEXTURE_ADDRESS_WRAP;
 
 	D3D11_SAMPLER_DESC sampDesc = {};
-	sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.Filter = (eMode == eTexSamplerMode::Clamp)
+		? D3D11_FILTER_MIN_MAG_MIP_LINEAR
+		: D3D11_FILTER_ANISOTROPIC;
 	sampDesc.AddressU = addr;
 	sampDesc.AddressV = addr;
 	sampDesc.AddressW = addr;
-	sampDesc.MaxAnisotropy = 4;
+	sampDesc.MaxAnisotropy = 8;
 	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	hr = pNativeDevice->CreateSamplerState(&sampDesc,

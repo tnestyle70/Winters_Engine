@@ -59,6 +59,18 @@ struct CPlaneRenderer::Impl
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> pDSSNoWrite;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> pDSSNoDepth;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> pRSTwoSided;
+    Microsoft::WRL::ComPtr<ID3D11BlendState> pBatchPrevBS;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilState> pBatchPrevDSS;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState> pBatchPrevRS;
+    FLOAT fBatchPrevBlendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
+    UINT uBatchPrevSampleMask = 0;
+    UINT uBatchPrevStencil = 0;
+    ID3D11DeviceContext* pBatchContext = nullptr;
+    IRHIDevice* pBatchDevice = nullptr;
+    CBlendStateCache* pBatchBlendCache = nullptr;
+    eBlendPreset eBatchBlend = eBlendPreset::Count;
+    eFxDepthMode eBatchDepthMode = static_cast<eFxDepthMode>(255u);
+    bool_t bBatchActive = false;
 
     DX11Shader* pSharedShader = nullptr;
     DX11Pipeline* pSharedPipeline = nullptr;
@@ -271,6 +283,153 @@ void CPlaneRenderer::Render(IRHIDevice* pDevice, const Mat4& matViewProj)
         pContext->OMSetDepthStencilState(pPrevDSS.Get(), prevStencil);
         pContext->RSSetState(pPrevRS.Get());
     }
+}
+
+bool_t CPlaneRenderer::BeginBatch(IRHIDevice* pDevice, const Mat4& matViewProj)
+{
+    ID3D11DeviceContext* pContext = GetNativeDX11Context(pDevice);
+
+    if (!pContext || !m_pImpl->pSharedShader || !m_pImpl->pSharedPipeline ||
+        m_pImpl->bBatchActive)
+    {
+        return false;
+    }
+
+    const bool bAlpha = (m_pBlendCache != nullptr);
+    if (bAlpha)
+    {
+        m_pImpl->pBatchPrevBS.Reset();
+        m_pImpl->pBatchPrevDSS.Reset();
+        m_pImpl->pBatchPrevRS.Reset();
+        pContext->OMGetBlendState(
+            m_pImpl->pBatchPrevBS.GetAddressOf(),
+            m_pImpl->fBatchPrevBlendFactor,
+            &m_pImpl->uBatchPrevSampleMask);
+        pContext->OMGetDepthStencilState(
+            m_pImpl->pBatchPrevDSS.GetAddressOf(),
+            &m_pImpl->uBatchPrevStencil);
+        pContext->RSGetState(m_pImpl->pBatchPrevRS.GetAddressOf());
+        if (m_pImpl->pRSTwoSided)
+            pContext->RSSetState(m_pImpl->pRSTwoSided.Get());
+    }
+
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    if (SUCCEEDED(pContext->Map(m_pImpl->pCBPerFrame.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+    {
+        reinterpret_cast<PlaneCBPerFrame*>(mapped.pData)->VP = matViewProj.m;
+        pContext->Unmap(m_pImpl->pCBPerFrame.Get(), 0);
+    }
+
+    m_pImpl->pSharedShader->Bind(pContext);
+    m_pImpl->pSharedPipeline->Bind(pContext);
+
+    ID3D11Buffer* pFrameCB = m_pImpl->pCBPerFrame.Get();
+    pContext->VSSetConstantBuffers(0, 1, &pFrameCB);
+
+    UINT stride = sizeof(VtxMesh);
+    UINT offset = 0;
+    ID3D11Buffer* pVertexBuffer = m_pImpl->pVB.Get();
+    pContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
+    pContext->IASetIndexBuffer(m_pImpl->pIB.Get(), DXGI_FORMAT_R16_UINT, 0);
+    pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    m_pImpl->pBatchContext = pContext;
+    m_pImpl->pBatchDevice = pDevice;
+    m_pImpl->pBatchBlendCache = nullptr;
+    m_pImpl->eBatchBlend = eBlendPreset::Count;
+    m_pImpl->eBatchDepthMode = static_cast<eFxDepthMode>(255u);
+    m_pImpl->bBatchActive = true;
+    return true;
+}
+
+void CPlaneRenderer::RenderBatched()
+{
+    ID3D11DeviceContext* pContext = m_pImpl->pBatchContext;
+    if (!m_pImpl->bBatchActive || !pContext)
+        return;
+
+    if (m_pBlendCache)
+    {
+        if (m_pImpl->pBatchBlendCache != m_pBlendCache ||
+            m_pImpl->eBatchBlend != m_eBlend)
+        {
+            m_pBlendCache->Bind(pContext, m_eBlend);
+            m_pImpl->pBatchBlendCache = m_pBlendCache;
+            m_pImpl->eBatchBlend = m_eBlend;
+        }
+
+        if (m_pImpl->eBatchDepthMode != m_eDepthMode)
+        {
+            ID3D11DepthStencilState* pDepthState = m_pImpl->pDSSNoWrite.Get();
+            if (m_eDepthMode == eFxDepthMode::OverlayNoDepth && m_pImpl->pDSSNoDepth)
+                pDepthState = m_pImpl->pDSSNoDepth.Get();
+
+            pContext->OMSetDepthStencilState(pDepthState, 0);
+            m_pImpl->eBatchDepthMode = m_eDepthMode;
+        }
+    }
+
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    if (SUCCEEDED(pContext->Map(m_pImpl->pCBPerObject.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+    {
+        reinterpret_cast<PlaneCBPerObject*>(mapped.pData)->World = m_World.m;
+        pContext->Unmap(m_pImpl->pCBPerObject.Get(), 0);
+    }
+
+    D3D11_MAPPED_SUBRESOURCE mappedFx = {};
+    if (SUCCEEDED(pContext->Map(m_pImpl->pCBFxParams.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedFx)))
+    {
+        const CBFxParams data = m_FxParams;
+        memcpy(mappedFx.pData, &data, sizeof(CBFxParams));
+        pContext->Unmap(m_pImpl->pCBFxParams.Get(), 0);
+    }
+
+    ID3D11Buffer* pObjectCB = m_pImpl->pCBPerObject.Get();
+    pContext->VSSetConstantBuffers(1, 1, &pObjectCB);
+
+    ID3D11Buffer* pFxCB = m_pImpl->pCBFxParams.Get();
+    pContext->VSSetConstantBuffers(2, 1, &pFxCB);
+    pContext->PSSetConstantBuffers(2, 1, &pFxCB);
+
+    if (m_pTexture)
+        m_pTexture->Bind(m_pImpl->pBatchDevice, 0);
+
+    pContext->DrawIndexed(6, 0, 0);
+}
+
+void CPlaneRenderer::EndBatch()
+{
+    if (!m_pImpl->bBatchActive)
+        return;
+
+    ID3D11DeviceContext* pContext = m_pImpl->pBatchContext;
+    if (pContext)
+    {
+        if (m_pImpl->pSharedShader)
+            m_pImpl->pSharedShader->Unbind(pContext);
+
+        if (m_pBlendCache)
+        {
+            pContext->OMSetBlendState(
+                m_pImpl->pBatchPrevBS.Get(),
+                m_pImpl->fBatchPrevBlendFactor,
+                m_pImpl->uBatchPrevSampleMask);
+            pContext->OMSetDepthStencilState(
+                m_pImpl->pBatchPrevDSS.Get(),
+                m_pImpl->uBatchPrevStencil);
+            pContext->RSSetState(m_pImpl->pBatchPrevRS.Get());
+        }
+    }
+
+    m_pImpl->pBatchPrevBS.Reset();
+    m_pImpl->pBatchPrevDSS.Reset();
+    m_pImpl->pBatchPrevRS.Reset();
+    m_pImpl->pBatchContext = nullptr;
+    m_pImpl->pBatchDevice = nullptr;
+    m_pImpl->pBatchBlendCache = nullptr;
+    m_pImpl->eBatchBlend = eBlendPreset::Count;
+    m_pImpl->eBatchDepthMode = static_cast<eFxDepthMode>(255u);
+    m_pImpl->bBatchActive = false;
 }
 
 void CPlaneRenderer::SetFxParams(const CBFxParams& params)

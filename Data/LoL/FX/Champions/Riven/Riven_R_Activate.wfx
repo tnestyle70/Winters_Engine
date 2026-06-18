@@ -15,7 +15,7 @@
       "width": 4.20,
       "height": 4.20,
       "uv_scroll": [0.00, -0.18],
-      "color": [0.50, 2.45, 0.72, 0.80],
+      "color": [0.62, 2.45, 0.55, 0.80],
       "attach_offset": [0.00, 1.18, 0.00],
       "alpha_clip": 0.01,
       "billboard": true,
@@ -52,7 +52,7 @@
       "fade_out": 0.44,
       "scale": [0.012, 0.012, 0.012],
       "rotation": [0.0, -0.25, 0.0],
-      "color": [0.55, 2.80, 0.78, 0.95],
+      "color": [0.68, 2.80, 0.60, 0.95],
       "attach_offset": [0.36, 2.15, 0.15],
       "alpha_clip": 0.01,
       "depth_write": false

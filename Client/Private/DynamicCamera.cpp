@@ -28,6 +28,10 @@ void CDynamicCamera::Update(f32_t fTimeDelta, const CInput& input)
             m_bF2Check = true;
             m_bFollowMode = !m_bFollowMode;
             m_bFix = !m_bFollowMode;
+            if (m_bFix)
+                Enter_FPSMode(input);
+            else
+                Exit_FPSMode();
         }
     }
     else { m_bF2Check = false; }
@@ -52,9 +56,31 @@ void CDynamicCamera::Update(f32_t fTimeDelta, const CInput& input)
 
 void CDynamicCamera::Update_FollowCam(f32_t fTimeDelta)
 {
-    Vec3 vTargetPos = m_pTargetTransform->GetPosition();
-    m_vEye = vTargetPos + m_vFollowOffset;
-    m_vAt  = vTargetPos + Vec3(0.f, 1.5f, 0.f);
+    const Vec3 vTargetPos = m_pTargetTransform->GetPosition();
+    const Vec3 vTargetEye = vTargetPos + m_vFollowOffset;
+    const Vec3 vTargetAt = vTargetPos + Vec3(0.f, 1.5f, 0.f);
+
+    if (!m_bFollowInitialized || fTimeDelta <= 0.f)
+    {
+        m_vEye = vTargetEye;
+        m_vAt = vTargetAt;
+        m_bFollowInitialized = true;
+        return;
+    }
+
+    const f32_t fClampedDt = fTimeDelta > 0.05f ? 0.05f : fTimeDelta;
+    const f32_t fAlpha = 1.f - std::exp(-m_fFollowResponse * fClampedDt);
+    auto lerp = [fAlpha](const Vec3& a, const Vec3& b)
+    {
+        return Vec3{
+            a.x + (b.x - a.x) * fAlpha,
+            a.y + (b.y - a.y) * fAlpha,
+            a.z + (b.z - a.z) * fAlpha
+        };
+    };
+
+    m_vEye = lerp(m_vEye, vTargetEye);
+    m_vAt = lerp(m_vAt, vTargetAt);
 }
 
 void CDynamicCamera::Update_FreeCam(f32_t fTimeDelta, const CInput& input)
@@ -63,18 +89,20 @@ void CDynamicCamera::Update_FreeCam(f32_t fTimeDelta, const CInput& input)
 
     if (input.IsKeyDown(VK_TAB))
     {
-        if (!m_bTabCheck) 
-        {    
-            m_bTabCheck = true; 
+        if (!m_bTabCheck)
+        {
+            m_bTabCheck = true;
             m_bFix = !m_bFix;
-            //상태 전환시 딱 한 번만 처리
             if (m_bFix)
                 Enter_FPSMode(input);
             else
                 Exit_FPSMode();
         }
     }
-    else { m_bTabCheck = false; }
+    else
+    {
+        m_bTabCheck = false;
+    }
 
     if (m_bFix)
     {
@@ -135,6 +163,7 @@ void CDynamicCamera::SnapToTarget()
     Vec3 vTargetPos = m_pTargetTransform->GetPosition();
     m_vEye = vTargetPos + m_vFollowOffset;
     m_vAt  = vTargetPos + Vec3(0.f, 1.5f, 0.f);
+    m_bFollowInitialized = true;
     RecalcView();
 }
 

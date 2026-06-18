@@ -40,6 +40,15 @@ namespace
         return value;
     }
 
+    std::string NormalizeToken(std::string value)
+    {
+        std::transform(value.begin(), value.end(), value.begin(),
+            [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+        value.erase(std::remove(value.begin(), value.end(), '_'), value.end());
+        value.erase(std::remove(value.begin(), value.end(), '-'), value.end());
+        return value;
+    }
+
     bool_t ExtractString(const std::string& json,
         std::string_view key,
         std::string& outValue)
@@ -207,6 +216,65 @@ namespace
         return !iss.fail();
     }
 
+    bool_t ExtractObjectBlock(const std::string& json,
+        std::string_view key,
+        std::string& outBlock)
+    {
+        const std::string quotedKey = "\"" + std::string(key) + "\"";
+        const size_t keyPos = json.find(quotedKey);
+        if (keyPos == std::string::npos)
+            return false;
+
+        const size_t openPos = json.find('{', keyPos + quotedKey.size());
+        if (openPos == std::string::npos)
+            return false;
+
+        i32_t depth = 0;
+        bool_t bInString = false;
+        bool_t bEscaped = false;
+        for (size_t i = openPos; i < json.size(); ++i)
+        {
+            const char ch = json[i];
+            if (bInString)
+            {
+                if (bEscaped)
+                {
+                    bEscaped = false;
+                    continue;
+                }
+                if (ch == '\\')
+                {
+                    bEscaped = true;
+                    continue;
+                }
+                if (ch == '"')
+                    bInString = false;
+                continue;
+            }
+
+            if (ch == '"')
+            {
+                bInString = true;
+                continue;
+            }
+            if (ch == '{')
+            {
+                ++depth;
+            }
+            else if (ch == '}')
+            {
+                --depth;
+                if (depth == 0)
+                {
+                    outBlock = json.substr(openPos, i - openPos + 1);
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     std::vector<std::string> ExtractEmitterBlocks(const std::string& json)
     {
         std::vector<std::string> blocks;
@@ -266,33 +334,55 @@ namespace
 
     eFxDepthMode ParseDepthMode(const std::string& value)
     {
-        std::string token = value;
-        std::transform(token.begin(), token.end(), token.begin(),
-            [](unsigned char ch)
-            {
-                return static_cast<char>(std::tolower(ch));
-            });
+        const std::string token = NormalizeToken(value);
         if (token == "depthtestwriteoff" ||
-            token == "depth_test_write_off" ||
-            token == "write_off")
+            token == "writeoff")
         {
             return eFxDepthMode::DepthTestWriteOff;
         }
 
         if (token == "overlaynodepth" ||
-            token == "overlay_no_depth" ||
-            token == "no_depth")
+            token == "nodepth")
         {
             return eFxDepthMode::OverlayNoDepth;
         }
 
         if (token == "softparticle" ||
-            token == "soft_particle")
+            token == "softparticles")
         {
             return eFxDepthMode::SoftParticle;
         }
 
         return eFxDepthMode::DepthTestWriteOn;
+    }
+
+    eFxAnchorType ParseAnchorType(const std::string& value)
+    {
+        const std::string token = NormalizeToken(value);
+        if (token == "world") return eFxAnchorType::World;
+        if (token == "bone") return eFxAnchorType::Bone;
+        if (token == "socket") return eFxAnchorType::Socket;
+        if (token == "submesh") return eFxAnchorType::Submesh;
+        if (token == "targetsegment") return eFxAnchorType::TargetSegment;
+        return eFxAnchorType::Entity;
+    }
+
+    eFxAnchorFallback ParseAnchorFallback(const std::string& value)
+    {
+        const std::string token = NormalizeToken(value);
+        if (token == "none") return eFxAnchorFallback::None;
+        if (token == "world" || token == "worldposition") return eFxAnchorFallback::WorldPosition;
+        return eFxAnchorFallback::Entity;
+    }
+
+    eFxLifecycleMode ParseLifecycleMode(const std::string& value)
+    {
+        const std::string token = NormalizeToken(value);
+        if (token == "burst") return eFxLifecycleMode::Burst;
+        if (token == "whilestate") return eFxLifecycleMode::WhileState;
+        if (token == "manualstop") return eFxLifecycleMode::ManualStop;
+        if (token == "loopuntilsignal") return eFxLifecycleMode::LoopUntilSignal;
+        return eFxLifecycleMode::Timed;
     }
 
     FxAsset ParseWfxJson(const wstring_t& path,
@@ -408,6 +498,28 @@ namespace
             }
 
             ExtractVec3(block, "attach_offset", emitter.vAttachOffset);
+            emitter.anchor.vAnchorOffset = emitter.vAttachOffset;
+            std::string objectBlock;
+            if (ExtractObjectBlock(block, "anchor", objectBlock))
+            {
+                if (ExtractString(objectBlock, "type", value))
+                    emitter.anchor.eAnchorType = ParseAnchorType(value);
+                if (ExtractString(objectBlock, "name", value))
+                    emitter.anchor.strAnchorName = value;
+                if (!ExtractVec3(objectBlock, "offset", emitter.anchor.vAnchorOffset))
+                    ExtractVec3(objectBlock, "attach_offset", emitter.anchor.vAnchorOffset);
+                if (ExtractString(objectBlock, "fallback", value))
+                    emitter.anchor.eFallback = ParseAnchorFallback(value);
+                ExtractBool(objectBlock, "inherit_rotation", emitter.anchor.bInheritRotation);
+            }
+            if (ExtractObjectBlock(block, "lifecycle", objectBlock))
+            {
+                if (ExtractString(objectBlock, "mode", value))
+                    emitter.lifecycle.eLifecycleMode = ParseLifecycleMode(value);
+                ExtractNumber(objectBlock, "stop_fade_out", emitter.lifecycle.fStopFadeOut);
+                ExtractBool(objectBlock, "detach_on_stop", emitter.lifecycle.bDetachOnStop);
+                ExtractBool(objectBlock, "kill_when_anchor_invalid", emitter.lifecycle.bKillWhenAnchorInvalid);
+            }
             ExtractVec3(block, "end_offset", emitter.vEndOffset);
             ExtractVec3(block, "velocity", emitter.vVelocity);
             ExtractVec3(block, "scale", emitter.vScale);

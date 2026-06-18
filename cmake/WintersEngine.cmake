@@ -3,6 +3,7 @@ set(WINTERS_ENGINE_OUTPUT_DIR "${WINTERS_ENGINE_DIR}/Bin")
 
 set(WINTERS_IMGUI_SOURCES
     "${WINTERS_ENGINE_DIR}/External/imgui/backends/imgui_impl_dx11.cpp"
+    "${WINTERS_ENGINE_DIR}/External/imgui/backends/imgui_impl_dx12.cpp"
     "${WINTERS_ENGINE_DIR}/External/imgui/backends/imgui_impl_win32.cpp"
     "${WINTERS_ENGINE_DIR}/External/imgui/imgui.cpp"
     "${WINTERS_ENGINE_DIR}/External/imgui/imgui_demo.cpp"
@@ -98,6 +99,7 @@ target_include_directories(WintersEngine
     PUBLIC
         "${WINTERS_ENGINE_DIR}/Include"
         "${WINTERS_ENGINE_DIR}/Public"
+        "${WINTERS_ENGINE_DIR}/External/tracy"
     PRIVATE
         "${WINTERS_ENGINE_DIR}/External/imgui"
         "${WINTERS_ENGINE_DIR}/External/imgui/backends"
@@ -116,6 +118,7 @@ target_link_libraries(WintersEngine PRIVATE
     Winters::DirectXTK
     Winters::FMOD
     Winters::WindowsGraphicsDX11
+    Winters::WindowsGraphicsDX12
 )
 
 set(WINTERS_ENGINE_SOURCE_GROUP_FILES
@@ -437,17 +440,9 @@ WintersEngineSourceGroup("05. ECS\\03. Systems\\01. Minion\\01. Performance"
     "/Engine/Private/ECS/Systems/MinionPerformanceSystem\\.cpp$"
     "/Engine/Public/ECS/Systems/MinionPerformanceSystem\\.h$"
 )
-WintersEngineSourceGroup("05. ECS\\03. Systems\\01. Minion\\02. Separation"
-    "/Engine/Private/ECS/Systems/MinionSeparationSystem\\.cpp$"
-    "/Engine/Public/ECS/Systems/MinionSeparationSystem\\.h$"
-)
 WintersEngineSourceGroup("05. ECS\\03. Systems\\02. Entity"
     "/Engine/Private/ECS/Systems/EntityBlueprint(Registry)?\\.cpp$"
     "/Engine/Public/ECS/Systems/EntityBlueprint(Registry)?\\.h$"
-)
-WintersEngineSourceGroup("05. ECS\\03. Systems\\03. Collision"
-    "/Engine/Private/ECS/Systems/GameplayCollisionSystem\\.cpp$"
-    "/Engine/Public/ECS/Systems/GameplayCollisionSystem\\.h$"
 )
 WintersEngineSourceGroup("05. ECS\\03. Systems\\04. Vision"
     "/Engine/Private/ECS/Systems/VisionSystem\\.cpp$"

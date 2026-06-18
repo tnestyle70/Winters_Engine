@@ -1,4 +1,4 @@
-#include "Scene/Scene_MatchLoading.h"
+﻿#include "Scene/Scene_MatchLoading.h"
 
 #include "GameInstance.h"
 #include "Network/Client/GameSessionClient.h"
@@ -39,7 +39,6 @@ bool CScene_MatchLoading::OnEnter()
 	m_bTransitioning = false;
 	BuildChampionCards();
 	m_pLoader = Client::CLoader::Create(eSceneID::InGame, m_onLoaded);
-	OutputDebugStringA("[Scene_MatchLoading] OnEnter\n");
 	return true;
 }
 

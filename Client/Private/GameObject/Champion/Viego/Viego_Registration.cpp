@@ -1,4 +1,4 @@
-#include "GamePlay/ChampionRegistry.h"
+﻿#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -33,24 +33,18 @@ namespace
 
             cd.defaultTexturePath =
                 L"Client/Bin/Resource/Texture/Character/Viego/viego_base_body_tx_cm.png";
-            cd.texturePath[0] =
-                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png";
-            cd.texturePath[1] =
-                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_wraith_tx_cm.png";
-            cd.texturePath[2] =
-                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_body_tx_cm.png";
             cd.texturePath[3] =
-                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_wraith_tx_cm.png";
+                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png";
             cd.texturePath[4] =
                 L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png";
             cd.texturePath[5] =
-                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png";
+                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_wraith_tx_cm.png";
             cd.spawnPosition = { -30.f, 1.f, 6.f };
             cd.spawnScale = 0.01f;
             cd.displayName = "Viego";
             CChampionRegistry::Instance().Add(eChampion::VIEGO, cd);
-            //이거 cooldown sec의미 없는 거 맞아? 전부 서버 권위로 돌리고 있으니까
-            //Server Sim 기준으로 동작하는 거 맞아?
+            //?닿굅 cooldown sec?섎? ?녿뒗 嫄?留욎븘? ?꾨? ?쒕쾭 沅뚯쐞濡??뚮━怨??덉쑝?덇퉴
+            //Server Sim 湲곗??쇰줈 ?숈옉?섎뒗 嫄?留욎븘?
             {
                 SkillDef s{};
                 s.champ = eChampion::VIEGO; s.slot = 0;
@@ -139,7 +133,6 @@ namespace
             CVisualHookRegistry::Instance().Register(kViego_E_Cast, &Viego::Visual::OnCastFrame_E_Visual);
             CVisualHookRegistry::Instance().Register(kViego_R_Cast, &Viego::Visual::OnCastFrame_R_Visual);
 
-            OutputDebugStringA("[Viego] Registration complete\n");
         }
     };
 

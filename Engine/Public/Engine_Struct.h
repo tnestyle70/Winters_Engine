@@ -11,7 +11,7 @@ namespace Engine
 		float3_t vPosition; //position
 		float3_t vNormal; //normal 
 		float2_t vTexCoord; // TEXCOORD0 (UV는 2D)
-		float3_t vTangent; //tangent?? 어떤 걸 의미하는 걸까? 
+		float3_t vTangent;
 	};
 	//스키닝 매시 정점(76 bytes)
 	struct VTXANIM
@@ -23,10 +23,10 @@ namespace Engine
 		u32_t iBoneIndices[4]; //blendindices
 		f32_t fBoneWeights[4]; //blendweight
 	};
-	//본 행렬 상수 버퍼(16kb, dx11 64kb 제한 이내 )
+	//본 행렬 상수 버퍼(32kb, dx11 64kb 제한 이내 ) - EldenRing 캐릭터(257~512본) 지원
 	struct CBBoneMatrices
 	{
-		DirectX::XMFLOAT4X4 bones[256];
+		DirectX::XMFLOAT4X4 bones[512];
 	};
 }
 

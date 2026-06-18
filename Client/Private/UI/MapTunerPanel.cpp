@@ -2,7 +2,6 @@
 #include "Scene/Scene_InGame.h"
 #include "WintersMath.h"
 #include <DirectXMath.h>
-#include <cstdio>
 
 #pragma push_macro("new")
 #undef new
@@ -48,16 +47,6 @@ namespace UI
         ImGui::SameLine();
         if (ImGui::Button("Y 180")) pScene->SetMapRotation({ 0.f, DirectX::XMConvertToRadians(180.f), 0.f });
 
-        if (ImGui::Button("Copy as C++ (OutputDebug)"))
-        {
-            char buf[256];
-            sprintf_s(buf,
-                "[MapTuner] m_vMapRotation = { XMConvertToRadians(%.2ff), "
-                "XMConvertToRadians(%.2ff), XMConvertToRadians(%.2ff) };\n",
-                deg.x, deg.y, deg.z);
-            OutputDebugStringA(buf);
-        }
-
-        ImGui::End();
+		ImGui::End();
 	}
 }

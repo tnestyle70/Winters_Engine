@@ -18,11 +18,21 @@ public:
     void Update(f32_t fTimeDelta, const CInput& input) override;
 
     // 플레이어 추적
-    void SetFollowTarget(CTransform* pTarget) { m_pTargetTransform = pTarget; }
+    void SetFollowTarget(CTransform* pTarget)
+    {
+        if (m_pTargetTransform != pTarget)
+            m_bFollowInitialized = false;
+        m_pTargetTransform = pTarget;
+    }
     void SetFollowOffset(const Vec3& vOffset) { m_vFollowOffset = vOffset; }
 
     // Follow <-> Free 전환 (F2)
-    void SetFollowMode(bool bFollow) { m_bFollowMode = bFollow; }
+    void SetFollowMode(bool bFollow)
+    {
+        if (m_bFollowMode != bFollow)
+            m_bFollowInitialized = false;
+        m_bFollowMode = bFollow;
+    }
     bool IsFollowMode() const { return m_bFollowMode; }
 
     // 바로 플레이어 시점으로 스냅
@@ -52,6 +62,8 @@ private:
     bool m_bCursorHidden = false;
 
     Vec3 m_vFollowOffset = { -3.f, 11.5f, -5.f };
+    f32_t m_fFollowResponse = 18.f;
+    bool_t m_bFollowInitialized = false;
 
     bool m_bFollowMode = true;
     bool m_bFix = false;

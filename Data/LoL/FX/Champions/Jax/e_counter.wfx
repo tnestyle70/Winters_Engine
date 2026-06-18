@@ -33,7 +33,7 @@
       "fade_out": 0.34,
       "scale": [0.012, 0.012, 0.012],
       "world_yaw_spin_speed": 1.400,
-      "color": [0.46, 0.78, 1.75, 0.56],
+      "color": [0.58, 0.82, 1.55, 0.38],
       "attach_offset": [0.00, 0.95, 0.00],
       "depth_write": false
     },
@@ -46,9 +46,9 @@
       "lifetime": 2.00,
       "fade_in": 0.06,
       "fade_out": 0.34,
-      "width": 4.85,
-      "height": 4.85,
-      "color": [0.38, 0.68, 1.45, 0.50],
+      "width": 6.80,
+      "height": 6.80,
+      "color": [0.55, 0.80, 1.40, 0.40],
       "attach_offset": [0.00, 0.05, 0.00],
       "billboard": false
     },
@@ -96,7 +96,7 @@
       "fade_out": 0.24,
       "width": 2.40,
       "height": 2.40,
-      "color": [2.05, 0.90, 0.28, 1.00],
+      "color": [1.55, 1.70, 1.95, 1.00],
       "attach_offset": [0.00, 1.20, 0.00],
       "billboard": true
     },
@@ -111,10 +111,10 @@
       "fade_in": 0.01,
       "fade_out": 0.26,
       "start_radius": 0.75,
-      "end_radius": 2.35,
+      "end_radius": 3.00,
       "width": 2.20,
-      "height": 4.70,
-      "color": [1.60, 0.74, 0.24, 0.80],
+      "height": 6.00,
+      "color": [0.85, 1.10, 1.50, 0.62],
       "attach_offset": [0.00, 0.08, 0.00],
       "billboard": false
     }

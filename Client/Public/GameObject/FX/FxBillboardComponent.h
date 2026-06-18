@@ -17,6 +17,9 @@ struct FxBillboardComponent
 	Vec3 vWorldPos = { 0.f, 0.f, 0.f };
 	EntityID attachTo = NULL_ENTITY;
 	Vec3 vAttachOffset = { 0.f, 3.f, 0.f };
+	FxAnchorDesc anchor{};
+	FxLifecycleDesc lifecycle{};
+	bool_t bAnchorResolvedLastFrame = false;
 	Vec3 vVelocity = { 0.f, 0.f, 0.f }; //투사체용
 
 	//텍스쳐 + 크기

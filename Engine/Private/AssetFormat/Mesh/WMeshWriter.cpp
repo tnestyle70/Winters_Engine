@@ -57,12 +57,13 @@ namespace Winters::Asset
         const aiScene* pScene,
         std::vector<uint32_t>& outMeshIndices,
         uint32_t& outSkippedNodeCount,
-        uint32_t& outSkippedMeshCount)
+        uint32_t& outSkippedMeshCount,
+        bool bIncludeLayerOverlays)
     {
         if (!pNode)
             return;
 
-        if (IsLayerOverlayNode(pNode))
+        if (!bIncludeLayerOverlays && IsLayerOverlayNode(pNode))
         {
             const uint32_t skippedMeshes = CountNodeMeshesRecursive(pNode);
             outSkippedMeshCount += skippedMeshes;
@@ -89,10 +90,12 @@ namespace Winters::Asset
                 pScene,
                 outMeshIndices,
                 outSkippedNodeCount,
-                outSkippedMeshCount);
+                outSkippedMeshCount,
+                bIncludeLayerOverlays);
     }
 
-    static std::vector<uint32_t> CollectMeshIndicesForWrite(const aiScene* pScene)
+    static std::vector<uint32_t> CollectMeshIndicesForWrite(const aiScene* pScene,
+        bool bIncludeLayerOverlays)
     {
         std::vector<uint32_t> meshIndices;
         if (!pScene || !pScene->mRootNode)
@@ -104,7 +107,8 @@ namespace Winters::Asset
             pScene,
             meshIndices,
             skippedNodeCount,
-            skippedMeshCount);
+            skippedMeshCount,
+            bIncludeLayerOverlays);
 
         if (meshIndices.empty())
         {
@@ -135,9 +139,9 @@ namespace Winters::Asset
     {
         if (pSkelNameToIdx)
         {
-            if (pSkelNameToIdx->size() >= 256)
+            if (pSkelNameToIdx->size() > 1024)
             {
-                OutputDebugStringA("[WMeshWriter] FATAL: skel bone_count >= 256 - cbuffer/index limit\n");
+                OutputDebugStringA("[WMeshWriter] FATAL: skel bone_count > 1024 - bone palette limit\n");
                 return false;
             }
 
@@ -351,7 +355,9 @@ namespace Winters::Asset
         if (!pScene || pScene->mNumMeshes == 0)
             return false;
 
-        const std::vector<uint32_t> meshIndices = CollectMeshIndicesForWrite(pScene);
+        const std::vector<uint32_t> meshIndices = CollectMeshIndicesForWrite(
+            pScene,
+            opt.bIncludeLayerOverlays);
         if (meshIndices.empty())
             return false;
 

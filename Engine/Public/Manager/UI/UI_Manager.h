@@ -58,6 +58,12 @@ public:
         const Vec4& vColor);
     void End_RawImagePass();
 
+    void Draw_RawImageCircle(void* pTextureSRV,
+        f32_t fX, f32_t fY, f32_t fW, f32_t fH,
+        const Vec4& vUVRect,
+        const Vec4& vColor,
+        u32_t iSegmentCount = 48);
+
     // ImGui 튜닝 패널 (Scene::OnImGui 에서 호출)
     void    OnImGui_Tuner();
 
@@ -76,6 +82,10 @@ public:
     bool_t  Get_ShowMouseCursor() const { return m_bShowMouseCursor; }
     void    Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
         u8_t iDamageType, bool_t bWasCrit, bool_t bKilled);
+    void    Push_WorldText(const Vec3& vWorldPos, const char* pText,
+        const Vec4& vColor, f32_t fLifetime);
+    void    Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
+        f32_t fLifetime);
     void Push_KillFeedBanner(eChampion eSourceChampion, eChampion eTargetChampion,
         u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage);
     void RecordGameContextChampionKill(u8_t iSourceTeam, u8_t iTargetTeam,
@@ -87,6 +97,9 @@ public:
     void SetInGameShopOpen(bool_t b);
     void ToggleInGameShop();
     bool_t GetInGameShopOpen() const;
+    void SetStatusPanelOpen(bool_t b);
+    void ToggleStatusPanel();
+    bool_t GetStatusPanelOpen() const { return m_bStatusPanelOpen; }
     //Lua Setting
     void SetActiveLuaUIScreen(const char* pScreenID);
     void ReloadLuaUI();
@@ -102,11 +115,21 @@ private:
         f32_t fAmount = 0.f;
         f32_t fAge = 0.f;
         f32_t fLifetime = 1.15f;
-        f32_t fRisePixels = 54.f;
         f32_t fXJitter = 0.f;
         u8_t iDamageType = 0;
         bool_t bWasCrit = false;
         bool_t bKilled = false;
+    };
+    struct WorldTextFloater
+    {
+        Vec3 vWorldPos{};
+        std::string strText;
+        Vec4 vColor{ 1.f, 1.f, 1.f, 1.f };
+        f32_t fAge = 0.f;
+        f32_t fLifetime = 0.8f;
+        f32_t fXJitter = 0.f;
+        u32_t iGoldAmount = 0;
+        bool_t bShowGoldIcon = false;
     };
     struct KillFeedBanner
     {
@@ -137,30 +160,64 @@ private:
         bool_t bHasServerTime = false;
     };
 
-    void    Draw_HealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
-    void    Draw_HealthBars_RHI(const DirectX::XMMATRIX& mVP);
+    struct StatusPanelMatchScore
+    {
+        u16_t iBlueDragons = 0;
+        u16_t iBlueBarons = 0;
+        u16_t iBlueDestroyedTurrets = 0;
+        u16_t iBlueDestroyedInhibitors = 0;
+        u16_t iRedDragons = 0;
+        u16_t iRedBarons = 0;
+        u16_t iRedDestroyedTurrets = 0;
+        u16_t iRedDestroyedInhibitors = 0;
+    };
+
+    struct StatusPanelChampionRow
+    {
+        EntityID Entity = NULL_ENTITY;
+        eChampion Champion = eChampion::END;
+        u8_t iTeam = 0;
+        u8_t iLevel = 1;
+        u16_t iKills = 0;
+        u16_t iDeaths = 0;
+        u16_t iAssists = 0;
+        std::array<u16_t, 2> SummonerSpellIds{};
+        std::array<f32_t, 2> SummonerCooldowns{};
+        std::array<f32_t, 2> SummonerCooldownDurations{};
+        // Status rows render inventory item icons here. Cooldowns are only for summoner spells.
+        std::array<u16_t, 6> InventoryItemIds{};
+    };
+
+    struct StatusPanelSpellIconCache
+    {
+        u16_t iSpellId = 0;
+        void* pSRV = nullptr;
+    };
+
+    void    DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
+    void    DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP);
     void    DrawHealthBarBarcodeOverlay(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
-    void    Draw_MinionHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
-    void    Draw_MinionHealthBars_RHI(const DirectX::XMMATRIX& mVP);
-    void    Draw_TurretHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
-    void    Draw_TurretHealthBars_RHI(const DirectX::XMMATRIX& mVP);
-    void    Draw_MouseCursor(ImDrawList* pDraw);
-    void    Draw_MouseCursor_RHI();
+    void    DrawMinionHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
+    void    DrawMinionHealthBarsRHI(const DirectX::XMMATRIX& mVP);
+    void    DrawTurretHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
+    void    DrawTurretHealthBarsRHI(const DirectX::XMMATRIX& mVP);
+    void    DrawMouseCursor(ImDrawList* pDraw);
+    void    DrawMouseCursorRHI();
     void    BuildChampionHUDState(ChampionHUDState& State);
     void    DrawChampionHUDRHI(const ChampionHUDState& State);
     void    DrawChampionHUDOverlay(ImDrawList* pDraw, const ChampionHUDState& State);
-    void    Draw_DamageFloaters(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP, f32_t fDeltaTime);
-    void    Draw_GameContextHUD(ImDrawList* pDraw);
-    void    Draw_KillFeedBanners(ImDrawList* pDraw, f32_t fDeltaTime);
-    void    Draw_KillFeedCircleImage(ImDrawList* pDraw, const ImVec2& vCenter,
+    void    DrawDamageFloaters(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP, f32_t fDeltaTime);
+    void    DrawGameContextHUD(ImDrawList* pDraw);
+    void    DrawKillFeedBanners(ImDrawList* pDraw, f32_t fDeltaTime);
+    void    DrawKillFeedCircleImage(ImDrawList* pDraw, const ImVec2& vCenter,
         f32_t fRadius, void* pSRV, ImU32 iTintColor, ImU32 iBorderColor);
     void*   FindOrLoadKillFeedPortrait(eChampion eChampionID);
     void    ResetGameContextHUDStats();
-    void    Draw_HUDStatusFlash(ImDrawList* pDraw, const ImVec2& root, f32_t hudW, f32_t hudH);
-    void    Update_HUDStatusTimers(EntityID localEntity, f32_t hp, bool_t bStunned, f32_t dt);
+    void    DrawHUDStatusFlash(ImDrawList* pDraw, const ImVec2& root, f32_t hudW, f32_t hudH);
+    void    UpdateHUDStatusTimers(EntityID localEntity, f32_t hp, bool_t bStunned, f32_t dt);
     void UpdateChampionHealthBarTrails(f32_t dt);
     f32_t ResolveChampionHealthTrailRatio(EntityID entity, f32_t currentRatio) const;
-    void    Apply_CursorMode();
+    void    ApplyCursorMode();
 
     //인게임 상점
     struct InGameShopItemView
@@ -174,20 +231,41 @@ private:
 
     void LoadInGameShopAssets();
     void DrawInGameShop(ImDrawList* pDraw);
+    void DrawStatusPanel(ImDrawList* pDraw);
+    void BuildStatusPanelRows(
+        std::vector<StatusPanelChampionRow>& BlueRows,
+        std::vector<StatusPanelChampionRow>& RedRows,
+        StatusPanelMatchScore& Score) const;
+    void DrawStatusPanelObjectiveScores(ImDrawList* pDraw, const ImVec2& Root,
+        f32_t fScaleX, f32_t fScaleY, const StatusPanelMatchScore& Score);
+    void DrawStatusPanelRows(ImDrawList* pDraw, const ImVec2& Root,
+        f32_t fScaleX, f32_t fScaleY,
+        const std::vector<StatusPanelChampionRow>& Rows, bool_t bBlueSide);
+    void DrawStatusPanelChampionRow(ImDrawList* pDraw, const ImVec2& Root,
+        f32_t fScaleX, f32_t fScaleY,
+        const StatusPanelChampionRow& Row, f32_t fRowTop, bool_t bBlueSide);
+    void* FindOrLoadStatusPanelSummonerSpellIcon(u16_t iSpellId);
     const InGameShopItemView* FindInGameShopItem(u16_t iItemId) const;
     bool_t TryApplyPredictedInGamePurchase(u16_t iItemId);
     bool_t TryBuyInGameItem(u16_t iItemId);
     void LoadChampionHUDAssets();
     void LoadChampionHUDAssetsForChampion(eChampion eChampionID);
+    void ApplyChampionHUDSkillIconOverrides(const ChampionHUDState& State);
     void ReleaseChampionHUDAssets();
     ImFont* FindUIFont(const char* pTag) const;
 
     std::vector<InGameShopItemView> m_InGameShopItems;
     std::array<u16_t, 6> m_InGameInventorySlots{};
     void* m_pSRV_InGameShopReference = nullptr;
+    void* m_pSRV_StatusPanel = nullptr;
+    std::vector<StatusPanelSpellIconCache> m_StatusPanelSpellIconCache;
     CUIAtlasManifest m_InGameShopAtlasManifest;
     bool_t m_bInGameShopOpen = false;
+    bool_t m_bStatusPanelOpen = false;
     f32_t m_fInGameShopReferenceAlpha = 0.14f;
+    f32_t m_fStatusPanelDrawWidth = 600.f;
+    f32_t m_fStatusPanelDrawHeight = 400.f;
+    f32_t m_fStatusPanelOffsetY = 0.f;
     u16_t m_iSelectedInGameShopItemId = 0;
     u32_t m_iInGameGold = 10000;
     std::string m_strInGameShopStatus = "Press P to open shop";
@@ -225,6 +303,8 @@ private:
     std::unique_ptr<CLuaUIHost> m_pLuaUIHost;
     bool_t m_bUseLuaUI = true;
     eChampion m_eLoadedChampionHudAssets = eChampion::END;
+    std::array<eChampion, 4> m_eLoadedSkillIconChampions{
+        eChampion::END, eChampion::END, eChampion::END, eChampion::END };
     void* m_pSRV_ChampionPortrait = nullptr;
     void* m_pSRV_ChampionPassiveIcon = nullptr;
     void* m_pSRV_ChampionPassiveBar = nullptr;
@@ -289,6 +369,7 @@ private:
     f32_t   m_fTurretHPBarScreenOffsetX = 0.f;
     f32_t   m_fTurretHPBarScreenOffsetY = 0.f;
     std::vector<DamageFloater> m_DamageFloaters;
+    std::vector<WorldTextFloater> m_WorldTextFloaters;
     std::vector<KillFeedBanner> m_KillFeedBanners;
     std::vector<KillFeedPortraitCache> m_KillFeedPortraits;
     GameContextHUDState m_GameContextHUD{};
@@ -297,7 +378,6 @@ private:
     f32_t   m_fGameContextHUDHeight = 34.f;
     bool_t  m_bShowDamageFloaters = true;
     f32_t   m_fDamageFloaterLife = 1.15f;
-    f32_t   m_fDamageFloaterRise = 54.f;
 
     uint32_t m_iWinSizeX = 0;
     uint32_t m_iWinSizeY = 0;

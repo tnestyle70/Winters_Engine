@@ -14,7 +14,7 @@
       "fade_out": 0.18,
       "width": 1.75,
       "height": 1.75,
-      "color": [1.70, 0.88, 0.28, 1.00],
+      "color": [1.85, 1.22, 0.55, 1.00],
       "attach_offset": [0.00, 1.12, 0.00],
       "billboard": true
     },

@@ -78,6 +78,13 @@ public:
         return nullptr;
     }
 
+    virtual RHISamplerHandle CreateSampler(const RHISamplerDesc& desc)
+    {
+        (void)desc;
+        return {};
+    }
+    virtual void DestroySampler(RHISamplerHandle handle) { (void)handle; }
+
     virtual RHIPipelineHandle CreatePipeline(const RHIPipelineDesc& desc) = 0;
     virtual void DestroyPipeline(RHIPipelineHandle handle) = 0;
 

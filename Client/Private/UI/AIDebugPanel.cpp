@@ -65,6 +65,7 @@ namespace
 		case eChampionAIState::MoveToOuterTurret: return "MoveToOuterTurret";
 		case eChampionAIState::WaitForWave: return "WaitForWave";
 		case eChampionAIState::LaneCombat: return "LaneCombat";
+		case eChampionAIState::Diving: return "Diving";
 		case eChampionAIState::Retreat: return "Retreat";
 		case eChampionAIState::Recalling: return "Recalling";
 		case eChampionAIState::Dead: return "Dead";
@@ -81,6 +82,7 @@ namespace
 		case eChampionAIAction::AttackMinion: return "AttackMinion";
 		case eChampionAIAction::AttackChampion: return "AttackChampion";
 		case eChampionAIAction::AttackStructure: return "AttackStructure";
+		case eChampionAIAction::UseFlashEscape: return "UseFlashEscape";
 		case eChampionAIAction::Retreat: return "Retreat";
 		case eChampionAIAction::Recall: return "Recall";
 		default: return "Unknown";
@@ -93,9 +95,59 @@ namespace
 		{
 		case eChampionAIIntent::FarmMinion: return "FarmMinion";
 		case eChampionAIIntent::AttackChampion: return "AttackChampion";
+		case eChampionAIIntent::ExecuteDive: return "ExecuteDive";
 		case eChampionAIIntent::SiegeStructure: return "SiegeStructure";
 		case eChampionAIIntent::Retreat: return "Retreat";
 		case eChampionAIIntent::Recall: return "Recall";
+		default: return "Unknown";
+		}
+	}
+
+	const char* ChampionAIDivePhaseName(eChampionAIDivePhase phase)
+	{
+		switch (phase)
+		{
+		case eChampionAIDivePhase::None: return "None";
+		case eChampionAIDivePhase::EngageQ: return "EngageQ";
+		case eChampionAIDivePhase::ArmW: return "ArmW";
+		case eChampionAIDivePhase::BasicAttack: return "BasicAttack";
+		case eChampionAIDivePhase::ExtraBasicAttack: return "ExtraBasicAttack";
+		case eChampionAIDivePhase::FlashExit: return "FlashExit";
+		case eChampionAIDivePhase::ExitMove: return "ExitMove";
+		default: return "Unknown";
+		}
+	}
+
+	const char* ChampionAICommandKindName(u8_t kind)
+	{
+		switch (kind)
+		{
+		case 1u: return "Move";
+		case 2u: return "CastSkill";
+		case 3u: return "BasicAttack";
+		case 7u: return "Recall";
+		case 10u: return "Flash";
+		default: return "None";
+		}
+	}
+
+	const char* ChampionAIBlockReasonName(eChampionAIDecisionBlockReason reason)
+	{
+		switch (reason)
+		{
+		case eChampionAIDecisionBlockReason::None: return "None";
+		case eChampionAIDecisionBlockReason::NoTarget: return "NoTarget";
+		case eChampionAIDecisionBlockReason::TargetDead: return "TargetDead";
+		case eChampionAIDecisionBlockReason::TargetUntargetable: return "Untargetable";
+		case eChampionAIDecisionBlockReason::TargetOutOfRange: return "OutOfRange";
+		case eChampionAIDecisionBlockReason::SelfLowHp: return "SelfLowHp";
+		case eChampionAIDecisionBlockReason::TurretDanger: return "TurretDanger";
+		case eChampionAIDecisionBlockReason::SkillCooldown: return "Cooldown";
+		case eChampionAIDecisionBlockReason::FlashNotReady: return "FlashNotReady";
+		case eChampionAIDecisionBlockReason::ActionLocked: return "ActionLocked";
+		case eChampionAIDecisionBlockReason::StateBlocked: return "StateBlocked";
+		case eChampionAIDecisionBlockReason::InvalidPath: return "InvalidPath";
+		case eChampionAIDecisionBlockReason::CommandRejected: return "Rejected";
 		default: return "Unknown";
 		}
 	}
@@ -162,6 +214,8 @@ namespace
 			return kChampionAIActionBitAttackChampion;
 		case eChampionAIAction::AttackStructure:
 			return kChampionAIActionBitAttackStructure;
+		case eChampionAIAction::UseFlashEscape:
+			return kChampionAIActionBitUseFlashEscape;
 		case eChampionAIAction::Retreat:
 			return kChampionAIActionBitRetreat;
 		case eChampionAIAction::Recall:
@@ -236,6 +290,32 @@ namespace
 				action,
 				kChampionAIDebugForceActionSkillSlot);
 		}
+		ImGui::EndDisabled();
+	}
+
+	void RenderTuningSlider(
+		CScene_InGame* pScene,
+		u32_t targetNetId,
+		const char* pLabel,
+		eChampionAITuningId tuningId,
+		f32_t value,
+		f32_t minValue,
+		f32_t maxValue)
+	{
+		const bool_t bCanSend = targetNetId != NULL_NET_ENTITY &&
+			CanSendAIDebugCommand(pScene);
+		f32_t current = value;
+		ImGui::BeginDisabled(!bCanSend);
+		ImGui::PushID(static_cast<int>(tuningId));
+		if (ImGui::SliderFloat(pLabel, &current, minValue, maxValue, "%.2f"))
+		{
+			pScene->GetCommandSerializer()->SendAIDebugTune(
+				*pScene->GetNetworkView(),
+				targetNetId,
+				static_cast<u8_t>(tuningId),
+				current);
+		}
+		ImGui::PopID();
 		ImGui::EndDisabled();
 	}
 
@@ -399,6 +479,29 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 			profile.minionScanRange,
 			profile.structureScanRange,
 			profile.leashRange);
+		ImGui::Text("Scores: champion %.2f   farm %.2f   structure %.2f   canFight=%s   postBA=%s",
+			debug.fChampionDecisionScore,
+			debug.fFarmDecisionScore,
+			debug.fStructureDecisionScore,
+			debug.bCanAttackChampion ? "yes" : "no",
+			debug.bPostComboBAAllowed ? "yes" : "no");
+		ImGui::Text("Perception: champScan %.1f   diveScan %.1f   flash %.1f   lowHP net=%u %.0f%% dist=%.1f",
+			debug.fChampionScanRange,
+			debug.fDiveScanRange,
+			debug.fFlashRange,
+			debug.lowHpEnemyNetId,
+			debug.fLowHpEnemyRatio * 100.f,
+			debug.fLowHpEnemyDistance);
+		ImGui::Text("Dive: phase=%s target=%u   block=%s   lastCmd=%s slot=%u target=%u pos=(%.1f, %.1f, %.1f)",
+			ChampionAIDivePhaseName(debug.divePhase),
+			debug.diveTargetNetId,
+			ChampionAIBlockReasonName(debug.lastBlockReason),
+			ChampionAICommandKindName(debug.lastCommandKind),
+			static_cast<u32_t>(debug.lastCommandSlot),
+			debug.lastCommandTargetNetId,
+			debug.lastCommandPos.x,
+			debug.lastCommandPos.y,
+			debug.lastCommandPos.z);
 		ImGui::Text("Risk: retreat %.0f%%   reengage %.0f%%   aggression %.2f   kite %.2f",
 			profile.retreatHpRatio * 100.f,
 			profile.reengageHpRatio * 100.f,
@@ -426,6 +529,9 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 		ImGui::SameLine();
 		RenderActionButton(pScene, debug.netId, "Structure", eChampionAIAction::AttackStructure,
 			HasChampionAIAction(debug, eChampionAIAction::AttackStructure));
+		ImGui::SameLine();
+		RenderActionButton(pScene, debug.netId, "FlashExit", eChampionAIAction::UseFlashEscape,
+			HasChampionAIAction(debug, eChampionAIAction::UseFlashEscape));
 		ImGui::SameLine();
 		RenderActionButton(pScene, debug.netId, "Retreat", eChampionAIAction::Retreat,
 			HasChampionAIAction(debug, eChampionAIAction::Retreat));
@@ -464,6 +570,94 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 				minRange,
 				score);
 			ImGui::PopID();
+		}
+
+		ImGui::SeparatorText("Runtime Tuning");
+		RenderTuningSlider(pScene, debug.netId, "Champion Scan", eChampionAITuningId::ChampionScanRange,
+			debug.fChampionScanRange, 1.f, 40.f);
+		RenderTuningSlider(pScene, debug.netId, "Minion Scan", eChampionAITuningId::MinionScanRange,
+			debug.fMinionScanRange, 1.f, 40.f);
+		RenderTuningSlider(pScene, debug.netId, "Structure Scan", eChampionAITuningId::StructureScanRange,
+			debug.fStructureScanRange, 1.f, 60.f);
+		RenderTuningSlider(pScene, debug.netId, "Leash Range", eChampionAITuningId::LeashRange,
+			debug.fLeashRange, 1.f, 60.f);
+		RenderTuningSlider(pScene, debug.netId, "Retreat HP", eChampionAITuningId::RetreatHpRatio,
+			debug.fRetreatHpRatio, 0.01f, 0.90f);
+		RenderTuningSlider(pScene, debug.netId, "Reengage HP", eChampionAITuningId::ReengageHpRatio,
+			debug.fReengageHpRatio, 0.01f, 1.f);
+		RenderTuningSlider(pScene, debug.netId, "Champion Score Margin", eChampionAITuningId::ChampionScoreMargin,
+			debug.fChampionScoreMargin, 0.f, 1.f);
+		RenderTuningSlider(pScene, debug.netId, "Turret Danger", eChampionAITuningId::TurretDangerThreshold,
+			debug.fTurretDangerThreshold, 0.f, 1.f);
+		RenderTuningSlider(pScene, debug.netId, "Post BA Self HP", eChampionAITuningId::PostComboBASelfHpMinRatio,
+			debug.fPostComboBASelfHpMinRatio, 0.f, 1.f);
+		RenderTuningSlider(pScene, debug.netId, "Post BA Enemy Margin", eChampionAITuningId::PostComboBAEnemyHpMargin,
+			debug.fPostComboBAEnemyHpMargin, -1.f, 1.f);
+		RenderTuningSlider(pScene, debug.netId, "Post BA Window", eChampionAITuningId::PostComboBAWindow,
+			debug.fPostComboBAWindow, 0.f, 5.f);
+		RenderTuningSlider(pScene, debug.netId, "Low HP Execute", eChampionAITuningId::LowHpExecuteThreshold,
+			debug.fLowHpExecuteThreshold, 0.01f, 0.50f);
+		RenderTuningSlider(pScene, debug.netId, "Dive Scan", eChampionAITuningId::DiveScanRange,
+			debug.fDiveScanRange, 1.f, 40.f);
+		RenderTuningSlider(pScene, debug.netId, "Dive Extra BA Window", eChampionAITuningId::DiveExtraBAWindow,
+			debug.fDiveExtraBAWindow, 0.f, 5.f);
+		ImGui::BeginDisabled(!bCanSend || debug.netId == NULL_NET_ENTITY);
+		if (ImGui::Button("Reset Runtime Tuning"))
+			pScene->GetCommandSerializer()->SendAIDebugResetTuning(*pScene->GetNetworkView(), debug.netId);
+		ImGui::EndDisabled();
+
+		ImGui::SeparatorText("Decision Trace");
+		if (debug.debugDecisionTraceCount == 0u)
+		{
+			ImGui::TextDisabled("No decision trace rows yet.");
+		}
+		else if (ImGui::BeginTable(
+			"AIDecisionTraceTable",
+			8,
+			ImGuiTableFlags_BordersInnerV |
+			ImGuiTableFlags_RowBg |
+			ImGuiTableFlags_Resizable |
+			ImGuiTableFlags_ScrollY,
+			ImVec2(0.f, 130.f)))
+		{
+			ImGui::TableSetupColumn("Tick");
+			ImGui::TableSetupColumn("State");
+			ImGui::TableSetupColumn("Intent");
+			ImGui::TableSetupColumn("Action");
+			ImGui::TableSetupColumn("Block");
+			ImGui::TableSetupColumn("Cmd");
+			ImGui::TableSetupColumn("Target");
+			ImGui::TableSetupColumn("Score");
+			ImGui::TableHeadersRow();
+
+			for (int i = static_cast<int>(debug.debugDecisionTraceCount) - 1; i >= 0; --i)
+			{
+				const ChampionAIDecisionTraceEntry& row = debug.debugDecisionTrace[i];
+				ImGui::TableNextRow();
+				ImGui::TableNextColumn();
+				ImGui::Text("%llu", static_cast<unsigned long long>(row.tick));
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(ChampionAIStateName(row.state));
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(ChampionAIIntentName(row.intent));
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(ChampionAIActionName(row.action));
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(ChampionAIBlockReasonName(row.blockReason));
+				ImGui::TableNextColumn();
+				ImGui::Text("%s/%u",
+					ChampionAICommandKindName(row.commandKind),
+					static_cast<u32_t>(row.commandSlot));
+				ImGui::TableNextColumn();
+				ImGui::Text("%llu", static_cast<unsigned long long>(row.target));
+				ImGui::TableNextColumn();
+				ImGui::Text("%.2f/%.2f/%.2f",
+					row.championScore,
+					row.farmScore,
+					row.structureScore);
+			}
+
+			ImGui::EndTable();
 		}
 	}
 

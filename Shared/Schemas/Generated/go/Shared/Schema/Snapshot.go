@@ -133,8 +133,104 @@ func (rcv *Snapshot) MutateDeltaBaseTick(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(16, n)
 }
 
+func (rcv *Snapshot) BlueTotalKills() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateBlueTotalKills(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(18, n)
+}
+
+func (rcv *Snapshot) RedTotalKills() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateRedTotalKills(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(20, n)
+}
+
+func (rcv *Snapshot) BlueDestroyedTurrets() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateBlueDestroyedTurrets(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(22, n)
+}
+
+func (rcv *Snapshot) RedDestroyedTurrets() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateRedDestroyedTurrets(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(24, n)
+}
+
+func (rcv *Snapshot) BlueDragons() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateBlueDragons(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(26, n)
+}
+
+func (rcv *Snapshot) RedDragons() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateRedDragons(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(28, n)
+}
+
+func (rcv *Snapshot) BlueBarons() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateBlueBarons(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(30, n)
+}
+
+func (rcv *Snapshot) RedBarons() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateRedBarons(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(32, n)
+}
+
 func SnapshotStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(15)
 }
 func SnapshotAddServerTick(builder *flatbuffers.Builder, serverTick uint64) {
 	builder.PrependUint64Slot(0, serverTick, 0)
@@ -159,6 +255,30 @@ func SnapshotAddYourNetId(builder *flatbuffers.Builder, yourNetId uint32) {
 }
 func SnapshotAddDeltaBaseTick(builder *flatbuffers.Builder, deltaBaseTick uint64) {
 	builder.PrependUint64Slot(6, deltaBaseTick, 0)
+}
+func SnapshotAddBlueTotalKills(builder *flatbuffers.Builder, blueTotalKills uint16) {
+	builder.PrependUint16Slot(7, blueTotalKills, 0)
+}
+func SnapshotAddRedTotalKills(builder *flatbuffers.Builder, redTotalKills uint16) {
+	builder.PrependUint16Slot(8, redTotalKills, 0)
+}
+func SnapshotAddBlueDestroyedTurrets(builder *flatbuffers.Builder, blueDestroyedTurrets uint16) {
+	builder.PrependUint16Slot(9, blueDestroyedTurrets, 0)
+}
+func SnapshotAddRedDestroyedTurrets(builder *flatbuffers.Builder, redDestroyedTurrets uint16) {
+	builder.PrependUint16Slot(10, redDestroyedTurrets, 0)
+}
+func SnapshotAddBlueDragons(builder *flatbuffers.Builder, blueDragons uint16) {
+	builder.PrependUint16Slot(11, blueDragons, 0)
+}
+func SnapshotAddRedDragons(builder *flatbuffers.Builder, redDragons uint16) {
+	builder.PrependUint16Slot(12, redDragons, 0)
+}
+func SnapshotAddBlueBarons(builder *flatbuffers.Builder, blueBarons uint16) {
+	builder.PrependUint16Slot(13, blueBarons, 0)
+}
+func SnapshotAddRedBarons(builder *flatbuffers.Builder, redBarons uint16) {
+	builder.PrependUint16Slot(14, redBarons, 0)
 }
 func SnapshotEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

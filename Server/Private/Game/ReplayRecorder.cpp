@@ -73,7 +73,7 @@ bool_t CReplayRecorder::SaveToFile(const wstring_t& path, std::string& outError)
 	try
 	{
 		const std::filesystem::path fsPath(path);
-		if (fsPath.has_relative_path())
+		if (fsPath.has_parent_path())
 			std::filesystem::create_directories(fsPath.parent_path());
 
 		std::ofstream out(fsPath, std::ios::binary);

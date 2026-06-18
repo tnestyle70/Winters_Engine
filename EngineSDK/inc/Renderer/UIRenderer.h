@@ -27,6 +27,7 @@ public:
     void Begin(u32_t iScreenWidth, u32_t iScreenHeight,
         eUISamplerMode eSamplerMode = eUISamplerMode::LinearClamp);
     void End();
+    void ReserveQuads(u32_t iQuadCount);
 
     void DrawImage(void* pTextureSRV,
         f32_t fX, f32_t fY, f32_t fW, f32_t fH,

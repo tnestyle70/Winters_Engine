@@ -201,6 +201,7 @@ void CServerMinionWaveRuntime::Clear()
 	m_flowField.Clear();
 	m_nextWaveTick = 0u;
 	m_waveIndex = 0u;
+	m_pendingSpawns.clear();
 	ClearResolvedWaypoints();
 }
 
@@ -296,6 +297,7 @@ void CServerMinionWaveRuntime::RebuildFlowFields(const Engine::CNavGrid* pGrid)
 void CServerMinionWaveRuntime::ResetWaveSchedule()
 {
 	m_nextWaveTick = 0u;
+	m_pendingSpawns.clear();
 }
 
 void CServerMinionWaveRuntime::ScheduleFirstWave(u64_t currentTick, const TraceCallback& trace)
@@ -314,11 +316,25 @@ void CServerMinionWaveRuntime::TickWave(
 	u64_t tickIndex,
 	const SpawnCallback& spawn)
 {
-	if (m_nextWaveTick == 0u || tickIndex < m_nextWaveTick)
+	if (m_nextWaveTick != 0u && tickIndex >= m_nextWaveTick)
+	{
+		EnqueueWave(tickIndex);
+		m_nextWaveTick = tickIndex + ServerMinionTuning::kWaveIntervalTicks;
+	}
+
+	if (!spawn || m_pendingSpawns.empty())
 		return;
 
-	SpawnWave(spawn);
-	m_nextWaveTick = tickIndex + ServerMinionTuning::kWaveIntervalTicks;
+	// 한 마리씩 시간차 스폰: due가 된 항목만 내보내고 나머지는 유지 (큐 순서 보존 = 결정적)
+	size_t writeIndex = 0u;
+	for (size_t i = 0u; i < m_pendingSpawns.size(); ++i)
+	{
+		if (m_pendingSpawns[i].dueTick <= tickIndex)
+			spawn(m_pendingSpawns[i].request);
+		else
+			m_pendingSpawns[writeIndex++] = m_pendingSpawns[i];
+	}
+	m_pendingSpawns.resize(writeIndex);
 }
 
 bool_t CServerMinionWaveRuntime::TryResolveFlowDirection(
@@ -375,12 +391,8 @@ u8_t CServerMinionWaveRuntime::ResolveWaypointLane(eTeam team, u8_t lane)
 	return lane;
 }
 
-void CServerMinionWaveRuntime::SpawnWave(
-	const SpawnCallback& spawn)
+void CServerMinionWaveRuntime::EnqueueWave(u64_t tickIndex)
 {
-	if (!spawn)
-		return;
-
 	struct MinionSpawnSlot
 	{
 		u8_t role = 0u;
@@ -414,11 +426,15 @@ void CServerMinionWaveRuntime::SpawnWave(
 		? static_cast<u32_t>(sizeof(kLanes) / sizeof(kLanes[0]))
 		: 1u;
 
+	constexpr u32_t kSlotCount =
+		static_cast<u32_t>(sizeof(kSpawnSlots) / sizeof(kSpawnSlots[0]));
+
 	for (u32_t laneIndex = 0u; laneIndex < laneCount; ++laneIndex)
 	{
 		const u8_t lane = bHasStageWaypoints ? kLanes[laneIndex] : kLaneMid;
-		for (const MinionSpawnSlot& slot : kSpawnSlots)
+		for (u32_t slotIndex = 0u; slotIndex < kSlotCount; ++slotIndex)
 		{
+			const MinionSpawnSlot& slot = kSpawnSlots[slotIndex];
 			Vec3 bluePos{
 				ServerMinionTuning::kWaveStartX + slot.forwardOffset,
 				1.f,
@@ -461,8 +477,12 @@ void CServerMinionWaveRuntime::SpawnWave(
 					slot.sideOffset);
 			}
 
-			spawn(SpawnRequest{ eTeam::Blue, slot.role, lane, bluePos });
-			spawn(SpawnRequest{ eTeam::Red, slot.role, lane, redPos });
+			const u64_t dueTick = tickIndex +
+				static_cast<u64_t>(slotIndex) * ServerMinionTuning::kPerMinionSpawnDelayTicks;
+			m_pendingSpawns.push_back(
+				PendingSpawn{ dueTick, SpawnRequest{ eTeam::Blue, slot.role, lane, bluePos } });
+			m_pendingSpawns.push_back(
+				PendingSpawn{ dueTick, SpawnRequest{ eTeam::Red, slot.role, lane, redPos } });
 		}
 	}
 

@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Yasuo/PendingHitSystem.h"
+﻿#include "GameObject/Champion/Yasuo/PendingHitSystem.h"
 #include "GameObject/Champion/Yasuo/YasuoProjectileSystem.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
@@ -74,7 +74,6 @@ void CPendingHitSystem::Execute(CWorld& world, f32_t dt)
                         static_cast<u32_t>(pending.ownerEntity),
                         ownerPos.x, ownerPos.y, ownerPos.z,
                         pending.fDamage);
-                    ::OutputDebugStringA(dbg);
                 }
 
                 vecDelete.push_back(entity);

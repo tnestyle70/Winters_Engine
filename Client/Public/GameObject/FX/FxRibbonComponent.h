@@ -19,6 +19,9 @@ struct FxRibbonComponent
     EntityID attachTo = NULL_ENTITY;
     Vec3 vStartOffset = { 0.f, 0.f, 0.f };
     Vec3 vEndOffset = { 0.f, 0.f, 1.f };
+    FxAnchorDesc anchor{};
+    FxLifecycleDesc lifecycle{};
+    bool_t bAnchorResolvedLastFrame = false;
     Vec3 vVelocity = { 0.f, 0.f, 0.f };
 
     const wchar_t* texturePath = nullptr;

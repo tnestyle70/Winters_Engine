@@ -17,7 +17,9 @@ namespace Jax::Fx
     void SpawnQLeapTrail(CWorld& world, EntityID owner, const Vec3& dir, f32_t fLifetime,
         Engine::CFxStaticMeshRenderer* pRenderer = nullptr);
     void SpawnWEmpowerGlow(CWorld& world, EntityID owner, f32_t fDuration);
-    void SpawnECounterSlash(CWorld& world, EntityID owner, f32_t fLifetime,
+    void SpawnECounterGuard(CWorld& world, EntityID owner, f32_t fLifetime,
+        Engine::CFxStaticMeshRenderer* pRenderer = nullptr);
+    void SpawnECounterRelease(CWorld& world, EntityID owner, f32_t fLifetime,
         Engine::CFxStaticMeshRenderer* pRenderer = nullptr);
     void SpawnRBuffAura(CWorld& world, EntityID owner, f32_t fDuration,
         Engine::CFxStaticMeshRenderer* pRenderer = nullptr);

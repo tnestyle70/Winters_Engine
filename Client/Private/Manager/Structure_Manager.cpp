@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+﻿#define _CRT_SECURE_NO_WARNINGS
 #include "Manager/Structure_Manager.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/GameplayComponents.h"
@@ -6,6 +6,7 @@
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/VisionComponents.h"
 #include "Scene/RenderVisibilityFilter.h"
+#include "ProfilerAPI.h"
 #include <Windows.h>
 #include "ECS/Components/CoreComponents.h"
 
@@ -21,11 +22,11 @@ namespace
 
 HRESULT CStructure_Manager::Initialize(CWorld* pWorld)
 {
-    // Phase 5-A 후속 (2026-04-23): m_pWorld 재바인딩을 guard 앞으로 이동.
-    //  이유: CGameApp::OnInit 이 Initialize(nullptr) 로 1차 초기화 → m_bInitialized=true.
-    //       이후 Scene_InGame::OnEnter 의 Initialize(&m_World) 가 guard 에 걸려
-    //       m_pWorld=nullptr 유지 → Load_FromFile 이 E_FAIL 반환 → Stage 데이터 로드 실패.
-    //       Scene 전환마다 Manager 가 현재 Scene 의 World 를 바라보도록 매 호출 재바인딩.
+    // Phase 5-A ?꾩냽 (2026-04-23): m_pWorld ?щ컮?몃뵫??guard ?욎쑝濡??대룞.
+    //  ?댁쑀: CGameApp::OnInit ??Initialize(nullptr) 濡?1李?珥덇린????m_bInitialized=true.
+    //       ?댄썑 Scene_InGame::OnEnter ??Initialize(&m_World) 媛 guard ??嫄몃젮
+    //       m_pWorld=nullptr ?좎? ??Load_FromFile ??E_FAIL 諛섑솚 ??Stage ?곗씠??濡쒕뱶 ?ㅽ뙣.
+    //       Scene ?꾪솚留덈떎 Manager 媛 ?꾩옱 Scene ??World 瑜?諛붾씪蹂대룄濡?留??몄텧 ?щ컮?몃뵫.
     m_pWorld = pWorld;
     if (m_bInitialized) return S_OK;
     m_vecEntities.reserve(32);
@@ -91,28 +92,44 @@ HRESULT CStructure_Manager::Load_FromFile(FILE* pFile)
         {
             char msg[256];
             sprintf_s(msg, "[Structure] spawn failed: %s\n", e.name);
-            OutputDebugStringA(msg);
         }
     }
     return S_OK;
 }
 
 void CStructure_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorld,
-    void* pAmbientOcclusionSRV)
+    void* pAmbientOcclusionSRV,
+    bool_t bIgnoreFogOfWar)
 {
     if (!m_pWorld) return;
     const u8_t localTeam = UI::QueryLocalTeam(*m_pWorld);
+    uint64_t candidateCount = 0;
+    uint64_t visibleCount = 0;
+    uint64_t fowSkippedCount = 0;
+
     m_pWorld->ForEach<StructureComponent, RenderComponent, TransformComponent>(
         [&](EntityID id, StructureComponent&, RenderComponent& rc, TransformComponent& xform)
         {
-            if (!rc.bVisible || !rc.pRenderer) return;
-            if (!UI::IsRenderableForLocal(*m_pWorld, id, localTeam)) return;
-            rc.pRenderer->Update(0.f);
+            if (!rc.bVisible || !rc.pRenderer)
+                return;
+
+            ++candidateCount;
+            if (!UI::IsRenderableForLocal(*m_pWorld, id, localTeam, bIgnoreFogOfWar))
+            {
+                ++fowSkippedCount;
+                return;
+            }
+
+            ++visibleCount;
             rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
             rc.pRenderer->UpdateCamera(matViewProj, vCameraWorld);
             rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
-            rc.pRenderer->Render();
+            rc.pRenderer->RenderFrustumCulled(matViewProj);
         });
+
+    WINTERS_PROFILE_COUNT("Structure::Candidates", candidateCount);
+    WINTERS_PROFILE_COUNT("Structure::Visible", visibleCount);
+    WINTERS_PROFILE_COUNT("Structure::FowSkipped", fowSkippedCount);
 }
 
 i32_t CStructure_Manager::Add_At(Winters::Map::eObjectKind kind, eTeam team,
@@ -332,7 +349,6 @@ EntityID CStructure_Manager::Spawn_FromEntry(const Winters::Map::StructureEntry&
     sc.tier = entry.tier;
     sc.lane = entry.lane;
 
-
     f32_t maxHp = 3000.f;
     if (sc.kind == static_cast<uint32_t>(Winters::Map::eObjectKind::Structure_Nexus))
         maxHp = 5500.f;
@@ -400,7 +416,7 @@ EntityID CStructure_Manager::Spawn_FromEntry(const Winters::Map::StructureEntry&
     auto& rc = m_pWorld->AddComponent<RenderComponent>(id);
     rc.pRenderer = pRenderer.get();
     rc.bVisible  = (entry.bVisible != 0);
-    rc.bAnimated = false;   // ★ 구조물 (Turret/Inhib/Nexus) 은 정적 — AnimUpdate 스킵
+    rc.bAnimated = false;   // ??援ъ“臾?(Turret/Inhib/Nexus) ? ?뺤쟻 ??AnimUpdate ?ㅽ궢
 
     //HealthBar Data Source 
     HealthComponent hp;

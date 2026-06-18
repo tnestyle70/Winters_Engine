@@ -1,0 +1,39 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Jax.E.CounterRelease",
+  "emitters": [
+    {
+      "name": "e_release_spark",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_spark.png",
+      "lifetime": 0.34,
+      "fade_in": 0.01,
+      "fade_out": 0.24,
+      "width": 2.40,
+      "height": 2.40,
+      "color": [1.55, 1.70, 1.95, 1.00],
+      "attach_offset": [0.0, 1.20, 0.0],
+      "billboard": true
+    },
+    {
+      "name": "e_release_wave",
+      "render_type": "ShockwaveRing",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_wave06.png",
+      "lifetime": 0.38,
+      "fade_in": 0.01,
+      "fade_out": 0.26,
+      "start_radius": 0.75,
+      "end_radius": 3.00,
+      "width": 2.20,
+      "height": 6.00,
+      "color": [0.85, 1.10, 1.50, 0.62],
+      "attach_offset": [0.0, 0.08, 0.0],
+      "billboard": false
+    }
+  ]
+}

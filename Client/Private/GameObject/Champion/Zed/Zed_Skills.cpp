@@ -4,7 +4,7 @@
 #include "ECS/World.h"
 #include "GameObject/Champion/Zed/ZedFxPresets.h"
 #include "GameObject/FX/FxCuePlayer.h"
-#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 
 #include <cmath>
 
@@ -25,7 +25,7 @@ namespace
 
         const f32_t visualYaw = world.GetComponent<TransformComponent>(caster).GetRotation().y;
         return WintersMath::DirectionFromYawXZ(
-            visualYaw - GetDefaultChampionVisualYawOffset(eChampion::ZED));
+            visualYaw - ChampionGameDataDB::ResolveVisualYawOffset(eChampion::ZED));
     }
 
     Vec3 ResolveCommandDirection(const SkillHookContext& ctx)

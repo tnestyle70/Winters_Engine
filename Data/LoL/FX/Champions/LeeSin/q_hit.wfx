@@ -12,9 +12,9 @@
       "lifetime": 0.34,
       "fade_in": 0.01,
       "fade_out": 0.18,
-      "width": 1.46,
-      "height": 1.46,
-      "color": [1.0, 0.82, 0.28, 0.98],
+      "width": 1.25,
+      "height": 1.25,
+      "color": [1.0, 0.90, 0.50, 0.78],
       "attach_offset": [0.0, 0.86, 0.0],
       "billboard": true,
       "blockable_by_wind_wall": true
@@ -67,7 +67,7 @@
       "fade_out": 0.22,
       "width": 1.35,
       "height": 1.35,
-      "color": [1.0, 0.62, 0.16, 0.62],
+      "color": [1.0, 0.62, 0.16, 0.45],
       "attach_offset": [0.0, 1.05, 0.0],
       "billboard": true,
       "blockable_by_wind_wall": true

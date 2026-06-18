@@ -96,6 +96,12 @@ namespace UI
             bool bm = pScene->IsDbgShowMinionMovement();
             if (ImGui::Checkbox("Minion cells / move vectors", &bm)) pScene->SetDbgShowMinionMovement(bm);
 
+            bool bt = pScene->IsDbgShowChampionAIText();
+            if (ImGui::Checkbox("Champion AI text", &bt)) pScene->SetDbgShowChampionAIText(bt);
+
+            bool ba = pScene->IsDbgShowChampionAIRanges();
+            if (ImGui::Checkbox("Champion AI ranges", &ba)) pScene->SetDbgShowChampionAIRanges(ba);
+
             f32_t r = pScene->GetDbgNavRadius();
             if (ImGui::SliderFloat("NavGrid radius (m)", &r, 10.f, 200.f))
                 pScene->SetDbgNavRadius(r);
@@ -116,9 +122,11 @@ namespace UI
             pScene->SetDbgShowColliders(true);
             pScene->SetDbgShowChampions(true);
             pScene->SetDbgShowMinionMovement(true);
+            pScene->SetDbgShowChampionAIText(true);
+            pScene->SetDbgShowChampionAIRanges(true);
         }
         ImGui::SameLine();
-        if (ImGui::Button("Sylas Only"))
+        if (ImGui::Button("Champion AI Only"))
         {
             pScene->SetDbgShowNavGrid(false);
             pScene->SetDbgShowPathNavGrid(false);
@@ -126,6 +134,8 @@ namespace UI
             pScene->SetDbgShowColliders(false);
             pScene->SetDbgShowChampions(true);
             pScene->SetDbgShowMinionMovement(false);
+            pScene->SetDbgShowChampionAIText(true);
+            pScene->SetDbgShowChampionAIRanges(true);
         }
 
         ImGui::End();

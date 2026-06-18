@@ -39,6 +39,9 @@ public:
         CNavGrid::Cell& outGoal,
         std::vector<CNavGrid::Cell>* pOutPath = nullptr);
 
+    static void PrewarmReachabilityCache(const CNavGrid* pGrid);
+    static void PrewarmReachabilityCacheForRadius(const CNavGrid* pGrid, f32_t radiusWorld);
+
 private:
     CPathfinder() = delete;
     static f32_t Octile(int32_t dx, int32_t dy);

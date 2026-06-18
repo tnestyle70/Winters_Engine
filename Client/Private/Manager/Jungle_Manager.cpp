@@ -1,20 +1,36 @@
-#define _CRT_SECURE_NO_WARNINGS
+﻿#define _CRT_SECURE_NO_WARNINGS
 #include "Manager/Jungle_Manager.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/RenderComponent.h"
+#include "ECS/Components/SpatialAgentComponent.h"
+#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ReplicatedStateComponent.h"
+#include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
+#include "ECS/Components/VisionComponents.h"
+#include "ProfilerAPI.h"
 #include <Windows.h>
+#include <algorithm>
+#include <cmath>
 
-namespace //이렇게 const char*로 설정한 것처럼 언리얼, RED Engine의 CName Hashing 전부 써서 String 오버헤드 없애기!
+namespace //?대젃寃?const char*濡??ㅼ젙??寃껋쿂???몃━?? RED Engine??CName Hashing ?꾨? ?⑥꽌 String ?ㅻ쾭?ㅻ뱶 ?놁븷湲?
 {
     constexpr const char* PATH_BARON  = "Client/Bin/Resource/Texture/Object/Jungle/Baron/baron_textured.wmesh";
-    constexpr const char* PATH_DRAGON = "Client/Bin/Resource/Texture/Object/Jungle/Dragon/water/dragon_water_textured.wmesh";
+    constexpr const char* PATH_DRAGON = "Client/Bin/Resource/Texture/Object/Jungle/Dragon/air/dragon_air_textured.wmesh";
     constexpr const char* PATH_BLUE   = "Client/Bin/Resource/Texture/Object/Jungle/Blue/blue_textured.wmesh";
-    constexpr const char* PATH_RED    = "Client/Bin/Resource/Texture/Object/Jungle/Blue/blue_textured.wmesh"; // TODO Red 모델
+    constexpr const char* PATH_RED    = "Client/Bin/Resource/Texture/Object/Jungle/Red/red_textured.wmesh";
     constexpr const char* PATH_KRUG   = "Client/Bin/Resource/Texture/Object/Jungle/Krug/krug_textured.wmesh";
     constexpr const char* PATH_GROMP  = "Client/Bin/Resource/Texture/Object/Jungle/Gromp/gromp_textured.wmesh";
     constexpr const char* PATH_WOLF   = "Client/Bin/Resource/Texture/Object/Jungle/Wolf/wolf_textured.wmesh";
+    constexpr const char* PATH_RAZORBEAK = "Client/Bin/Resource/Texture/Object/Jungle/Razorbeak/razorbeak_textured.wmesh";
+    constexpr const char* PATH_RAZORBEAK_MINI = "Client/Bin/Resource/Texture/Object/Jungle/RazorbeakMini/razorbeakmini_textured.wmesh";
+    constexpr const char* PATH_WOLF_MINI = "Client/Bin/Resource/Texture/Object/Jungle/WolfMini/wolfmini_textured.wmesh";
+    constexpr const char* PATH_KRUG_MINI = "Client/Bin/Resource/Texture/Object/Jungle/KrugMini/krugmini_textured.wmesh";
+
+    constexpr f32_t kJungleBaseAnimUpdateInterval = 1.f / 8.f;
+    constexpr f32_t kJungleHighPriorityAnimUpdateInterval = 1.f / 20.f;
+    constexpr uint64_t kJungleAnimUpdateBudget = 6u;
 
     f32_t Resolve_ColliderRadius(CJungle_Manager::eJungleSub sub)
     {
@@ -26,15 +42,75 @@ namespace //이렇게 const char*로 설정한 것처럼 언리얼, RED Engine�
         case CJungle_Manager::eJungleSub::RedBuff:
         case CJungle_Manager::eJungleSub::Gromp:  return 1.2f;
         case CJungle_Manager::eJungleSub::Krug:
+        case CJungle_Manager::eJungleSub::Razorbeak:
         case CJungle_Manager::eJungleSub::Wolf:   return 1.0f;
+        case CJungle_Manager::eJungleSub::KrugMini:
+        case CJungle_Manager::eJungleSub::RazorbeakMini:
+        case CJungle_Manager::eJungleSub::WolfMini: return 0.7f;
         default:                 return 1.0f;
         }
+    }
+
+    struct JungleAnimationSet
+    {
+        const char* idle = "";
+        const char* run = "";
+        const char* attack = "";
+        const char* death = "";
+    };
+
+    JungleAnimationSet Resolve_JungleAnimations(CJungle_Manager::eJungleSub sub)
+    {
+        switch (sub)
+        {
+        case CJungle_Manager::eJungleSub::Baron:
+            return { "sru_baron_idle1", "sru_baron_idle1_aggro", "sru_baron_attack1", "sru_baron_death" };
+        case CJungle_Manager::eJungleSub::Dragon:
+            return { "sru_dragon_flying_run", "sru_dragon_flying_run", "sru_dragon_flying_attack1", "" };
+        case CJungle_Manager::eJungleSub::BlueBuff:
+            return { "sru_blue_idle_normal", "sru_blue_run", "sru_blue_attack1", "sru_blue_death" };
+        case CJungle_Manager::eJungleSub::RedBuff:
+            return { "sru_red_idle1", "sru_red_run", "sru_red_attack1", "sru_red_death" };
+        case CJungle_Manager::eJungleSub::Krug:
+            return { "krug_idle_normal", "krug_run2", "krug_attack1", "krug_death" };
+        case CJungle_Manager::eJungleSub::Gromp:
+            return { "sru_gromp_idle1", "sru_gromp_run", "sru_gromp_attack1", "sru_gromp_death" };
+        case CJungle_Manager::eJungleSub::Wolf:
+            return { "sru_murkwolf_idle1", "sru_murkwolf_run", "sru_murkwolf_attack1", "sru_murkwolf_death" };
+        case CJungle_Manager::eJungleSub::Razorbeak:
+            return { "sru_razorbeak_idle_normal1", "sru_razorbeak_run", "sru_razorbeak_ranged_attack1", "sru_razorbeak_death" };
+        case CJungle_Manager::eJungleSub::RazorbeakMini:
+            return { "sru_razorbeakmini_idle_normal1", "sru_razorbeakmini_run", "sru_razorbeakmini_attack1", "sru_razorbeakmini_death" };
+        case CJungle_Manager::eJungleSub::WolfMini:
+            return { "sru_murkwolfmini_idle1", "", "sru_murkwolfmini_howl", "sru_murkwolfmini_death3" };
+        case CJungle_Manager::eJungleSub::KrugMini:
+            return { "krug_mini_idle_n2ag", "", "", "" };
+        default:
+            return {};
+        }
+    }
+
+    const char* Resolve_PlayableAnimation(
+        ModelRenderer& renderer,
+        const char* primary,
+        const char* fallback)
+    {
+        if (primary && primary[0] && renderer.HasAnimationByName(primary))
+            return primary;
+        if (fallback && fallback[0] && renderer.HasAnimationByName(fallback))
+            return fallback;
+        return nullptr;
+    }
+
+    const char* Resolve_DefaultAnimationName(CJungle_Manager::eJungleSub sub)
+    {
+        return Resolve_JungleAnimations(sub).idle;
     }
 }
 
 HRESULT CJungle_Manager::Initialize(CWorld* pWorld)
 {
-    // Phase 5-A 후속: m_pWorld 재바인딩을 guard 앞으로 (Structure_Manager 와 동일 이유).
+    // Phase 5-A ?꾩냽: m_pWorld ?щ컮?몃뵫??guard ?욎쑝濡?(Structure_Manager ? ?숈씪 ?댁쑀).
     m_pWorld = pWorld;
     if (m_bInitialized) return S_OK;
     m_vecEntities.reserve(16);
@@ -98,10 +174,57 @@ HRESULT CJungle_Manager::Load_FromFile(FILE* pFile)
         {
             char msg[256];
             sprintf_s(msg, "[Jungle] spawn failed: %s\n", e.name);
-            OutputDebugStringA(msg);
         }
     }
     return S_OK;
+}
+
+void CJungle_Manager::Update(f32_t dt)
+{
+    WINTERS_PROFILE_SCOPE("Jungle::Update");
+
+    if (dt <= 0.f) return;
+
+    uint64_t animCount = 0;
+    uint64_t skippedCount = 0;
+    uint64_t budgetSkippedCount = 0;
+
+    for (auto& it : m_mapRenderers)
+    {
+        if (!it.second)
+            continue;
+
+        Apply_NetworkAnimation(it.first, *it.second, dt);
+
+        auto& visual = m_mapVisualStates[it.first];
+        const bool_t bHighPriorityAnim = visual.bAction || visual.bDead;
+        const f32_t updateInterval = bHighPriorityAnim
+            ? kJungleHighPriorityAnimUpdateInterval
+            : kJungleBaseAnimUpdateInterval;
+
+        visual.animUpdateAccumulator += dt;
+
+        if (visual.animUpdateAccumulator < updateInterval)
+        {
+            ++skippedCount;
+            continue;
+        }
+
+        if (!bHighPriorityAnim && animCount >= kJungleAnimUpdateBudget)
+        {
+            ++skippedCount;
+            ++budgetSkippedCount;
+            continue;
+        }
+
+        it.second->Update(visual.animUpdateAccumulator);
+        visual.animUpdateAccumulator = std::fmod(visual.animUpdateAccumulator, updateInterval);
+        ++animCount;
+    }
+
+    WINTERS_PROFILE_COUNT("JungleAnim::UpdateCalls", animCount);
+    WINTERS_PROFILE_COUNT("JungleAnim::Skipped", skippedCount);
+    WINTERS_PROFILE_COUNT("JungleAnim::BudgetSkipped", budgetSkippedCount);
 }
 
 void CJungle_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorld,
@@ -112,11 +235,10 @@ void CJungle_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorld,
         [&](EntityID, JungleComponent&, RenderComponent& rc, TransformComponent& xform)
         {
             if (!rc.bVisible || !rc.pRenderer) return;
-            rc.pRenderer->Update(0.f);
             rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
             rc.pRenderer->UpdateCamera(matViewProj, vCameraWorld);
             rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
-            rc.pRenderer->Render();
+            rc.pRenderer->RenderFrustumCulled(matViewProj);
         });
 }
 
@@ -144,6 +266,7 @@ bool_t CJungle_Manager::Remove_At(uint32_t iIndex)
     if (!m_pWorld || iIndex >= m_vecEntities.size()) return false;
     EntityID id = m_vecEntities[iIndex];
     m_mapRenderers.erase(id);
+    m_mapVisualStates.erase(id);
     m_pWorld->DestroyEntity(id);
     m_vecEntities.erase(m_vecEntities.begin() + iIndex);
     m_vecNames.erase(m_vecNames.begin() + iIndex);
@@ -159,6 +282,7 @@ void CJungle_Manager::Clear()
     m_vecEntities.clear();
     m_vecNames.clear();
     m_mapRenderers.clear();
+    m_mapVisualStates.clear();
     m_uAutoNumber = 0;
 }
 
@@ -196,6 +320,148 @@ void CJungle_Manager::Set_Visible(uint32_t iIndex, bool_t bVisible)
     m_pWorld->GetComponent<RenderComponent>(id).bVisible = bVisible;
 }
 
+EntityID CJungle_Manager::Find_NetworkBindCandidate(
+    eJungleSub sub,
+    const Vec3& vPos,
+    f32_t maxDistance) const
+{
+    if (!m_pWorld)
+        return NULL_ENTITY;
+
+    const f32_t maxDistSq = maxDistance * maxDistance;
+    f32_t bestDistSq = maxDistSq;
+    EntityID best = NULL_ENTITY;
+
+    for (EntityID entity : m_vecEntities)
+    {
+        if (entity == NULL_ENTITY ||
+            !m_pWorld->IsAlive(entity) ||
+            !m_pWorld->HasComponent<JungleComponent>(entity) ||
+            !m_pWorld->HasComponent<TransformComponent>(entity))
+        {
+            continue;
+        }
+
+        if (m_pWorld->HasComponent<ServerIdComponent>(entity) &&
+            m_pWorld->GetComponent<ServerIdComponent>(entity).serverEntityId != 0u)
+        {
+            continue;
+        }
+
+        const auto& jungle = m_pWorld->GetComponent<JungleComponent>(entity);
+        if (jungle.subKind != static_cast<u32_t>(sub))
+            continue;
+
+        const Vec3 pos = m_pWorld->GetComponent<TransformComponent>(entity).GetPosition();
+        const f32_t dx = pos.x - vPos.x;
+        const f32_t dz = pos.z - vPos.z;
+        const f32_t distSq = dx * dx + dz * dz;
+        if (distSq <= bestDistSq)
+        {
+            bestDistSq = distSq;
+            best = entity;
+        }
+    }
+
+    return best;
+}
+
+void CJungle_Manager::Apply_NetworkAnimation(
+    EntityID entity,
+    ModelRenderer& renderer,
+    f32_t dt)
+{
+    if (!m_pWorld || !m_pWorld->HasComponent<JungleComponent>(entity))
+        return;
+
+    auto& visual = m_mapVisualStates[entity];
+    const auto sub = static_cast<eJungleSub>(
+        m_pWorld->GetComponent<JungleComponent>(entity).subKind);
+    const JungleAnimationSet anims = Resolve_JungleAnimations(sub);
+
+    const bool_t bDeadByHealth =
+        m_pWorld->HasComponent<HealthComponent>(entity) &&
+        m_pWorld->GetComponent<HealthComponent>(entity).bIsDead;
+    const bool_t bDeadBySnapshot =
+        m_pWorld->HasComponent<ReplicatedStateComponent>(entity) &&
+        (m_pWorld->GetComponent<ReplicatedStateComponent>(entity).stateFlags &
+            kSnapshotStateDeadFlag) != 0u;
+
+    if (bDeadByHealth || bDeadBySnapshot)
+    {
+        if (!visual.bDead)
+        {
+            if (const char* pDeath = Resolve_PlayableAnimation(renderer, anims.death, nullptr))
+                renderer.PlayAnimationByNameAdvanced(pDeath, false, false, 1.f);
+            visual.bDead = true;
+            visual.bAction = false;
+        }
+        return;
+    }
+
+    visual.bDead = false;
+
+    const NetAnimationComponent* pNetAnim = nullptr;
+    if (m_pWorld->HasComponent<NetAnimationComponent>(entity))
+        pNetAnim = &m_pWorld->GetComponent<NetAnimationComponent>(entity);
+
+    const bool_t bMovingBySnapshot =
+        m_pWorld->HasComponent<ReplicatedStateComponent>(entity) &&
+        (m_pWorld->GetComponent<ReplicatedStateComponent>(entity).stateFlags &
+            kSnapshotStateMovingFlag) != 0u;
+    const bool_t bMovingByAnim =
+        pNetAnim &&
+        static_cast<eNetAnimId>(pNetAnim->animId) == eNetAnimId::Run;
+
+    if (pNetAnim &&
+        static_cast<eNetAnimId>(pNetAnim->animId) == eNetAnimId::BasicAttack &&
+        pNetAnim->actionSeq != 0u &&
+        (visual.lastActionSeq != pNetAnim->actionSeq ||
+            visual.lastActionAnimId != pNetAnim->animId))
+    {
+        visual.lastActionSeq = pNetAnim->actionSeq;
+        visual.lastActionAnimId = pNetAnim->animId;
+
+        if (const char* pAttack = Resolve_PlayableAnimation(renderer, anims.attack, nullptr))
+        {
+            renderer.PlayAnimationByNameAdvanced(pAttack, false, false, 1.f);
+            visual.actionTimer = renderer.GetAnimationDurationSecondsByName(pAttack);
+            if (visual.actionTimer <= 0.f)
+                visual.actionTimer = 0.75f;
+            visual.bAction = true;
+            visual.baseAnimId = 0;
+            return;
+        }
+    }
+
+    if (visual.bAction)
+    {
+        visual.actionTimer -= dt;
+        if (visual.actionTimer > 0.f)
+            return;
+
+        visual.bAction = false;
+        visual.baseAnimId = 0;
+    }
+
+    const eNetAnimId baseAnim = (bMovingBySnapshot || bMovingByAnim)
+        ? eNetAnimId::Run
+        : eNetAnimId::Idle;
+    const u16_t baseAnimId = static_cast<u16_t>(baseAnim);
+
+    if (visual.baseAnimId != baseAnimId)
+    {
+        const char* pBase = (baseAnim == eNetAnimId::Run)
+            ? Resolve_PlayableAnimation(renderer, anims.run, anims.idle)
+            : Resolve_PlayableAnimation(renderer, anims.idle, nullptr);
+
+        if (pBase)
+            renderer.PlayAnimationByNameAdvanced(pBase, true, false, 1.f);
+
+        visual.baseAnimId = baseAnimId;
+    }
+}
+
 const char* CJungle_Manager::ResolveModelPath(eJungleSub sub)
 {
     switch (sub)
@@ -207,6 +473,10 @@ const char* CJungle_Manager::ResolveModelPath(eJungleSub sub)
     case eJungleSub::Krug:     return PATH_KRUG;
     case eJungleSub::Gromp:    return PATH_GROMP;
     case eJungleSub::Wolf:     return PATH_WOLF;
+    case eJungleSub::Razorbeak:     return PATH_RAZORBEAK;
+    case eJungleSub::RazorbeakMini: return PATH_RAZORBEAK_MINI;
+    case eJungleSub::WolfMini:      return PATH_WOLF_MINI;
+    case eJungleSub::KrugMini:      return PATH_KRUG_MINI;
     default: return nullptr;
     }
 }
@@ -223,6 +493,10 @@ void CJungle_Manager::Make_AutoName(eJungleSub sub, char* pOutBuf, size_t capaci
     case eJungleSub::Krug:     s = "Krug";   break;
     case eJungleSub::Gromp:    s = "Gromp";  break;
     case eJungleSub::Wolf:     s = "Wolf";   break;
+    case eJungleSub::Razorbeak:     s = "Razorbeak";     break;
+    case eJungleSub::RazorbeakMini: s = "RazorbeakMini"; break;
+    case eJungleSub::WolfMini:      s = "WolfMini";      break;
+    case eJungleSub::KrugMini:      s = "KrugMini";      break;
     default: break;
     }
     sprintf_s(pOutBuf, capacity, "%s_#%u", s, m_uAutoNumber++);
@@ -237,6 +511,12 @@ EntityID CJungle_Manager::Spawn_FromEntry(const Winters::Map::JungleEntry& entry
     auto pRenderer = std::unique_ptr<ModelRenderer>(new ModelRenderer());
     if (!pRenderer->Initialize(pPath, L"Shaders/Mesh3D.hlsl"))
         return NULL_ENTITY;
+
+    const char* pDefaultAnim = Resolve_DefaultAnimationName(static_cast<eJungleSub>(entry.subKind));
+    if (pDefaultAnim && pDefaultAnim[0] && pRenderer->HasAnimationByName(pDefaultAnim))
+        pRenderer->PlayAnimationByName(pDefaultAnim, true);
+    else if (pRenderer->GetAnimationCount() > 0)
+        pRenderer->PlayAnimation(0);
 
     if (static_cast<eJungleSub>(entry.subKind) == eJungleSub::Baron)
     {
@@ -257,7 +537,7 @@ EntityID CJungle_Manager::Spawn_FromEntry(const Winters::Map::JungleEntry& entry
     jc.subKind = entry.subKind;
     jc.campId  = entry.campId;
 
-    //몹별 Hp 결정
+    //紐밸퀎 Hp 寃곗젙
     f32_t maxHp = 1500.f;
     if (static_cast<eJungleSub>(entry.subKind) == eJungleSub::Baron)
         maxHp = 8000.f;
@@ -271,6 +551,14 @@ EntityID CJungle_Manager::Spawn_FromEntry(const Winters::Map::JungleEntry& entry
     m_pWorld->AddComponent<TargetableTag>(id);
 
     const f32_t colliderRadius = Resolve_ColliderRadius(static_cast<eJungleSub>(entry.subKind));
+
+    SpatialAgentComponent spatial{};
+    spatial.kind = eSpatialKind::JungleMob;
+    spatial.team = static_cast<u8_t>(eTeam::Neutral);
+    spatial.radius = colliderRadius;
+    m_pWorld->AddComponent<SpatialAgentComponent>(id, spatial);
+    m_pWorld->AddComponent<VisibilityComponent>(id);
+
     ColliderComponent collider{};
     collider.vHalfExtents = { colliderRadius, 2.0f, colliderRadius };
     collider.vOffset = { 0.f, 1.0f, 0.f };
@@ -280,7 +568,8 @@ EntityID CJungle_Manager::Spawn_FromEntry(const Winters::Map::JungleEntry& entry
     auto& rc = m_pWorld->AddComponent<RenderComponent>(id);
     rc.pRenderer = pRenderer.get();
     rc.bVisible  = (entry.bVisible != 0);
-    rc.bAnimated = false;   // ★ 정글 몬스터 정지 상태 — 교전 시작 시 true 로 토글 (향후)
+
+    rc.bAnimated = pRenderer->HasSkeleton() && pRenderer->GetAnimationCount() > 0;
 
     //Health Bar Data Source
     HealthComponent hp;
@@ -289,6 +578,7 @@ EntityID CJungle_Manager::Spawn_FromEntry(const Winters::Map::JungleEntry& entry
     m_pWorld->AddComponent<HealthComponent>(id, hp);
 
     m_mapRenderers[id] = std::move(pRenderer);
+    m_mapVisualStates[id] = JungleVisualState{};
     m_vecEntities.push_back(id);
     m_vecNames.emplace_back(entry.name);
     return id;

@@ -21,6 +21,9 @@ public:
 	void Stop();
 
 	const vector<XMFLOAT4X4>& GetFinalBoneMatrices() const { return m_vecFinalMatrices; }
+	const vector<XMFLOAT4X4>& GetGlobalBoneMatrices() const { return m_vecGlobalMatrices; }
+	i32_t FindBoneIndex(const string& strBoneName) const;
+	bool_t TryGetBoneGlobalTransform(const string& strBoneName, XMFLOAT4X4& outMatrix) const;
 	u32_t GetBoneCount() const;
 	bool_t IsPlaying() const { return m_bPlaying; }
 
@@ -51,7 +54,9 @@ private:
 	bool_t m_bPlaying = false;
 	f32_t m_fPlaySpeed = 1.f;
 	vector<XMFLOAT4X4> m_vecLocalTransforms;
+	vector<XMFLOAT4X4> m_vecGlobalMatrices;
 	vector<XMFLOAT4X4> m_vecFinalMatrices;
+	vector<XMMATRIX> m_vecGlobalScratch;
 };
 
 NS_END

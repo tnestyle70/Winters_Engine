@@ -34,6 +34,7 @@ class CInGameRosterSpawner final
 {
 public:
     static void EnsureLocalRosterFallback(GameContext& context);
+    static eChampion ResolvePracticeBotChampion();
     static bool_t IsLocalRosterSlot(const GameContext& context, const GameRosterSlot& slot);
     static InGameRosterSpawnResult SpawnFromContext(
         InGameRosterSpawnDesc& desc,

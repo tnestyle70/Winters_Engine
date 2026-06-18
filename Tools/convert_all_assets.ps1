@@ -197,8 +197,13 @@ function Convert-Objects([string]$ObjRoot) {
     Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\Baron\baron_textured.glb")
     Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\Blue\blue_textured.glb")
     Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\Dragon\water\dragon_water_textured.glb")
+    Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\Dragon\air\dragon_air_textured.glb")
+    Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\Red\red_textured.glb")
     Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\Gromp\gromp_textured.glb")
     Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\Krug\krug_textured.glb")
+    Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\KrugMini\krugmini_textured.glb")
+    Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\Razorbeak\razorbeak_textured.glb")
+    Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\RazorbeakMini\razorbeakmini_textured.glb")
     Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\Wolf\wolf_textured.glb")
     Convert-SkinnedModel (Join-Path $ObjRoot "Jungle\WolfMini\wolfmini_textured.glb")
     Convert-Minions $ObjRoot

@@ -26,6 +26,49 @@ enum class eFxRenderType : u8_t
     ShockwaveRing,
 };
 
+enum class eFxAnchorType : u8_t
+{
+    Entity,
+    World,
+    Bone,
+    Socket,
+    Submesh,
+    TargetSegment,
+};
+
+enum class eFxAnchorFallback : u8_t
+{
+    None,
+    Entity,
+    WorldPosition,
+};
+
+enum class eFxLifecycleMode : u8_t
+{
+    Burst,
+    Timed,
+    WhileState,
+    ManualStop,
+    LoopUntilSignal,
+};
+
+struct FxAnchorDesc
+{
+    eFxAnchorType eAnchorType = eFxAnchorType::Entity;
+    eFxAnchorFallback eFallback = eFxAnchorFallback::Entity;
+    std::string strAnchorName;
+    Vec3 vAnchorOffset = { 0.f, 0.f, 0.f };
+    bool_t bInheritRotation = false;
+};
+
+struct FxLifecycleDesc
+{
+    eFxLifecycleMode eLifecycleMode = eFxLifecycleMode::Timed;
+    f32_t fStopFadeOut = 0.25f;
+    bool_t bDetachOnStop = true;
+    bool_t bKillWhenAnchorInvalid = false;
+};
+
 struct FxNodeDesc
 {
     std::string strType;
@@ -53,6 +96,8 @@ struct FxEmitterDesc
     std::string strModelPath;
 
     Vec3 vAttachOffset = { 0.f, 0.f, 0.f };
+    FxAnchorDesc anchor{};
+    FxLifecycleDesc lifecycle{};
     Vec3 vEndOffset = { 0.f, 0.f, 0.f };
     Vec3 vVelocity = { 0.f, 0.f, 0.f };
     Vec3 vScale = { 1.f, 1.f, 1.f };

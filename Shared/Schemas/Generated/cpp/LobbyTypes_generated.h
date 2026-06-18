@@ -73,11 +73,12 @@ enum class LobbyCommandKind : uint8_t {
   CancelStart = 8,
   SetEditPolicy = 9,
   SetBotLane = 10,
+  StopReplay = 11,
   MIN = None,
-  MAX = SetBotLane
+  MAX = StopReplay
 };
 
-inline const LobbyCommandKind (&EnumValuesLobbyCommandKind())[11] {
+inline const LobbyCommandKind (&EnumValuesLobbyCommandKind())[12] {
   static const LobbyCommandKind values[] = {
     LobbyCommandKind::None,
     LobbyCommandKind::JoinSlot,
@@ -89,13 +90,14 @@ inline const LobbyCommandKind (&EnumValuesLobbyCommandKind())[11] {
     LobbyCommandKind::StartGame,
     LobbyCommandKind::CancelStart,
     LobbyCommandKind::SetEditPolicy,
-    LobbyCommandKind::SetBotLane
+    LobbyCommandKind::SetBotLane,
+    LobbyCommandKind::StopReplay
   };
   return values;
 }
 
 inline const char * const *EnumNamesLobbyCommandKind() {
-  static const char * const names[12] = {
+  static const char * const names[13] = {
     "None",
     "JoinSlot",
     "LeaveSlot",
@@ -107,13 +109,14 @@ inline const char * const *EnumNamesLobbyCommandKind() {
     "CancelStart",
     "SetEditPolicy",
     "SetBotLane",
+    "StopReplay",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameLobbyCommandKind(LobbyCommandKind e) {
-  if (::flatbuffers::IsOutRange(e, LobbyCommandKind::None, LobbyCommandKind::SetBotLane)) return "";
+  if (::flatbuffers::IsOutRange(e, LobbyCommandKind::None, LobbyCommandKind::StopReplay)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesLobbyCommandKind()[index];
 }

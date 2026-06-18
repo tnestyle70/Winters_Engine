@@ -5,11 +5,12 @@
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
-#include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -26,7 +27,6 @@ namespace
     constexpr f32_t kIreliaRSpeed = 15.f;
     constexpr f32_t kIreliaRDamage = 250.f;
     constexpr f32_t kIreliaRDisarmSec = 1.5f;
-    constexpr f32_t kIreliaRHitStunSec = 0.3f;
     constexpr f32_t kIreliaRWallSlowSec = 0.5f;
     constexpr f32_t kIreliaRWallSlowMul = 0.5f;
     constexpr f32_t kIreliaRWallDurationSec = 2.5f;
@@ -100,7 +100,7 @@ namespace
         {
             const f32_t fYaw =
                 world.GetComponent<TransformComponent>(caster).GetRotation().y -
-                GetDefaultChampionVisualYawOffset(eChampion::IRELIA);
+                ChampionGameDataDB::ResolveVisualYawOffset(eChampion::IRELIA);
             return Vec3{ std::sinf(fYaw), 0.f, std::cosf(fYaw) };
         }
 
@@ -223,39 +223,6 @@ namespace
         GameplayStatus::RebuildGameplayState(world, target);
     }
 
-    void ApplyStun(CWorld& world, EntityID target, EntityID source, f32_t duration)
-    {
-        if (!IsAliveChampion(world, target))
-            return;
-
-        StunComponent stun{};
-        stun.fRemaining = duration;
-        stun.sourceEntity = source;
-        if (world.HasComponent<StunComponent>(target))
-            world.GetComponent<StunComponent>(target) = stun;
-        else
-            world.AddComponent<StunComponent>(target, stun);
-
-        GameplayStatus::RebuildGameplayState(world, target);
-    }
-
-    void ApplySlow(CWorld& world, EntityID target, EntityID source, f32_t duration, f32_t moveSpeedMul)
-    {
-        if (!IsAliveChampion(world, target))
-            return;
-
-        SlowComponent slow{};
-        slow.fRemaining = duration;
-        slow.fMoveSpeedMul = moveSpeedMul;
-        slow.sourceEntity = source;
-        if (world.HasComponent<SlowComponent>(target))
-            world.GetComponent<SlowComponent>(target) = slow;
-        else
-            world.AddComponent<SlowComponent>(target, slow);
-
-        GameplayStatus::RebuildGameplayState(world, target);
-    }
-
     void StartRWall(CWorld& world,
         const TickContext& tc,
         EntityID caster,
@@ -344,7 +311,15 @@ namespace
                         static_cast<u32_t>(eSkillSlot::R)),
                     state.rRank);
                 ApplyDisarm(world, hitTarget, caster, kIreliaRDisarmSec);
-                ApplyStun(world, hitTarget, caster, kIreliaRHitStunSec);
+                GameplayStatus::ApplySlow(
+                    world,
+                    tc,
+                    hitTarget,
+                    caster,
+                    eChampion::IRELIA,
+                    eSkillSlot::R,
+                    kIreliaRWallSlowSec,
+                    kIreliaRWallSlowMul);
 
                 EmitIreliaREffect(world,
                     caster,
@@ -395,7 +370,15 @@ namespace
                     }
 
                     TrackTarget(state.rWallTargets, state.rWallTargetCount, target);
-                    ApplySlow(world, target, caster, kIreliaRWallSlowSec, kIreliaRWallSlowMul);
+                    GameplayStatus::ApplySlow(
+                        world,
+                        tc,
+                        target,
+                        caster,
+                        eChampion::IRELIA,
+                        eSkillSlot::R,
+                        kIreliaRWallSlowSec,
+                        kIreliaRWallSlowMul);
                     ApplyDisarm(world, target, caster, kIreliaRDisarmSec);
                     EmitIreliaREffect(world,
                         caster,
@@ -526,6 +509,9 @@ namespace
 
     void OnE(GameplayHookContext& ctx)
     {
+        if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx)
+            return;
+
         CWorld& world = *ctx.pWorld;
         const GameCommand& cmd = *ctx.pCommand;
         IreliaSimComponent& state = GetIreliaState(world, ctx.casterEntity);
@@ -572,14 +558,14 @@ namespace
                     if (WintersMath::DistanceSqXZ(pos, closest) > kBeamRadius * kBeamRadius)
                         return;
 
-                    StunComponent stun{};
-                    stun.fRemaining = 0.75f;
-                    stun.sourceEntity = ctx.casterEntity;
-
-                    if (world.HasComponent<StunComponent>(target))
-                        world.GetComponent<StunComponent>(target) = stun;
-                    else
-                        world.AddComponent<StunComponent>(target, stun);
+                    GameplayStatus::ApplyStun(
+                        world,
+                        *ctx.pTickCtx,
+                        target,
+                        ctx.casterEntity,
+                        eChampion::IRELIA,
+                        eSkillSlot::E,
+                        0.75f);
 
                     EnqueuePhysicalDamage(
                         world,

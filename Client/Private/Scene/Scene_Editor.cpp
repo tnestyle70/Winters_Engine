@@ -11,10 +11,10 @@
 #include "Map/MapDataIO.h"
 #include <cmath>
 
-using namespace Winters::Map;
-
 namespace
 {
+    namespace WMap = Winters::Map;
+
     struct NavGridStageBounds
     {
         bool_t bHasPoint = false;
@@ -67,12 +67,12 @@ namespace
         {
             for (uint32_t lane = 0; lane < static_cast<uint32_t>(eMinionWay::End); ++lane)
             {
-                const eMinionTeam eTeam = static_cast<eMinionTeam>(team);
-                const eMinionWay eLane = static_cast<eMinionWay>(lane);
-                const uint32_t wpCount = CMinion_Manager::Get()->Get_WaypointCount(eTeam, eLane);
+                const eMinionTeam minionTeam = static_cast<eMinionTeam>(team);
+                const eMinionWay minionLane = static_cast<eMinionWay>(lane);
+                const uint32_t wpCount = CMinion_Manager::Get()->Get_WaypointCount(minionTeam, minionLane);
                 for (uint32_t i = 0; i < wpCount; ++i)
                 {
-                    if (const Vec3* pWP = CMinion_Manager::Get()->Get_WaypointPtr(eTeam, eLane, i))
+                    if (const Vec3* pWP = CMinion_Manager::Get()->Get_WaypointPtr(minionTeam, minionLane, i))
                         IncludeNavGridBoundsPoint(bounds, *pWP);
                 }
             }
@@ -161,6 +161,7 @@ void CScene_Editor::OnUpdate(f32_t dt)
     }
 
     Handle_MousePlacement();
+    CJungle_Manager::Get()->Update(dt);
 
     //ECS Transform Update
     if (m_pTransformSystem) 
@@ -294,10 +295,10 @@ void CScene_Editor::Render_Palette()
 
     if (m_eAddMode == eAddMode::Structure)
     {
-        static const eObjectKind kindTable[] = {
-            eObjectKind::Structure_Nexus,
-            eObjectKind::Structure_Inhibitor,
-            eObjectKind::Structure_Turret };
+        static const WMap::eObjectKind kindTable[] = {
+            WMap::eObjectKind::Structure_Nexus,
+            WMap::eObjectKind::Structure_Inhibitor,
+            WMap::eObjectKind::Structure_Turret };
         const char* kinds[] = { "Nexus", "Inhibitor", "Turret" };
         int kindIdx = 0;
         for (int i = 0; i < 3; ++i) if (kindTable[i] == m_PendingStructKind) { kindIdx = i; break; }
@@ -309,7 +310,7 @@ void CScene_Editor::Render_Palette()
             m_PendingStructTeam = (teamIdx == 0) ? Winters::Map::eTeam::Blue : Winters::Map::eTeam::Red;
 
         // Turret 선택 시에만 Tier/Lane 표시 — Nexus/Inhibitor 는 Add 시 None/Base 강제
-        if (m_PendingStructKind == eObjectKind::Structure_Turret)
+        if (m_PendingStructKind == WMap::eObjectKind::Structure_Turret)
         {
             const char* tiers[] = { "Outer", "Inner", "Inhibitor", "Nexus" };
             int tierIdx = static_cast<int>(m_PendingStructTier);
@@ -331,17 +332,34 @@ void CScene_Editor::Render_Palette()
     else if (m_eAddMode == eAddMode::Jungle)
     {
         static const CJungle_Manager::eJungleSub subTable[] = {
-            CJungle_Manager::eJungleSub::Baron,
-            CJungle_Manager::eJungleSub::Dragon,
-            CJungle_Manager::eJungleSub::BlueBuff,
+            CJungle_Manager::eJungleSub::Razorbeak,
+            CJungle_Manager::eJungleSub::RazorbeakMini,
+            CJungle_Manager::eJungleSub::Wolf,
+            CJungle_Manager::eJungleSub::WolfMini,
             CJungle_Manager::eJungleSub::RedBuff,
-            CJungle_Manager::eJungleSub::Krug,
+            CJungle_Manager::eJungleSub::BlueBuff,
             CJungle_Manager::eJungleSub::Gromp,
-            CJungle_Manager::eJungleSub::Wolf };
-        const char* subs[] = { "Baron", "Dragon", "BlueBuff", "RedBuff", "Krug", "Gromp", "Wolf" };
+            CJungle_Manager::eJungleSub::Krug,
+            CJungle_Manager::eJungleSub::KrugMini,
+            CJungle_Manager::eJungleSub::Dragon,
+            CJungle_Manager::eJungleSub::Baron };
+        const char* subs[] = {
+            "Razorbeak Big",
+            "Razorbeak Small",
+            "Wolf Big",
+            "Wolf Small",
+            "RedBuff",
+            "BlueBuff",
+            "Gromp",
+            "Krug Big",
+            "Krug Small",
+            "Dragon",
+            "Baron" };
+        constexpr int subCount = static_cast<int>(sizeof(subTable) / sizeof(subTable[0]));
         int idx = 0;
-        for (int i = 0; i < 7; ++i) if (subTable[i] == m_PendingJungleSub) { idx = i; break; }
-        if (ImGui::Combo("Sub", &idx, subs, 7)) m_PendingJungleSub = subTable[idx];
+        for (int i = 0; i < subCount; ++i) if (subTable[i] == m_PendingJungleSub) { idx = i; break; }
+        if (ImGui::Combo("Sub", &idx, subs, subCount))
+            m_PendingJungleSub = subTable[idx];
 
         int camp = static_cast<int>(m_PendingJungleCamp);
         if (ImGui::InputInt("CampId", &camp))

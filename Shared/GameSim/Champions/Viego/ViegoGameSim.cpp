@@ -17,6 +17,7 @@
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -37,6 +38,7 @@ namespace
     constexpr f32_t kViegoWDashRange = 4.f;
     constexpr f32_t kViegoDashDurationSec = 0.26f;
     constexpr f32_t kViegoWDamage = 55.f;
+    constexpr f32_t kViegoWStunDurationSec = 0.75f;
 
     constexpr f32_t kViegoEMistRadius = 6.0f;
     constexpr f32_t kViegoEMistTickSec = 0.1f;
@@ -46,6 +48,8 @@ namespace
     constexpr f32_t kViegoRRadius = 2.0f;
     constexpr f32_t kViegoRDamage = 150.f;
     constexpr f32_t kViegoRDashDurationSec = 0.18f;
+    constexpr f32_t kViegoRSlowDurationSec = 1.0f;
+    constexpr f32_t kViegoRSlowMoveSpeedMul = 0.60f;
 
     constexpr f32_t kViegoSoulLifetimeSec = 5.f;
     constexpr f32_t kViegoSoulRadius = 0.85f;
@@ -166,6 +170,36 @@ namespace
                 }));
     }
 
+    void ApplyLineStun(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID source,
+        eTeam sourceTeam,
+        const Vec3& start,
+        const Vec3& end,
+        f32_t radius)
+    {
+        const f32_t radiusSq = radius * radius;
+        world.ForEach<ChampionComponent, TransformComponent>(
+            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
+                [&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
+                {
+                    if (entity == source || champion.team == sourceTeam)
+                        return;
+                    if (WintersMath::DistanceSqPointToSegmentXZ(transform.GetPosition(), start, end) > radiusSq)
+                        return;
+
+                    GameplayStatus::ApplyStun(
+                        world,
+                        tc,
+                        entity,
+                        source,
+                        eChampion::VIEGO,
+                        eSkillSlot::W,
+                        kViegoWStunDurationSec);
+                }));
+    }
+
     void EnqueueCircleDamage(
         CWorld& world,
         EntityID source,
@@ -191,6 +225,36 @@ namespace
 
         for (EntityID target : targets)
             EnqueuePhysicalDamage(world, source, target, sourceTeam, amount, slot, rank);
+    }
+
+    void ApplyCircleSlow(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID source,
+        eTeam sourceTeam,
+        const Vec3& origin,
+        f32_t radius)
+    {
+        const f32_t radiusSq = radius * radius;
+        world.ForEach<ChampionComponent, TransformComponent>(
+            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
+                [&](EntityID target, ChampionComponent& champion, TransformComponent& transform)
+                {
+                    if (target == source || champion.team == sourceTeam)
+                        return;
+                    if (WintersMath::DistanceSqXZ(transform.GetPosition(), origin) > radiusSq)
+                        return;
+
+                    GameplayStatus::ApplySlow(
+                        world,
+                        tc,
+                        target,
+                        source,
+                        eChampion::VIEGO,
+                        eSkillSlot::R,
+                        kViegoRSlowDurationSec,
+                        kViegoRSlowMoveSpeedMul);
+                }));
     }
 
     EntityID SpawnProjectile(
@@ -255,7 +319,8 @@ namespace
 
     void OnQ(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld || !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
+        if (!ctx.pWorld || !ctx.pTickCtx ||
+            !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
             return;
 
         const Vec3 origin = ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
@@ -312,11 +377,20 @@ namespace
             static_cast<u8_t>(eSkillSlot::W),
             ctx.skillRank
         );
+        ApplyLineStun(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            ctx.casterTeam,
+            vOrigin,
+            vEnd,
+            0.75f);
     }
 
     void OnE(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld || !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
+        if (!ctx.pWorld || !ctx.pTickCtx ||
+            !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
             return;
 
         ViegoSimComponent& state = EnsureViegoState(*ctx.pWorld, ctx.casterEntity);
@@ -369,6 +443,13 @@ namespace
             kViegoRDamage,
             static_cast<u8_t>(eSkillSlot::R),
             ctx.skillRank);
+        ApplyCircleSlow(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            ctx.casterTeam,
+            end,
+            kViegoRRadius);
 
         std::cout << "[ViegoSim] R dash caster=" << ctx.casterEntity << "\n";
     }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="00. MainApp">
@@ -9,9 +9,6 @@
     </Filter>
     <Filter Include="02. GameObject">
       <UniqueIdentifier>{cf0f370b-3c43-4185-b0f9-9b2670351d00}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="98. Default">
-      <UniqueIdentifier>{F2980001-0000-0000-0000-000000000001}</UniqueIdentifier>
     </Filter>
     <Filter Include="99. Defines">
       <UniqueIdentifier>{F2990001-0000-0000-0000-000000000001}</UniqueIdentifier>
@@ -415,6 +412,9 @@
     <Filter Include="01. Scene\06. Editor\Map">
       <UniqueIdentifier>{8b31b6c3-e354-4f86-a5eb-5c1144aa27c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="12. Replay">
+      <UniqueIdentifier>{4cd0d01a-1f95-4cd2-a79d-ddb000ebed65}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\Defines.h">
@@ -693,12 +693,6 @@
     <ClInclude Include="..\Public\GameMode\LOL\LOLGameModeRuntime.h">
       <Filter>11. GameMode\00. LOL</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGameCombatInputBridge.h">
-      <Filter>01. Scene\05. InGame\01. CombatInput</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGameRenderBridge.h">
-      <Filter>01. Scene\05. InGame\02. Render</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\Network\Client\CommandSerializer.h">
       <Filter>06. Network\Client\01. CommandSerializer</Filter>
     </ClInclude>
@@ -744,31 +738,7 @@
     <ClInclude Include="..\Public\Scene\GameplayQuery.h">
       <Filter>01. Scene\05. InGame\00. GameplayQuery</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGameNetworkBridge.h">
-      <Filter>01. Scene\05. InGame\04. Network</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGameBootstrapBridge.h">
-      <Filter>01. Scene\05. InGame\05. Bootstrap</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGameChampionStateBridge.h">
-      <Filter>01. Scene\05. InGame\06. ChampionState</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGameDebugBridge.h">
-      <Filter>01. Scene\05. InGame\07. Debug</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGameLifecycleBridge.h">
-      <Filter>01. Scene\05. InGame\08. Lifecycle</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGamePlayerControlBridge.h">
-      <Filter>01. Scene\05. InGame\09. PlayerControl</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGamePlayerTransformBridge.h">
-      <Filter>01. Scene\05. InGame\10. PlayerTransform</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\Scene\InGameRosterSpawner.h">
-      <Filter>01. Scene\05. InGame\12. RosterSpawner</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Scene\InGameSkillDispatchBridge.h">
       <Filter>01. Scene\05. InGame\12. RosterSpawner</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Scene\RenderVisibilityFilter.h">
@@ -881,6 +851,12 @@
     </ClInclude>
     <ClInclude Include="..\Public\GameApp.h">
       <Filter>00. MainApp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Replay\ReplayLibrary.h">
+      <Filter>12. Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Replay\ReplayPlayer.h">
+      <Filter>12. Replay</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1127,14 +1103,8 @@
     <ClCompile Include="..\Private\Scene\GameplayQuery.cpp">
       <Filter>01. Scene\05. InGame\00. GameplayQuery</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGameCombatInputBridge.cpp">
-      <Filter>01. Scene\05. InGame\01. CombatInput</Filter>
-    </ClCompile>
     <ClCompile Include="..\Private\GameObject\FX\WfxDocument.cpp">
       <Filter>02. GameObject\02. FX\09. WFX</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGameRenderBridge.cpp">
-      <Filter>01. Scene\05. InGame\02. Render</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Network\Client\CommandSerializer.cpp">
       <Filter>06. Network\Client\01. CommandSerializer</Filter>
@@ -1178,32 +1148,8 @@
     <ClCompile Include="..\Private\GameObject\FX\FxCuePlayer.cpp">
       <Filter>02. GameObject\02. FX\04. CuePlayer</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGameNetworkBridge.cpp">
-      <Filter>01. Scene\05. InGame\04. Network</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGameBootstrapBridge.cpp">
-      <Filter>01. Scene\05. InGame\05. Bootstrap</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGameChampionStateBridge.cpp">
-      <Filter>01. Scene\05. InGame\06. ChampionState</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGameDebugBridge.cpp">
-      <Filter>01. Scene\05. InGame\07. Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGameLifecycleBridge.cpp">
-      <Filter>01. Scene\05. InGame\08. Lifecycle</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGamePlayerControlBridge.cpp">
-      <Filter>01. Scene\05. InGame\09. PlayerControl</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGamePlayerTransformBridge.cpp">
-      <Filter>01. Scene\05. InGame\10. PlayerTransform</Filter>
-    </ClCompile>
     <ClCompile Include="..\Private\Scene\InGameRosterSpawner.cpp">
       <Filter>01. Scene\05. InGame\12. RosterSpawner</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\Scene\InGameSkillDispatchBridge.cpp">
-      <Filter>01. Scene\05. InGame\13. SkillDispatch</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\GameObject\Champion\Sylas\SylasSkills.cpp">
       <Filter>02. GameObject\01. Champions\00. Champion\17. Sylas</Filter>
@@ -1349,6 +1295,12 @@
     <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp">
       <Filter>07. Shared\GameSim\Registries</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionGameData\ChampionGameDataDB.cpp">
+      <Filter>07. Shared\GameSim\Registries</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Generated\ChampionGameData.generated.cpp">
+      <Filter>07. Shared\GameSim\Registries</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Shared\GameSim\Registries\Reward\RewardRegistry.cpp">
       <Filter>07. Shared\GameSim\Registries</Filter>
     </ClCompile>
@@ -1364,10 +1316,16 @@
     <ClCompile Include="..\..\Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp">
       <Filter>07. Shared\GameSim\Systems</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\JungleAI\JungleAISystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Shared\GameSim\Systems\Buff\BuffSystem.cpp">
       <Filter>07. Shared\GameSim\Systems</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIBrain.cpp">
       <Filter>07. Shared\GameSim\Systems</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp">
@@ -1406,6 +1364,9 @@
     <ClCompile Include="..\..\Shared\GameSim\Systems\Recall\RecallSystem.cpp">
       <Filter>07. Shared\GameSim\Systems</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\Shared\GameSim\Systems\Rune\RuneSystem.cpp">
+      <Filter>07. Shared\GameSim\Systems</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp">
       <Filter>07. Shared\GameSim\Systems</Filter>
     </ClCompile>
@@ -1429,6 +1390,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\GameApp.cpp">
       <Filter>00. MainApp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Replay\ReplayLibrary.cpp">
+      <Filter>12. Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Replay\ReplayPlayer.cpp">
+      <Filter>12. Replay</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -25,10 +25,14 @@ unique_ptr<CAnimator> CAnimator::Create(CSkeleton* pSkeleton)
 	pInstance->m_pSkeleton = pSkeleton;
 	u32_t n = pSkeleton->GetBoneCount();
 	pInstance->m_vecLocalTransforms.resize(n);
+	pInstance->m_vecGlobalMatrices.resize(n);
 	pInstance->m_vecFinalMatrices.resize(n);
+	pInstance->m_vecGlobalScratch.resize(n);
 
 	for (u32_t i = 0; i < n; ++i)
 	{
+		XMStoreFloat4x4(&pInstance->m_vecLocalTransforms[i], XMMatrixIdentity());
+		XMStoreFloat4x4(&pInstance->m_vecGlobalMatrices[i], XMMatrixIdentity());
 		XMStoreFloat4x4(&pInstance->m_vecFinalMatrices[i], XMMatrixIdentity());
 	}
 
@@ -76,7 +80,11 @@ void CAnimator::Update(f32_t fDeltaTime)
 	}
 	u32_t n = m_pSkeleton->GetBoneCount();
 	m_pCurrentAnim->Evaluate(m_dCurrentTime, m_vecLocalTransforms, n, m_pSkeleton);
-	m_pSkeleton->ComputeFinalTransforms(m_vecLocalTransforms, m_vecFinalMatrices);
+	m_pSkeleton->ComputeFinalTransformsWithScratch(
+		m_vecLocalTransforms,
+		m_vecFinalMatrices,
+		m_vecGlobalScratch,
+		&m_vecGlobalMatrices);
 }
 
 void CAnimator::PlayAnimation(CAnimation* pAnim, bool_t bLoop)
@@ -106,6 +114,21 @@ void CAnimator::Stop()
 u32_t CAnimator::GetBoneCount() const
 {
 	return m_pSkeleton ? m_pSkeleton->GetBoneCount() : 0;
+}
+
+i32_t CAnimator::FindBoneIndex(const string& strBoneName) const
+{
+	return m_pSkeleton ? m_pSkeleton->FindBoneIndex(strBoneName) : -1;
+}
+
+bool_t CAnimator::TryGetBoneGlobalTransform(const string& strBoneName, XMFLOAT4X4& outMatrix) const
+{
+	const i32_t iBoneIndex = FindBoneIndex(strBoneName);
+	if (iBoneIndex < 0 || static_cast<size_t>(iBoneIndex) >= m_vecGlobalMatrices.size())
+		return false;
+
+	outMatrix = m_vecGlobalMatrices[static_cast<size_t>(iBoneIndex)];
+	return true;
 }
 
 // [Phase T-2] GetCurrentFrame / HasFramePassed 는 헤더 인라인화 (DLL export 회피).

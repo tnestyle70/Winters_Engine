@@ -10,6 +10,7 @@
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -36,6 +37,7 @@ namespace
     constexpr f32_t kYoneRDashDelaySec = 0.50f;
     constexpr f32_t kYoneRDashDurationSec = 0.16f;
     constexpr f32_t kYoneRDamage = 150.f;
+    constexpr f32_t kYoneRAirborneDurationSec = 0.75f;
 
     enum class eYoneDashKind : u8_t
     {
@@ -249,9 +251,40 @@ namespace
                 }));
     }
 
+    void ApplyLineAirborne(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eTeam casterTeam,
+        const Vec3& start,
+        const Vec3& end,
+        f32_t radius)
+    {
+        const f32_t radiusSq = radius * radius;
+        world.ForEach<ChampionComponent, TransformComponent>(
+            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
+                [&](EntityID target, ChampionComponent& champion, TransformComponent& transform)
+                {
+                    if (target == caster || champion.team == casterTeam)
+                        return;
+                    if (WintersMath::DistanceSqPointToSegmentXZ(transform.GetPosition(), start, end) > radiusSq)
+                        return;
+
+                    GameplayStatus::ApplyAirborne(
+                        world,
+                        tc,
+                        target,
+                        caster,
+                        eChampion::YONE,
+                        eSkillSlot::R,
+                        kYoneRAirborneDurationSec);
+                }));
+    }
+
     void OnQ(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld || !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
+        if (!ctx.pWorld || !ctx.pTickCtx ||
+            !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
             return;
 
         CWorld& world = *ctx.pWorld;
@@ -360,6 +393,14 @@ namespace
             kYoneRDamage,
             static_cast<u16_t>((static_cast<u32_t>(eChampion::YONE) << 8) | 4u),
             ctx.skillRank);
+        ApplyLineAirborne(
+            world,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            ctx.casterTeam,
+            origin,
+            end,
+            kYoneRRadius);
 
         std::cout << "[YoneSim] R accepted caster=" << ctx.casterEntity << "\n";
     }

@@ -4,9 +4,13 @@
 #include "WintersMath.h"
 #include "WintersAPI.h"    //WINTERS_ENGINE 매크로
 #include <memory>
+#include <vector>
 
 class CJobSystem;
 class CWorld;
+
+#pragma warning(push)
+#pragma warning(disable: 4251 4275)
 
 class WINTERS_ENGINE CTransformSystem : public ISystem   // ← 추가
 {
@@ -33,8 +37,12 @@ private:
         const Mat4& parentWorld, bool parentWorldDirty);
     //Phase 5-A  모든 TransformComponent 순화하며 m_Parnent 역추적해 각 
     //부모의 m_vecChildren 재빌드
-    static void RebuildChildrenCache(CWorld& world);
+    void RebuildChildrenCache(CWorld& world);
 
     CJobSystem* m_pJobSystem = nullptr;
+    std::vector<EntityID> m_vecRootCache{};
+    uint32_t m_uLastEntityCount = 0u;
     bool m_bChildrenCacheDirty = true; // 첫 Execute 때 빌드
 };
+
+#pragma warning(pop)

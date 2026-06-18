@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Yone/Yone_Registration.h"
+﻿#include "GameObject/Champion/Yone/Yone_Registration.h"
 #include "GameObject/Champion/Yone/Yone_Skills.h"
 #include "GameObject/ChampionDef.h"
 #include "GameObject/SkillDef.h"
@@ -126,7 +126,6 @@ namespace
             CVisualHookRegistry::Instance().Register(kYon_E_Cast, &Yone::Visual::OnCastFrame_E_Visual);
             CVisualHookRegistry::Instance().Register(kYon_R_Cast, &Yone::Visual::OnCastFrame_R_Visual);
 
-            OutputDebugStringA("[Yone] Registration complete\n");
         }
     };
 

@@ -58,7 +58,6 @@ struct CommandQueueComponent
 	f32_t fActiveRemaining = 0.f;
 
 	//Pending - Skill, BA가 active 일 때 들어온 Move Backup
-	//스킬 사용 중에 들어온 이동 커맨드를 의미하는가????
 	bool bPendingMove = false;
 	Vec3 vPendingMoveDest{ 0.f, 0.f, 0.f };
 

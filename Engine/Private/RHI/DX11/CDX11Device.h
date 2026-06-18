@@ -10,6 +10,9 @@
 #include "RHI/IRHIPipelineState.h"
 #include "RHI/IRHIRenderPass.h"
 #include "WintersTypes.h"
+#include <memory>
+
+class CDX11FrameCommandList;
 
 // ─────────────────────────────────────────────────────────────────
 //  CDX11Device  |  DirectX 11 디바이스 + 스왑체인 관리
@@ -41,8 +44,8 @@ struct DeviceDesc
 class CDX11Device : public IRHIDevice
 {
 public:
-    virtual ~CDX11Device() = default;
-    
+    ~CDX11Device() override;
+
     static unique_ptr<CDX11Device> Create(const DeviceDesc& desc);
 
     void    BeginFrame(f32_t r = 0.f, f32_t g = 1.f,
@@ -87,13 +90,41 @@ public:
                          const RHIBindGroupResource* resources,
                          u32_t resourceCount) override;
 
+    IRHICommandList* GetFrameCommandList() override;
+
+    RHIBufferHandle CreateBuffer(const RHIBufferDesc& desc,
+                                 const void* pInitialData = nullptr) override;
+    void DestroyBuffer(RHIBufferHandle handle) override;
+    void* GetBufferNativeHandle(RHIBufferHandle handle, eNativeHandleType type) override;
+
+    RHIShaderHandle CreateShader(eRHIShaderStage stage,
+                                 const void* pBytecode,
+                                 u32_t sizeBytes,
+                                 const char* debugName = nullptr) override;
+    void DestroyShader(RHIShaderHandle handle) override;
+
+    RHITextureHandle CreateTexture(const RHITextureDesc& desc,
+                                   const void* pInitialData = nullptr,
+                                   u32_t rowPitchBytes = 0) override;
+    void DestroyTexture(RHITextureHandle handle) override;
+    void* GetTextureNativeHandle(RHITextureHandle handle, eNativeHandleType type) override;
+
+    RHISamplerHandle CreateSampler(const RHISamplerDesc& desc) override;
+    void DestroySampler(RHISamplerHandle handle) override;
+
 private:
-    CDX11Device() = default;
+    friend class CDX11FrameCommandList;
+
+    struct ResourceTables;
+
+    CDX11Device();
 
     bool Initialize(const DeviceDesc& desc);
     bool    CreateDeviceAndSwapChain(const DeviceDesc& desc);
     bool    CreateRenderTarget();
     bool    CreateDepthStencil(uint32 width, uint32 height);
+    bool    CreateGpuTimingQueries();
+    void    ReadGpuTimingResults();
 
     Microsoft::WRL::ComPtr<ID3D11Device>             m_pDevice;
     Microsoft::WRL::ComPtr<ID3D11DeviceContext>      m_pContext;
@@ -107,8 +138,25 @@ private:
     uint32          m_Width     = 1280;
     uint32          m_Height    = 720;
 
+    // GPU 프레임 타임스탬프: disjoint+begin/end 쿼리를 N슬롯 링으로 두고
+    // 수 프레임 지연 후 non-blocking readback 한다 (GPU::FrameUs 카운터).
+    static constexpr uint32 kGpuTimingSlots = 4u;
+    struct GpuTimingSlot
+    {
+        Microsoft::WRL::ComPtr<ID3D11Query> pDisjoint;
+        Microsoft::WRL::ComPtr<ID3D11Query> pBegin;
+        Microsoft::WRL::ComPtr<ID3D11Query> pEnd;
+        bool bPending = false;
+    };
+    GpuTimingSlot   m_GpuTimingSlots[kGpuTimingSlots];
+    uint32          m_uGpuTimingWriteIndex = 0;
+    bool            m_bGpuTimingReady = false;
+
     CRHIResourceTable<IRHIPipelineState, RHIPipelineTag> m_PipelineTable;
     CRHIResourceTable<IRHIRenderPass, RHIRenderPassTag> m_RenderPassTable;
     CRHIResourceTable<IRHIBindGroupLayout, RHIBindGroupLayoutTag> m_BindGroupLayoutTable;
     CRHIResourceTable<IRHIBindGroup, RHIBindGroupTag> m_BindGroupTable;
+
+    std::unique_ptr<ResourceTables> m_pTables;
+    std::unique_ptr<CDX11FrameCommandList> m_pFrameCommandList;
 };

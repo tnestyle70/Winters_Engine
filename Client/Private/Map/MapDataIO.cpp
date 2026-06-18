@@ -7,10 +7,10 @@
 #include <cstdio>
 #include <string>
 
-using namespace Winters::Map;
-
 namespace
 {
+    namespace WMap = Winters::Map;
+
     bool FileExistsFile(const wchar_t* path)
     {
         const DWORD attr = GetFileAttributesW(path);
@@ -92,14 +92,13 @@ HRESULT CMapDataIO::Save_Stage(const wchar_t* pAbsPath)
     {
         char msg[MAX_PATH + 64];
         sprintf_s(msg, "[MapDataIO::Save_Stage] fopen failed: %ws\n", pAbsPath);
-        OutputDebugStringA(msg);
         return E_FAIL;
     }
 
-    StageHeader header{};
-    header.magic   = STAGE_MAGIC;
-    header.version = STAGE_VERSION;
-    fwrite(&header, sizeof(StageHeader), 1, pFile);
+    WMap::StageHeader header{};
+    header.magic   = WMap::STAGE_MAGIC;
+    header.version = WMap::STAGE_VERSION;
+    fwrite(&header, sizeof(WMap::StageHeader), 1, pFile);
 
     if (FAILED(CStructure_Manager::Get()->Save_ToFile(pFile)))       { fclose(pFile); return E_FAIL; }
     if (FAILED(CJungle_Manager::Get()->Save_ToFile(pFile)))          { fclose(pFile); return E_FAIL; }
@@ -118,7 +117,6 @@ HRESULT CMapDataIO::Save_Stage(const wchar_t* pAbsPath)
         CJungle_Manager::Get()->Get_Count(),
         wpTotal,
         pAbsPath);
-    OutputDebugStringA(ok);
     return S_OK;
 }
 
@@ -131,30 +129,26 @@ HRESULT CMapDataIO::Load_Stage(const wchar_t* pAbsPath)
     {
         char msg[MAX_PATH + 64];
         sprintf_s(msg, "[MapDataIO::Load_Stage] file not found: %ws\n", pAbsPath);
-        OutputDebugStringA(msg);
         return E_FAIL;
     }
 
-    StageHeader header{};
-    if (fread(&header, sizeof(StageHeader), 1, pFile) != 1)
+    WMap::StageHeader header{};
+    if (fread(&header, sizeof(WMap::StageHeader), 1, pFile) != 1)
     {
         fclose(pFile);
-        OutputDebugStringA("[MapDataIO] header read failed\n");
         return E_FAIL;
     }
-    if (header.magic != STAGE_MAGIC)
+    if (header.magic != WMap::STAGE_MAGIC)
     {
         fclose(pFile);
         char m[128]; sprintf_s(m, "[MapDataIO] magic mismatch: 0x%08X\n", header.magic);
-        OutputDebugStringA(m);
         return E_FAIL;
     }
-    if (header.version < STAGE_VERSION_MIN_COMPAT || header.version > STAGE_VERSION)
+    if (header.version < WMap::STAGE_VERSION_MIN_COMPAT || header.version > WMap::STAGE_VERSION)
     {
         fclose(pFile);
         char m[128]; sprintf_s(m, "[MapDataIO] version out of range: %u (min=%u max=%u)\n",
-            header.version, STAGE_VERSION_MIN_COMPAT, STAGE_VERSION);
-        OutputDebugStringA(m);
+            header.version, WMap::STAGE_VERSION_MIN_COMPAT, WMap::STAGE_VERSION);
         return E_FAIL;
     }
 
@@ -167,7 +161,7 @@ HRESULT CMapDataIO::Load_Stage(const wchar_t* pAbsPath)
     }
     else
     {
-        // v3 하위호환 — 저장된 WP 없음 → 기본값 부트스트랩
+        // v3 ?섏쐞?명솚 ????λ맂 WP ?놁쓬 ??湲곕낯媛?遺?몄뒪?몃옪
         CMinion_Manager::Get()->LoadDefaults();
     }
 
@@ -185,7 +179,6 @@ HRESULT CMapDataIO::Load_Stage(const wchar_t* pAbsPath)
         CJungle_Manager::Get()->Get_Count(),
         wpTotal,
         pAbsPath);
-    OutputDebugStringA(ok);
     return S_OK;
 }
 

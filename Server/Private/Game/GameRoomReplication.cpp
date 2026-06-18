@@ -10,7 +10,11 @@
 #include "Shared/GameSim/Systems/ReplicatedEventSerializer/ReplicatedEventSerializer.h"
 #include "Shared/Network/PacketEnvelope.h"
 
+#include <Windows.h>
+
 #include <functional>
+#include <iostream>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -22,17 +26,42 @@ void CGameRoom::FinalizeReplayRecorder()
 
     m_bReplayFinalized = true;
     if (m_pReplayRecorder->IsEmpty())
+    {
+        const char* msg = "[Replay] skip save: no records\n";
+        OutputDebugStringA(msg);
+        std::cout << msg;
         return;
+    }
 
     std::string error;
     const wstring_t path = m_pReplayRecorder->MakeDefaultPath();
-    (void)m_pReplayRecorder->SaveToFile(path, error);
+    if (m_pReplayRecorder->SaveToFile(path, error))
+    {
+        std::wstringstream ss;
+        ss << L"[Replay] saved " << path
+            << L" records=" << m_pReplayRecorder->GetRecordCount()
+            << L" snapshots=" << m_pReplayRecorder->GetSnapshotCount()
+            << L" events=" << m_pReplayRecorder->GetEventCount()
+            << L"\n";
+
+        const wstring_t msg = ss.str();
+        OutputDebugStringW(msg.c_str());
+        std::wcout << msg;
+        return;
+    }
+
+    const std::string msg = "[Replay] save failed: " + error + "\n";
+    OutputDebugStringA(msg.c_str());
+    std::cerr << msg;
 }
 
 void CGameRoom::BroadcastEventPayload(const u8_t* payload, u32_t payloadSize, u32_t sequence)
 {
     if (!payload || payloadSize == 0)
         return;
+
+    if (m_pReplayRecorder && !m_bReplayFinalized)
+        m_pReplayRecorder->RecordEvent(sequence, payload, payloadSize);
 
     for (u32_t sid : m_sessionIds)
     {
@@ -141,6 +170,22 @@ void CGameRoom::Phase_BroadcastEvents(TickContext& tc)
 
 void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
 {
+    if (m_pReplayRecorder && !m_bReplayFinalized && m_pSnapBuilder)
+    {
+        const auto replaySnapshot = m_pSnapBuilder->Build(
+            m_world, m_entityMap, tc.tickIndex,
+            ResolveServerGameTimeMs(tc.tickIndex),
+            m_rng.GetState(), 0u, NULL_NET_ENTITY);
+
+        if (replaySnapshot.size() > 0)
+        {
+            m_pReplayRecorder->RecordSnapshot(
+                tc.tickIndex,
+                replaySnapshot.data(),
+                static_cast<u32_t>(replaySnapshot.size()));
+        }
+    }
+
     for (u32_t sid : m_sessionIds)
     {
         auto pSession = CSession_Manager::Get()->Find(sid);

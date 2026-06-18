@@ -2,7 +2,7 @@
 #include "WintersTypes.h"
 
 constexpr uint32_t PROFILER_MAX_EVENTS_PER_FRAME = 4096;
-constexpr uint32_t PROFILER_MAX_COUNTERS_PER_FRAME = 32;
+constexpr uint32_t PROFILER_MAX_COUNTERS_PER_FRAME = 128;
 constexpr uint32_t PROFILER_MAX_SCOPE_STATS_PER_FRAME = 128;
 constexpr uint32_t PROFILER_MAX_TREE_EVENTS_PER_FRAME = 256;
 

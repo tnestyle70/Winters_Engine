@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Kalista/Kalista_Skills.h"
+﻿#include "GameObject/Champion/Kalista/Kalista_Skills.h"
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/SkillRegistry.h"
@@ -167,7 +167,6 @@ namespace
                     DispatchKalistaVisualHook(ctx, &Kalista::OnCastAccepted_E);
                 });
 
-            OutputDebugStringA("[Kalista] Registration complete\n");
         }
     };
 

@@ -12,7 +12,7 @@ class CWorld;
 //Composition으로  I/O 없는 복제 구현 
 class WINTERS_ENGINE CEntityBlueprint
 {
-public://이 Installer의 역할이 뭐임? 문법도 뭐지??
+public:
 	using Installer = std::function<void(CWorld&, EntityID)>;
 	using ArgsInstaller = std::function<void(CWorld&, EntityID, const void*)>;
 	

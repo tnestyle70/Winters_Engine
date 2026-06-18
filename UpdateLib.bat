@@ -1,6 +1,6 @@
 @echo off
 REM =============================================================
-REM  UpdateLib.bat  |  Engine -> EngineSDK + Client bin deploy
+REM  UpdateLib.bat  |  Engine -> EngineSDK deploy
 REM
 REM  ASCII-only comments (avoids CP949/UTF-8 cmd.exe encoding issues).
 REM  %~dp0 makes the script work from any working directory.
@@ -23,9 +23,10 @@ if "%WINTERS_SDK_PURGE%"=="1" (
     if exist "%ROOT%\EngineSDK\inc\" rd /S /Q "%ROOT%\EngineSDK\inc\"
 )
 if not exist "%ROOT%\EngineSDK\inc\" mkdir "%ROOT%\EngineSDK\inc\"
-if not exist "%ROOT%\EngineSDK\lib\" mkdir "%ROOT%\EngineSDK\lib\"
-if not exist "%ROOT%\Client\Bin\Debug\"   mkdir "%ROOT%\Client\Bin\Debug\"
-if not exist "%ROOT%\Client\Bin\Release\" mkdir "%ROOT%\Client\Bin\Release\"
+if not exist "%ROOT%\EngineSDK\lib\Debug\" mkdir "%ROOT%\EngineSDK\lib\Debug\"
+if not exist "%ROOT%\EngineSDK\lib\Release\" mkdir "%ROOT%\EngineSDK\lib\Release\"
+if not exist "%ROOT%\EngineSDK\bin\Debug\" mkdir "%ROOT%\EngineSDK\bin\Debug\"
+if not exist "%ROOT%\EngineSDK\bin\Release\" mkdir "%ROOT%\EngineSDK\bin\Release\"
 
 REM -- Engine public API headers (Include root, currently no subdirs) --
 xcopy /Y /S /I "%ROOT%\Engine\Include\*.h" "%ROOT%\EngineSDK\inc\" >nul
@@ -43,44 +44,49 @@ if exist "%ROOT%\Engine\External\imgui\imgui.h" (
     xcopy /Y /D "%ROOT%\Engine\External\imgui\imconfig.h"  "%ROOT%\EngineSDK\inc\"
 )
 
-REM -- Engine build artifacts .lib -> EngineSDK/lib (Debug/Release) --
+REM -- Engine build artifacts -> EngineSDK/lib and EngineSDK/bin (Debug/Release) --
+if exist "%ROOT%\EngineSDK\lib\WintersEngine.lib" (
+    del /Q "%ROOT%\EngineSDK\lib\WintersEngine.lib"
+)
 if exist "%ROOT%\Engine\Bin\Debug\WintersEngine.lib" (
-    xcopy /Y /D "%ROOT%\Engine\Bin\Debug\WintersEngine.lib" "%ROOT%\EngineSDK\lib\"
+    xcopy /Y /D "%ROOT%\Engine\Bin\Debug\WintersEngine.lib" "%ROOT%\EngineSDK\lib\Debug\"
 )
 if exist "%ROOT%\Engine\Bin\Release\WintersEngine.lib" (
-    xcopy /Y /D "%ROOT%\Engine\Bin\Release\WintersEngine.lib" "%ROOT%\EngineSDK\lib\"
+    xcopy /Y /D "%ROOT%\Engine\Bin\Release\WintersEngine.lib" "%ROOT%\EngineSDK\lib\Release\"
 )
-
-REM -- Engine DLL + PDB -> Client output dirs (Debug/Release) --
 if exist "%ROOT%\Engine\Bin\Debug\WintersEngine.dll" (
-    xcopy /Y /D "%ROOT%\Engine\Bin\Debug\WintersEngine.dll" "%ROOT%\Client\Bin\Debug\"
-    xcopy /Y /D "%ROOT%\Engine\Bin\Debug\WintersEngine.pdb" "%ROOT%\Client\Bin\Debug\"
+    xcopy /Y /D "%ROOT%\Engine\Bin\Debug\WintersEngine.dll" "%ROOT%\EngineSDK\bin\Debug\"
+)
+if exist "%ROOT%\Engine\Bin\Debug\WintersEngine.pdb" (
+    xcopy /Y /D "%ROOT%\Engine\Bin\Debug\WintersEngine.pdb" "%ROOT%\EngineSDK\bin\Debug\"
 )
 if exist "%ROOT%\Engine\Bin\Release\WintersEngine.dll" (
-    xcopy /Y /D "%ROOT%\Engine\Bin\Release\WintersEngine.dll" "%ROOT%\Client\Bin\Release\"
-    xcopy /Y /D "%ROOT%\Engine\Bin\Release\WintersEngine.pdb" "%ROOT%\Client\Bin\Release\"
+    xcopy /Y /D "%ROOT%\Engine\Bin\Release\WintersEngine.dll" "%ROOT%\EngineSDK\bin\Release\"
+)
+if exist "%ROOT%\Engine\Bin\Release\WintersEngine.pdb" (
+    xcopy /Y /D "%ROOT%\Engine\Bin\Release\WintersEngine.pdb" "%ROOT%\EngineSDK\bin\Release\"
 )
 
-REM -- ThirdPartyLib runtime DLLs -> Client output dirs --
+REM -- ThirdPartyLib runtime DLLs -> EngineSDK/bin --
 REM    Assimp Debug: assimp + transitives (poly2tri, minizip, zlibd1, kubazip, pugixml)
 REM    Assimp Release: assimp + transitives (poly2tri, minizip, zlib1, kubazip, pugixml)
 REM    DirectXTK Debug/Release: DirectXTK.dll
 if exist "%ROOT%\Engine\ThirdPartyLib\Assimp\Bin\Debug\" (
-    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\Assimp\Bin\Debug\*.dll" "%ROOT%\Client\Bin\Debug\"
+    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\Assimp\Bin\Debug\*.dll" "%ROOT%\EngineSDK\bin\Debug\"
 )
 if exist "%ROOT%\Engine\ThirdPartyLib\Assimp\Bin\Release\" (
-    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\Assimp\Bin\Release\*.dll" "%ROOT%\Client\Bin\Release\"
+    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\Assimp\Bin\Release\*.dll" "%ROOT%\EngineSDK\bin\Release\"
 )
 if exist "%ROOT%\Engine\ThirdPartyLib\DirectXTK\Bin\Debug\" (
-    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\DirectXTK\Bin\Debug\*.dll" "%ROOT%\Client\Bin\Debug\"
+    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\DirectXTK\Bin\Debug\*.dll" "%ROOT%\EngineSDK\bin\Debug\"
 )
 if exist "%ROOT%\Engine\ThirdPartyLib\DirectXTK\Bin\Release\" (
-    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\DirectXTK\Bin\Release\*.dll" "%ROOT%\Client\Bin\Release\"
+    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\DirectXTK\Bin\Release\*.dll" "%ROOT%\EngineSDK\bin\Release\"
 )
 REM    FMOD: single DLL (no Debug/Release split - fmod.dll used for both)
 if exist "%ROOT%\Engine\ThirdPartyLib\FMOD\Bin\fmod.dll" (
-    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\FMOD\Bin\fmod.dll" "%ROOT%\Client\Bin\Debug\"
-    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\FMOD\Bin\fmod.dll" "%ROOT%\Client\Bin\Release\"
+    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\FMOD\Bin\fmod.dll" "%ROOT%\EngineSDK\bin\Debug\"
+    xcopy /Y /D "%ROOT%\Engine\ThirdPartyLib\FMOD\Bin\fmod.dll" "%ROOT%\EngineSDK\bin\Release\"
 )
 
 endlocal

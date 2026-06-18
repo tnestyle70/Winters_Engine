@@ -233,12 +233,6 @@
     <Filter Include="02. RHI\01. DX11">
       <UniqueIdentifier>{65e00c88-0a68-4e30-aed7-cd35c6200663}</UniqueIdentifier>
     </Filter>
-    <Filter Include="02. RHI\02. Texture">
-      <UniqueIdentifier>{2d89cc0b-25c6-4b91-89e5-24a06c1d00c6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="02. RHI\03. Geometry">
-      <UniqueIdentifier>{90605fae-3d86-4f3b-b41c-d85a01fd94be}</UniqueIdentifier>
-    </Filter>
     <Filter Include="02. RHI\01. DX11\01. Pipeline">
       <UniqueIdentifier>{F1100002-0000-0000-0000-000000000002}</UniqueIdentifier>
     </Filter>
@@ -364,6 +358,15 @@
     </Filter>
     <Filter Include="02. RHI\01. DX11\04. StateCache">
       <UniqueIdentifier>{00a0bd5d-e4e0-4ab3-9b43-fe9db56aced9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\03. Texture">
+      <UniqueIdentifier>{2d89cc0b-25c6-4b91-89e5-24a06c1d00c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\04. Geometry">
+      <UniqueIdentifier>{90605fae-3d86-4f3b-b41c-d85a01fd94be}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. RHI\02. DX12">
+      <UniqueIdentifier>{5b05cabc-747c-48f4-8506-b40fe7cd98ca}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <!-- ── 공개 API 헤더 → Include 필터 ────────────────────── -->
@@ -733,14 +736,8 @@
     <ClInclude Include="..\Public\ECS\Systems\EntityBlueprintRegistry.h">
       <Filter>05. ECS\03. Systems\02. Entity</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\ECS\Systems\GameplayCollisionSystem.h">
-      <Filter>05. ECS\03. Systems\03. Collision</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\ECS\Systems\MinionAISystem.h">
       <Filter>05. ECS\03. Systems\01. Minion\00. AI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\ECS\Systems\MinionSeparationSystem.h">
-      <Filter>05. ECS\03. Systems\01. Minion\02. Separation</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\Systems\MinionPerformanceSystem.h">
       <Filter>05. ECS\03. Systems\01. Minion\01. Performance</Filter>
@@ -851,16 +848,22 @@
       <Filter>02. RHI\00. Interface</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\RHI\RHITextureLoader.h">
-      <Filter>02. RHI\02. Texture</Filter>
+      <Filter>02. RHI\03. Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\RHI\RHIShaderCompiler.h">
+      <Filter>02. RHI\00. Interface</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\RHI\Geometry\CubeGeometry.h">
-      <Filter>02. RHI\03. Geometry</Filter>
+      <Filter>02. RHI\04. Geometry</Filter>
     </ClInclude>
     <ClInclude Include="..\Private\RHI\DX11\BlendStateCache.h">
       <Filter>02. RHI\01. DX11\04. StateCache</Filter>
     </ClInclude>
     <ClInclude Include="..\Private\RHI\DX11\SamplerStateCache.h">
       <Filter>02. RHI\01. DX11\04. StateCache</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\RHI\DX12\DX12Device.h">
+      <Filter>02. RHI\02. DX12</Filter>
     </ClInclude>
   </ItemGroup>
   <!-- ── 소스 파일 → 기능별 필터 ──────────────────────── -->
@@ -1141,6 +1144,9 @@
     <ClCompile Include="..\Private\Core\Profiler\CPUProfiler.cpp">
       <Filter>00. Core\06. Profiler\00. CPU</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Core\Profiler\TracyClientImpl.cpp">
+      <Filter>00. Core\06. Profiler\00. CPU</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Core\WintersPCH.cpp">
       <Filter>00. Core\05. PCH</Filter>
     </ClCompile>
@@ -1192,14 +1198,8 @@
     <ClCompile Include="..\Private\ECS\Systems\EntityBlueprintRegistry.cpp">
       <Filter>05. ECS\03. Systems\02. Entity</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\ECS\Systems\GameplayCollisionSystem.cpp">
-      <Filter>05. ECS\03. Systems\03. Collision</Filter>
-    </ClCompile>
     <ClCompile Include="..\Private\ECS\Systems\MinionAISystem.cpp">
       <Filter>05. ECS\03. Systems\01. Minion\00. AI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\ECS\Systems\MinionSeparationSystem.cpp">
-      <Filter>05. ECS\03. Systems\01. Minion\02. Separation</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\ECS\Systems\MinionPerformanceSystem.cpp">
       <Filter>05. ECS\03. Systems\01. Minion\01. Performance</Filter>
@@ -1256,13 +1256,19 @@
       <Filter>00. Core\06. Profiler</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\RHI\RHITextureLoader.cpp">
-      <Filter>02. RHI\02. Texture</Filter>
+      <Filter>02. RHI\03. Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\RHI\RHIShaderCompiler.cpp">
+      <Filter>02. RHI\00. Interface</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\RHI\DX11\BlendStateCache.cpp">
       <Filter>02. RHI\01. DX11\04. StateCache</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\RHI\DX11\SamplerStateCache.cpp">
       <Filter>02. RHI\01. DX11\04. StateCache</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\RHI\DX12\DX12Device.cpp">
+      <Filter>02. RHI\02. DX12</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

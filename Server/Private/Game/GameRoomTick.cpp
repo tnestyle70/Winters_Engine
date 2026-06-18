@@ -7,9 +7,11 @@
 #include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
 #include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
 #include "Shared/GameSim/Champions/Jax/JaxGameSim.h"
+#include "Shared/GameSim/Champions/Kalista/KalistaGameSim.h"
 #include "Shared/GameSim/Champions/Kindred/KindredGameSim.h"
 #include "Shared/GameSim/Champions/LeeSin/LeeSinGameSim.h"
 #include "Shared/GameSim/Champions/MasterYi/MasterYiGameSim.h"
+#include "Shared/GameSim/Champions/Riven/RivenGameSim.h"
 #include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
 #include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
@@ -22,15 +24,15 @@
 #include "Shared/GameSim/Systems/Combat/CombatActionSystem.h"
 #include "Shared/GameSim/Systems/Damage/DamageQueueSystem.h"
 #include "Shared/GameSim/Systems/Death/DeathSystem.h"
+#include "Shared/GameSim/Systems/JungleAI/JungleAISystem.h"
 #include "Shared/GameSim/Systems/Move/MoveSystem.h"
 #include "Shared/GameSim/Systems/Recall/RecallSystem.h"
+#include "Shared/GameSim/Systems/Rune/RuneSystem.h"
 #include "Shared/GameSim/Systems/SkillCooldown/SkillCooldownSystem.h"
 #include "Shared/GameSim/Systems/SpellbookFormOverride/SpellbookFormOverrideSystem.h"
 #include "Shared/GameSim/Systems/Stat/StatSystem.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 #include "Shared/GameSim/Systems/WaypointPatrol/WaypointPatrolSystem.h"
-
-#include "ECS/Systems/GameplayCollisionSystem.h"
 
 #include <chrono>
 #include <mutex>
@@ -91,6 +93,7 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	GameplayStatus::TickStatusEffects(m_world, tc);
 	CSpellbookFormOverrideSystem::Execute(m_world, tc);
 	CAreaAuraSystem::Execute(m_world, tc);
+	CRuneSystem::Execute(m_world, tc);
 	CStatSystem::Execute(m_world);
 	CBuffSystem::Execute(m_world, tc);
 	CSkillCooldownSystem::Execute(m_world, tc);
@@ -98,6 +101,7 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	CWaypointPatrolSystem::Execute(m_world, tc);
 	CCombatActionSystem::Execute(m_world, tc);
 	CMoveSystem::Execute(m_world, tc);
+	CJungleAISystem::Execute(m_world, tc, m_pendingExecCommands);
 	CAttackChaseSystem::Execute(m_world, tc, m_pendingExecCommands);
 	Phase_ExecuteCommands(tc);
 	AnnieGameSim::Tick(m_world, tc);
@@ -105,9 +109,11 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	FioraGameSim::Tick(m_world, tc);
 	IreliaGameSim::Tick(m_world, tc);
 	JaxGameSim::Tick(m_world, tc);
+	KalistaGameSim::Tick(m_world, tc);
 	LeeSinGameSim::Tick(m_world, tc);
 	KindredGameSim::Tick(m_world, tc);
 	MasterYiGameSim::Tick(m_world, tc);
+	RivenGameSim::Tick(m_world, tc);
 	SylasGameSim::Tick(m_world, tc);
 	ViegoGameSim::Tick(m_world, tc);
 	YoneGameSim::Tick(m_world, tc);
@@ -116,8 +122,6 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	Phase_ServerMinionWave(tc);
 	Phase_ServerMinionAI(tc);
 	Phase_ServerMinionDepenetration(tc);
-	if (m_pGameplayCollision)
-		m_pGameplayCollision->Execute(m_world, tc.fDt);
 	Phase_ServerTurretAI(tc);
 	Phase_ServerProjectiles(tc);
 	CDamageQueueSystem::Execute(m_world, tc);

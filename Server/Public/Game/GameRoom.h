@@ -33,7 +33,6 @@ namespace Engine
 {
     class CSpatialHashSystem;
     class CTurretAISystem;
-    class CGameplayCollisionSystem;
     class CMapSurfaceSampler;
     class CNavGrid;
 }
@@ -51,6 +50,7 @@ struct PendingCommand
     GameCommandWire wire{};
     u64_t acceptedTick = 0;
     u64_t recvTimeMs = 0;
+    u64_t clientTimestampMs = 0;
 };
 
 enum class eRoomPhase : u8_t
@@ -89,7 +89,7 @@ public:
 
     void OnCommandBatch(u32_t sessionId, const Shared::Schema::CommandBatch* batch);
     void EnqueueCommand(u32_t sessionId, const GameCommandWire& wire,
-        u64_t acceptedTick, u64_t recvTimeMs);
+        u64_t acceptedTick, u64_t recvTimeMs, u64_t clientTimestampMs);
     void OnLobbyCommand(u32_t sessionId, const Shared::Schema::LobbyCommand* command);
 
     EntityID OnSessionJoin(u32_t sessionId);
@@ -225,6 +225,7 @@ private:
     bool TryStartGame(u32_t sessionId);
 
     bool TrySetReady(u32_t sessionId, bool_t bReady);
+    bool TryStopReplay(u32_t sessionId);
     bool AreAllActiveHumanSlotsReady() const;
     void BeginInGameLocked(u32_t sessionId);
 
@@ -259,7 +260,6 @@ private:
 
     std::unique_ptr<Engine::CSpatialHashSystem> m_pSpatialSystem;
     std::unique_ptr<Engine::CTurretAISystem> m_pTurretAI;
-    std::unique_ptr<Engine::CGameplayCollisionSystem> m_pGameplayCollision;
     std::unique_ptr<Engine::CMapSurfaceSampler> m_pMapSurfaceSampler;
     std::unique_ptr<Engine::CNavGrid> m_pNavGrid;
     std::unique_ptr<Engine::CNavGrid> m_pPathNavGrid;

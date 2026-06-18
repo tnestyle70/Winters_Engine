@@ -73,13 +73,11 @@ bool_t CGameModuleRegistry::Activate(eGameProduct product, const GameLaunchConfi
 	IGameModule* pModule = Find(product);
 	if (!pModule)
 	{
-		OutputDebugStringA("[GameModuleRegistry] Module not found.\n");
 		return false;
 	}
 
 	if (!pModule->IsAvailable())
 	{
-		OutputDebugStringA("[GameModuleRegistry] Module is not available.\n");
 		return false;
 	}
 

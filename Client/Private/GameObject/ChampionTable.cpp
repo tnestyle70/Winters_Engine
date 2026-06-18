@@ -39,10 +39,10 @@ static const ChampionDef s_ChampionTable[] =
       {
           L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_tx_cm.png",
           L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_chain_lock_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_chain_lock_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_chain_lock_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_chain_lock_tx_cm.png"
+          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png",
+          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png",
+          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png",
+          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png"
       },
       { -27.f, 1.f, 6.f },
       0.01f,
@@ -54,12 +54,12 @@ static const ChampionDef s_ChampionTable[] =
       L"Shaders/Mesh3D.hlsl",
       L"Client/Bin/Resource/Texture/Character/Viego/viego_base_body_tx_cm.png",
       {
+          nullptr,
+          nullptr,
+          nullptr,
           L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Viego/viego_base_wraith_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Viego/viego_base_body_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Viego/viego_base_wraith_tx_cm.png",
           L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png"
+          L"Client/Bin/Resource/Texture/Character/Viego/viego_base_wraith_tx_cm.png"
       },
       { -30.f, 1.f, 6.f },
       0.01f,

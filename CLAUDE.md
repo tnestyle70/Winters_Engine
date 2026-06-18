@@ -5,7 +5,14 @@ This file is for LLMs, not a project encyclopedia, changelog, or code map. Every
 ## Read Order
 1. Read this file before coding.
 2. Read `AGENTS.md` for cross-agent behavior; keep the behavioral core in sync.
-3. Read deeper project docs only when the task actually touches that domain.
+3. Read `.claude/gotchas.md` before starting changes so recurring mistakes are in scope.
+4. Read `.md/architecture/WINTERS_CODEBASE_COMPASS.md` when work touches architecture boundaries, LoL DX11, Client/Engine/Shared dependencies, RHI/UI/data pipelines, Elden client/editor direction, collaboration structure, or an unfamiliar module.
+5. Read deeper project docs only when the task actually touches that domain.
+
+## Codebase Compass
+- The active architecture compass is `.md/architecture/WINTERS_CODEBASE_COMPASS.md`.
+- Keep LoL DX11 client direction, Client/Engine/Shared dependency rules, collaboration conventions, and Elden client/editor direction there instead of expanding this file into project inventory.
+- When a cross-cutting architecture rule changes, update the compass. When a repeated mistake appears, update `.claude/gotchas.md`.
 
 ## Document Policy
 - Record behavior rules, team decisions, recurring gotchas, and pointers to deeper docs.

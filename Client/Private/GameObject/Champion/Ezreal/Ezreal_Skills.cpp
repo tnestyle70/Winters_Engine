@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Ezreal/Ezreal_Skills.h"
+﻿#include "GameObject/Champion/Ezreal/Ezreal_Skills.h"
 #include "GameObject/Champion/Ezreal/Ezreal_Components.h"
 #include "GameObject/Champion/Ezreal/Ezreal_FxPresets.h"
 #include "GameObject/Champion/Yasuo/PendingHitSystem.h"
@@ -130,7 +130,6 @@ namespace Ezreal
 			char dbg[160]{};
 			sprintf_s(dbg, "[Ezreal E TP] from=(%.1f,%.1f,%.1f) to=(%.1f,%.1f,%.1f)\n",
 				origin.x, origin.y, origin.z, dest.x, dest.y, dest.z);
-			OutputDebugStringA(dbg);
 		}
 
 		void SpawnBasicAttackVisual(CWorld& world, EntityID caster,

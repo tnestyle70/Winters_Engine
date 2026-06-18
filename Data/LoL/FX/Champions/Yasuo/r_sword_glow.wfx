@@ -15,7 +15,7 @@
       "fade_out": 0.26,
       "scale": [0.015, 0.015, 0.015],
       "world_yaw_spin_speed": 8.000,
-      "color": [0.95, 0.78, 0.55, 0.92],
+      "color": [0.55, 0.75, 0.95, 0.88],
       "attach_offset": [0.0, 1.48, 0.0]
     },
     {
@@ -30,7 +30,7 @@
       "fade_out": 0.28,
       "width": 1.35,
       "height": 2.55,
-      "color": [0.92, 0.82, 0.62, 0.72],
+      "color": [0.62, 0.80, 0.96, 0.70],
       "attach_offset": [0.0, 1.45, 0.15],
       "billboard": true
     },
@@ -46,7 +46,7 @@
       "fade_out": 0.24,
       "width": 2.35,
       "height": 2.35,
-      "color": [0.95, 0.82, 0.62, 0.76],
+      "color": [0.66, 0.82, 0.96, 0.72],
       "attach_offset": [0.0, 1.40, 0.0],
       "billboard": true
     }

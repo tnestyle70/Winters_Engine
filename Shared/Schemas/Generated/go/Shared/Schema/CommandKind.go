@@ -17,6 +17,7 @@ const (
 	CommandKindRecall         CommandKind = 7
 	CommandKindRecallCancel   CommandKind = 8
 	CommandKindAIDebugControl CommandKind = 9
+	CommandKindFlash          CommandKind = 10
 )
 
 var EnumNamesCommandKind = map[CommandKind]string{
@@ -30,6 +31,7 @@ var EnumNamesCommandKind = map[CommandKind]string{
 	CommandKindRecall:         "Recall",
 	CommandKindRecallCancel:   "RecallCancel",
 	CommandKindAIDebugControl: "AIDebugControl",
+	CommandKindFlash:          "Flash",
 }
 
 var EnumValuesCommandKind = map[string]CommandKind{
@@ -43,6 +45,7 @@ var EnumValuesCommandKind = map[string]CommandKind{
 	"Recall":         CommandKindRecall,
 	"RecallCancel":   CommandKindRecallCancel,
 	"AIDebugControl": CommandKindAIDebugControl,
+	"Flash":          CommandKindFlash,
 }
 
 func (v CommandKind) String() string {

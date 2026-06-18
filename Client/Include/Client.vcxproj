@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -54,7 +54,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..;$(ProjectDir)..\Public;$(MSBuildThisFileDirectory)..\..\EngineSDK\inc;$(SolutionDir)EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..;$(ProjectDir)..\Public;$(MSBuildThisFileDirectory)..\..\EngineSDK\inc;$(SolutionDir)EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\Engine\External\tracy;$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <Optimization>Disabled</Optimization>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -65,13 +65,15 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\..\EngineSDK\lib;$(SolutionDir)EngineSDK\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\..\EngineSDK\lib\$(Configuration);$(SolutionDir)EngineSDK\lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>WintersEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if not exist "$(OutDir)Shaders\" mkdir "$(OutDir)Shaders\"
-if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" "$(OutDir)Shaders\"</Command>
-      <Message>Copy Shaders to Client output</Message>
+if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" "$(OutDir)Shaders\"
+if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.dll" xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.dll" "$(OutDir)"
+if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb" xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb" "$(OutDir)"</Command>
+      <Message>Copy Client runtime assets</Message>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>$(MSBuildThisFileDirectory)..\..\UpdateLib.bat</Command>
@@ -85,7 +87,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSB
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..;$(ProjectDir)..\Public;$(MSBuildThisFileDirectory)..\..\EngineSDK\inc;$(SolutionDir)EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)..\..;$(ProjectDir)..\Public;$(MSBuildThisFileDirectory)..\..\EngineSDK\inc;$(SolutionDir)EngineSDK\inc;$(MSBuildThisFileDirectory)..\..\Engine\External\tracy;$(MSBuildThisFileDirectory)..\..\Engine\ThirdPartyLib\FlatBuffers\Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -97,13 +99,15 @@ if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSB
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\..\EngineSDK\lib;$(SolutionDir)EngineSDK\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\..\EngineSDK\lib\$(Configuration);$(SolutionDir)EngineSDK\lib\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>WintersEngine.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>if not exist "$(OutDir)Shaders\" mkdir "$(OutDir)Shaders\"
-if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" "$(OutDir)Shaders\"</Command>
-      <Message>Copy Shaders to Client output</Message>
+if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" "$(OutDir)Shaders\"
+if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.dll" xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.dll" "$(OutDir)"
+if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb" xcopy /Y /D "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb" "$(OutDir)"</Command>
+      <Message>Copy Client runtime assets</Message>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>$(MSBuildThisFileDirectory)..\..\UpdateLib.bat</Command>
@@ -187,47 +191,6 @@ if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSB
     <ClCompile Include="..\Private\ECS\Systems\YoneSoulSpawnSystem.cpp" />
     <ClCompile Include="..\Private\GameObject\Projectile\ProjectileVisualCatalog.cpp" />
     <ClCompile Include="..\Private\GameObject\SkillTable.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Annie\AnnieGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Ashe\AsheGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Fiora\FioraGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Jax\JaxGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Kindred\KindredGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Viego\ViegoGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Yone\YoneGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Zed\ZedGameSim.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Definitions\MapSpawnPoints.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Registries\Reward\RewardRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Registries\Skin\SkinRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Buff\BuffSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatActionSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatFormula.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamagePipeline.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Death\DeathSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Experience\ExperienceSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Move\MoveSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Recall\RecallSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Stat\StatSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp" />
-    <ClCompile Include="..\..\Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp" />
     <!-- [Phase T] R-4 파일 빌드 제외 — R-2~R-6 리팩터 폐기. 파일은 디스크에 남김 (재개 시 참조용). -->
     <ClCompile Include="..\Private\GamePlay\ChampionCatalog.cpp" />
     <ClCompile Include="..\Private\GamePlay\ChampionModuleBootstrap.cpp" />
@@ -269,19 +232,11 @@ if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSB
     <ClCompile Include="..\Private\Network\Backend\MatchClient.cpp" />
     <ClCompile Include="..\Private\Network\Backend\PaymentClient.cpp" />
     <ClCompile Include="..\Private\Network\Backend\ProfileClient.cpp" />
+    <ClCompile Include="..\Private\Replay\ReplayLibrary.cpp" />
+    <ClCompile Include="..\Private\Replay\ReplayPlayer.cpp" />
     <ClCompile Include="..\Private\Scene\GameplayQuery.cpp" />
     <ClCompile Include="..\Private\Scene\Loader.cpp" />
-    <ClCompile Include="..\Private\Scene\InGameBootstrapBridge.cpp" />
-    <ClCompile Include="..\Private\Scene\InGameChampionStateBridge.cpp" />
-    <ClCompile Include="..\Private\Scene\InGameCombatInputBridge.cpp" />
-    <ClCompile Include="..\Private\Scene\InGameDebugBridge.cpp" />
-    <ClCompile Include="..\Private\Scene\InGameLifecycleBridge.cpp" />
-    <ClCompile Include="..\Private\Scene\InGameNetworkBridge.cpp" />
-    <ClCompile Include="..\Private\Scene\InGamePlayerControlBridge.cpp" />
-    <ClCompile Include="..\Private\Scene\InGamePlayerTransformBridge.cpp" />
-    <ClCompile Include="..\Private\Scene\InGameRenderBridge.cpp" />
     <ClCompile Include="..\Private\Scene\InGameRosterSpawner.cpp" />
-    <ClCompile Include="..\Private\Scene\InGameSkillDispatchBridge.cpp" />
     <ClCompile Include="..\Private\Scene\LobbyRosterHelpers.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_BanPick.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_CustomMode.cpp" />
@@ -305,7 +260,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSB
     <ClCompile Include="..\Private\UI\SkillTimingPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Engine\Public\FX\FxLifeCycle.h" />
+    <ClInclude Include="..\..\EngineSDK\inc\FX\FxLifeCycle.h" />
     <ClInclude Include="..\Private\Network\Client\UdpClient.h" />
     <ClInclude Include="..\Public\ClientShell\ClientShellBackendService.h" />
     <ClInclude Include="..\Public\ClientShell\ClientShellDataStore.h" />
@@ -426,19 +381,11 @@ if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSB
     <ClInclude Include="..\Public\Network\Backend\MatchClient.h" />
     <ClInclude Include="..\Public\Network\Backend\PaymentClient.h" />
     <ClInclude Include="..\Public\Network\Backend\ProfileClient.h" />
+    <ClInclude Include="..\Public\Replay\ReplayLibrary.h" />
+    <ClInclude Include="..\Public\Replay\ReplayPlayer.h" />
     <ClInclude Include="..\Public\Scene\GameplayQuery.h" />
     <ClInclude Include="..\Public\Scene\Loader.h" />
-    <ClInclude Include="..\Public\Scene\InGameBootstrapBridge.h" />
-    <ClInclude Include="..\Public\Scene\InGameChampionStateBridge.h" />
-    <ClInclude Include="..\Public\Scene\InGameCombatInputBridge.h" />
-    <ClInclude Include="..\Public\Scene\InGameDebugBridge.h" />
-    <ClInclude Include="..\Public\Scene\InGameLifecycleBridge.h" />
-    <ClInclude Include="..\Public\Scene\InGameNetworkBridge.h" />
-    <ClInclude Include="..\Public\Scene\InGamePlayerControlBridge.h" />
-    <ClInclude Include="..\Public\Scene\InGamePlayerTransformBridge.h" />
-    <ClInclude Include="..\Public\Scene\InGameRenderBridge.h" />
     <ClInclude Include="..\Public\Scene\InGameRosterSpawner.h" />
-    <ClInclude Include="..\Public\Scene\InGameSkillDispatchBridge.h" />
     <ClInclude Include="..\Public\Scene\LobbyRosterHelpers.h" />
     <ClInclude Include="..\Public\Scene\RenderVisibilityFilter.h" />
     <ClInclude Include="..\Public\Scene\Scene_BanPick.h" />
@@ -461,6 +408,11 @@ if exist "$(MSBuildThisFileDirectory)..\..\Shaders\*.*" xcopy /Y /E /I /D "$(MSB
     <ClInclude Include="..\Public\UI\MinimapPanel.h" />
     <ClInclude Include="..\Public\UI\RenderDebug.h" />
     <ClInclude Include="..\Public\UI\SkillTimingPanel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\GameSim\Include\GameSim.vcxproj">
+      <Project>{E5555555-5555-5555-5555-555555555555}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Target Name="FlatcCodegen" BeforeTargets="ClCompile">
     <Exec Command="&quot;$(MSBuildThisFileDirectory)..\..\Shared\Schemas\run_codegen.bat&quot;" />

@@ -16,7 +16,6 @@ public:
 
 	static std::unique_ptr<CMinionPerformanceSystem> Create()
 	{
-		//왜지??
 		return std::unique_ptr<CMinionPerformanceSystem>(new CMinionPerformanceSystem());
 	}
 

@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Riven/Riven_Skills.h"
+﻿#include "GameObject/Champion/Riven/Riven_Skills.h"
 
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
@@ -78,7 +78,6 @@ namespace
             }
             CVisualHookRegistry::Instance().Register(
                 kRiven_Q_KeySwap, &Riven::Visual::OnKeySwap_Q);
-            OutputDebugStringA("[Riven] Registration complete\n");
         }
     };
 

@@ -1,4 +1,4 @@
-#include "GameObject/Champion/Kalista/KalistaRendSystem.h"
+﻿#include "GameObject/Champion/Kalista/KalistaRendSystem.h"
 #include "GameObject/Champion/Kalista/KalistaFxPresets.h"
 #include "GameObject/Champion/Kalista/Kalista_Tuning.h"
 #include "GameObject/FX/FxMeshComponent.h"
@@ -18,8 +18,8 @@ std::unique_ptr<CKalistaRendSystem> CKalistaRendSystem::Create()
 void CKalistaRendSystem::AddStack(CWorld& world, EntityID target, EntityID caster, 
     eTeam casterTeam, Engine::CFxStaticMeshRenderer* pRenderer, f32_t fSpearScale)
 {
-    //적중시 적에게 창 꽂아서 누적 시키기
-    //객체들을 Entity로 관리를 한다.NULL_ENTITY -1 맞지?
+    //?곸쨷???곸뿉寃?李?苑귥븘???꾩쟻 ?쒗궎湲?
+    //媛앹껜?ㅼ쓣 Entity濡?愿由щ? ?쒕떎.NULL_ENTITY -1 留욎??
     if (target == NULL_ENTITY || caster == NULL_ENTITY)
         return;
 
@@ -35,11 +35,10 @@ void CKalistaRendSystem::AddStack(CWorld& world, EntityID target, EntityID caste
                     bFound = true;
                 }
             }));
-    //박힌 창 시각 Entity Spawn
+    //諛뺥엺 李??쒓컖 Entity Spawn
     char dbg[200]{};
     sprintf_s(dbg, "[KalistaRend] new stack target=%u pRenderer=%p stuckScale=%.4f\n",
         static_cast<u32_t>(target), pRenderer, fSpearScale);
-    ::OutputDebugStringA(dbg);
 
     EntityID spearVisual = NULL_ENTITY;
     if (pRenderer)
@@ -47,17 +46,16 @@ void CKalistaRendSystem::AddStack(CWorld& world, EntityID target, EntityID caste
 
     sprintf_s(dbg, "[KalistaRend] SpawnESpearStuck spearVisual=%u\n",
         static_cast<u32_t>(spearVisual));
-    ::OutputDebugStringA(dbg);
 
     EntityID entity = world.CreateEntity();
-    //트리플 AAA 게임 엔진에서도 이런 식으로 함수 내에서 지역변수로 구조체 선언하고
-    //값 채워 넣는 형식으로 감?
+    //?몃━??AAA 寃뚯엫 ?붿쭊?먯꽌???대윴 ?앹쑝濡??⑥닔 ?댁뿉??吏????섎줈 援ъ“泥??좎뼵?섍퀬
+    //媛?梨꾩썙 ?ｋ뒗 ?뺤떇?쇰줈 媛?
     KalistaRendComponent rend{};
     rend.hostTarget = target;
     rend.caster = caster;
     rend.casterTeam = casterTeam;
     rend.iStackCount = 1;
-    rend.spearVisualEntity = spearVisual; //TriggerExplode/Execute가 dispose?
+    rend.spearVisualEntity = spearVisual; //TriggerExplode/Execute媛 dispose?
     world.AddComponent<KalistaRendComponent>(entity, rend);
 }
 
@@ -112,7 +110,6 @@ void CKalistaRendSystem::TriggerExplode(CWorld& world, EntityID caster,
                     rend.iStackCount,
                     totalDamage,
                     champion.hp);
-                ::OutputDebugStringA(dbg);
 
                 if (rend.spearVisualEntity != NULL_ENTITY
                     && world.HasComponent<FxMeshComponent>(rend.spearVisualEntity))

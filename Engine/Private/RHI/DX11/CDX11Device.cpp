@@ -1,8 +1,10 @@
 #include "WintersPCH.h"
 #include "RHI/DX11/CDX11Device.h"
 #include "WintersCore.h"
+#include "ProfilerAPI.h"
 
 #include <cstdio>
+#include <cstring>
 #include <vector>
 
 // DX11 API는 여기서만 개별 include
@@ -122,6 +124,151 @@ namespace
         OutputDebugStringA(log);
     }
 
+    DXGI_FORMAT ToDXGIFormat(eRHIFormat format)
+    {
+        switch (format)
+        {
+        case eRHIFormat::R8G8B8A8_UNorm: return DXGI_FORMAT_R8G8B8A8_UNORM;
+        case eRHIFormat::R16_Float: return DXGI_FORMAT_R16_FLOAT;
+        case eRHIFormat::R16G16B16A16_Float: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+        case eRHIFormat::R24G8_Typeless: return DXGI_FORMAT_R24G8_TYPELESS;
+        case eRHIFormat::D24_UNorm_S8_UInt: return DXGI_FORMAT_D24_UNORM_S8_UINT;
+        case eRHIFormat::R24_UNorm_X8_Typeless: return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        case eRHIFormat::R32_Float: return DXGI_FORMAT_R32_FLOAT;
+        case eRHIFormat::R32G32_Float: return DXGI_FORMAT_R32G32_FLOAT;
+        case eRHIFormat::R32G32B32_Float: return DXGI_FORMAT_R32G32B32_FLOAT;
+        case eRHIFormat::R32G32B32A32_Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+        case eRHIFormat::R32_UInt: return DXGI_FORMAT_R32_UINT;
+        case eRHIFormat::R32G32B32A32_UInt: return DXGI_FORMAT_R32G32B32A32_UINT;
+        default: return DXGI_FORMAT_UNKNOWN;
+        }
+    }
+
+    u32_t BytesPerPixelOf(eRHIFormat format)
+    {
+        switch (format)
+        {
+        case eRHIFormat::R16_Float: return 2;
+        case eRHIFormat::R16G16B16A16_Float: return 8;
+        case eRHIFormat::R32G32_Float: return 8;
+        case eRHIFormat::R32G32B32_Float: return 12;
+        case eRHIFormat::R32G32B32A32_Float: return 16;
+        case eRHIFormat::R32G32B32A32_UInt: return 16;
+        default: return 4;
+        }
+    }
+
+    D3D11_PRIMITIVE_TOPOLOGY ToDX11PrimitiveTopology(eRHIPrimitiveTopology topology)
+    {
+        switch (topology)
+        {
+        case eRHIPrimitiveTopology::TriangleStrip:
+            return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+        case eRHIPrimitiveTopology::LineList:
+            return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+        case eRHIPrimitiveTopology::PointList:
+            return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+        case eRHIPrimitiveTopology::TriangleList:
+        default:
+            return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        }
+    }
+
+    D3D11_CULL_MODE ToDX11CullMode(eRHICullMode mode)
+    {
+        switch (mode)
+        {
+        case eRHICullMode::None: return D3D11_CULL_NONE;
+        case eRHICullMode::Front: return D3D11_CULL_FRONT;
+        case eRHICullMode::Back:
+        default:
+            return D3D11_CULL_BACK;
+        }
+    }
+
+    D3D11_COMPARISON_FUNC ToDX11ComparisonFunc(eRHIDepthOp op)
+    {
+        switch (op)
+        {
+        case eRHIDepthOp::Less: return D3D11_COMPARISON_LESS;
+        case eRHIDepthOp::LessEqual: return D3D11_COMPARISON_LESS_EQUAL;
+        case eRHIDepthOp::Greater: return D3D11_COMPARISON_GREATER;
+        case eRHIDepthOp::Always: return D3D11_COMPARISON_ALWAYS;
+        case eRHIDepthOp::Never:
+        default:
+            return D3D11_COMPARISON_NEVER;
+        }
+    }
+
+    D3D11_FILTER ToDX11Filter(eRHIFilter filter)
+    {
+        switch (filter)
+        {
+        case eRHIFilter::Point: return D3D11_FILTER_MIN_MAG_MIP_POINT;
+        case eRHIFilter::Anisotropic: return D3D11_FILTER_ANISOTROPIC;
+        case eRHIFilter::Linear:
+        default:
+            return D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        }
+    }
+
+    D3D11_TEXTURE_ADDRESS_MODE ToDX11AddressMode(eRHIAddressMode mode)
+    {
+        switch (mode)
+        {
+        case eRHIAddressMode::Clamp: return D3D11_TEXTURE_ADDRESS_CLAMP;
+        case eRHIAddressMode::Border: return D3D11_TEXTURE_ADDRESS_BORDER;
+        case eRHIAddressMode::Wrap:
+        default:
+            return D3D11_TEXTURE_ADDRESS_WRAP;
+        }
+    }
+
+    struct CDX11BufferObject
+    {
+        RHIBufferDesc desc{};
+        Microsoft::WRL::ComPtr<ID3D11Buffer> pBuffer;
+        bool_t dynamic = false;
+    };
+
+    struct CDX11ShaderObject
+    {
+        eRHIShaderStage stage = eRHIShaderStage::Vertex;
+        std::vector<u8_t> bytecode;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> pVS;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> pPS;
+    };
+
+    struct CDX11TextureObject
+    {
+        RHITextureDesc desc{};
+        Microsoft::WRL::ComPtr<ID3D11Texture2D> pTexture;
+        Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> pSRV;
+    };
+
+    struct CDX11SamplerObject
+    {
+        RHISamplerDesc desc{};
+        Microsoft::WRL::ComPtr<ID3D11SamplerState> pSampler;
+    };
+
+    u32_t FindSlotVisibilityMask(
+        const RHIBindGroupLayoutDesc* pLayoutDesc,
+        u32_t slot,
+        eRHIBindingType type)
+    {
+        if (pLayoutDesc)
+        {
+            for (u32_t i = 0; i < pLayoutDesc->slotCount; ++i)
+            {
+                if (pLayoutDesc->slots[i].slot == slot && pLayoutDesc->slots[i].type == type)
+                    return static_cast<u32_t>(pLayoutDesc->slots[i].visibility);
+            }
+        }
+
+        return static_cast<u32_t>(eRHIShaderVisibility::All);
+    }
+
     class CDX11PipelineState final : public IRHIPipelineState
     {
     public:
@@ -148,9 +295,134 @@ namespace
             return nullptr;
         }
 
+        // RHI 셰이더 핸들이 유효할 때만 호출. 실패하면 파이프라인 생성 자체를 실패로 본다.
+        bool_t InitializeNative(
+            ID3D11Device* pDevice,
+            const CDX11ShaderObject* pVSObject,
+            const CDX11ShaderObject* pPSObject)
+        {
+            if (!pDevice || !pVSObject || !pPSObject || !pVSObject->pVS || !pPSObject->pPS)
+                return false;
+
+            m_pVS = pVSObject->pVS;
+            m_pPS = pPSObject->pPS;
+            m_Topology = ToDX11PrimitiveTopology(m_Desc.topology);
+
+            if (!m_InputElements.empty())
+            {
+                std::vector<D3D11_INPUT_ELEMENT_DESC> elements;
+                elements.reserve(m_InputElements.size());
+
+                for (const RHIInputElementDesc& src : m_InputElements)
+                {
+                    D3D11_INPUT_ELEMENT_DESC dst{};
+                    dst.SemanticName = src.semanticName;
+                    dst.SemanticIndex = src.semanticIndex;
+                    dst.Format = ToDXGIFormat(src.format);
+                    dst.InputSlot = src.inputSlot;
+                    dst.AlignedByteOffset = src.alignedByteOffset;
+                    dst.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+                    elements.push_back(dst);
+                }
+
+                if (FAILED(pDevice->CreateInputLayout(
+                    elements.data(),
+                    static_cast<UINT>(elements.size()),
+                    pVSObject->bytecode.data(),
+                    pVSObject->bytecode.size(),
+                    m_pInputLayout.GetAddressOf())))
+                {
+                    return false;
+                }
+            }
+
+            D3D11_RASTERIZER_DESC rasterDesc{};
+            rasterDesc.FillMode = D3D11_FILL_SOLID;
+            rasterDesc.CullMode = ToDX11CullMode(m_Desc.cullMode);
+            rasterDesc.DepthClipEnable = TRUE;
+            if (FAILED(pDevice->CreateRasterizerState(&rasterDesc, m_pRasterizer.GetAddressOf())))
+                return false;
+
+            D3D11_DEPTH_STENCIL_DESC depthDesc{};
+            depthDesc.DepthEnable = m_Desc.dsvFormat != eRHIFormat::Unknown;
+            depthDesc.DepthWriteMask =
+                m_Desc.depthWrite ? D3D11_DEPTH_WRITE_MASK_ALL : D3D11_DEPTH_WRITE_MASK_ZERO;
+            depthDesc.DepthFunc = ToDX11ComparisonFunc(m_Desc.depthOp);
+            if (FAILED(pDevice->CreateDepthStencilState(&depthDesc, m_pDepthStencil.GetAddressOf())))
+                return false;
+
+            D3D11_RENDER_TARGET_BLEND_DESC rt{};
+            rt.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+            if (m_Desc.blendMode == eRHIBlendMode::AlphaBlend)
+            {
+                rt.BlendEnable = TRUE;
+                rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+                rt.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+                rt.BlendOp = D3D11_BLEND_OP_ADD;
+                rt.SrcBlendAlpha = D3D11_BLEND_ONE;
+                rt.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+                rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+            }
+            else if (m_Desc.blendMode == eRHIBlendMode::Additive)
+            {
+                rt.BlendEnable = TRUE;
+                rt.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+                rt.DestBlend = D3D11_BLEND_ONE;
+                rt.BlendOp = D3D11_BLEND_OP_ADD;
+                rt.SrcBlendAlpha = D3D11_BLEND_ONE;
+                rt.DestBlendAlpha = D3D11_BLEND_ONE;
+                rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+            }
+            else
+            {
+                rt.BlendEnable = FALSE;
+                rt.SrcBlend = D3D11_BLEND_ONE;
+                rt.DestBlend = D3D11_BLEND_ZERO;
+                rt.BlendOp = D3D11_BLEND_OP_ADD;
+                rt.SrcBlendAlpha = D3D11_BLEND_ONE;
+                rt.DestBlendAlpha = D3D11_BLEND_ZERO;
+                rt.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+            }
+
+            D3D11_BLEND_DESC blendDesc{};
+            blendDesc.RenderTarget[0] = rt;
+            if (FAILED(pDevice->CreateBlendState(&blendDesc, m_pBlend.GetAddressOf())))
+                return false;
+
+            m_bNativeReady = true;
+            return true;
+        }
+
+        bool_t IsNativeReady() const
+        {
+            return m_bNativeReady;
+        }
+
+        void Apply(ID3D11DeviceContext* pContext) const
+        {
+            pContext->IASetInputLayout(m_pInputLayout.Get());
+            pContext->IASetPrimitiveTopology(m_Topology);
+            pContext->VSSetShader(m_pVS.Get(), nullptr, 0);
+            pContext->PSSetShader(m_pPS.Get(), nullptr, 0);
+            pContext->RSSetState(m_pRasterizer.Get());
+            pContext->OMSetDepthStencilState(m_pDepthStencil.Get(), 0);
+
+            const f32_t blendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
+            pContext->OMSetBlendState(m_pBlend.Get(), blendFactor, 0xffffffffu);
+        }
+
     private:
         RHIPipelineDesc m_Desc{};
         std::vector<RHIInputElementDesc> m_InputElements;
+        Microsoft::WRL::ComPtr<ID3D11VertexShader> m_pVS;
+        Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pPS;
+        Microsoft::WRL::ComPtr<ID3D11InputLayout> m_pInputLayout;
+        Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_pRasterizer;
+        Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_pDepthStencil;
+        Microsoft::WRL::ComPtr<ID3D11BlendState> m_pBlend;
+        D3D11_PRIMITIVE_TOPOLOGY m_Topology = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+        bool_t m_bNativeReady = false;
     };
 
     class CDX11RenderPass final : public IRHIRenderPass
@@ -240,6 +512,230 @@ namespace
     };
 }
 
+struct CDX11Device::ResourceTables
+{
+    CRHIResourceTable<CDX11BufferObject, RHIBufferTag> bufferTable;
+    CRHIResourceTable<CDX11ShaderObject, RHIShaderTag> shaderTable;
+    CRHIResourceTable<CDX11TextureObject, RHITextureTag> textureTable;
+    CRHIResourceTable<CDX11SamplerObject, RHISamplerTag> samplerTable;
+};
+
+// DX11 immediate context를 IRHICommandList로 감싼다. Begin/End/RenderPass는 즉시 모드라 no-op.
+class CDX11FrameCommandList final : public IRHICommandList
+{
+public:
+    explicit CDX11FrameCommandList(CDX11Device& owner)
+        : m_Owner(owner)
+    {
+    }
+
+    void Begin() override {}
+    void End() override {}
+
+    void BeginRenderPass(RHIRenderPassHandle) override {}
+    void EndRenderPass() override {}
+
+    void SetPipeline(RHIPipelineHandle handle) override
+    {
+        m_pCurrentPipeline = nullptr;
+
+        ID3D11DeviceContext* pContext = m_Owner.GetContext();
+        if (!pContext)
+            return;
+
+        IRHIPipelineState* pPipelineBase = m_Owner.m_PipelineTable.Lookup(handle);
+        auto* pPipeline = dynamic_cast<CDX11PipelineState*>(pPipelineBase);
+        if (!pPipeline || !pPipeline->IsNativeReady())
+            return;
+
+        pPipeline->Apply(pContext);
+        m_pCurrentPipeline = pPipeline;
+    }
+
+    void SetBindGroup(u32_t, RHIBindGroupHandle handle) override
+    {
+        ID3D11DeviceContext* pContext = m_Owner.GetContext();
+        if (!pContext || !m_Owner.m_pTables)
+            return;
+
+        IRHIBindGroup* pGroupBase = m_Owner.m_BindGroupTable.Lookup(handle);
+        auto* pGroup = dynamic_cast<CDX11BindGroup*>(pGroupBase);
+        if (!pGroup)
+            return;
+
+        const RHIBindGroupDesc& groupDesc = pGroup->GetDesc();
+
+        IRHIBindGroupLayout* pLayoutBase =
+            m_Owner.m_BindGroupLayoutTable.Lookup(groupDesc.layoutHandle);
+        auto* pLayout = dynamic_cast<CDX11BindGroupLayout*>(pLayoutBase);
+        const RHIBindGroupLayoutDesc* pLayoutDesc = pLayout ? &pLayout->GetDesc() : nullptr;
+
+        constexpr u32_t kVertexBit = static_cast<u32_t>(eRHIShaderVisibility::Vertex);
+        constexpr u32_t kPixelBit = static_cast<u32_t>(eRHIShaderVisibility::Pixel);
+
+        for (u32_t i = 0; i < groupDesc.resourceCount; ++i)
+        {
+            const RHIBindGroupResource& resource = groupDesc.resources[i];
+            const u32_t visibility =
+                FindSlotVisibilityMask(pLayoutDesc, resource.slot, resource.type);
+
+            switch (resource.type)
+            {
+            case eRHIBindingType::ConstantBuffer:
+            {
+                CDX11BufferObject* pBuffer =
+                    m_Owner.m_pTables->bufferTable.Lookup(resource.bufferHandle);
+                ID3D11Buffer* pNative = pBuffer ? pBuffer->pBuffer.Get() : nullptr;
+                if (!pNative)
+                    break;
+
+                if (visibility & kVertexBit)
+                    pContext->VSSetConstantBuffers(resource.slot, 1, &pNative);
+                if (visibility & kPixelBit)
+                    pContext->PSSetConstantBuffers(resource.slot, 1, &pNative);
+                break;
+            }
+            case eRHIBindingType::ShaderResource:
+            {
+                CDX11TextureObject* pTexture =
+                    m_Owner.m_pTables->textureTable.Lookup(resource.textureHandle);
+                ID3D11ShaderResourceView* pSRV = pTexture ? pTexture->pSRV.Get() : nullptr;
+                if (!pSRV)
+                    break;
+
+                if (visibility & kVertexBit)
+                    pContext->VSSetShaderResources(resource.slot, 1, &pSRV);
+                if (visibility & kPixelBit)
+                    pContext->PSSetShaderResources(resource.slot, 1, &pSRV);
+                break;
+            }
+            case eRHIBindingType::Sampler:
+            {
+                CDX11SamplerObject* pSampler =
+                    m_Owner.m_pTables->samplerTable.Lookup(resource.samplerHandle);
+                ID3D11SamplerState* pNative = pSampler ? pSampler->pSampler.Get() : nullptr;
+                if (!pNative)
+                    break;
+
+                if (visibility & kVertexBit)
+                    pContext->VSSetSamplers(resource.slot, 1, &pNative);
+                if (visibility & kPixelBit)
+                    pContext->PSSetSamplers(resource.slot, 1, &pNative);
+                break;
+            }
+            default:
+                break;
+            }
+        }
+    }
+
+    void SetVertexBuffer(u32_t slot, RHIBufferHandle handle, u32_t stride, u32_t offset) override
+    {
+        ID3D11DeviceContext* pContext = m_Owner.GetContext();
+        if (!pContext || !m_Owner.m_pTables)
+            return;
+
+        CDX11BufferObject* pBuffer = m_Owner.m_pTables->bufferTable.Lookup(handle);
+        ID3D11Buffer* pNative = pBuffer ? pBuffer->pBuffer.Get() : nullptr;
+        if (!pNative)
+            return;
+
+        const UINT strides[] = { stride };
+        const UINT offsets[] = { offset };
+        pContext->IASetVertexBuffers(slot, 1, &pNative, strides, offsets);
+    }
+
+    void SetIndexBuffer(RHIBufferHandle handle, u32_t offset, eRHIFormat indexFormat) override
+    {
+        ID3D11DeviceContext* pContext = m_Owner.GetContext();
+        if (!pContext || !m_Owner.m_pTables)
+            return;
+
+        CDX11BufferObject* pBuffer = m_Owner.m_pTables->bufferTable.Lookup(handle);
+        ID3D11Buffer* pNative = pBuffer ? pBuffer->pBuffer.Get() : nullptr;
+        if (!pNative)
+            return;
+
+        pContext->IASetIndexBuffer(pNative, ToDXGIFormat(indexFormat), offset);
+    }
+
+    void Draw(u32_t vertexCount, u32_t instanceCount, u32_t firstVertex, u32_t firstInstance) override
+    {
+        ID3D11DeviceContext* pContext = m_Owner.GetContext();
+        if (pContext)
+            pContext->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    void DrawIndexed(
+        u32_t indexCount,
+        u32_t instanceCount,
+        u32_t firstIndex,
+        i32_t baseVertex,
+        u32_t firstInstance) override
+    {
+        ID3D11DeviceContext* pContext = m_Owner.GetContext();
+        if (pContext)
+            pContext->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+    }
+
+    void Dispatch(u32_t, u32_t, u32_t) override {}
+
+    void UpdateBuffer(RHIBufferHandle handle, const void* pData, u32_t sizeBytes) override
+    {
+        ID3D11DeviceContext* pContext = m_Owner.GetContext();
+        if (!pContext || !m_Owner.m_pTables || !pData || sizeBytes == 0)
+            return;
+
+        CDX11BufferObject* pBuffer = m_Owner.m_pTables->bufferTable.Lookup(handle);
+        if (!pBuffer || !pBuffer->pBuffer)
+            return;
+
+        if (pBuffer->dynamic)
+        {
+            D3D11_MAPPED_SUBRESOURCE mapped{};
+            if (FAILED(pContext->Map(pBuffer->pBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped)))
+                return;
+
+            const u32_t copyBytes =
+                sizeBytes < pBuffer->desc.sizeBytes ? sizeBytes : pBuffer->desc.sizeBytes;
+            std::memcpy(mapped.pData, pData, copyBytes);
+            pContext->Unmap(pBuffer->pBuffer.Get(), 0);
+        }
+        else
+        {
+            pContext->UpdateSubresource(pBuffer->pBuffer.Get(), 0, nullptr, pData, 0, 0);
+        }
+    }
+
+    void TransitionResource(RHIBufferHandle, eRHIResourceState) override {}
+    void TransitionResource(RHITextureHandle, eRHIResourceState) override {}
+
+    void* GetNativeHandle(eNativeHandleType type) const override
+    {
+        if (type == eNativeHandleType::DX11DeviceContext)
+            return m_Owner.GetContext();
+
+        return nullptr;
+    }
+
+private:
+    CDX11Device& m_Owner;
+    CDX11PipelineState* m_pCurrentPipeline = nullptr;
+};
+
+CDX11Device::CDX11Device()
+    : m_pTables(new ResourceTables())
+    , m_pFrameCommandList(new CDX11FrameCommandList(*this))
+{
+}
+
+CDX11Device::~CDX11Device() = default;
+
+IRHICommandList* CDX11Device::GetFrameCommandList()
+{
+    return m_pFrameCommandList.get();
+}
+
 bool CDX11Device::Initialize(const DeviceDesc& desc)
 {
     m_bVSync = desc.vsync;
@@ -279,6 +775,9 @@ bool CDX11Device::Initialize(const DeviceDesc& desc)
 
     // ── 기본 렌더타겟 바인딩 ─────────────────────────────────
     m_pContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
+
+    // GPU 타이밍 쿼리는 실패해도 디바이스 초기화를 막지 않는다.
+    m_bGpuTimingReady = CreateGpuTimingQueries();
 
     return true;
 }
@@ -403,6 +902,54 @@ bool CDX11Device::CreateDepthStencil(uint32 width, uint32 height)
     return SUCCEEDED(hr);
 }
 
+bool CDX11Device::CreateGpuTimingQueries()
+{
+    D3D11_QUERY_DESC disjointDesc{ D3D11_QUERY_TIMESTAMP_DISJOINT, 0 };
+    D3D11_QUERY_DESC stampDesc{ D3D11_QUERY_TIMESTAMP, 0 };
+
+    for (GpuTimingSlot& slot : m_GpuTimingSlots)
+    {
+        if (FAILED(m_pDevice->CreateQuery(&disjointDesc, slot.pDisjoint.GetAddressOf())) ||
+            FAILED(m_pDevice->CreateQuery(&stampDesc, slot.pBegin.GetAddressOf())) ||
+            FAILED(m_pDevice->CreateQuery(&stampDesc, slot.pEnd.GetAddressOf())))
+        {
+            OutputDebugStringA("[CDX11Device] GPU timing query creation failed\n");
+            return false;
+        }
+    }
+    return true;
+}
+
+void CDX11Device::ReadGpuTimingResults()
+{
+    for (GpuTimingSlot& slot : m_GpuTimingSlots)
+    {
+        if (!slot.bPending)
+            continue;
+
+        D3D11_QUERY_DATA_TIMESTAMP_DISJOINT disjoint{};
+        if (m_pContext->GetData(slot.pDisjoint.Get(), &disjoint, sizeof(disjoint),
+                D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK)
+            continue;
+
+        UINT64 beginTicks = 0;
+        UINT64 endTicks = 0;
+        if (m_pContext->GetData(slot.pBegin.Get(), &beginTicks, sizeof(beginTicks),
+                D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK ||
+            m_pContext->GetData(slot.pEnd.Get(), &endTicks, sizeof(endTicks),
+                D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK)
+            continue;
+
+        slot.bPending = false;
+
+        if (disjoint.Disjoint || disjoint.Frequency == 0 || endTicks <= beginTicks)
+            continue;
+
+        const uint64_t gpuUs = (endTicks - beginTicks) * 1000000ull / disjoint.Frequency;
+        WINTERS_PROFILE_COUNT("GPU::FrameUs", gpuUs);
+    }
+}
+
 unique_ptr<CDX11Device> CDX11Device::Create(const DeviceDesc& desc)
 {
     unique_ptr<CDX11Device> pDevice(new CDX11Device());
@@ -421,6 +968,16 @@ void CDX11Device::BeginFrame(float32 r, float32 g, float32 b, float32 a)
     m_pContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
     m_pContext->RSSetViewports(1, &m_Viewport);
 
+    if (m_bGpuTimingReady)
+    {
+        GpuTimingSlot& slot = m_GpuTimingSlots[m_uGpuTimingWriteIndex];
+        if (!slot.bPending)
+        {
+            m_pContext->Begin(slot.pDisjoint.Get());
+            m_pContext->End(slot.pBegin.Get());
+        }
+    }
+
     float clearColor[4] = { r, g, b, a };
     m_pContext->ClearRenderTargetView(m_pRenderTargetView.Get(), clearColor);
     m_pContext->ClearDepthStencilView(
@@ -432,6 +989,18 @@ void CDX11Device::BeginFrame(float32 r, float32 g, float32 b, float32 a)
 
 void CDX11Device::EndFrame()
 {
+    if (m_bGpuTimingReady)
+    {
+        GpuTimingSlot& slot = m_GpuTimingSlots[m_uGpuTimingWriteIndex];
+        if (!slot.bPending)
+        {
+            m_pContext->End(slot.pEnd.Get());
+            m_pContext->End(slot.pDisjoint.Get());
+            slot.bPending = true;
+            m_uGpuTimingWriteIndex = (m_uGpuTimingWriteIndex + 1u) % kGpuTimingSlots;
+        }
+    }
+
     // SyncInterval: 1 = VSync, 0 = 즉시 표시
     HRESULT hr = m_pSwapChain->Present(m_bVSync ? 1 : 0, 0);
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
@@ -442,11 +1011,35 @@ void CDX11Device::EndFrame()
     {
         OutputDebugStringA("[CDX11Device] Present FAILED — HRESULT 오류\n");
     }
+
+    if (m_bGpuTimingReady)
+        ReadGpuTimingResults();
 }
 
 RHIPipelineHandle CDX11Device::CreatePipeline(const RHIPipelineDesc& desc)
 {
-    return m_PipelineTable.Insert(new CDX11PipelineState(desc));
+    auto* pPipeline = new CDX11PipelineState(desc);
+
+    // RHI 셰이더 핸들이 유효하면 네이티브 PSO까지 생성한다.
+    // 핸들 없이 desc만 보관하는 기존(legacy) 호출자는 데이터 전용으로 유지된다.
+    if (m_pTables)
+    {
+        CDX11ShaderObject* pVS = m_pTables->shaderTable.Lookup(desc.vsHandle);
+        CDX11ShaderObject* pPS = m_pTables->shaderTable.Lookup(desc.psHandle);
+
+        if (pVS && pPS &&
+            pVS->stage == eRHIShaderStage::Vertex &&
+            pPS->stage == eRHIShaderStage::Pixel)
+        {
+            if (!pPipeline->InitializeNative(m_pDevice.Get(), pVS, pPS))
+            {
+                delete pPipeline;
+                return {};
+            }
+        }
+    }
+
+    return m_PipelineTable.Insert(pPipeline);
 }
 
 void CDX11Device::DestroyPipeline(RHIPipelineHandle handle)
@@ -497,4 +1090,202 @@ void CDX11Device::UpdateBindGroup(RHIBindGroupHandle handle,
         return;
 
     pDX11Group->UpdateResources(resources, resourceCount);
+}
+
+RHIBufferHandle CDX11Device::CreateBuffer(const RHIBufferDesc& desc, const void* pInitialData)
+{
+    if (!m_pDevice || !m_pTables || desc.sizeBytes == 0)
+        return {};
+
+    const bool_t bDynamic = desc.dynamic || desc.memoryUsage == eRHIMemoryUsage::Dynamic;
+
+    D3D11_BUFFER_DESC bufferDesc{};
+    bufferDesc.ByteWidth = desc.sizeBytes;
+    if (desc.usage == eRHIBufferUsage::Constant)
+        bufferDesc.ByteWidth = (bufferDesc.ByteWidth + 15u) & ~15u;
+    bufferDesc.Usage = bDynamic ? D3D11_USAGE_DYNAMIC : D3D11_USAGE_DEFAULT;
+    bufferDesc.CPUAccessFlags = bDynamic ? D3D11_CPU_ACCESS_WRITE : 0;
+
+    switch (desc.usage)
+    {
+    case eRHIBufferUsage::Index:
+        bufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        break;
+    case eRHIBufferUsage::Constant:
+        bufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        break;
+    case eRHIBufferUsage::Vertex:
+    default:
+        bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        break;
+    }
+
+    D3D11_SUBRESOURCE_DATA initData{};
+    initData.pSysMem = pInitialData;
+
+    CDX11BufferObject* pBuffer = new CDX11BufferObject();
+    pBuffer->desc = desc;
+    pBuffer->dynamic = bDynamic;
+
+    if (FAILED(m_pDevice->CreateBuffer(
+        &bufferDesc,
+        pInitialData ? &initData : nullptr,
+        pBuffer->pBuffer.GetAddressOf())))
+    {
+        delete pBuffer;
+        return {};
+    }
+
+    return m_pTables->bufferTable.Insert(pBuffer);
+}
+
+void CDX11Device::DestroyBuffer(RHIBufferHandle handle)
+{
+    if (m_pTables)
+        m_pTables->bufferTable.Erase(handle);
+}
+
+void* CDX11Device::GetBufferNativeHandle(RHIBufferHandle handle, eNativeHandleType type)
+{
+    if (!m_pTables || type != eNativeHandleType::DX11Resource)
+        return nullptr;
+
+    CDX11BufferObject* pBuffer = m_pTables->bufferTable.Lookup(handle);
+    return pBuffer ? pBuffer->pBuffer.Get() : nullptr;
+}
+
+RHIShaderHandle CDX11Device::CreateShader(
+    eRHIShaderStage stage,
+    const void* pBytecode,
+    u32_t sizeBytes,
+    const char* debugName)
+{
+    (void)debugName;
+
+    if (!m_pDevice || !m_pTables || !pBytecode || sizeBytes == 0)
+        return {};
+
+    CDX11ShaderObject* pShader = new CDX11ShaderObject();
+    pShader->stage = stage;
+    pShader->bytecode.resize(sizeBytes);
+    std::memcpy(pShader->bytecode.data(), pBytecode, sizeBytes);
+
+    HRESULT hr = S_OK;
+    if (stage == eRHIShaderStage::Vertex)
+        hr = m_pDevice->CreateVertexShader(pBytecode, sizeBytes, nullptr, pShader->pVS.GetAddressOf());
+    else if (stage == eRHIShaderStage::Pixel)
+        hr = m_pDevice->CreatePixelShader(pBytecode, sizeBytes, nullptr, pShader->pPS.GetAddressOf());
+
+    if (FAILED(hr))
+    {
+        delete pShader;
+        return {};
+    }
+
+    return m_pTables->shaderTable.Insert(pShader);
+}
+
+void CDX11Device::DestroyShader(RHIShaderHandle handle)
+{
+    if (m_pTables)
+        m_pTables->shaderTable.Erase(handle);
+}
+
+RHITextureHandle CDX11Device::CreateTexture(
+    const RHITextureDesc& desc,
+    const void* pInitialData,
+    u32_t rowPitchBytes)
+{
+    if (!m_pDevice || !m_pTables || desc.width == 0 || desc.height == 0)
+        return {};
+
+    const DXGI_FORMAT format = ToDXGIFormat(desc.format);
+    if (format == DXGI_FORMAT_UNKNOWN)
+        return {};
+
+    D3D11_TEXTURE2D_DESC texDesc{};
+    texDesc.Width = desc.width;
+    texDesc.Height = desc.height;
+    texDesc.MipLevels = pInitialData ? 1u : (desc.mipLevels ? desc.mipLevels : 1u);
+    texDesc.ArraySize = 1;
+    texDesc.Format = format;
+    texDesc.SampleDesc.Count = 1;
+    texDesc.Usage = D3D11_USAGE_DEFAULT;
+    texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA initData{};
+    initData.pSysMem = pInitialData;
+    initData.SysMemPitch =
+        rowPitchBytes ? rowPitchBytes : desc.width * BytesPerPixelOf(desc.format);
+
+    CDX11TextureObject* pTexture = new CDX11TextureObject();
+    pTexture->desc = desc;
+
+    if (FAILED(m_pDevice->CreateTexture2D(
+        &texDesc,
+        pInitialData ? &initData : nullptr,
+        pTexture->pTexture.GetAddressOf())))
+    {
+        delete pTexture;
+        return {};
+    }
+
+    if (FAILED(m_pDevice->CreateShaderResourceView(
+        pTexture->pTexture.Get(),
+        nullptr,
+        pTexture->pSRV.GetAddressOf())))
+    {
+        delete pTexture;
+        return {};
+    }
+
+    return m_pTables->textureTable.Insert(pTexture);
+}
+
+void CDX11Device::DestroyTexture(RHITextureHandle handle)
+{
+    if (m_pTables)
+        m_pTables->textureTable.Erase(handle);
+}
+
+void* CDX11Device::GetTextureNativeHandle(RHITextureHandle handle, eNativeHandleType type)
+{
+    if (!m_pTables || type != eNativeHandleType::DX11Resource)
+        return nullptr;
+
+    CDX11TextureObject* pTexture = m_pTables->textureTable.Lookup(handle);
+    return pTexture ? pTexture->pTexture.Get() : nullptr;
+}
+
+RHISamplerHandle CDX11Device::CreateSampler(const RHISamplerDesc& desc)
+{
+    if (!m_pDevice || !m_pTables)
+        return {};
+
+    D3D11_SAMPLER_DESC samplerDesc{};
+    samplerDesc.Filter = ToDX11Filter(desc.filter);
+    samplerDesc.AddressU = ToDX11AddressMode(desc.addressU);
+    samplerDesc.AddressV = ToDX11AddressMode(desc.addressV);
+    samplerDesc.AddressW = ToDX11AddressMode(desc.addressW);
+    samplerDesc.MaxAnisotropy = desc.maxAnisotropy > 1 ? desc.maxAnisotropy : 1;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    samplerDesc.MinLOD = 0.f;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    CDX11SamplerObject* pSampler = new CDX11SamplerObject();
+    pSampler->desc = desc;
+
+    if (FAILED(m_pDevice->CreateSamplerState(&samplerDesc, pSampler->pSampler.GetAddressOf())))
+    {
+        delete pSampler;
+        return {};
+    }
+
+    return m_pTables->samplerTable.Insert(pSampler);
+}
+
+void CDX11Device::DestroySampler(RHISamplerHandle handle)
+{
+    if (m_pTables)
+        m_pTables->samplerTable.Erase(handle);
 }

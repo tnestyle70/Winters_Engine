@@ -1,4 +1,4 @@
-#include "GameObject/Champion/LeeSin/LeeSin_Skills.h"
+﻿#include "GameObject/Champion/LeeSin/LeeSin_Skills.h"
 
 #include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
@@ -117,7 +117,6 @@ namespace
             CVisualHookRegistry::Instance().Register(kLeeSin_E_Cast, &LeeSin::Visual::OnECastFrame);
             CVisualHookRegistry::Instance().Register(kLeeSin_R_Cast, &LeeSin::Visual::OnRCastFrame);
 
-            OutputDebugStringA("[LeeSin] Registration complete\n");
         }
     };
 

@@ -89,7 +89,7 @@ static int CmdMesh(int argc, char** argv)
 {
     if (argc < 4)
     {
-        std::fprintf(stderr, "usage: mesh <input> -o <output> [--skel <wskel>] [--mirror-x] [--scale N]\n");
+        std::fprintf(stderr, "usage: mesh <input> -o <output> [--skel <wskel>] [--mirror-x] [--include-layers] [--scale N]\n");
         return 2;
     }
 
@@ -107,6 +107,8 @@ static int CmdMesh(int argc, char** argv)
             skelPath = Utf8ToWide(argv[++i]);
         else if (arg == "--mirror-x")
             opt.bMirrorX = true;
+        else if (arg == "--include-layers")
+            opt.bIncludeLayerOverlays = true;
         else if (arg == "--scale" && i + 1 < argc)
             opt.fScale = std::strtof(argv[++i], nullptr);
         else

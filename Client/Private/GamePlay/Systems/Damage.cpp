@@ -7,8 +7,6 @@
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 
-#include <Windows.h>
-
 namespace
 {
 	f32_t GetRequiredExperienceForNextLevel(u8_t level)
@@ -90,11 +88,6 @@ void ApplyDamage(CWorld& world, EntityID source, eTeam srcTeam,
 			bKilled);
 	}
 
-	char buf[160];
-	sprintf_s(buf, "[Damage] src=%u target=%u amount=%.1f hp=%.1f/%.1f\n",
-		static_cast<u32_t>(source), static_cast<u32_t>(target), amount,
-		champion.hp, champion.maxHp);
-	OutputDebugStringA(buf);
 }
 
 void EnqueueDamage(CWorld& world, const DamageRequestComponent& req)

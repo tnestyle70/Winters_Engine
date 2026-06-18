@@ -28,8 +28,15 @@ public:
     void RegisterSystem(unique_ptr<ISystem> system);
     void Execute(CWorld& world, float fTimeDelta);
 private:
+    using SystemBatch = vector<ISystem*>;
+    using PhaseExecutionPlan = vector<SystemBatch>;
+
+    void RebuildExecutionPlan();
+
     // Phase = 시스템 실행 순서 그룹.
     // 같은 Phase 는 JobSystem 으로 병렬 실행 가능.
     CJobSystem* m_pJobSystem{ nullptr };
     map<uint32_t, vector<unique_ptr<ISystem>>> m_mapPhases;
+    map<uint32_t, PhaseExecutionPlan> m_mapExecutionPlan;
+    bool_t m_bExecutionPlanDirty{ true };
 };

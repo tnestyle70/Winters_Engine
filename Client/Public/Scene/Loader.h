@@ -17,9 +17,7 @@ NS_BEGIN(Client)
 class CLoader final
 {
 public:
-	//이 문법 도대체 뭐임???
 	using SceneFactory = std::function<std::unique_ptr<IScene>()>;
-	//Factory?? 이런 거를 만든 적이 있었나? 클라이언트에서 만든 거 넘겨 받는 게 아니라 
 	//Factory로 생성? 근거가 뭐였지?
 	static std::unique_ptr<CLoader> Create(eSceneID eNextSceneID,
 		SceneFactory pFactory);

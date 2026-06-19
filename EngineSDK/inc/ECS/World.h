@@ -91,12 +91,45 @@ public:
 		auto it = m_mapStores.find(std::type_index(typeid(T)));
 		return static_cast<CComponentStoreWrapper<T>*>(it->second.get())->GetStore().Get(e);
 	}
+	template<typename T> T* TryGetComponent(EntityID e)
+	{
+		auto* store = TryGetStore<T>();
+		if (!store || !store->Has(e))
+			return nullptr;
+		return &store->Get(e);
+	}
+	template<typename T> const T* TryGetComponent(EntityID e) const
+	{
+		auto* store = TryGetStore<T>();
+		if (!store || !store->Has(e))
+			return nullptr;
+		return &store->Get(e);
+	}
+	template<typename T> T* TryGetComponent(EntityHandle e)
+	{
+		EntityID id = NULL_ENTITY;
+		if (!TryResolveEntity(e, id))
+			return nullptr;
+		return TryGetComponent<T>(id);
+	}
+	template<typename T> const T* TryGetComponent(EntityHandle e) const
+	{
+		EntityID id = NULL_ENTITY;
+		if (!TryResolveEntity(e, id))
+			return nullptr;
+		return TryGetComponent<T>(id);
+	}
 	template<typename T> bool HasComponent(EntityID e) const
 	{
 		auto it = m_mapStores.find(std::type_index(typeid(T)));
 		if (it == m_mapStores.end())
 			return false;
 		return static_cast<CComponentStoreWrapper<T>*>(it->second.get())->GetStore().Has(e);
+	}
+	template<typename T> bool HasComponent(EntityHandle e) const
+	{
+		EntityID id = NULL_ENTITY;
+		return TryResolveEntity(e, id) && HasComponent<T>(id);
 	}
 
 	template<typename T, typename Fn>

@@ -32,6 +32,8 @@ function Invoke-EntitySmoke {
         $cpp = Join-Path $tempDir "EntityGenerationSmoke.cpp"
         $obj = Join-Path $tempDir "EntityGenerationSmoke.obj"
         $exe = Join-Path $tempDir "EntityGenerationSmoke.exe"
+        $worldCpp = Join-Path $tempDir "WorldAccessCompileSmoke.cpp"
+        $worldObj = Join-Path $tempDir "WorldAccessCompileSmoke.obj"
 
         @'
 #include "ECS/Entity.h"
@@ -91,8 +93,9 @@ int main()
 }
 '@ | Set-Content -Encoding ASCII -NoNewline -Path $cpp
 
-        $includeDir = Join-Path $Root "Engine\Public"
-        $compileCmd = "`"$VcVars`" >nul && cl /nologo /std:c++17 /EHsc /W4 /WX /I`"$includeDir`" `"$cpp`" /Fo`"$obj`" /Fe`"$exe`""
+        $publicIncludeDir = Join-Path $Root "Engine\Public"
+        $engineIncludeDir = Join-Path $Root "Engine\Include"
+        $compileCmd = "`"$VcVars`" >nul && cl /nologo /utf-8 /std:c++17 /EHsc /W4 /WX /I`"$publicIncludeDir`" /I`"$engineIncludeDir`" `"$cpp`" /Fo`"$obj`" /Fe`"$exe`""
         cmd /c $compileCmd
         if ($LASTEXITCODE -ne 0) {
             throw "Entity generation smoke compile failed."
@@ -101,6 +104,30 @@ int main()
         & $exe
         if ($LASTEXITCODE -ne 0) {
             throw "Entity generation smoke failed."
+        }
+
+        @'
+#include "ECS/World.h"
+
+struct SmokeComponent
+{
+    int value = 0;
+};
+
+void CompileWorldEntityAccess(CWorld& world, EntityID entity, EntityHandle handle)
+{
+    (void)world.TryGetComponent<SmokeComponent>(entity);
+    (void)static_cast<const CWorld&>(world).TryGetComponent<SmokeComponent>(entity);
+    (void)world.TryGetComponent<SmokeComponent>(handle);
+    (void)static_cast<const CWorld&>(world).TryGetComponent<SmokeComponent>(handle);
+    (void)world.HasComponent<SmokeComponent>(handle);
+}
+'@ | Set-Content -Encoding ASCII -NoNewline -Path $worldCpp
+
+        $worldCompileCmd = "`"$VcVars`" >nul && cl /nologo /utf-8 /std:c++17 /EHsc /W4 /WX /I`"$publicIncludeDir`" /I`"$engineIncludeDir`" /c `"$worldCpp`" /Fo`"$worldObj`""
+        cmd /c $worldCompileCmd
+        if ($LASTEXITCODE -ne 0) {
+            throw "World entity access compile smoke failed."
         }
     }
     finally {

@@ -1,6 +1,6 @@
 #include "GameRoomSmokeRoster.h"
 
-#include "Game/GameRoom.h"
+#include "Game/LobbyAuthority.h"
 
 #include <Windows.h>
 #include <cwchar>

@@ -1,37 +1,11 @@
 #pragma once
 
+#include "SkillCommand.h"
+#include "SkillTypes.h"
 #include "WintersTypes.h"
-#include "WintersMath.h"
-#include "ECS/Entity.h"
 #include "GameContext.h"
 
 #include <cstdint>
-
-enum class eTargetMode : uint8_t
-{
-    Self,
-    UnitTarget,
-    GroundTarget,
-    Direction,
-    Conditional,
-};
-
-enum class eSkillSlot : uint8_t
-{
-    BasicAttack = 0,
-    Q = 1,
-    W = 2,
-    E = 3,
-    R = 4,
-    SLOT_END = 5,
-};
-
-enum class eRotateMode : uint8_t
-{
-    None,
-    TowardsTarget,
-    TowardsCursor,
-};
 
 struct SkillDef
 {
@@ -77,17 +51,6 @@ struct SkillDef
 
     uint16_t skillId = 0;
     uint16_t scalingTableId = 0;
-};
-
-struct CastSkillCommand
-{
-    uint8_t   slot = 0;
-    uint8_t   resolvedTargetMode = 0;
-    uint16_t  _pad = 0;
-
-    EntityID  targetEntityId = NULL_ENTITY;
-    Vec3      groundPos{ 0.f, 0.f, 0.f };
-    Vec3      direction{ 0.f, 0.f, 0.f };
 };
 
 extern const SkillDef* const g_SkillTable;

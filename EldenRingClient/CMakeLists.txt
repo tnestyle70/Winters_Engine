@@ -5,11 +5,13 @@ set(WINTERS_ELDEN_CLIENT_SOURCES
     "${WINTERS_ELDEN_CLIENT_DIR}/Private/main.cpp"
     "${WINTERS_ELDEN_CLIENT_DIR}/Private/EldenRingApp.cpp"
     "${WINTERS_ELDEN_CLIENT_DIR}/Private/EldenAssetProbeScene.cpp"
+    "${WINTERS_ELDEN_CLIENT_DIR}/Private/EldenLimgraveShowcaseScene.cpp"
     "${WINTERS_ELDEN_CLIENT_DIR}/Private/EldenRingRHITestCubeRenderer.cpp"
 )
 
 set(WINTERS_ELDEN_CLIENT_HEADERS
     "${WINTERS_ELDEN_CLIENT_DIR}/Public/EldenRingApp.h"
+    "${WINTERS_ELDEN_CLIENT_DIR}/Public/EldenLimgraveShowcaseScene.h"
     "${WINTERS_ELDEN_CLIENT_DIR}/Public/EldenRingProbeScene.h"
     "${WINTERS_ELDEN_CLIENT_DIR}/Public/EldenRingRenderSettings.h"
     "${WINTERS_ELDEN_CLIENT_DIR}/Public/EldenRingRHITestCubeRenderer.h"
@@ -46,6 +48,8 @@ target_compile_definitions(WintersElden PRIVATE
 target_include_directories(WintersElden PRIVATE
     "${WINTERS_ROOT_DIR}"
     "${WINTERS_ELDEN_CLIENT_DIR}/Public"
+    "${WINTERS_ROOT_DIR}/Engine/External/imgui"
+    "${WINTERS_ROOT_DIR}/Engine/External/imgui/backends"
     "${WINTERS_ROOT_DIR}/Engine/ThirdPartyLib/FlatBuffers/Inc"
 )
 

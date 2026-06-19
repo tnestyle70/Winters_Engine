@@ -1,1 +1,2 @@
-OnEnter done: placed=2681 failed=1107 animated=6
+OnEnter pending: stage=Limgrave Vista
+LoadStage stage=Limgrave Vista placed=1002 failed=0 animated=15 source=989 closed=989 open=0 missingAsset=0 spawnFailed=0 draftLoaded=0 draftApplied=0 draftSkipped=0

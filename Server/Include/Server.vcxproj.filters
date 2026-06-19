@@ -309,7 +309,16 @@
     <ClCompile Include="..\Private\Game\GameRoomCommands.cpp">
       <Filter>02. Game\00. GameRoom\02. Commands</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Game\CommandIngress.cpp">
+      <Filter>02. Game\00. GameRoom\02. Commands</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\SessionBinding.cpp">
+      <Filter>02. Game\00. GameRoom\02. Commands</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Game\GameRoomLobby.cpp">
+      <Filter>02. Game\00. GameRoom\03. Lobby</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\LobbyAuthority.cpp">
       <Filter>02. Game\00. GameRoom\03. Lobby</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Game\GameRoomSmokeRoster.cpp">
@@ -334,6 +343,15 @@
   <ItemGroup>
     <ClInclude Include="..\Public\Game\GameRoom.h">
       <Filter>02. Game\00. GameRoom</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\CommandIngress.h">
+      <Filter>02. Game\00. GameRoom\02. Commands</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\LobbyAuthority.h">
+      <Filter>02. Game\00. GameRoom\03. Lobby</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\SessionBinding.h">
+      <Filter>02. Game\00. GameRoom\02. Commands</Filter>
     </ClInclude>
     <ClInclude Include="..\Private\Game\GameRoomSmokeRoster.h">
       <Filter>02. Game\00. GameRoom\04. SmokeRoster</Filter>

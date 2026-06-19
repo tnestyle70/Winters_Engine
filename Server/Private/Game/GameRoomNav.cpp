@@ -387,8 +387,11 @@ void CGameRoom::InitializeServerWalkableGrid(const Winters::Map::StageData* pSta
         for (const auto& jungle : pStage->jungles)
             includeBounds(Vec3{ jungle.px, jungle.py, jungle.pz });
 
-        for (const LobbySlotState& slot : m_lobbySlots)
+        const LobbySlotState* pLobbySlots = GetLobbySlots();
+        const u32_t lobbySlotCount = GetLobbySlotCount();
+        for (u32_t i = 0; pLobbySlots && i < lobbySlotCount; ++i)
         {
+            const LobbySlotState& slot = pLobbySlots[i];
             if (!slot.bHuman && !slot.bBot)
                 continue;
 
@@ -404,8 +407,11 @@ void CGameRoom::InitializeServerWalkableGrid(const Winters::Map::StageData* pSta
         }
     }
 
-    for (const LobbySlotState& slot : m_lobbySlots)
+    const LobbySlotState* pLobbySlots = GetLobbySlots();
+    const u32_t lobbySlotCount = GetLobbySlotCount();
+    for (u32_t i = 0; pLobbySlots && i < lobbySlotCount; ++i)
     {
+        const LobbySlotState& slot = pLobbySlots[i];
         if (!slot.bHuman && !slot.bBot)
             continue;
 

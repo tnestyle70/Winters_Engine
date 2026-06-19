@@ -4,7 +4,7 @@
 #include "Game/SnapshotBuilder.h"
 #include "Network/Session.h"
 #include "Network/Session_Manager.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/ReplicatedEventSerializer/ReplicatedEventSerializer.h"
@@ -68,8 +68,8 @@ void CGameRoom::BroadcastEventPayload(const u8_t* payload, u32_t payloadSize, u3
         auto pSession = CSession_Manager::Get()->Find(sid);
         if (!pSession)
             continue;
-        if (m_roomPhase == eRoomPhase::InGame &&
-            m_sessionToEntity.find(sid) == m_sessionToEntity.end())
+        if (IsInGamePhase() &&
+            !m_sessionBinding.HasBinding(sid))
         {
             continue;
         }
@@ -106,18 +106,18 @@ void CGameRoom::BroadcastReplicatedEvent(const ReplicatedEventComponent& event, 
 
 void CGameRoom::Phase_BroadcastEvents(TickContext& tc)
 {
-    struct AnimEvent
+    struct ActionEvent
     {
         NetEntityId netId = NULL_NET_ENTITY;
-        NetAnimationComponent anim{};
+        ReplicatedActionComponent action{};
     };
 
-    std::vector<AnimEvent> events;
-    m_world.ForEach<NetAnimationComponent>(
-        std::function<void(EntityID, NetAnimationComponent&)>(
-            [&](EntityID entity, NetAnimationComponent& anim)
+    std::vector<ActionEvent> events;
+    m_world.ForEach<ReplicatedActionComponent>(
+        std::function<void(EntityID, ReplicatedActionComponent&)>(
+            [&](EntityID entity, ReplicatedActionComponent& action)
             {
-                if (anim.actionSeq == 0)
+                if (action.sequence == 0)
                     return;
 
                 const NetEntityId netId = m_entityMap.ToNet(entity);
@@ -125,19 +125,19 @@ void CGameRoom::Phase_BroadcastEvents(TickContext& tc)
                     return;
 
                 u32_t& lastSeq = m_lastBroadcastActionSeq[entity];
-                if (lastSeq == anim.actionSeq)
+                if (lastSeq == action.sequence)
                     return;
 
-                lastSeq = anim.actionSeq;
-                events.push_back(AnimEvent{ netId, anim });
+                lastSeq = action.sequence;
+                events.push_back(ActionEvent{ netId, action });
             }));
 
-    for (const AnimEvent& ev : events)
+    for (const ActionEvent& ev : events)
     {
         SharedSim::SerializedReplicatedEvent serialized{};
-        if (!SharedSim::CReplicatedEventSerializer::BuildAnimationStart(
+        if (!SharedSim::CReplicatedEventSerializer::BuildActionStart(
             ev.netId,
-            ev.anim,
+            ev.action,
             tc.tickIndex,
             serialized))
         {
@@ -192,8 +192,8 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
         if (!pSession)
             continue;
 
-        auto entityIt = m_sessionToEntity.find(sid);
-        if (entityIt == m_sessionToEntity.end() || entityIt->second == NULL_ENTITY)
+        EntityID controlledEntity = NULL_ENTITY;
+        if (!m_sessionBinding.TryGet(sid, controlledEntity) || controlledEntity == NULL_ENTITY)
             continue;
 
         const auto ackIt = m_lastSimCommandSeqBySession.find(sid);
@@ -207,7 +207,7 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
             ResolveServerGameTimeMs(tc.tickIndex),
             m_rng.GetState(),
             lastSimCommandSeq,
-            m_entityMap.ToNet(entityIt->second));
+            m_entityMap.ToNet(controlledEntity));
 
         auto packet = WrapEnvelope(
             ePacketType::Snapshot,

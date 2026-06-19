@@ -18,7 +18,7 @@ namespace Engine
 
 namespace Shared::Schema
 {
-    struct AnimationStartEvent;
+    struct ActionStartEvent;
     struct DamageEvent;
     struct EffectTriggerEvent;
     struct ProjectileHitEvent;
@@ -45,10 +45,10 @@ public:
 private:
     CEventApplier() = default;
 
-    void ApplyAnimationStart(
+    void ApplyActionStart(
         CWorld& world,
         EntityIdMap& entityMap,
-        const Shared::Schema::AnimationStartEvent* ev);
+        const Shared::Schema::ActionStartEvent* ev);
     void ApplyProjectileSpawn(
         CWorld& world,
         EntityIdMap& entityMap,
@@ -72,17 +72,16 @@ private:
         const Shared::Schema::KillFeedEvent* ev,
         u64_t serverTick);
 
-    void PlayNetworkAnimation(
+    void PlayReplicatedActionVisual(
         CWorld& world,
         EntityID entity,
-        u16_t animId,
-        u16_t playbackRateQ8,
-        u16_t flags);
+        u16_t actionId,
+        u8_t actionStage);
     void SpawnBillboard(CWorld& world, const Vec3& pos, const Vec3& velocity,
         const wchar_t* texturePath, f32_t width, f32_t height, f32_t lifetime,
         EntityID attachTo = NULL_ENTITY);
 
-    std::unordered_map<NetEntityId, u32_t> m_lastAnimationSeq;
+    std::unordered_map<NetEntityId, u32_t> m_lastActionSeq;
     std::unordered_set<u64_t> m_seenEffectCueKeys;
     std::unordered_set<u64_t> m_seenProjectileCueKeys;
     std::unordered_set<u64_t> m_seenKillFeedKeys;

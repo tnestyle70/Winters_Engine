@@ -5,7 +5,7 @@
 #include "Shared/GameSim/Components/AttackChaseComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
@@ -53,16 +53,9 @@ namespace
 			world.RemoveComponent<AttackChaseComponent>(entity);
 	}
 
-	void SetIdleAnimation(CWorld& world, EntityID entity, const TickContext& tc)
+	void SetIdlePose(CWorld& world, EntityID entity, const TickContext& tc)
 	{
-		auto& anim = world.HasComponent<NetAnimationComponent>(entity)
-			? world.GetComponent<NetAnimationComponent>(entity)
-			: world.AddComponent<NetAnimationComponent>(entity, NetAnimationComponent{});
-
-		anim.animId = static_cast<u16_t>(eNetAnimId::Idle);
-		anim.animStartTick = tc.tickIndex;
-		anim.animPhaseFrame = static_cast<u16_t>(tc.tickIndex & 0xffffu);
-		++anim.actionSeq;
+		SetPoseState(world, entity, ePoseStateId::Idle, tc.tickIndex);
 	}
 }
 
@@ -100,7 +93,7 @@ void CRecallSystem::Execute(CWorld& world, const TickContext& tc)
 		RefillHealth(world, entity);
 		ClearMoveTarget(world, entity);
 		ClearAttackChase(world, entity);
-		SetIdleAnimation(world, entity, tc);
+		SetIdlePose(world, entity, tc);
 		world.RemoveComponent<RecallComponent>(entity);
 	}
 }

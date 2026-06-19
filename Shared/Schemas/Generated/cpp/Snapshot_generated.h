@@ -320,24 +320,24 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_POSZ = 26,
     VT_YAW = 28,
     VT_MOVESPEED = 30,
-    VT_ANIMID = 32,
-    VT_ANIMPHASEFRAME = 34,
-    VT_SKILLCOOLDOWNS = 36,
-    VT_SKILLCOOLDOWNDURATIONS = 38,
-    VT_SKILLRANKS = 40,
-    VT_BUFFMASK = 42,
-    VT_STATHASH = 44,
-    VT_ENTITYKIND = 46,
-    VT_OWNERNET = 48,
-    VT_SUBTYPE = 50,
-    VT_MAXHP = 52,
-    VT_MAXMANA = 54,
-    VT_SHIELD = 56,
-    VT_STATEFLAGS = 58,
-    VT_ANIMSTARTTICK = 60,
-    VT_ACTIONSEQ = 62,
-    VT_ANIMPLAYBACKRATEQ8 = 64,
-    VT_ANIMFLAGS = 66,
+    VT_POSEID = 32,
+    VT_POSESTARTTICK = 34,
+    VT_ACTIONID = 36,
+    VT_ACTIONSTARTTICK = 38,
+    VT_ACTIONSEQ = 40,
+    VT_ACTIONSTAGE = 42,
+    VT_SKILLCOOLDOWNS = 44,
+    VT_SKILLCOOLDOWNDURATIONS = 46,
+    VT_SKILLRANKS = 48,
+    VT_BUFFMASK = 50,
+    VT_STATHASH = 52,
+    VT_ENTITYKIND = 54,
+    VT_OWNERNET = 56,
+    VT_SUBTYPE = 58,
+    VT_MAXHP = 60,
+    VT_MAXMANA = 62,
+    VT_SHIELD = 64,
+    VT_STATEFLAGS = 66,
     VT_PROJECTILEKIND = 68,
     VT_PROJECTILEOWNERNET = 70,
     VT_PROJECTILETARGETNET = 72,
@@ -452,11 +452,23 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   float moveSpeed() const {
     return GetField<float>(VT_MOVESPEED, 0.0f);
   }
-  uint16_t animId() const {
-    return GetField<uint16_t>(VT_ANIMID, 0);
+  uint16_t poseId() const {
+    return GetField<uint16_t>(VT_POSEID, 0);
   }
-  uint16_t animPhaseFrame() const {
-    return GetField<uint16_t>(VT_ANIMPHASEFRAME, 0);
+  uint64_t poseStartTick() const {
+    return GetField<uint64_t>(VT_POSESTARTTICK, 0);
+  }
+  uint16_t actionId() const {
+    return GetField<uint16_t>(VT_ACTIONID, 0);
+  }
+  uint64_t actionStartTick() const {
+    return GetField<uint64_t>(VT_ACTIONSTARTTICK, 0);
+  }
+  uint32_t actionSeq() const {
+    return GetField<uint32_t>(VT_ACTIONSEQ, 0);
+  }
+  uint8_t actionStage() const {
+    return GetField<uint8_t>(VT_ACTIONSTAGE, 1);
   }
   const ::flatbuffers::Vector<float> *skillCooldowns() const {
     return GetPointer<const ::flatbuffers::Vector<float> *>(VT_SKILLCOOLDOWNS);
@@ -493,18 +505,6 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   }
   uint32_t stateFlags() const {
     return GetField<uint32_t>(VT_STATEFLAGS, 0);
-  }
-  uint64_t animStartTick() const {
-    return GetField<uint64_t>(VT_ANIMSTARTTICK, 0);
-  }
-  uint32_t actionSeq() const {
-    return GetField<uint32_t>(VT_ACTIONSEQ, 0);
-  }
-  uint16_t animPlaybackRateQ8() const {
-    return GetField<uint16_t>(VT_ANIMPLAYBACKRATEQ8, 256);
-  }
-  uint16_t animFlags() const {
-    return GetField<uint16_t>(VT_ANIMFLAGS, 0);
   }
   uint16_t projectileKind() const {
     return GetField<uint16_t>(VT_PROJECTILEKIND, 0);
@@ -736,8 +736,12 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<float>(verifier, VT_POSZ, 4) &&
            VerifyField<float>(verifier, VT_YAW, 4) &&
            VerifyField<float>(verifier, VT_MOVESPEED, 4) &&
-           VerifyField<uint16_t>(verifier, VT_ANIMID, 2) &&
-           VerifyField<uint16_t>(verifier, VT_ANIMPHASEFRAME, 2) &&
+           VerifyField<uint16_t>(verifier, VT_POSEID, 2) &&
+           VerifyField<uint64_t>(verifier, VT_POSESTARTTICK, 8) &&
+           VerifyField<uint16_t>(verifier, VT_ACTIONID, 2) &&
+           VerifyField<uint64_t>(verifier, VT_ACTIONSTARTTICK, 8) &&
+           VerifyField<uint32_t>(verifier, VT_ACTIONSEQ, 4) &&
+           VerifyField<uint8_t>(verifier, VT_ACTIONSTAGE, 1) &&
            VerifyOffset(verifier, VT_SKILLCOOLDOWNS) &&
            verifier.VerifyVector(skillCooldowns()) &&
            VerifyOffset(verifier, VT_SKILLCOOLDOWNDURATIONS) &&
@@ -753,10 +757,6 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<float>(verifier, VT_MAXMANA, 4) &&
            VerifyField<float>(verifier, VT_SHIELD, 4) &&
            VerifyField<uint32_t>(verifier, VT_STATEFLAGS, 4) &&
-           VerifyField<uint64_t>(verifier, VT_ANIMSTARTTICK, 8) &&
-           VerifyField<uint32_t>(verifier, VT_ACTIONSEQ, 4) &&
-           VerifyField<uint16_t>(verifier, VT_ANIMPLAYBACKRATEQ8, 2) &&
-           VerifyField<uint16_t>(verifier, VT_ANIMFLAGS, 2) &&
            VerifyField<uint16_t>(verifier, VT_PROJECTILEKIND, 2) &&
            VerifyField<uint32_t>(verifier, VT_PROJECTILEOWNERNET, 4) &&
            VerifyField<uint32_t>(verifier, VT_PROJECTILETARGETNET, 4) &&
@@ -884,11 +884,23 @@ struct EntitySnapshotBuilder {
   void add_moveSpeed(float moveSpeed) {
     fbb_.AddElement<float>(EntitySnapshot::VT_MOVESPEED, moveSpeed, 0.0f);
   }
-  void add_animId(uint16_t animId) {
-    fbb_.AddElement<uint16_t>(EntitySnapshot::VT_ANIMID, animId, 0);
+  void add_poseId(uint16_t poseId) {
+    fbb_.AddElement<uint16_t>(EntitySnapshot::VT_POSEID, poseId, 0);
   }
-  void add_animPhaseFrame(uint16_t animPhaseFrame) {
-    fbb_.AddElement<uint16_t>(EntitySnapshot::VT_ANIMPHASEFRAME, animPhaseFrame, 0);
+  void add_poseStartTick(uint64_t poseStartTick) {
+    fbb_.AddElement<uint64_t>(EntitySnapshot::VT_POSESTARTTICK, poseStartTick, 0);
+  }
+  void add_actionId(uint16_t actionId) {
+    fbb_.AddElement<uint16_t>(EntitySnapshot::VT_ACTIONID, actionId, 0);
+  }
+  void add_actionStartTick(uint64_t actionStartTick) {
+    fbb_.AddElement<uint64_t>(EntitySnapshot::VT_ACTIONSTARTTICK, actionStartTick, 0);
+  }
+  void add_actionSeq(uint32_t actionSeq) {
+    fbb_.AddElement<uint32_t>(EntitySnapshot::VT_ACTIONSEQ, actionSeq, 0);
+  }
+  void add_actionStage(uint8_t actionStage) {
+    fbb_.AddElement<uint8_t>(EntitySnapshot::VT_ACTIONSTAGE, actionStage, 1);
   }
   void add_skillCooldowns(::flatbuffers::Offset<::flatbuffers::Vector<float>> skillCooldowns) {
     fbb_.AddOffset(EntitySnapshot::VT_SKILLCOOLDOWNS, skillCooldowns);
@@ -925,18 +937,6 @@ struct EntitySnapshotBuilder {
   }
   void add_stateFlags(uint32_t stateFlags) {
     fbb_.AddElement<uint32_t>(EntitySnapshot::VT_STATEFLAGS, stateFlags, 0);
-  }
-  void add_animStartTick(uint64_t animStartTick) {
-    fbb_.AddElement<uint64_t>(EntitySnapshot::VT_ANIMSTARTTICK, animStartTick, 0);
-  }
-  void add_actionSeq(uint32_t actionSeq) {
-    fbb_.AddElement<uint32_t>(EntitySnapshot::VT_ACTIONSEQ, actionSeq, 0);
-  }
-  void add_animPlaybackRateQ8(uint16_t animPlaybackRateQ8) {
-    fbb_.AddElement<uint16_t>(EntitySnapshot::VT_ANIMPLAYBACKRATEQ8, animPlaybackRateQ8, 256);
-  }
-  void add_animFlags(uint16_t animFlags) {
-    fbb_.AddElement<uint16_t>(EntitySnapshot::VT_ANIMFLAGS, animFlags, 0);
   }
   void add_projectileKind(uint16_t projectileKind) {
     fbb_.AddElement<uint16_t>(EntitySnapshot::VT_PROJECTILEKIND, projectileKind, 0);
@@ -1178,8 +1178,12 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
     float posZ = 0.0f,
     float yaw = 0.0f,
     float moveSpeed = 0.0f,
-    uint16_t animId = 0,
-    uint16_t animPhaseFrame = 0,
+    uint16_t poseId = 0,
+    uint64_t poseStartTick = 0,
+    uint16_t actionId = 0,
+    uint64_t actionStartTick = 0,
+    uint32_t actionSeq = 0,
+    uint8_t actionStage = 1,
     ::flatbuffers::Offset<::flatbuffers::Vector<float>> skillCooldowns = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<float>> skillCooldownDurations = 0,
     ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> skillRanks = 0,
@@ -1192,10 +1196,6 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
     float maxMana = 0.0f,
     float shield = 0.0f,
     uint32_t stateFlags = 0,
-    uint64_t animStartTick = 0,
-    uint32_t actionSeq = 0,
-    uint16_t animPlaybackRateQ8 = 256,
-    uint16_t animFlags = 0,
     uint16_t projectileKind = 0,
     uint32_t projectileOwnerNet = 0,
     uint32_t projectileTargetNet = 0,
@@ -1268,7 +1268,8 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
     uint8_t spellbookSlot = 0,
     float spellbookRemaining = 0.0f) {
   EntitySnapshotBuilder builder_(_fbb);
-  builder_.add_animStartTick(animStartTick);
+  builder_.add_actionStartTick(actionStartTick);
+  builder_.add_poseStartTick(poseStartTick);
   builder_.add_spellbookRemaining(spellbookRemaining);
   builder_.add_aiDebugTrace(aiDebugTrace);
   builder_.add_aiDebugDiveExtraBAWindow(aiDebugDiveExtraBAWindow);
@@ -1325,7 +1326,6 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
   builder_.add_projectileSpeed(projectileSpeed);
   builder_.add_projectileTargetNet(projectileTargetNet);
   builder_.add_projectileOwnerNet(projectileOwnerNet);
-  builder_.add_actionSeq(actionSeq);
   builder_.add_stateFlags(stateFlags);
   builder_.add_shield(shield);
   builder_.add_maxMana(maxMana);
@@ -1336,6 +1336,7 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
   builder_.add_skillRanks(skillRanks);
   builder_.add_skillCooldownDurations(skillCooldownDurations);
   builder_.add_skillCooldowns(skillCooldowns);
+  builder_.add_actionSeq(actionSeq);
   builder_.add_moveSpeed(moveSpeed);
   builder_.add_yaw(yaw);
   builder_.add_posZ(posZ);
@@ -1350,11 +1351,9 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
   builder_.add_deaths(deaths);
   builder_.add_kills(kills);
   builder_.add_projectileKind(projectileKind);
-  builder_.add_animFlags(animFlags);
-  builder_.add_animPlaybackRateQ8(animPlaybackRateQ8);
   builder_.add_subtype(subtype);
-  builder_.add_animPhaseFrame(animPhaseFrame);
-  builder_.add_animId(animId);
+  builder_.add_actionId(actionId);
+  builder_.add_poseId(poseId);
   builder_.add_spellbookSlot(spellbookSlot);
   builder_.add_spellbookChampionId(spellbookChampionId);
   builder_.add_skillSlotMask(skillSlotMask);
@@ -1367,6 +1366,7 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
   builder_.add_aiDebugLastCommandSlot(aiDebugLastCommandSlot);
   builder_.add_aiDebugLastCommandKind(aiDebugLastCommandKind);
   builder_.add_entityKind(entityKind);
+  builder_.add_actionStage(actionStage);
   builder_.add_skillPoints(skillPoints);
   builder_.add_level(level);
   builder_.add_team(team);
@@ -1390,8 +1390,12 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
     float posZ = 0.0f,
     float yaw = 0.0f,
     float moveSpeed = 0.0f,
-    uint16_t animId = 0,
-    uint16_t animPhaseFrame = 0,
+    uint16_t poseId = 0,
+    uint64_t poseStartTick = 0,
+    uint16_t actionId = 0,
+    uint64_t actionStartTick = 0,
+    uint32_t actionSeq = 0,
+    uint8_t actionStage = 1,
     const std::vector<float> *skillCooldowns = nullptr,
     const std::vector<float> *skillCooldownDurations = nullptr,
     const std::vector<uint8_t> *skillRanks = nullptr,
@@ -1404,10 +1408,6 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
     float maxMana = 0.0f,
     float shield = 0.0f,
     uint32_t stateFlags = 0,
-    uint64_t animStartTick = 0,
-    uint32_t actionSeq = 0,
-    uint16_t animPlaybackRateQ8 = 256,
-    uint16_t animFlags = 0,
     uint16_t projectileKind = 0,
     uint32_t projectileOwnerNet = 0,
     uint32_t projectileTargetNet = 0,
@@ -1503,8 +1503,12 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
       posZ,
       yaw,
       moveSpeed,
-      animId,
-      animPhaseFrame,
+      poseId,
+      poseStartTick,
+      actionId,
+      actionStartTick,
+      actionSeq,
+      actionStage,
       skillCooldowns__,
       skillCooldownDurations__,
       skillRanks__,
@@ -1517,10 +1521,6 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
       maxMana,
       shield,
       stateFlags,
-      animStartTick,
-      actionSeq,
-      animPlaybackRateQ8,
-      animFlags,
       projectileKind,
       projectileOwnerNet,
       projectileTargetNet,

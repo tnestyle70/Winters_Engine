@@ -24,6 +24,41 @@ struct EldenCharacterPlacement
     ModelRenderer* pRenderer = nullptr;
 };
 
+struct EldenLimgraveTileSummary
+{
+    std::string strTile;
+    std::string strRole;
+    u32_t iPlaced = 0;
+    u32_t iUnresolved = 0;
+};
+
+struct EldenRuntimeMapPlacement
+{
+    std::string strTile;
+    std::string strKind;
+    std::string strName;
+    std::string strModel;
+    std::string strWmesh;
+    Vec3 vPosition{};
+    Vec3 vRotationDeg{};
+    Vec3 vScale{ 1.f, 1.f, 1.f };
+    ModelRenderer* pRenderer = nullptr;
+    bool bAnimated = false;
+};
+
+enum class EldenMapClosure
+{
+    Closed,
+    MissingAsset,
+    SpawnFailed
+};
+
+enum class EldenShowcaseStage
+{
+    StartingCave,
+    LimgraveVista
+};
+
 // Limgrave showcase: every cooked map tile placement under Maps/Limgrave/*/
 // plus a character lineup (uniform display height, cycling through each
 // model's animations) and the giant tree AEG099_720 as the Erdtree stand-in.
@@ -56,20 +91,62 @@ private:
                                  bool bCycleAnims);
     Mat4 BuildCharacterWorldMatrix(const EldenCharacterPlacement& placement) const;
     void ApplyCharacterTransform(EldenCharacterPlacement& placement);
+    void ApplyMapPlacementTransform(EldenRuntimeMapPlacement& placement);
     bool SaveCharacterPlacements() const;
+    bool SaveMapPlacementDraft() const;
+    void LoadMapPlacementDraft();
+    std::string GetMapPlacementDraftRelative() const;
     void FrameLineup();
     void FrameErdtree();
-    void SpawnPlacements();
+    void FrameStartingCave();
+    void FrameLimgraveVista();
+    void SetFreeCameraLookAt(const Vec3& vEye, const Vec3& vTarget);
+    bool LoadStage(EldenShowcaseStage eStage);
+    void ClearShowcaseWorld();
+    void ResetMapCounters();
+    void UpdateStageProgression();
+    void SpawnPlacements(const std::string& strMapsRootRelative);
     void SpawnCharacterPlacements();
     void SpawnErdtree();
+    bool LoadVerticalSliceManifest(const std::string& strManifestRelative,
+                                   const char* pTilesArrayKey,
+                                   const char* pCoverageKey);
+    bool IsFocusTile(const std::string& strTile) const;
+    EldenMapClosure TrySpawnMapPlacement(const std::string& strTile,
+                                         const std::vector<std::string>& fields,
+                                         bool bCycleAnims);
+    void WriteMapClosureAudit(const std::string& strAuditRelative) const;
+    const char* GetStageName() const;
 
     std::vector<ShowcaseInstance> m_Instances;
     std::vector<EldenCharacterPlacement> m_CharacterPlacements;
+    std::vector<EldenRuntimeMapPlacement> m_MapPlacements;
+    std::vector<EldenLimgraveTileSummary> m_FocusTiles;
     u32_t m_iPlacedCount = 0;
     u32_t m_iFailedCount = 0;
     u32_t m_iAnimatedCount = 0;
+    u32_t m_iSlicePlacedTotal = 0;
+    u32_t m_iSliceUnresolvedTotal = 0;
+    u32_t m_iTilesScanned = 0;
+    u32_t m_iTilesLoaded = 0;
+    u32_t m_iTilesSkipped = 0;
+    u32_t m_iMapSourceCount = 0;
+    u32_t m_iMapClosedCount = 0;
+    u32_t m_iMapMissingAssetCount = 0;
+    u32_t m_iMapSpawnFailedCount = 0;
+    u32_t m_iMapDraftLoadedCount = 0;
+    u32_t m_iMapDraftAppliedCount = 0;
+    u32_t m_iMapDraftSkippedCount = 0;
     i32_t m_iSelectedCharacter = 0;
+    i32_t m_iSelectedMapPlacement = 0;
     bool m_bErdtreeLoaded = false;
+    bool m_bVerticalSliceLoaded = false;
+    bool m_bLoadOnlyFocusTiles = true;
+    bool m_bStageLoaded = false;
+    bool m_bStageLoadAttempted = false;
+    bool m_bStageAdvanceWasDown = false;
+    bool m_bStageCaveWasDown = false;
+    EldenShowcaseStage m_eStage = EldenShowcaseStage::StartingCave;
 
     void UpdateFreeCamera(f32_t deltaTime);
 
@@ -80,13 +157,12 @@ private:
     f32_t m_fOrbitHeight = 8.f;
     f32_t m_fAspect = 16.f / 9.f;
 
-    // Auto orbit is the safe startup view; F2 switches into WASD free camera.
-    // Mouse look is available in free camera; F1 releases the cursor.
-    bool m_bFreeCam = false;
+    // Startup uses visible-cursor FPS navigation: WASD/QE/Shift move, mouse looks, F1 toggles mouse look.
+    bool m_bFreeCam = true;
     bool m_bFreeCamToggleArmed = false;
     bool m_bFreeCamToggleWasDown = false;
     bool m_bRotating = false;
-    bool m_bMouseLook = true;    // FPS mouse-look on by default; F1 toggles off
+    bool m_bMouseLook = true;
     bool m_bMouseLookInit = false;
     bool m_bF1WasDown = false;
     Vec3 m_vCamPos{ -16.138f, 112.0f, -148.0f };

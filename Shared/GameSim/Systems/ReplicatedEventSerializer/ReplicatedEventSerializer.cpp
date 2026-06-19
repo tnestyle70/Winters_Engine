@@ -226,37 +226,36 @@ namespace SharedSim
         }
     }
 
-    bool_t CReplicatedEventSerializer::BuildAnimationStart(
+    bool_t CReplicatedEventSerializer::BuildActionStart(
         NetEntityId netId,
-        const NetAnimationComponent& anim,
+        const ReplicatedActionComponent& action,
         u64_t serverTick,
         SerializedReplicatedEvent& out)
     {
         Reset(out);
 
-        if (netId == NULL_NET_ENTITY || anim.actionSeq == 0)
+        if (netId == NULL_NET_ENTITY || action.sequence == 0)
             return false;
 
         flatbuffers::FlatBufferBuilder fbb(128);
-        const auto animation = Shared::Schema::CreateAnimationStartEvent(
+        const auto actionStart = Shared::Schema::CreateActionStartEvent(
             fbb,
             netId,
-            anim.animId,
-            anim.actionSeq,
-            anim.animStartTick,
-            anim.playbackRateQ8,
-            anim.flags);
+            action.actionId,
+            action.stage,
+            action.sequence,
+            action.startTick);
 
         return Finish(fbb, Shared::Schema::CreateEventPacket(
             fbb,
-            Shared::Schema::EventKind::AnimationStart,
+            Shared::Schema::EventKind::ActionStart,
             serverTick,
             0,
             0,
             0,
             0,
             0,
-            animation,
+            actionStart,
             0), out);
     }
 }

@@ -12,8 +12,9 @@
 #include "ECS/SpatialIndex.h"
 #include "ProfilerAPI.h"
 #include "Scene/RenderVisibilityFilter.h"
+#include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/PoseStateComponent.h"
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
@@ -288,14 +289,14 @@ namespace
 
     MinionStateComponent::State ResolveMinionBaseVisualState(
         const MinionStateComponent& ms,
-        const NetAnimationComponent* pNetAnim)
+        const PoseStateComponent* pPose)
     {
-        if (pNetAnim)
+        if (pPose)
         {
-            const auto netAnim = static_cast<eNetAnimId>(pNetAnim->animId);
-            if (netAnim == eNetAnimId::Run)
+            const auto poseId = static_cast<ePoseStateId>(pPose->poseId);
+            if (poseId == ePoseStateId::Run)
                 return MinionStateComponent::LaneMove;
-            if (netAnim == eNetAnimId::Idle)
+            if (poseId == ePoseStateId::Idle)
                 return MinionStateComponent::Idle;
         }
 
@@ -542,9 +543,13 @@ void CMinion_Manager::UpdateMinionVisual(
 
     auto& visual = m_mapVisualStates[entity];
 
-    const NetAnimationComponent* pNetAnim = nullptr;
-    if (m_pWorld && m_pWorld->HasComponent<NetAnimationComponent>(entity))
-        pNetAnim = &m_pWorld->GetComponent<NetAnimationComponent>(entity);
+    const PoseStateComponent* pPose = nullptr;
+    if (m_pWorld && m_pWorld->HasComponent<PoseStateComponent>(entity))
+        pPose = &m_pWorld->GetComponent<PoseStateComponent>(entity);
+
+    const ActionStateComponent* pAction = nullptr;
+    if (m_pWorld && m_pWorld->HasComponent<ActionStateComponent>(entity))
+        pAction = &m_pWorld->GetComponent<ActionStateComponent>(entity);
 
     if (ms.current == MinionStateComponent::Dead)
     {
@@ -561,29 +566,31 @@ void CMinion_Manager::UpdateMinionVisual(
         return;
     }
 
-    const uint16_t animId = pNetAnim
-        ? pNetAnim->animId
-        : static_cast<uint16_t>(eNetAnimId::None);
-    const uint32_t actionSeq = pNetAnim ? pNetAnim->actionSeq : 0u;
-    const eNetAnimId netAnimId = static_cast<eNetAnimId>(animId);
+    const uint16_t actionId = pAction
+        ? pAction->actionId
+        : static_cast<uint16_t>(eActionStateId::None);
+    const uint32_t actionSeq = pAction ? pAction->sequence : 0u;
+    const ePoseStateId poseId = pPose
+        ? static_cast<ePoseStateId>(pPose->poseId)
+        : ePoseStateId::None;
     const bool_t bNetworkBaseAnimation =
-        pNetAnim &&
-        (netAnimId == eNetAnimId::Run ||
-            netAnimId == eNetAnimId::Idle);
+        pPose &&
+        (poseId == ePoseStateId::Run ||
+            poseId == ePoseStateId::Idle);
     const bool_t bNetworkBasicAttack =
-        pNetAnim &&
-        netAnimId == eNetAnimId::BasicAttack &&
+        pAction &&
+        static_cast<eActionStateId>(actionId) == eActionStateId::BasicAttack &&
         actionSeq != 0u &&
-        (visual.lastActionSeq != actionSeq || visual.lastAnimId != animId);
+        (visual.lastActionSeq != actionSeq || visual.lastAnimId != actionId);
     const bool_t bLocalBasicAttack =
-        !pNetAnim &&
+        actionSeq == 0u &&
         ms.current == MinionStateComponent::Attack &&
         ms.bAttackAnimRequested;
 
     if (bNetworkBasicAttack || bLocalBasicAttack)
     {
         visual.lastActionSeq = actionSeq;
-        visual.lastAnimId = animId;
+        visual.lastAnimId = actionId;
         ms.bAttackAnimRequested = false;
 
         if (visual.phase == eMinionVisualPhase::Recover)
@@ -670,7 +677,7 @@ void CMinion_Manager::UpdateMinionVisual(
     }
 
     const MinionStateComponent::State baseState =
-        ResolveMinionBaseVisualState(ms, pNetAnim);
+        ResolveMinionBaseVisualState(ms, pPose);
     const uint8_t baseStateValue = static_cast<uint8_t>(baseState);
 
     if (visual.baseState != baseStateValue)

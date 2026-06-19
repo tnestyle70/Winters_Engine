@@ -209,7 +209,7 @@ func (rcv *EntitySnapshot) MutateMoveSpeed(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(30, n)
 }
 
-func (rcv *EntitySnapshot) AnimId() uint16 {
+func (rcv *EntitySnapshot) PoseId() uint16 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
 	if o != 0 {
 		return rcv._tab.GetUint16(o + rcv._tab.Pos)
@@ -217,24 +217,72 @@ func (rcv *EntitySnapshot) AnimId() uint16 {
 	return 0
 }
 
-func (rcv *EntitySnapshot) MutateAnimId(n uint16) bool {
+func (rcv *EntitySnapshot) MutatePoseId(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(32, n)
 }
 
-func (rcv *EntitySnapshot) AnimPhaseFrame() uint16 {
+func (rcv *EntitySnapshot) PoseStartTick() uint64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutatePoseStartTick(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(34, n)
+}
+
+func (rcv *EntitySnapshot) ActionId() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
 	if o != 0 {
 		return rcv._tab.GetUint16(o + rcv._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *EntitySnapshot) MutateAnimPhaseFrame(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(34, n)
+func (rcv *EntitySnapshot) MutateActionId(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(36, n)
+}
+
+func (rcv *EntitySnapshot) ActionStartTick() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateActionStartTick(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(38, n)
+}
+
+func (rcv *EntitySnapshot) ActionSeq() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateActionSeq(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(40, n)
+}
+
+func (rcv *EntitySnapshot) ActionStage() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 1
+}
+
+func (rcv *EntitySnapshot) MutateActionStage(n byte) bool {
+	return rcv._tab.MutateByteSlot(42, n)
 }
 
 func (rcv *EntitySnapshot) SkillCooldowns(j int) float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetFloat32(a + flatbuffers.UOffsetT(j*4))
@@ -243,7 +291,7 @@ func (rcv *EntitySnapshot) SkillCooldowns(j int) float32 {
 }
 
 func (rcv *EntitySnapshot) SkillCooldownsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -251,7 +299,7 @@ func (rcv *EntitySnapshot) SkillCooldownsLength() int {
 }
 
 func (rcv *EntitySnapshot) MutateSkillCooldowns(j int, n float32) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateFloat32(a+flatbuffers.UOffsetT(j*4), n)
@@ -260,7 +308,7 @@ func (rcv *EntitySnapshot) MutateSkillCooldowns(j int, n float32) bool {
 }
 
 func (rcv *EntitySnapshot) SkillCooldownDurations(j int) float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetFloat32(a + flatbuffers.UOffsetT(j*4))
@@ -269,7 +317,7 @@ func (rcv *EntitySnapshot) SkillCooldownDurations(j int) float32 {
 }
 
 func (rcv *EntitySnapshot) SkillCooldownDurationsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -277,7 +325,7 @@ func (rcv *EntitySnapshot) SkillCooldownDurationsLength() int {
 }
 
 func (rcv *EntitySnapshot) MutateSkillCooldownDurations(j int, n float32) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateFloat32(a+flatbuffers.UOffsetT(j*4), n)
@@ -286,7 +334,7 @@ func (rcv *EntitySnapshot) MutateSkillCooldownDurations(j int, n float32) bool {
 }
 
 func (rcv *EntitySnapshot) SkillRanks(j int) byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
@@ -295,7 +343,7 @@ func (rcv *EntitySnapshot) SkillRanks(j int) byte {
 }
 
 func (rcv *EntitySnapshot) SkillRanksLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -303,7 +351,7 @@ func (rcv *EntitySnapshot) SkillRanksLength() int {
 }
 
 func (rcv *EntitySnapshot) SkillRanksBytes() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -311,7 +359,7 @@ func (rcv *EntitySnapshot) SkillRanksBytes() []byte {
 }
 
 func (rcv *EntitySnapshot) MutateSkillRanks(j int, n byte) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
 	if o != 0 {
 		a := rcv._tab.Vector(o)
 		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
@@ -320,7 +368,7 @@ func (rcv *EntitySnapshot) MutateSkillRanks(j int, n byte) bool {
 }
 
 func (rcv *EntitySnapshot) BuffMask() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(50))
 	if o != 0 {
 		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
@@ -328,11 +376,11 @@ func (rcv *EntitySnapshot) BuffMask() uint32 {
 }
 
 func (rcv *EntitySnapshot) MutateBuffMask(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(42, n)
+	return rcv._tab.MutateUint32Slot(50, n)
 }
 
 func (rcv *EntitySnapshot) StatHash() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
 	if o != 0 {
 		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
@@ -340,11 +388,11 @@ func (rcv *EntitySnapshot) StatHash() uint32 {
 }
 
 func (rcv *EntitySnapshot) MutateStatHash(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(44, n)
+	return rcv._tab.MutateUint32Slot(52, n)
 }
 
 func (rcv *EntitySnapshot) EntityKind() EntityKind {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
 	if o != 0 {
 		return EntityKind(rcv._tab.GetByte(o + rcv._tab.Pos))
 	}
@@ -352,11 +400,11 @@ func (rcv *EntitySnapshot) EntityKind() EntityKind {
 }
 
 func (rcv *EntitySnapshot) MutateEntityKind(n EntityKind) bool {
-	return rcv._tab.MutateByteSlot(46, byte(n))
+	return rcv._tab.MutateByteSlot(54, byte(n))
 }
 
 func (rcv *EntitySnapshot) OwnerNet() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(56))
 	if o != 0 {
 		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
@@ -364,11 +412,11 @@ func (rcv *EntitySnapshot) OwnerNet() uint32 {
 }
 
 func (rcv *EntitySnapshot) MutateOwnerNet(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(48, n)
+	return rcv._tab.MutateUint32Slot(56, n)
 }
 
 func (rcv *EntitySnapshot) Subtype() uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(50))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(58))
 	if o != 0 {
 		return rcv._tab.GetUint16(o + rcv._tab.Pos)
 	}
@@ -376,11 +424,11 @@ func (rcv *EntitySnapshot) Subtype() uint16 {
 }
 
 func (rcv *EntitySnapshot) MutateSubtype(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(50, n)
+	return rcv._tab.MutateUint16Slot(58, n)
 }
 
 func (rcv *EntitySnapshot) MaxHp() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(60))
 	if o != 0 {
 		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
 	}
@@ -388,11 +436,11 @@ func (rcv *EntitySnapshot) MaxHp() float32 {
 }
 
 func (rcv *EntitySnapshot) MutateMaxHp(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(52, n)
+	return rcv._tab.MutateFloat32Slot(60, n)
 }
 
 func (rcv *EntitySnapshot) MaxMana() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(62))
 	if o != 0 {
 		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
 	}
@@ -400,11 +448,11 @@ func (rcv *EntitySnapshot) MaxMana() float32 {
 }
 
 func (rcv *EntitySnapshot) MutateMaxMana(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(54, n)
+	return rcv._tab.MutateFloat32Slot(62, n)
 }
 
 func (rcv *EntitySnapshot) Shield() float32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(56))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
 	if o != 0 {
 		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
 	}
@@ -412,11 +460,11 @@ func (rcv *EntitySnapshot) Shield() float32 {
 }
 
 func (rcv *EntitySnapshot) MutateShield(n float32) bool {
-	return rcv._tab.MutateFloat32Slot(56, n)
+	return rcv._tab.MutateFloat32Slot(64, n)
 }
 
 func (rcv *EntitySnapshot) StateFlags() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(58))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(66))
 	if o != 0 {
 		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
@@ -424,55 +472,7 @@ func (rcv *EntitySnapshot) StateFlags() uint32 {
 }
 
 func (rcv *EntitySnapshot) MutateStateFlags(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(58, n)
-}
-
-func (rcv *EntitySnapshot) AnimStartTick() uint64 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(60))
-	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *EntitySnapshot) MutateAnimStartTick(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(60, n)
-}
-
-func (rcv *EntitySnapshot) ActionSeq() uint32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(62))
-	if o != 0 {
-		return rcv._tab.GetUint32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *EntitySnapshot) MutateActionSeq(n uint32) bool {
-	return rcv._tab.MutateUint32Slot(62, n)
-}
-
-func (rcv *EntitySnapshot) AnimPlaybackRateQ8() uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
-	if o != 0 {
-		return rcv._tab.GetUint16(o + rcv._tab.Pos)
-	}
-	return 256
-}
-
-func (rcv *EntitySnapshot) MutateAnimPlaybackRateQ8(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(64, n)
-}
-
-func (rcv *EntitySnapshot) AnimFlags() uint16 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(66))
-	if o != 0 {
-		return rcv._tab.GetUint16(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *EntitySnapshot) MutateAnimFlags(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(66, n)
+	return rcv._tab.MutateUint32Slot(66, n)
 }
 
 func (rcv *EntitySnapshot) ProjectileKind() uint16 {
@@ -1436,68 +1436,68 @@ func EntitySnapshotAddYaw(builder *flatbuffers.Builder, yaw float32) {
 func EntitySnapshotAddMoveSpeed(builder *flatbuffers.Builder, moveSpeed float32) {
 	builder.PrependFloat32Slot(13, moveSpeed, 0.0)
 }
-func EntitySnapshotAddAnimId(builder *flatbuffers.Builder, animId uint16) {
-	builder.PrependUint16Slot(14, animId, 0)
+func EntitySnapshotAddPoseId(builder *flatbuffers.Builder, poseId uint16) {
+	builder.PrependUint16Slot(14, poseId, 0)
 }
-func EntitySnapshotAddAnimPhaseFrame(builder *flatbuffers.Builder, animPhaseFrame uint16) {
-	builder.PrependUint16Slot(15, animPhaseFrame, 0)
+func EntitySnapshotAddPoseStartTick(builder *flatbuffers.Builder, poseStartTick uint64) {
+	builder.PrependUint64Slot(15, poseStartTick, 0)
+}
+func EntitySnapshotAddActionId(builder *flatbuffers.Builder, actionId uint16) {
+	builder.PrependUint16Slot(16, actionId, 0)
+}
+func EntitySnapshotAddActionStartTick(builder *flatbuffers.Builder, actionStartTick uint64) {
+	builder.PrependUint64Slot(17, actionStartTick, 0)
+}
+func EntitySnapshotAddActionSeq(builder *flatbuffers.Builder, actionSeq uint32) {
+	builder.PrependUint32Slot(18, actionSeq, 0)
+}
+func EntitySnapshotAddActionStage(builder *flatbuffers.Builder, actionStage byte) {
+	builder.PrependByteSlot(19, actionStage, 1)
 }
 func EntitySnapshotAddSkillCooldowns(builder *flatbuffers.Builder, skillCooldowns flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(skillCooldowns), 0)
+	builder.PrependUOffsetTSlot(20, flatbuffers.UOffsetT(skillCooldowns), 0)
 }
 func EntitySnapshotStartSkillCooldownsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func EntitySnapshotAddSkillCooldownDurations(builder *flatbuffers.Builder, skillCooldownDurations flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(skillCooldownDurations), 0)
+	builder.PrependUOffsetTSlot(21, flatbuffers.UOffsetT(skillCooldownDurations), 0)
 }
 func EntitySnapshotStartSkillCooldownDurationsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func EntitySnapshotAddSkillRanks(builder *flatbuffers.Builder, skillRanks flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(skillRanks), 0)
+	builder.PrependUOffsetTSlot(22, flatbuffers.UOffsetT(skillRanks), 0)
 }
 func EntitySnapshotStartSkillRanksVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
 }
 func EntitySnapshotAddBuffMask(builder *flatbuffers.Builder, buffMask uint32) {
-	builder.PrependUint32Slot(19, buffMask, 0)
+	builder.PrependUint32Slot(23, buffMask, 0)
 }
 func EntitySnapshotAddStatHash(builder *flatbuffers.Builder, statHash uint32) {
-	builder.PrependUint32Slot(20, statHash, 0)
+	builder.PrependUint32Slot(24, statHash, 0)
 }
 func EntitySnapshotAddEntityKind(builder *flatbuffers.Builder, entityKind EntityKind) {
-	builder.PrependByteSlot(21, byte(entityKind), 1)
+	builder.PrependByteSlot(25, byte(entityKind), 1)
 }
 func EntitySnapshotAddOwnerNet(builder *flatbuffers.Builder, ownerNet uint32) {
-	builder.PrependUint32Slot(22, ownerNet, 0)
+	builder.PrependUint32Slot(26, ownerNet, 0)
 }
 func EntitySnapshotAddSubtype(builder *flatbuffers.Builder, subtype uint16) {
-	builder.PrependUint16Slot(23, subtype, 0)
+	builder.PrependUint16Slot(27, subtype, 0)
 }
 func EntitySnapshotAddMaxHp(builder *flatbuffers.Builder, maxHp float32) {
-	builder.PrependFloat32Slot(24, maxHp, 0.0)
+	builder.PrependFloat32Slot(28, maxHp, 0.0)
 }
 func EntitySnapshotAddMaxMana(builder *flatbuffers.Builder, maxMana float32) {
-	builder.PrependFloat32Slot(25, maxMana, 0.0)
+	builder.PrependFloat32Slot(29, maxMana, 0.0)
 }
 func EntitySnapshotAddShield(builder *flatbuffers.Builder, shield float32) {
-	builder.PrependFloat32Slot(26, shield, 0.0)
+	builder.PrependFloat32Slot(30, shield, 0.0)
 }
 func EntitySnapshotAddStateFlags(builder *flatbuffers.Builder, stateFlags uint32) {
-	builder.PrependUint32Slot(27, stateFlags, 0)
-}
-func EntitySnapshotAddAnimStartTick(builder *flatbuffers.Builder, animStartTick uint64) {
-	builder.PrependUint64Slot(28, animStartTick, 0)
-}
-func EntitySnapshotAddActionSeq(builder *flatbuffers.Builder, actionSeq uint32) {
-	builder.PrependUint32Slot(29, actionSeq, 0)
-}
-func EntitySnapshotAddAnimPlaybackRateQ8(builder *flatbuffers.Builder, animPlaybackRateQ8 uint16) {
-	builder.PrependUint16Slot(30, animPlaybackRateQ8, 256)
-}
-func EntitySnapshotAddAnimFlags(builder *flatbuffers.Builder, animFlags uint16) {
-	builder.PrependUint16Slot(31, animFlags, 0)
+	builder.PrependUint32Slot(31, stateFlags, 0)
 }
 func EntitySnapshotAddProjectileKind(builder *flatbuffers.Builder, projectileKind uint16) {
 	builder.PrependUint16Slot(32, projectileKind, 0)

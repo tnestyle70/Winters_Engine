@@ -5,7 +5,8 @@
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/PoseStateComponent.h"
 #include "Shared/GameSim/Components/ReplicatedStateComponent.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
 #include "ECS/Components/VisionComponents.h"
@@ -401,26 +402,30 @@ void CJungle_Manager::Apply_NetworkAnimation(
 
     visual.bDead = false;
 
-    const NetAnimationComponent* pNetAnim = nullptr;
-    if (m_pWorld->HasComponent<NetAnimationComponent>(entity))
-        pNetAnim = &m_pWorld->GetComponent<NetAnimationComponent>(entity);
+    const PoseStateComponent* pPose = nullptr;
+    if (m_pWorld->HasComponent<PoseStateComponent>(entity))
+        pPose = &m_pWorld->GetComponent<PoseStateComponent>(entity);
+
+    const ActionStateComponent* pAction = nullptr;
+    if (m_pWorld->HasComponent<ActionStateComponent>(entity))
+        pAction = &m_pWorld->GetComponent<ActionStateComponent>(entity);
 
     const bool_t bMovingBySnapshot =
         m_pWorld->HasComponent<ReplicatedStateComponent>(entity) &&
         (m_pWorld->GetComponent<ReplicatedStateComponent>(entity).stateFlags &
             kSnapshotStateMovingFlag) != 0u;
     const bool_t bMovingByAnim =
-        pNetAnim &&
-        static_cast<eNetAnimId>(pNetAnim->animId) == eNetAnimId::Run;
+        pPose &&
+        static_cast<ePoseStateId>(pPose->poseId) == ePoseStateId::Run;
 
-    if (pNetAnim &&
-        static_cast<eNetAnimId>(pNetAnim->animId) == eNetAnimId::BasicAttack &&
-        pNetAnim->actionSeq != 0u &&
-        (visual.lastActionSeq != pNetAnim->actionSeq ||
-            visual.lastActionAnimId != pNetAnim->animId))
+    if (pAction &&
+        static_cast<eActionStateId>(pAction->actionId) == eActionStateId::BasicAttack &&
+        pAction->sequence != 0u &&
+        (visual.lastActionSeq != pAction->sequence ||
+            visual.lastActionAnimId != pAction->actionId))
     {
-        visual.lastActionSeq = pNetAnim->actionSeq;
-        visual.lastActionAnimId = pNetAnim->animId;
+        visual.lastActionSeq = pAction->sequence;
+        visual.lastActionAnimId = pAction->actionId;
 
         if (const char* pAttack = Resolve_PlayableAnimation(renderer, anims.attack, nullptr))
         {
@@ -444,14 +449,14 @@ void CJungle_Manager::Apply_NetworkAnimation(
         visual.baseAnimId = 0;
     }
 
-    const eNetAnimId baseAnim = (bMovingBySnapshot || bMovingByAnim)
-        ? eNetAnimId::Run
-        : eNetAnimId::Idle;
-    const u16_t baseAnimId = static_cast<u16_t>(baseAnim);
+    const ePoseStateId basePose = (bMovingBySnapshot || bMovingByAnim)
+        ? ePoseStateId::Run
+        : ePoseStateId::Idle;
+    const u16_t baseAnimId = static_cast<u16_t>(basePose);
 
     if (visual.baseAnimId != baseAnimId)
     {
-        const char* pBase = (baseAnim == eNetAnimId::Run)
+        const char* pBase = (basePose == ePoseStateId::Run)
             ? Resolve_PlayableAnimation(renderer, anims.run, anims.idle)
             : Resolve_PlayableAnimation(renderer, anims.idle, nullptr);
 

@@ -11,6 +11,7 @@
 #include <Windows.h>
 #include <algorithm>
 #include <cfloat>
+#include <cctype>
 #include <cstring>
 #include <filesystem>
 #include <cmath>
@@ -119,6 +120,18 @@ namespace
 		return true;
 	}
 
+	bool ShouldFallbackSkinnedMeshToStatic(const std::string& strPath)
+	{
+		std::string strNorm = strPath;
+		std::replace(strNorm.begin(), strNorm.end(), '\\', '/');
+		std::transform(strNorm.begin(), strNorm.end(), strNorm.begin(),
+			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+		return strNorm.find("/assets/limgravestatic/") != std::string::npos ||
+			strNorm.find("/fullgame/asset/") != std::string::npos ||
+			strNorm.find("/fullgame/map/") != std::string::npos;
+	}
+
 	bool BuildCombinedStaticMeshFromWMesh(
 		IRHIDevice* pDevice,
 		const Winters::Asset::WMeshLoaded& wm,
@@ -138,6 +151,27 @@ namespace
 			wm.header.total_index_count == 0)
 		{
 			return false;
+		}
+
+		std::vector<Winters::Asset::VertexStatic> vecStaticVertices;
+		const void* pVertexData = wm.pVertexBlob;
+		u32_t iVertexStride = wm.header.vertex_stride;
+		if (wm.header.vertex_stride == Winters::Asset::STRIDE_SKINNED)
+		{
+			vecStaticVertices.resize(wm.header.total_vertex_count);
+			for (u32_t i = 0; i < wm.header.total_vertex_count; ++i)
+			{
+				const uint8_t* pSrc =
+					wm.pVertexBlob + static_cast<size_t>(i) * Winters::Asset::STRIDE_SKINNED;
+				Winters::Asset::VertexStatic& dst = vecStaticVertices[i];
+				std::memcpy(dst.pos, pSrc + 0, sizeof(float) * 3);
+				std::memcpy(dst.nrm, pSrc + 12, sizeof(float) * 3);
+				std::memcpy(dst.uv, pSrc + 24, sizeof(float) * 2);
+				std::memcpy(dst.tan, pSrc + 32, sizeof(float) * 3);
+				dst.tan[3] = 1.f;
+			}
+			pVertexData = vecStaticVertices.data();
+			iVertexStride = Winters::Asset::STRIDE_STATIC;
 		}
 
 		const bool_t bSourceIndex32 = wm.header.index_stride == 4;
@@ -241,8 +275,8 @@ namespace
 
 		outMesh = CMesh::Create(
 			pDevice,
-			wm.pVertexBlob,
-			wm.header.vertex_stride,
+			pVertexData,
+			iVertexStride,
 			wm.header.total_vertex_count,
 			pIndexData,
 			indexCount,
@@ -796,29 +830,42 @@ HRESULT CModel::LoadModel(IRHIDevice* pDevice, const string& strFilePath)
 		}
 	}
 
-	const bool bNeedsSkeleton = wm.header.bone_count > 0;
+	const bool bHasBoneData = wm.header.bone_count > 0;
+	const bool bAllowStaticFallback = ShouldFallbackSkinnedMeshToStatic(ToNarrowPath(resolvedWMeshPath));
+	bool bUseSkeleton = false;
 	std::filesystem::path resolvedWSkelPath;
-	if (bNeedsSkeleton)
+	if (bHasBoneData)
 	{
 		resolvedWSkelPath = std::filesystem::path(resolvedWMeshPath).replace_extension(L".wskel");
 		if (!std::filesystem::exists(resolvedWSkelPath))
 		{
+			if (!bAllowStaticFallback)
+			{
+				OutputDebugStringW((L"[CModel] .wskel missing: " + resolvedWSkelPath.wstring() + L"\n").c_str());
+				return E_FAIL;
+			}
 			OutputDebugStringW((L"[CModel] .wskel missing: " + resolvedWSkelPath.wstring() + L"\n").c_str());
-			return E_FAIL;
 		}
-
-		if (!Winters::Asset::CWSkelLoader::Load(resolvedWSkelPath.c_str(), ws) ||
+		else if (!Winters::Asset::CWSkelLoader::Load(resolvedWSkelPath.c_str(), ws) ||
 			!WMeshAndWSkelNamesMatch(wm, ws))
 		{
+			if (!bAllowStaticFallback)
+			{
+				OutputDebugStringW((L"[CModel] .wmesh/.wskel mismatch: " + resolvedWMeshPath + L"\n").c_str());
+				return E_FAIL;
+			}
 			OutputDebugStringW((L"[CModel] .wmesh/.wskel mismatch: " + resolvedWMeshPath + L"\n").c_str());
-			return E_FAIL;
+		}
+		else
+		{
+			bUseSkeleton = true;
 		}
 	}
 
 	m_pDefaultTexture = CTexture::CreateDefault(pDevice);
 	LoadCookedTextures(pDevice, ToNarrowPath(resolvedWMeshPath), wm);
 
-	if (bNeedsSkeleton)
+	if (bUseSkeleton)
 	{
 		if (!BuildMeshesFromWMesh(pDevice, wm, m_vecMeshes, m_vecSubmeshInfos))
 		{
@@ -844,7 +891,7 @@ HRESULT CModel::LoadModel(IRHIDevice* pDevice, const string& strFilePath)
 	for (const LocalBounds& bounds : m_vecSubmeshBounds)
 		ExpandBounds(m_LocalBounds, bounds);
 
-	if (bNeedsSkeleton)
+	if (bUseSkeleton)
 	{
 		m_pSkeleton = BuildSkeletonFromStage3(ws, wm);
 		m_bHasBones = (m_pSkeleton != nullptr);

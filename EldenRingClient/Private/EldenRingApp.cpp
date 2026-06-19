@@ -11,11 +11,11 @@ namespace
 {
     constexpr u32_t kEldenRingProbeSceneID = 0;
 
-    bool IsLimgraveShowcaseRequested()
+    bool IsProbeSceneRequested()
     {
         const wchar_t* const pCommandLine = ::GetCommandLineW();
         return pCommandLine
-            && (wcsstr(pCommandLine, L"--scene=limgrave") || wcsstr(pCommandLine, L"/scene:limgrave"));
+            && (wcsstr(pCommandLine, L"--scene=probe") || wcsstr(pCommandLine, L"/scene:probe"));
     }
 }
 
@@ -25,17 +25,17 @@ bool CEldenRingApp::OnInit()
     ::OutputDebugStringA("[EldenRingClient] OnInit\n");
 #endif
 
-    if (IsLimgraveShowcaseRequested())
+    if (IsProbeSceneRequested())
     {
         CGameInstance::Get()->Change_Scene(
             kEldenRingProbeSceneID,
-            CEldenLimgraveShowcaseScene::Create());
+            CEldenRingAssetProbeScene::Create());
     }
     else
     {
         CGameInstance::Get()->Change_Scene(
             kEldenRingProbeSceneID,
-            CEldenRingAssetProbeScene::Create());
+            CEldenLimgraveShowcaseScene::Create());
     }
 
     return true;

@@ -17,7 +17,7 @@ public:
         SkillCast,
         ProjectileSpawn,
         ProjectileHit,
-        AnimationStart,
+        ActionStart,
         EffectTrigger,
         Count
     };

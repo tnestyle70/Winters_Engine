@@ -2,7 +2,7 @@
 
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Definitions/ChampionStatsDef.h"
-#include "Shared/GameSim/Definitions/SkillDef.h"
+#include "SkillTypes.h"
 #include "WintersMath.h"
 
 StatComponent BuildDefaultChampionStat(eChampion champion, u8_t level = 1);

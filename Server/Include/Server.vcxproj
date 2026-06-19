@@ -103,10 +103,12 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Private\Game\CommandIngress.cpp" />
     <ClCompile Include="..\Private\Game\GameRoom.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomChampionAI.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomCommands.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomInternal.cpp" />
+    <ClCompile Include="..\Private\Game\LobbyAuthority.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomLobby.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomMinionAI.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomNav.cpp" />
@@ -119,6 +121,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Game\ServerEntry.cpp" />
     <ClCompile Include="..\Private\Game\ServerMinionFlowField.cpp" />
     <ClCompile Include="..\Private\Game\ServerMinionWaveRuntime.cpp" />
+    <ClCompile Include="..\Private\Game\SessionBinding.cpp" />
     <ClCompile Include="..\Private\Game\SnapshotBuilder.cpp" />
     <ClCompile Include="..\Private\main.cpp" />
     <ClCompile Include="..\Private\Network\FrameParser.cpp" />
@@ -129,7 +132,9 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Security\LagCompensation.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Public\Game\CommandIngress.h" />
     <ClInclude Include="..\Public\Game\GameRoom.h" />
+    <ClInclude Include="..\Public\Game\LobbyAuthority.h" />
     <ClInclude Include="..\Private\Game\GameRoomInternal.h" />
     <ClInclude Include="..\Private\Game\GameRoomSmokeRoster.h" />
     <ClInclude Include="..\Public\Game\ReplayRecorder.h" />
@@ -137,6 +142,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Game\ServerMinionFlowField.h" />
     <ClInclude Include="..\Public\Game\ServerMinionTuning.h" />
     <ClInclude Include="..\Public\Game\ServerMinionWaveRuntime.h" />
+    <ClInclude Include="..\Public\Game\SessionBinding.h" />
     <ClInclude Include="..\Public\Game\SnapshotBuilder.h" />
     <ClInclude Include="..\Public\Network\FrameParser.h" />
     <ClInclude Include="..\Public\Network\IOCPCore.h" />

@@ -4,8 +4,8 @@
 #include "Shared/GameSim/Components/BuffComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Systems/Buff/BuffSystem.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -50,7 +50,7 @@ namespace
     constexpr u32_t kEShieldBuffDefId = (static_cast<u32_t>(eChampion::ANNIE) << 16) | 3u;
 
     constexpr u8_t kTibbersRoleType = 4;
-    // 0xff = any-lane: 서버 미니언 AI의 lane 타겟 필터를 우회한다 (소환수 전용).
+    // 0xff = any-lane: ?�버 미니??AI??lane ?��??�터�??�회?�다 (?�환???�용).
     constexpr u8_t kTibbersLane = 0xff;
     constexpr f32_t kTibbersDurationSec = 45.f;
     constexpr f32_t kTibbersMoveSpeed = 5.2f;
@@ -419,10 +419,7 @@ namespace
         world.AddComponent<TargetableTag>(tibbers, TargetableTag{});
         world.AddComponent<MinionNavThrottleComponent>(tibbers, MinionNavThrottleComponent{});
 
-        NetAnimationComponent anim{};
-        anim.animId = static_cast<u16_t>(eNetAnimId::Run);
-        anim.animStartTick = tc.tickIndex;
-        world.AddComponent<NetAnimationComponent>(tibbers, anim);
+        SetPoseState(world, tibbers, ePoseStateId::Run, tc.tickIndex, true);
 
         if (tc.pEntityMap)
         {

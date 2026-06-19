@@ -11,7 +11,8 @@
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ReplicatedActionComponent.h"
+#include "Shared/GameSim/Components/ReplicatedPoseComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
@@ -107,12 +108,12 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         f32_t critChance = 0.f;
         f32_t abilityHaste = 0.f;
         f32_t yaw = NormalizeChampionVisualYaw(rot.y);
-        u16_t animId = static_cast<u16_t>(eNetAnimId::Idle);
-        u16_t animPhaseFrame = 0;
-        u64_t animStartTick = 0;
+        u16_t poseId = static_cast<u16_t>(eReplicatedPoseId::Idle);
+        u64_t poseStartTick = 0;
+        u16_t actionId = static_cast<u16_t>(eReplicatedActionId::None);
+        u64_t actionStartTick = 0;
         u32_t actionSeq = 0;
-        u16_t animPlaybackRateQ8 = 256;
-        u16_t animFlags = 0;
+        u8_t actionStage = 1;
         u8_t championId = 0;
         u8_t team = 0;
         u8_t level = 1;
@@ -331,15 +332,20 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             team = static_cast<u8_t>(projectile.sourceTeam);
         }
 
-        if (world.HasComponent<NetAnimationComponent>(entity))
+        if (world.HasComponent<ReplicatedPoseComponent>(entity))
         {
-            const auto& anim = world.GetComponent<NetAnimationComponent>(entity);
-            animId = anim.animId;
-            animPhaseFrame = anim.animPhaseFrame;
-            animStartTick = anim.animStartTick;
-            actionSeq = anim.actionSeq;
-            animPlaybackRateQ8 = anim.playbackRateQ8;
-            animFlags = anim.flags;
+            const auto& pose = world.GetComponent<ReplicatedPoseComponent>(entity);
+            poseId = pose.poseId;
+            poseStartTick = pose.startTick;
+        }
+
+        if (world.HasComponent<ReplicatedActionComponent>(entity))
+        {
+            const auto& action = world.GetComponent<ReplicatedActionComponent>(entity);
+            actionId = action.actionId;
+            actionStartTick = action.startTick;
+            actionSeq = action.sequence;
+            actionStage = action.stage;
         }
 
         if (world.HasComponent<MoveTargetComponent>(entity) &&
@@ -614,7 +620,7 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 char msg[1024]{};
                 sprintf_s(
                     msg,
-                    "[YawTrace][ServerSnapshot] tick=%llu ack=%u yourNet=%u net=%u entity=%u champion=%u pos=(%.3f,%.3f,%.3f) rawYaw=%.4f wireYaw=%.4f anim=%u actionSeq=%u state=0x%08X hasMove=%u moveHasTarget=%u moveTarget=(%.3f,%.3f,%.3f) pathIndex=%u pathCount=%u path0=(%.3f,%.3f,%.3f) hasFacing=%u lockTicks=%u facingSeq=%u facingTarget=(%.3f,%.3f,%.3f) facingDir=(%.3f,%.3f)\n",
+                    "[YawTrace][ServerSnapshot] tick=%llu ack=%u yourNet=%u net=%u entity=%u champion=%u pos=(%.3f,%.3f,%.3f) rawYaw=%.4f wireYaw=%.4f pose=%u action=%u actionSeq=%u state=0x%08X hasMove=%u moveHasTarget=%u moveTarget=(%.3f,%.3f,%.3f) pathIndex=%u pathCount=%u path0=(%.3f,%.3f,%.3f) hasFacing=%u lockTicks=%u facingSeq=%u facingTarget=(%.3f,%.3f,%.3f) facingDir=(%.3f,%.3f)\n",
                     static_cast<unsigned long long>(serverTick),
                     lastAckedSeq,
                     yourNetId,
@@ -626,7 +632,8 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                     pos.z,
                     rot.y,
                     yaw,
-                    static_cast<u32_t>(animId),
+                    static_cast<u32_t>(poseId),
+                    static_cast<u32_t>(actionId),
                     actionSeq,
                     stateFlags,
                     bHasMove ? 1u : 0u,
@@ -668,8 +675,12 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             pos.z,
             yaw,
             moveSpeed,
-            animId,
-            animPhaseFrame,
+            poseId,
+            poseStartTick,
+            actionId,
+            actionStartTick,
+            actionSeq,
+            actionStage,
             cooldownOffset,
             cooldownDurationOffset,
             rankOffset,
@@ -682,10 +693,6 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             maxMana,
             shield,
             stateFlags,
-            animStartTick,
-            actionSeq,
-            animPlaybackRateQ8,
-            animFlags,
             projectileKind,
             projectileOwnerNet,
             projectileTargetNet,

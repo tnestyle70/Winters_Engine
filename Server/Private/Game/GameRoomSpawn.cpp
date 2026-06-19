@@ -260,9 +260,11 @@ Vec3 CGameRoom::GetSpawnPositionForLobbySlot(const LobbySlotState& slot) const
 
 void CGameRoom::SpawnChampionsFromLobby()
 {
-    for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
+    LobbySlotState* pLobbySlots = GetLobbySlots();
+    const u32_t lobbySlotCount = GetLobbySlotCount();
+    for (u32_t i = 0; pLobbySlots && i < lobbySlotCount; ++i)
     {
-        LobbySlotState& slot = m_lobbySlots[i];
+        LobbySlotState& slot = pLobbySlots[i];
         if (!slot.bHuman && !slot.bBot)
             continue;
         if (slot.netId != NULL_NET_ENTITY)
@@ -485,9 +487,7 @@ EntityID CGameRoom::SpawnServerJungleFromStageEntry(
     m_world.AddComponent<VisibilityComponent>(entity, BuildServerVisibleToAll());
     m_world.AddComponent<TargetableTag>(entity);
 
-    NetAnimationComponent anim{};
-    anim.animId = static_cast<u16_t>(eNetAnimId::Idle);
-    m_world.AddComponent<NetAnimationComponent>(entity, anim);
+    SetPoseState(m_world, entity, ePoseStateId::Idle, 0, true);
 
     const NetEntityId netId = m_entityMap.IssueNew(entity);
     NetEntityIdComponent netEntity{};
@@ -572,9 +572,7 @@ EntityID CGameRoom::SpawnServerStructure(eTeam team, u32_t kind, u32_t tier, u32
     m_world.AddComponent<VisibilityComponent>(entity, BuildServerVisibleToAll());
     m_world.AddComponent<TargetableTag>(entity);
 
-    NetAnimationComponent anim{};
-    anim.animId = static_cast<u16_t>(eNetAnimId::Idle);
-    m_world.AddComponent<NetAnimationComponent>(entity, anim);
+    SetPoseState(m_world, entity, ePoseStateId::Idle, 0, true);
 
     const NetEntityId netId = m_entityMap.IssueNew(entity);
     NetEntityIdComponent netEntity{};
@@ -654,9 +652,7 @@ EntityID CGameRoom::SpawnServerMinion(eTeam team, u8_t roleType, u8_t lane, cons
     m_world.AddComponent<VisibilityComponent>(entity, BuildServerVisibleToAll());
     m_world.AddComponent<TargetableTag>(entity);
 
-    NetAnimationComponent anim{};
-    anim.animId = static_cast<u16_t>(eNetAnimId::Run);
-    m_world.AddComponent<NetAnimationComponent>(entity, anim);
+    SetPoseState(m_world, entity, ePoseStateId::Run, 0, true);
 
     const NetEntityId netId = m_entityMap.IssueNew(entity);
     NetEntityIdComponent netEntity{};
@@ -876,10 +872,7 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
         m_world.AddComponent<ChampionAIComponent>(entity, ai);
     }
 
-    NetAnimationComponent anim{};
-    anim.animId = static_cast<u16_t>(eNetAnimId::Idle);
-    anim.animPhaseFrame = 0;
-    m_world.AddComponent<NetAnimationComponent>(entity, anim);
+    SetPoseState(m_world, entity, ePoseStateId::Idle, 0, true);
 
     slot.netId = m_entityMap.IssueNew(entity);
 
@@ -888,7 +881,7 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
     m_world.AddComponent<NetEntityIdComponent>(entity, netEntity);
 
     if (slot.bHuman && slot.sessionId != 0)
-        m_sessionToEntity[slot.sessionId] = entity;
+        m_sessionBinding.Bind(slot.sessionId, entity);
 
     char spawnMsg[320]{};
     sprintf_s(spawnMsg,

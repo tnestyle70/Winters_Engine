@@ -2,8 +2,8 @@
 
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
 #include "ECS/Components/SpatialAgentComponent.h"
@@ -522,7 +522,8 @@ namespace ViegoGameSim
         world.AddComponent<SpatialAgentComponent>(soulEntity, spatial);
 
         world.AddComponent<TargetableTag>(soulEntity);
-        world.AddComponent<NetAnimationComponent>(soulEntity, NetAnimationComponent{});
+
+        SetPoseState(world, soulEntity, ePoseStateId::Idle, tc.tickIndex, true);
 
         if (tc.pEntityMap)
         {

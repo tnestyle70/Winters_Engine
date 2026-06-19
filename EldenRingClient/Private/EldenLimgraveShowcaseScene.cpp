@@ -18,6 +18,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
@@ -28,6 +29,66 @@ namespace
     constexpr f32_t kDegToRad = 3.14159265358979323846f / 180.f;
 
     Mat4 BuildRotationDeg(const Vec3& vRotationDeg);
+
+    void EnsureCursorReleasedAndVisible()
+    {
+        ::ClipCursor(nullptr);
+        for (int i = 0; i < 8; ++i)
+        {
+            if (::ShowCursor(TRUE) >= 0)
+                break;
+        }
+    }
+
+    void ResetSpawnFailureLog()
+    {
+        std::remove("limgrave_spawn_failed_assets.txt");
+        std::remove("limgrave_showcase_failures.txt");
+    }
+
+    void AppendMapSpawnFailure(const char* pReason,
+                               const std::string& strTile,
+                               const std::vector<std::string>& fields)
+    {
+        FILE* pLog = nullptr;
+        if (fopen_s(&pLog, "limgrave_spawn_failed_assets.txt", "a") != 0 || !pLog)
+            return;
+
+        const char* pKind = fields.size() > 0 ? fields[0].c_str() : "";
+        const char* pInstance = fields.size() > 1 ? fields[1].c_str() : "";
+        const char* pAsset = fields.size() > 2 ? fields[2].c_str() : "";
+        const char* pWmesh = fields.size() > 3 ? fields[3].c_str() : "";
+        const char* pPosition = fields.size() > 4 ? fields[4].c_str() : "";
+        const char* pRotation = fields.size() > 5 ? fields[5].c_str() : "";
+        const char* pScale = fields.size() > 6 ? fields[6].c_str() : "";
+
+        fprintf(pLog,
+                "%s|%s|%s|%s|%s|%s|%s|%s|%s\n",
+                pReason,
+                strTile.c_str(),
+                pKind,
+                pInstance,
+                pAsset,
+                pWmesh,
+                pPosition,
+                pRotation,
+                pScale);
+        fclose(pLog);
+    }
+
+    EldenShowcaseStage GetRequestedInitialStage()
+    {
+        const wchar_t* const pCommandLine = ::GetCommandLineW();
+        if (pCommandLine &&
+            (wcsstr(pCommandLine, L"--stage=cave") ||
+             wcsstr(pCommandLine, L"/stage:cave") ||
+             wcsstr(pCommandLine, L"--stage=startingcave") ||
+             wcsstr(pCommandLine, L"/stage:startingcave")))
+        {
+            return EldenShowcaseStage::StartingCave;
+        }
+        return EldenShowcaseStage::LimgraveVista;
+    }
 
     // Walk up from the current working directory until a repo-relative
     // resource path exists (mirrors WintersResolveContentPath behavior).
@@ -59,6 +120,16 @@ namespace
     {
         std::istringstream stream(strField);
         return static_cast<bool>(stream >> vOut.x >> vOut.y >> vOut.z);
+    }
+
+    std::vector<std::string> SplitPipeLine(const std::string& strLine)
+    {
+        std::vector<std::string> fields;
+        std::istringstream stream(strLine);
+        std::string strField;
+        while (std::getline(stream, strField, '|'))
+            fields.push_back(strField);
+        return fields;
     }
 
     bool ExtractStringField(const std::string& strBlock, const char* pKey, std::string& strOut)
@@ -101,6 +172,56 @@ namespace
         {
             bOut = false;
             return true;
+        }
+        return false;
+    }
+
+    bool ExtractUIntField(const std::string& strBlock, const char* pKey, u32_t& iOut)
+    {
+        const std::string strNeedle = std::string("\"") + pKey + "\"";
+        const size_t keyPos = strBlock.find(strNeedle);
+        if (keyPos == std::string::npos)
+            return false;
+        const size_t colonPos = strBlock.find(':', keyPos + strNeedle.size());
+        if (colonPos == std::string::npos)
+            return false;
+        const size_t tokenPos = strBlock.find_first_not_of(" \t\r\n", colonPos + 1);
+        if (tokenPos == std::string::npos)
+            return false;
+
+        char* pEnd = nullptr;
+        const unsigned long value = std::strtoul(strBlock.c_str() + tokenPos, &pEnd, 10);
+        if (pEnd == strBlock.c_str() + tokenPos)
+            return false;
+
+        iOut = static_cast<u32_t>(value);
+        return true;
+    }
+
+    bool ExtractObjectField(const std::string& strJson, const char* pKey, std::string& strOut)
+    {
+        const std::string strNeedle = std::string("\"") + pKey + "\"";
+        const size_t keyPos = strJson.find(strNeedle);
+        if (keyPos == std::string::npos)
+            return false;
+        const size_t objectOpen = strJson.find('{', keyPos + strNeedle.size());
+        if (objectOpen == std::string::npos)
+            return false;
+
+        int depth = 0;
+        for (size_t i = objectOpen; i < strJson.size(); ++i)
+        {
+            if (strJson[i] == '{')
+                ++depth;
+            else if (strJson[i] == '}')
+            {
+                --depth;
+                if (depth == 0)
+                {
+                    strOut = strJson.substr(objectOpen, i - objectOpen + 1);
+                    return true;
+                }
+            }
         }
         return false;
     }
@@ -247,34 +368,255 @@ CEldenLimgraveShowcaseScene::~CEldenLimgraveShowcaseScene() = default;
 bool CEldenLimgraveShowcaseScene::OnEnter()
 {
     ::OutputDebugStringA("[LimgraveShowcase] OnEnter\n");
+    EnsureCursorReleasedAndVisible();
 
-    SpawnPlacements();
-    SpawnErdtree();
-    SpawnCharacterPlacements();
+    m_eStage = GetRequestedInitialStage();
+    m_bStageLoaded = false;
+    m_bStageLoadAttempted = false;
 
     char msg[160]{};
-    sprintf_s(msg, "[LimgraveShowcase] placed=%u failed=%u animated=%u\n",
-              m_iPlacedCount, m_iFailedCount, m_iAnimatedCount);
+    sprintf_s(msg, "[LimgraveShowcase] pending stage=%s\n", GetStageName());
     ::OutputDebugStringA(msg);
 
     if (FILE* pLog = nullptr; fopen_s(&pLog, "limgrave_showcase_log.txt", "w") == 0 && pLog)
     {
-        fprintf(pLog, "OnEnter done: placed=%u failed=%u animated=%u\n",
-                m_iPlacedCount, m_iFailedCount, m_iAnimatedCount);
+        fprintf(pLog, "OnEnter pending: stage=%s\n", GetStageName());
         fclose(pLog);
     }
 
-    return m_iPlacedCount > 0;
+    return true;
 }
 
-void CEldenLimgraveShowcaseScene::SpawnPlacements()
+const char* CEldenLimgraveShowcaseScene::GetStageName() const
+{
+    switch (m_eStage)
+    {
+    case EldenShowcaseStage::StartingCave:
+        return "Starting Cave";
+    case EldenShowcaseStage::LimgraveVista:
+        return "Limgrave Vista";
+    default:
+        return "Unknown";
+    }
+}
+
+void CEldenLimgraveShowcaseScene::ClearShowcaseWorld()
+{
+    m_CharacterPlacements.clear();
+    m_MapPlacements.clear();
+    m_Instances.clear();
+    m_iPlacedCount = 0;
+    m_iFailedCount = 0;
+    m_iAnimatedCount = 0;
+    m_iSelectedCharacter = 0;
+    m_iSelectedMapPlacement = 0;
+    m_bErdtreeLoaded = false;
+}
+
+void CEldenLimgraveShowcaseScene::ResetMapCounters()
+{
+    m_iSlicePlacedTotal = 0;
+    m_iSliceUnresolvedTotal = 0;
+    m_iTilesScanned = 0;
+    m_iTilesLoaded = 0;
+    m_iTilesSkipped = 0;
+    m_iMapSourceCount = 0;
+    m_iMapClosedCount = 0;
+    m_iMapMissingAssetCount = 0;
+    m_iMapSpawnFailedCount = 0;
+    m_iMapDraftLoadedCount = 0;
+    m_iMapDraftAppliedCount = 0;
+    m_iMapDraftSkippedCount = 0;
+}
+
+bool CEldenLimgraveShowcaseScene::LoadStage(EldenShowcaseStage eStage)
+{
+    m_bStageLoadAttempted = true;
+    ResetSpawnFailureLog();
+    ClearShowcaseWorld();
+    ResetMapCounters();
+    m_FocusTiles.clear();
+    m_bVerticalSliceLoaded = false;
+    m_eStage = eStage;
+    m_bLoadOnlyFocusTiles = true;
+
+    if (m_eStage == EldenShowcaseStage::StartingCave)
+    {
+        LoadVerticalSliceManifest(
+            "Client/Bin/Resource/EldenRing/Maps/StartingCave/starting_cave_vertical_slice_manifest.json",
+            "tiles",
+            "coverage");
+        SpawnPlacements("Client/Bin/Resource/EldenRing/Maps/StartingCave");
+        LoadMapPlacementDraft();
+        WriteMapClosureAudit("Client/Bin/Resource/EldenRing/Manifests/starting_cave_map_closure_audit.json");
+        FrameStartingCave();
+    }
+    else
+    {
+        LoadVerticalSliceManifest(
+            "Client/Bin/Resource/EldenRing/Maps/Limgrave/limgrave_vertical_slice_manifest.json",
+            "focusTiles",
+            "currentLimgraveCoverage");
+        SpawnPlacements("Client/Bin/Resource/EldenRing/Maps/Limgrave");
+        LoadMapPlacementDraft();
+        WriteMapClosureAudit("Client/Bin/Resource/EldenRing/Manifests/limgrave_map_closure_audit.json");
+        SpawnErdtree();
+        SpawnCharacterPlacements();
+        FrameLimgraveVista();
+    }
+
+    char msg[256]{};
+    sprintf_s(msg,
+              "[LimgraveShowcase] LoadStage %s placed=%u failed=%u animated=%u source=%u closed=%u open=%u draftApplied=%u\n",
+              GetStageName(),
+              m_iPlacedCount,
+              m_iFailedCount,
+              m_iAnimatedCount,
+              m_iMapSourceCount,
+              m_iMapClosedCount,
+              m_iMapMissingAssetCount + m_iMapSpawnFailedCount,
+              m_iMapDraftAppliedCount);
+    ::OutputDebugStringA(msg);
+    if (FILE* pLog = nullptr; fopen_s(&pLog, "limgrave_showcase_log.txt", "a") == 0 && pLog)
+    {
+        fprintf(pLog,
+                "LoadStage stage=%s placed=%u failed=%u animated=%u source=%u closed=%u open=%u missingAsset=%u spawnFailed=%u draftLoaded=%u draftApplied=%u draftSkipped=%u\n",
+                GetStageName(),
+                m_iPlacedCount,
+                m_iFailedCount,
+                m_iAnimatedCount,
+                m_iMapSourceCount,
+                m_iMapClosedCount,
+                m_iMapMissingAssetCount + m_iMapSpawnFailedCount,
+                m_iMapMissingAssetCount,
+                m_iMapSpawnFailedCount,
+                m_iMapDraftLoadedCount,
+                m_iMapDraftAppliedCount,
+                m_iMapDraftSkippedCount);
+        fclose(pLog);
+    }
+    m_bStageLoaded = m_iPlacedCount > 0;
+    return m_bStageLoaded;
+}
+
+bool CEldenLimgraveShowcaseScene::LoadVerticalSliceManifest(const std::string& strManifestRelative,
+                                                            const char* pTilesArrayKey,
+                                                            const char* pCoverageKey)
+{
+    const std::string strPath = ResolveRepoRelativePath(strManifestRelative);
+    if (strPath.empty())
+    {
+        ::OutputDebugStringA("[LimgraveShowcase] vertical slice manifest not found\n");
+        return false;
+    }
+
+    std::ifstream file(strPath);
+    if (!file)
+        return false;
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    const std::string strJson = buffer.str();
+
+    m_FocusTiles.clear();
+    for (const std::string& strBlock : ExtractArrayObjectBlocks(strJson, pTilesArrayKey))
+    {
+        EldenLimgraveTileSummary tile{};
+        if (!ExtractStringField(strBlock, "tile", tile.strTile))
+            continue;
+        ExtractStringField(strBlock, "role", tile.strRole);
+        ExtractUIntField(strBlock, "placed", tile.iPlaced);
+        ExtractUIntField(strBlock, "unresolved", tile.iUnresolved);
+        m_FocusTiles.push_back(tile);
+    }
+
+    std::string strCoverage;
+    if (ExtractObjectField(strJson, pCoverageKey, strCoverage))
+    {
+        ExtractUIntField(strCoverage, "placed", m_iSlicePlacedTotal);
+        ExtractUIntField(strCoverage, "unresolved", m_iSliceUnresolvedTotal);
+    }
+
+    m_bVerticalSliceLoaded = !m_FocusTiles.empty();
+    char msg[192]{};
+    sprintf_s(msg,
+              "[LimgraveShowcase] vertical slice loaded=%u focusTiles=%zu placed=%u unresolved=%u\n",
+              m_bVerticalSliceLoaded ? 1u : 0u,
+              m_FocusTiles.size(),
+              m_iSlicePlacedTotal,
+              m_iSliceUnresolvedTotal);
+    ::OutputDebugStringA(msg);
+    return m_bVerticalSliceLoaded;
+}
+
+bool CEldenLimgraveShowcaseScene::IsFocusTile(const std::string& strTile) const
+{
+    for (const EldenLimgraveTileSummary& tile : m_FocusTiles)
+    {
+        if (tile.strTile == strTile)
+            return true;
+    }
+    return false;
+}
+
+EldenMapClosure CEldenLimgraveShowcaseScene::TrySpawnMapPlacement(const std::string& strTile,
+                                                                  const std::vector<std::string>& fields,
+                                                                  bool bCycleAnims)
+{
+    const std::string& strWmesh = fields[3];
+    if (strWmesh.empty() || ResolveRepoRelativePath(strWmesh).empty())
+    {
+        AppendMapSpawnFailure("MissingAsset", strTile, fields);
+        return EldenMapClosure::MissingAsset;
+    }
+
+    Vec3 vPosition{}, vRotationDeg{}, vScale{ 1.f, 1.f, 1.f };
+    if (!ParseVec3(fields[4], vPosition) ||
+        !ParseVec3(fields[5], vRotationDeg) ||
+        !ParseVec3(fields[6], vScale))
+    {
+        AppendMapSpawnFailure("BadTransform", strTile, fields);
+        return EldenMapClosure::SpawnFailed;
+    }
+
+    ModelRenderer* const pRenderer = SpawnInstance(strWmesh, BuildWorldMatrix(vPosition, vRotationDeg, vScale), bCycleAnims);
+    if (!pRenderer)
+    {
+        AppendMapSpawnFailure(ModelRenderer::PrewarmModel(strWmesh)
+            ? "RendererInitFailed"
+            : "ModelLoadFailed", strTile, fields);
+        return EldenMapClosure::SpawnFailed;
+    }
+
+    EldenRuntimeMapPlacement placement{};
+    placement.strTile = strTile;
+    placement.strKind = fields[0];
+    placement.strName = fields[1];
+    placement.strModel = fields[2];
+    placement.strWmesh = strWmesh;
+    placement.vPosition = vPosition;
+    placement.vRotationDeg = vRotationDeg;
+    placement.vScale = vScale;
+    placement.pRenderer = pRenderer;
+    placement.bAnimated = bCycleAnims;
+    m_MapPlacements.push_back(placement);
+
+    return EldenMapClosure::Closed;
+}
+
+void CEldenLimgraveShowcaseScene::SpawnPlacements(const std::string& strMapsRootRelative)
 {
     namespace fs = std::filesystem;
 
-    const std::string strMapsRoot = ResolveRepoRelativePath("Client/Bin/Resource/EldenRing/Maps/Limgrave");
+    m_iMapSourceCount = 0;
+    m_iMapClosedCount = 0;
+    m_iMapMissingAssetCount = 0;
+    m_iMapSpawnFailedCount = 0;
+
+    const std::string strMapsRoot = ResolveRepoRelativePath(strMapsRootRelative);
     if (strMapsRoot.empty())
     {
-        ::OutputDebugStringA("[LimgraveShowcase] Maps/Limgrave root not found\n");
+        ::OutputDebugStringA("[LimgraveShowcase] map root not found\n");
         return;
     }
 
@@ -282,9 +624,19 @@ void CEldenLimgraveShowcaseScene::SpawnPlacements()
     {
         if (!tileDir.is_directory())
             continue;
+        ++m_iTilesScanned;
+
+        const std::string strTile = tileDir.path().filename().string();
+        if (m_bLoadOnlyFocusTiles && m_bVerticalSliceLoaded && !IsFocusTile(strTile))
+        {
+            ++m_iTilesSkipped;
+            continue;
+        }
+
         const fs::path placement = tileDir.path() / "map_placement.txt";
         if (!fs::exists(placement))
             continue;
+        ++m_iTilesLoaded;
 
         std::ifstream file(placement);
         std::string strLine;
@@ -294,44 +646,36 @@ void CEldenLimgraveShowcaseScene::SpawnPlacements()
             if (strLine.empty() || strLine[0] == '#')
                 continue;
 
-            std::vector<std::string> fields;
-            std::istringstream stream(strLine);
-            std::string strField;
-            while (std::getline(stream, strField, '|'))
-                fields.push_back(strField);
+            std::vector<std::string> fields = SplitPipeLine(strLine);
             if (fields.size() < 7)
                 continue;
 
             const std::string& strKind = fields[0];
-            const std::string& strWmesh = fields[3];
-            // Players are spawn refs. Showcase characters are loaded from a separate
-            // character placement JSON so their scale/unit contract is explicit.
-            if (strKind == "Player" || strKind == "Enemy" || strWmesh.empty())
+            const bool bStaticPlacement = strKind == "MapPiece" || strKind == "Asset";
+            const bool bCharacterPlacement = strKind == "Enemy" || strKind == "Npc";
+            if (!bStaticPlacement && !bCharacterPlacement)
                 continue;
 
-            Vec3 vPosition{}, vRotationDeg{}, vScale{ 1.f, 1.f, 1.f };
-            if (!ParseVec3(fields[4], vPosition) ||
-                !ParseVec3(fields[5], vRotationDeg) ||
-                !ParseVec3(fields[6], vScale))
-                continue;
-
-            // Keep an open stage around the character lineup: skip props
-            // (but not terrain MapPieces) near the lineup plaza.
-            if (strKind == "Asset")
+            ++m_iMapSourceCount;
+            const EldenMapClosure eClosure = TrySpawnMapPlacement(strTile, fields, bCharacterPlacement);
+            if (eClosure == EldenMapClosure::Closed)
             {
-                const f32_t fDx = vPosition.x - m_vLineupCenter.x;
-                const f32_t fDz = vPosition.z - m_vLineupCenter.z;
-                if (fDx * fDx + fDz * fDz < 18.f * 18.f)
-                    continue;
-            }
-
-            if (SpawnInstance(strWmesh, BuildWorldMatrix(vPosition, vRotationDeg, vScale), false))
+                ++m_iMapClosedCount;
                 ++tilePlaced;
+            }
+            else if (eClosure == EldenMapClosure::MissingAsset)
+            {
+                ++m_iMapMissingAssetCount;
+            }
+            else
+            {
+                ++m_iMapSpawnFailedCount;
+            }
         }
 
         char msg[256]{};
         sprintf_s(msg, "[LimgraveShowcase] tile %s placed=%u\n",
-                  tileDir.path().filename().string().c_str(), tilePlaced);
+                  strTile.c_str(), tilePlaced);
         ::OutputDebugStringA(msg);
     }
 }
@@ -366,6 +710,14 @@ void CEldenLimgraveShowcaseScene::ApplyCharacterTransform(EldenCharacterPlacemen
     if (!placement.pRenderer)
         return;
     placement.pRenderer->UpdateTransform(BuildCharacterWorldMatrix(placement));
+}
+
+void CEldenLimgraveShowcaseScene::ApplyMapPlacementTransform(EldenRuntimeMapPlacement& placement)
+{
+    if (!placement.pRenderer)
+        return;
+    placement.pRenderer->UpdateTransform(
+        BuildWorldMatrix(placement.vPosition, placement.vRotationDeg, placement.vScale));
 }
 
 void CEldenLimgraveShowcaseScene::SpawnCharacterPlacements()
@@ -464,9 +816,125 @@ bool CEldenLimgraveShowcaseScene::SaveCharacterPlacements() const
     return true;
 }
 
+bool CEldenLimgraveShowcaseScene::SaveMapPlacementDraft() const
+{
+    namespace fs = std::filesystem;
+
+    const std::string strRelative = GetMapPlacementDraftRelative();
+
+    std::string strPath = ResolveRepoRelativePath(strRelative);
+    if (strPath.empty())
+    {
+        const fs::path relativePath(strRelative);
+        const std::string strParent = ResolveRepoRelativePath(relativePath.parent_path().string());
+        if (!strParent.empty())
+            strPath = (fs::path(strParent) / relativePath.filename()).string();
+    }
+    if (strPath.empty())
+        return false;
+
+    FILE* pFile = nullptr;
+    if (fopen_s(&pFile, strPath.c_str(), "w") != 0 || !pFile)
+        return false;
+
+    fprintf(pFile, "# winters.elden.runtime_placement_draft.v1 %s\n", GetStageName());
+    fprintf(pFile, "# tile|kind|name|model|wmesh|position|rotationDeg|scale|animated\n");
+    for (const EldenRuntimeMapPlacement& placement : m_MapPlacements)
+    {
+        fprintf(pFile,
+                "%s|%s|%s|%s|%s|%.6f %.6f %.6f|%.6f %.6f %.6f|%.6f %.6f %.6f|%s\n",
+                placement.strTile.c_str(),
+                placement.strKind.c_str(),
+                placement.strName.c_str(),
+                placement.strModel.c_str(),
+                placement.strWmesh.c_str(),
+                placement.vPosition.x,
+                placement.vPosition.y,
+                placement.vPosition.z,
+                placement.vRotationDeg.x,
+                placement.vRotationDeg.y,
+                placement.vRotationDeg.z,
+                placement.vScale.x,
+                placement.vScale.y,
+                placement.vScale.z,
+                placement.bAnimated ? "true" : "false");
+    }
+
+    fclose(pFile);
+    return true;
+}
+
+std::string CEldenLimgraveShowcaseScene::GetMapPlacementDraftRelative() const
+{
+    return (m_eStage == EldenShowcaseStage::StartingCave)
+        ? "Client/Bin/Resource/EldenRing/Manifests/starting_cave_runtime_placement_draft.txt"
+        : "Client/Bin/Resource/EldenRing/Manifests/limgrave_runtime_placement_draft.txt";
+}
+
+void CEldenLimgraveShowcaseScene::LoadMapPlacementDraft()
+{
+    m_iMapDraftLoadedCount = 0;
+    m_iMapDraftAppliedCount = 0;
+    m_iMapDraftSkippedCount = 0;
+
+    const std::string strPath = ResolveRepoRelativePath(GetMapPlacementDraftRelative());
+    if (strPath.empty())
+        return;
+
+    std::ifstream file(strPath);
+    if (!file)
+        return;
+
+    std::string strLine;
+    while (std::getline(file, strLine))
+    {
+        if (strLine.empty() || strLine[0] == '#')
+            continue;
+
+        const std::vector<std::string> fields = SplitPipeLine(strLine);
+        ++m_iMapDraftLoadedCount;
+        if (fields.size() < 8)
+        {
+            ++m_iMapDraftSkippedCount;
+            continue;
+        }
+
+        Vec3 vPosition{}, vRotationDeg{}, vScale{ 1.f, 1.f, 1.f };
+        if (!ParseVec3(fields[5], vPosition) ||
+            !ParseVec3(fields[6], vRotationDeg) ||
+            !ParseVec3(fields[7], vScale))
+        {
+            ++m_iMapDraftSkippedCount;
+            continue;
+        }
+
+        bool bApplied = false;
+        for (EldenRuntimeMapPlacement& placement : m_MapPlacements)
+        {
+            if (placement.strTile != fields[0] ||
+                placement.strKind != fields[1] ||
+                placement.strName != fields[2])
+            {
+                continue;
+            }
+
+            placement.vPosition = vPosition;
+            placement.vRotationDeg = vRotationDeg;
+            placement.vScale = vScale;
+            ApplyMapPlacementTransform(placement);
+            ++m_iMapDraftAppliedCount;
+            bApplied = true;
+            break;
+        }
+
+        if (!bApplied)
+            ++m_iMapDraftSkippedCount;
+    }
+}
+
 void CEldenLimgraveShowcaseScene::FrameLineup()
 {
-    m_bFreeCam = false;
+    m_bFreeCam = true;
     m_fOrbitAngle = -1.5707963f;
     m_fOrbitRadius = 28.f;
     m_fOrbitHeight = 8.f;
@@ -483,6 +951,35 @@ void CEldenLimgraveShowcaseScene::FrameErdtree()
     m_fPitch = -0.18f;
 }
 
+void CEldenLimgraveShowcaseScene::SetFreeCameraLookAt(const Vec3& vEye, const Vec3& vTarget)
+{
+    m_bFreeCam = true;
+    m_vCamPos = vEye;
+
+    const f32_t fDx = vTarget.x - vEye.x;
+    const f32_t fDy = vTarget.y - vEye.y;
+    const f32_t fDz = vTarget.z - vEye.z;
+    const f32_t fHorizontal = std::sqrt(fDx * fDx + fDz * fDz);
+    m_fYaw = std::atan2(fDx, fDz);
+    m_fPitch = std::atan2(fDy, fHorizontal);
+}
+
+void CEldenLimgraveShowcaseScene::FrameStartingCave()
+{
+    m_vLineupCenter = Vec3{ -36.f, 5.5f, 15.f };
+    SetFreeCameraLookAt(Vec3{ -54.f, 12.f, -10.f }, Vec3{ -34.f, 6.f, 25.f });
+    m_fOrbitRadius = 18.f;
+    m_fOrbitHeight = 5.f;
+}
+
+void CEldenLimgraveShowcaseScene::FrameLimgraveVista()
+{
+    m_vLineupCenter = Vec3{ -16.138f, 104.800f, -120.100f };
+    SetFreeCameraLookAt(Vec3{ -210.f, 245.f, -210.f }, Vec3{ 35.f, 105.f, -10.f });
+    m_fOrbitRadius = 72.f;
+    m_fOrbitHeight = 24.f;
+}
+
 ModelRenderer* CEldenLimgraveShowcaseScene::SpawnInstance(const std::string& strWmeshPath,
                                                           const Mat4& matWorld,
                                                           bool bCycleAnims)
@@ -490,6 +987,16 @@ ModelRenderer* CEldenLimgraveShowcaseScene::SpawnInstance(const std::string& str
     auto pRenderer = std::make_unique<ModelRenderer>();
     if (!pRenderer->Initialize(strWmeshPath))
     {
+        static u32_t s_iLoggedFailures = 0;
+        if (s_iLoggedFailures < 24u)
+        {
+            if (FILE* pLog = nullptr; fopen_s(&pLog, "limgrave_showcase_failures.txt", "a") == 0 && pLog)
+            {
+                fprintf(pLog, "ModelRenderer::Initialize failed: %s\n", strWmeshPath.c_str());
+                fclose(pLog);
+            }
+            ++s_iLoggedFailures;
+        }
         ++m_iFailedCount;
         return nullptr;
     }
@@ -511,8 +1018,49 @@ ModelRenderer* CEldenLimgraveShowcaseScene::SpawnInstance(const std::string& str
     return m_Instances.back().pRenderer.get();
 }
 
+void CEldenLimgraveShowcaseScene::WriteMapClosureAudit(const std::string& strAuditRelative) const
+{
+    namespace fs = std::filesystem;
+
+    std::string strPath = ResolveRepoRelativePath(strAuditRelative);
+    if (strPath.empty())
+    {
+        const fs::path relativePath(strAuditRelative);
+        const std::string strParent = ResolveRepoRelativePath(relativePath.parent_path().string());
+        if (!strParent.empty())
+            strPath = (fs::path(strParent) / relativePath.filename()).string();
+    }
+    if (strPath.empty())
+        return;
+
+    FILE* pFile = nullptr;
+    if (fopen_s(&pFile, strPath.c_str(), "w") != 0 || !pFile)
+        return;
+
+    fprintf(pFile,
+            "{\n"
+            "  \"schema\": \"winters.elden.map_closure.v1\",\n"
+            "  \"essence\": \"source placement -> runtime asset -> spawn\",\n"
+            "  \"stage\": \"%s\",\n"
+            "  \"source\": %u,\n"
+            "  \"closed\": %u,\n"
+            "  \"open\": %u,\n"
+            "  \"missingAsset\": %u,\n"
+            "  \"spawnFailed\": %u\n"
+            "}\n",
+            GetStageName(),
+            m_iMapSourceCount,
+            m_iMapClosedCount,
+            m_iMapMissingAssetCount + m_iMapSpawnFailedCount,
+            m_iMapMissingAssetCount,
+            m_iMapSpawnFailedCount);
+
+    fclose(pFile);
+}
+
 void CEldenLimgraveShowcaseScene::OnExit()
 {
+    EnsureCursorReleasedAndVisible();
     m_CharacterPlacements.clear();
     m_Instances.clear();
 }
@@ -639,9 +1187,35 @@ void CEldenLimgraveShowcaseScene::UpdateFreeCamera(f32_t deltaTime)
         m_vCamPos.y -= fStep;
 }
 
+void CEldenLimgraveShowcaseScene::UpdateStageProgression()
+{
+    const bool bAdvanceDown =
+        ((::GetAsyncKeyState('T') & 0x8000) != 0) ||
+        ((::GetAsyncKeyState(VK_RETURN) & 0x8000) != 0);
+
+    if (bAdvanceDown && !m_bStageAdvanceWasDown && m_eStage == EldenShowcaseStage::StartingCave)
+        m_bStageLoaded = LoadStage(EldenShowcaseStage::LimgraveVista);
+
+    m_bStageAdvanceWasDown = bAdvanceDown;
+
+    const bool bCaveDown = (::GetAsyncKeyState('C') & 0x8000) != 0;
+    if (bCaveDown && !m_bStageCaveWasDown && m_eStage != EldenShowcaseStage::StartingCave)
+        m_bStageLoaded = LoadStage(EldenShowcaseStage::StartingCave);
+    m_bStageCaveWasDown = bCaveDown;
+}
+
 void CEldenLimgraveShowcaseScene::OnUpdate(f32_t deltaTime)
 {
     m_fOrbitAngle += deltaTime * 0.12f;
+    if (!m_bStageLoaded)
+    {
+        if (!m_bStageLoadAttempted)
+            LoadStage(m_eStage);
+        if (!m_bStageLoaded)
+            return;
+    }
+
+    UpdateStageProgression();
     UpdateFreeCamera(deltaTime);
 
     static f32_t s_fElapsed = 0.f;
@@ -719,9 +1293,69 @@ void CEldenLimgraveShowcaseScene::OnImGui()
         return;
     }
 
+    ImGui::Text("Stage %s", GetStageName());
+    if (!m_bStageLoaded)
+        ImGui::TextUnformatted("Waiting for stage load...");
+    if (m_eStage == EldenShowcaseStage::StartingCave)
+        ImGui::TextUnformatted("Tutorial: WASD / mouse, then T or Enter to emerge.");
+    else
+        ImGui::TextUnformatted("Limgrave vista: baseline scene. Press C only for cave extraction lab.");
+    if (ImGui::Button("Load Cave"))
+        m_bStageLoaded = LoadStage(EldenShowcaseStage::StartingCave);
+    ImGui::SameLine();
+    if (ImGui::Button("Emerge to Limgrave"))
+        m_bStageLoaded = LoadStage(EldenShowcaseStage::LimgraveVista);
+    ImGui::Separator();
+
     ImGui::Text("Placed %u / Failed %u / Animated %u", m_iPlacedCount, m_iFailedCount, m_iAnimatedCount);
     ImGui::Text("Erdtree %s", m_bErdtreeLoaded ? "Loaded" : "Missing");
+    ImGui::Text("Slice %s / Tiles loaded %u skipped %u scanned %u",
+                m_bVerticalSliceLoaded ? "Loaded" : "Missing",
+                m_iTilesLoaded,
+                m_iTilesSkipped,
+                m_iTilesScanned);
+    ImGui::Text("Limgrave audit placed %u unresolved %u",
+                m_iSlicePlacedTotal,
+                m_iSliceUnresolvedTotal);
+    ImGui::Text("Map load mode: %s",
+                (m_bLoadOnlyFocusTiles && m_bVerticalSliceLoaded) ? "Focus tiles" : "All tiles");
+    ImGui::Text("Map closure source=%u closed=%u open=%u",
+                m_iMapSourceCount,
+                m_iMapClosedCount,
+                m_iMapMissingAssetCount + m_iMapSpawnFailedCount);
+    ImGui::Text("Open missingAsset=%u spawnFailed=%u",
+                m_iMapMissingAssetCount,
+                m_iMapSpawnFailedCount);
+    ImGui::Text("Draft loaded=%u applied=%u skipped=%u",
+                m_iMapDraftLoadedCount,
+                m_iMapDraftAppliedCount,
+                m_iMapDraftSkippedCount);
+    ImGui::TextWrapped("Draft %s", GetMapPlacementDraftRelative().c_str());
+    if (ImGui::CollapsingHeader("Vertical Slice Focus", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        if (m_FocusTiles.empty())
+        {
+            ImGui::TextDisabled("No focus tiles loaded.");
+        }
+        else
+        {
+            for (const EldenLimgraveTileSummary& tile : m_FocusTiles)
+            {
+                ImGui::BulletText("%s  placed=%u unresolved=%u  %s",
+                                  tile.strTile.c_str(),
+                                  tile.iPlaced,
+                                  tile.iUnresolved,
+                                  tile.strRole.empty() ? "" : tile.strRole.c_str());
+            }
+        }
+    }
     ImGui::Separator();
+
+    if (ImGui::Button("Frame Cave"))
+        FrameStartingCave();
+    ImGui::SameLine();
+    if (ImGui::Button("Frame Vista"))
+        FrameLimgraveVista();
 
     if (ImGui::Button("Frame Lineup"))
         FrameLineup();
@@ -732,6 +1366,79 @@ void CEldenLimgraveShowcaseScene::OnImGui()
     ImGui::Checkbox("FreeCam", &m_bFreeCam);
 
     ImGui::DragFloat3("Lineup Center", &m_vLineupCenter.x, 0.1f, -1000.f, 1000.f, "%.3f");
+    ImGui::Separator();
+
+    if (ImGui::CollapsingHeader("Map Placement Tuner", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+        ImGui::Text("Runtime map placements %zu", m_MapPlacements.size());
+        if (m_MapPlacements.empty())
+        {
+            ImGui::TextDisabled("No runtime map placements loaded.");
+        }
+        else
+        {
+            if (m_iSelectedMapPlacement < 0)
+                m_iSelectedMapPlacement = 0;
+            if (m_iSelectedMapPlacement >= static_cast<i32_t>(m_MapPlacements.size()))
+                m_iSelectedMapPlacement = static_cast<i32_t>(m_MapPlacements.size() - 1);
+
+            if (ImGui::BeginListBox("Map Instances", ImVec2(-1.f, 125.f)))
+            {
+                for (size_t i = 0; i < m_MapPlacements.size(); ++i)
+                {
+                    const EldenRuntimeMapPlacement& mapPlacement = m_MapPlacements[i];
+                    char label[192]{};
+                    sprintf_s(label,
+                              "%s %s %s",
+                              mapPlacement.strTile.c_str(),
+                              mapPlacement.strKind.c_str(),
+                              mapPlacement.strName.c_str());
+                    const bool bSelected = m_iSelectedMapPlacement == static_cast<i32_t>(i);
+                    if (ImGui::Selectable(label, bSelected))
+                        m_iSelectedMapPlacement = static_cast<i32_t>(i);
+                    if (bSelected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndListBox();
+            }
+
+            EldenRuntimeMapPlacement& mapPlacement =
+                m_MapPlacements[static_cast<size_t>(m_iSelectedMapPlacement)];
+            ImGui::TextWrapped("%s / %s", mapPlacement.strModel.c_str(), mapPlacement.strWmesh.c_str());
+
+            bool bMapTransformChanged = false;
+            bMapTransformChanged |= ImGui::DragFloat3("Map Position", &mapPlacement.vPosition.x, 0.1f, -3000.f, 3000.f, "%.3f");
+            bMapTransformChanged |= ImGui::DragFloat3("Map Rotation Deg", &mapPlacement.vRotationDeg.x, 0.25f, -360.f, 360.f, "%.3f");
+            bMapTransformChanged |= ImGui::DragFloat3("Map Scale", &mapPlacement.vScale.x, 0.001f, 0.001f, 10.f, "%.4f");
+            if (bMapTransformChanged)
+                ApplyMapPlacementTransform(mapPlacement);
+
+            if (ImGui::Button("Frame Selected"))
+            {
+                const Vec3 vEye{
+                    mapPlacement.vPosition.x - 8.f,
+                    mapPlacement.vPosition.y + 4.f,
+                    mapPlacement.vPosition.z - 10.f
+                };
+                SetFreeCameraLookAt(vEye, mapPlacement.vPosition);
+            }
+            ImGui::SameLine();
+            static bool s_bLastMapSaveOk = false;
+            static bool s_bHasMapSaveResult = false;
+            if (ImGui::Button("Save Map Draft"))
+            {
+                s_bLastMapSaveOk = SaveMapPlacementDraft();
+                s_bHasMapSaveResult = true;
+            }
+            if (s_bHasMapSaveResult)
+            {
+                ImGui::TextColored(
+                    s_bLastMapSaveOk ? ImVec4(0.45f, 0.95f, 0.55f, 1.f) : ImVec4(1.f, 0.35f, 0.35f, 1.f),
+                    "%s",
+                    s_bLastMapSaveOk ? "Draft saved" : "Draft save failed");
+            }
+        }
+    }
     ImGui::Separator();
 
     if (m_CharacterPlacements.empty())

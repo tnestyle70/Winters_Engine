@@ -1,5 +1,7 @@
 #include "GamePlay/SkillRegistry.h"
 
+#include "GameObject/SkillDefVisualDataAdapter.h"
+
 namespace
 {
 	// Keep false for normal network-authoritative gameplay. Enabling this
@@ -38,12 +40,82 @@ CSkillRegistry& CSkillRegistry::Instance()
 void CSkillRegistry::Add(eChampion champ, u8_t slot, const SkillDef& def)
 {
 	const u32_t key = MakeSkillKey(champ, slot);
-	m_Map.try_emplace(key, ApplyVerificationTiming(def));
+	SkillDef legacy = ApplyVerificationTiming(def);
+	const auto [it, inserted] = m_LegacyMap.try_emplace(key, legacy);
+	if (!inserted)
+	{
+		return;
+	}
+
+	m_GameAtoms.try_emplace(key, SkillDefAdapters::BuildSkillGameAtomBundle(it->second));
+	m_VisualAtoms.try_emplace(key, SkillDefAdapters::BuildSkillVisualData(it->second));
 }
 
 const SkillDef* CSkillRegistry::Find(eChampion champ, u8_t slot) const
 {
 	const u32_t key = MakeSkillKey(champ, slot);
-	auto it = m_Map.find(key);
-	return (it != m_Map.end()) ? &it->second : nullptr;
+	auto it = m_LegacyMap.find(key);
+	return (it != m_LegacyMap.end()) ? &it->second : nullptr;
+}
+
+bool_t CSkillRegistry::ResolveGameAtoms(
+	eChampion champ,
+	u8_t slot,
+	SkillGameAtomBundle& outData) const
+{
+	const u32_t key = MakeSkillKey(champ, slot);
+	auto it = m_GameAtoms.find(key);
+	if (it == m_GameAtoms.end())
+	{
+		return false;
+	}
+
+	outData = it->second;
+	return true;
+}
+
+bool_t CSkillRegistry::ResolveGameData(
+	eChampion champ,
+	u8_t slot,
+	ChampionGameDataSkill& outData) const
+{
+	const SkillDef* pDef = Find(champ, slot);
+	if (!pDef)
+	{
+		return false;
+	}
+
+	outData = SkillDefAdapters::BuildChampionGameDataSkill(*pDef);
+	return true;
+}
+
+bool_t CSkillRegistry::ResolveSkillVisualData(
+	eChampion champ,
+	u8_t slot,
+	SkillVisualData& outData) const
+{
+	const u32_t key = MakeSkillKey(champ, slot);
+	auto it = m_VisualAtoms.find(key);
+	if (it == m_VisualAtoms.end())
+	{
+		return false;
+	}
+
+	outData = it->second;
+	return true;
+}
+
+bool_t CSkillRegistry::ResolveVisualData(
+	eChampion champ,
+	u8_t slot,
+	ChampionActionVisualData& outData) const
+{
+	const SkillDef* pDef = Find(champ, slot);
+	if (!pDef)
+	{
+		return false;
+	}
+
+	outData = SkillDefAdapters::BuildChampionActionVisualData(*pDef);
+	return true;
 }

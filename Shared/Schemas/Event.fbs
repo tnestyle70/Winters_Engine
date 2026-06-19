@@ -21,7 +21,7 @@ enum EventKind : ubyte {
     GameEnd = 15,
     KillFeed = 16,
     Chat = 17,
-    AnimationStart = 18,
+    ActionStart = 18,
     EffectTrigger = 19
 }
 
@@ -75,13 +75,12 @@ table SkillCastEvent {
     targetNet:uint;
 }
 
-table AnimationStartEvent {
+table ActionStartEvent {
     netId:uint;
-    animId:ushort;
+    actionId:ushort;
+    actionStage:ubyte = 1;
     actionSeq:uint;
     startTick:ulong;
-    playbackRateQ8:ushort;
-    flags:ushort;
 }
 
 table EffectTriggerEvent {
@@ -127,7 +126,7 @@ table EventPacket {
     projectile:ProjectileSpawnEvent;
     projectileHit:ProjectileHitEvent;
     skillCast:SkillCastEvent;
-    animation:AnimationStartEvent;
+    actionStart:ActionStartEvent;
     effect:EffectTriggerEvent;
     killFeed:KillFeedEvent;
 }

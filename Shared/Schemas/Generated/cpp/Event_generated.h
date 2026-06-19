@@ -33,8 +33,8 @@ struct ProjectileHitEventBuilder;
 struct SkillCastEvent;
 struct SkillCastEventBuilder;
 
-struct AnimationStartEvent;
-struct AnimationStartEventBuilder;
+struct ActionStartEvent;
+struct ActionStartEventBuilder;
 
 struct EffectTriggerEvent;
 struct EffectTriggerEventBuilder;
@@ -64,7 +64,7 @@ enum class EventKind : uint8_t {
   GameEnd = 15,
   KillFeed = 16,
   Chat = 17,
-  AnimationStart = 18,
+  ActionStart = 18,
   EffectTrigger = 19,
   MIN = None,
   MAX = EffectTrigger
@@ -90,7 +90,7 @@ inline const EventKind (&EnumValuesEventKind())[20] {
     EventKind::GameEnd,
     EventKind::KillFeed,
     EventKind::Chat,
-    EventKind::AnimationStart,
+    EventKind::ActionStart,
     EventKind::EffectTrigger
   };
   return values;
@@ -116,7 +116,7 @@ inline const char * const *EnumNamesEventKind() {
     "GameEnd",
     "KillFeed",
     "Chat",
-    "AnimationStart",
+    "ActionStart",
     "EffectTrigger",
     nullptr
   };
@@ -681,21 +681,23 @@ inline ::flatbuffers::Offset<SkillCastEvent> CreateSkillCastEvent(
   return builder_.Finish();
 }
 
-struct AnimationStartEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
-  typedef AnimationStartEventBuilder Builder;
+struct ActionStartEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef ActionStartEventBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_NETID = 4,
-    VT_ANIMID = 6,
-    VT_ACTIONSEQ = 8,
-    VT_STARTTICK = 10,
-    VT_PLAYBACKRATEQ8 = 12,
-    VT_FLAGS = 14
+    VT_ACTIONID = 6,
+    VT_ACTIONSTAGE = 8,
+    VT_ACTIONSEQ = 10,
+    VT_STARTTICK = 12
   };
   uint32_t netId() const {
     return GetField<uint32_t>(VT_NETID, 0);
   }
-  uint16_t animId() const {
-    return GetField<uint16_t>(VT_ANIMID, 0);
+  uint16_t actionId() const {
+    return GetField<uint16_t>(VT_ACTIONID, 0);
+  }
+  uint8_t actionStage() const {
+    return GetField<uint8_t>(VT_ACTIONSTAGE, 1);
   }
   uint32_t actionSeq() const {
     return GetField<uint32_t>(VT_ACTIONSEQ, 0);
@@ -703,73 +705,61 @@ struct AnimationStartEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tabl
   uint64_t startTick() const {
     return GetField<uint64_t>(VT_STARTTICK, 0);
   }
-  uint16_t playbackRateQ8() const {
-    return GetField<uint16_t>(VT_PLAYBACKRATEQ8, 0);
-  }
-  uint16_t flags() const {
-    return GetField<uint16_t>(VT_FLAGS, 0);
-  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint32_t>(verifier, VT_NETID, 4) &&
-           VerifyField<uint16_t>(verifier, VT_ANIMID, 2) &&
+           VerifyField<uint16_t>(verifier, VT_ACTIONID, 2) &&
+           VerifyField<uint8_t>(verifier, VT_ACTIONSTAGE, 1) &&
            VerifyField<uint32_t>(verifier, VT_ACTIONSEQ, 4) &&
            VerifyField<uint64_t>(verifier, VT_STARTTICK, 8) &&
-           VerifyField<uint16_t>(verifier, VT_PLAYBACKRATEQ8, 2) &&
-           VerifyField<uint16_t>(verifier, VT_FLAGS, 2) &&
            verifier.EndTable();
   }
 };
 
-struct AnimationStartEventBuilder {
-  typedef AnimationStartEvent Table;
+struct ActionStartEventBuilder {
+  typedef ActionStartEvent Table;
   ::flatbuffers::FlatBufferBuilder &fbb_;
   ::flatbuffers::uoffset_t start_;
   void add_netId(uint32_t netId) {
-    fbb_.AddElement<uint32_t>(AnimationStartEvent::VT_NETID, netId, 0);
+    fbb_.AddElement<uint32_t>(ActionStartEvent::VT_NETID, netId, 0);
   }
-  void add_animId(uint16_t animId) {
-    fbb_.AddElement<uint16_t>(AnimationStartEvent::VT_ANIMID, animId, 0);
+  void add_actionId(uint16_t actionId) {
+    fbb_.AddElement<uint16_t>(ActionStartEvent::VT_ACTIONID, actionId, 0);
+  }
+  void add_actionStage(uint8_t actionStage) {
+    fbb_.AddElement<uint8_t>(ActionStartEvent::VT_ACTIONSTAGE, actionStage, 1);
   }
   void add_actionSeq(uint32_t actionSeq) {
-    fbb_.AddElement<uint32_t>(AnimationStartEvent::VT_ACTIONSEQ, actionSeq, 0);
+    fbb_.AddElement<uint32_t>(ActionStartEvent::VT_ACTIONSEQ, actionSeq, 0);
   }
   void add_startTick(uint64_t startTick) {
-    fbb_.AddElement<uint64_t>(AnimationStartEvent::VT_STARTTICK, startTick, 0);
+    fbb_.AddElement<uint64_t>(ActionStartEvent::VT_STARTTICK, startTick, 0);
   }
-  void add_playbackRateQ8(uint16_t playbackRateQ8) {
-    fbb_.AddElement<uint16_t>(AnimationStartEvent::VT_PLAYBACKRATEQ8, playbackRateQ8, 0);
-  }
-  void add_flags(uint16_t flags) {
-    fbb_.AddElement<uint16_t>(AnimationStartEvent::VT_FLAGS, flags, 0);
-  }
-  explicit AnimationStartEventBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+  explicit ActionStartEventBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
   }
-  ::flatbuffers::Offset<AnimationStartEvent> Finish() {
+  ::flatbuffers::Offset<ActionStartEvent> Finish() {
     const auto end = fbb_.EndTable(start_);
-    auto o = ::flatbuffers::Offset<AnimationStartEvent>(end);
+    auto o = ::flatbuffers::Offset<ActionStartEvent>(end);
     return o;
   }
 };
 
-inline ::flatbuffers::Offset<AnimationStartEvent> CreateAnimationStartEvent(
+inline ::flatbuffers::Offset<ActionStartEvent> CreateActionStartEvent(
     ::flatbuffers::FlatBufferBuilder &_fbb,
     uint32_t netId = 0,
-    uint16_t animId = 0,
+    uint16_t actionId = 0,
+    uint8_t actionStage = 1,
     uint32_t actionSeq = 0,
-    uint64_t startTick = 0,
-    uint16_t playbackRateQ8 = 0,
-    uint16_t flags = 0) {
-  AnimationStartEventBuilder builder_(_fbb);
+    uint64_t startTick = 0) {
+  ActionStartEventBuilder builder_(_fbb);
   builder_.add_startTick(startTick);
   builder_.add_actionSeq(actionSeq);
   builder_.add_netId(netId);
-  builder_.add_flags(flags);
-  builder_.add_playbackRateQ8(playbackRateQ8);
-  builder_.add_animId(animId);
+  builder_.add_actionId(actionId);
+  builder_.add_actionStage(actionStage);
   return builder_.Finish();
 }
 
@@ -1047,7 +1037,7 @@ struct EventPacket FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_PROJECTILE = 12,
     VT_PROJECTILEHIT = 14,
     VT_SKILLCAST = 16,
-    VT_ANIMATION = 18,
+    VT_ACTIONSTART = 18,
     VT_EFFECT = 20,
     VT_KILLFEED = 22
   };
@@ -1072,8 +1062,8 @@ struct EventPacket FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const Shared::Schema::SkillCastEvent *skillCast() const {
     return GetPointer<const Shared::Schema::SkillCastEvent *>(VT_SKILLCAST);
   }
-  const Shared::Schema::AnimationStartEvent *animation() const {
-    return GetPointer<const Shared::Schema::AnimationStartEvent *>(VT_ANIMATION);
+  const Shared::Schema::ActionStartEvent *actionStart() const {
+    return GetPointer<const Shared::Schema::ActionStartEvent *>(VT_ACTIONSTART);
   }
   const Shared::Schema::EffectTriggerEvent *effect() const {
     return GetPointer<const Shared::Schema::EffectTriggerEvent *>(VT_EFFECT);
@@ -1096,8 +1086,8 @@ struct EventPacket FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            verifier.VerifyTable(projectileHit()) &&
            VerifyOffset(verifier, VT_SKILLCAST) &&
            verifier.VerifyTable(skillCast()) &&
-           VerifyOffset(verifier, VT_ANIMATION) &&
-           verifier.VerifyTable(animation()) &&
+           VerifyOffset(verifier, VT_ACTIONSTART) &&
+           verifier.VerifyTable(actionStart()) &&
            VerifyOffset(verifier, VT_EFFECT) &&
            verifier.VerifyTable(effect()) &&
            VerifyOffset(verifier, VT_KILLFEED) &&
@@ -1131,8 +1121,8 @@ struct EventPacketBuilder {
   void add_skillCast(::flatbuffers::Offset<Shared::Schema::SkillCastEvent> skillCast) {
     fbb_.AddOffset(EventPacket::VT_SKILLCAST, skillCast);
   }
-  void add_animation(::flatbuffers::Offset<Shared::Schema::AnimationStartEvent> animation) {
-    fbb_.AddOffset(EventPacket::VT_ANIMATION, animation);
+  void add_actionStart(::flatbuffers::Offset<Shared::Schema::ActionStartEvent> actionStart) {
+    fbb_.AddOffset(EventPacket::VT_ACTIONSTART, actionStart);
   }
   void add_effect(::flatbuffers::Offset<Shared::Schema::EffectTriggerEvent> effect) {
     fbb_.AddOffset(EventPacket::VT_EFFECT, effect);
@@ -1160,14 +1150,14 @@ inline ::flatbuffers::Offset<EventPacket> CreateEventPacket(
     ::flatbuffers::Offset<Shared::Schema::ProjectileSpawnEvent> projectile = 0,
     ::flatbuffers::Offset<Shared::Schema::ProjectileHitEvent> projectileHit = 0,
     ::flatbuffers::Offset<Shared::Schema::SkillCastEvent> skillCast = 0,
-    ::flatbuffers::Offset<Shared::Schema::AnimationStartEvent> animation = 0,
+    ::flatbuffers::Offset<Shared::Schema::ActionStartEvent> actionStart = 0,
     ::flatbuffers::Offset<Shared::Schema::EffectTriggerEvent> effect = 0,
     ::flatbuffers::Offset<Shared::Schema::KillFeedEvent> killFeed = 0) {
   EventPacketBuilder builder_(_fbb);
   builder_.add_serverTick(serverTick);
   builder_.add_killFeed(killFeed);
   builder_.add_effect(effect);
-  builder_.add_animation(animation);
+  builder_.add_actionStart(actionStart);
   builder_.add_skillCast(skillCast);
   builder_.add_projectileHit(projectileHit);
   builder_.add_projectile(projectile);

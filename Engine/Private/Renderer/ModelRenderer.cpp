@@ -119,6 +119,7 @@ namespace
             + keyword + "\n").c_str());
         ++s_missingAnimationLogCount;
     }
+
 }
 
 struct ModelRenderer::Impl

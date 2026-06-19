@@ -18,6 +18,7 @@
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/GameplayComponents.h"
 #include "GameObject/SkillDef.h"
+#include "GameObject/SkillVisualData.h"
 #include "GameObject/ChampionDef.h"
 #include "Manager/Navigation/NavGrid.h"
 #include "ECS/Systems/NavigationSystem.h"
@@ -25,6 +26,7 @@
 #include "ECS/BushVolumeIndex.h"
 #include "GameContext.h"
 #include "Network/Client/EventApplier.h"
+#include "Shared/GameSim/Definitions/SkillAtomData.h"
 
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
@@ -273,7 +275,8 @@ private:
     const char* m_pPendingEndAnim = nullptr;
     f32_t       m_fEndTransitionTimer = 0.f;
     bool_t      m_bEndTransitionMoving = false;
-    const SkillDef* m_pLastDispatchedSkill = nullptr;
+    SkillVisualData m_LastSkillVisual{};
+    bool_t      m_bHasLastSkillVisual = false;
 
     // Map mesh
     ModelRenderer   m_Map;
@@ -320,11 +323,23 @@ private:
     bool  m_bShowCombatDebug = false;
     bool  m_bShowMapTuner = false;
 
-    SkillDef        m_ActiveSkillDefStorage{};
-    CastSkillCommand m_ActiveSkillCommandStorage{};
-    const SkillDef* m_pActiveSkillDef = nullptr;
-    f32_t           m_fActivePrevFrame = 0.f;
-    bool_t          m_bLogFrameEvents = false;
+    struct ActiveSkillRuntime
+    {
+        bool_t bActive = false;
+        eChampion champion = eChampion::END;
+        u8_t slot = 0;
+        u8_t stage = 1;
+        CastSkillCommand command{};
+        SkillGameAtomBundle game{};
+        SkillVisualData visual{};
+        SkillDef legacyHookBridge{};
+        f32_t prevFrame = 0.f;
+        bool_t bCastFrameFired = false;
+        bool_t bRecoveryFrameFired = false;
+    };
+
+    ActiveSkillRuntime m_ActiveSkill{};
+    bool_t             m_bLogFrameEvents = false;
 
     bool_t          m_bShowAttackRange = false;
 
@@ -351,7 +366,7 @@ private:
     bool_t IsLocalActionProtected() const;
     void ResetLocalSkillRuntimeState();
     bool_t TryQueueLocalPassiveDashFromCursor();
-    bool_t TriggerNetworkPassiveDashFromAction(u16_t animId, u32_t actionSeq, bool_t bServerDashLikely);
+    bool_t TriggerNetworkPassiveDashFromAction(u16_t actionId, u32_t actionSeq, bool_t bServerDashLikely);
     bool_t ValidateLocalSkillStart(const SkillDef& def);
     void StartLocalTargetDash(EntityID target);
     void StartLocalUltimateDash(EntityID airborne);
@@ -367,10 +382,22 @@ private:
     void SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& cmd, u8_t skillStage = 1);
     void ProtectNetworkAttackYaw(CClientNetwork* pNetworkView, u32_t commandSeq, const Vec3& facingTarget);
     void DriveNetworkAttackIntent(bool& outSkipGroundMove);
-    void ApplyLocalPrediction(const CastSkillCommand& cmd, const SkillDef& def, u8_t skillStage = 1);
-    bool BuildCastCommand(const SkillDef& def, CastSkillCommand& outCmd);
+    void ApplyLocalPrediction(
+        const CastSkillCommand& cmd,
+        const SkillGameAtomBundle& gameData,
+        const SkillVisualData& visualData,
+        const SkillDef& legacyDef,
+        u8_t skillStage = 1);
+    bool BuildCastCommand(const SkillTargetSpec& targetSpec, u8_t skillStage, CastSkillCommand& outCmd);
 
-    void RotatePlayerToward(eRotateMode mode, const CastSkillCommand& cmd);
+    void RotatePlayerToward(const SkillFacingSpec& facingSpec, u8_t skillStage, const CastSkillCommand& cmd);
+    void ClearActiveSkillRuntime();
+    void BeginActiveSkillRuntime(
+        const CastSkillCommand& cmd,
+        const SkillGameAtomBundle& gameData,
+        const SkillVisualData& visualData,
+        const SkillDef& legacyDef,
+        u8_t skillStage);
 
     void Mark_StructuresOnNavGrid();
 
@@ -455,7 +482,7 @@ private:
     {
         u32_t actionSeq = 0;
         u32_t baseSeq = 0;
-        u16_t animId = 0;
+        u16_t actionId = 0;
         f32_t actionRemainingSec = 0.f;
         f32_t transitionRemainingSec = 0.f;
         f32_t transitionDurationSec = 0.f;
@@ -488,9 +515,6 @@ private:
     std::unique_ptr<CFxMeshSystem>                   m_pFxMeshSystem;
     std::unique_ptr<CIreliaBladeSystem>              m_pIreliaBladeSystem;
 
-
-    bool_t m_bCastFrameFired = false;
-    bool_t m_bRecoveryFrameFired = false;
 
     f32_t m_fFlashRange = 4.25f;
     f32_t m_fFlashCooldown = 300.f;

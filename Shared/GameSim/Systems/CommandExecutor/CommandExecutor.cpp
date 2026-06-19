@@ -14,7 +14,7 @@
 #include "Shared/GameSim/Components/CombatActionComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
@@ -391,55 +391,27 @@ namespace
             std::fabs(v.z) <= kMaxMoveCommandAbs;
     }
 
-    void StartNetAnimation(
+    void StartCommandActionState(
         CWorld& world,
         EntityID entity,
-        eNetAnimId animId,
+        eActionStateId actionId,
         const TickContext& tc,
-        u16_t playbackRateQ8,
-        u8_t skillStage = 1,
-        bool_t bLoop = false)
+        u8_t skillStage = 1)
     {
-        auto& anim = world.HasComponent<NetAnimationComponent>(entity)
-            ? world.GetComponent<NetAnimationComponent>(entity)
-            : world.AddComponent<NetAnimationComponent>(entity, NetAnimationComponent{});
-
         const u8_t sanitizedStage =
             (skillStage == 0u) ? 1u : static_cast<u8_t>(skillStage & 0x0fu);
-        ++anim.actionSeq;
-        anim.animId = static_cast<u16_t>(animId);
-        anim.animPhaseFrame = 0;
-        anim.animStartTick = tc.tickIndex;
-        anim.playbackRateQ8 = playbackRateQ8 != 0 ? playbackRateQ8 : 256;
-        anim.flags = static_cast<u16_t>(
-            (static_cast<u16_t>(sanitizedStage) << 12) |
-            (bLoop ? kNetAnimFlagLoop : 0u));
-        anim.priority = 0;
+        StartActionState(world, entity, actionId, tc.tickIndex, sanitizedStage);
     }
 
-    eNetAnimId SkillSlotToAnim(u8_t slot)
+    eActionStateId SkillSlotToActionStateId(u8_t slot)
     {
-        switch (slot)
-        {
-        case 1: return eNetAnimId::SkillQ;
-        case 2: return eNetAnimId::SkillW;
-        case 3: return eNetAnimId::SkillE;
-        case 4: return eNetAnimId::SkillR;
-        default: return eNetAnimId::BasicAttack;
-        }
+        return ActionIdFromSkillSlot(slot);
     }
 
-    bool_t ShouldSuppressCastNetAnimation(eChampion champion, u8_t slot, u8_t stage)
+    bool_t ShouldSuppressCastActionState(eChampion champion, u8_t slot, u8_t stage)
     {
         return champion == eChampion::JAX &&
             slot == static_cast<u8_t>(eSkillSlot::W) &&
-            stage == 1u;
-    }
-
-    bool_t ShouldLoopSkillNetAnimation(eChampion champion, u8_t slot, u8_t stage)
-    {
-        return champion == eChampion::JAX &&
-            slot == static_cast<u8_t>(eSkillSlot::E) &&
             stage == 1u;
     }
 
@@ -642,14 +614,14 @@ namespace
         return false;
     }
 
-    bool_t IsKalistaPassiveDashAction(eNetAnimId animId)
+    bool_t IsKalistaPassiveDashAction(eActionStateId actionId)
     {
-        return animId == eNetAnimId::BasicAttack || animId == eNetAnimId::SkillQ;
+        return actionId == eActionStateId::BasicAttack || actionId == eActionStateId::SkillQ;
     }
 
-    u8_t SlotFromKalistaPassiveDashAction(eNetAnimId animId)
+    u8_t SlotFromKalistaPassiveDashAction(eActionStateId actionId)
     {
-        return animId == eNetAnimId::SkillQ
+        return actionId == eActionStateId::SkillQ
             ? static_cast<u8_t>(eSkillSlot::Q)
             : static_cast<u8_t>(eSkillSlot::BasicAttack);
     }
@@ -702,12 +674,12 @@ namespace
         if (ResolveChampion(world, entity) != eChampion::KALISTA)
             return;
         if (!world.HasComponent<TransformComponent>(entity) ||
-            !world.HasComponent<NetAnimationComponent>(entity))
+            !world.HasComponent<ActionStateComponent>(entity))
         {
             return;
         }
 
-        auto& anim = world.GetComponent<NetAnimationComponent>(entity);
+        auto& action = world.GetComponent<ActionStateComponent>(entity);
         const u64_t lockTicks = ChampionGameDataDB::ResolveSkillActionLockTicks(eChampion::KALISTA, slot);
         const f32_t dashDistance =
             ChampionGameDataDB::ResolvePassiveDashDistance(eChampion::KALISTA);
@@ -727,8 +699,8 @@ namespace
         dash.bPending = bStartPending;
         dash.bActive = false;
         dash.slot = slot;
-        dash.sourceActionSeq = anim.actionSeq;
-        dash.triggerTick = bStartPending ? triggerTick : anim.animStartTick + lockTicks;
+        dash.sourceActionSeq = action.sequence;
+        dash.triggerTick = bStartPending ? triggerTick : action.startTick + lockTicks;
         dash.direction = WintersMath::NormalizeXZ(direction, fallback, 0.0001f);
         dash.bHasQueuedMove = false;
         dash.queuedMoveTarget = {};
@@ -762,25 +734,25 @@ namespace
         }
 
         if (!world.HasComponent<TransformComponent>(cmd.issuerEntity) ||
-            !world.HasComponent<NetAnimationComponent>(cmd.issuerEntity))
+            !world.HasComponent<ActionStateComponent>(cmd.issuerEntity))
         {
             return false;
         }
 
-        auto& anim = world.GetComponent<NetAnimationComponent>(cmd.issuerEntity);
-        const auto animId = static_cast<eNetAnimId>(anim.animId);
-        if (!IsKalistaPassiveDashAction(animId))
+        auto& action = world.GetComponent<ActionStateComponent>(cmd.issuerEntity);
+        const auto actionId = static_cast<eActionStateId>(action.actionId);
+        if (!IsKalistaPassiveDashAction(actionId))
         {
             if (pExistingDash)
                 world.RemoveComponent<KalistaPassiveDashComponent>(cmd.issuerEntity);
             return false;
         }
-        if (tc.tickIndex < anim.animStartTick)
+        if (tc.tickIndex < action.startTick)
             return false;
 
-        const u8_t slot = SlotFromKalistaPassiveDashAction(animId);
+        const u8_t slot = SlotFromKalistaPassiveDashAction(actionId);
         const u64_t lockTicks = ChampionGameDataDB::ResolveSkillActionLockTicks(eChampion::KALISTA, slot);
-        const u64_t triggerTick = anim.animStartTick + lockTicks;
+        const u64_t triggerTick = action.startTick + lockTicks;
         const u64_t inputGraceTicks =
             ChampionGameDataDB::ResolvePassiveDashInputGraceTicks(eChampion::KALISTA);
         const u64_t expireTick = triggerTick + inputGraceTicks;
@@ -792,7 +764,7 @@ namespace
         }
         if (pExistingDash &&
             pExistingDash->sourceActionSeq != 0u &&
-            pExistingDash->sourceActionSeq != anim.actionSeq)
+            pExistingDash->sourceActionSeq != action.sequence)
         {
             world.RemoveComponent<KalistaPassiveDashComponent>(cmd.issuerEntity);
             pExistingDash = nullptr;
@@ -828,7 +800,7 @@ namespace
             dashDir = Vec3{ targetPos.x - pos.x, 0.f, targetPos.z - pos.z };
         }
         else if (pExistingDash &&
-            pExistingDash->sourceActionSeq == anim.actionSeq)
+            pExistingDash->sourceActionSeq == action.sequence)
         {
             dashDir = pExistingDash->direction;
         }
@@ -858,7 +830,7 @@ namespace
 
         dash.bPending = true;
         dash.slot = slot;
-        dash.sourceActionSeq = anim.actionSeq;
+        dash.sourceActionSeq = action.sequence;
         dash.triggerTick = (tc.tickIndex > triggerTick) ? tc.tickIndex : triggerTick;
         dash.direction = dashDir;
         dash.bHasQueuedMove = false;
@@ -1380,14 +1352,14 @@ namespace
         const auto& soul = world.GetComponent<ViegoSoulComponent>(cmd.targetEntity);
         if (!world.HasComponent<ChampionComponent>(cmd.issuerEntity))
         {
-            MSG_BOX("비에고 소울 없음!");
+            OutputCommandDebug("[ViegoSoul] reject consume soul\n");
             return true;
         }
 
         const auto& issuerChampion = world.GetComponent<ChampionComponent>(cmd.issuerEntity);
         if (issuerChampion.id != eChampion::VIEGO || issuerChampion.team != soul.eligibleTeam)
         {
-            MSG_BOX("비에고 소울 없음!");
+            OutputCommandDebug("[ViegoSoul] reject consume soul\n");
             return true;
         }
 
@@ -1396,7 +1368,7 @@ namespace
         const f32_t effectiveRange =
             kConsumeRange + GameplayStateQuery::ResolveGameplayRadius(world, cmd.issuerEntity) +
             GameplayStateQuery::ResolveGameplayRadius(world, cmd.targetEntity);
-        //Argument로 entity를 받기 때문에 winters math를 못 씀!! -> 따로 빼야 하는 걸까?
+        //Argument�?entity�?받기 ?�문??winters math�?�??�!! -> ?�로 빼야 ?�는 걸까?
         if (DistanceSqXZ(world, cmd.issuerEntity, cmd.targetEntity) >
             effectiveRange * effectiveRange)
         {
@@ -1428,8 +1400,7 @@ namespace
         else
             world.AddComponent<FormOverrideComponent>(cmd.issuerEntity, form);
 
-        StartNetAnimation(world, cmd.issuerEntity,
-            eNetAnimId::ViegoConsumeSoul, tc, EncodeSkillPlaybackRateQ8(1.f));
+        StartCommandActionState(world, cmd.issuerEntity, eActionStateId::ViegoConsumeSoul, tc);
 
         world.DestroyEntity(cmd.targetEntity);
         return true;
@@ -1936,18 +1907,14 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
     LogCastSkill("accept", bStage2 ? "stage2" : "ok", effectiveCmd, hookChampion, cooldown);
     ClearMoveTarget(world, effectiveCmd.issuerEntity);
 
-    const ChampionSkillTimingDefaults timing =
-        ChampionGameDataDB::ResolveSkillTiming(hookChampion, hookSlot, skillStage);
-    if (!ShouldSuppressCastNetAnimation(hookChampion, hookSlot, skillStage))
+    if (!ShouldSuppressCastActionState(hookChampion, hookSlot, skillStage))
     {
-        StartNetAnimation(
+        StartCommandActionState(
             world,
             effectiveCmd.issuerEntity,
-            SkillSlotToAnim(effectiveCmd.slot),
+            SkillSlotToActionStateId(effectiveCmd.slot),
             tc,
-            EncodeSkillPlaybackRateQ8(timing.animPlaySpeed),
-            skillStage,
-            ShouldLoopSkillNetAnimation(hookChampion, hookSlot, skillStage));
+            skillStage);
     }
 
     u8_t rank = ResolveSkillRank(world, effectiveCmd.issuerEntity, skillIdentity.localSlot);
@@ -2185,24 +2152,19 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     const ChampionBasicAttackTimingDefaults attackTiming =
         ChampionGameDataDB::ResolveBasicAttackTiming(champion);
 
-    eNetAnimId attackAnimId = eNetAnimId::BasicAttack;
+    eActionStateId attackActionId = eActionStateId::BasicAttack;
     f32_t attackActionDurationSec = attackTiming.fActionDurationSec;
-    f32_t attackAnimPlaySpeed = attackTiming.fAnimPlaySpeed;
 
     if (bJaxEmpowerAttack)
     {
         const ChampionSkillTimingDefaults wTiming =
             ChampionGameDataDB::ResolveSkillTiming(champion, static_cast<u8_t>(eSkillSlot::W));
-        attackAnimId = eNetAnimId::SkillW;
+        attackActionId = eActionStateId::SkillW;
         attackActionDurationSec = wTiming.lockDurationSec;
-        attackAnimPlaySpeed = wTiming.animPlaySpeed;
     }
 
     const u64_t actionTicks =
         ResolveScaledBasicAttackActionTicks(attackActionDurationSec, attackSpeedScale);
-    const u16_t attackPlaybackRate =
-        EncodeSkillPlaybackRateQ8(attackAnimPlaySpeed);
-
     action.eKind = eCombatActionKind::BasicAttack;
     action.eMovePolicy = ResolveBasicAttackMovePolicy(champion);
     action.uSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
@@ -2240,12 +2202,11 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     const Vec3 attackDirection = ResolveProjectileDirection(
         world, cmd.issuerEntity, cmd.targetEntity, cmd.direction);
 
-    StartNetAnimation(
+    StartCommandActionState(
         world,
         cmd.issuerEntity,
-        attackAnimId,
-        tc,
-        attackPlaybackRate);
+        attackActionId,
+        tc);
 
     ArmKalistaPassiveDashWindow(
         world,
@@ -2346,12 +2307,11 @@ void CDefaultCommandExecutor::HandleRecall(CWorld& world, const TickContext& tc,
     else
         world.AddComponent<RecallComponent>(cmd.issuerEntity, recall);
 
-    StartNetAnimation(
+    StartCommandActionState(
         world,
         cmd.issuerEntity,
-        eNetAnimId::Recall,
-        tc,
-        256);
+        eActionStateId::Recall,
+        tc);
 }
 
 void CDefaultCommandExecutor::HandleRecallCancel(CWorld& world,
@@ -2361,7 +2321,7 @@ void CDefaultCommandExecutor::HandleRecallCancel(CWorld& world,
     CancelRecall(world, cmd.issuerEntity);
 
     if (bHadRecall)
-        StartNetAnimation(world, cmd.issuerEntity, eNetAnimId::Idle, tc, 256);
+        SetPoseState(world, cmd.issuerEntity, ePoseStateId::Idle, tc.tickIndex);
 }
 
 void CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,

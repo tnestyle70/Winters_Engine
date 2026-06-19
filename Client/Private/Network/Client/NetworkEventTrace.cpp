@@ -109,14 +109,14 @@ void CNetworkEventTrace::RecordEventPacket(
             entry.idB = ev->bDestroyed() ? 1u : 0u;
         }
         break;
-    case Shared::Schema::EventKind::AnimationStart:
-        if (const auto* ev = packet->animation())
+    case Shared::Schema::EventKind::ActionStart:
+        if (const auto* ev = packet->actionStart())
         {
-            entry.kind = eTraceKind::AnimationStart;
+            entry.kind = eTraceKind::ActionStart;
             entry.sourceNet = ev->netId();
-            entry.idA = ev->animId();
+            entry.idA = ev->actionId();
             entry.idB = ev->actionSeq();
-            entry.value = static_cast<f32_t>(ev->playbackRateQ8()) / 256.f;
+            entry.value = static_cast<f32_t>(ev->actionStage());
         }
         break;
     case Shared::Schema::EventKind::EffectTrigger:
@@ -160,7 +160,7 @@ void CNetworkEventTrace::DrawImGui()
     ImGui::Text("SkillCast: %u", GetCount(eTraceKind::SkillCast));
     ImGui::Text("ProjectileSpawn: %u", GetCount(eTraceKind::ProjectileSpawn));
     ImGui::Text("ProjectileHit: %u", GetCount(eTraceKind::ProjectileHit));
-    ImGui::Text("AnimationStart: %u", GetCount(eTraceKind::AnimationStart));
+    ImGui::Text("ActionStart: %u", GetCount(eTraceKind::ActionStart));
     ImGui::Text("EffectTrigger: %u", GetCount(eTraceKind::EffectTrigger));
 
     ImGui::Separator();
@@ -208,7 +208,7 @@ const char* CNetworkEventTrace::ToString(eTraceKind kind)
     case eTraceKind::SkillCast: return "SkillCast";
     case eTraceKind::ProjectileSpawn: return "ProjectileSpawn";
     case eTraceKind::ProjectileHit: return "ProjectileHit";
-    case eTraceKind::AnimationStart: return "AnimationStart";
+    case eTraceKind::ActionStart: return "ActionStart";
     case eTraceKind::EffectTrigger: return "EffectTrigger";
     default: return "None";
     }

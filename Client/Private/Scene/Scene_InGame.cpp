@@ -76,15 +76,18 @@
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
+#include "GameObject/SkillDefVisualDataAdapter.h"
 #include "GameContext.h"
 #include "Dev/SmokeLog.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/PoseStateComponent.h"
 #include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/ReplicatedStateComponent.h"
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/SkillDefGameDataAdapter.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
@@ -137,6 +140,146 @@ namespace
     constexpr f32_t kNetworkActorInterpTeleportSq = 9.f;
     constexpr f32_t kNetworkActorInterpMinMoveSq = 0.0001f;
     constexpr f32_t kNetworkActorInterpMinYaw = 0.0005f;
+
+    u8_t GetSkillStageIndex(u8_t skillStage)
+    {
+        return skillStage >= 2u ? 1u : 0u;
+    }
+
+    eTargetShape GetTargetShape(const SkillTargetSpec& target, u8_t skillStage)
+    {
+        return target.shape[GetSkillStageIndex(skillStage)];
+    }
+
+    eSkillFacingMode GetFacingMode(const SkillFacingSpec& facing, u8_t skillStage)
+    {
+        return facing.mode[GetSkillStageIndex(skillStage)];
+    }
+
+    SkillVisualStageData GetVisualStage(const SkillVisualData& visual, u8_t skillStage)
+    {
+        return visual.stages[GetSkillStageIndex(skillStage)];
+    }
+
+    const VisualEventData* FindVisualEvent(
+        const SkillVisualStageData& stage,
+        eVisualEventKind kind)
+    {
+        for (u8_t i = 0; i < stage.eventCount; ++i)
+        {
+            if (stage.events[i].kind == static_cast<u8_t>(kind))
+            {
+                return &stage.events[i];
+            }
+        }
+
+        return nullptr;
+    }
+
+    eTargetMode ToLegacyTargetMode(eTargetShape shape)
+    {
+        switch (shape)
+        {
+        case eTargetShape::Unit:
+            return eTargetMode::UnitTarget;
+        case eTargetShape::Ground:
+            return eTargetMode::GroundTarget;
+        case eTargetShape::Direction:
+            return eTargetMode::Direction;
+        case eTargetShape::Self:
+        default:
+            return eTargetMode::Self;
+        }
+    }
+
+    eRotateMode ToLegacyRotateMode(eSkillFacingMode mode)
+    {
+        switch (mode)
+        {
+        case eSkillFacingMode::TowardsTarget:
+            return eRotateMode::TowardsTarget;
+        case eSkillFacingMode::TowardsCommandDirection:
+            return eRotateMode::TowardsCursor;
+        case eSkillFacingMode::None:
+        default:
+            return eRotateMode::None;
+        }
+    }
+
+    f32_t ResolveSkillStageLockSec(
+        const SkillGameAtomBundle& gameData,
+        const SkillDef& legacyDef,
+        u8_t skillStage)
+    {
+        const f32_t stageLock =
+            gameData.stage.lockDurationSec[GetSkillStageIndex(skillStage)];
+        if (stageLock > 0.f)
+        {
+            return stageLock;
+        }
+
+        if (skillStage >= 2u && legacyDef.stage2LockSec > 0.f)
+        {
+            return legacyDef.stage2LockSec;
+        }
+
+        return legacyDef.lockDurationSec;
+    }
+
+    SkillDef BuildLegacyHookBridge(
+        const SkillGameAtomBundle& gameData,
+        const SkillVisualData& visualData,
+        const SkillDef& legacyDef,
+        u8_t skillStage)
+    {
+        SkillDef bridge = legacyDef;
+        const SkillVisualStageData visualStage = GetVisualStage(visualData, skillStage);
+
+        bridge.champ = gameData.slot.champion;
+        bridge.slot = gameData.slot.slot;
+        bridge.targetMode = ToLegacyTargetMode(GetTargetShape(gameData.target, skillStage));
+        bridge.cooldownSec = gameData.cooldown.cooldownSec;
+        bridge.rangeMax = gameData.range.rangeMax;
+        bridge.manaCost = gameData.cost.manaCost;
+        bridge.lockDurationSec = ResolveSkillStageLockSec(gameData, legacyDef, skillStage);
+        bridge.stageCount = gameData.stage.stageCount;
+        bridge.stageWindowSec = gameData.stage.stageWindowSec;
+        bridge.rotate = ToLegacyRotateMode(GetFacingMode(gameData.facing, skillStage));
+        bridge.animKey = visualStage.animationKey ? visualStage.animationKey : legacyDef.animKey;
+        bridge.animPlaySpeed = visualStage.playbackSpeed > 0.f
+            ? visualStage.playbackSpeed
+            : legacyDef.animPlaySpeed;
+
+        if (const VisualEventData* eventData =
+            FindVisualEvent(visualStage, eVisualEventKind::KeySwap))
+        {
+            bridge.keySwapHookId = eventData->hookId;
+        }
+        if (const VisualEventData* eventData =
+            FindVisualEvent(visualStage, eVisualEventKind::CastAccepted))
+        {
+            bridge.onCastAcceptedHookId = eventData->hookId;
+        }
+        if (const VisualEventData* eventData =
+            FindVisualEvent(visualStage, eVisualEventKind::Cast))
+        {
+            bridge.castFrame = eventData->frame;
+            bridge.castFrameHookId = eventData->hookId;
+        }
+        if (const VisualEventData* eventData =
+            FindVisualEvent(visualStage, eVisualEventKind::Recovery))
+        {
+            bridge.recoveryFrame = eventData->frame;
+            bridge.recoveryHookId = eventData->hookId;
+        }
+
+        bridge.endTransitionIdleAnim = visualData.endTransitionIdleAnim;
+        bridge.endTransitionRunAnim = visualData.endTransitionRunAnim;
+        bridge.endTransitionDuration = visualData.endTransitionDuration;
+        bridge.skillId = gameData.slot.skillId;
+        bridge.scalingTableId = gameData.effect.scalingTableId;
+        return bridge;
+    }
 
     f32_t SmoothStep01(f32_t t)
     {
@@ -194,16 +337,17 @@ namespace
         return FindChampionDef(champion);
     }
 
-    bool_t IsNetworkActionAnim(u16_t animId)
+    bool_t IsNetworkAction(u16_t actionId)
     {
-        const auto id = static_cast<eNetAnimId>(animId);
-        return id == eNetAnimId::BasicAttack ||
-            id == eNetAnimId::SkillQ ||
-            id == eNetAnimId::SkillW ||
-            id == eNetAnimId::SkillE ||
-            id == eNetAnimId::SkillR ||
-            id == eNetAnimId::Recall ||
-            id == eNetAnimId::ViegoConsumeSoul;
+        const auto id = static_cast<eActionStateId>(actionId);
+        return id == eActionStateId::BasicAttack ||
+            id == eActionStateId::SkillQ ||
+            id == eActionStateId::SkillW ||
+            id == eActionStateId::SkillE ||
+            id == eActionStateId::SkillR ||
+            id == eActionStateId::Recall ||
+            id == eActionStateId::DeathStart ||
+            id == eActionStateId::ViegoConsumeSoul;
     }
 
     std::vector<CNavGrid::Cell> SmoothClientMovePathCells(
@@ -263,64 +407,46 @@ namespace
         return dot < minDot;
     }
 
-    u8_t NetworkAnimToSkillSlot(u16_t animId)
+    u8_t NetworkActionToSkillSlot(u16_t actionId)
     {
-        switch (static_cast<eNetAnimId>(animId))
+        switch (static_cast<eActionStateId>(actionId))
         {
-        case eNetAnimId::SkillQ:
+        case eActionStateId::SkillQ:
             return static_cast<u8_t>(eSkillSlot::Q);
-        case eNetAnimId::SkillW:
+        case eActionStateId::SkillW:
             return static_cast<u8_t>(eSkillSlot::W);
-        case eNetAnimId::SkillE:
+        case eActionStateId::SkillE:
             return static_cast<u8_t>(eSkillSlot::E);
-        case eNetAnimId::SkillR:
+        case eActionStateId::SkillR:
             return static_cast<u8_t>(eSkillSlot::R);
-        case eNetAnimId::BasicAttack:
+        case eActionStateId::BasicAttack:
         default:
             return static_cast<u8_t>(eSkillSlot::BasicAttack);
         }
     }
 
-    const SkillDef* FindNetworkSkillDef(eChampion champion, u16_t animId)
+    const SkillDef* FindNetworkSkillDef(eChampion champion, u16_t actionId)
     {
-        if (static_cast<eNetAnimId>(animId) == eNetAnimId::Recall)
+        if (static_cast<eActionStateId>(actionId) == eActionStateId::Recall)
             return nullptr;
 
-        const u8_t slot = NetworkAnimToSkillSlot(animId);
+        const u8_t slot = NetworkActionToSkillSlot(actionId);
         const SkillDef* pDef = CSkillRegistry::Instance().Find(champion, slot);
         if (!pDef)
             pDef = FindSkillDef(champion, slot);
         return pDef;
     }
 
-    u8_t NetworkStageFromFlags(u16_t flags)
-    {
-        const u8_t stage = static_cast<u8_t>((flags >> 12) & 0x0fu);
-        return stage == 0u ? 1u : stage;
-    }
-
-    constexpr u16_t kNetAnimFlagLoop = 0x0800u;
-
-    f32_t DecodePlaybackRateQ8(u16_t playbackRateQ8)
-    {
-        const f32_t playSpeed = playbackRateQ8 > 0
-            ? static_cast<f32_t>(playbackRateQ8) / 256.f
-            : 1.f;
-        return std::clamp(playSpeed, 0.05f, 4.f);
-    }
-
     f32_t ResolveNetworkActionDurationSec(
         eChampion champion,
         const SkillDef* pDef,
-        u16_t animId,
-        u16_t flags,
-        u16_t playbackRateQ8)
+        u16_t actionId,
+        u8_t stage)
     {
-        if (static_cast<eNetAnimId>(animId) == eNetAnimId::Recall)
+        if (static_cast<eActionStateId>(actionId) == eActionStateId::Recall)
             return kRecallDurationSec;
 
-        const u8_t slot = NetworkAnimToSkillSlot(animId);
-        const u8_t stage = NetworkStageFromFlags(flags);
+        const u8_t slot = NetworkActionToSkillSlot(actionId);
         const ChampionSkillTimingDefaults timing =
             ChampionGameDataDB::ResolveSkillTiming(champion, slot, stage);
 
@@ -330,12 +456,9 @@ namespace
         if (durationSec <= 0.01f && pDef && pDef->lockDurationSec > 0.01f)
             durationSec = pDef->lockDurationSec;
         if (durationSec <= 0.01f)
-            durationSec = static_cast<eNetAnimId>(animId) == eNetAnimId::BasicAttack ? 0.45f : 0.6f;
+            durationSec = static_cast<eActionStateId>(actionId) == eActionStateId::BasicAttack ? 0.45f : 0.6f;
 
-        const f32_t authoredSpeed = std::clamp(timing.animPlaySpeed, 0.05f, 4.f);
-        const f32_t playbackSpeed = DecodePlaybackRateQ8(playbackRateQ8);
-        const f32_t speedScale = std::clamp(playbackSpeed / authoredSpeed, 0.2f, 4.f);
-        return durationSec / speedScale;
+        return durationSec;
     }
 
     std::string ResolveNetworkAnimName(const ChampionDef& championDef, const char* pAnimKey)
@@ -368,15 +491,20 @@ namespace
         return ResolveNetworkAnimName(championDef, "death");
     }
 
-    bool_t HasNetworkLoopFlag(const NetAnimationComponent& anim)
+    bool_t ShouldLoopNetworkAction(
+        eChampion champion,
+        u16_t actionId,
+        u8_t stage)
     {
-        return (anim.flags & kNetAnimFlagLoop) != 0u;
+        return champion == eChampion::JAX &&
+            static_cast<eActionStateId>(actionId) == eActionStateId::SkillE &&
+            stage <= 1u;
     }
 
     std::string ResolveNetworkActionAnimName(
         eChampion champion,
         const SkillDef* pSkillDef,
-        const NetAnimationComponent& netAnim)
+        const ActionStateComponent& action)
     {
         if (!pSkillDef)
         {
@@ -387,7 +515,7 @@ namespace
         if (!pChampionDef)
             return {};
 
-        const u8_t stage = NetworkStageFromFlags(netAnim.flags);
+        const u8_t stage = action.stage == 0u ? 1u : action.stage;
         const bool_t bStage2 = stage >= 2u;
         const char* pAnimKey = (bStage2 && pSkillDef->stage2AnimKey)
             ? pSkillDef->stage2AnimKey
@@ -399,14 +527,15 @@ namespace
     void PlayLoopNetworkActionIfNeeded(
         eChampion champion,
         const SkillDef* pSkillDef,
-        const NetAnimationComponent& netAnim,
+        const ActionStateComponent& action,
         RenderComponent& render)
     {
-        if (!HasNetworkLoopFlag(netAnim) || !render.pRenderer)
+        if (!ShouldLoopNetworkAction(champion, action.actionId, action.stage) ||
+            !render.pRenderer)
             return;
 
         const std::string animName =
-            ResolveNetworkActionAnimName(champion, pSkillDef, netAnim);
+            ResolveNetworkActionAnimName(champion, pSkillDef, action);
         if (animName.empty())
             return;
 
@@ -426,7 +555,7 @@ namespace
             animName,
             true,
             false,
-            DecodePlaybackRateQ8(netAnim.playbackRateQ8));
+            1.f);
     }
 
     void LogNetworkEndTransition(
@@ -2270,9 +2399,13 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             const bool_t bServerMoving =
                 m_World.HasComponent<ReplicatedStateComponent>(e) &&
                 (m_World.GetComponent<ReplicatedStateComponent>(e).stateFlags & kSnapshotStateMovingFlag) != 0u;
-            const NetAnimationComponent* pNetAnim =
-                m_World.HasComponent<NetAnimationComponent>(e)
-                ? &m_World.GetComponent<NetAnimationComponent>(e)
+            const PoseStateComponent* pPose =
+                m_World.HasComponent<PoseStateComponent>(e)
+                ? &m_World.GetComponent<PoseStateComponent>(e)
+                : nullptr;
+            const ActionStateComponent* pAction =
+                m_World.HasComponent<ActionStateComponent>(e)
+                ? &m_World.GetComponent<ActionStateComponent>(e)
                 : nullptr;
 
             const f32_t dx = pos.x - prevIt->second.x;
@@ -2294,15 +2427,15 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             }
 
             bPositionMoving = (moveGrace > 0.f);
-            const bool_t bAnimRequestsIdle =
-                pNetAnim && pNetAnim->animId == static_cast<u16_t>(eNetAnimId::Idle);
-            const bool_t bAnimRequestsDeath =
-                pNetAnim && pNetAnim->animId == static_cast<u16_t>(eNetAnimId::Death);
-            if (bAnimRequestsDeath)
+            const bool_t bPoseRequestsIdle =
+                pPose && pPose->poseId == static_cast<u16_t>(ePoseStateId::Idle);
+            const bool_t bPoseRequestsDeath =
+                pPose && pPose->poseId == static_cast<u16_t>(ePoseStateId::Dead);
+            if (bPoseRequestsDeath)
                 moveGrace = 0.f;
 
-            bool_t bMoving = !bAnimRequestsDeath && (bServerMoving || bPositionMoving);
-            if (bAnimRequestsIdle && !bServerMoving && !bPositionMoving)
+            bool_t bMoving = !bPoseRequestsDeath && (bServerMoving || bPositionMoving);
+            if (bPoseRequestsIdle && !bServerMoving && !bPositionMoving)
                 bMoving = false;
 
             prevIt->second = pos;
@@ -2311,12 +2444,16 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                 m_bMoving = bMoving;
 
             NetworkActionAnimationState& actionState = m_NetworkActionAnimStates[e];
-            if (bAnimRequestsDeath)
+            if (bPoseRequestsDeath)
             {
-                if (pNetAnim && actionState.baseSeq != pNetAnim->actionSeq)
+                const u32_t deathSeq = pAction &&
+                    pAction->actionId == static_cast<u16_t>(eActionStateId::DeathStart)
+                    ? pAction->sequence
+                    : static_cast<u32_t>(pPose ? pPose->startTick : 0u);
+                if (actionState.baseSeq != deathSeq)
                 {
                     actionState = {};
-                    actionState.baseSeq = pNetAnim->actionSeq;
+                    actionState.baseSeq = deathSeq;
 
                     const ChampionDef* cd = FindClientChampionDef(champ.id);
                     if (cd)
@@ -2334,23 +2471,22 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                 return;
             }
 
-            if (pNetAnim && pNetAnim->actionSeq != 0)
+            if (pAction && pAction->sequence != 0)
             {
-                if (IsNetworkActionAnim(pNetAnim->animId))
+                if (IsNetworkAction(pAction->actionId))
                 {
-                    if (actionState.actionSeq != pNetAnim->actionSeq)
+                    if (actionState.actionSeq != pAction->sequence)
                     {
-                        const SkillDef* pSkillDef = FindNetworkSkillDef(champ.id, pNetAnim->animId);
+                        const SkillDef* pSkillDef = FindNetworkSkillDef(champ.id, pAction->actionId);
                         actionState = {};
-                        actionState.actionSeq = pNetAnim->actionSeq;
-                        actionState.animId = pNetAnim->animId;
+                        actionState.actionSeq = pAction->sequence;
+                        actionState.actionId = pAction->actionId;
                         actionState.actionRemainingSec =
                             ResolveNetworkActionDurationSec(
                                 champ.id,
                                 pSkillDef,
-                                pNetAnim->animId,
-                                pNetAnim->flags,
-                                pNetAnim->playbackRateQ8);
+                                pAction->actionId,
+                                pAction->stage);
                         actionState.transitionDurationSec =
                             pSkillDef ? pSkillDef->endTransitionDuration : 0.f;
                         if (pSkillDef)
@@ -2375,16 +2511,17 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                                     : "";
                             }
                         }
-                        actionState.bLoopAction = HasNetworkLoopFlag(*pNetAnim);
+                        actionState.bLoopAction =
+                            ShouldLoopNetworkAction(champ.id, pAction->actionId, pAction->stage);
                         actionState.bActionActive = true;
                         actionState.bBaseAnimationPending = !actionState.bLoopAction;
                         actionState.bPassiveDashTriggered = false;
-                        PlayLoopNetworkActionIfNeeded(champ.id, pSkillDef, *pNetAnim, rc);
+                        PlayLoopNetworkActionIfNeeded(champ.id, pSkillDef, *pAction, rc);
                     }
                 }
-                else if (actionState.baseSeq != pNetAnim->actionSeq)
+                else if (pPose && actionState.baseSeq != static_cast<u32_t>(pPose->startTick))
                 {
-                    actionState.baseSeq = pNetAnim->actionSeq;
+                    actionState.baseSeq = static_cast<u32_t>(pPose->startTick);
                     actionState.bBaseAnimationPending = true;
                     if (actionState.bActionActive)
                     {
@@ -2416,11 +2553,11 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             {
                 m_NetworkChampionMoving[e] = bMoving;
                 actionState.bDesiredMoving = bMoving;
-                if (actionState.bLoopAction && pNetAnim)
+                if (actionState.bLoopAction && pAction)
                 {
                     const SkillDef* pLoopSkillDef =
-                        FindNetworkSkillDef(champ.id, pNetAnim->animId);
-                    PlayLoopNetworkActionIfNeeded(champ.id, pLoopSkillDef, *pNetAnim, rc);
+                        FindNetworkSkillDef(champ.id, pAction->actionId);
+                    PlayLoopNetworkActionIfNeeded(champ.id, pLoopSkillDef, *pAction, rc);
                 }
 
                 actionState.actionRemainingSec -= dt;
@@ -2435,7 +2572,7 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                     {
                         const bool_t bDashStarted =
                             TriggerNetworkPassiveDashFromAction(
-                            actionState.animId,
+                            actionState.actionId,
                             actionState.actionSeq,
                             actionState.bDesiredMoving);
                         if (bDashStarted)
@@ -2699,14 +2836,14 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
         if (s_bSmokeSkillAttempted
             && !s_bSmokeSkillCastObserved
-            && m_bCastFrameFired
-            && m_pLastDispatchedSkill != nullptr)
+            && m_ActiveSkill.bCastFrameFired
+            && m_ActiveSkill.bActive)
         {
             Winters::DevSmoke::Log(
                 "[SmokeSkill] castFrame observed champ=%u slot=%u hook=0x%08X\n",
                 static_cast<u32_t>(GetPlayerChampionId()),
-                static_cast<u32_t>(m_pLastDispatchedSkill->slot),
-                m_pLastDispatchedSkill->castFrameHookId);
+                static_cast<u32_t>(m_ActiveSkill.slot),
+                m_ActiveSkill.legacyHookBridge.castFrameHookId);
             s_bSmokeSkillCastObserved = true;
         }
     }
@@ -2735,29 +2872,27 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
     UpdateDash(dt);
 
-    if (m_bNetworkAuthoritativeGameplay && m_pActiveSkillDef)
+    if (m_bNetworkAuthoritativeGameplay && m_ActiveSkill.bActive)
     {
-        m_pActiveSkillDef = nullptr;
-        m_fActivePrevFrame = 0.f;
-        m_bCastFrameFired = false;
-        m_bRecoveryFrameFired = false;
+        ClearActiveSkillRuntime();
     }
-    else if (m_pActiveSkillDef && m_pPlayerRenderer)
+    else if (m_ActiveSkill.bActive && m_pPlayerRenderer)
     {
         const Engine::CAnimator* pAnim = m_pPlayerRenderer->GetAnimator();
         if (pAnim)
         {
             const f32_t curF = pAnim->GetCurrentFrame();
-            const SkillDef& d = *m_pActiveSkillDef;
+            const SkillDef& d = m_ActiveSkill.legacyHookBridge;
+            const CastSkillCommand& activeCommand = m_ActiveSkill.command;
 
             const bool bCastHit =
-                !m_bCastFrameFired
+                !m_ActiveSkill.bCastFrameFired
                 && d.castFrame > 0.f
-                && pAnim->HasFramePassed(d.castFrame, m_fActivePrevFrame);
+                && pAnim->HasFramePassed(d.castFrame, m_ActiveSkill.prevFrame);
             const bool bRecoveryHit =
-                !m_bRecoveryFrameFired
+                !m_ActiveSkill.bRecoveryFrameFired
                 && d.recoveryFrame > 0.f
-                && pAnim->HasFramePassed(d.recoveryFrame, m_fActivePrevFrame);
+                && pAnim->HasFramePassed(d.recoveryFrame, m_ActiveSkill.prevFrame);
 
             if (m_bLogFrameEvents)
             {
@@ -2777,7 +2912,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
             if (bCastHit)
             {
-                m_bCastFrameFired = true;
+                m_ActiveSkill.bCastFrameFired = true;
 
                 // Local/offline path only. Network-authoritative gameplay is handled by server commands.
                 const eChampion champ = GetPlayerChampionId();
@@ -2787,9 +2922,9 @@ void CScene_InGame::OnUpdate(f32_t dt)
                     : eCommandKind::CastSkill;
                 gameCommand.issuerEntity = m_PlayerEntity;
                 gameCommand.slot = d.slot;
-                gameCommand.targetEntity = m_ActiveSkillCommandStorage.targetEntityId;
-                gameCommand.groundPos = m_ActiveSkillCommandStorage.groundPos;
-                gameCommand.direction = m_ActiveSkillCommandStorage.direction;
+                gameCommand.targetEntity = activeCommand.targetEntityId;
+                gameCommand.groundPos = activeCommand.groundPos;
+                gameCommand.direction = activeCommand.direction;
                 TickContext tickCtx{};
                 tickCtx.fDt = dt;
                 tickCtx.localPlayer = m_PlayerEntity;
@@ -2806,38 +2941,40 @@ void CScene_InGame::OnUpdate(f32_t dt)
                     const u8_t rank = m_World.GetComponent<SkillRankComponent>(m_PlayerEntity).ranks[d.slot];
                     gameCtx.skillRank = (rank == 0) ? 1 : rank;
                 }
-                gameCtx.pDef = m_pActiveSkillDef;
+                gameCtx.pDef = &m_ActiveSkill.legacyHookBridge;
                 gameCtx.pCommand = &gameCommand;
                 gameCtx.pTickCtx = &tickCtx;
                 bool gameplayHandled = false;
-                if (m_pActiveSkillDef->castFrameHookId != 0)
+                if (d.castFrameHookId != 0)
                 {
                     gameplayHandled = CGameplayHookRegistry::Instance().Dispatch(
-                        m_pActiveSkillDef->castFrameHookId, gameCtx
+                        d.castFrameHookId, gameCtx
                     );
                 }
                 //Client Visual FX/Sound
                 VisualHookContext visualCtx{};
                 visualCtx.pWorld = &m_World;
                 visualCtx.casterEntity = m_PlayerEntity;
-                visualCtx.pDef = m_pActiveSkillDef;
-                visualCtx.pCommand = &m_ActiveSkillCommandStorage;
+                visualCtx.pDef = &m_ActiveSkill.legacyHookBridge;
+                visualCtx.pCommand = &activeCommand;
+                visualCtx.skillStage = m_ActiveSkill.stage;
                 visualCtx.pFxMeshRenderer = m_pFxMeshRenderer.get();
                 bool visualHandled = false;
-                if (m_pActiveSkillDef->castFrameHookId != 0)
+                if (d.castFrameHookId != 0)
                     visualHandled = CVisualHookRegistry::Instance().Dispatch(
-                        m_pActiveSkillDef->castFrameHookId, visualCtx);
+                        d.castFrameHookId, visualCtx);
 
                 // Legacy local skill hook path for offline/practice visuals.
                 bool castHandled = false;
-                if (m_pActiveSkillDef && m_pActiveSkillDef->castFrameHookId != 0)
+                if (d.castFrameHookId != 0)
                 {
                     SkillHookContext ctx{};
                     ctx.pWorld = &m_World;
                     ctx.casterEntity = m_PlayerEntity;
                     ctx.casterTeam = m_PlayerTeam;
-                    ctx.pDef = m_pActiveSkillDef;
-                    ctx.pCommand = &m_ActiveSkillCommandStorage;
+                    ctx.pDef = &m_ActiveSkill.legacyHookBridge;
+                    ctx.pCommand = &activeCommand;
+                    ctx.skillStage = m_ActiveSkill.stage;
                     ctx.pFxMeshRenderer = m_pFxMeshRenderer.get();
                     ctx.applyTargetDamage = [this](EntityID target, f32_t damage)
                         {
@@ -2854,7 +2991,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
                                 m_pPlayerRenderer->PlayAnimationByName(idle, true);
                         };
                     castHandled = CSkillHookRegistry::Instance().Dispatch(
-                        m_pActiveSkillDef->castFrameHookId, ctx);
+                        d.castFrameHookId, ctx);
                 }
                 Winters::DevSmoke::Log(
                     "[SmokeSkill] castFrame champ=%u slot=%u hook=0x%08X gameplay=%u visual=%u legacy=%u\n",
@@ -2869,18 +3006,19 @@ void CScene_InGame::OnUpdate(f32_t dt)
             }
             if (bRecoveryHit)
             {
-                m_bRecoveryFrameFired = true;
+                m_ActiveSkill.bRecoveryFrameFired = true;
 
                 //DispatchHook Recovery
                 bool recoveryHandled = false;
-                if (m_pActiveSkillDef && m_pActiveSkillDef->recoveryHookId != 0)
+                if (d.recoveryHookId != 0)
                 {
                     SkillHookContext ctx{};
                     ctx.pWorld = &m_World;
                     ctx.casterEntity = m_PlayerEntity;
                     ctx.casterTeam = m_PlayerTeam;
-                    ctx.pDef = m_pActiveSkillDef;
-                    ctx.pCommand = &m_ActiveSkillCommandStorage;
+                    ctx.pDef = &m_ActiveSkill.legacyHookBridge;
+                    ctx.pCommand = &activeCommand;
+                    ctx.skillStage = m_ActiveSkill.stage;
                     ctx.pFxMeshRenderer = m_pFxMeshRenderer.get();
                     ctx.pCasterRenderer = m_pPlayerRenderer;
                     ctx.fGlobalAnimSpeed = m_fGlobalAnimSpeed;
@@ -2901,7 +3039,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
                             SetLocalActionAnimActive(active);
                         };
                     recoveryHandled = CSkillHookRegistry::Instance().Dispatch(
-                        m_pActiveSkillDef->recoveryHookId, ctx
+                        d.recoveryHookId, ctx
                     );
                 }
                 (void)recoveryHandled;
@@ -2910,9 +3048,9 @@ void CScene_InGame::OnUpdate(f32_t dt)
             }
 
             if (d.recoveryFrame > 0.f && curF >= d.recoveryFrame)
-                m_pActiveSkillDef = nullptr;
+                ClearActiveSkillRuntime();
             else
-                m_fActivePrevFrame = curF;
+                m_ActiveSkill.prevFrame = curF;
         }
     }
 
@@ -3777,37 +3915,37 @@ bool_t CScene_InGame::TryQueueLocalPassiveDashFromCursor()
 
     u8_t passiveSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
     bool_t bNetworkGraceWindow = false;
-    u16_t networkAnimId = 0;
+    u16_t networkActionId = 0;
     u32_t networkActionSeq = 0;
     bool_t bPassiveDashWindow =
-        m_pActiveSkillDef &&
-        (m_pActiveSkillDef->slot == 0 || m_pActiveSkillDef->slot == 1) &&
-        !m_bRecoveryFrameFired;
+        m_ActiveSkill.bActive &&
+        (m_ActiveSkill.slot == 0 || m_ActiveSkill.slot == 1) &&
+        !m_ActiveSkill.bRecoveryFrameFired;
 
     if (bPassiveDashWindow)
     {
-        passiveSlot = m_pActiveSkillDef->slot;
+        passiveSlot = m_ActiveSkill.slot;
     }
     else if (m_bNetworkAuthoritativeGameplay && m_PlayerEntity != NULL_ENTITY)
     {
         const auto it = m_NetworkActionAnimStates.find(m_PlayerEntity);
         if (it != m_NetworkActionAnimStates.end())
         {
-            const auto animId = static_cast<eNetAnimId>(it->second.animId);
+            const auto actionId = static_cast<eActionStateId>(it->second.actionId);
             const bool_t bPassiveAnim =
-                animId == eNetAnimId::BasicAttack || animId == eNetAnimId::SkillQ;
+                actionId == eActionStateId::BasicAttack || actionId == eActionStateId::SkillQ;
             const bool_t bGraceOpen =
                 !it->second.bActionActive && it->second.passiveDashInputGraceSec > 0.f;
             if (bPassiveAnim &&
                 !it->second.bPassiveDashTriggered &&
                 (it->second.bActionActive || bGraceOpen))
             {
-                passiveSlot = (animId == eNetAnimId::SkillQ)
+                passiveSlot = (actionId == eActionStateId::SkillQ)
                     ? static_cast<u8_t>(eSkillSlot::Q)
                     : static_cast<u8_t>(eSkillSlot::BasicAttack);
                 bPassiveDashWindow = true;
                 bNetworkGraceWindow = bGraceOpen;
-                networkAnimId = it->second.animId;
+                networkActionId = it->second.actionId;
                 networkActionSeq = it->second.actionSeq;
             }
         }
@@ -3840,9 +3978,9 @@ bool_t CScene_InGame::TryQueueLocalPassiveDashFromCursor()
             ? m_vKalistaPassiveDashFaceDir
             : GetPlayerForward();
 
-        if (!m_bKalistaPassiveDashHasFaceDir && m_pActiveSkillDef)
+        if (!m_bKalistaPassiveDashHasFaceDir && m_ActiveSkill.bActive)
         {
-            const auto& activeCmd = m_ActiveSkillCommandStorage;
+            const auto& activeCmd = m_ActiveSkill.command;
             if (passiveSlot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
                 activeCmd.targetEntityId != NULL_ENTITY &&
                 m_World.HasComponent<TransformComponent>(activeCmd.targetEntityId))
@@ -3864,7 +4002,7 @@ bool_t CScene_InGame::TryQueueLocalPassiveDashFromCursor()
         {
             m_bKalistaPassiveDashMoveCommandPending = true;
             m_bKalistaPassiveDashTriggerAfterMove = bNetworkGraceWindow;
-            m_uKalistaPassiveDashTriggerAnimId = networkAnimId;
+            m_uKalistaPassiveDashTriggerAnimId = networkActionId;
             m_uKalistaPassiveDashTriggerActionSeq = networkActionSeq;
         }
     }
@@ -3872,19 +4010,19 @@ bool_t CScene_InGame::TryQueueLocalPassiveDashFromCursor()
     return true;
 }
 
-bool_t CScene_InGame::TriggerNetworkPassiveDashFromAction(u16_t animId, u32_t actionSeq, bool_t bServerDashLikely)
+bool_t CScene_InGame::TriggerNetworkPassiveDashFromAction(u16_t actionId, u32_t actionSeq, bool_t bServerDashLikely)
 {
     if (GetPlayerChampionId() != eChampion::KALISTA)
         return false;
     if (m_PlayerEntity == NULL_ENTITY)
         return false;
 
-    const auto netAnim = static_cast<eNetAnimId>(animId);
-    const u8_t slot = (netAnim == eNetAnimId::SkillQ)
+    const auto action = static_cast<eActionStateId>(actionId);
+    const u8_t slot = (action == eActionStateId::SkillQ)
         ? static_cast<u8_t>(eSkillSlot::Q)
         : static_cast<u8_t>(eSkillSlot::BasicAttack);
 
-    if (netAnim != eNetAnimId::BasicAttack && netAnim != eNetAnimId::SkillQ)
+    if (action != eActionStateId::BasicAttack && action != eActionStateId::SkillQ)
         return false;
 
     if (!Kalista::HasPassiveDashRequest())
@@ -4259,7 +4397,12 @@ void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t 
             }
             else if (bActionLocked)
             {
-                const f32_t skillSpeed = m_pActiveSkillDef ? m_pActiveSkillDef->animPlaySpeed : 1.f;
+                const SkillVisualStageData visualStage =
+                    m_ActiveSkill.bActive
+                    ? GetVisualStage(m_ActiveSkill.visual, m_ActiveSkill.stage)
+                    : SkillVisualStageData{};
+                const f32_t skillSpeed =
+                    m_ActiveSkill.bActive ? visualStage.playbackSpeed : 1.f;
                 s = m_fAttackSpeedMul * m_fGlobalAnimSpeed * skillSpeed;
             }
             else
@@ -4678,12 +4821,12 @@ void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t 
         {
             const char* pTransition = nullptr;
             f32_t fDur = 0.f;
-            if (m_pLastDispatchedSkill)
+            if (m_bHasLastSkillVisual)
             {
                 pTransition = m_bMoving
-                    ? m_pLastDispatchedSkill->endTransitionRunAnim
-                    : m_pLastDispatchedSkill->endTransitionIdleAnim;
-                fDur = m_pLastDispatchedSkill->endTransitionDuration;
+                    ? m_LastSkillVisual.endTransitionRunAnim
+                    : m_LastSkillVisual.endTransitionIdleAnim;
+                fDur = m_LastSkillVisual.endTransitionDuration;
             }
 
             if (pTransition && fDur > 0.01f)
@@ -5045,8 +5188,7 @@ bool CScene_InGame::IsEnemyOfPlayer(EntityID entity)
 void CScene_InGame::PreemptAction(const char* reasonLabel)
 {
     m_fLastActionTimer = 0.f;
-    m_pActiveSkillDef = nullptr;
-    m_fActivePrevFrame = 0.f;
+    ClearActiveSkillRuntime();
     ResetLocalSkillRuntimeState();
     m_pLastActionLabel = reasonLabel ? reasonLabel : "(preempt)";
 
@@ -5057,6 +5199,38 @@ void CScene_InGame::PreemptAction(const char* reasonLabel)
     m_fDashElapsed = 0.f;
     m_DashTargetEntity = NULL_ENTITY;
 
+}
+
+void CScene_InGame::ClearActiveSkillRuntime()
+{
+    m_ActiveSkill = ActiveSkillRuntime{};
+}
+
+void CScene_InGame::BeginActiveSkillRuntime(
+    const CastSkillCommand& cmd,
+    const SkillGameAtomBundle& gameData,
+    const SkillVisualData& visualData,
+    const SkillDef& legacyDef,
+    u8_t skillStage)
+{
+    const u8_t stage = skillStage == 0u ? 1u : skillStage;
+
+    m_ActiveSkill = ActiveSkillRuntime{};
+    m_ActiveSkill.bActive = true;
+    m_ActiveSkill.champion = gameData.slot.champion;
+    m_ActiveSkill.slot = gameData.slot.slot;
+    m_ActiveSkill.stage = stage;
+    m_ActiveSkill.command = cmd;
+    m_ActiveSkill.game = gameData;
+    m_ActiveSkill.visual = visualData;
+    m_ActiveSkill.legacyHookBridge =
+        BuildLegacyHookBridge(gameData, visualData, legacyDef, stage);
+    m_ActiveSkill.prevFrame = 0.f;
+    m_ActiveSkill.bCastFrameFired = false;
+    m_ActiveSkill.bRecoveryFrameFired = false;
+
+    m_LastSkillVisual = visualData;
+    m_bHasLastSkillVisual = true;
 }
 
 void CScene_InGame::UpdateDash(f32_t dt)
@@ -5198,6 +5372,17 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
         return false;
     }
 
+    SkillGameAtomBundle gameData{};
+    SkillVisualData visualData{};
+    if (!CSkillRegistry::Instance().ResolveGameAtoms(champ, lookupSlot, gameData))
+    {
+        gameData = SkillDefAdapters::BuildSkillGameAtomBundle(*def);
+    }
+    if (!CSkillRegistry::Instance().ResolveSkillVisualData(champ, lookupSlot, visualData))
+    {
+        visualData = SkillDefAdapters::BuildSkillVisualData(*def);
+    }
+
     if (!m_World.HasComponent<SkillStateComponent>(m_PlayerEntity))
     {
         Winters::DevSmoke::Log(
@@ -5226,25 +5411,15 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
     const bool_t bLocalStage2Ready =
         slotState.currentStage == 1 && slotState.stageWindow > 0.f;
 
-    if (def->stageCount == 2 && (bLocalStage2Ready || bRequestedStage2))
+    if (gameData.stage.stageCount == 2 && (bLocalStage2Ready || bRequestedStage2))
     {
-        SkillDef s2 = *def;
-        s2.targetMode = def->stage2TargetMode;
-        s2.animKey = def->stage2AnimKey ? def->stage2AnimKey : def->animKey;
-        s2.lockDurationSec = def->stage2LockSec > 0.f ? def->stage2LockSec : def->lockDurationSec;
-        s2.rotate = def->stage2Rotate;
-        s2.animPlaySpeed = def->stage2PlaySpeed;
-        s2.castFrame = def->stage2CastFrame;
-        s2.recoveryFrame = def->stage2RecoveryFrame;
-        s2.stageCount = 1;
-
         CastSkillCommand cmd{};
         cmd.slot = slot;
-        if (!BuildCastCommand(s2, cmd))
+        if (!BuildCastCommand(gameData.target, 2, cmd))
             return false;
 
         if (m_bNetworkAuthoritativeGameplay)
-            RotatePlayerToward(s2.rotate, cmd);
+            RotatePlayerToward(gameData.facing, 2, cmd);
 
         SendNetworkSkillCommand(slot, cmd, 2);
         if (bRequestedStage2 && !bLocalStage2Ready)
@@ -5263,12 +5438,12 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
             return true;
         }
 
-        ApplyLocalPrediction(cmd, s2, 2);
+        ApplyLocalPrediction(cmd, gameData, visualData, *def, 2);
 
         slotState.currentStage = 0;
         slotState.stageWindow = 0.f;
-        slotState.cooldownRemaining = def->cooldownSec;
-        slotState.cooldownDuration = def->cooldownSec;
+        slotState.cooldownRemaining = gameData.cooldown.cooldownSec;
+        slotState.cooldownDuration = gameData.cooldown.cooldownSec;
         return true;
     }
 
@@ -5280,63 +5455,63 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
 
     CastSkillCommand cmd{};
     cmd.slot = slot;
-    if (!BuildCastCommand(*def, cmd))
+    if (!BuildCastCommand(gameData.target, 1, cmd))
     {
         Winters::DevSmoke::Log(
             "[SkillDispatch] rejected slot=%u champ=%u mode=%u reason=build-command\n",
             static_cast<u32_t>(slot),
             static_cast<u32_t>(champ),
-            static_cast<u32_t>(def->targetMode));
+            static_cast<u32_t>(GetTargetShape(gameData.target, 1)));
         return false;
     }
 
     if (m_bNetworkAuthoritativeGameplay)
     {
-        RotatePlayerToward(def->rotate, cmd);
+        RotatePlayerToward(gameData.facing, 1, cmd);
         SendNetworkSkillCommand(slot, cmd, 1);
-        if (def->stageCount == 2)
+        if (gameData.stage.stageCount == 2)
         {
             slotState.currentStage = 1;
-            slotState.stageWindow = def->stageWindowSec;
+            slotState.stageWindow = gameData.stage.stageWindowSec;
         }
         return true;
     }
 
-    if (def->stageCount == 2)
+    if (gameData.stage.stageCount == 2)
     {
         SendNetworkSkillCommand(slot, cmd, 1);
-        ApplyLocalPrediction(cmd, *def, 1);
+        ApplyLocalPrediction(cmd, gameData, visualData, *def, 1);
 
         slotState.currentStage = 1;
-        slotState.stageWindow = def->stageWindowSec;
+        slotState.stageWindow = gameData.stage.stageWindowSec;
         return true;
     }
 
     SendNetworkSkillCommand(slot, cmd, 1);
-    ApplyLocalPrediction(cmd, *def);
+    ApplyLocalPrediction(cmd, gameData, visualData, *def);
     Winters::DevSmoke::Log(
         "[SkillDispatch] accepted slot=%u champ=%u hook=0x%08X anim=%s\n",
         static_cast<u32_t>(slot),
         static_cast<u32_t>(champ),
-        def->castFrameHookId,
-        def->animKey ? def->animKey : "(null)");
+        m_ActiveSkill.legacyHookBridge.castFrameHookId,
+        m_ActiveSkill.legacyHookBridge.animKey
+        ? m_ActiveSkill.legacyHookBridge.animKey
+        : "(null)");
     if (slot != static_cast<uint8_t>(eSkillSlot::BasicAttack))
     {
-        slotState.cooldownRemaining = def->cooldownSec;
-        slotState.cooldownDuration = def->cooldownSec;
+        slotState.cooldownRemaining = gameData.cooldown.cooldownSec;
+        slotState.cooldownDuration = gameData.cooldown.cooldownSec;
     }
 
     return true;
 }
 
-bool CScene_InGame::BuildCastCommand(const SkillDef& def, CastSkillCommand& outCmd)
+bool CScene_InGame::BuildCastCommand(
+    const SkillTargetSpec& targetSpec,
+    u8_t skillStage,
+    CastSkillCommand& outCmd)
 {
-    eTargetMode mode = def.targetMode;
-
-    if (mode == eTargetMode::Conditional)
-    {
-        mode = eTargetMode::Direction;
-    }
+    const eTargetMode mode = ToLegacyTargetMode(GetTargetShape(targetSpec, skillStage));
 
     outCmd.resolvedTargetMode = static_cast<uint8_t>(mode);
 
@@ -5388,39 +5563,46 @@ bool CScene_InGame::BuildCastCommand(const SkillDef& def, CastSkillCommand& outC
     }
 }
 
-void CScene_InGame::ApplyLocalPrediction(const CastSkillCommand& cmd, const SkillDef& def, u8_t skillStage)
+void CScene_InGame::ApplyLocalPrediction(
+    const CastSkillCommand& cmd,
+    const SkillGameAtomBundle& gameData,
+    const SkillVisualData& visualData,
+    const SkillDef& legacyDef,
+    u8_t skillStage)
 {
+    const SkillDef bridge = BuildLegacyHookBridge(gameData, visualData, legacyDef, skillStage);
+
     if (m_bNetworkAuthoritativeGameplay)
     {
         Winters::DevSmoke::Log(
             "[SkillDispatch] local prediction blocked in network authority slot=%u\n",
-            static_cast<u32_t>(def.slot));
+            static_cast<u32_t>(bridge.slot));
         return;
     }
 
-    RotatePlayerToward(def.rotate, cmd);
+    RotatePlayerToward(gameData.facing, skillStage, cmd);
 
-    if (def.animKey && m_pPlayerRenderer)
+    if (bridge.animKey && m_pPlayerRenderer)
     {
-        using namespace Engine;
         const eChampion champ = GetPlayerChampionId();
         const ChampionDef* cd = FindClientChampionDef(champ);
         if (cd)
         {
-            std::string key = def.animKey;
+            std::string key = bridge.animKey;
             if (key == "attack") key = cd->basicAttackKey;
 
-            if (def.keySwapHookId != 0)
+            if (bridge.keySwapHookId != 0)
             {
                 VisualHookContext visualCtx{};
                 visualCtx.pWorld = &m_World;
                 visualCtx.casterEntity = m_PlayerEntity;
-                visualCtx.pDef = &def;
+                visualCtx.pDef = &bridge;
                 visualCtx.pCommand = &cmd;
+                visualCtx.skillStage = skillStage;
                 visualCtx.pKeyOut = &key;
                 visualCtx.pFxMeshRenderer = m_pFxMeshRenderer.get();
                 const bool visualKeyHandled =
-                    CVisualHookRegistry::Instance().Dispatch(def.keySwapHookId, visualCtx);
+                    CVisualHookRegistry::Instance().Dispatch(bridge.keySwapHookId, visualCtx);
 
                 if (!visualKeyHandled)
                 {
@@ -5428,43 +5610,34 @@ void CScene_InGame::ApplyLocalPrediction(const CastSkillCommand& cmd, const Skil
                     ctx.pWorld = &m_World;
                     ctx.casterEntity = m_PlayerEntity;
                     ctx.casterTeam = m_PlayerTeam;
-                    ctx.pDef = &def;
+                    ctx.pDef = &bridge;
                     ctx.pCommand = &cmd;
                     ctx.skillStage = skillStage;
                     ctx.pKeyOut = &key;
                     ctx.pFxMeshRenderer = m_pFxMeshRenderer.get();
-                    CSkillHookRegistry::Instance().Dispatch(def.keySwapHookId, ctx);
+                    CSkillHookRegistry::Instance().Dispatch(bridge.keySwapHookId, ctx);
                 }
             }
 
             const std::string full = std::string(cd->animPrefix) + key;
             m_pPlayerRenderer->PlayAnimationByName(
                 full,
-                ShouldLoopLocalSkillAnimation(def, skillStage));
+                ShouldLoopLocalSkillAnimation(bridge, skillStage));
 
-            m_pLastActionLabel = def.animKey;
-            m_fLastActionTimer = def.lockDurationSec > 0.f ? def.lockDurationSec : 1.2f;
-
-            m_ActiveSkillDefStorage = def;
-            m_ActiveSkillCommandStorage = cmd;
-            m_pActiveSkillDef = &m_ActiveSkillDefStorage;
-            m_fActivePrevFrame = 0.f;
-            m_bCastFrameFired = false;
-            m_bRecoveryFrameFired = false;
-            ResetLocalSkillRuntimeState();
-            m_pLastDispatchedSkill = &m_ActiveSkillDefStorage;
+            m_pLastActionLabel = bridge.animKey;
+            m_fLastActionTimer = bridge.lockDurationSec > 0.f ? bridge.lockDurationSec : 1.2f;
         }
     }
 
     bool acceptedHandled = false;
-    if (def.onCastAcceptedHookId != 0)
+    if (bridge.onCastAcceptedHookId != 0)
     {
         GameCommand gameCommand{};
-        gameCommand.kind = (def.slot == static_cast<uint8_t>(eSkillSlot::BasicAttack))
+        gameCommand.kind = (bridge.slot == static_cast<uint8_t>(eSkillSlot::BasicAttack))
             ? eCommandKind::BasicAttack
             : eCommandKind::CastSkill;
         gameCommand.issuerEntity = m_PlayerEntity;
-        gameCommand.slot = def.slot;
+        gameCommand.slot = bridge.slot;
         gameCommand.targetEntity = cmd.targetEntityId;
         gameCommand.groundPos = cmd.groundPos;
         gameCommand.direction = cmd.direction;
@@ -5477,37 +5650,37 @@ void CScene_InGame::ApplyLocalPrediction(const CastSkillCommand& cmd, const Skil
         gameCtx.pWorld = &m_World;
         gameCtx.casterEntity = m_PlayerEntity;
         gameCtx.casterTeam = m_PlayerTeam;
-        gameCtx.casterChampion = def.champ;
+        gameCtx.casterChampion = bridge.champ;
         gameCtx.skillRank = 1;
-        gameCtx.pDef = &def;
+        gameCtx.pDef = &bridge;
         gameCtx.pCommand = &gameCommand;
         gameCtx.pTickCtx = &tickCtx;
         const bool gameplayAcceptedHandled =
-            CGameplayHookRegistry::Instance().Dispatch(def.onCastAcceptedHookId, gameCtx);
+            CGameplayHookRegistry::Instance().Dispatch(bridge.onCastAcceptedHookId, gameCtx);
 
         VisualHookContext visualCtx{};
         visualCtx.pWorld = &m_World;
         visualCtx.casterEntity = m_PlayerEntity;
-        visualCtx.pDef = &def;
+        visualCtx.pDef = &bridge;
         visualCtx.pCommand = &cmd;
         visualCtx.skillStage = skillStage;
         visualCtx.pFxMeshRenderer = m_pFxMeshRenderer.get();
         const bool hasLegacyAcceptedHook =
-            CSkillHookRegistry::Instance().Has(def.onCastAcceptedHookId);
+            CSkillHookRegistry::Instance().Has(bridge.onCastAcceptedHookId);
         const bool suppressVisualAcceptedForLegacy =
-            hasLegacyAcceptedHook && def.champ == eChampion::IRELIA;
+            hasLegacyAcceptedHook && bridge.champ == eChampion::IRELIA;
         bool visualAcceptedHandled = false;
         if (!suppressVisualAcceptedForLegacy)
         {
             visualAcceptedHandled =
-                CVisualHookRegistry::Instance().Dispatch(def.onCastAcceptedHookId, visualCtx);
+                CVisualHookRegistry::Instance().Dispatch(bridge.onCastAcceptedHookId, visualCtx);
         }
 
         SkillHookContext ctx{};
         ctx.pWorld = &m_World;
         ctx.casterEntity = m_PlayerEntity;
         ctx.casterTeam = m_PlayerTeam;
-        ctx.pDef = &def;
+        ctx.pDef = &bridge;
         ctx.pCommand = &cmd;
         ctx.skillStage = skillStage;
         ctx.pFxMeshRenderer = m_pFxMeshRenderer.get();
@@ -5551,14 +5724,14 @@ void CScene_InGame::ApplyLocalPrediction(const CastSkillCommand& cmd, const Skil
                 return m_fDashDuration;
             };
         const bool legacyAcceptedHandled =
-            CSkillHookRegistry::Instance().Dispatch(def.onCastAcceptedHookId, ctx);
+            CSkillHookRegistry::Instance().Dispatch(bridge.onCastAcceptedHookId, ctx);
 
         acceptedHandled = gameplayAcceptedHandled || visualAcceptedHandled || legacyAcceptedHandled;
         Winters::DevSmoke::Log(
             "[SkillDispatch] acceptedHook slot=%u champ=%u hook=0x%08X stage=%u gameplay=%u visual=%u legacy=%u\n",
-            static_cast<u32_t>(def.slot),
-            static_cast<u32_t>(def.champ),
-            def.onCastAcceptedHookId,
+            static_cast<u32_t>(bridge.slot),
+            static_cast<u32_t>(bridge.champ),
+            bridge.onCastAcceptedHookId,
             static_cast<u32_t>(skillStage),
             gameplayAcceptedHandled ? 1u : 0u,
             visualAcceptedHandled ? 1u : 0u,
@@ -5566,14 +5739,8 @@ void CScene_InGame::ApplyLocalPrediction(const CastSkillCommand& cmd, const Skil
     }
     (void)acceptedHandled;
 
-    using namespace Engine;
-
-    m_bCastFrameFired = false;
-    m_bRecoveryFrameFired = false;
     ResetLocalSkillRuntimeState();
-
-    m_pActiveSkillDef = &m_ActiveSkillDefStorage;
-    m_fActivePrevFrame = 0.f;
+    BeginActiveSkillRuntime(cmd, gameData, visualData, legacyDef, skillStage);
 
     char buf[192];
     const char* modeName = "?";
@@ -5586,7 +5753,7 @@ void CScene_InGame::ApplyLocalPrediction(const CastSkillCommand& cmd, const Skil
     default: break;
     }
     sprintf_s(buf, "[Cast] slot=%u mode=%s anim=%s target=%u ground=(%.1f,%.1f,%.1f) dir=(%.2f,%.2f)\n",
-        cmd.slot, modeName, def.animKey ? def.animKey : "(null)",
+        cmd.slot, modeName, bridge.animKey ? bridge.animKey : "(null)",
         cmd.targetEntityId,
         cmd.groundPos.x, cmd.groundPos.y, cmd.groundPos.z,
         cmd.direction.x, cmd.direction.z);
@@ -5649,8 +5816,12 @@ void CScene_InGame::PruneAckedNetworkMovePredictions(u32_t lastAckedCommandSeq)
         WINTERS_PROFILE_COUNT("Prediction::AckPruned", prunedCount);
 }
 
-void CScene_InGame::RotatePlayerToward(eRotateMode mode, const CastSkillCommand& cmd)
+void CScene_InGame::RotatePlayerToward(
+    const SkillFacingSpec& facingSpec,
+    u8_t skillStage,
+    const CastSkillCommand& cmd)
 {
+    const eRotateMode mode = ToLegacyRotateMode(GetFacingMode(facingSpec, skillStage));
     if (mode == eRotateMode::None || !m_pPlayerTransform) return;
 
     const Vec3 origin = m_pPlayerTransform->GetPosition();

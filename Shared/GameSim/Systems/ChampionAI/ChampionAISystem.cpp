@@ -7,7 +7,7 @@
 #include "Shared/GameSim/Components/CombatActionComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
@@ -306,30 +306,6 @@ namespace
             true);
     }
 
-    u8_t SlotFromChampionAIActionAnimation(eNetAnimId animId)
-    {
-        switch (animId)
-        {
-        case eNetAnimId::SkillQ:
-            return static_cast<u8_t>(eSkillSlot::Q);
-        case eNetAnimId::SkillW:
-            return static_cast<u8_t>(eSkillSlot::W);
-        case eNetAnimId::SkillE:
-            return static_cast<u8_t>(eSkillSlot::E);
-        case eNetAnimId::SkillR:
-            return static_cast<u8_t>(eSkillSlot::R);
-        case eNetAnimId::BasicAttack:
-        default:
-            return static_cast<u8_t>(eSkillSlot::BasicAttack);
-        }
-    }
-
-    u8_t StageFromChampionAIActionAnimationFlags(u16_t flags)
-    {
-        const u8_t stage = static_cast<u8_t>((flags >> 12) & 0x0fu);
-        return stage == 0u ? 1u : stage;
-    }
-
     bool_t IsChampionAIActionLocked(
         CWorld& world,
         EntityID self,
@@ -346,30 +322,21 @@ namespace
             }
         }
 
-        if (!world.HasComponent<NetAnimationComponent>(self))
+        if (!world.HasComponent<ActionStateComponent>(self))
             return false;
 
-        const auto& anim = world.GetComponent<NetAnimationComponent>(self);
-        const auto animId = static_cast<eNetAnimId>(anim.animId);
-        switch (animId)
-        {
-        case eNetAnimId::BasicAttack:
-        case eNetAnimId::SkillQ:
-        case eNetAnimId::SkillW:
-        case eNetAnimId::SkillE:
-        case eNetAnimId::SkillR:
-            break;
-        default:
-            return false;
-        }
-
-        if (tc.tickIndex < anim.animStartTick)
+        const auto& action = world.GetComponent<ActionStateComponent>(self);
+        const auto actionId = static_cast<eActionStateId>(action.actionId);
+        if (!IsReplicatedGameplayAction(actionId))
             return false;
 
-        const u8_t slot = SlotFromChampionAIActionAnimation(animId);
-        const u8_t stage = StageFromChampionAIActionAnimationFlags(anim.flags);
+        if (tc.tickIndex < action.startTick)
+            return false;
+
+        const u8_t slot = SkillSlotFromActionId(actionId);
+        const u8_t stage = action.stage == 0u ? 1u : action.stage;
         const u64_t lockTicks = ChampionGameDataDB::ResolveSkillActionLockTicks(champion, slot, stage);
-        return (tc.tickIndex - anim.animStartTick) < lockTicks;
+        return (tc.tickIndex - action.startTick) < lockTicks;
     }
 
     GameCommand MakeAICommand(

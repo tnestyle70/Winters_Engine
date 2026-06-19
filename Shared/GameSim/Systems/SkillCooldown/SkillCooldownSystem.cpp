@@ -2,7 +2,7 @@
 
 #include "Shared/GameSim/Components/KalistaPassiveDashComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
@@ -75,8 +75,8 @@ namespace
 
             if (dash.bPending && !dash.bActive && tc.tickIndex >= dash.triggerTick)
             {
-                if (!world.HasComponent<NetAnimationComponent>(entity) ||
-                    world.GetComponent<NetAnimationComponent>(entity).actionSeq != dash.sourceActionSeq)
+                if (!world.HasComponent<ActionStateComponent>(entity) ||
+                    world.GetComponent<ActionStateComponent>(entity).sequence != dash.sourceActionSeq)
                 {
                     world.RemoveComponent<KalistaPassiveDashComponent>(entity);
                     continue;

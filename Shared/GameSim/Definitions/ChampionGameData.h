@@ -2,7 +2,8 @@
 
 #include "GameContext.h"
 #include "Shared/GameSim/Definitions/ChampionStatsDef.h"
-#include "Shared/GameSim/Definitions/SkillDef.h"
+#include "SkillTypes.h"
+#include "SummonerSpellGameData.h"
 #include "WintersTypes.h"
 
 inline constexpr u32_t kChampionGameDataSchemaVersion = 1;
@@ -34,15 +35,7 @@ struct ChampionGameDataSkill
     ChampionGameDataSkillStage stages[kChampionGameDataSkillStageMax] = {};
 };
 
-struct ChampionGameDataSummonerSpell
-{
-    bool_t bValid = false;
-    u16_t spellId = 0;
-    f32_t rangeMax = 0.f;
-    f32_t cooldownSec = 0.f;
-    u32_t gameplayPolicyId = 0;
-    u32_t visualCueId = 0;
-};
+using ChampionGameDataSummonerSpell = SummonerSpellGameData;
 
 struct ChampionGameDataPassiveDash
 {
@@ -61,6 +54,6 @@ struct ChampionGameData
     ChampionStatsDef stats{};
     f32_t visualYawOffset = 0.f;
     ChampionGameDataSkill skills[kChampionGameDataSkillSlotCount] = {};
-    ChampionGameDataSummonerSpell summonerSpells[2] = {};
+    SummonerSpellGameData summonerSpells[kSummonerSpellGameDataSlotCount] = {};
     ChampionGameDataPassiveDash passiveDash{};
 };

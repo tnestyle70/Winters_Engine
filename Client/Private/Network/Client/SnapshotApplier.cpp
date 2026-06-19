@@ -1,4 +1,4 @@
-﻿#include "Network/Client/SnapshotApplier.h"
+#include "Network/Client/SnapshotApplier.h"
 
 #pragma push_macro("min")
 #pragma push_macro("max")
@@ -17,7 +17,8 @@
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ReplicatedActionComponent.h"
+#include "Shared/GameSim/Components/ReplicatedPoseComponent.h"
 #include "Shared/GameSim/Components/ReplicatedStateComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
@@ -671,7 +672,7 @@ void CSnapshotApplier::OnSnapshot(
                     char msg[1536]{};
                     sprintf_s(
                         msg,
-                        "[YawTrace][SnapshotApply] tick=%llu ack=%u net=%u entity=%u champion=%u source=%s protect=%u useProtect=%u prevYaw=%.4f rawWireYaw=%.4f serverYaw=%.4f sourceYaw=%.4f appliedYaw=%.4f yawDelta=%.4f serverDelta=%.4f protectedDelta=%.4f serverVsProtected=%.4f halfTurn=%u serverOpposesProtected=%u offset=%.4f serverF=(%.3f,%.3f) appliedF=(%.3f,%.3f) protectedYaw=%.4f protectedSeq=%u protectedFrames=%u ackedProtectedFrames=%u ackCoversProtected=%u actionLocked=%u caught=%u state=0x%08X anim=%u actionSeq=%u pos=(%.3f,%.3f,%.3f)\n",
+                        "[YawTrace][SnapshotApply] tick=%llu ack=%u net=%u entity=%u champion=%u source=%s protect=%u useProtect=%u prevYaw=%.4f rawWireYaw=%.4f serverYaw=%.4f sourceYaw=%.4f appliedYaw=%.4f yawDelta=%.4f serverDelta=%.4f protectedDelta=%.4f serverVsProtected=%.4f halfTurn=%u serverOpposesProtected=%u offset=%.4f serverF=(%.3f,%.3f) appliedF=(%.3f,%.3f) protectedYaw=%.4f protectedSeq=%u protectedFrames=%u ackedProtectedFrames=%u ackCoversProtected=%u actionLocked=%u caught=%u state=0x%08X pose=%u action=%u actionSeq=%u pos=(%.3f,%.3f,%.3f)\n",
                         static_cast<unsigned long long>(m_lastServerTick),
                         lastAckedCommandSeq,
                         es->netId(),
@@ -704,7 +705,8 @@ void CSnapshotApplier::OnSnapshot(
                         bServerActionLocked ? 1u : 0u,
                         bServerCaughtProtectedYaw ? 1u : 0u,
                         es->stateFlags(),
-                        static_cast<u32_t>(es->animId()),
+                        static_cast<u32_t>(es->poseId()),
+                        static_cast<u32_t>(es->actionId()),
                         es->actionSeq(),
                         snapshotPos.x,
                         snapshotPos.y,
@@ -751,16 +753,18 @@ void CSnapshotApplier::OnSnapshot(
             }
         }
 
-        if (!world.HasComponent<NetAnimationComponent>(e))
-            world.AddComponent<NetAnimationComponent>(e, NetAnimationComponent{});
-
-        auto& anim = world.GetComponent<NetAnimationComponent>(e);
-        anim.animId = es->animId();
-        anim.animPhaseFrame = es->animPhaseFrame();
-        anim.animStartTick = es->animStartTick();
-        anim.actionSeq = es->actionSeq();
-        anim.playbackRateQ8 = es->animPlaybackRateQ8();
-        anim.flags = es->animFlags();
+        auto& pose = world.HasComponent<ReplicatedPoseComponent>(e)
+            ? world.GetComponent<ReplicatedPoseComponent>(e)
+            : world.AddComponent<ReplicatedPoseComponent>(e, ReplicatedPoseComponent{});
+        pose.poseId = es->poseId();
+        pose.startTick = es->poseStartTick();
+        auto& action = world.HasComponent<ReplicatedActionComponent>(e)
+            ? world.GetComponent<ReplicatedActionComponent>(e)
+            : world.AddComponent<ReplicatedActionComponent>(e, ReplicatedActionComponent{});
+        action.actionId = es->actionId();
+        action.startTick = es->actionStartTick();
+        action.sequence = es->actionSeq();
+        action.stage = es->actionStage() == 0u ? 1u : es->actionStage();
 
         if (!world.HasComponent<ReplicatedStateComponent>(e))
             world.AddComponent<ReplicatedStateComponent>(e, ReplicatedStateComponent{});
@@ -1095,20 +1099,19 @@ void CSnapshotApplier::OnSnapshot(
                 }
                 else
                 {
-                    const auto netAnim = static_cast<eNetAnimId>(es->animId());
                     const bool_t bServerAttack =
                         ((es->stateFlags() & kSnapshotStateAttackFlag) != 0u) ||
-                        netAnim == eNetAnimId::BasicAttack;
-
+                        es->actionId() == static_cast<u16_t>(
+                            eReplicatedActionId::BasicAttack);
                     if (bServerAttack)
                     {
                         ms.current = MinionStateComponent::Attack;
                     }
-                    else if (netAnim == eNetAnimId::Run)
+                    else if (es->poseId() == static_cast<u16_t>(eReplicatedPoseId::Run))
                     {
                         ms.current = MinionStateComponent::LaneMove;
                     }
-                    else if (netAnim == eNetAnimId::Idle)
+                    else if (es->poseId() == static_cast<u16_t>(eReplicatedPoseId::Idle))
                     {
                         ms.current = MinionStateComponent::Idle;
                     }
@@ -1447,8 +1450,10 @@ EntityID CSnapshotApplier::EnsureEntity(
         world.AddComponent<StatComponent>(e, stat);
     }
 
-    if (!world.HasComponent<NetAnimationComponent>(e))
-        world.AddComponent<NetAnimationComponent>(e, NetAnimationComponent{});
+    if (!world.HasComponent<ReplicatedPoseComponent>(e))
+        world.AddComponent<ReplicatedPoseComponent>(e, ReplicatedPoseComponent{});
+    if (!world.HasComponent<ReplicatedActionComponent>(e))
+        world.AddComponent<ReplicatedActionComponent>(e, ReplicatedActionComponent{});
 
     SpawnSnapshotMarker(world, e, kind, team);
 

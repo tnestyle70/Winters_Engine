@@ -17,7 +17,6 @@
 #include "Shared/GameSim/Components/InventoryComponent.h"
 #include "Shared/GameSim/Components/JungleAIComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
@@ -133,7 +132,7 @@ std::unique_ptr<CGameRoom> CGameRoom::Create(u32_t roomId)
 CGameRoom::CGameRoom(u32_t roomId)
     : m_roomId(roomId)
 {
-    InitializeLobbySlots();
+    InitializeLobbyAuthority();
 }
 
 CGameRoom::~CGameRoom()
@@ -158,9 +157,15 @@ void CGameRoom::Stop()
     FinalizeReplayRecorder();
 }
 
+bool CGameRoom::IsInGamePhase() const
+{
+    return m_pLobbyAuthority &&
+        m_pLobbyAuthority->GetPhase() == eRoomPhase::InGame;
+}
+
 void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
 {
-    if (m_roomPhase != eRoomPhase::InGame)
+    if (!IsInGamePhase())
         return;
 
     const auto entities = DeterministicEntityIterator<RespawnComponent>::CollectSorted(m_world);
@@ -242,7 +247,8 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
                 ai.bInsideEnemyTurretDanger = false;
             }
 
-            StartReplicatedAnimation(m_world, entity, eNetAnimId::Death, tc);
+            StartReplicatedAction(m_world, entity, eActionStateId::DeathStart, tc);
+            SetReplicatedPose(m_world, entity, ePoseStateId::Dead, tc);
 
             static u32_t s_deathLogCount = 0;
             if (s_deathLogCount < 64u)
@@ -313,7 +319,7 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
             patrol.bActive = true;
         }
 
-        StartReplicatedAnimation(m_world, entity, eNetAnimId::Idle, tc);
+        SetReplicatedPose(m_world, entity, ePoseStateId::Idle, tc);
 
         static u32_t s_respawnLogCount = 0;
         if (s_respawnLogCount < 64u)

@@ -56,7 +56,7 @@ void CGameRoom::Tick()
 {
 	std::lock_guard stateLock(m_stateMutex);
 
-	if (m_roomPhase != eRoomPhase::InGame)
+	if (!IsInGamePhase())
 		return;
 
 	++m_tickIndex;

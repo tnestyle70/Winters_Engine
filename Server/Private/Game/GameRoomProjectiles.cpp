@@ -150,7 +150,7 @@ namespace
 
 void CGameRoom::Phase_ServerTurretAI(TickContext& tc)
 {
-    if (m_roomPhase != eRoomPhase::InGame)
+    if (!IsInGamePhase())
         return;
 
     if (m_pSpatialSystem)
@@ -161,7 +161,7 @@ void CGameRoom::Phase_ServerTurretAI(TickContext& tc)
 
 void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
 {
-    if (m_roomPhase != eRoomPhase::InGame)
+    if (!IsInGamePhase())
         return;
 
     const auto projectiles =

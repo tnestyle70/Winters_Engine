@@ -130,12 +130,12 @@ func (rcv *EventPacket) SkillCast(obj *SkillCastEvent) *SkillCastEvent {
 	return nil
 }
 
-func (rcv *EventPacket) Animation(obj *AnimationStartEvent) *AnimationStartEvent {
+func (rcv *EventPacket) ActionStart(obj *ActionStartEvent) *ActionStartEvent {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		x := rcv._tab.Indirect(o + rcv._tab.Pos)
 		if obj == nil {
-			obj = new(AnimationStartEvent)
+			obj = new(ActionStartEvent)
 		}
 		obj.Init(rcv._tab.Bytes, x)
 		return obj
@@ -193,8 +193,8 @@ func EventPacketAddProjectileHit(builder *flatbuffers.Builder, projectileHit fla
 func EventPacketAddSkillCast(builder *flatbuffers.Builder, skillCast flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(skillCast), 0)
 }
-func EventPacketAddAnimation(builder *flatbuffers.Builder, animation flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(animation), 0)
+func EventPacketAddActionStart(builder *flatbuffers.Builder, actionStart flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(actionStart), 0)
 }
 func EventPacketAddEffect(builder *flatbuffers.Builder, effect flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(effect), 0)

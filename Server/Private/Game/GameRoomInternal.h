@@ -3,7 +3,7 @@
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Entity.h"
 #include "Manager/Navigation/NavGrid.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
@@ -49,5 +49,7 @@ f32_t ResolveStageStructureRadius(u32_t kind, u32_t tier);
 
 bool_t TryResolveCombatTeam(CWorld& world, EntityID entity, eTeam& outTeam);
 bool_t IsAliveHealth(CWorld& world, EntityID entity);
-void StartReplicatedAnimation(CWorld& world, EntityID entity, eNetAnimId animId,
+void StartReplicatedAction(CWorld& world, EntityID entity, eActionStateId actionId,
+    const TickContext& tc, u8_t stage = 1);
+void SetReplicatedPose(CWorld& world, EntityID entity, ePoseStateId poseId,
     const TickContext& tc);

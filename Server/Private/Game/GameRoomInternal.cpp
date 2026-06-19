@@ -9,7 +9,6 @@
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Definitions/StageData.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 
 #include <limits>
 
@@ -79,32 +78,6 @@ namespace
         return outAnchors.bHasNexus && outAnchors.bHasTwinCenter;
     }
 
-    eChampion ResolveAnimationChampion(CWorld& world, EntityID entity)
-    {
-        if (world.HasComponent<ChampionComponent>(entity))
-            return world.GetComponent<ChampionComponent>(entity).id;
-        if (world.HasComponent<StatComponent>(entity))
-            return world.GetComponent<StatComponent>(entity).championId;
-        return eChampion::NONE;
-    }
-
-    u8_t ResolveAnimationSlot(eNetAnimId animId)
-    {
-        switch (animId)
-        {
-        case eNetAnimId::SkillQ:
-            return static_cast<u8_t>(eSkillSlot::Q);
-        case eNetAnimId::SkillW:
-            return static_cast<u8_t>(eSkillSlot::W);
-        case eNetAnimId::SkillE:
-            return static_cast<u8_t>(eSkillSlot::E);
-        case eNetAnimId::SkillR:
-            return static_cast<u8_t>(eSkillSlot::R);
-        case eNetAnimId::BasicAttack:
-        default:
-            return static_cast<u8_t>(eSkillSlot::BasicAttack);
-        }
-    }
 }
 
 u8_t TeamByte(eTeam team)
@@ -261,22 +234,14 @@ bool_t IsAliveHealth(CWorld& world, EntityID entity)
     return !hp.bIsDead && hp.fCurrent > 0.f;
 }
 
-void StartReplicatedAnimation(CWorld& world, EntityID entity, eNetAnimId animId,
+void StartReplicatedAction(CWorld& world, EntityID entity, eActionStateId actionId,
+    const TickContext& tc, u8_t stage)
+{
+    StartActionState(world, entity, actionId, tc.tickIndex, stage);
+}
+
+void SetReplicatedPose(CWorld& world, EntityID entity, ePoseStateId poseId,
     const TickContext& tc)
 {
-    auto& anim = world.HasComponent<NetAnimationComponent>(entity)
-        ? world.GetComponent<NetAnimationComponent>(entity)
-        : world.AddComponent<NetAnimationComponent>(entity, NetAnimationComponent{});
-
-    const eChampion champion = ResolveAnimationChampion(world, entity);
-    const u8_t slot = ResolveAnimationSlot(animId);
-    const ChampionSkillTimingDefaults timing =
-        ChampionGameDataDB::ResolveSkillTiming(champion, slot);
-
-    ++anim.actionSeq;
-    anim.animId = static_cast<u16_t>(animId);
-    anim.animPhaseFrame = 0;
-    anim.animStartTick = tc.tickIndex;
-    anim.playbackRateQ8 = EncodeSkillPlaybackRateQ8(timing.animPlaySpeed);
-    anim.flags = 1;
+    SetPoseState(world, entity, poseId, tc.tickIndex);
 }

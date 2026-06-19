@@ -9,8 +9,8 @@
 #include "Manager/Navigation/NavGrid.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
+#include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
 
 #pragma push_macro("new")
@@ -345,7 +345,7 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 		Vec3 pos{};
 		f32_t hp = 0.f;
 		f32_t maxHp = 0.f;
-		u16_t animId = 0u;
+		u16_t actionId = 0u;
 	};
 
 	SelectedAI selectedAI{};
@@ -368,7 +368,7 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 		ImGui::TableSetupColumn("Target");
 		ImGui::TableSetupColumn("Pos");
 		ImGui::TableSetupColumn("HP");
-		ImGui::TableSetupColumn("Anim");
+		ImGui::TableSetupColumn("ActionId");
 		ImGui::TableHeadersRow();
 
 		world.ForEach<ChampionComponent, TransformComponent>(
@@ -392,8 +392,8 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 				const f32_t maxHp = world.HasComponent<HealthComponent>(entity)
 					? world.GetComponent<HealthComponent>(entity).fMaximum
 					: champion.maxHp;
-				const u16_t animId = world.HasComponent<NetAnimationComponent>(entity)
-					? world.GetComponent<NetAnimationComponent>(entity).animId
+				const u16_t actionId = world.HasComponent<ActionStateComponent>(entity)
+					? world.GetComponent<ActionStateComponent>(entity).actionId
 					: 0u;
 				const bool_t bSelected = debug.netId == s_SelectedAINetId;
 
@@ -421,7 +421,7 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 				ImGui::TableNextColumn();
 				ImGui::Text("%.0f / %.0f", hp, maxHp);
 				ImGui::TableNextColumn();
-				ImGui::Text("%u", static_cast<u32_t>(animId));
+				ImGui::Text("%u", static_cast<u32_t>(actionId));
 				ImGui::PopID();
 
 				if (bSelected)
@@ -433,7 +433,7 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 					selectedAI.pos = pos;
 					selectedAI.hp = hp;
 					selectedAI.maxHp = maxHp;
-					selectedAI.animId = animId;
+					selectedAI.actionId = actionId;
 				}
 			});
 
@@ -467,11 +467,11 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 			ChampionAIIntentName(debug.intent),
 			ChampionAIActionName(debug.action),
 			debug.targetNetId);
-		ImGui::Text("HP: %.1f / %.1f   Move: %.2f   Anim: %u   Override: %s",
+		ImGui::Text("HP: %.1f / %.1f   Move: %.2f   Action: %u   Override: %s",
 			selectedAI.hp,
 			selectedAI.maxHp,
 			debug.moveSpeed,
-			static_cast<u32_t>(selectedAI.animId),
+			static_cast<u32_t>(selectedAI.actionId),
 			debug.bOverridePending ? "pending" : "none");
 		ImGui::Text("Profile range: preferred %.1f   champ %.1f   minion %.1f   structure %.1f   leash %.1f",
 			profile.preferredRange,

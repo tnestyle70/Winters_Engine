@@ -28,7 +28,7 @@ namespace
 
 void CGameRoom::Phase_ServerBotAI(TickContext& tc)
 {
-    if (m_roomPhase != eRoomPhase::InGame)
+    if (!IsInGamePhase())
         return;
 
     CChampionAISystem::Execute(m_world, tc, m_pendingExecCommands);

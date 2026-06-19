@@ -52,8 +52,12 @@ table EntitySnapshot {
     posZ:float;
     yaw:float;
     moveSpeed:float;
-    animId:ushort;
-    animPhaseFrame:ushort;
+    poseId:ushort;
+    poseStartTick:ulong;
+    actionId:ushort;
+    actionStartTick:ulong;
+    actionSeq:uint;
+    actionStage:ubyte = 1;
     skillCooldowns:[float];
     skillCooldownDurations:[float];
     skillRanks:[ubyte];
@@ -66,10 +70,6 @@ table EntitySnapshot {
     maxMana:float;
     shield:float;
     stateFlags:uint;
-    animStartTick:ulong;
-    actionSeq:uint;
-    animPlaybackRateQ8:ushort = 256;
-    animFlags:ushort;
     projectileKind:ushort;
     projectileOwnerNet:uint;
     projectileTargetNet:uint;

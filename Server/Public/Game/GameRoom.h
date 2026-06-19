@@ -5,6 +5,9 @@
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
 #include "GameContext.h"
+#include "Game/CommandIngress.h"
+#include "Game/LobbyAuthority.h"
+#include "Game/SessionBinding.h"
 #include "Shared/GameSim/Core/Determinism/DeterministicRng.h"
 #include "Shared/GameSim/Core/Determinism/DeterministicTime.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
@@ -42,41 +45,6 @@ struct ReplicatedEventComponent;
 class CLagCompensation;
 //Replay
 class CReplayRecorder;
-
-struct PendingCommand
-{
-    u32_t sessionId = 0;
-    u32_t sequenceNum = 0;
-    GameCommandWire wire{};
-    u64_t acceptedTick = 0;
-    u64_t recvTimeMs = 0;
-    u64_t clientTimestampMs = 0;
-};
-
-enum class eRoomPhase : u8_t
-{
-    SeatSelect,
-    ChampionSelect,
-    Loading,
-    InGame,
-};
-
-struct LobbySlotState
-{
-    u8_t slotId = kInvalidGameRosterSlot;
-    u8_t team = 0;
-    bool_t bHuman = false;
-    bool_t bBot = false;
-    u32_t sessionId = 0;
-    NetEntityId netId = NULL_NET_ENTITY;
-    eChampion champion = eChampion::END;
-    u8_t botDifficulty = 2;
-    u8_t botLane = kGameRosterDefaultBotLane;
-    bool_t bReady = false;
-    bool_t bLocked = false;
-    //Sylas 더미
-    bool_t bDummy = false;
-};
 
 class CGameRoom final : public IWalkableQuery
 {
@@ -122,6 +90,7 @@ private:
 
     void TickThread();
     void Tick();
+    bool IsInGamePhase() const;
 
     //Replay
     void FinalizeReplayRecorder();
@@ -211,34 +180,18 @@ private:
     Vec3 ResolveChampionAISafeAnchor(eTeam team, u8_t lane);
     void RefreshChampionAIGoals();
 
-    void InitializeLobbySlots();
-    u8_t FindFirstEmptyLobbySlot(u32_t beginSlot, u32_t endSlot) const;
-    void CompactLobbyTeamSlotsLocked(u32_t beginSlot, u32_t endSlot);
-    void OnLobbyJoin(u32_t sessionId);
-    bool TryJoinSlot(u32_t sessionId, u8_t slotId);
-    bool TryLeaveSlot(u32_t sessionId);
-    bool TryPickChampion(u32_t sessionId, eChampion champion);
-    bool TrySetBotChampion(u32_t sessionId, u8_t slotId, eChampion champion);
-    bool TrySetBotDifficulty(u32_t sessionId, u8_t slotId, u8_t difficulty);
-    bool TrySetBotLane(u32_t sessionId, u8_t slotId, u8_t lane);
-    bool TryAdvanceToChampionSelect(u32_t sessionId);
-    bool TryStartGame(u32_t sessionId);
-
-    bool TrySetReady(u32_t sessionId, bool_t bReady);
-    bool TryStopReplay(u32_t sessionId);
-    bool AreAllActiveHumanSlotsReady() const;
-    void BeginInGameLocked(u32_t sessionId);
-
-    bool CanEditBots(u32_t sessionId) const;
-    void SetLobbyMessageLocked(const std::string& message);
-    void SetLobbyMessageLocked(const char* message);
+    void InitializeLobbyAuthority();
+    void ApplyLobbyAuthorityResult(const LobbyAuthorityResult& result);
+    void TraceLobbyMessageLocked() const;
     void BroadcastLobbyStateLocked();
     void BroadcastGameStartLocked();
     void SendGameStartToSessionLocked(u32_t sessionId);
     void SendHelloToSessionLocked(u32_t sessionId, NetEntityId netId, eChampion champion, u8_t team);
-    bool TryAttachSessionToDisconnectedHumanSlot(u32_t sessionId, EntityID& outEntity);
+    bool TryAttachSessionToDisconnectedHumanSlot(u32_t sessionId, EntityID& outEntity, LobbyAuthorityResult& outResult);
     Vec3 GetSpawnPositionForLobbySlot(const LobbySlotState& slot) const;
-    EntityID ResolveControlledEntityForSession(u32_t sessionId);
+    LobbySlotState* GetLobbySlots();
+    const LobbySlotState* GetLobbySlots() const;
+    u32_t GetLobbySlotCount() const;
 
     u32_t m_roomId = 0;
     std::atomic<bool> m_bRunning{ false };
@@ -254,6 +207,7 @@ private:
     std::unique_ptr<ICommandExecutor> m_pExecutor;
     std::unique_ptr<CSnapshotBuilder> m_pSnapBuilder;
     std::unique_ptr<CLagCompensation> m_pLagCompensation;
+    std::unique_ptr<CLobbyAuthority> m_pLobbyAuthority;
     //Replay
     std::unique_ptr<CReplayRecorder> m_pReplayRecorder;
     bool_t m_bReplayFinalized = false;
@@ -265,22 +219,14 @@ private:
     std::unique_ptr<Engine::CNavGrid> m_pPathNavGrid;
     std::unique_ptr<Engine::CNavGrid> m_pMinionLaneNavGrid;
 
-    std::mutex m_pendingMutex;
-    std::vector<PendingCommand> m_pendingCommands;
+    CCommandIngress m_commandIngress;
     std::vector<GameCommand> m_pendingExecCommands;
 
     std::vector<u32_t> m_sessionIds;
-    std::unordered_map<u32_t, EntityID> m_sessionToEntity;
-    std::unordered_map<u32_t, u8_t> m_sessionToSlot;
+    CSessionBinding m_sessionBinding;
     std::unordered_map<EntityID, u32_t> m_lastBroadcastActionSeq;
     std::unordered_map<u32_t, u32_t> m_lastSimCommandSeqBySession;
 
-    eRoomPhase m_roomPhase = eRoomPhase::SeatSelect;
-    u32_t m_hostSessionId = 0;
-    u32_t m_lobbyRevision = 0;
-    std::string m_strLastLobbyMessage;
-    bool_t m_bAllPlayersCanEditBots = true;
     bool_t m_bGameplayObjectsSpawned = false;
     CServerMinionWaveRuntime m_serverMinionWaves{};
-    LobbySlotState m_lobbySlots[kGameRosterSlotCount]{};
 };

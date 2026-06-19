@@ -364,7 +364,7 @@ namespace
             return false;
         if (!world.HasComponent<TransformComponent>(candidate))
             return false;
-        // lane 0xff = any-lane attacker (Tibbers 등 소환수): lane 필터를 건너뛴다.
+        // lane 0xff = any-lane attacker (Tibbers ???�환??: lane ?�터�?건너?�다.
         const bool_t bAnyLane = myLane == 0xffu;
         if (!bAnyLane &&
             world.HasComponent<MinionComponent>(candidate) &&
@@ -536,7 +536,7 @@ namespace
 
 void CGameRoom::Phase_ServerMinionWave(TickContext& tc)
 {
-    if (m_roomPhase != eRoomPhase::InGame || !m_bGameplayObjectsSpawned)
+    if (!IsInGamePhase() || !m_bGameplayObjectsSpawned)
         return;
 
     m_serverMinionWaves.TickWave(
@@ -549,7 +549,7 @@ void CGameRoom::Phase_ServerMinionWave(TickContext& tc)
 
 void CGameRoom::Phase_ServerMinionAI(TickContext& tc)
 {
-    if (m_roomPhase != eRoomPhase::InGame)
+    if (!IsInGamePhase())
         return;
 
     const auto minions =
@@ -582,7 +582,8 @@ void CGameRoom::Phase_ServerMinionAI(TickContext& tc)
                 {
                     state.current = MinionStateComponent::Dead;
                     state.deathTimer = 1.2f;
-                    StartReplicatedAnimation(m_world, entity, eNetAnimId::Death, tc);
+                    StartReplicatedAction(m_world, entity, eActionStateId::DeathStart, tc);
+                    SetReplicatedPose(m_world, entity, ePoseStateId::Dead, tc);
                 }
                 else if (state.deathTimer > 0.f)
                 {
@@ -716,7 +717,7 @@ void CGameRoom::Phase_ServerMinionAI(TickContext& tc)
 
                     state.attackCooldown = state.attackCooldownMax;
                     state.bHitFired = true;
-                    StartReplicatedAnimation(m_world, entity, eNetAnimId::BasicAttack, tc);
+                    StartReplicatedAction(m_world, entity, eActionStateId::BasicAttack, tc);
 
                     static u32_t s_minionAttackLogCount = 0;
                     if (s_minionAttackLogCount < 128u)
@@ -843,24 +844,20 @@ void CGameRoom::Phase_ServerMinionAI(TickContext& tc)
             }
         }
 
-        auto& anim = m_world.HasComponent<NetAnimationComponent>(entity)
-            ? m_world.GetComponent<NetAnimationComponent>(entity)
-            : m_world.AddComponent<NetAnimationComponent>(entity, NetAnimationComponent{});
         if (bMoved)
         {
-            anim.animId = static_cast<u16_t>(eNetAnimId::Run);
-            anim.animPhaseFrame = static_cast<u16_t>(tc.tickIndex & 0xffffu);
+            SetReplicatedPose(m_world, entity, ePoseStateId::Run, tc);
         }
         else if (state.current != MinionStateComponent::Attack)
         {
-            anim.animId = static_cast<u16_t>(eNetAnimId::Idle);
+            SetReplicatedPose(m_world, entity, ePoseStateId::Idle, tc);
         }
     }
 }
 
 void CGameRoom::Phase_ServerMinionDepenetration(TickContext& tc)
 {
-    if (m_roomPhase != eRoomPhase::InGame)
+    if (!IsInGamePhase())
         return;
 
     const auto minions =

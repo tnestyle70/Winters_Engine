@@ -2,7 +2,7 @@
 
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/YoneSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
@@ -125,20 +125,10 @@ namespace
         ClearMove(world, entity);
     }
 
-    void StartNetAnimation(CWorld& world, EntityID entity, eNetAnimId animId,
+    void StartYoneEAction(CWorld& world, EntityID entity,
         const TickContext& tc, u8_t stage)
     {
-        auto& anim = world.HasComponent<NetAnimationComponent>(entity)
-            ? world.GetComponent<NetAnimationComponent>(entity)
-            : world.AddComponent<NetAnimationComponent>(entity, NetAnimationComponent{});
-
-        ++anim.actionSeq;
-        anim.animId = static_cast<u16_t>(animId);
-        anim.animPhaseFrame = 0;
-        anim.animStartTick = tc.tickIndex;
-        anim.playbackRateQ8 = EncodeSkillPlaybackRateQ8(1.f);
-        anim.flags = static_cast<u16_t>(static_cast<u16_t>(stage & 0x0fu) << 12);
-        anim.priority = 0;
+        StartActionState(world, entity, eActionStateId::SkillE, tc.tickIndex, stage);
     }
 
     void EmitYoneEVisualEvent(CWorld& world, EntityID caster, const TickContext& tc, u8_t stage)
@@ -197,7 +187,7 @@ namespace
 
         if (bEmitReturnCue && pTickCtx)
         {
-            StartNetAnimation(world, caster, eNetAnimId::SkillE, *pTickCtx, 2);
+            StartYoneEAction(world, caster, *pTickCtx, 2);
             EmitYoneEVisualEvent(world, caster, *pTickCtx, 2);
         }
     }

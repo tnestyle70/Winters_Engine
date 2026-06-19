@@ -25,7 +25,7 @@ const (
 	EventKindGameEnd         EventKind = 15
 	EventKindKillFeed        EventKind = 16
 	EventKindChat            EventKind = 17
-	EventKindAnimationStart  EventKind = 18
+	EventKindActionStart     EventKind = 18
 	EventKindEffectTrigger   EventKind = 19
 )
 
@@ -48,7 +48,7 @@ var EnumNamesEventKind = map[EventKind]string{
 	EventKindGameEnd:         "GameEnd",
 	EventKindKillFeed:        "KillFeed",
 	EventKindChat:            "Chat",
-	EventKindAnimationStart:  "AnimationStart",
+	EventKindActionStart:     "ActionStart",
 	EventKindEffectTrigger:   "EffectTrigger",
 }
 
@@ -71,7 +71,7 @@ var EnumValuesEventKind = map[string]EventKind{
 	"GameEnd":         EventKindGameEnd,
 	"KillFeed":        EventKindKillFeed,
 	"Chat":            EventKindChat,
-	"AnimationStart":  EventKindAnimationStart,
+	"ActionStart":     EventKindActionStart,
 	"EffectTrigger":   EventKindEffectTrigger,
 }
 

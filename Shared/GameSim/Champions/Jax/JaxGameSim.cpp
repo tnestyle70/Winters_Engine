@@ -4,7 +4,7 @@
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/JaxSimComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
@@ -138,16 +138,6 @@ namespace
         }
     }
 
-    u16_t EncodeJaxEPlaybackRateQ8()
-    {
-        const ChampionSkillTimingDefaults timing = ChampionGameDataDB::ResolveSkillTiming(
-            eChampion::JAX,
-            static_cast<u8_t>(eSkillSlot::E),
-            2u);
-        const f32_t clamped = std::max(0.05f, std::min(4.f, timing.animPlaySpeed));
-        return static_cast<u16_t>(clamped * 256.f + 0.5f);
-    }
-
     u16_t BuildJaxEStage2Flags(u8_t rank)
     {
         return static_cast<u16_t>(
@@ -156,19 +146,9 @@ namespace
             static_cast<u16_t>(eSkillSlot::E));
     }
 
-    void StartJaxEReleaseAnimation(CWorld& world, EntityID caster, const TickContext& tc)
+    void StartJaxEReleaseAction(CWorld& world, EntityID caster, const TickContext& tc)
     {
-        auto& anim = world.HasComponent<NetAnimationComponent>(caster)
-            ? world.GetComponent<NetAnimationComponent>(caster)
-            : world.AddComponent<NetAnimationComponent>(caster, NetAnimationComponent{});
-
-        ++anim.actionSeq;
-        anim.animId = static_cast<u16_t>(eNetAnimId::SkillE);
-        anim.animPhaseFrame = 0;
-        anim.animStartTick = tc.tickIndex;
-        anim.playbackRateQ8 = EncodeJaxEPlaybackRateQ8();
-        anim.flags = static_cast<u16_t>(2u << 12);
-        anim.priority = 0;
+        StartActionState(world, caster, eActionStateId::SkillE, tc.tickIndex, 2u);
     }
 
     void ClearJaxEStageWindow(CWorld& world, EntityID caster)
@@ -216,7 +196,7 @@ namespace
 
         if (bEmitVisual)
         {
-            StartJaxEReleaseAnimation(world, caster, tc);
+            StartJaxEReleaseAction(world, caster, tc);
             EnqueueJaxEReleaseVisual(world, caster, tc, state.counterRank);
         }
 

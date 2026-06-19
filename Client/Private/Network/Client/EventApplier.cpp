@@ -1,4 +1,4 @@
-﻿#include "Network/Client/EventApplier.h"
+#include "Network/Client/EventApplier.h"
 #include "Network/Client/NetworkEventTrace.h"
 #include "GameInstance.h"
 
@@ -31,7 +31,7 @@
 #include "Renderer/ModelRenderer.h"
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Feedback/GameplayFeedback.h"
 
@@ -128,31 +128,40 @@ namespace
         return FindChampionDef(champion);
     }
 
-    u8_t SlotFromNetAnim(u16_t animId)
+    u8_t SlotFromReplicatedAction(u16_t actionId)
     {
-        switch (static_cast<eNetAnimId>(animId))
+        switch (static_cast<eReplicatedActionId>(actionId))
         {
-        case eNetAnimId::SkillQ: return static_cast<u8_t>(eSkillSlot::Q);
-        case eNetAnimId::SkillW: return static_cast<u8_t>(eSkillSlot::W);
-        case eNetAnimId::SkillE: return static_cast<u8_t>(eSkillSlot::E);
-        case eNetAnimId::SkillR: return static_cast<u8_t>(eSkillSlot::R);
+        case eReplicatedActionId::SkillQ: return static_cast<u8_t>(eSkillSlot::Q);
+        case eReplicatedActionId::SkillW: return static_cast<u8_t>(eSkillSlot::W);
+        case eReplicatedActionId::SkillE: return static_cast<u8_t>(eSkillSlot::E);
+        case eReplicatedActionId::SkillR: return static_cast<u8_t>(eSkillSlot::R);
         default: return static_cast<u8_t>(eSkillSlot::BasicAttack);
         }
     }
-
-    constexpr u16_t kNetAnimFlagLoop = 0x0800u;
-
-    bool_t IsOneShotNetAnim(u16_t animId)
+    bool_t IsOneShotReplicatedAction(u16_t actionId)
     {
-        const auto id = static_cast<eNetAnimId>(animId);
-        return id != eNetAnimId::Idle &&
-            id != eNetAnimId::Run &&
-            id != eNetAnimId::Recall;
+        const auto id = static_cast<eReplicatedActionId>(actionId);
+        return id != eReplicatedActionId::None &&
+            id != eReplicatedActionId::Recall;
     }
-
-    bool_t ShouldLoopNetworkAnimation(u16_t animId, u16_t flags)
+    bool_t ShouldLoopReplicatedAction(
+        eChampion animationChampion,
+        u16_t actionId,
+        u8_t actionStage)
     {
-        return (flags & kNetAnimFlagLoop) != 0u || !IsOneShotNetAnim(animId);
+        const auto id = static_cast<eReplicatedActionId>(actionId);
+        if (id == eReplicatedActionId::None)
+            return false;
+        if (id == eReplicatedActionId::Recall)
+            return true;
+        if (animationChampion == eChampion::JAX &&
+            id == eReplicatedActionId::SkillE &&
+            actionStage <= 1u)
+        {
+            return true;
+        }
+        return false;
     }
 
     bool_t IsNewerActionSeq(u32_t seq, u32_t previousSeq)
@@ -434,18 +443,6 @@ namespace
         CFxSystem::Spawn(world, fx);
     }
 
-    u16_t EncodePlaybackRateQ8Local(f32_t playSpeed)
-    {
-        if (!std::isfinite(playSpeed) || playSpeed <= 0.01f)
-            playSpeed = 1.f;
-
-        u32_t encoded = static_cast<u32_t>(playSpeed * 256.f + 0.5f);
-        if (encoded < 1u)
-            encoded = 1u;
-        if (encoded > 4096u)
-            encoded = 4096u;
-        return static_cast<u16_t>(encoded);
-    }
 }
 
 std::unique_ptr<CEventApplier> CEventApplier::Create()
@@ -476,8 +473,8 @@ void CEventApplier::OnEvent(
 
     switch (packet->kind())
     {
-    case Shared::Schema::EventKind::AnimationStart:
-        ApplyAnimationStart(world, entityMap, packet->animation());
+    case Shared::Schema::EventKind::ActionStart:
+        ApplyActionStart(world, entityMap, packet->actionStart());
         break;
     case Shared::Schema::EventKind::ProjectileSpawn:
         ApplyProjectileSpawn(world, entityMap, packet->projectile(), packet->serverTick());
@@ -499,38 +496,31 @@ void CEventApplier::OnEvent(
     }
 }
 
-void CEventApplier::ApplyAnimationStart(
+void CEventApplier::ApplyActionStart(
     CWorld& world,
     EntityIdMap& entityMap,
-    const Shared::Schema::AnimationStartEvent* ev)
+    const Shared::Schema::ActionStartEvent* ev)
 {
     if (!ev || ev->netId() == NULL_NET_ENTITY)
         return;
-
     const EntityID entity = entityMap.FromNet(ev->netId());
     if (entity == NULL_ENTITY)
         return;
-
-    auto& anim = world.HasComponent<NetAnimationComponent>(entity)
-        ? world.GetComponent<NetAnimationComponent>(entity)
-        : world.AddComponent<NetAnimationComponent>(entity, NetAnimationComponent{});
-
-    const u32_t previousPlayedSeq = m_lastAnimationSeq[ev->netId()];
+    auto& action = world.HasComponent<ReplicatedActionComponent>(entity)
+        ? world.GetComponent<ReplicatedActionComponent>(entity)
+        : world.AddComponent<ReplicatedActionComponent>(entity, ReplicatedActionComponent{});
+    const u8_t actionStage = ev->actionStage() == 0u ? 1u : ev->actionStage();
+    const u32_t previousPlayedSeq = m_lastActionSeq[ev->netId()];
     const bool_t bShouldPlay =
         IsNewerActionSeq(ev->actionSeq(), previousPlayedSeq);
-
-    anim.animId = ev->animId();
-    anim.animPhaseFrame = 0;
-    anim.animStartTick = ev->startTick();
-    anim.actionSeq = ev->actionSeq();
-    anim.playbackRateQ8 = ev->playbackRateQ8();
-    anim.flags = ev->flags();
-
-    if (!bShouldPlay) return;
-
-    m_lastAnimationSeq[ev->netId()] = ev->actionSeq();
-
-    PlayNetworkAnimation(world, entity, ev->animId(), ev->playbackRateQ8(), ev->flags());
+    action.actionId = ev->actionId();
+    action.startTick = ev->startTick();
+    action.sequence = ev->actionSeq();
+    action.stage = actionStage;
+    if (!bShouldPlay)
+        return;
+    m_lastActionSeq[ev->netId()] = ev->actionSeq();
+    PlayReplicatedActionVisual(world, entity, ev->actionId(), actionStage);
 }
 
 void CEventApplier::ApplyProjectileSpawn(
@@ -810,33 +800,17 @@ void CEventApplier::ApplyEffectTrigger(
     if (eventSlot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
         source != NULL_ENTITY)
     {
-        const bool_t bAlreadyDrivenByNetAnim =
-            world.HasComponent<NetAnimationComponent>(source) &&
-            IsOneShotNetAnim(world.GetComponent<NetAnimationComponent>(source).animId);
-
-        if (!bAlreadyDrivenByNetAnim)
+        const bool_t bAlreadyDrivenByAction =
+            world.HasComponent<ReplicatedActionComponent>(source) &&
+            IsOneShotReplicatedAction(
+                world.GetComponent<ReplicatedActionComponent>(source).actionId);
+        if (!bAlreadyDrivenByAction)
         {
-            u16_t playbackRate = 256;
-            if (world.HasComponent<ChampionComponent>(source))
-            {
-                const eChampion champion = world.GetComponent<ChampionComponent>(source).id;
-                const SkillDef* pDef = CSkillRegistry::Instance().Find(
-                    champion,
-                    static_cast<u8_t>(eSkillSlot::BasicAttack));
-                if (!pDef)
-                    pDef = FindSkillDef(
-                        champion,
-                        static_cast<u8_t>(eSkillSlot::BasicAttack));
-                if (pDef)
-                    playbackRate = EncodePlaybackRateQ8Local(pDef->animPlaySpeed);
-            }
-
-            PlayNetworkAnimation(
+            PlayReplicatedActionVisual(
                 world,
                 source,
-                static_cast<u16_t>(eNetAnimId::BasicAttack),
-                playbackRate,
-                ev->flags());
+                static_cast<u16_t>(eReplicatedActionId::BasicAttack),
+                1u);
         }
     }
 
@@ -1038,41 +1012,38 @@ void CEventApplier::ApplyKillFeed(
         pMessage);
 }
 
-void CEventApplier::PlayNetworkAnimation(
+void CEventApplier::PlayReplicatedActionVisual(
     CWorld& world,
     EntityID entity,
-    u16_t animId,
-    u16_t playbackRateQ8,
-    u16_t flags)
+    u16_t actionId,
+    u8_t actionStage)
 {
     if (!world.HasComponent<RenderComponent>(entity) ||
         !world.HasComponent<ChampionComponent>(entity))
     {
         return;
     }
-
     auto& render = world.GetComponent<RenderComponent>(entity);
     if (!render.pRenderer)
         return;
-
     const auto& champion = world.GetComponent<ChampionComponent>(entity);
     eChampion animationChampion = champion.id;
-    const u8_t animSlot = SlotFromNetAnim(animId);
+    const u8_t actionSlot = SlotFromReplicatedAction(actionId);
     if (world.HasComponent<FormOverrideComponent>(entity))
     {
         const auto& form = world.GetComponent<FormOverrideComponent>(entity);
         if (form.bActive &&
             form.skillChampion != eChampion::END &&
             form.skillChampion != eChampion::NONE &&
-            animSlot < 8u &&
-            (form.skillSlotMask & static_cast<u8_t>(1u << animSlot)) != 0u)
+            actionSlot < 8u &&
+            (form.skillSlotMask & static_cast<u8_t>(1u << actionSlot)) != 0u)
         {
             animationChampion = form.skillChampion;
         }
         else if (form.bActive &&
             form.visualChampion != eChampion::END &&
             form.visualChampion != eChampion::NONE &&
-            animId != static_cast<u16_t>(eNetAnimId::SkillR))
+            actionId != static_cast<u16_t>(eReplicatedActionId::SkillR))
         {
             animationChampion = form.visualChampion;
         }
@@ -1080,41 +1051,33 @@ void CEventApplier::PlayNetworkAnimation(
     const ChampionDef* cd = FindClientChampionDefForEvent(animationChampion);
     if (!cd)
         return;
-
     std::string animName;
-    const auto id = static_cast<eNetAnimId>(animId);
+    const auto id = static_cast<eReplicatedActionId>(actionId);
     switch (id)
     {
-    case eNetAnimId::Idle:
-        animName = PrefixAnim(*cd, cd->idleAnimKey);
-        break;
-    case eNetAnimId::Run:
-        animName = PrefixAnim(*cd, cd->runAnimKey);
-        break;
-    case eNetAnimId::Recall:
+    case eReplicatedActionId::Recall:
         animName = ResolveRecallAnimName(*cd, *render.pRenderer);
         break;
-    case eNetAnimId::BasicAttack:
+    case eReplicatedActionId::BasicAttack:
         animName = PrefixAnim(*cd, cd->basicAttackKey);
         break;
-    case eNetAnimId::Death:
+    case eReplicatedActionId::DeathStart:
         animName = PrefixAnim(*cd, "death");
         break;
-    case eNetAnimId::SkillQ:
-    case eNetAnimId::SkillW:
-    case eNetAnimId::SkillE:
-    case eNetAnimId::SkillR:
+    case eReplicatedActionId::SkillQ:
+    case eReplicatedActionId::SkillW:
+    case eReplicatedActionId::SkillE:
+    case eReplicatedActionId::SkillR:
     {
-        const u8_t slot = SlotFromNetAnim(animId);
+        const u8_t slot = SlotFromReplicatedAction(actionId);
         const SkillDef* def = CSkillRegistry::Instance().Find(animationChampion, slot);
         if (!def)
             def = FindSkillDef(animationChampion, slot);
-        const u8_t stage = StageFromEffectFlags(flags);
-        const bool_t bStage2 = stage >= 2u;
+        const bool_t bStage2 = actionStage >= 2u;
         const char* pAnimKey = nullptr;
-        if (animationChampion == eChampion::YASUO && id == eNetAnimId::SkillQ)
+        if (animationChampion == eChampion::YASUO && id == eReplicatedActionId::SkillQ)
         {
-            pAnimKey = ResolveYasuoQAnimKey(stage);
+            pAnimKey = ResolveYasuoQAnimKey(actionStage);
         }
         else if (def)
         {
@@ -1126,38 +1089,53 @@ void CEventApplier::PlayNetworkAnimation(
             animName = PrefixAnim(*cd, pAnimKey);
         break;
     }
-    // Viego soul animation uses the passive attack clip.
-    case eNetAnimId::ViegoConsumeSoul:
+    case eReplicatedActionId::ViegoConsumeSoul:
         animName = PrefixAnim(*cd, "passive_attack");
         break;
     default:
         break;
     }
-
     if (!animName.empty())
     {
-        const f32_t playSpeed = playbackRateQ8 > 0
-            ? static_cast<f32_t>(playbackRateQ8) / 256.f
-            : 1.f;
+        f32_t playSpeed = 1.f;
+        if (id == eReplicatedActionId::BasicAttack ||
+            id == eReplicatedActionId::SkillQ ||
+            id == eReplicatedActionId::SkillW ||
+            id == eReplicatedActionId::SkillE ||
+            id == eReplicatedActionId::SkillR)
+        {
+            const SkillDef* def = CSkillRegistry::Instance().Find(animationChampion, actionSlot);
+            if (!def)
+                def = FindSkillDef(animationChampion, actionSlot);
+            if (def)
+            {
+                playSpeed = (actionStage >= 2u && def->stage2PlaySpeed > 0.01f)
+                    ? def->stage2PlaySpeed
+                    : def->animPlaySpeed;
+            }
+        }
+        if (!std::isfinite(playSpeed) || playSpeed <= 0.01f)
+            playSpeed = 1.f;
         const bool_t bPlayed = render.pRenderer->PlayAnimationByNameAdvanced(
             animName.c_str(),
-            ShouldLoopNetworkAnimation(animId, flags),
+            ShouldLoopReplicatedAction(animationChampion, actionId, actionStage),
             false,
             playSpeed);
 #if defined(_DEBUG)
         if (!bPlayed)
         {
-            static u32_t s_animMissTraceCount = 0;
-            if (s_animMissTraceCount < 64u)
+            static u32_t s_actionMissTraceCount = 0;
+            if (s_actionMissTraceCount < 64u)
             {
                 char msg[192]{};
                 sprintf_s(msg,
-                    "[NetAnimMiss] champion=%u animId=%u name=%s\n",
+                    "[ActionVisualMiss] champion=%u actionId=%u stage=%u name=%s\n",
                     static_cast<u32_t>(animationChampion),
-                    static_cast<u32_t>(animId),
+                    static_cast<u32_t>(actionId),
+                    static_cast<u32_t>(actionStage),
                     animName.c_str());
                 OutputDebugStringA(msg);
-                ++s_animMissTraceCount;
+                ++s_actionMissTraceCount;
             }
         }
 #endif

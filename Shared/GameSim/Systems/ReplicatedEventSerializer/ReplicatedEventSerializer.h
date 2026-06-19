@@ -1,7 +1,7 @@
 #pragma once
 
 #include "WintersTypes.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
 #include "Shared/GameSim/Core/World/World.h"
@@ -28,9 +28,9 @@ namespace SharedSim
             u64_t serverTick,
             SerializedReplicatedEvent& out);
 
-        static bool_t BuildAnimationStart(
+        static bool_t BuildActionStart(
             NetEntityId netId,
-            const NetAnimationComponent& anim,
+            const ReplicatedActionComponent& action,
             u64_t serverTick,
             SerializedReplicatedEvent& out);
 

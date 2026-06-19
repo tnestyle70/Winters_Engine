@@ -22,7 +22,7 @@ namespace
     {
         const wchar_t* const pCommandLine = ::GetCommandLineW();
         if (!pCommandLine)
-            return eEngineRHIBackend::DX12;
+            return eEngineRHIBackend::DX11;
 
         if (wcsstr(pCommandLine, L"--rhi=auto") || wcsstr(pCommandLine, L"/rhi:auto"))
             return eEngineRHIBackend::Auto;
@@ -33,7 +33,7 @@ namespace
         if (wcsstr(pCommandLine, L"--rhi=null") || wcsstr(pCommandLine, L"/rhi:null"))
             return eEngineRHIBackend::Null;
 
-        return eEngineRHIBackend::DX12;
+        return eEngineRHIBackend::DX11;
     }
 }
 
@@ -54,6 +54,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
     config.iNumScenes = 1;
     config.rhiBackend = ParseRequestedRHIBackend();
     config.allowRHIFallback = true;
+    // Current Limgrave showcase still uses legacy ModelRenderer, which requires DX11.
+    // Run with --rhi=dx12 after the showcase renderer is moved to RHI-native DX12.
 
     return WintersRun(&app, config);
 }

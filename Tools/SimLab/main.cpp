@@ -17,8 +17,8 @@
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Components/RuneComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
@@ -239,7 +239,8 @@ namespace
         world.AddComponent<SpatialAgentComponent>(entity, spatial);
 
         world.AddComponent<TargetableTag>(entity);
-        world.AddComponent<NetAnimationComponent>(entity, NetAnimationComponent{});
+
+        SetPoseState(world, entity, ePoseStateId::Idle, 0, true);
 
         NetEntityIdComponent netEntity{};
         netEntity.netId = entityMap.IssueNew(entity);

@@ -24,7 +24,7 @@
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
@@ -35,7 +35,7 @@
 
 namespace
 {
-	// 등록된 애니 키가 실제 모델 클립과 일치하지 않으면 디버그 출력으로 알린다.
+	// ?�록???�니 ?��? ?�제 모델 ?�립�??�치?��? ?�으�??�버�?출력?�로 ?�린??
 	void ValidateChampionAnimKeys(const ChampionDef& def, ModelRenderer& renderer)
 	{
 #if defined(_DEBUG)
@@ -228,10 +228,7 @@ ChampionSpawnResult CChampionSpawnService::Spawn(
 
 	context.world.AddComponent<StatComponent>(entity, stat);
 
-	NetAnimationComponent anim{};
-	anim.animId = static_cast<u16_t>(eNetAnimId::Idle);
-	anim.animPhaseFrame = 0;
-	context.world.AddComponent<NetAnimationComponent>(entity, anim);
+	SetPoseState(context.world, entity, ePoseStateId::Idle, 0, true);
 
 	HealthComponent health{};
 	health.fCurrent = champion.hp;

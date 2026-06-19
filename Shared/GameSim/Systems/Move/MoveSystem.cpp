@@ -4,7 +4,7 @@
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/KalistaPassiveDashComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
-#include "Shared/GameSim/Components/NetAnimationComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
@@ -283,55 +283,22 @@ namespace
         return Vec3{};
     }
 
-    bool_t IsActionAnimation(eNetAnimId animId)
-    {
-        return animId == eNetAnimId::BasicAttack ||
-            animId == eNetAnimId::SkillQ ||
-            animId == eNetAnimId::SkillW ||
-            animId == eNetAnimId::SkillE ||
-            animId == eNetAnimId::SkillR;
-    }
-
-    u8_t SlotFromActionAnimation(eNetAnimId animId)
-    {
-        switch (animId)
-        {
-        case eNetAnimId::SkillQ:
-            return static_cast<u8_t>(eSkillSlot::Q);
-        case eNetAnimId::SkillW:
-            return static_cast<u8_t>(eSkillSlot::W);
-        case eNetAnimId::SkillE:
-            return static_cast<u8_t>(eSkillSlot::E);
-        case eNetAnimId::SkillR:
-            return static_cast<u8_t>(eSkillSlot::R);
-        case eNetAnimId::BasicAttack:
-        default:
-            return static_cast<u8_t>(eSkillSlot::BasicAttack);
-        }
-    }
-
-    u8_t StageFromActionAnimationFlags(u16_t flags)
-    {
-        const u8_t stage = static_cast<u8_t>((flags >> 12) & 0x0fu);
-        return stage == 0u ? 1u : stage;
-    }
-
-    bool_t IsActionAnimationLocked(
+    bool_t IsActionStateLocked(
         const StatComponent& stat,
-        const NetAnimationComponent& anim,
+        const ActionStateComponent& action,
         const TickContext& tc)
     {
-        const auto currentAnim = static_cast<eNetAnimId>(anim.animId);
-        if (!IsActionAnimation(currentAnim))
+        const auto currentAction = static_cast<eActionStateId>(action.actionId);
+        if (!IsReplicatedGameplayAction(currentAction))
             return false;
 
-        if (tc.tickIndex < anim.animStartTick)
+        if (tc.tickIndex < action.startTick)
             return false;
 
-        const u8_t slot = SlotFromActionAnimation(currentAnim);
-        const u8_t stage = StageFromActionAnimationFlags(anim.flags);
+        const u8_t slot = SkillSlotFromActionId(currentAction);
+        const u8_t stage = action.stage == 0u ? 1u : action.stage;
         if (stat.championId == eChampion::JAX &&
-            currentAnim == eNetAnimId::SkillE &&
+            currentAction == eActionStateId::SkillE &&
             slot == static_cast<u8_t>(eSkillSlot::E) &&
             stage == 1u)
         {
@@ -339,18 +306,21 @@ namespace
         }
 
         const u64_t lockTicks = ChampionGameDataDB::ResolveSkillActionLockTicks(stat.championId, slot, stage);
-        return (tc.tickIndex - anim.animStartTick) < lockTicks;
+        return (tc.tickIndex - action.startTick) < lockTicks;
     }
 
-    bool_t IsActionAnimationLocked(
+    bool_t IsActionStateLocked(
         CWorld& world,
         EntityID entity,
         const StatComponent& stat,
-        const NetAnimationComponent& anim,
+        const ActionStateComponent* pAction,
         const TickContext& tc)
     {
-        const auto currentAnim = static_cast<eNetAnimId>(anim.animId);
-        if (currentAnim == eNetAnimId::BasicAttack)
+        if (!pAction)
+            return false;
+
+        const auto currentAction = static_cast<eActionStateId>(pAction->actionId);
+        if (currentAction == eActionStateId::BasicAttack)
         {
             if (!world.HasComponent<CombatActionComponent>(entity))
                 return false;
@@ -364,28 +334,30 @@ namespace
             return true;
         }
 
-        return IsActionAnimationLocked(stat, anim, tc);
+        return IsActionStateLocked(stat, *pAction, tc);
     }
 
-    void SetNetAnimation(
-        NetAnimationComponent& anim,
-        eNetAnimId nextAnim,
-        const TickContext& tc,
-        bool_t bUpdatePhase)
+    const ActionStateComponent* FindActionState(CWorld& world, EntityID entity)
     {
-        const u16_t nextId = static_cast<u16_t>(nextAnim);
+        return world.HasComponent<ActionStateComponent>(entity)
+            ? &world.GetComponent<ActionStateComponent>(entity)
+            : nullptr;
+    }
 
-        if (anim.animId != nextId)
-        {
-            anim.animId = nextId;
-            anim.animStartTick = tc.tickIndex;
-            anim.animPhaseFrame = static_cast<u16_t>(tc.tickIndex & 0xffffu);
-            ++anim.actionSeq;
-            return;
-        }
+    bool_t IsMovePose(CWorld& world, EntityID entity, ePoseStateId poseId)
+    {
+        return world.HasComponent<PoseStateComponent>(entity) &&
+            world.GetComponent<PoseStateComponent>(entity).poseId ==
+                static_cast<u16_t>(poseId);
+    }
 
-        if (bUpdatePhase)
-            anim.animPhaseFrame = static_cast<u16_t>(tc.tickIndex & 0xffffu);
+    void SetMovePose(
+        CWorld& world,
+        EntityID entity,
+        ePoseStateId nextPose,
+        const TickContext& tc)
+    {
+        SetPoseState(world, entity, nextPose, tc.tickIndex);
     }
 }
 
@@ -401,14 +373,14 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
         {
             ClearMoveFacingOverride(moveTarget);
             if (world.HasComponent<StatComponent>(entity) &&
-                world.HasComponent<NetAnimationComponent>(entity))
+                world.HasComponent<PoseStateComponent>(entity))
             {
                 const auto& stat = world.GetComponent<StatComponent>(entity);
-                auto& anim = world.GetComponent<NetAnimationComponent>(entity);
-                if (static_cast<eNetAnimId>(anim.animId) == eNetAnimId::Run &&
-                    !IsActionAnimationLocked(world, entity, stat, anim, tc))
+                const ActionStateComponent* pAction = FindActionState(world, entity);
+                if (IsMovePose(world, entity, ePoseStateId::Run) &&
+                    !IsActionStateLocked(world, entity, stat, pAction, tc))
                 {
-                    SetNetAnimation(anim, eNetAnimId::Idle, tc, false);
+                    SetMovePose(world, entity, ePoseStateId::Idle, tc);
                 }
             }
             continue;
@@ -442,21 +414,20 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
 
         auto& transform = world.GetComponent<TransformComponent>(entity);
         const auto& stat = world.GetComponent<StatComponent>(entity);
-        auto& anim = world.HasComponent<NetAnimationComponent>(entity)
-            ? world.GetComponent<NetAnimationComponent>(entity)
-            : world.AddComponent<NetAnimationComponent>(entity, NetAnimationComponent{});
+        const ActionStateComponent* pAction = FindActionState(world, entity);
+        EnsurePoseState(world, entity);
 
         const Vec3 pos = transform.GetLocalPosition();
 
         if (!GameplayStateQuery::CanMove(world, entity))
         {
             ClearMoveRuntimeTarget(moveTarget);
-            if (!IsActionAnimationLocked(world, entity, stat, anim, tc))
-                SetNetAnimation(anim, eNetAnimId::Idle, tc, false);
+            if (!IsActionStateLocked(world, entity, stat, pAction, tc))
+                SetMovePose(world, entity, ePoseStateId::Idle, tc);
             continue;
         }
 
-        if (IsActionAnimationLocked(world, entity, stat, anim, tc))
+        if (IsActionStateLocked(world, entity, stat, pAction, tc))
             continue;
 
         const f32_t step =
@@ -468,8 +439,8 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
         if (!bCurrentWalkable && moveTarget.pathCount == 0)
         {
             ClearMoveRuntimeTarget(moveTarget);
-            if (!IsActionAnimationLocked(world, entity, stat, anim, tc))
-                SetNetAnimation(anim, eNetAnimId::Idle, tc, false);
+            if (!IsActionStateLocked(world, entity, stat, pAction, tc))
+                SetMovePose(world, entity, ePoseStateId::Idle, tc);
             continue;
         }
 
@@ -497,8 +468,8 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
             if (moveTarget.pathIndex >= moveTarget.pathCount)
             {
                 ClearMoveRuntimeTarget(moveTarget);
-                if (!IsActionAnimationLocked(world, entity, stat, anim, tc))
-                    SetNetAnimation(anim, eNetAnimId::Idle, tc, false);
+                if (!IsActionStateLocked(world, entity, stat, pAction, tc))
+                    SetMovePose(world, entity, ePoseStateId::Idle, tc);
                 continue;
             }
         }
@@ -522,8 +493,8 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
                 ClearMoveRuntimeTarget(moveTarget);
             }
 
-            if (!IsActionAnimationLocked(world, entity, stat, anim, tc))
-                SetNetAnimation(anim, eNetAnimId::Idle, tc, false);
+            if (!IsActionStateLocked(world, entity, stat, pAction, tc))
+                SetMovePose(world, entity, ePoseStateId::Idle, tc);
             continue;
         }
 
@@ -566,8 +537,8 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
             if (!tc.pWalkable->TryClampMoveSegmentXZ(pos, next, radius, resolvedNext))
             {
                 ClearMoveRuntimeTarget(moveTarget);
-                if (!IsActionAnimationLocked(world, entity, stat, anim, tc))
-                    SetNetAnimation(anim, eNetAnimId::Idle, tc, false);
+                if (!IsActionStateLocked(world, entity, stat, pAction, tc))
+                    SetMovePose(world, entity, ePoseStateId::Idle, tc);
                 continue;
             }
 
@@ -696,12 +667,12 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
         if (bSegmentClamped)
         {
             ClearMoveRuntimeTarget(moveTarget);
-            if (!IsActionAnimationLocked(world, entity, stat, anim, tc))
-                SetNetAnimation(anim, eNetAnimId::Idle, tc, false);
+            if (!IsActionStateLocked(world, entity, stat, pAction, tc))
+                SetMovePose(world, entity, ePoseStateId::Idle, tc);
             continue;
         }
 
-        if (!IsActionAnimationLocked(world, entity, stat, anim, tc))
-            SetNetAnimation(anim, eNetAnimId::Run, tc, true);
+        if (!IsActionStateLocked(world, entity, stat, pAction, tc))
+            SetMovePose(world, entity, ePoseStateId::Run, tc);
     }
 }

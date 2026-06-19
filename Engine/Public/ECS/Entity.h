@@ -12,6 +12,7 @@ using EntityGeneration = uint32_t;
 
 constexpr EntityID NULL_ENTITY = 0;
 constexpr EntityGeneration NULL_ENTITY_GENERATION = 0;
+constexpr EntityGeneration FIRST_ENTITY_GENERATION = 1;
 
 struct EntityHandle
 {
@@ -75,25 +76,21 @@ public:
 	EntityID Create()
 	{
 		EntityID id;
-		if (!m_vecFreeList.empty())
+		if (m_iFreeHead != NULL_ENTITY)
 		{
-			id = m_vecFreeList.back();
-			m_vecFreeList.pop_back();
+			id = m_iFreeHead;
+			EntitySlot& slot = m_vecSlots[id];
+			m_iFreeHead = slot.nextFree;
+			slot.nextFree = NULL_ENTITY;
+			slot.generation = NextAliveGeneration(slot.generation);
 		}
 		else
 		{
-			id = m_iNextID++;
-		}
+			EnsureNullSlot();
 
-		if (id >= m_vecAlive.size())
-		{
-			m_vecAlive.resize(id + 1, 0);
-			m_vecGenerations.resize(id + 1, 1);
+			id = static_cast<EntityID>(m_vecSlots.size());
+			m_vecSlots.push_back({ FIRST_ENTITY_GENERATION, NULL_ENTITY });
 		}
-		if (m_vecGenerations[id] == NULL_ENTITY_GENERATION)
-			m_vecGenerations[id] = 1;
-
-		m_vecAlive[id] = 1;
 		++m_iAliveCount;
 		return id;
 	}
@@ -106,10 +103,14 @@ public:
 
 	void Destroy(EntityID id)
 	{
-		assert(id < m_vecAlive.size() && m_vecAlive[id]);
-		m_vecAlive[id] = 0;
-		BumpGeneration(id);
-		m_vecFreeList.push_back(id);
+		assert(IsAlive(id));
+		if (!IsAlive(id))
+			return;
+
+		EntitySlot& slot = m_vecSlots[id];
+		slot.generation = NextDeadGeneration(slot.generation);
+		slot.nextFree = m_iFreeHead;
+		m_iFreeHead = id;
 		--m_iAliveCount;
 	}
 
@@ -125,7 +126,7 @@ public:
 
 	bool IsAlive(EntityID id) const
 	{
-		return id < m_vecAlive.size() && m_vecAlive[id] != 0;
+		return id < m_vecSlots.size() && IsAliveGeneration(m_vecSlots[id].generation);
 	}
 
 	bool IsAlive(EntityHandle handle) const
@@ -136,9 +137,9 @@ public:
 
 	EntityGeneration GetGeneration(EntityID id) const
 	{
-		if (id >= m_vecGenerations.size())
+		if (id >= m_vecSlots.size())
 			return NULL_ENTITY_GENERATION;
-		return m_vecGenerations[id];
+		return m_vecSlots[id].generation;
 	}
 
 	EntityHandle GetHandle(EntityID id) const
@@ -154,9 +155,13 @@ public:
 			return false;
 
 		const EntityID id = handle.GetIndex();
-		if (!IsAlive(id))
+		if (id >= m_vecSlots.size())
 			return false;
-		if (GetGeneration(id) != handle.GetGeneration())
+
+		const EntityGeneration generation = m_vecSlots[id].generation;
+		if (generation != handle.GetGeneration())
+			return false;
+		if (!IsAliveGeneration(generation))
 			return false;
 
 		outEntity = id;
@@ -175,20 +180,51 @@ public:
 	}
 
 private:
-	void BumpGeneration(EntityID id)
+	struct EntitySlot
 	{
-		if (id >= m_vecGenerations.size())
-			m_vecGenerations.resize(id + 1, 1);
+		EntityGeneration generation = NULL_ENTITY_GENERATION;
+		EntityID nextFree = NULL_ENTITY;
+	};
 
-		EntityGeneration next = m_vecGenerations[id] + 1;
-		if (next == NULL_ENTITY_GENERATION)
-			next = 1;
-		m_vecGenerations[id] = next;
+	static bool IsAliveGeneration(EntityGeneration generation)
+	{
+		return (generation & 1u) != 0;
 	}
 
-	EntityID m_iNextID{ 1 };
-	std::vector<uint8_t> m_vecAlive;
-	std::vector<EntityGeneration> m_vecGenerations;
-	std::vector<EntityID> m_vecFreeList;
+	static EntityGeneration NextAliveGeneration(EntityGeneration generation)
+	{
+		if (generation == NULL_ENTITY_GENERATION)
+			return FIRST_ENTITY_GENERATION;
+		if (IsAliveGeneration(generation))
+			return generation;
+
+		EntityGeneration next = generation + 1;
+		if (next == NULL_ENTITY_GENERATION)
+			next = FIRST_ENTITY_GENERATION;
+		return next;
+	}
+
+	static EntityGeneration NextDeadGeneration(EntityGeneration generation)
+	{
+		EntityGeneration next = generation + 1;
+		if (next == NULL_ENTITY_GENERATION)
+			next = 2;
+		if (IsAliveGeneration(next))
+		{
+			++next;
+			if (next == NULL_ENTITY_GENERATION)
+				next = 2;
+		}
+		return next;
+	}
+
+	void EnsureNullSlot()
+	{
+		if (m_vecSlots.empty())
+			m_vecSlots.push_back({});
+	}
+
+	std::vector<EntitySlot> m_vecSlots;
+	EntityID m_iFreeHead{ NULL_ENTITY };
 	uint32_t m_iAliveCount{ 0 };
 };

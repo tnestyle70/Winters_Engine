@@ -14,10 +14,11 @@ This repo is intended to build from a fresh clone without relying on files that 
 
 ## Current Clone Finding
 
-- `imgui` had a tracked gitlink but no `.gitmodules` mapping. The mapping has been restored.
-- ThirdParty headers exist, but required `.lib` and `.dll` inputs are missing in this clone.
-- `.gitignore` now explicitly unignores `Engine/ThirdPartyLib/**/Lib/**` and `Engine/ThirdPartyLib/**/Bin/**` so these SDK inputs can be committed.
-- `.gitignore` now explicitly unignores `Tools/Bin/flatc.exe` so schema codegen works after pull.
+- `Engine/External/imgui` is currently vendored as tracked files in this tree; there is no active `.gitmodules` file.
+- ThirdParty headers exist. Required `.lib` and `.dll` inputs must either be committed or restored by an explicit dependency package before build.
+- `.gitignore` explicitly unignores `Engine/ThirdPartyLib/**/Lib/**` and `Engine/ThirdPartyLib/**/Bin/**` so these SDK inputs can be committed.
+- `.gitignore` explicitly unignores `Tools/Bin/flatc.exe` so schema codegen can work after pull once the file is tracked.
+- `Client/Bin/Resource` stays local-only. Desktop/laptop sync assumes runtime assets are restored separately, while source, generated schema, EngineSDK headers, tools, and required SDK binaries come from git or a documented restore step.
 
 ## Verification
 
@@ -28,4 +29,6 @@ Test-Path Engine/ThirdPartyLib/Assimp/Lib/Debug/assimp-vc143-mtd.lib
 Test-Path Engine/ThirdPartyLib/DirectXTK/Lib/Debug/DirectXTK.lib
 Test-Path Engine/ThirdPartyLib/FMOD/Lib/fmod_vc.lib
 Test-Path Tools/Bin/flatc.exe
+powershell -ExecutionPolicy Bypass -File Tools\VerifyPullRepro.ps1
+powershell -ExecutionPolicy Bypass -File Tools\VerifyPullRepro.ps1 -RequireTracked
 ```

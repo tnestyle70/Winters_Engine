@@ -65,6 +65,13 @@ out/
 *.FileListAbsolute.txt
 *.CppClean.log
 
+# Required clone/build inputs
+!Tools/Bin/flatc.exe
+!Engine/ThirdPartyLib/**/Bin/
+!Engine/ThirdPartyLib/**/Bin/**
+!Engine/ThirdPartyLib/**/Lib/
+!Engine/ThirdPartyLib/**/Lib/**
+
 # Runtime Resource is restored separately
 /Client/Bin/Resource/
 /Client/Bin/Resource.zip

@@ -8,7 +8,6 @@
 #include <typeindex>
 #include <unordered_map>
 #include <memory>
-#include <functional>
 
 //왜 여기에 따로 using을 뺀 거지? -> 이거 무조건 수정 절대 헤더에 이렇게 두면 안 됨
 // dll-interface 경고 (unordered_map/unique_ptr 멤버) 범위 억제
@@ -100,44 +99,68 @@ public:
 		return static_cast<CComponentStoreWrapper<T>*>(it->second.get())->GetStore().Has(e);
 	}
 
-	template<typename T>
-	void ForEach(std::function<void(EntityID, T&)> fn)
+	template<typename T, typename Fn>
+	void ForEach(Fn&& fn)
 	{
-		auto& s = GetOrCreateStore<T>();
-		for (uint32_t i = 0; i < s.Count(); ++i)
-		{
-			fn(s.Entities()[i], s.Data()[i]);
-		}
+		auto* s = TryGetStore<T>();
+		if (!s)
+			return;
+
+		for (uint32_t i = 0; i < s->Count(); ++i)
+			fn(s->Entities()[i], s->Data()[i]);
 	}
 
-	template<typename T1, typename T2>
-	void ForEach(std::function<void(EntityID, T1&, T2&)> fn)
+	template<typename T1, typename T2, typename Fn>
+	void ForEach(Fn&& fn)
 	{
-		auto& s1 = GetOrCreateStore<T1>();
-		auto& s2 = GetOrCreateStore<T2>();
-		for (uint32_t i = 0; i < s1.Count(); ++i)
+		auto* s1 = TryGetStore<T1>();
+		auto* s2 = TryGetStore<T2>();
+		if (!s1 || !s2)
+			return;
+
+		for (uint32_t i = 0; i < s1->Count(); ++i)
 		{
-			EntityID e = s1.Entities()[i];
-			if (s2.Has(e))
-				fn(e, s1.Data()[i], s2.Get(e));
+			EntityID e = s1->Entities()[i];
+			if (s2->Has(e))
+				fn(e, s1->Data()[i], s2->Get(e));
 		}
 	}
 	
-	template<typename T1, typename T2, typename T3>
-	void ForEach(std::function<void(EntityID, T1&, T2&, T3&)> fn)
+	template<typename T1, typename T2, typename T3, typename Fn>
+	void ForEach(Fn&& fn)
 	{
-		auto& s1 = GetOrCreateStore<T1>();
-		auto& s2 = GetOrCreateStore<T2>();
-		auto& s3 = GetOrCreateStore<T3>();
+		auto* s1 = TryGetStore<T1>();
+		auto* s2 = TryGetStore<T2>();
+		auto* s3 = TryGetStore<T3>();
+		if (!s1 || !s2 || !s3)
+			return;
 
-		for (uint32_t i = 0; i < s1.Count(); ++i)
+		for (uint32_t i = 0; i < s1->Count(); ++i)
 		{
-			EntityID e = s1.Entities()[i];
-			if (s2.Has(e) && s3.Has(e))
-				fn(e, s1.Data()[i], s2.Get(e), s3.Get(e));
+			EntityID e = s1->Entities()[i];
+			if (s2->Has(e) && s3->Has(e))
+				fn(e, s1->Data()[i], s2->Get(e), s3->Get(e));
 		}
 	}
 private:
+	template<typename T>
+	CComponentStore<T>* TryGetStore()
+	{
+		auto it = m_mapStores.find(std::type_index(typeid(T)));
+		if (it == m_mapStores.end())
+			return nullptr;
+		return &static_cast<CComponentStoreWrapper<T>*>(it->second.get())->GetStore();
+	}
+
+	template<typename T>
+	const CComponentStore<T>* TryGetStore() const
+	{
+		auto it = m_mapStores.find(std::type_index(typeid(T)));
+		if (it == m_mapStores.end())
+			return nullptr;
+		return &static_cast<const CComponentStoreWrapper<T>*>(it->second.get())->GetStore();
+	}
+
 	template<typename T>
 	CComponentStore<T>& GetOrCreateStore()
 	{

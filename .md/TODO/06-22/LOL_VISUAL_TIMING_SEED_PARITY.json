@@ -1,0 +1,12 @@
+﻿{
+    "generatedAtUtc":  "2026-06-22T03:31:00.3937080Z",
+    "root":  "C:\\Users\\tnest\\Desktop\\Winters",
+    "source":  "C:\\Users\\tnest\\Desktop\\Winters\\Data\\Gameplay\\ChampionGameData\\champions.json",
+    "output":  "C:\\Users\\tnest\\Desktop\\Winters\\Data\\LoL\\ClientPublic\\Visual\\Champion\\ChampionVisualTimingSeed.json",
+    "championCount":  17,
+    "skillStageCount":  94,
+    "mismatchCount":  0,
+    "mismatches":  [
+
+                   ]
+}

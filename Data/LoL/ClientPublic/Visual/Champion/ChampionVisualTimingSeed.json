@@ -1,0 +1,784 @@
+﻿{
+    "schemaVersion":  1,
+    "source":  "Data/Gameplay/ChampionGameData/champions.json",
+    "sourceSchemaVersion":  1,
+    "champions":  [
+                      {
+                          "champion":  "IRELIA",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1.25,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1.2,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1.05,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1.05,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "YASUO",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  0.85,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  0.85,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "KALISTA",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  2.8,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "GAREN",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "ZED",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "RIVEN",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "EZREAL",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "FIORA",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "JAX",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "LEESIN",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "KINDRED",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "MASTERYI",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "ANNIE",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "ASHE",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "VIEGO",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "YONE",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  0.85,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  0.85,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  0.85,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      },
+                      {
+                          "champion":  "SYLAS",
+                          "dataVersion":  1,
+                          "modelYawOffset":  3.14159265,
+                          "skillStages":  [
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  1,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  2,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  3,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  1,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  0,
+                                                  "recoveryFrame":  0
+                                              }
+                                          ]
+                      }
+                  ]
+}

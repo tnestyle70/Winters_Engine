@@ -37,6 +37,7 @@ public:
 
     // 바로 플레이어 시점으로 스냅
     void SnapToTarget();
+    void JumpToWorldXZ(const Vec3& vWorldPos);
 
     // 카메라 쉐이크
     void StartShake(f32_t fDuration, f32_t fIntensity);

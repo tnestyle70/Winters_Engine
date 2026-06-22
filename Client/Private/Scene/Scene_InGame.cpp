@@ -80,6 +80,7 @@
 #include "GameContext.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/PoseStateComponent.h"
 #include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/ReplicatedStateComponent.h"
@@ -144,6 +145,23 @@ namespace
     u8_t GetSkillStageIndex(u8_t skillStage)
     {
         return skillStage >= 2u ? 1u : 0u;
+    }
+
+    u8_t ResolvePingWheelDirectionCode(f32_t fCenterX, f32_t fCenterY,
+        f32_t fMouseX, f32_t fMouseY)
+    {
+        const f32_t dx = fMouseX - fCenterX;
+        const f32_t dy = fMouseY - fCenterY;
+        constexpr f32_t kDeadZone = 18.f;
+        if (dx * dx + dy * dy < kDeadZone * kDeadZone)
+            return 0u;
+
+        const f32_t ax = dx < 0.f ? -dx : dx;
+        const f32_t ay = dy < 0.f ? -dy : dy;
+        if (ax >= ay)
+            return dx >= 0.f ? 1u : 4u;
+
+        return dy < 0.f ? 2u : 3u;
     }
 
     eTargetShape GetTargetShape(const SkillTargetSpec& target, u8_t skillStage)
@@ -2704,6 +2722,115 @@ Vec3 CScene_InGame::GetPlayerForward() const
     return { sinf(yaw), 0.f, cosf(yaw) };
 }
 
+bool_t CScene_InGame::IsPlayerDead() const
+{
+    if (m_PlayerEntity == NULL_ENTITY)
+        return false;
+
+    if (m_World.HasComponent<HealthComponent>(m_PlayerEntity))
+    {
+        const HealthComponent& Health =
+            m_World.GetComponent<HealthComponent>(m_PlayerEntity);
+        if (Health.bIsDead || Health.fCurrent <= 0.f)
+            return true;
+    }
+
+    if (m_World.HasComponent<ReplicatedStateComponent>(m_PlayerEntity))
+    {
+        const ReplicatedStateComponent& State =
+            m_World.GetComponent<ReplicatedStateComponent>(m_PlayerEntity);
+        if ((State.stateFlags & kSnapshotStateDeadFlag) != 0u)
+            return true;
+    }
+
+    if (m_World.HasComponent<PoseStateComponent>(m_PlayerEntity))
+    {
+        const PoseStateComponent& Pose =
+            m_World.GetComponent<PoseStateComponent>(m_PlayerEntity);
+        if (Pose.poseId == static_cast<u16_t>(ePoseStateId::Dead))
+            return true;
+    }
+
+    return false;
+}
+
+void CScene_InGame::ApplyPlayerDeathInputLock()
+{
+    if (m_bPingWheelActive)
+    {
+        m_bPingWheelActive = false;
+        CGameInstance::Get()->UI_Set_PingWheel(false, 0.f, 0.f, 0.f, 0.f);
+    }
+
+    SetHoveredTarget(NULL_ENTITY, eTeam::TEAM_END);
+    ClearNetworkAttackIntent();
+    ClearActiveSkillRuntime();
+    ResetLocalSkillRuntimeState();
+
+    m_bMoving = false;
+    m_bDashActive = false;
+    m_fDashElapsed = 0.f;
+    m_DashTargetEntity = NULL_ENTITY;
+    m_bYasuoDashActive = false;
+    m_fYasuoDashElapsed = 0.f;
+    m_YasuoDashTargetEntity = NULL_ENTITY;
+    m_bYasuoRActive = false;
+    m_fYasuoRElapsed = 0.f;
+    m_YasuoRTarget = NULL_ENTITY;
+    m_iYasuoRHitsFired = 0;
+    m_fYasuoRPrevHitTime = 0.f;
+    m_fLastActionTimer = 0.f;
+    m_fEndTransitionTimer = 0.f;
+    m_pPendingEndAnim = nullptr;
+
+    if (m_pPlayerTransform)
+        m_vPlayerDest = m_pPlayerTransform->GetPosition();
+
+    if (m_PlayerEntity != NULL_ENTITY)
+    {
+        if (m_World.HasComponent<MoveTargetComponent>(m_PlayerEntity))
+            m_World.GetComponent<MoveTargetComponent>(m_PlayerEntity) = MoveTargetComponent{};
+        if (m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
+        {
+            NavAgentComponent& Agent =
+                m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
+            Agent.bHasGoal = false;
+            Agent.bPathDirty = false;
+            Agent.pathCellsX.clear();
+            Agent.pathCellsY.clear();
+            Agent.iPathIndex = 0;
+        }
+    }
+}
+
+void CScene_InGame::RenderDeathScreenOverlay()
+{
+    if (!IsPlayerDead() || !m_pWhiteTexture)
+        return;
+
+    const ImVec2 DisplaySize = ImGui::GetIO().DisplaySize;
+    const u32_t iScreenWidth = static_cast<u32_t>(
+        DisplaySize.x > 0.f ? DisplaySize.x : kFallbackScreenWidth);
+    const u32_t iScreenHeight = static_cast<u32_t>(
+        DisplaySize.y > 0.f ? DisplaySize.y : kFallbackScreenHeight);
+    if (iScreenWidth == 0u || iScreenHeight == 0u)
+        return;
+
+    CGameInstance* pGameInstance = CGameInstance::Get();
+    if (!pGameInstance->UI_Begin_RawImagePass(iScreenWidth, iScreenHeight, false))
+        return;
+
+    pGameInstance->UI_Draw_RawImage(
+        m_pWhiteTexture->GetNativeSRV(),
+        0.f,
+        0.f,
+        static_cast<f32_t>(iScreenWidth),
+        static_cast<f32_t>(iScreenHeight),
+        Vec4(0.f, 0.f, 1.f, 1.f),
+        Vec4(0.12f, 0.12f, 0.12f, 0.64f));
+    pGameInstance->UI_End_RawImagePass();
+}
+
 void CScene_InGame::OnUpdate(f32_t dt)
 {
     WINTERS_PROFILE_SCOPE("Scene_InGame::OnUpdate");
@@ -2777,14 +2904,18 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
     ProjectGameplayActorsToMapSurface();
 
+    const bool_t bPlayerDead = IsPlayerDead();
+    if (bPlayerDead)
+        ApplyPlayerDeathInputLock();
+
     bool bSkipGroundMove = false;
-    if (!m_bReplayPlaybackMode)
+    if (!m_bReplayPlaybackMode && !bPlayerDead)
     {
         UpdateTargeting();
         UpdateCombatInput(bSkipGroundMove);
     }
 
-    if (ShouldRunInGameSkillSmoke())
+    if (!bPlayerDead && ShouldRunInGameSkillSmoke())
     {
         static bool_t s_bSmokeSkillAttempted = false;
         static bool_t s_bSmokeSkillCastObserved = false;
@@ -2870,13 +3001,18 @@ void CScene_InGame::OnUpdate(f32_t dt)
         }
     }
 
-    UpdateDash(dt);
+    if (!bPlayerDead)
+        UpdateDash(dt);
 
-    if (m_bNetworkAuthoritativeGameplay && m_ActiveSkill.bActive)
+    if (bPlayerDead && m_ActiveSkill.bActive)
     {
         ClearActiveSkillRuntime();
     }
-    else if (m_ActiveSkill.bActive && m_pPlayerRenderer)
+    else if (m_bNetworkAuthoritativeGameplay && m_ActiveSkill.bActive)
+    {
+        ClearActiveSkillRuntime();
+    }
+    else if (!bPlayerDead && m_ActiveSkill.bActive && m_pPlayerRenderer)
     {
         const Engine::CAnimator* pAnim = m_pPlayerRenderer->GetAnimator();
         if (pAnim)
@@ -3055,7 +3191,8 @@ void CScene_InGame::OnUpdate(f32_t dt)
     }
 
     ZedFx::TickShadowCloneModels(m_World, dt);
-    UpdateLocalChampionRuntime(dt);
+    if (!bPlayerDead)
+        UpdateLocalChampionRuntime(dt);
     UpdateFlashCooldown(dt);
 
     UpdateChampionStateTimers(dt);
@@ -3093,7 +3230,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
     if (m_pCamera)
         m_pCamera->Update(dt, CInput::Get());
 
-    if (!m_bReplayPlaybackMode)
+    if (!m_bReplayPlaybackMode && !bPlayerDead)
     {
         UpdatePlayerControl(dt, bNetworkActive, bSkipGroundMove, bActionLockedBefore);
     }
@@ -3125,7 +3262,8 @@ void CScene_InGame::OnUpdate(f32_t dt)
     if (m_pFxBeamSystem)      m_pFxBeamSystem->Update(m_World, dt);
     if (m_pFxMeshSystem)      m_pFxMeshSystem->Update(m_World, dt);
 
-    UpdateLocalPostAnimation();
+    if (!bPlayerDead)
+        UpdateLocalPostAnimation();
 
     {
         if (m_bNetworkAuthoritativeGameplay)
@@ -3140,12 +3278,13 @@ void CScene_InGame::OnUpdate(f32_t dt)
         ProjectGameplayActorsToMapSurface();
     }
 
-    const bool_t bAttackHold = CInput::Get().IsKeyDown('A');
+    const bool_t bAttackHold = !bPlayerDead && CInput::Get().IsKeyDown('A');
     SetShowAttackRange(bAttackHold);
 
     const EntityID hoveredEntity = GetHoveredEntity();
     CGameInstance::Get()->UI_Set_AttackMode(bAttackHold);
     CGameInstance::Get()->UI_Set_EnemyHoverCursor(
+        !bPlayerDead &&
         hoveredEntity != NULL_ENTITY &&
         IsEnemyOfPlayer(hoveredEntity));
 }
@@ -3501,8 +3640,15 @@ void CScene_InGame::OnRender()
             fScreenHeight,
             bRevealAllForPlayback,
             MinimapState);
+        if (m_pCamera)
+        {
+            MinimapState.vCameraWorldCenter = m_pCamera->GetAt();
+            MinimapState.bShowCameraBounds = true;
+        }
         UI::CMinimapPanel::RenderRuntime(MinimapState);
     }
+
+    RenderDeathScreenOverlay();
 }
 
 void CScene_InGame::UpdateReplayPlayback(f32_t dt)
@@ -3588,6 +3734,8 @@ void CScene_InGame::DrawReplayControlPanel()
 void CScene_InGame::OnExit()
 {
     CGameInstance::Get()->UI_Set_StatusPanelOpen(false);
+    CGameInstance::Get()->UI_Set_PingWheel(false, 0.f, 0.f, 0.f, 0.f);
+    m_bPingWheelActive = false;
     SetHoveredTarget(NULL_ENTITY, eTeam::TEAM_END);
 
     CGameInstance::Get()->UI_Set_InGameBuyItemCallback(nullptr, nullptr);
@@ -4354,6 +4502,180 @@ void CScene_InGame::UpdateLocalPassiveDash(f32_t dt)
     }
 }
 
+bool_t CScene_InGame::IssuePlayerMoveTarget(
+    const Vec3& rawGround,
+    bool_t bNetworkActive,
+    bool_t bSpawnIndicator)
+{
+    if (IsPlayerDead())
+        return false;
+
+    Vec3 ground = rawGround;
+    Vec3 resolvedGround = ground;
+    Vec3 predictedFacingTarget = ground;
+
+    const bool_t bValidGround = fabsf(ground.x) + fabsf(ground.z) > 0.001f;
+    if (!bValidGround)
+        return false;
+
+    if (!TryResolveWalkableMoveTarget(ground, resolvedGround, &predictedFacingTarget))
+        return false;
+
+    Vec3 moveIntent = ground;
+    predictedFacingTarget = moveIntent;
+
+    if (bSpawnIndicator)
+        SpawnMovementIndicator(*this, resolvedGround);
+
+    if (bNetworkActive && m_pCommandSerializer && m_pNetworkView)
+    {
+        const bool_t bKalistaPassiveDashMove =
+            m_bKalistaPassiveDashMoveCommandPending;
+        const Vec3 moveFacingDirection = m_pPlayerTransform
+            ? WintersMath::DirectionXZ(
+                m_pPlayerTransform->GetPosition(),
+                ground,
+                Vec3{})
+            : Vec3{};
+        static u32_t s_moveSendPrepTraceCount = 0;
+        if (s_moveSendPrepTraceCount < 512u)
+        {
+            const auto& input = CInput::Get();
+            const Vec3 playerPos = m_pPlayerTransform
+                ? m_pPlayerTransform->GetPosition()
+                : Vec3{};
+            const Vec3 rawDir =
+                WintersMath::DirectionXZ(playerPos, ground, Vec3{});
+            const f32_t rawYaw = std::atan2f(rawDir.x, rawDir.z);
+            const f32_t sendYaw = std::atan2f(
+                moveFacingDirection.x,
+                moveFacingDirection.z);
+            char msg[1024]{};
+            sprintf_s(
+                msg,
+                "[YawTrace][ClientMoveSendPrep] mouse=(%d,%d) valid=%u accepted=%u player=(%.3f,%.3f,%.3f) ground=(%.3f,%.3f,%.3f) resolved=(%.3f,%.3f,%.3f) moveIntent=(%.3f,%.3f,%.3f) predictedFacing=(%.3f,%.3f,%.3f) rawDir=(%.3f,%.3f) sendDir=(%.3f,%.3f) rawYaw=%.4f sendYaw=%.4f rawVsSendDot=%.4f\n",
+                static_cast<int>(input.GetMouseX()),
+                static_cast<int>(input.GetMouseY()),
+                bValidGround ? 1u : 0u,
+                1u,
+                playerPos.x,
+                playerPos.y,
+                playerPos.z,
+                ground.x,
+                ground.y,
+                ground.z,
+                resolvedGround.x,
+                resolvedGround.y,
+                resolvedGround.z,
+                moveIntent.x,
+                moveIntent.y,
+                moveIntent.z,
+                predictedFacingTarget.x,
+                predictedFacingTarget.y,
+                predictedFacingTarget.z,
+                rawDir.x,
+                rawDir.z,
+                moveFacingDirection.x,
+                moveFacingDirection.z,
+                rawYaw,
+                sendYaw,
+                rawDir.x * moveFacingDirection.x + rawDir.z * moveFacingDirection.z);
+            Winters::DevSmoke::Log("%s", msg);
+            ++s_moveSendPrepTraceCount;
+        }
+        const u32_t moveSeq =
+            m_pCommandSerializer->SendMove(
+                *m_pNetworkView,
+                moveIntent,
+                moveFacingDirection);
+        if (moveSeq != 0u)
+        {
+            RecordNetworkMovePrediction(
+                moveSeq,
+                resolvedGround,
+                moveFacingDirection);
+        }
+        if (bKalistaPassiveDashMove)
+        {
+            const bool_t bTriggerAfterMove =
+                m_bKalistaPassiveDashTriggerAfterMove;
+            const u16_t triggerAnimId =
+                m_uKalistaPassiveDashTriggerAnimId;
+            const u32_t triggerActionSeq =
+                m_uKalistaPassiveDashTriggerActionSeq;
+
+            m_bKalistaPassiveDashMoveCommandPending = false;
+            m_bKalistaPassiveDashTriggerAfterMove = false;
+            m_uKalistaPassiveDashTriggerAnimId = 0;
+            m_uKalistaPassiveDashTriggerActionSeq = 0;
+
+            if (moveSeq != 0u && bTriggerAfterMove)
+            {
+                const bool_t bDashStarted =
+                    TriggerNetworkPassiveDashFromAction(
+                        triggerAnimId,
+                        triggerActionSeq,
+                        true);
+                if (bDashStarted &&
+                    m_PlayerEntity != NULL_ENTITY)
+                {
+                    auto it = m_NetworkActionAnimStates.find(m_PlayerEntity);
+                    if (it != m_NetworkActionAnimStates.end())
+                    {
+                        it->second.bPassiveDashTriggered = true;
+                        it->second.passiveDashInputGraceSec = 0.f;
+                    }
+                }
+            }
+        }
+        else
+        {
+            f32_t predictedYaw = 0.f;
+            if (PredictLocalMoveYaw(predictedFacingTarget, predictedYaw) &&
+                m_pSnapshotApplier)
+            {
+                m_pSnapshotApplier->ProtectLocalMoveYaw(
+                    m_pNetworkView->GetMyNetEntityId(),
+                    moveSeq,
+                    predictedYaw);
+            }
+        }
+        if (m_PlayerEntity != NULL_ENTITY)
+        {
+            f32_t& moveGrace =
+                m_NetworkChampionMoveGraceSec[m_PlayerEntity];
+            moveGrace = (std::max)(moveGrace, 0.16f);
+            m_NetworkChampionMoving[m_PlayerEntity] = true;
+
+            if (!bKalistaPassiveDashMove &&
+                !m_bMoving &&
+                m_pPlayerRenderer &&
+                m_pPlayerRunAnim)
+            {
+                m_pPlayerRenderer->PlayAnimationByName(
+                    m_pPlayerRunAnim,
+                    true);
+            }
+            m_bMoving = true;
+        }
+    }
+
+    m_vPlayerDest = resolvedGround;
+    if (m_PlayerEntity != NULL_ENTITY &&
+        m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
+    {
+        auto& agent = m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
+        agent.vTarget = resolvedGround;
+        agent.bHasGoal = true;
+        agent.bPathDirty = true;
+        agent.pathCellsX.clear();
+        agent.pathCellsY.clear();
+        agent.iPathIndex = 0;
+    }
+
+    return true;
+}
+
 bool_t CScene_InGame::PredictLocalMoveYaw(const Vec3& facingTarget, f32_t& outYaw)
 {
     CTransform* playerTransform = GetPlayerTransformPtr();
@@ -4382,6 +4704,12 @@ bool_t CScene_InGame::PredictLocalMoveYaw(const Vec3& facingTarget, f32_t& outYa
 
 void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t bSkipGroundMove, bool_t bActionLockedBefore)
 {
+    if (IsPlayerDead())
+    {
+        ApplyPlayerDeathInputLock();
+        return;
+    }
+
     const bool_t bActionLocked = (m_fLastActionTimer > 0.f);
 
     if (m_pPlayerRenderer &&
@@ -4417,6 +4745,14 @@ void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t 
     {
         auto& input = CInput::Get();
         const bool bImGuiMouse = ImGui::GetIO().WantCaptureMouse;
+        Vec3 minimapCameraTarget{};
+        const bool_t bMinimapCameraJumpPressed =
+            !bImGuiMouse &&
+            input.IsLButtonPressed() &&
+            TryResolveMinimapClickTarget(minimapCameraTarget);
+        if (bMinimapCameraJumpPressed && m_pCamera)
+            m_pCamera->JumpToWorldXZ(minimapCameraTarget);
+
         const bool_t bMoveIntent = bNetworkActive
             ? input.IsRButtonPressed()
             : input.IsRButtonDown();
@@ -4430,192 +4766,13 @@ void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t 
             !bPassiveDashAnimBlocksMove &&
             bMoveIntent)
         {
-            Vec3 ground = ResolveMouseMapSurfacePos();
-            Vec3 resolvedGround = ground;
-            Vec3 predictedFacingTarget = ground;
+            const Vec3 ground = ResolveMouseMapSurfacePos();
+            const bool_t bPressedMoveIntent =
+                input.IsRButtonPressed();
+            const bool_t bAcceptedMoveTarget =
+                IssuePlayerMoveTarget(ground, bNetworkActive, bPressedMoveIntent);
 
-            const bool_t bValidGround = fabsf(ground.x) + fabsf(ground.z) > 0.001f;
-            bool_t bAcceptedMoveTarget = false;
-            if (bValidGround)
-            {
-                bAcceptedMoveTarget = TryResolveWalkableMoveTarget(
-                    ground,
-                    resolvedGround,
-                    &predictedFacingTarget);
-            }
-
-
-
-            if (bAcceptedMoveTarget)
-            {
-                Vec3 moveIntent = ground;
-                predictedFacingTarget = moveIntent;
-
-                if (input.IsRButtonPressed())
-                    SpawnMovementIndicator(*this, resolvedGround);
-
-                if (bNetworkActive && m_pCommandSerializer && m_pNetworkView)
-                {
-                    const bool_t bKalistaPassiveDashMove =
-                        m_bKalistaPassiveDashMoveCommandPending;
-                    const Vec3 moveFacingDirection = m_pPlayerTransform
-                        ? WintersMath::DirectionXZ(
-                            m_pPlayerTransform->GetPosition(),
-                            ground,
-                            Vec3{})
-                        : Vec3{};
-                    static u32_t s_moveSendPrepTraceCount = 0;
-                    if (s_moveSendPrepTraceCount < 512u)
-                    {
-                        const Vec3 playerPos = m_pPlayerTransform
-                            ? m_pPlayerTransform->GetPosition()
-                            : Vec3{};
-                        const Vec3 rawDir =
-                            WintersMath::DirectionXZ(playerPos, ground, Vec3{});
-                        const f32_t rawYaw = std::atan2f(rawDir.x, rawDir.z);
-                        const f32_t sendYaw = std::atan2f(
-                            moveFacingDirection.x,
-                            moveFacingDirection.z);
-                        char msg[1024]{};
-                        sprintf_s(
-                            msg,
-                            "[YawTrace][ClientMoveSendPrep] mouse=(%d,%d) valid=%u accepted=%u player=(%.3f,%.3f,%.3f) ground=(%.3f,%.3f,%.3f) resolved=(%.3f,%.3f,%.3f) moveIntent=(%.3f,%.3f,%.3f) predictedFacing=(%.3f,%.3f,%.3f) rawDir=(%.3f,%.3f) sendDir=(%.3f,%.3f) rawYaw=%.4f sendYaw=%.4f rawVsSendDot=%.4f\n",
-                            static_cast<int>(input.GetMouseX()),
-                            static_cast<int>(input.GetMouseY()),
-                            bValidGround ? 1u : 0u,
-                            bAcceptedMoveTarget ? 1u : 0u,
-                            playerPos.x,
-                            playerPos.y,
-                            playerPos.z,
-                            ground.x,
-                            ground.y,
-                            ground.z,
-                            resolvedGround.x,
-                            resolvedGround.y,
-                            resolvedGround.z,
-                            moveIntent.x,
-                            moveIntent.y,
-                            moveIntent.z,
-                            predictedFacingTarget.x,
-                            predictedFacingTarget.y,
-                            predictedFacingTarget.z,
-                            rawDir.x,
-                            rawDir.z,
-                            moveFacingDirection.x,
-                            moveFacingDirection.z,
-                            rawYaw,
-                            sendYaw,
-                            rawDir.x * moveFacingDirection.x + rawDir.z * moveFacingDirection.z);
-                        Winters::DevSmoke::Log("%s", msg);
-                        ++s_moveSendPrepTraceCount;
-                    }
-                    const u32_t moveSeq =
-                        m_pCommandSerializer->SendMove(
-                            *m_pNetworkView,
-                            moveIntent,
-                            moveFacingDirection);
-                    if (moveSeq != 0u)
-                    {
-                        RecordNetworkMovePrediction(
-                            moveSeq,
-                            resolvedGround,
-                            moveFacingDirection);
-                    }
-                    if (bKalistaPassiveDashMove)
-                    {
-                        const bool_t bTriggerAfterMove =
-                            m_bKalistaPassiveDashTriggerAfterMove;
-                        const u16_t triggerAnimId =
-                            m_uKalistaPassiveDashTriggerAnimId;
-                        const u32_t triggerActionSeq =
-                            m_uKalistaPassiveDashTriggerActionSeq;
-
-                        m_bKalistaPassiveDashMoveCommandPending = false;
-                        m_bKalistaPassiveDashTriggerAfterMove = false;
-                        m_uKalistaPassiveDashTriggerAnimId = 0;
-                        m_uKalistaPassiveDashTriggerActionSeq = 0;
-
-                        if (moveSeq != 0u && bTriggerAfterMove)
-                        {
-                            const bool_t bDashStarted =
-                                TriggerNetworkPassiveDashFromAction(
-                                    triggerAnimId,
-                                    triggerActionSeq,
-                                    true);
-                            if (bDashStarted &&
-                                m_PlayerEntity != NULL_ENTITY)
-                            {
-                                auto it = m_NetworkActionAnimStates.find(m_PlayerEntity);
-                                if (it != m_NetworkActionAnimStates.end())
-                                {
-                                    it->second.bPassiveDashTriggered = true;
-                                    it->second.passiveDashInputGraceSec = 0.f;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        f32_t predictedYaw = 0.f;
-                        if (PredictLocalMoveYaw(predictedFacingTarget, predictedYaw) &&
-                            m_pSnapshotApplier)
-                        {
-                            m_pSnapshotApplier->ProtectLocalMoveYaw(
-                                m_pNetworkView->GetMyNetEntityId(),
-                                moveSeq,
-                                predictedYaw);
-                        }
-                    }
-                    if (m_PlayerEntity != NULL_ENTITY)
-                    {
-                        f32_t& moveGrace =
-                            m_NetworkChampionMoveGraceSec[m_PlayerEntity];
-                        moveGrace = (std::max)(moveGrace, 0.16f);
-                        m_NetworkChampionMoving[m_PlayerEntity] = true;
-
-                        if (!bKalistaPassiveDashMove &&
-                            !m_bMoving &&
-                            m_pPlayerRenderer &&
-                            m_pPlayerRunAnim)
-                        {
-                            m_pPlayerRenderer->PlayAnimationByName(
-                                m_pPlayerRunAnim,
-                                true);
-                        }
-                        m_bMoving = true;
-                    }
-
-                    m_vPlayerDest = resolvedGround;
-                    if (m_PlayerEntity != NULL_ENTITY &&
-                        m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
-                    {
-                        auto& agent = m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
-                        agent.vTarget = resolvedGround;
-                        agent.bHasGoal = true;
-                        agent.bPathDirty = true;
-                        agent.pathCellsX.clear();
-                        agent.pathCellsY.clear();
-                        agent.iPathIndex = 0;
-                    }
-                }
-                else
-                {
-                    m_vPlayerDest = resolvedGround;
-
-                    if (m_PlayerEntity != NULL_ENTITY &&
-                        m_World.HasComponent<NavAgentComponent>(m_PlayerEntity))
-                    {
-                        auto& agent = m_World.GetComponent<NavAgentComponent>(m_PlayerEntity);
-                        agent.vTarget = resolvedGround;
-                        agent.bHasGoal = true;
-                        agent.bPathDirty = true;
-                        agent.pathCellsX.clear();
-                        agent.pathCellsY.clear();
-                        agent.iPathIndex = 0;
-                    }
-                }
-            }
-            else if (input.IsRButtonPressed())
+            if (!bAcceptedMoveTarget && bPressedMoveIntent)
             {
                 m_bKalistaPassiveDashMoveCommandPending = false;
                 m_bKalistaPassiveDashTriggerAfterMove = false;
@@ -5006,9 +5163,92 @@ void CScene_InGame::UpdateTargeting()
     SetHoveredTarget(hoveredEntity, hoveredTeam);
 }
 
+bool_t CScene_InGame::TryResolveMinimapClickTarget(Vec3& vOutWorldPos) const
+{
+    const CInput& input = CInput::Get();
+    UI::MinimapFrameState MinimapInputState{};
+    const ImVec2 DisplaySize = ImGui::GetIO().DisplaySize;
+    MinimapInputState.Projection = UI::GetDefaultMinimapProjection();
+    MinimapInputState.fScreenWidth =
+        DisplaySize.x > 0.f ? DisplaySize.x : kFallbackScreenWidth;
+    MinimapInputState.fScreenHeight =
+        DisplaySize.y > 0.f ? DisplaySize.y : kFallbackScreenHeight;
+
+    return UI::TryResolveMinimapClickWorldPos(
+        MinimapInputState,
+        static_cast<f32_t>(input.GetMouseX()),
+        static_cast<f32_t>(input.GetMouseY()),
+        vOutWorldPos);
+}
+
+bool_t CScene_InGame::UpdatePingWheelInput(bool_t bImGuiMouse)
+{
+    auto& in = CInput::Get();
+    const bool_t bCtrlDown = in.IsKeyDown(VK_CONTROL);
+    if (bImGuiMouse || !bCtrlDown || IsPlayerDead())
+    {
+        const bool_t bWasActive = m_bPingWheelActive;
+        if (m_bPingWheelActive)
+        {
+            m_bPingWheelActive = false;
+            CGameInstance::Get()->UI_Set_PingWheel(false, 0.f, 0.f, 0.f, 0.f);
+        }
+        return bWasActive;
+    }
+
+    if (in.IsRButtonPressed())
+    {
+        m_bPingWheelActive = true;
+        m_fPingWheelCenterX = static_cast<f32_t>(in.GetMouseX());
+        m_fPingWheelCenterY = static_cast<f32_t>(in.GetMouseY());
+        m_vPingWheelWorldPos = ResolveMouseMapSurfacePos();
+    }
+
+    if (!m_bPingWheelActive)
+        return false;
+
+    if (!in.IsRButtonDown())
+    {
+        const f32_t fMouseX = static_cast<f32_t>(in.GetMouseX());
+        const f32_t fMouseY = static_cast<f32_t>(in.GetMouseY());
+        const u8_t iDirection = ResolvePingWheelDirectionCode(
+            m_fPingWheelCenterX,
+            m_fPingWheelCenterY,
+            fMouseX,
+            fMouseY);
+        CGameInstance::Get()->UI_Push_MapPing(m_vPingWheelWorldPos, iDirection);
+        m_bPingWheelActive = false;
+        CGameInstance::Get()->UI_Set_PingWheel(false, 0.f, 0.f, 0.f, 0.f);
+        return true;
+    }
+
+    CGameInstance::Get()->UI_Set_PingWheel(
+        true,
+        m_fPingWheelCenterX,
+        m_fPingWheelCenterY,
+        static_cast<f32_t>(in.GetMouseX()),
+        static_cast<f32_t>(in.GetMouseY()));
+    return true;
+}
+
 void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
 {
     outSkipGroundMove = false;
+
+    auto& in = CInput::Get();
+    const bool bImGuiMouse = ImGui::GetIO().WantCaptureMouse;
+    const bool bImGuiKbd = ImGui::GetIO().WantCaptureKeyboard;
+    if (IsPlayerDead())
+    {
+        outSkipGroundMove = true;
+        ApplyPlayerDeathInputLock();
+        return;
+    }
+    if (UpdatePingWheelInput(bImGuiMouse))
+    {
+        outSkipGroundMove = true;
+        return;
+    }
 
     if (!HasPlayerRenderer())
         return;
@@ -5016,11 +5256,13 @@ void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
     if (IsPlayerStunned())
         return;
 
-    auto& in = CInput::Get();
-    const bool bImGuiMouse = ImGui::GetIO().WantCaptureMouse;
-    const bool bImGuiKbd = ImGui::GetIO().WantCaptureKeyboard;
+    Vec3 minimapClickTarget{};
+    const bool_t bMinimapLeftClick =
+        !bImGuiMouse &&
+        in.IsLButtonPressed() &&
+        TryResolveMinimapClickTarget(minimapClickTarget);
     const bool_t bAttackMoveClick =
-        !bImGuiMouse && in.IsKeyDown('A') && in.IsLButtonPressed();
+        !bImGuiMouse && !bMinimapLeftClick && in.IsKeyDown('A') && in.IsLButtonPressed();
     const bool_t bBasicAttackClick =
         !bImGuiMouse && (in.IsRButtonPressed() || bAttackMoveClick);
 
@@ -5158,6 +5400,9 @@ void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
 
 void CScene_InGame::FirePlayerAction(const char* actionKey)
 {
+    if (IsPlayerDead())
+        return;
+
     using namespace Engine;
     eChampion champ = GetPlayerChampionId();
 
@@ -5235,6 +5480,14 @@ void CScene_InGame::BeginActiveSkillRuntime(
 
 void CScene_InGame::UpdateDash(f32_t dt)
 {
+    if (IsPlayerDead())
+    {
+        m_bDashActive = false;
+        m_fDashElapsed = 0.f;
+        m_DashTargetEntity = NULL_ENTITY;
+        return;
+    }
+
     if (!m_bDashActive || !m_pPlayerTransform)
         return;
 
@@ -5321,6 +5574,9 @@ void CScene_InGame::SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& c
 
 bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
 {
+    if (IsPlayerDead())
+        return false;
+
     if (!m_pPlayerRenderer || m_PlayerEntity == NULL_ENTITY)
     {
         Winters::DevSmoke::Log(
@@ -6249,6 +6505,9 @@ void CScene_InGame::ProjectGameplayActorsToMapSurface()
 
 void CScene_InGame::TriggerFlash()
 {
+    if (IsPlayerDead())
+        return;
+
     if (!m_pPlayerTransform || !m_pCamera) return;
 
     const Vec3 cursor = ResolveMouseMapSurfacePos();

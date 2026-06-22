@@ -167,6 +167,30 @@ void CDynamicCamera::SnapToTarget()
     RecalcView();
 }
 
+void CDynamicCamera::JumpToWorldXZ(const Vec3& vWorldPos)
+{
+    const Vec3 vEyeOffset{
+        m_vEye.x - m_vAt.x,
+        m_vEye.y - m_vAt.y,
+        m_vEye.z - m_vAt.z
+    };
+
+    Exit_FPSMode();
+    m_bFollowMode = false;
+    m_bFix = false;
+    m_bFollowInitialized = false;
+
+    m_vAt.x = vWorldPos.x;
+    m_vAt.z = vWorldPos.z;
+    m_vEye = {
+        m_vAt.x + vEyeOffset.x,
+        m_vAt.y + vEyeOffset.y,
+        m_vAt.z + vEyeOffset.z
+    };
+
+    RecalcView();
+}
+
 void CDynamicCamera::StartShake(f32_t fDuration, f32_t fIntensity)
 {
     m_fShakeDuration  = fDuration;

@@ -51,18 +51,32 @@ namespace UI
         f32_t fSize = 252.f;
         f32_t fRightPadding = 12.f;
         f32_t fBottomPadding = 12.f;
+        Vec3 vCameraWorldCenter{};
+        f32_t fCameraViewHalfWidth = 18.f;
+        f32_t fCameraViewHalfDepth = 14.f;
         u8_t iLocalTeam = 0;
         bool_t bShow = true;
         bool_t bRevealAll = false;
+        bool_t bShowCameraBounds = false;
         std::vector<MinimapIconView> Icons;
     };
 
     const MinimapProjection& GetDefaultMinimapProjection();
+    Vec3 MinimapUvToWorld(
+        const MinimapProjection& Projection,
+        f32_t fU,
+        f32_t fV,
+        f32_t fY = 0.f);
     bool_t ProjectWorldToMinimapUv(
         const MinimapProjection& Projection,
         const Vec3& vWorldPos,
         f32_t& fOutU,
         f32_t& fOutV);
+    bool_t TryResolveMinimapClickWorldPos(
+        const MinimapFrameState& State,
+        f32_t fMouseX,
+        f32_t fMouseY,
+        Vec3& vOutWorldPos);
 
     void BuildMinimapFrameState(
         CWorld& World,

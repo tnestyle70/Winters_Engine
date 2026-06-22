@@ -133,6 +133,98 @@ namespace
         return true;
     }
 
+    bool_t ResolveMinimapRect(
+        const UI::MinimapFrameState& State,
+        f32_t& fOutX,
+        f32_t& fOutY,
+        f32_t& fOutSide)
+    {
+        if (!State.bShow || State.fScreenWidth <= 0.f || State.fScreenHeight <= 0.f)
+            return false;
+
+        fOutSide = (std::max)(96.f, (std::min)(State.fSize, State.fScreenHeight - 24.f));
+        fOutX = State.fScreenWidth - State.fRightPadding - fOutSide;
+        fOutY = State.fScreenHeight - State.fBottomPadding - fOutSide;
+        return fOutX >= 0.f && fOutY >= 0.f;
+    }
+
+    void DrawRectOutline(
+        CGameInstance& GameInstance,
+        f32_t fX,
+        f32_t fY,
+        f32_t fW,
+        f32_t fH,
+        f32_t fThickness,
+        const Vec4& vColor)
+    {
+        GameInstance.UI_Draw_RawImage(nullptr, fX, fY, fW, fThickness, kUVFull, vColor);
+        GameInstance.UI_Draw_RawImage(nullptr, fX, fY + fH - fThickness, fW, fThickness, kUVFull, vColor);
+        GameInstance.UI_Draw_RawImage(nullptr, fX, fY, fThickness, fH, kUVFull, vColor);
+        GameInstance.UI_Draw_RawImage(nullptr, fX + fW - fThickness, fY, fThickness, fH, kUVFull, vColor);
+    }
+
+    void DrawCameraBounds(
+        const UI::MinimapFrameState& State,
+        f32_t fX,
+        f32_t fY,
+        f32_t fSide)
+    {
+        if (!State.bShowCameraBounds)
+            return;
+
+        CGameInstance* pGameInstance = CGameInstance::Get();
+        if (!pGameInstance)
+            return;
+
+        const Vec3 vCenter = State.vCameraWorldCenter;
+        const f32_t fHalfW = (std::max)(1.f, State.fCameraViewHalfWidth);
+        const f32_t fHalfD = (std::max)(1.f, State.fCameraViewHalfDepth);
+        const Vec3 Corners[4] = {
+            Vec3{ vCenter.x - fHalfW, vCenter.y, vCenter.z - fHalfD },
+            Vec3{ vCenter.x + fHalfW, vCenter.y, vCenter.z - fHalfD },
+            Vec3{ vCenter.x + fHalfW, vCenter.y, vCenter.z + fHalfD },
+            Vec3{ vCenter.x - fHalfW, vCenter.y, vCenter.z + fHalfD }
+        };
+
+        f32_t fMinX = fX + fSide;
+        f32_t fMinY = fY + fSide;
+        f32_t fMaxX = fX;
+        f32_t fMaxY = fY;
+        for (const Vec3& vCorner : Corners)
+        {
+            f32_t fU = 0.f;
+            f32_t fV = 0.f;
+            if (!UI::ProjectWorldToMinimapUv(State.Projection, vCorner, fU, fV))
+                return;
+
+            const f32_t fPx = fX + fU * fSide;
+            const f32_t fPy = fY + fV * fSide;
+            fMinX = (std::min)(fMinX, fPx);
+            fMinY = (std::min)(fMinY, fPy);
+            fMaxX = (std::max)(fMaxX, fPx);
+            fMaxY = (std::max)(fMaxY, fPy);
+        }
+
+        fMinX = std::clamp(fMinX, fX, fX + fSide);
+        fMinY = std::clamp(fMinY, fY, fY + fSide);
+        fMaxX = std::clamp(fMaxX, fX, fX + fSide);
+        fMaxY = std::clamp(fMaxY, fY, fY + fSide);
+
+        const f32_t fW = fMaxX - fMinX;
+        const f32_t fH = fMaxY - fMinY;
+        if (fW < 4.f || fH < 4.f)
+            return;
+
+        DrawRectOutline(
+            *pGameInstance,
+            fMinX,
+            fMinY,
+            fW,
+            fH,
+            2.f,
+            Vec4{ 1.f, 1.f, 1.f, 0.96f });
+    }
+
     void DrawIcon(const UI::MinimapIconView& Icon, f32_t fCenterX, f32_t fCenterY)
     {
         CGameInstance* pGameInstance = CGameInstance::Get();
@@ -197,6 +289,28 @@ namespace UI
         return kDefaultProjection;
     }
 
+    Vec3 MinimapUvToWorld(
+        const MinimapProjection& Projection,
+        f32_t fU,
+        f32_t fV,
+        f32_t fY)
+    {
+        const Vec2 vU{
+            Projection.vWorldAtUv10.x - Projection.vWorldAtUv00.x,
+            Projection.vWorldAtUv10.y - Projection.vWorldAtUv00.y
+        };
+        const Vec2 vV{
+            Projection.vWorldAtUv01.x - Projection.vWorldAtUv00.x,
+            Projection.vWorldAtUv01.y - Projection.vWorldAtUv00.y
+        };
+
+        return Vec3{
+            Projection.vWorldAtUv00.x + vU.x * fU + vV.x * fV,
+            fY,
+            Projection.vWorldAtUv00.y + vU.y * fU + vV.y * fV
+        };
+    }
+
     bool_t ProjectWorldToMinimapUv(
         const MinimapProjection& Projection,
         const Vec3& vWorldPos,
@@ -216,6 +330,30 @@ namespace UI
 
         fOutU = (wx * vz - wz * vx) / det;
         fOutV = (ux * wz - uz * wx) / det;
+        return true;
+    }
+
+    bool_t TryResolveMinimapClickWorldPos(
+        const MinimapFrameState& State,
+        f32_t fMouseX,
+        f32_t fMouseY,
+        Vec3& vOutWorldPos)
+    {
+        f32_t fX = 0.f;
+        f32_t fY = 0.f;
+        f32_t fSide = 0.f;
+        if (!ResolveMinimapRect(State, fX, fY, fSide))
+            return false;
+
+        if (fMouseX < fX || fMouseX > fX + fSide ||
+            fMouseY < fY || fMouseY > fY + fSide)
+        {
+            return false;
+        }
+
+        const f32_t fU = (fMouseX - fX) / fSide;
+        const f32_t fV = (fMouseY - fY) / fSide;
+        vOutWorldPos = MinimapUvToWorld(State.Projection, fU, fV, 0.f);
         return true;
     }
 
@@ -275,17 +413,14 @@ namespace UI
 
     void CMinimapPanel::RenderRuntime(const MinimapFrameState& State)
     {
-        if (!State.bShow || State.fScreenWidth <= 0.f || State.fScreenHeight <= 0.f)
-            return;
-
         CGameInstance* pGameInstance = CGameInstance::Get();
         if (!pGameInstance)
             return;
 
-        const f32_t fSide = (std::max)(96.f, (std::min)(State.fSize, State.fScreenHeight - 24.f));
-        const f32_t fX = State.fScreenWidth - State.fRightPadding - fSide;
-        const f32_t fY = State.fScreenHeight - State.fBottomPadding - fSide;
-        if (fX < 0.f || fY < 0.f)
+        f32_t fX = 0.f;
+        f32_t fY = 0.f;
+        f32_t fSide = 0.f;
+        if (!ResolveMinimapRect(State, fX, fY, fSide))
             return;
 
         const u32_t iScreenWidth = (std::max)(1u, static_cast<u32_t>(State.fScreenWidth + 0.5f));
@@ -358,6 +493,11 @@ namespace UI
                 if (WorldToMinimap(State, Icon.vWorldPos, fX, fY, fSide, fIconX, fIconY))
                     DrawIcon(Icon, fIconX, fIconY);
             }
+        }
+
+        {
+            WINTERS_PROFILE_SCOPE("Minimap::CameraBounds");
+            DrawCameraBounds(State, fX, fY, fSide);
         }
 
         pGameInstance->UI_End_RawImagePass();

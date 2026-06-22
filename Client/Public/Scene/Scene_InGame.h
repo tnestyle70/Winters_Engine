@@ -90,6 +90,7 @@ public:
         return m_PlayerEntity != NULL_ENTITY &&
             m_World.HasComponent<StunComponent>(m_PlayerEntity);
     }
+    bool_t IsPlayerDead() const;
 
     // Combat Debug
     bool_t   IsShowCombatDebug() const { return m_bShowCombatDebug; }
@@ -294,6 +295,10 @@ private:
 
     Vec3   m_vPlayerDest{ 0.f, 0.f, 0.f };
     bool   m_bMoving = false;
+    bool_t m_bPingWheelActive = false;
+    f32_t  m_fPingWheelCenterX = 0.f;
+    f32_t  m_fPingWheelCenterY = 0.f;
+    Vec3   m_vPingWheelWorldPos{};
     f32_t m_fAttackSpeedMul = 1.f;
     f32_t m_fGlobalAnimSpeed = 1.f;
     f32_t m_fBasicAttackRange = 1.5f;
@@ -349,7 +354,11 @@ private:
 
     void SetEntityHoverOutline(EntityID entity, bool_t bEnabled);
     void UpdateTargeting();
+    bool_t TryResolveMinimapClickTarget(Vec3& vOutWorldPos) const;
+    bool_t UpdatePingWheelInput(bool_t bImGuiMouse);
     void UpdateCombatInput(bool& outSkipGroundMove);
+    void ApplyPlayerDeathInputLock();
+    void RenderDeathScreenOverlay();
     void FirePlayerAction(const char* actionKey);
     bool IsEnemyOfPlayer(EntityID entity);
 
@@ -358,6 +367,7 @@ private:
     void UpdateDash(f32_t dt);
 
     void UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t bSkipGroundMove, bool_t bActionLockedBefore);
+    bool_t IssuePlayerMoveTarget(const Vec3& rawGround, bool_t bNetworkActive, bool_t bSpawnIndicator);
     bool_t PredictLocalMoveYaw(const Vec3& facingTarget, f32_t& outYaw);
     void UpdateChampionStateTimers(f32_t dt);
     void UpdateLocalChampionRuntime(f32_t dt);

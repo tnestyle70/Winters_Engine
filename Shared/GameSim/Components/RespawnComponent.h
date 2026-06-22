@@ -8,7 +8,7 @@
 struct RespawnComponent
 {
     f32_t respawnTimer = 0.f;
-    f32_t respawnDelay = 5.f;
+    f32_t respawnDelay = 3.f;
     Vec3 spawnPos{};
     bool_t bPending = false;
 };

@@ -38,6 +38,7 @@
 #include <cmath>
 #include <cstring>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -564,6 +565,7 @@ void CEventApplier::ApplyProjectileSpawn(
         ? ev->maxDist() / ev->speed()
         : 1.0f;
     const ProjectileVisualDesc& visual = ProjectileVisualCatalog::Resolve(ev->kind());
+    std::vector<EntityID> projectileVisualEntities;
     bool_t bPlayedProjectileWfxCue = false;
     if (visual.pszSpawnCue)
     {
@@ -579,6 +581,10 @@ void CEventApplier::ApplyProjectileSpawn(
         std::vector<EntityID> spawnedCueEntities;
         bPlayedProjectileWfxCue =
             CFxCuePlayer::PlayAll(world, visual.pszSpawnCue, fx, &spawnedCueEntities) != NULL_ENTITY;
+        projectileVisualEntities.insert(
+            projectileVisualEntities.end(),
+            spawnedCueEntities.begin(),
+            spawnedCueEntities.end());
 
         if (bTurretProjectile && bPlayedProjectileWfxCue)
         {
@@ -634,11 +640,21 @@ void CEventApplier::ApplyProjectileSpawn(
     world.GetComponent<TransformComponent>(entity).SetPosition(pos);
     // The network entity tracks projectile truth; the sprite is a transient visual.
     if (bShouldSpawnGenericProjectile)
-        SpawnBillboard(world, pos, velocity,
+    {
+        const EntityID visualEntity = SpawnBillboard(world, pos, velocity,
             visual.pszFallbackSpawnTexture,
             visual.fFallbackSpawnWidth,
             visual.fFallbackSpawnHeight,
             lifetime);
+        if (visualEntity != NULL_ENTITY)
+            projectileVisualEntities.push_back(visualEntity);
+    }
+
+    if (!projectileVisualEntities.empty())
+    {
+        DestroyProjectileVisuals(world, ev->netId());
+        m_projectileVisualEntities[ev->netId()] = std::move(projectileVisualEntities);
+    }
 }
 
 void CEventApplier::ApplyProjectileHit(
@@ -690,11 +706,26 @@ void CEventApplier::ApplyProjectileHit(
 
     if (ev->bDestroyed() && ev->netId() != NULL_NET_ENTITY)
     {
+        DestroyProjectileVisuals(world, ev->netId());
         const EntityID entity = entityMap.FromNet(ev->netId());
         if (entity != NULL_ENTITY)
             world.DestroyEntity(entity);
         entityMap.Unbind(ev->netId());
     }
+}
+
+void CEventApplier::DestroyProjectileVisuals(CWorld& world, NetEntityId projectileNet)
+{
+    auto it = m_projectileVisualEntities.find(projectileNet);
+    if (it == m_projectileVisualEntities.end())
+        return;
+
+    for (EntityID visualEntity : it->second)
+    {
+        if (visualEntity != NULL_ENTITY && world.IsAlive(visualEntity))
+            world.DestroyEntity(visualEntity);
+    }
+    m_projectileVisualEntities.erase(it);
 }
 
 void CEventApplier::ApplyEffectTrigger(
@@ -1142,7 +1173,7 @@ void CEventApplier::PlayReplicatedActionVisual(
     }
 }
 
-void CEventApplier::SpawnBillboard(CWorld& world, const Vec3& pos, const Vec3& velocity,
+EntityID CEventApplier::SpawnBillboard(CWorld& world, const Vec3& pos, const Vec3& velocity,
     const wchar_t* texturePath, f32_t width, f32_t height, f32_t lifetime,
     EntityID attachTo)
 {
@@ -1158,5 +1189,5 @@ void CEventApplier::SpawnBillboard(CWorld& world, const Vec3& pos, const Vec3& v
     fx.fFadeOut = lifetime * 0.35f;
     fx.bBillboard = true;
     fx.blendMode = eBlendPreset::AlphaBlend;
-    CFxSystem::Spawn(world, fx);
+    return CFxSystem::Spawn(world, fx);
 }

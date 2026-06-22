@@ -58,6 +58,12 @@ namespace
     constexpr const wchar_t* kPathCursorDefault = L"Resource/Texture/UI/hover_precise.png";
     constexpr const wchar_t* kPathCursorEnemy = L"Resource/Texture/UI/hover_enemy_precise.png";
     constexpr const wchar_t* kPathCursorAttack = L"Resource/Texture/UI/Cursor_Attack_Small.png";
+    constexpr const wchar_t* kPathPingWheelCursor = L"Resource/Texture/UI/ux/cursors/radialmenucursor_ping.png";
+    constexpr const wchar_t* kPathPingDefault = L"Resource/Texture/UI/ux/minimap/pings/ping.png";
+    constexpr const wchar_t* kPathPingOnMyWay = L"Resource/Texture/UI/ux/minimap/pings/on_my_way_new.png";
+    constexpr const wchar_t* kPathPingDanger = L"Resource/Texture/UI/ux/minimap/pings/caution.png";
+    constexpr const wchar_t* kPathPingAssist = L"Resource/Texture/UI/ux/minimap/pings/assist.png";
+    constexpr const wchar_t* kPathPingMissing = L"Resource/Texture/UI/ux/minimap/pings/mia_new.png";
     constexpr const wchar_t* kPathAbilityAtlas = L"Resource/Texture/UI/HUD/clarity_abilityatlas.png";
     constexpr const wchar_t* kPathChampionHUDIrelia = L"Resource/Texture/UI/HUD_Irelia_2.png";
     constexpr const wchar_t* kPathHUDHit = L"Resource/Texture/UI/HUD/lol_ingame_hit.png";
@@ -341,6 +347,39 @@ namespace
         default:
             return UI_ColorWithAlpha(255, 82, 74, alpha);
         }
+    }
+
+    void UI_DrawPingWheelIcon(ImDrawList* pDraw, void* pSRV,
+        const ImVec2& Center, f32_t Size, bool_t bSelected)
+    {
+        if (!pDraw || Size <= 0.f)
+            return;
+
+        const f32_t Half = Size * 0.5f;
+        const ImVec2 Min(Center.x - Half, Center.y - Half);
+        const ImVec2 Max(Center.x + Half, Center.y + Half);
+        const ImU32 Back = bSelected
+            ? IM_COL32(28, 56, 78, 210)
+            : IM_COL32(8, 12, 18, 142);
+        const ImU32 Border = bSelected
+            ? IM_COL32(80, 204, 255, 245)
+            : IM_COL32(128, 150, 166, 126);
+        const ImU32 Tint = bSelected
+            ? IM_COL32(255, 255, 255, 255)
+            : IM_COL32(230, 236, 242, 210);
+
+        pDraw->AddCircleFilled(Center, Half * 0.86f, Back, 32);
+        if (pSRV)
+        {
+            pDraw->AddImage(
+                reinterpret_cast<ImTextureID>(pSRV),
+                Min,
+                Max,
+                ImVec2(0.f, 0.f),
+                ImVec2(1.f, 1.f),
+                Tint);
+        }
+        pDraw->AddCircle(Center, Half * 0.88f, Border, 32, bSelected ? 2.6f : 1.4f);
     }
 
     Vec4 UI_WhiteVec(f32_t alpha = 1.f)
@@ -641,6 +680,7 @@ HRESULT CUI_Manager::Initialize(CWorld* pWorld,
     Load_TextureSRV(kPathCursorDefault, &m_pSRV_CursorDefault);
     Load_TextureSRV(kPathCursorEnemy, &m_pSRV_CursorEnemy);
     Load_TextureSRV(kPathCursorAttack, &m_pSRV_CursorAttack);
+    LoadPingWheelAssets();
     if (FAILED(Load_TextureSRV(kPathAbilityAtlas, &m_pSRV_AbilityAtlas)))
     {
         OutputDebugStringA("[UI_Manager] clarity_abilityatlas.png load failed - ability atlas elements skipped\n");
@@ -715,6 +755,13 @@ void CUI_Manager::Shutdown()
     ReleaseSRV(m_pSRV_CursorDefault);
     ReleaseSRV(m_pSRV_CursorEnemy);
     ReleaseSRV(m_pSRV_CursorAttack);
+    ReleaseSRV(m_pSRV_PingWheelCursor);
+    ReleaseSRV(m_pSRV_PingDefault);
+    ReleaseSRV(m_pSRV_PingOnMyWay);
+    ReleaseSRV(m_pSRV_PingDanger);
+    ReleaseSRV(m_pSRV_PingAssist);
+    ReleaseSRV(m_pSRV_PingMissing);
+    m_MapPingMarkers.clear();
     ReleaseSRV(m_pSRV_AbilityAtlas);
     ReleaseSRV(m_pSRV_HUDHit);
     ReleaseSRV(m_pSRV_HUDStun);
@@ -829,6 +876,29 @@ HRESULT CUI_Manager::Load_TextureSRV(const wchar_t* pPath, void** ppOut)
         ::OutputDebugStringW(msg);
     }
     return hr;
+}
+
+void CUI_Manager::LoadPingWheelAssets()
+{
+    ReleaseSRV(m_pSRV_PingWheelCursor);
+    ReleaseSRV(m_pSRV_PingDefault);
+    ReleaseSRV(m_pSRV_PingOnMyWay);
+    ReleaseSRV(m_pSRV_PingDanger);
+    ReleaseSRV(m_pSRV_PingAssist);
+    ReleaseSRV(m_pSRV_PingMissing);
+
+    if (FAILED(Load_TextureSRV(kPathPingWheelCursor, &m_pSRV_PingWheelCursor)))
+        OutputDebugStringA("[UI_Manager] radialmenucursor_ping.png load failed - ping wheel uses ping icon fallback\n");
+    if (FAILED(Load_TextureSRV(kPathPingDefault, &m_pSRV_PingDefault)))
+        OutputDebugStringA("[UI_Manager] ping.png load failed - ping wheel center fallback used\n");
+    if (FAILED(Load_TextureSRV(kPathPingOnMyWay, &m_pSRV_PingOnMyWay)))
+        OutputDebugStringA("[UI_Manager] on_my_way_new.png load failed - on-my-way ping fallback used\n");
+    if (FAILED(Load_TextureSRV(kPathPingDanger, &m_pSRV_PingDanger)))
+        OutputDebugStringA("[UI_Manager] caution.png load failed - danger ping fallback used\n");
+    if (FAILED(Load_TextureSRV(kPathPingAssist, &m_pSRV_PingAssist)))
+        OutputDebugStringA("[UI_Manager] assist.png load failed - assist ping fallback used\n");
+    if (FAILED(Load_TextureSRV(kPathPingMissing, &m_pSRV_PingMissing)))
+        OutputDebugStringA("[UI_Manager] mia_new.png load failed - missing ping fallback used\n");
 }
 
 void CUI_Manager::LoadChampionHUDAssets()
@@ -1145,6 +1215,10 @@ void CUI_Manager::Render_Overlay(const Mat4& matVP)
         WINTERS_PROFILE_SCOPE("UI::KillFeed");
         DrawKillFeedBanners(pFG, ImGui::GetIO().DeltaTime);
     }
+    {
+        WINTERS_PROFILE_SCOPE("UI::MapPings");
+        DrawMapPings(pFG, mVP, ImGui::GetIO().DeltaTime);
+    }
     if (m_bShowChampionHUD)
     {
         WINTERS_PROFILE_SCOPE("UI::ChampionHUDOverlay");
@@ -1161,6 +1235,45 @@ void CUI_Manager::Render_Overlay(const Mat4& matVP)
         WINTERS_PROFILE_SCOPE("UI::StatusPanel");
         DrawStatusPanel(pFG);
     }
+    {
+        WINTERS_PROFILE_SCOPE("UI::PingWheel");
+        DrawPingWheel(pFG);
+    }
+}
+
+void CUI_Manager::DrawPingWheel(ImDrawList* pDraw)
+{
+    if (!m_bPingWheelVisible || !pDraw)
+        return;
+
+    constexpr f32_t kRingRadius = 72.f;
+    constexpr f32_t kOuterRadius = 102.f;
+    constexpr f32_t kIconSize = 46.f;
+    constexpr f32_t kCenterIconSize = 54.f;
+
+    const ImVec2 Center(m_fPingWheelCenterX, m_fPingWheelCenterY);
+    pDraw->AddCircleFilled(Center, kOuterRadius, IM_COL32(4, 8, 13, 104), 48);
+    pDraw->AddCircle(Center, kOuterRadius, IM_COL32(44, 88, 116, 128), 48, 1.5f);
+    pDraw->AddCircle(Center, 28.f, IM_COL32(86, 220, 255, 92), 32, 1.3f);
+
+    UI_DrawPingWheelIcon(pDraw, m_pSRV_PingOnMyWay,
+        ImVec2(Center.x + kRingRadius, Center.y),
+        kIconSize, m_ePingWheelDirection == ePingWheelDirection::OnMyWay);
+    UI_DrawPingWheelIcon(pDraw, m_pSRV_PingDanger,
+        ImVec2(Center.x, Center.y - kRingRadius),
+        kIconSize, m_ePingWheelDirection == ePingWheelDirection::Danger);
+    UI_DrawPingWheelIcon(pDraw, m_pSRV_PingAssist,
+        ImVec2(Center.x, Center.y + kRingRadius),
+        kIconSize, m_ePingWheelDirection == ePingWheelDirection::Assist);
+    UI_DrawPingWheelIcon(pDraw, m_pSRV_PingMissing,
+        ImVec2(Center.x - kRingRadius, Center.y),
+        kIconSize, m_ePingWheelDirection == ePingWheelDirection::Missing);
+
+    UI_DrawPingWheelIcon(pDraw,
+        m_pSRV_PingWheelCursor ? m_pSRV_PingWheelCursor : m_pSRV_PingDefault,
+        Center,
+        kCenterIconSize,
+        m_ePingWheelDirection == ePingWheelDirection::None);
 }
 
 void CUI_Manager::Render_Cursor()
@@ -1200,6 +1313,75 @@ void CUI_Manager::Set_EnemyHoverCursor(bool_t b)
 {
     m_bEnemyHoverCursor = b;
     ApplyCursorMode();
+}
+
+void CUI_Manager::Set_PingWheel(bool_t bVisible,
+    f32_t fCenterX, f32_t fCenterY,
+    f32_t fMouseX, f32_t fMouseY)
+{
+    m_bPingWheelVisible = bVisible;
+    m_fPingWheelCenterX = fCenterX;
+    m_fPingWheelCenterY = fCenterY;
+    m_fPingWheelMouseX = fMouseX;
+    m_fPingWheelMouseY = fMouseY;
+    m_ePingWheelDirection = bVisible
+        ? ResolvePingWheelDirection()
+        : ePingWheelDirection::None;
+}
+
+void CUI_Manager::Push_MapPing(const Vec3& vWorldPos, u8_t iDirection)
+{
+    ePingWheelDirection eDirection = ePingWheelDirection::None;
+    if (iDirection <= static_cast<u8_t>(ePingWheelDirection::Missing))
+        eDirection = static_cast<ePingWheelDirection>(iDirection);
+
+    MapPingMarker Marker{};
+    Marker.vWorldPos = vWorldPos;
+    Marker.eDirection = eDirection;
+    Marker.fLifetime = 3.f;
+    m_MapPingMarkers.push_back(Marker);
+
+    constexpr size_t kMaxMapPingMarkers = 32u;
+    if (m_MapPingMarkers.size() > kMaxMapPingMarkers)
+        m_MapPingMarkers.erase(m_MapPingMarkers.begin());
+}
+
+CUI_Manager::ePingWheelDirection CUI_Manager::ResolvePingWheelDirection() const
+{
+    const f32_t dx = m_fPingWheelMouseX - m_fPingWheelCenterX;
+    const f32_t dy = m_fPingWheelMouseY - m_fPingWheelCenterY;
+    constexpr f32_t kDeadZone = 18.f;
+    if (dx * dx + dy * dy < kDeadZone * kDeadZone)
+        return ePingWheelDirection::None;
+
+    const f32_t ax = dx < 0.f ? -dx : dx;
+    const f32_t ay = dy < 0.f ? -dy : dy;
+    if (ax >= ay)
+        return dx >= 0.f
+            ? ePingWheelDirection::OnMyWay
+            : ePingWheelDirection::Missing;
+
+    return dy < 0.f
+        ? ePingWheelDirection::Danger
+        : ePingWheelDirection::Assist;
+}
+
+void* CUI_Manager::ResolvePingSRV(ePingWheelDirection eDirection) const
+{
+    switch (eDirection)
+    {
+    case ePingWheelDirection::OnMyWay:
+        return m_pSRV_PingOnMyWay ? m_pSRV_PingOnMyWay : m_pSRV_PingDefault;
+    case ePingWheelDirection::Danger:
+        return m_pSRV_PingDanger ? m_pSRV_PingDanger : m_pSRV_PingDefault;
+    case ePingWheelDirection::Assist:
+        return m_pSRV_PingAssist ? m_pSRV_PingAssist : m_pSRV_PingDefault;
+    case ePingWheelDirection::Missing:
+        return m_pSRV_PingMissing ? m_pSRV_PingMissing : m_pSRV_PingDefault;
+    case ePingWheelDirection::None:
+    default:
+        return m_pSRV_PingDefault;
+    }
 }
 
 void CUI_Manager::ApplyCursorMode()
@@ -3259,6 +3441,75 @@ static bool UI_WorldToScreen(const DirectX::XMMATRIX& mVP, const Vec3& w, ImVec2
 //   ForEach<Health, Transform> 3-컴포넌트 한도로 team 을 함께 쿼리할 수 없어
 //   Has/GetComponent 호출로 per-entity 확인. N ≤ 107 라 오버헤드 미미.
 // ─────────────────────────────────────────────────────────────
+void CUI_Manager::DrawMapPings(ImDrawList* pDraw,
+    const DirectX::XMMATRIX& mVP, f32_t fDeltaTime)
+{
+    if (!pDraw)
+        return;
+
+    if (fDeltaTime < 0.f)
+        fDeltaTime = 0.f;
+    if (fDeltaTime > 0.1f)
+        fDeltaTime = 0.1f;
+
+    for (MapPingMarker& Marker : m_MapPingMarkers)
+        Marker.fAge += fDeltaTime;
+
+    m_MapPingMarkers.erase(
+        std::remove_if(
+            m_MapPingMarkers.begin(),
+            m_MapPingMarkers.end(),
+            [](const MapPingMarker& Marker)
+            {
+                return Marker.fAge >= Marker.fLifetime;
+            }),
+        m_MapPingMarkers.end());
+
+    for (const MapPingMarker& Marker : m_MapPingMarkers)
+    {
+        Vec3 vDrawPos = Marker.vWorldPos;
+        vDrawPos.y += 1.15f;
+
+        ImVec2 Screen{};
+        if (!UI_WorldToScreen(mVP, vDrawPos, Screen, m_iWinSizeX, m_iWinSizeY))
+            continue;
+
+        const f32_t Ratio = Marker.fLifetime > 0.f
+            ? UI_Clamp01(Marker.fAge / Marker.fLifetime)
+            : 1.f;
+        constexpr f32_t kFadeStart = 0.68f;
+        const f32_t Alpha = Ratio <= kFadeStart
+            ? 1.f
+            : UI_Clamp01(1.f - ((Ratio - kFadeStart) / (1.f - kFadeStart)));
+        const f32_t Size = 42.f + (1.f - Ratio) * 8.f;
+        const f32_t Half = Size * 0.5f;
+        const ImVec2 Min(Screen.x - Half, Screen.y - Half);
+        const ImVec2 Max(Screen.x + Half, Screen.y + Half);
+
+        pDraw->AddCircleFilled(
+            Screen,
+            Half * 0.82f,
+            UI_ColorWithAlpha(5, 12, 18, 0.42f * Alpha),
+            32);
+        if (void* pSRV = ResolvePingSRV(Marker.eDirection))
+        {
+            pDraw->AddImage(
+                reinterpret_cast<ImTextureID>(pSRV),
+                Min,
+                Max,
+                ImVec2(0.f, 0.f),
+                ImVec2(1.f, 1.f),
+                UI_ColorWithAlpha(255, 255, 255, Alpha));
+        }
+        pDraw->AddCircle(
+            Screen,
+            Half * 0.84f,
+            UI_ColorWithAlpha(64, 210, 255, 0.72f * Alpha),
+            32,
+            1.6f);
+    }
+}
+
 void CUI_Manager::DrawDamageFloaters(ImDrawList* pDraw,
     const DirectX::XMMATRIX& mVP, f32_t fDeltaTime)
 {

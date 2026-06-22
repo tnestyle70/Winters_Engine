@@ -206,9 +206,8 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
         if (!respawn.bPending)
         {
             respawn.bPending = true;
-            respawn.respawnTimer = respawn.respawnDelay > 0.f
-                ? respawn.respawnDelay
-                : kDefaultChampionRespawnDelaySec;
+            respawn.respawnDelay = kDefaultChampionRespawnDelaySec;
+            respawn.respawnTimer = kDefaultChampionRespawnDelaySec;
 
             if (m_world.HasComponent<TargetableTag>(entity))
                 m_world.RemoveComponent<TargetableTag>(entity);

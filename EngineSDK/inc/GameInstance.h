@@ -90,6 +90,10 @@ public: // UI
     void UI_Set_PlayerChampion(eChampion champ);
     void UI_Set_EnemyHoverCursor(bool_t bEnemyHover);
     void UI_Set_AttackMode(bool_t bAttackMode);
+    void UI_Set_PingWheel(bool_t bVisible,
+        f32_t fCenterX, f32_t fCenterY,
+        f32_t fMouseX, f32_t fMouseY);
+    void UI_Push_MapPing(const Vec3& vWorldPos, u8_t iDirection);
     void UI_Set_InGameBuyItemCallback(void(*pfn)(void*, u16_t), void* pUser);
     void UI_Set_LevelSkillCallback(void(*pfn)(void*, u8_t), void* pUser);
     void UI_Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,

@@ -8,6 +8,7 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <vector>
 
 class CWorld;
 
@@ -71,17 +72,19 @@ private:
         EntityIdMap& entityMap,
         const Shared::Schema::KillFeedEvent* ev,
         u64_t serverTick);
+    void DestroyProjectileVisuals(CWorld& world, NetEntityId projectileNet);
 
     void PlayReplicatedActionVisual(
         CWorld& world,
         EntityID entity,
         u16_t actionId,
         u8_t actionStage);
-    void SpawnBillboard(CWorld& world, const Vec3& pos, const Vec3& velocity,
+    EntityID SpawnBillboard(CWorld& world, const Vec3& pos, const Vec3& velocity,
         const wchar_t* texturePath, f32_t width, f32_t height, f32_t lifetime,
         EntityID attachTo = NULL_ENTITY);
 
     std::unordered_map<NetEntityId, u32_t> m_lastActionSeq;
+    std::unordered_map<NetEntityId, std::vector<EntityID>> m_projectileVisualEntities;
     std::unordered_set<u64_t> m_seenEffectCueKeys;
     std::unordered_set<u64_t> m_seenProjectileCueKeys;
     std::unordered_set<u64_t> m_seenKillFeedKeys;

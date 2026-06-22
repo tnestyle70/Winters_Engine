@@ -1,0 +1,58 @@
+﻿{
+    "generatedAtUtc":  "2026-06-22T02:33:50.8901754Z",
+    "root":  "C:\\Users\\tnest\\Desktop\\Winters",
+    "championGameData":  {
+                             "path":  "C:\\Users\\tnest\\Desktop\\Winters\\Data\\Gameplay\\ChampionGameData\\champions.json",
+                             "championCount":  17,
+                             "summonerSpellCount":  1,
+                             "skillStageCount":  94,
+                             "visualYawOffsetCount":  17,
+                             "animPlaySpeedCount":  94,
+                             "castFrameCount":  94,
+                             "recoveryFrameCount":  94
+                         },
+    "legacyRegistrations":  {
+                                "skillRegistrationFileCount":  17,
+                                "skillRegistrationFiles":  [
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Annie\\Annie_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ashe\\Ashe_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Kindred\\Kindred_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\LeeSin\\LeeSin_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\MasterYi\\MasterYi_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Riven\\Riven_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Jax\\Jax_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Irelia\\Irelia_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ezreal\\Ezreal_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Fiora\\Fiora_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Garen\\Garen_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Sylas\\SylasRegistration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Viego\\Viego_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Zed\\Zed_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Kalista\\Kalista_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Yasuo\\Yasuo_Registration.cpp",
+                                                               "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Yone\\Yone_Registration.cpp"
+                                                           ],
+                                "championRegistrationFileCount":  12,
+                                "championRegistrationFiles":  [
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Viego\\Viego_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\LeeSin\\LeeSin_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Jax\\Jax_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Irelia\\Irelia_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Yone\\Yone_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Sylas\\SylasRegistration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Fiora\\Fiora_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Kindred\\Kindred_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ashe\\Ashe_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\MasterYi\\MasterYi_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Annie\\Annie_Registration.cpp",
+                                                                  "C:\\Users\\tnest\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ezreal\\Ezreal_Registration.cpp"
+                                                              ]
+                            },
+    "legacyLineCounts":  {
+                             "skillDefRelated":  238,
+                             "championDefRelated":  188,
+                             "visualFieldsInGameplayOrLegacy":  1095,
+                             "serverObjectHardcode":  43,
+                             "projectileVisualCatalog":  27
+                         }
+}

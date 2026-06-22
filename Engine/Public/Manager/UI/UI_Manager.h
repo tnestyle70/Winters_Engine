@@ -75,6 +75,10 @@ public:
     void    Set_PlayerChampion(eChampion champ);
     void    Set_AttackMode(bool_t b);
     void    Set_EnemyHoverCursor(bool_t b);
+    void    Set_PingWheel(bool_t bVisible,
+        f32_t fCenterX, f32_t fCenterY,
+        f32_t fMouseX, f32_t fMouseY);
+    void    Push_MapPing(const Vec3& vWorldPos, u8_t iDirection);
     bool_t  Get_AttackMode() const { return m_bAttackMode; }
     void    Set_ShowChampionHUD(bool_t b) { m_bShowChampionHUD = b; }
     bool_t  Get_ShowChampionHUD() const { return m_bShowChampionHUD; }
@@ -148,6 +152,23 @@ private:
         void* pSRV = nullptr;
     };
 
+    enum class ePingWheelDirection : uint8_t
+    {
+        None,
+        OnMyWay,
+        Danger,
+        Assist,
+        Missing,
+    };
+
+    struct MapPingMarker
+    {
+        Vec3 vWorldPos{};
+        ePingWheelDirection eDirection = ePingWheelDirection::None;
+        f32_t fAge = 0.f;
+        f32_t fLifetime = 3.f;
+    };
+
     struct GameContextHUDState
     {
         u16_t iBlueKills = 0;
@@ -203,6 +224,9 @@ private:
     void    DrawTurretHealthBarsRHI(const DirectX::XMMATRIX& mVP);
     void    DrawMouseCursor(ImDrawList* pDraw);
     void    DrawMouseCursorRHI();
+    void    DrawPingWheel(ImDrawList* pDraw);
+    void    DrawMapPings(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP, f32_t fDeltaTime);
+    void*   ResolvePingSRV(ePingWheelDirection eDirection) const;
     void    BuildChampionHUDState(ChampionHUDState& State);
     void    DrawChampionHUDRHI(const ChampionHUDState& State);
     void    DrawChampionHUDOverlay(ImDrawList* pDraw, const ChampionHUDState& State);
@@ -213,6 +237,8 @@ private:
         f32_t fRadius, void* pSRV, ImU32 iTintColor, ImU32 iBorderColor);
     void*   FindOrLoadKillFeedPortrait(eChampion eChampionID);
     void    ResetGameContextHUDStats();
+    void    LoadPingWheelAssets();
+    ePingWheelDirection ResolvePingWheelDirection() const;
     void    DrawHUDStatusFlash(ImDrawList* pDraw, const ImVec2& root, f32_t hudW, f32_t hudH);
     void    UpdateHUDStatusTimers(EntityID localEntity, f32_t hp, bool_t bStunned, f32_t dt);
     void UpdateChampionHealthBarTrails(f32_t dt);
@@ -319,11 +345,23 @@ private:
     void* m_pSRV_CursorDefault = nullptr;
     void* m_pSRV_CursorEnemy = nullptr;
     void* m_pSRV_CursorAttack = nullptr;
+    void* m_pSRV_PingWheelCursor = nullptr;
+    void* m_pSRV_PingDefault = nullptr;
+    void* m_pSRV_PingOnMyWay = nullptr;
+    void* m_pSRV_PingDanger = nullptr;
+    void* m_pSRV_PingAssist = nullptr;
+    void* m_pSRV_PingMissing = nullptr;
     eCursorMode               m_CursorMode = eCursorMode::Default;
     f32_t                     m_fCursorSize = 32.f;
     bool_t                    m_bShowMouseCursor = true;
     bool_t                    m_bAttackMode = false;
     bool_t                    m_bEnemyHoverCursor = false;
+    bool_t                    m_bPingWheelVisible = false;
+    f32_t                     m_fPingWheelCenterX = 0.f;
+    f32_t                     m_fPingWheelCenterY = 0.f;
+    f32_t                     m_fPingWheelMouseX = 0.f;
+    f32_t                     m_fPingWheelMouseY = 0.f;
+    ePingWheelDirection       m_ePingWheelDirection = ePingWheelDirection::None;
 
     void* m_pSRV_AbilityAtlas = nullptr;
     eChampion                 m_PlayerChampion = eChampion::END;
@@ -372,6 +410,7 @@ private:
     std::vector<WorldTextFloater> m_WorldTextFloaters;
     std::vector<KillFeedBanner> m_KillFeedBanners;
     std::vector<KillFeedPortraitCache> m_KillFeedPortraits;
+    std::vector<MapPingMarker> m_MapPingMarkers;
     GameContextHUDState m_GameContextHUD{};
     bool_t  m_bShowGameContextHUD = true;
     f32_t   m_fGameContextHUDWidth = 382.f;

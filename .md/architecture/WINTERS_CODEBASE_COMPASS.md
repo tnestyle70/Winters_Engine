@@ -18,6 +18,7 @@
 - 렌더링 필터와 DX11 생존 경로: `.md/plan/rhi/sessions/S15_ENGINE_RENDERING_FILTER_AUDIT.md`
 - Elden 클라이언트 분리 방향: `.md/EldenRing/00_ELDENRING_INDEX.md`
 - Elden editor 세션: `.md/plan/EldenRingEditor/01_DX12_IMGUI_EDITOR_BOOTSTRAP.md`부터 `07_BOSS_BLACKBOARD_HFSM_BT_TUNING.md`
+- LoL/Elden 검증장을 Class & Servant 출시/운영 기반으로 연결하는 전체 폴더 방향: `.md/architecture/CLASS_SERVANT_FOUNDATION_DIRECTION.md`
 - LoL/Elden 공용 UI 파이프라인: `.md/architecture/WINTERS_UI_PIPELINE_ARCHITECTURE.md`
 - 장기 AAA 엔진 챕터: `.md/문서/00_INDEX.md`
 

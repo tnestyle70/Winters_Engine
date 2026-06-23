@@ -28,7 +28,6 @@ constexpr u32_t kLaneTop = static_cast<u32_t>(Winters::Map::eLane::Top);
 constexpr u32_t kLaneMid = static_cast<u32_t>(Winters::Map::eLane::Mid);
 constexpr u32_t kLaneBot = static_cast<u32_t>(Winters::Map::eLane::Bot);
 constexpr u32_t kLaneBase = static_cast<u32_t>(Winters::Map::eLane::Base);
-constexpr f32_t kDefaultChampionRespawnDelaySec = 3.f;
 
 u8_t TeamByte(eTeam team);
 void OutputServerAITrace(const char* pText);

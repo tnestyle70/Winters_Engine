@@ -8,6 +8,7 @@
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
@@ -31,6 +32,45 @@ namespace
     constexpr f32_t kJaxQDashDurationSec = 0.22f;
     constexpr f32_t kJaxQDamage = 70.f;
     constexpr f32_t kJaxEStunDurationSec = 1.0f;
+
+    f32_t ResolveJaxSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            *ctx.pTickCtx,
+            eChampion::JAX,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveJaxSkillEffectParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::JAX,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
 
     struct JaxDashComponent
     {
@@ -100,6 +140,7 @@ namespace
         const Vec3& origin,
         f32_t radius,
         f32_t amount,
+        f32_t stunDurationSec,
         u8_t slot)
     {
         const f32_t radiusSq = radius * radius;
@@ -132,7 +173,7 @@ namespace
                     source,
                     eChampion::JAX,
                     eSkillSlot::E,
-                    kJaxEStunDurationSec,
+                    stunDurationSec,
                     eStatusEffectId::JaxCounterStrike);
             }
         }
@@ -205,6 +246,13 @@ namespace
         {
             const auto& champion = world.GetComponent<ChampionComponent>(caster);
             const Vec3 origin = world.GetComponent<TransformComponent>(caster).GetPosition();
+            const f32_t stunDurationSec = ResolveJaxSkillEffectParam(
+                world,
+                tc,
+                caster,
+                eSkillSlot::E,
+                eSkillEffectParamId::StunDurationSec,
+                kJaxEStunDurationSec);
             EnqueueCircleDamage(
                 world,
                 tc,
@@ -213,11 +261,17 @@ namespace
                 origin,
                 state.counterRadius,
                 state.counterDamage,
+                stunDurationSec,
                 static_cast<u8_t>(eSkillSlot::E));
         }
     }
 
-    void StartTargetDash(CWorld& world, EntityID caster, EntityID target)
+    void StartTargetDash(
+        CWorld& world,
+        EntityID caster,
+        EntityID target,
+        f32_t gap,
+        f32_t durationSec)
     {
         if (!world.HasComponent<TransformComponent>(caster) ||
             target == NULL_ENTITY ||
@@ -236,7 +290,7 @@ namespace
         const f32_t dx = targetPos.x - start.x;
         const f32_t dz = targetPos.z - start.z;
         const f32_t dist = std::sqrt(dx * dx + dz * dz);
-        const f32_t moveDist = std::max(0.f, dist - kJaxQGap);
+        const f32_t moveDist = std::max(0.f, dist - gap);
 
         JaxDashComponent dash{};
         dash.start = start;
@@ -245,7 +299,7 @@ namespace
             start.y,
             start.z + dir.z * moveDist
         };
-        dash.durationSec = kJaxQDashDurationSec;
+        dash.durationSec = durationSec;
 
         if (world.HasComponent<JaxDashComponent>(caster))
             world.GetComponent<JaxDashComponent>(caster) = dash;
@@ -261,13 +315,34 @@ namespace
         if (!ctx.pWorld || !ctx.pCommand)
             return;
 
-        StartTargetDash(*ctx.pWorld, ctx.casterEntity, ctx.pCommand->targetEntity);
+        const f32_t qGap = ResolveJaxSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Gap,
+            kJaxQGap);
+        const f32_t qDashDurationSec = ResolveJaxSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::DashDurationSec,
+            kJaxQDashDurationSec);
+        const f32_t qDamage = ResolveJaxSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::BaseDamage,
+            kJaxQDamage);
+
+        StartTargetDash(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            ctx.pCommand->targetEntity,
+            qGap,
+            qDashDurationSec);
         EnqueuePhysicalDamage(
             *ctx.pWorld,
             ctx.casterEntity,
             ctx.pCommand->targetEntity,
             ctx.casterTeam,
-            kJaxQDamage,
+            qDamage,
             static_cast<u8_t>(eSkillSlot::Q),
             ctx.skillRank);
 

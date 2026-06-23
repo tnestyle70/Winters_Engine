@@ -110,8 +110,7 @@ namespace
 }
 
 std::unique_ptr<CFxSystem> CFxSystem::Create(
-    IRHIDevice* pDevice, DX11Shader* pShader, DX11Pipeline* pPipeline,
-    CBlendStateCache* pBlendCache)
+    IRHIDevice* pDevice, CBlendStateCache* pBlendCache)
 {
     if (!pDevice)
         return nullptr;
@@ -126,7 +125,16 @@ std::unique_ptr<CFxSystem> CFxSystem::Create(
         return p->m_pRHISprite ? std::move(p) : nullptr;
     }
 
-    if (!pShader || !pPipeline || !pBlendCache)
+    if (!pBlendCache)
+        return nullptr;
+
+    Engine::CGameInstance* pGI = Engine::CGameInstance::Get();
+    if (!pGI)
+        return nullptr;
+
+    DX11Shader* pShader = pGI->Get_FxSpriteShader();
+    DX11Pipeline* pPipeline = pGI->Get_FxSpritePipeline();
+    if (!pShader || !pPipeline)
         return nullptr;
 
     p->m_pPlane = CPlaneRenderer::Create(pDevice, pShader, pPipeline);

@@ -47,6 +47,7 @@ Operational (마이크로, 매 프레임)   스킬샷 예측, 평타 무빙, 궁
 | 디버깅 / ImGui 에디터 통합 / Replay | [13_DEBUG_EDITOR.md](13_DEBUG_EDITOR.md) |
 | NYPC Competition ML Lab → Winters LoL AI 통합 경계 | [14_NYPC_COMPETITION_ML_LAB_BRIDGE.md](14_NYPC_COMPETITION_ML_LAB_BRIDGE.md) |
 | NYPC → MobaZero 연구 플랫폼/포트폴리오 로드맵 | [15_MOBAZERO_RESEARCH_PLATFORM_ROADMAP.md](15_MOBAZERO_RESEARCH_PLATFORM_ROADMAP.md) |
+| **봇 AI 완성 파이프라인 가이드 (현행 코드 기준 인간형 방향+튜닝/디버깅+검증)** | [16_BOT_AI_HUMANLIKE_COMPLETION_PIPELINE_GUIDE.md](16_BOT_AI_HUMANLIKE_COMPLETION_PIPELINE_GUIDE.md) |
 
 ## Codex 구현 계획서
 

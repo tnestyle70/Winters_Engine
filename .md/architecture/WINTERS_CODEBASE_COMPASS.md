@@ -1,5 +1,16 @@
 # Winters Codebase Compass
 
+## DataDriven Definition Boundary (2026-06-22)
+
+- JSON is authoring/cook input. Runtime frame code reads validated immutable packs, never JSON strings.
+- `DefinitionKey` is the stable SharedContract identity for network/save/manifest use.
+- `ChampionDefId`, `SkillDefId`, and other dense IDs are pack-local only.
+- `EntityHandle` is process-local entity lifetime identity and never crosses JSON/network/save boundaries.
+- Shared/GameSim owns definition types and deterministic lookup behavior, not LoL data values.
+- ServerPrivate gameplay values compile only into Server; ClientPublic visual values compile only into Client.
+- Legacy tables are deleted only after reader count reaches zero and build/SimLab/client-server smoke gates pass.
+- Hot Reload and Perforce integration start after the DataDriven ownership and cutover gates are complete.
+
 작성일: 2026-06-04
 
 이 문서는 새 작업자가 처음 방향을 잡기 위한 활성 Compass다. 코드 목록을 전부 복사하지 않는다. "어느 계층이 무엇을 소유하고, 어디까지 의존해도 되는가"를 정리한다.

@@ -7,7 +7,7 @@
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
 #include "GameObject/Champion/Yasuo/YasuoFxPresets.h"
 #include "GameObject/FX/WindWallSystem.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 
 #include <cmath>
 #include <cstdio>
@@ -35,7 +35,7 @@ namespace
         if (world.HasComponent<TransformComponent>(caster))
         {
             const f32_t yaw = world.GetComponent<TransformComponent>(caster).GetRotation().y -
-                ChampionGameDataDB::ResolveVisualYawOffset(eChampion::YASUO);
+                ClientData::ResolveChampionModelYawOffset(eChampion::YASUO);
             return WintersMath::NormalizeXZ(Vec3{ std::sinf(yaw), 0.f, std::cosf(yaw) });
         }
 

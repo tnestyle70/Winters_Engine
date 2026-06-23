@@ -57,6 +57,7 @@ class CClientNetwork;
 class CCommandSerializer;
 class CReplayPlayer;
 class CSnapshotApplier;
+class CRHISceneRenderer;
 
 namespace Engine
 {
@@ -266,6 +267,7 @@ private:
     std::unique_ptr<CTexture>       m_pAttackRangeTex;
     std::unique_ptr<CPlaneRenderer> m_pContactShadowPlane;
     std::unique_ptr<CRHIFxSpriteRenderer> m_pRHIUtilityPlaneRenderer;
+    std::unique_ptr<CRHISceneRenderer> m_pRHISceneRenderer;
     RHITextureHandle                m_hRHIAttackRangeTex = {};
     std::unique_ptr<CTexture>       m_pWhiteTexture;
     std::unique_ptr<Engine::CNormalPass> m_pNormalPass;
@@ -450,13 +452,7 @@ private:
 
     std::unordered_map<EntityID, std::unique_ptr<ModelRenderer>> m_ChampionRenderers{};
 
-    // 맵 앰비언트 프롭(새/오리) — 게임플레이 무관 장식이라 ECS 없이 scene이 직접 소유/렌더한다.
-    struct MapAmbientProp
-    {
-        std::unique_ptr<ModelRenderer> pRenderer;
-        CTransform transform;
-    };
-    std::vector<MapAmbientProp> m_AmbientProps{};
+    // 맵 앰비언트 프롭(새/오리)은 CAmbientProp_Manager(owner)가 소유한다. (Stage 2)
     std::unordered_map<EntityID, Vec3>   m_NetworkChampionPrevPos{};
     std::unordered_map<EntityID, f32_t>  m_NetworkChampionMoveGraceSec{};
     std::unordered_map<EntityID, bool_t> m_NetworkChampionMoving{};
@@ -517,7 +513,6 @@ private:
     void InitializeNetworkSession();
     bool_t PumpNetwork();
     void ReplayLastNetworkHelloIfShared();
-    void SpawnMapAmbientProps();
 
     std::unique_ptr<CFxSystem>                       m_pFxSystem;
     std::unique_ptr<CFxBeamSystem>                   m_pFxBeamSystem;

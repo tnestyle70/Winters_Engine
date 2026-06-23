@@ -3,6 +3,7 @@
 #include "Shared/GameSim/Components/FioraSimComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -30,6 +31,27 @@ namespace
     constexpr f32_t kFioraWSlowMoveSpeedMul = 0.50f;
     constexpr f32_t kFioraRDamage = 80.f;
     constexpr f32_t kFioraQDashDurationSec = 0.25f;
+
+    f32_t ResolveFioraSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            *ctx.pTickCtx,
+            eChampion::FIORA,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
 
     struct FioraDashComponent
     {
@@ -132,17 +154,42 @@ namespace
         auto& transform = world.GetComponent<TransformComponent>(ctx.casterEntity);
         const Vec3 origin = transform.GetPosition();
         const Vec3 direction = WintersMath::NormalizeXZ(ctx.pCommand->direction);
+        const f32_t qDashDistance = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::DashDistance,
+            kFioraQDistance);
+        const f32_t qDashDurationSec = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::DashDurationSec,
+            kFioraQDashDurationSec);
+        const f32_t qRange = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Range,
+            kFioraQRange);
+        const f32_t qRadius = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Radius,
+            kFioraQRadius);
+        const f32_t qDamage = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::BaseDamage,
+            kFioraQDamage);
 
         const Vec3 destination{
-            origin.x + direction.x * kFioraQDistance,
+            origin.x + direction.x * qDashDistance,
             origin.y,
-            origin.z + direction.z * kFioraQDistance
+            origin.z + direction.z * qDashDistance
         };
 
         FioraDashComponent dash{};
         dash.start = origin;
         dash.end = destination;
-        dash.durationSec = kFioraQDashDurationSec;
+        dash.durationSec = qDashDurationSec;
         if (world.HasComponent<FioraDashComponent>(ctx.casterEntity))
             world.GetComponent<FioraDashComponent>(ctx.casterEntity) = dash;
         else
@@ -163,15 +210,15 @@ namespace
             ctx.casterTeam,
             origin,
             direction,
-            kFioraQRange,
-            kFioraQRadius);
+            qRange,
+            qRadius);
 
         EnqueuePhysicalDamage(
             world,
             ctx.casterEntity,
             hitTarget,
             ctx.casterTeam,
-            kFioraQDamage,
+            qDamage,
             static_cast<u16_t>((static_cast<u32_t>(eChampion::FIORA) << 8) | 1u),
             ctx.skillRank);
 
@@ -196,14 +243,34 @@ namespace
         const Vec3 direction = ctx.pCommand
             ? WintersMath::NormalizeXZ(ctx.pCommand->direction)
             : Vec3{ 0.f, 0.f, 1.f };
+        const f32_t wRange = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Range,
+            kFioraWRange);
+        const f32_t wRadius = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Radius,
+            kFioraWRadius);
+        const f32_t wSlowDurationSec = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::SlowDurationSec,
+            kFioraWSlowDurationSec);
+        const f32_t wSlowMoveSpeedMul = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::MoveSpeedMul,
+            kFioraWSlowMoveSpeedMul);
         const EntityID hitTarget = FindEnemyInCone(
             world,
             ctx.casterEntity,
             ctx.casterTeam,
             origin,
             direction,
-            kFioraWRange,
-            kFioraWRadius);
+            wRange,
+            wRadius);
         if (hitTarget != NULL_ENTITY)
         {
             GameplayStatus::ApplySlow(
@@ -213,8 +280,8 @@ namespace
                 ctx.casterEntity,
                 eChampion::FIORA,
                 eSkillSlot::W,
-                kFioraWSlowDurationSec,
-                kFioraWSlowMoveSpeedMul);
+                wSlowDurationSec,
+                wSlowMoveSpeedMul);
         }
 
         std::cout << "[FioraSim] W riposte caster=" << ctx.casterEntity << "\n";
@@ -247,13 +314,18 @@ namespace
         state.bGrandChallengeActive = true;
         state.grandChallengeTimerSec = 8.0f;
         state.grandChallengeTarget = target;
+        const f32_t rDamage = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::BaseDamage,
+            kFioraRDamage);
 
         EnqueuePhysicalDamage(
             world,
             ctx.casterEntity,
             target,
             ctx.casterTeam,
-            kFioraRDamage,
+            rDamage,
             static_cast<u16_t>((static_cast<u32_t>(eChampion::FIORA) << 8) | 4u),
             ctx.skillRank);
 

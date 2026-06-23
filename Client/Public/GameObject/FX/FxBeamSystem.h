@@ -16,8 +16,6 @@ class CWorld;
 class CPlaneRenderer;
 class CBlendStateCache;
 class CDynamicCamera;
-class DX11Shader;
-class DX11Pipeline;
 
 namespace Engine
 {
@@ -31,8 +29,6 @@ public:
 
     static std::unique_ptr<CFxBeamSystem> Create(
         IRHIDevice* pDevice,
-        DX11Shader* pShader,
-        DX11Pipeline* pPipeline,
         CBlendStateCache* pBlendCache);
 
     void Update(CWorld& world, f32_t fTimeDelta);

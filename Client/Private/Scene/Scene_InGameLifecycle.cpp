@@ -1,0 +1,995 @@
+// Scene_InGameLifecycle.cpp — CScene_InGame의 진입 부트스트랩(OnEnter)/종료(OnExit)/ECS 엔티티 조립 책임 TU.
+// Stage 1 (mechanical split): Scene_InGame.cpp에서 verbatim 이동. 동작/시그니처/호출순서 불변.
+// 설계: .md/plan/refactor/15_INGAME_SCENE_THINNING_DESIGN.md (OnEnter 부트스트랩→Installer는 Stage 2)
+#define _CRT_SECURE_NO_WARNINGS
+
+#include "Network/Client/ClientNetwork.h"
+#include "Network/Client/CommandSerializer.h"
+#include "Network/Client/EventApplier.h"
+#include "Network/Client/GameSessionClient.h"
+#include "Network/Client/SnapshotApplier.h"
+#include "Replay/ReplayPlayer.h"
+
+#include <Windows.h>
+#include "Scene/GameplayQuery.h"
+#include "Scene/InGameRosterSpawner.h"
+#include "Scene/RenderVisibilityFilter.h"
+#include "Scene/Scene_InGame.h"
+#include "Scene/Scene_InGameInternal.h"
+#include "Scene/Scene_Editor.h"
+#include "Manager/Structure_Manager.h"
+#include "Manager/Jungle_Manager.h"
+#include "Manager/Minion_Manager.h"
+#include "Manager/AmbientProp_Manager.h"
+#include "Map/MapDataIO.h"
+#include "Core/CInput.h"
+#include "WintersPaths.h"
+#include "GameInstance.h"
+#include "ECS/Components/CoreComponents.h"   // ColliderComponent
+#include "ECS/Systems/MinionAISystem.h"
+#include "ECS/Systems/SpatialHashSystem.h"
+#include "ECS/Systems/BehaviorTreeSystem.h"
+#include "ECS/Systems/MCTSSystem.h"
+#include "ECS/Systems/TurretAISystem.h"
+#include "ECS/Systems/TurretProjectileSystem.h"
+#include "ECS/Systems/MinionPerformanceSystem.h"
+#include "ECS/Systems/YoneSoulSpawnSystem.h"
+#include "ECS/Systems/VisionSystem.h"
+#include "ECS/BushVolumeIndex.h"
+#include "ECS/Components/NavAgentComponent.h"
+#include "ECS/Components/RenderComponent.h"
+#include "ECS/Components/SpatialAgentComponent.h"
+#include "ECS/Components/VisionComponents.h"
+#include "ECS/SpatialIndex.h"
+#include "ProfilerAPI.h"
+#include "Manager/Navigation/MapSurfaceSampler.h"
+#include "Manager/Navigation/MapWalkableBaker.h"
+#include "Manager/Navigation/Pathfinder.h"
+
+// [Phase T] UI Panels + DebugDrawSystem
+#include "UI/AIDebugPanel.h"
+#include "UI/CombatDebugPanel.h"
+#include "UI/MapTunerPanel.h"
+#include "UI/RenderDebug.h"
+#include "UI/DebugDrawSystem.h"
+#include "UI/SkillTimingPanel.h"
+#include "UI/ChampionTuner.h"
+#include "UI/EffectTuner.h"
+#include "UI/WfxEffectToolPanel.h"
+#include "UI/MinimapPanel.h"
+#include "Network/Client/NetworkEventTrace.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
+
+#include "Resource/Animator.h"
+#include "Resource/Animation.h"
+
+#include "GameObject/ChampionDef.h"
+#include "GameObject/Champion/Zed/ZedFxPresets.h"
+#include "GameObject/Champion/Annie/Annie_Components.h"
+#include "GameObject/Champion/Ashe/Ashe_Components.h"
+#include "GameObject/Champion/Irelia/Irelia_Skills.h"
+#include "GameObject/Champion/Jax/Jax_Components.h"
+#include "GameObject/Champion/Kalista/Kalista_Skills.h"
+#include "GameObject/Champion/Kalista/Kalista_Tuning.h"
+#include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
+#include "GameObject/ChampionSpawnService.h"
+#include "GamePlay/ChampionCatalog.h"
+#include "GamePlay/ChampionModuleBootstrap.h"
+#include "GamePlay/ChampionRegistry.h"
+#include "GamePlay/SkillHookRegistry.h"
+#include "GamePlay/SkillRegistry.h"
+#include "GamePlay/VisualHookRegistry.h"
+#include "GameObject/SkillDefVisualDataAdapter.h"
+#include "GameContext.h"
+#include "Dev/SmokeLog.h"
+#include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/MoveTargetComponent.h"
+#include "Shared/GameSim/Components/PoseStateComponent.h"
+#include "Shared/GameSim/Components/RecallComponent.h"
+#include "Shared/GameSim/Components/ReplicatedStateComponent.h"
+#include "Shared/GameSim/Components/FormOverrideComponent.h"
+#include "Shared/GameSim/Components/SkillRankComponent.h"
+#include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
+#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/SkillDefGameDataAdapter.h"
+#include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+
+#pragma push_macro("min")
+#pragma push_macro("max")
+#undef min
+#undef max
+#include "Shared/Schemas/Generated/cpp/LobbyTypes_generated.h"
+#pragma pop_macro("max")
+#pragma pop_macro("min")
+
+// [Phase T-8] FX / Status / Irelia Blade / Ult Wave
+#include "ECS/Systems/StatusEffectSystem.h"
+#include "ECS/Components/GameplayComponents.h"   // Stun/Slow/Disarm
+#include "GameObject/FX/FxSystem.h"
+#include "Renderer/RHISceneRenderer.h"
+#include "GameObject/FX/FxBillboardComponent.h"
+#include "Renderer/FxStaticMeshRenderer.h"
+
+#include "ECS/Components/MeshGroupVisibilityComponent.h"
+
+#include "RHI/IRHIDevice.h"
+#include "RHI/RHITextureLoader.h"
+#include "RHI/RHITypes.h"
+#include "Renderer/FogOfWarRenderer.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <cwchar>
+#include <functional>
+#include <vector>
+
+namespace
+{
+    constexpr char kBaseMapMeshPath[] =
+        "Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh";
+    constexpr wchar_t kBaseMapMeshPathW[] =
+        L"Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh";
+    constexpr char kFullLayerMapMeshPath[] =
+        "Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh";
+    constexpr wchar_t kFullLayerMapMeshPathW[] =
+        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh";
+    constexpr wchar_t kMapBrushVolumeCsvPath[] =
+        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/manifest/map11_brush_volumes.csv";
+    constexpr wchar_t kMapBrushVolumeBinPath[] =
+        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/map11_brush_volumes.wbrush";
+
+    void UI_SendBuyItemCommand(void* pUser, u16_t itemId)
+    {
+        CScene_InGame* pScene = static_cast<CScene_InGame*>(pUser);
+        if (!pScene || !pScene->GetCommandSerializer() || !pScene->GetNetworkView())
+            return;
+
+        pScene->GetCommandSerializer()->SendBuyItem(*pScene->GetNetworkView(), itemId);
+    }
+
+    void UI_SendLevelSkillCommand(void* pUser, u8_t slot)
+    {
+        CScene_InGame* pScene = static_cast<CScene_InGame*>(pUser);
+        if (!pScene || !pScene->GetCommandSerializer() || !pScene->GetNetworkView())
+            return;
+
+        pScene->GetCommandSerializer()->SendLevelSkill(*pScene->GetNetworkView(), slot);
+    }
+
+    RHITextureHandle CreateDefaultRHITexture(IRHIDevice* pDevice, const char* pszDebugName)
+    {
+        if (!pDevice)
+            return {};
+
+        const u32_t whitePixel = 0xFFFFFFFFu;
+        RHITextureDesc desc{};
+        desc.width = 1;
+        desc.height = 1;
+        desc.format = eRHIFormat::R8G8B8A8_UNorm;
+        desc.usageFlags = static_cast<u32_t>(eRHITextureUsage::ShaderResource);
+        desc.debugName = pszDebugName;
+        return pDevice->CreateTexture(desc, &whitePixel, sizeof(whitePixel));
+    }
+
+    bool_t ShouldUseFastSmokeBootstrap()
+    {
+        return HasCommandLineToken(L"--banpick-smoke")
+            && !HasCommandLineToken(L"--smoke-full-ingame");
+    }
+
+    bool_t ShouldSkipSmokeMap()
+    {
+        return ShouldUseFastSmokeBootstrap()
+            && !HasCommandLineToken(L"--smoke-full-map");
+    }
+
+    bool_t ShouldUseFullLayerMap()
+    {
+        return HasCommandLineToken(L"--map-full-layers")
+            || HasCommandLineToken(L"--map11-full-layers")
+            || HasCommandLineToken(L"--map11-brush-test");
+    }
+
+    const char* SelectMapMeshPath()
+    {
+        return ShouldUseFullLayerMap() ? kFullLayerMapMeshPath : kBaseMapMeshPath;
+    }
+
+    const wchar_t* SelectMapSurfacePath()
+    {
+        return ShouldUseFullLayerMap() ? kFullLayerMapMeshPathW : kBaseMapMeshPathW;
+    }
+
+    void SeedPracticeBushesForBootstrap(CWorld& world)
+    {
+        struct BushSeed
+        {
+            Vec3 center;
+            f32_t radius;
+            u32_t bushId;
+        };
+
+        static const BushSeed kBushes[] = {
+            { { -45.f, 0.f,  60.f }, 5.f, 1 },
+            { { -55.f, 0.f,  45.f }, 4.f, 1 },
+            { { -30.f, 0.f,  90.f }, 5.f, 2 },
+            { { -10.f, 0.f,  10.f }, 4.f, 3 },
+            { {  10.f, 0.f, -10.f }, 4.f, 4 },
+            { {  45.f, 0.f, -60.f }, 5.f, 5 },
+            { {  55.f, 0.f, -45.f }, 4.f, 5 },
+            { {  30.f, 0.f, -90.f }, 5.f, 6 },
+            { { -30.f, 0.f,  30.f }, 4.f, 7 },
+            { {  30.f, 0.f, -30.f }, 4.f, 8 },
+            { { -60.f, 0.f,   0.f }, 4.f, 9 },
+            { {  60.f, 0.f,   0.f }, 4.f, 10 },
+        };
+
+        for (const BushSeed& bush : kBushes)
+        {
+            const EntityID entity = world.CreateEntity();
+            BushVolumeComponent component{};
+            component.center = bush.center;
+            component.radius = bush.radius;
+            component.bushId = bush.bushId;
+            world.AddComponent<BushVolumeComponent>(entity, component);
+        }
+    }
+
+    struct MapBrushVolumeRecord
+    {
+        u32_t bushId = 0;
+        f32_t worldX = 0.f;
+        f32_t worldZ = 0.f;
+        f32_t radius = 0.f;
+    };
+
+    bool_t SeedMap11BrushesFromBinaryForBootstrap(CWorld& world)
+    {
+        wchar_t resolvedPath[MAX_PATH]{};
+        if (!WintersResolveContentPath(kMapBrushVolumeBinPath, resolvedPath, MAX_PATH))
+            return false;
+
+        FILE* fp = nullptr;
+        if (_wfopen_s(&fp, resolvedPath, L"rb") != 0 || !fp)
+            return false;
+
+        constexpr u32_t kBrushVolumeMagic = 0x48534257u; // 'WBSH'
+        u32_t header[4]{};
+        if (fread(header, sizeof(header), 1, fp) != 1 ||
+            header[0] != kBrushVolumeMagic ||
+            header[1] != 1u ||
+            header[2] == 0u ||
+            header[2] > 4096u)
+        {
+            fclose(fp);
+            return false;
+        }
+
+        u32_t iSeeded = 0;
+        for (u32_t i = 0; i < header[2]; ++i)
+        {
+            MapBrushVolumeRecord record{};
+            if (fread(&record, sizeof(record), 1, fp) != 1)
+                break;
+            if (record.radius <= 0.f)
+                continue;
+
+            const EntityID entity = world.CreateEntity();
+            BushVolumeComponent component{};
+            component.center = { record.worldX, 0.f, record.worldZ };
+            component.radius = record.radius;
+            component.bushId = record.bushId;
+            world.AddComponent<BushVolumeComponent>(entity, component);
+            ++iSeeded;
+        }
+
+        fclose(fp);
+        return iSeeded > 0;
+    }
+
+    bool_t SeedMap11BrushesFromResourceForBootstrap(CWorld& world)
+    {
+        wchar_t resolvedPath[MAX_PATH]{};
+        if (!WintersResolveContentPath(kMapBrushVolumeCsvPath, resolvedPath, MAX_PATH))
+        {
+            return false;
+        }
+
+        FILE* fp = nullptr;
+        if (_wfopen_s(&fp, resolvedPath, L"rt") != 0 || !fp)
+        {
+            return false;
+        }
+
+        u32_t iSeeded = 0;
+        char line[256]{};
+        while (fgets(line, static_cast<int>(sizeof(line)), fp))
+        {
+            if (line[0] == '\0' || line[0] == '#' || line[0] == '\n' || line[0] == '\r')
+                continue;
+
+            u32_t bushId = 0;
+            f32_t x = 0.f;
+            f32_t z = 0.f;
+            f32_t radius = 0.f;
+            if (sscanf_s(line, " %u , %f , %f , %f", &bushId, &x, &z, &radius) != 4)
+                continue;
+
+            if (radius <= 0.f)
+                continue;
+
+            const EntityID entity = world.CreateEntity();
+            BushVolumeComponent component{};
+            component.center = { x, 0.f, z };
+            component.radius = radius;
+            component.bushId = bushId;
+            world.AddComponent<BushVolumeComponent>(entity, component);
+            ++iSeeded;
+        }
+
+        fclose(fp);
+
+        return iSeeded > 0;
+    }
+
+    void SendServerInGameReady()
+    {
+        GameContext& context = CGameInstance::Get()->Get_GameContext();
+        CGameSessionClient& session = CGameSessionClient::Instance();
+
+        if (!context.bUseNetworkRoster || !session.IsConnected())
+            return;
+
+        session.Pump();
+        if (session.HasLobbyState())
+            session.CopyLobbyToGameContext(context);
+
+        if (context.MySessionId == 0 || context.MySlotId == kInvalidGameRosterSlot)
+        {
+            return;
+        }
+
+		const bool_t bSent = session.SendLobbyCommand(
+			Shared::Schema::LobbyCommandKind::SetReady,
+			context.MySlotId,
+			eChampion::END,
+			0,
+			1u);
+
+		(void)bSent;
+	}
+}
+
+bool CScene_InGame::OnEnter()
+{
+    const GameContext& gameContext = CGameInstance::Get()->Get_GameContext();
+    Winters::DevSmoke::Log(
+        "[InGameBootstrap] enter useNetworkRoster=%u selected=%u mySlot=%u sid=%u net=%u\n",
+        gameContext.bUseNetworkRoster ? 1u : 0u,
+        static_cast<u32_t>(gameContext.SelectedChampion),
+        static_cast<u32_t>(gameContext.MySlotId),
+        gameContext.MySessionId,
+        gameContext.MyNetId);
+
+    InitializeNetworkSession();
+    m_bNetworkAuthoritativeGameplay =
+        m_bUsingSharedNetwork || m_bReplayPlaybackMode;
+    Winters::DevSmoke::Log("[InGameBootstrap] network initialized\n");
+    Winters::DevSmoke::Log(
+        "[InGameBootstrap] network authoritative gameplay=%u\n",
+        m_bNetworkAuthoritativeGameplay ? 1u : 0u);
+
+    CJobSystem* pJS = CGameInstance::Get()->Get_JobSystem();
+
+    m_pScheduler = std::unique_ptr<CSystemSchedular>(new CSystemSchedular());
+    m_pScheduler->Initialize(pJS);
+    m_World.Initialize_Spatial(LoLSpatialGridDesc());
+
+    {
+        auto pTx = CTransformSystem::Create();
+        pTx->Set_JobSystem(pJS);
+        m_pScheduler->RegisterSystem(std::move(pTx));
+    }
+
+    {
+        auto pSpatial = Engine::CSpatialHashSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pSpatial));
+    }
+
+    {
+        auto pStatus = CStatusEffectSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pStatus));
+    }
+
+    {
+        auto pVision = Engine::CVisionSystem::Create(m_World.Get_SpatialIndex(), &m_BushIndex);
+        const UI::MinimapProjection& MinimapProjection = UI::GetDefaultMinimapProjection();
+        Engine::CVisionSystem::FowProjection FowProjection{};
+        FowProjection.vWorldAtUv00 = MinimapProjection.vWorldAtUv00;
+        FowProjection.vWorldAtUv10 = MinimapProjection.vWorldAtUv10;
+        FowProjection.vWorldAtUv01 = MinimapProjection.vWorldAtUv01;
+        pVision->SetFowProjection(FowProjection);
+        m_pVisionSystem = pVision.get();
+        m_pScheduler->RegisterSystem(std::move(pVision));
+    }
+
+    CStructure_Manager::Get()->Initialize(&m_World);
+    CJungle_Manager::Get()->Initialize(&m_World);
+    CMinion_Manager::Get()->Initialize(&m_World);
+    CMinion_Manager::Get()->PrewarmNetworkVisualResources();
+
+    wchar_t stagePath[MAX_PATH] = {};
+    if (CMapDataIO::Get_StagePathW(1, stagePath, MAX_PATH))
+    {
+        CMapDataIO::Load_Stage(stagePath);
+        Winters::DevSmoke::Log("[InGameBootstrap] Stage1 loaded\n");
+    }
+
+    BootstrapChampionModules();
+    Winters::DevSmoke::Log("[InGameBootstrap] champion modules bootstrapped\n");
+
+    m_pCamera = CDynamicCamera::Create(
+        { 0.f, 10.f, -10.f }, { 0.f, 0.f, 1.f }, { 0.f, 1.f, 0.f });
+
+    bool_t bMapInit = false;
+    if (ShouldSkipSmokeMap())
+    {
+        Winters::DevSmoke::Log("[InGameBootstrap] map init skipped for smoke\n");
+    }
+    else
+    {
+        Winters::DevSmoke::Log("[InGameBootstrap] map init begin\n");
+        bMapInit = m_Map.Initialize(SelectMapMeshPath(), L"Shaders/Mesh3D.hlsl");
+        Winters::DevSmoke::Log("[InGameBootstrap] map init done ok=%u\n", bMapInit ? 1u : 0u);
+    }
+    m_MapTransform.SetPosition(0.f, 0.f, 0.f);
+    m_MapTransform.SetScale({ -0.01f, 0.01f, 0.01f });
+    m_MapTransform.SetRotation(m_vMapRotation);
+    InitializeMapSurfaceSampler(bMapInit, SelectMapSurfacePath());
+    CAmbientProp_Manager::Get()->Spawn(
+        m_MapTransform.GetWorldMatrix(),
+        m_vMapRotation.y,
+        [this](Vec3& pos) { (void)TryProjectToMapSurface(pos, 0.02f); });
+
+    Winters::DevSmoke::Log("[InGameBootstrap] CreateECSEntities begin\n");
+    CreateECSEntities();
+    Winters::DevSmoke::Log("[InGameBootstrap] CreateECSEntities done player=%u total=%u\n",
+        static_cast<u32_t>(m_PlayerEntity),
+        m_World.GetEntityCount());
+    if (!SeedMap11BrushesFromBinaryForBootstrap(m_World) &&
+        !SeedMap11BrushesFromResourceForBootstrap(m_World))
+    {
+        SeedPracticeBushesForBootstrap(m_World);
+    }
+    m_BushIndex.Build(m_World);
+    if (m_pVisionSystem)
+        m_pVisionSystem->ForceRebuildNextFrame();
+
+    const eChampion selectedChampion = GetPlayerChampionId();
+    if (CGameInstance::Get()->Get_GameContext().bUseNetworkRoster
+        || selectedChampion == eChampion::RIVEN
+        || selectedChampion == eChampion::EZREAL
+        || selectedChampion == eChampion::FIORA
+        || selectedChampion == eChampion::JAX
+        || selectedChampion == eChampion::ANNIE
+        || selectedChampion == eChampion::ASHE
+        || selectedChampion == eChampion::YONE)
+    {
+        BindPlayerToECSChampion(m_PlayerEntity);
+    }
+
+    CGameInstance::Get()->UI_Bind_World(&m_World);
+    CGameInstance::Get()->UI_Set_InGameBuyItemCallback(&UI_SendBuyItemCommand, this);
+    CGameInstance::Get()->UI_Set_LevelSkillCallback(&UI_SendLevelSkillCommand, this);
+
+    CMinion_Manager::Get()->Set_Enabled(!m_bNetworkAuthoritativeGameplay);
+    wchar_t navGridPath[MAX_PATH] = {};
+    if (CMapDataIO::GetNavGridPathW(1, navGridPath, MAX_PATH))
+    {
+        m_pNavGrid = Engine::CNavGrid::LoadFromFile(navGridPath);
+    }
+
+    if (!m_pNavGrid)
+    {
+        m_pNavGrid = CreateMapNavGrid();
+        m_pNavGrid->SetAllWalkable(true);
+    }
+
+
+    if (m_pNavGrid)
+        Engine::CPathfinder::PrewarmReachabilityCache(m_pNavGrid.get());
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pNav = CNavigationSystem::Create();
+        pNav->Set_Grid(m_pNavGrid.get());
+        pNav->Set_JobSystem(pJS);
+        m_pScheduler->RegisterSystem(std::move(pNav));
+    }
+    else
+    {
+        Winters::DevSmoke::Log("[InGameBootstrap] client navigation skipped for network authority\n");
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pAI = CMinionAISystem::Create();
+        pAI->Set_JobSystem(pJS);
+        m_pScheduler->RegisterSystem(std::move(pAI));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pMinionPerformance = Engine::CMinionPerformanceSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pMinionPerformance));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pTurretAI = Engine::CTurretAISystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pTurretAI));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pTurretProjectiles = Engine::CTurretProjectileSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pTurretProjectiles));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pBT = Engine::CBehaviorTreeSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pBT));
+    }
+
+    {
+        auto pYoneSoul = CYoneSoulSpawnSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pYoneSoul));
+    }
+
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        auto pMCTS = Engine::CMCTSSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pMCTS));
+    }
+
+    Mark_StructuresOnNavGrid();
+
+    {
+        CGameInstance* pGI = CGameInstance::Get();
+        IRHIDevice* pRhiDevice = pGI->Get_RHIDevice();
+        const bool_t bUseDX12RHI = pRhiDevice && pRhiDevice->GetBackend() == eRHIBackend::DX12;
+
+        m_pRHISceneRenderer = CRHISceneRenderer::Create(pRhiDevice);
+        if (!m_pRHISceneRenderer)
+            OutputDebugStringA("[InGameBootstrap] CRHISceneRenderer unavailable\n");
+
+        if (bUseDX12RHI)
+        {
+            m_pRHIUtilityPlaneRenderer = CRHIFxSpriteRenderer::Create(pRhiDevice);
+            m_hRHIAttackRangeTex = RHI_CreateTextureFromFile(
+                pRhiDevice,
+                L"Client/Bin/Resource/Texture/UI/UI_AttackRange.png",
+                "RHI_AttackRangeTexture");
+            if (!m_hRHIAttackRangeTex.IsValid())
+                m_hRHIAttackRangeTex = CreateDefaultRHITexture(pRhiDevice, "RHI_AttackRangeFallback");
+
+        }
+        else
+        {
+            m_pAttackRangePlane = CPlaneRenderer::Create(
+                pRhiDevice,
+                pGI->Get_UIPlaneShader(),
+                pGI->Get_UIPlanePipeline());
+
+            m_pAttackRangeTex = CTexture::Create(
+                pRhiDevice,
+                L"Client/Bin/Resource/Texture/UI/UI_AttackRange.png",
+                eTexSamplerMode::Clamp);
+
+            if (!m_pAttackRangeTex)
+            {
+                MSG_BOX("Attack Range Texture load failed");
+                m_pAttackRangeTex = CTexture::CreateDefault(pRhiDevice);
+            }
+
+            if (m_pAttackRangePlane && m_pAttackRangeTex)
+            {
+                m_pAttackRangePlane->SetTexture(m_pAttackRangeTex.get());
+                m_pAttackRangePlane->SetBlendCache(
+                    pGI->Get_BlendStateCache(),
+                    eBlendPreset::AlphaBlend);
+            }
+
+            m_pContactShadowPlane = CPlaneRenderer::Create(
+                pRhiDevice,
+                pGI->Get_ContactShadowShader(),
+                pGI->Get_ContactShadowPipeline());
+
+            if (m_pContactShadowPlane)
+            {
+                m_pContactShadowPlane->SetBlendCache(
+                    pGI->Get_BlendStateCache(),
+                    eBlendPreset::AlphaBlend);
+                m_pContactShadowPlane->SetFxParams(
+                    { 0.015f, 0.018f, 0.020f, 0.44f },
+                    { 0.f, 0.f, 1.f, 1.f },
+                    { 0.f, 0.f },
+                    0.003f,
+                    0.f);
+            }
+        }
+
+        if (!bUseDX12RHI)
+        {
+            m_pWhiteTexture = CTexture::CreateDefault(pRhiDevice);
+            m_pNormalPass = Engine::CNormalPass::Create(pRhiDevice, g_iWinSizeX, g_iWinSizeY);
+            m_pSSAOPass = Engine::CSSAOPass::Create(pRhiDevice, g_iWinSizeX, g_iWinSizeY);
+            if (m_pSSAOPass)
+            {
+                m_pSSAOPass->SetEnabled(false);
+                m_pSSAOPass->SetRadius(1.1f);
+                m_pSSAOPass->SetIntensity(1.25f);
+            }
+            m_pFogOfWarRenderer = CFogOfWarRenderer::Create(
+                pRhiDevice, Engine::CVisionSystem::FOW_TEX_DIM);
+        }
+    }
+    Winters::DevSmoke::Log("[InGameBootstrap] render helpers ready\n");
+
+    {
+        CGameInstance* pGI = CGameInstance::Get();
+        IRHIDevice* pRhiDevice = pGI->Get_RHIDevice();
+
+        m_pFxSystem = CFxSystem::Create(
+            pRhiDevice,
+            pGI->Get_BlendStateCache());
+        m_pFxBeamSystem = CFxBeamSystem::Create(
+            pRhiDevice,
+            pGI->Get_BlendStateCache());
+
+        m_pFxMeshRenderer = Engine::CFxStaticMeshRenderer::Create(
+            pRhiDevice,
+            pGI->Get_MeshShader(),
+            pGI->Get_MeshPipeline(),
+            pGI->Get_FxMeshShader(),
+            pGI->Get_FxMeshPipeline(),
+            pGI->Get_BlendStateCache());
+        if (m_pEventApplier)
+            m_pEventApplier->SetFxMeshRenderer(m_pFxMeshRenderer.get());
+        m_pFxMeshSystem = CFxMeshSystem::Create(m_pFxMeshRenderer.get());
+
+        m_pIreliaBladeSystem = CIreliaBladeSystem::Create();
+        m_pWindWallSystem = CWindWallSystem::Create();
+        m_pYasuoProjectileSystem = CYasuoProjectileSystem::Create();
+        m_pPendingHitSystem = CPendingHitSystem::Create();
+        m_pKalistaProjectileSystem = CKalistaProjectileSystem::Create();
+        m_pKalistaRendSystem = CKalistaRendSystem::Create();
+    }
+    Winters::DevSmoke::Log("[InGameBootstrap] skill fx systems ready\n");
+
+    if (m_pFxMeshRenderer && ShouldUseFastSmokeBootstrap())
+    {
+        Winters::DevSmoke::Log("[InGameBootstrap] FX mesh preload skipped for smoke\n");
+    }
+    else if (m_pFxMeshRenderer)
+    {
+        static const struct { const char* fbx; const wchar_t* tex; } kIreliaFx[] = {
+            { "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_blade.fbx",
+              L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_blades_passive_4_texture.png" },
+            { "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx",
+              L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_beam_mult.png" },
+        };
+        for (const auto& it : kIreliaFx)
+            m_pFxMeshRenderer->PreloadMesh(it.fbx, it.tex);
+
+        static const struct { const char* fbx; const wchar_t* tex; } kYasuoFx[] = {
+            { "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_base_q_tornado_blade_cas.fbx",
+              L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_base_e_tonado_blend.png" },
+            { "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_w_windwall_mesh.fbx",
+              L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_w_windwall_dust.png" },
+            { "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_base_r_sword_wind2.fbx",
+              L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_r_sword_glow.png" },
+        };
+        for (const auto& it : kYasuoFx)
+            m_pFxMeshRenderer->PreloadMesh(it.fbx, it.tex);
+
+        static const struct { const char* fbx; const wchar_t* tex; } kKalistaFx[] = {
+            { "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_q_mis_spear.fbx",
+              L"Client/Bin/Resource/Texture/FX/Kalista/kalista_base_q_mis_glow_color.png" },
+            { "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_e_spear_hold.fbx",
+              L"Client/Bin/Resource/Texture/FX/Kalista/kalista_base_e_spear_glow.png" },
+        };
+        for (const auto& it : kKalistaFx)
+            m_pFxMeshRenderer->PreloadMesh(it.fbx, it.tex);
+    }
+
+    CGameInstance::Get()->UI_Set_PlayerChampion(GetPlayerChampionId());
+
+    Winters::DevSmoke::Log("[InGameBootstrap] done player=%u champion=%u\n",
+        static_cast<u32_t>(m_PlayerEntity),
+        static_cast<u32_t>(GetPlayerChampionId()));
+
+
+    if (m_bReplayPlaybackMode)
+    {
+        std::string error;
+        m_pReplayPlayer = CReplayPlayer::LoadFromFile(m_strReplayPath, error);
+        if (!m_pReplayPlayer)
+        {
+            m_strReplayStatus = error.empty() ? "Replay load failed" : error;
+            return true;
+        }
+
+        m_strReplayStatus = "Replay loaded";
+        return true;
+    }
+
+    SendServerInGameReady();
+    return true;
+}
+
+void CScene_InGame::AssignPureECSChampionAlias(eChampion id, EntityID entity)
+{
+    switch (id)
+    {
+    case eChampion::SYLAS:
+        m_SylasEntity = entity;
+        break;
+    case eChampion::FIORA:
+        m_FioraEntity = entity;
+        break;
+    case eChampion::JAX:
+        m_JaxEntity = entity;
+        break;
+    case eChampion::ANNIE:
+        m_AnnieEntity = entity;
+        break;
+    case eChampion::ASHE:
+        m_AsheEntity = entity;
+        break;
+    case eChampion::YONE:
+        m_YoneEntity = entity;
+        break;
+    default:
+        break;
+    }
+}
+
+void CScene_InGame::CreateMapEntity()
+{
+    if (m_MapEntity != NULL_ENTITY)
+        return;
+
+    m_MapEntity = m_World.CreateEntity();
+    TransformComponent mapTf;
+    mapTf.m_LocalPosition = m_MapTransform.GetPosition();
+    mapTf.m_LocalRotation = m_MapTransform.GetRotation();
+    mapTf.m_LocalScale = m_MapTransform.GetScale();
+    m_World.AddComponent<TransformComponent>(m_MapEntity, mapTf);
+
+    RenderComponent mapRc;
+    mapRc.pRenderer = &m_Map;
+    mapRc.bVisible = true;
+    mapRc.bAnimated = false;
+    m_World.AddComponent<RenderComponent>(m_MapEntity, mapRc);
+
+    Winters::DevSmoke::Log(
+        "[InGameMap] entity=%u pos=(%.2f,%.2f,%.2f) scale=(%.2f,%.2f,%.2f)\n",
+        static_cast<u32_t>(m_MapEntity),
+        mapTf.m_LocalPosition.x,
+        mapTf.m_LocalPosition.y,
+        mapTf.m_LocalPosition.z,
+        mapTf.m_LocalScale.x,
+        mapTf.m_LocalScale.y,
+        mapTf.m_LocalScale.z);
+}
+
+void CScene_InGame::BindPlayerToECSChampion(EntityID entity)
+{
+    if (entity == NULL_ENTITY)
+    {
+        Winters::DevSmoke::Log("[InGameBind] skipped null entity\n");
+        return;
+    }
+    if (!m_World.HasComponent<RenderComponent>(entity))
+    {
+        Winters::DevSmoke::Log("[InGameBind] entity=%u missing RenderComponent\n", static_cast<u32_t>(entity));
+        return;
+    }
+    if (!m_World.HasComponent<TransformComponent>(entity))
+    {
+        Winters::DevSmoke::Log("[InGameBind] entity=%u missing TransformComponent\n", static_cast<u32_t>(entity));
+        return;
+    }
+
+    auto& rc = m_World.GetComponent<RenderComponent>(entity);
+    if (!rc.pRenderer)
+    {
+        Winters::DevSmoke::Log("[InGameBind] entity=%u missing renderer\n", static_cast<u32_t>(entity));
+        return;
+    }
+
+    m_pPlayerRenderer = rc.pRenderer;
+    m_pPlayerTransform = &m_PlayerEntityTransformCache;
+
+    eChampion championId = eChampion::NONE;
+    if (m_World.HasComponent<ChampionComponent>(entity))
+        championId = m_World.GetComponent<ChampionComponent>(entity).id;
+
+    const ChampionDef* cd = FindClientChampionDef(championId);
+
+    if (cd && cd->animPrefix && cd->idleAnimKey && cd->runAnimKey)
+    {
+        m_PlayerIdleAnimStorage = std::string(cd->animPrefix) + cd->idleAnimKey;
+        m_PlayerRunAnimStorage = std::string(cd->animPrefix) + cd->runAnimKey;
+        m_pPlayerIdleAnim = m_PlayerIdleAnimStorage.c_str();
+        m_pPlayerRunAnim = m_PlayerRunAnimStorage.c_str();
+    }
+    else
+    {
+        m_pPlayerIdleAnim = "riven_idle1";
+        m_pPlayerRunAnim = "riven_run";
+    }
+
+    SyncPlayerEntityTransformFromECS();
+    if (m_pCamera)
+    {
+        m_pCamera->SetFollowTarget(m_pPlayerTransform);
+        m_pCamera->SetFollowMode(true);
+        m_pCamera->SnapToTarget();
+    }
+
+    m_vPlayerDest = m_pPlayerTransform->GetPosition();
+    m_pPlayerRenderer->PlayAnimationByName(m_pPlayerIdleAnim, true);
+
+    Winters::DevSmoke::Log(
+        "[InGameBind] entity=%u champion=%u idle=%s run=%s pos=(%.2f,%.2f,%.2f)\n",
+        static_cast<u32_t>(entity),
+        static_cast<u32_t>(championId),
+        m_pPlayerIdleAnim ? m_pPlayerIdleAnim : "",
+        m_pPlayerRunAnim ? m_pPlayerRunAnim : "",
+        m_vPlayerDest.x,
+        m_vPlayerDest.y,
+        m_vPlayerDest.z);
+}
+
+void CScene_InGame::CreateECSEntities()
+{
+    GameContext& context = CGameInstance::Get()->Get_GameContext();
+    CInGameRosterSpawner::EnsureLocalRosterFallback(context);
+    m_PlayerEntity = NULL_ENTITY;
+
+    InGameRosterSpawnDesc rosterDesc{
+        m_World,
+        m_pEntityIdMap.get(),
+        m_bNetworkAuthoritativeGameplay,
+        m_NetworkChampionPrevPos,
+        [this](eChampion champion, eTeam team)
+        {
+            return SpawnChampionEntity(champion, team);
+        },
+        [this](eChampion champion, EntityID entity)
+        {
+            AssignPureECSChampionAlias(champion, entity);
+        }
+    };
+
+    const InGameRosterSpawnResult rosterResult =
+        CInGameRosterSpawner::SpawnFromContext(rosterDesc, context);
+    m_PlayerEntity = rosterResult.playerEntity;
+
+    CreateMapEntity();
+
+    if (m_PlayerEntity == NULL_ENTITY)
+    {
+        Winters::DevSmoke::Log("[ECS:RosterOnly] no local player entity after roster creation\n");
+        return;
+    }
+
+    BindPlayerToECSChampion(m_PlayerEntity);
+
+    if (m_World.HasComponent<ChampionComponent>(m_PlayerEntity))
+        m_PlayerTeam = m_World.GetComponent<ChampionComponent>(m_PlayerEntity).team;
+
+    ReplayLastNetworkHelloIfShared();
+
+    char dbg[192]{};
+    sprintf_s(dbg, "[ECS:RosterOnly] created=%d total=%u player=%u champion=%u\n",
+        rosterResult.bCreatedAny ? 1 : 0,
+        m_World.GetEntityCount(),
+        static_cast<u32_t>(m_PlayerEntity),
+        static_cast<u32_t>(GetPlayerChampionId()));
+    Winters::DevSmoke::Log("%s", dbg);
+}
+
+EntityID CScene_InGame::SpawnChampionEntity(eChampion champion, eTeam team)
+{
+    ChampionSpawnContext spawnContext{
+        m_World,
+        m_ChampionRenderers,
+        m_NetworkChampionPrevPos,
+        m_NetworkChampionMoveGraceSec,
+        m_NetworkChampionMoving
+    };
+
+    ChampionSpawnRequest request{};
+    request.champion = champion;
+    request.team = team;
+
+    return CChampionSpawnService::Spawn(spawnContext, request).entity;
+}
+
+void CScene_InGame::OnExit()
+{
+    CGameInstance::Get()->UI_Set_StatusPanelOpen(false);
+    CGameInstance::Get()->UI_Set_PingWheel(false, 0.f, 0.f, 0.f, 0.f);
+    m_bPingWheelActive = false;
+    SetHoveredTarget(NULL_ENTITY, eTeam::TEAM_END);
+
+    CGameInstance::Get()->UI_Set_InGameBuyItemCallback(nullptr, nullptr);
+    CGameInstance::Get()->UI_Set_LevelSkillCallback(nullptr, nullptr);
+    CGameInstance::Get()->UI_Bind_World(nullptr);
+    UI::CMinimapPanel::ShutdownRuntime();
+
+    if (m_bUsingSharedNetwork)
+    {
+        CGameSessionClient::Instance().SetGameFrameCallback(nullptr);
+    }
+    else if (m_pNetwork)
+    {
+        m_pNetwork->Disconnect();
+    }
+
+    m_pCommandSerializer.reset();
+    m_pEventApplier.reset();
+    m_pSnapshotApplier.reset();
+    m_pNetwork.reset();
+    m_pNetworkView = nullptr;
+    m_bUsingSharedNetwork = false;
+    m_pEntityIdMap.reset();
+    m_bNetworkAuthoritativeGameplay = false;
+
+    m_pRHISceneRenderer.reset();
+    m_Map.Shutdown();
+
+    if (m_pFxBeamSystem)   m_pFxBeamSystem.reset();
+    if (m_pFxMeshSystem)   m_pFxMeshSystem.reset();
+    if (m_pFxMeshRenderer) m_pFxMeshRenderer.reset();
+
+    CAmbientProp_Manager::Get()->Shutdown();
+    m_ChampionRenderers.clear();
+    m_NetworkChampionPrevPos.clear();
+    m_NetworkChampionMoveGraceSec.clear();
+    m_NetworkChampionMoving.clear();
+    m_NetworkActorInterpStates.clear();
+    m_uNetworkActorInterpSnapshotTick = 0;
+    m_NetworkActionAnimStates.clear();
+    m_pSSAOPass.reset();
+    m_pNormalPass.reset();
+    m_pFogOfWarRenderer.reset();
+    m_pVisionSystem = nullptr;
+    m_BushIndex.Clear();
+    m_pWhiteTexture.reset();
+    m_pRHIUtilityPlaneRenderer.reset();
+    if (IRHIDevice* pDevice = CGameInstance::Get()->Get_RHIDevice())
+    {
+        if (m_hRHIAttackRangeTex.IsValid())
+            pDevice->DestroyTexture(m_hRHIAttackRangeTex);
+    }
+    m_hRHIAttackRangeTex = {};
+    m_pAttackRangeTex.reset();
+    m_pAttackRangePlane.reset();
+    CMinion_Manager::Get()->Set_Enabled(false);
+    CMinion_Manager::Get()->Shutdown();
+    CJungle_Manager::Get()->Shutdown();
+    CStructure_Manager::Get()->Shutdown();
+}

@@ -3,7 +3,7 @@
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
 #include "GameObject/FX/FxCuePlayer.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 
 namespace
 {
@@ -29,7 +29,7 @@ namespace
             const TransformComponent& tf = world.GetComponent<TransformComponent>(owner);
             anchor.vWorldPos = tf.GetPosition();
             const f32_t yaw =
-                tf.GetRotation().y - ChampionGameDataDB::ResolveVisualYawOffset(eChampion::RIVEN);
+                tf.GetRotation().y - ClientData::ResolveChampionModelYawOffset(eChampion::RIVEN);
             anchor.vForward = WintersMath::DirectionFromYawXZ(yaw);
         }
 

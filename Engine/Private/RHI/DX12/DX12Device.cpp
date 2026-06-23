@@ -370,9 +370,22 @@ namespace
     {
         RHIBufferDesc desc{};
         Microsoft::WRL::ComPtr<ID3D12Resource> pResource;
+        std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> frameResources;
         D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
         bool_t uploadHeap = false;
     };
+
+    ID3D12Resource* GetDX12BufferResource(CDX12Buffer& buffer, u32_t frameIndex)
+    {
+        if (buffer.uploadHeap &&
+            frameIndex < buffer.frameResources.size() &&
+            buffer.frameResources[frameIndex])
+        {
+            return buffer.frameResources[frameIndex].Get();
+        }
+
+        return buffer.pResource.Get();
+    }
 
     struct CDX12Shader
     {
@@ -631,12 +644,18 @@ struct CDX12Device::DescriptorHeaps
 
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pSrvHeap;
     Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pSamplerHeap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pSrvStagingHeap;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> pSamplerStagingHeap;
     u32_t srvIncrement = 0;
     u32_t samplerIncrement = 0;
     u32_t srvNext = 0;
     u32_t samplerNext = 0;
+    u32_t srvRingNext[CDX12Device::kFrameCount] = {};
+    u32_t samplerRingNext[CDX12Device::kFrameCount] = {};
     u32_t srvCapacity = 0;
     u32_t samplerCapacity = 0;
+    u32_t srvRingCapacity = 0;
+    u32_t samplerRingCapacity = 0;
     std::vector<Range> srvFreeRanges;
     std::vector<Range> samplerFreeRanges;
 
@@ -688,28 +707,71 @@ struct CDX12Device::DescriptorHeaps
         samplerFreeRanges.push_back({ base, count });
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE SrvCpuAt(u32_t index) const
+    void ResetFrame(u32_t frameIndex)
+    {
+        if (frameIndex >= CDX12Device::kFrameCount)
+            return;
+
+        srvRingNext[frameIndex] = 0;
+        samplerRingNext[frameIndex] = 0;
+    }
+
+    bool_t AllocFrameSrv(u32_t frameIndex, u32_t count, u32_t& outBase)
+    {
+        if (frameIndex >= CDX12Device::kFrameCount || srvRingNext[frameIndex] + count > srvRingCapacity)
+            return false;
+
+        outBase = frameIndex * srvRingCapacity + srvRingNext[frameIndex];
+        srvRingNext[frameIndex] += count;
+        return true;
+    }
+
+    bool_t AllocFrameSampler(u32_t frameIndex, u32_t count, u32_t& outBase)
+    {
+        if (frameIndex >= CDX12Device::kFrameCount || samplerRingNext[frameIndex] + count > samplerRingCapacity)
+            return false;
+
+        outBase = frameIndex * samplerRingCapacity + samplerRingNext[frameIndex];
+        samplerRingNext[frameIndex] += count;
+        return true;
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE SrvStagingCpuAt(u32_t index) const
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE handle = pSrvStagingHeap->GetCPUDescriptorHandleForHeapStart();
+        handle.ptr += static_cast<SIZE_T>(index) * srvIncrement;
+        return handle;
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE SrvRingCpuAt(u32_t index) const
     {
         D3D12_CPU_DESCRIPTOR_HANDLE handle = pSrvHeap->GetCPUDescriptorHandleForHeapStart();
         handle.ptr += static_cast<SIZE_T>(index) * srvIncrement;
         return handle;
     }
 
-    D3D12_GPU_DESCRIPTOR_HANDLE SrvGpuAt(u32_t index) const
+    D3D12_GPU_DESCRIPTOR_HANDLE SrvRingGpuAt(u32_t index) const
     {
         D3D12_GPU_DESCRIPTOR_HANDLE handle = pSrvHeap->GetGPUDescriptorHandleForHeapStart();
         handle.ptr += static_cast<UINT64>(index) * srvIncrement;
         return handle;
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE SamplerCpuAt(u32_t index) const
+    D3D12_CPU_DESCRIPTOR_HANDLE SamplerStagingCpuAt(u32_t index) const
+    {
+        D3D12_CPU_DESCRIPTOR_HANDLE handle = pSamplerStagingHeap->GetCPUDescriptorHandleForHeapStart();
+        handle.ptr += static_cast<SIZE_T>(index) * samplerIncrement;
+        return handle;
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE SamplerRingCpuAt(u32_t index) const
     {
         D3D12_CPU_DESCRIPTOR_HANDLE handle = pSamplerHeap->GetCPUDescriptorHandleForHeapStart();
         handle.ptr += static_cast<SIZE_T>(index) * samplerIncrement;
         return handle;
     }
 
-    D3D12_GPU_DESCRIPTOR_HANDLE SamplerGpuAt(u32_t index) const
+    D3D12_GPU_DESCRIPTOR_HANDLE SamplerRingGpuAt(u32_t index) const
     {
         D3D12_GPU_DESCRIPTOR_HANDLE handle = pSamplerHeap->GetGPUDescriptorHandleForHeapStart();
         handle.ptr += static_cast<UINT64>(index) * samplerIncrement;
@@ -752,8 +814,14 @@ public:
 
     void SetBindGroup(u32_t slot, RHIBindGroupHandle handle) override
     {
-        if (!m_Owner.m_pTables || !m_Owner.m_pCommandList || !m_pCurrentPipeline)
+        if (!m_Owner.m_pTables ||
+            !m_Owner.m_pHeaps ||
+            !m_Owner.m_pDevice ||
+            !m_Owner.m_pCommandList ||
+            !m_pCurrentPipeline)
+        {
             return;
+        }
 
         IRHIBindGroup* pBindGroupBase = m_Owner.m_pTables->bindGroupTable.Lookup(handle);
         auto* pBindGroup = dynamic_cast<CDX12BindGroup*>(pBindGroupBase);
@@ -773,12 +841,15 @@ public:
             if (resource.type == eRHIBindingType::ConstantBuffer)
             {
                 CDX12Buffer* pBuffer = m_Owner.m_pTables->bufferTable.Lookup(resource.bufferHandle);
-                if (!pBuffer || !pBuffer->pResource)
+                ID3D12Resource* pResource = pBuffer
+                    ? GetDX12BufferResource(*pBuffer, m_Owner.m_iFrameIndex)
+                    : nullptr;
+                if (!pResource)
                     continue;
 
                 m_Owner.m_pCommandList->SetGraphicsRootConstantBufferView(
                     pBinding->rootParameterIndex,
-                    pBuffer->pResource->GetGPUVirtualAddress());
+                    pResource->GetGPUVirtualAddress());
             }
         }
 
@@ -786,18 +857,48 @@ public:
             m_pCurrentPipeline->FindTableRootIndex(slot, eDX12RootBindingKind::SrvTable);
         if (srvTableIndex >= 0 && pBindGroup->srvCount > 0)
         {
+            u32_t ringBase = 0;
+            if (!m_Owner.m_pHeaps->AllocFrameSrv(
+                m_Owner.m_iFrameIndex,
+                pBindGroup->srvCount,
+                ringBase))
+            {
+                return;
+            }
+
+            m_Owner.m_pDevice->CopyDescriptorsSimple(
+                pBindGroup->srvCount,
+                m_Owner.m_pHeaps->SrvRingCpuAt(ringBase),
+                m_Owner.m_pHeaps->SrvStagingCpuAt(pBindGroup->srvBaseIndex),
+                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
             m_Owner.m_pCommandList->SetGraphicsRootDescriptorTable(
                 static_cast<UINT>(srvTableIndex),
-                pBindGroup->srvTableGpu);
+                m_Owner.m_pHeaps->SrvRingGpuAt(ringBase));
         }
 
         const i32_t samplerTableIndex =
             m_pCurrentPipeline->FindTableRootIndex(slot, eDX12RootBindingKind::SamplerTable);
         if (samplerTableIndex >= 0 && pBindGroup->samplerCount > 0)
         {
+            u32_t ringBase = 0;
+            if (!m_Owner.m_pHeaps->AllocFrameSampler(
+                m_Owner.m_iFrameIndex,
+                pBindGroup->samplerCount,
+                ringBase))
+            {
+                return;
+            }
+
+            m_Owner.m_pDevice->CopyDescriptorsSimple(
+                pBindGroup->samplerCount,
+                m_Owner.m_pHeaps->SamplerRingCpuAt(ringBase),
+                m_Owner.m_pHeaps->SamplerStagingCpuAt(pBindGroup->samplerBaseIndex),
+                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+
             m_Owner.m_pCommandList->SetGraphicsRootDescriptorTable(
                 static_cast<UINT>(samplerTableIndex),
-                pBindGroup->samplerTableGpu);
+                m_Owner.m_pHeaps->SamplerRingGpuAt(ringBase));
         }
     }
 
@@ -807,11 +908,14 @@ public:
             return;
 
         CDX12Buffer* pBuffer = m_Owner.m_pTables->bufferTable.Lookup(handle);
-        if (!pBuffer || !pBuffer->pResource)
+        ID3D12Resource* pResource = pBuffer
+            ? GetDX12BufferResource(*pBuffer, m_Owner.m_iFrameIndex)
+            : nullptr;
+        if (!pResource)
             return;
 
         D3D12_VERTEX_BUFFER_VIEW view{};
-        view.BufferLocation = pBuffer->pResource->GetGPUVirtualAddress() + offset;
+        view.BufferLocation = pResource->GetGPUVirtualAddress() + offset;
         view.StrideInBytes = stride;
         view.SizeInBytes = pBuffer->desc.sizeBytes > offset ? pBuffer->desc.sizeBytes - offset : 0;
 
@@ -824,11 +928,14 @@ public:
             return;
 
         CDX12Buffer* pBuffer = m_Owner.m_pTables->bufferTable.Lookup(handle);
-        if (!pBuffer || !pBuffer->pResource)
+        ID3D12Resource* pResource = pBuffer
+            ? GetDX12BufferResource(*pBuffer, m_Owner.m_iFrameIndex)
+            : nullptr;
+        if (!pResource)
             return;
 
         D3D12_INDEX_BUFFER_VIEW view{};
-        view.BufferLocation = pBuffer->pResource->GetGPUVirtualAddress() + offset;
+        view.BufferLocation = pResource->GetGPUVirtualAddress() + offset;
         view.Format = ToDXGIFormat(indexFormat);
         view.SizeInBytes = pBuffer->desc.sizeBytes > offset ? pBuffer->desc.sizeBytes - offset : 0;
 
@@ -865,17 +972,20 @@ public:
             return;
 
         CDX12Buffer* pBuffer = m_Owner.m_pTables->bufferTable.Lookup(handle);
-        if (!pBuffer || !pBuffer->pResource || !pBuffer->uploadHeap)
+        ID3D12Resource* pResource = pBuffer
+            ? GetDX12BufferResource(*pBuffer, m_Owner.m_iFrameIndex)
+            : nullptr;
+        if (!pBuffer || !pResource || !pBuffer->uploadHeap)
             return;
 
         void* pMapped = nullptr;
         D3D12_RANGE readRange{ 0, 0 };
-        if (FAILED(pBuffer->pResource->Map(0, &readRange, &pMapped)))
+        if (FAILED(pResource->Map(0, &readRange, &pMapped)))
             return;
 
         const u32_t copyBytes = sizeBytes < pBuffer->desc.sizeBytes ? sizeBytes : pBuffer->desc.sizeBytes;
         std::memcpy(pMapped, pData, copyBytes);
-        pBuffer->pResource->Unmap(0, nullptr);
+        pResource->Unmap(0, nullptr);
     }
 
     void TransitionResource(RHIBufferHandle, eRHIResourceState) override {}
@@ -953,6 +1063,7 @@ RHIBufferHandle CDX12Device::CreateBuffer(const RHIBufferDesc& desc, const void*
     const bool_t useUploadHeap =
         desc.dynamic ||
         desc.memoryUsage == eRHIMemoryUsage::Dynamic ||
+        // Frame-time buffer creation must not reset the open frame command list.
         m_bFrameRecording;
 
     if (useUploadHeap)
@@ -960,31 +1071,36 @@ RHIBufferHandle CDX12Device::CreateBuffer(const RHIBufferDesc& desc, const void*
         D3D12_HEAP_PROPERTIES heapProps = MakeHeapProperties(D3D12_HEAP_TYPE_UPLOAD);
         D3D12_RESOURCE_DESC resourceDesc = MakeBufferResourceDesc(desc.sizeBytes);
 
-        if (FAILED(m_pDevice->CreateCommittedResource(
-            &heapProps,
-            D3D12_HEAP_FLAG_NONE,
-            &resourceDesc,
-            D3D12_RESOURCE_STATE_GENERIC_READ,
-            nullptr,
-            IID_PPV_ARGS(&pBuffer->pResource))))
+        pBuffer->frameResources.resize(kFrameCount);
+        for (u32_t i = 0; i < kFrameCount; ++i)
         {
-            delete pBuffer;
-            return {};
-        }
-
-        pBuffer->state = D3D12_RESOURCE_STATE_GENERIC_READ;
-        pBuffer->uploadHeap = true;
-
-        if (pInitialData)
-        {
-            void* pMapped = nullptr;
-            D3D12_RANGE readRange{ 0, 0 };
-            if (SUCCEEDED(pBuffer->pResource->Map(0, &readRange, &pMapped)))
+            if (FAILED(m_pDevice->CreateCommittedResource(
+                &heapProps,
+                D3D12_HEAP_FLAG_NONE,
+                &resourceDesc,
+                D3D12_RESOURCE_STATE_GENERIC_READ,
+                nullptr,
+                IID_PPV_ARGS(&pBuffer->frameResources[i]))))
             {
-                std::memcpy(pMapped, pInitialData, desc.sizeBytes);
-                pBuffer->pResource->Unmap(0, nullptr);
+                delete pBuffer;
+                return {};
+            }
+
+            if (pInitialData)
+            {
+                void* pMapped = nullptr;
+                D3D12_RANGE readRange{ 0, 0 };
+                if (SUCCEEDED(pBuffer->frameResources[i]->Map(0, &readRange, &pMapped)))
+                {
+                    std::memcpy(pMapped, pInitialData, desc.sizeBytes);
+                    pBuffer->frameResources[i]->Unmap(0, nullptr);
+                }
             }
         }
+
+        pBuffer->pResource = pBuffer->frameResources[0];
+        pBuffer->state = D3D12_RESOURCE_STATE_GENERIC_READ;
+        pBuffer->uploadHeap = true;
 
         return m_pTables->bufferTable.Insert(pBuffer);
     }
@@ -1038,6 +1154,7 @@ RHIBufferHandle CDX12Device::CreateBuffer(const RHIBufferDesc& desc, const void*
         std::memcpy(pMapped, pInitialData, desc.sizeBytes);
         pUpload->Unmap(0, nullptr);
 
+        WaitForFrame(m_iFrameIndex);
         m_pCommandAllocators[m_iFrameIndex]->Reset();
         m_pCommandList->Reset(m_pCommandAllocators[m_iFrameIndex].Get(), nullptr);
         m_pCommandList->CopyBufferRegion(pBuffer->pResource.Get(), 0, pUpload.Get(), 0, desc.sizeBytes);
@@ -1072,7 +1189,7 @@ void* CDX12Device::GetBufferNativeHandle(RHIBufferHandle handle, eNativeHandleTy
         return nullptr;
 
     CDX12Buffer* pBuffer = m_pTables->bufferTable.Lookup(handle);
-    return pBuffer ? pBuffer->pResource.Get() : nullptr;
+    return pBuffer ? GetDX12BufferResource(*pBuffer, m_iFrameIndex) : nullptr;
 }
 
 RHIShaderHandle CDX12Device::CreateShader(
@@ -1108,6 +1225,14 @@ RHITextureHandle CDX12Device::CreateTexture(
 {
     if (!m_pDevice || !m_pTables || desc.width == 0 || desc.height == 0)
         return {};
+
+    if (m_bFrameRecording && pInitialData)
+    {
+        OutputDebugStringA(
+            "[CDX12Device] CreateTexture with initial data is not allowed during frame recording; "
+            "queue/cook the texture before BeginFrame or add a dedicated upload command path.\n");
+        return {};
+    }
 
     const DXGI_FORMAT format = ToDXGIFormat(desc.format);
     if (format == DXGI_FORMAT_UNKNOWN)
@@ -1603,16 +1728,11 @@ RHIBindGroupHandle CDX12Device::CreateBindGroup(const RHIBindGroupDesc& desc)
     pGroup->samplerBaseIndex = samplerBase;
     pGroup->samplerCount = samplerCount;
 
-    if (srvCount > 0)
-        pGroup->srvTableGpu = m_pHeaps->SrvGpuAt(srvBase);
-    if (samplerCount > 0)
-        pGroup->samplerTableGpu = m_pHeaps->SamplerGpuAt(samplerBase);
-
     WriteBindGroupDescriptors(
         layoutDesc,
         pGroup->GetDesc(),
-        srvCount > 0 ? m_pHeaps->SrvCpuAt(srvBase) : D3D12_CPU_DESCRIPTOR_HANDLE{},
-        samplerCount > 0 ? m_pHeaps->SamplerCpuAt(samplerBase) : D3D12_CPU_DESCRIPTOR_HANDLE{});
+        srvCount > 0 ? m_pHeaps->SrvStagingCpuAt(srvBase) : D3D12_CPU_DESCRIPTOR_HANDLE{},
+        samplerCount > 0 ? m_pHeaps->SamplerStagingCpuAt(samplerBase) : D3D12_CPU_DESCRIPTOR_HANDLE{});
 
     return m_pTables->bindGroupTable.Insert(pGroup);
 }
@@ -1660,10 +1780,10 @@ void CDX12Device::UpdateBindGroup(
         pLayout->GetDesc(),
         pDX12Group->GetDesc(),
         pDX12Group->srvCount > 0
-            ? m_pHeaps->SrvCpuAt(pDX12Group->srvBaseIndex)
+            ? m_pHeaps->SrvStagingCpuAt(pDX12Group->srvBaseIndex)
             : D3D12_CPU_DESCRIPTOR_HANDLE{},
         pDX12Group->samplerCount > 0
-            ? m_pHeaps->SamplerCpuAt(pDX12Group->samplerBaseIndex)
+            ? m_pHeaps->SamplerStagingCpuAt(pDX12Group->samplerBaseIndex)
             : D3D12_CPU_DESCRIPTOR_HANDLE{});
 }
 
@@ -1708,6 +1828,10 @@ bool_t CDX12Device::CreateDescriptorHeaps()
     if (FAILED(m_pDevice->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&m_pHeaps->pSrvHeap))))
         return false;
 
+    srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    if (FAILED(m_pDevice->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&m_pHeaps->pSrvStagingHeap))))
+        return false;
+
     D3D12_DESCRIPTOR_HEAP_DESC samplerDesc{};
     samplerDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
     samplerDesc.NumDescriptors = kSamplerHeapCapacity;
@@ -1716,12 +1840,18 @@ bool_t CDX12Device::CreateDescriptorHeaps()
     if (FAILED(m_pDevice->CreateDescriptorHeap(&samplerDesc, IID_PPV_ARGS(&m_pHeaps->pSamplerHeap))))
         return false;
 
+    samplerDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    if (FAILED(m_pDevice->CreateDescriptorHeap(&samplerDesc, IID_PPV_ARGS(&m_pHeaps->pSamplerStagingHeap))))
+        return false;
+
     m_pHeaps->srvIncrement =
         m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     m_pHeaps->samplerIncrement =
         m_pDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
     m_pHeaps->srvCapacity = kSrvHeapCapacity;
     m_pHeaps->samplerCapacity = kSamplerHeapCapacity;
+    m_pHeaps->srvRingCapacity = kSrvHeapCapacity / kFrameCount;
+    m_pHeaps->samplerRingCapacity = kSamplerHeapCapacity / kFrameCount;
     return true;
 }
 
@@ -1929,11 +2059,15 @@ void CDX12Device::BeginFrame(f32_t r, f32_t g, f32_t b, f32_t a)
     if (!m_pCommandList || !m_pCommandAllocators[m_iFrameIndex])
         return;
 
+    WaitForFrame(m_iFrameIndex);
+
     m_pCommandAllocators[m_iFrameIndex]->Reset();
     m_pCommandList->Reset(m_pCommandAllocators[m_iFrameIndex].Get(), nullptr);
 
     if (m_pHeaps && m_pHeaps->pSrvHeap && m_pHeaps->pSamplerHeap)
     {
+        m_pHeaps->ResetFrame(m_iFrameIndex);
+
         ID3D12DescriptorHeap* ppHeaps[] = { m_pHeaps->pSrvHeap.Get(), m_pHeaps->pSamplerHeap.Get() };
         m_pCommandList->SetDescriptorHeaps(2, ppHeaps);
     }
@@ -1980,11 +2114,36 @@ void CDX12Device::EndFrame()
     ID3D12CommandList* ppLists[] = { m_pCommandList.Get() };
     m_pCommandQueue->ExecuteCommandLists(1, ppLists);
 
+    const u32_t completedFrameIndex = m_iFrameIndex;
+    const u64_t fenceValue = m_uNextFenceValue++;
+    if (SUCCEEDED(m_pCommandQueue->Signal(m_pFence.Get(), fenceValue)))
+        m_uFrameFenceValues[completedFrameIndex] = fenceValue;
+
     m_pSwapChain->Present(m_bVSync ? 1u : 0u, 0u);
-    WaitForGpu();
 
     m_iFrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
     m_bFrameRecording = false;
+}
+
+void CDX12Device::WaitForFenceValue(u64_t fenceValue)
+{
+    if (fenceValue == 0 || !m_pFence || !m_hFenceEvent)
+        return;
+
+    if (m_pFence->GetCompletedValue() >= fenceValue)
+        return;
+
+    m_pFence->SetEventOnCompletion(fenceValue, m_hFenceEvent);
+    WaitForSingleObject(m_hFenceEvent, INFINITE);
+}
+
+void CDX12Device::WaitForFrame(u32_t frameIndex)
+{
+    if (frameIndex >= kFrameCount)
+        return;
+
+    WaitForFenceValue(m_uFrameFenceValues[frameIndex]);
+    m_uFrameFenceValues[frameIndex] = 0;
 }
 
 void CDX12Device::WaitForGpu()
@@ -1992,15 +2151,12 @@ void CDX12Device::WaitForGpu()
     if (!m_pCommandQueue || !m_pFence || !m_hFenceEvent)
         return;
 
-    const u64_t fenceValue = m_uFenceValue;
+    const u64_t fenceValue = m_uNextFenceValue++;
     if (FAILED(m_pCommandQueue->Signal(m_pFence.Get(), fenceValue)))
         return;
 
-    if (m_pFence->GetCompletedValue() < fenceValue)
-    {
-        m_pFence->SetEventOnCompletion(fenceValue, m_hFenceEvent);
-        WaitForSingleObject(m_hFenceEvent, INFINITE);
-    }
+    WaitForFenceValue(fenceValue);
 
-    ++m_uFenceValue;
+    for (u64_t& frameFenceValue : m_uFrameFenceValues)
+        frameFenceValue = 0;
 }

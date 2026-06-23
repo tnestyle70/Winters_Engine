@@ -1,6 +1,6 @@
 #include "Shared/GameSim/Champions/Kalista/KalistaGameSim.h"
 
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
@@ -18,9 +18,32 @@ namespace
     constexpr f32_t kKalistaESlowDurationSec = 2.0f;
     constexpr f32_t kKalistaESlowMoveSpeedMul = 0.55f;
 
-    f32_t ResolveRendRange()
+    f32_t ResolveKalistaESkillEffectParam(
+        CWorld& world,
+        EntityID caster,
+        const TickContext& tc,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
     {
-        const f32_t range = ChampionGameDataDB::ResolveSkillRange(
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::KALISTA,
+            static_cast<u8_t>(eSkillSlot::E),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveRendRange(
+        CWorld& world,
+        EntityID caster,
+        const TickContext& tc)
+    {
+        const f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            caster,
+            tc,
             eChampion::KALISTA,
             static_cast<u8_t>(eSkillSlot::E));
         return range > 0.f ? range : 12.f;
@@ -32,6 +55,19 @@ namespace
         EntityID caster,
         EntityID target)
     {
+        const f32_t slowDurationSec = ResolveKalistaESkillEffectParam(
+            world,
+            caster,
+            tc,
+            eSkillEffectParamId::SlowDurationSec,
+            kKalistaESlowDurationSec);
+        const f32_t slowMoveSpeedMul = ResolveKalistaESkillEffectParam(
+            world,
+            caster,
+            tc,
+            eSkillEffectParamId::MoveSpeedMul,
+            kKalistaESlowMoveSpeedMul);
+
         GameplayStatus::ApplySlow(
             world,
             tc,
@@ -39,8 +75,8 @@ namespace
             caster,
             eChampion::KALISTA,
             eSkillSlot::E,
-            kKalistaESlowDurationSec,
-            kKalistaESlowMoveSpeedMul);
+            slowDurationSec,
+            slowMoveSpeedMul);
     }
 
     void OnE(GameplayHookContext& ctx)
@@ -63,7 +99,7 @@ namespace
             return;
 
         const Vec3 origin = world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
-        const f32_t range = ResolveRendRange();
+        const f32_t range = ResolveRendRange(world, ctx.casterEntity, *ctx.pTickCtx);
         const f32_t rangeSq = range * range;
 
         world.ForEach<ChampionComponent, TransformComponent>(

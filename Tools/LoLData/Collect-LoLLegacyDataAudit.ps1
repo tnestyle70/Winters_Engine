@@ -18,9 +18,21 @@ function Invoke-RgLines {
 
     $args = @("-n", $Pattern)
     foreach ($path in $Paths) {
-        $args += (Join-Path $Root $path)
+        $fullPath = Join-Path $Root $path
+        if (Test-Path $fullPath) {
+            $args += $fullPath
+        }
     }
-    $args += @("-g", "!Client/Bin/**", "-g", "!Client/Intermediate/**", "-g", "!Client/Temp/**")
+    if ($args.Count -eq 2) {
+        return @()
+    }
+    $args += @(
+        "-g", "!Client/Bin/**",
+        "-g", "!Client/Intermediate/**",
+        "-g", "!Client/Temp/**",
+        "-g", "!Client/Private/Data/Generated/**",
+        "-g", "!Server/Private/Data/Generated/**"
+    )
 
     $result = & rg @args 2>$null
     if ($LASTEXITCODE -gt 1) {
@@ -37,15 +49,53 @@ function Invoke-RgFiles {
 
     $args = @("-l", $Pattern)
     foreach ($path in $Paths) {
-        $args += (Join-Path $Root $path)
+        $fullPath = Join-Path $Root $path
+        if (Test-Path $fullPath) {
+            $args += $fullPath
+        }
     }
-    $args += @("-g", "!Client/Bin/**", "-g", "!Client/Intermediate/**", "-g", "!Client/Temp/**")
+    if ($args.Count -eq 2) {
+        return @()
+    }
+    $args += @(
+        "-g", "!Client/Bin/**",
+        "-g", "!Client/Intermediate/**",
+        "-g", "!Client/Temp/**",
+        "-g", "!Client/Private/Data/Generated/**",
+        "-g", "!Server/Private/Data/Generated/**"
+    )
 
     $result = & rg @args 2>$null
     if ($LASTEXITCODE -gt 1) {
         throw "rg failed for pattern: $Pattern"
     }
     return @($result | ForEach-Object { Resolve-Path $_ | ForEach-Object { $_.Path } })
+}
+
+function Convert-RgLineBreakdown {
+    param(
+        [string[]]$Lines
+    )
+
+    $counts = @{}
+    foreach ($line in $Lines) {
+        if ($line -match "^(.*):(\d+):") {
+            $path = $Matches[1]
+            if (-not $counts.ContainsKey($path)) {
+                $counts[$path] = 0
+            }
+            ++$counts[$path]
+        }
+    }
+
+    return @($counts.GetEnumerator() |
+        Sort-Object Name |
+        ForEach-Object {
+            [ordered]@{
+                path = $_.Name
+                count = $_.Value
+            }
+        })
 }
 
 $championJsonPath = Join-Path $Root "Data\Gameplay\ChampionGameData\champions.json"
@@ -83,9 +133,35 @@ $legacyChampionLines = Invoke-RgLines `
     -Pattern "\bChampionDef\b|s_ChampionTable|FindChampionDef|CChampionRegistry|ChampionCatalog" `
     -Paths @("Client", "Shared", "Server")
 
+$visualFieldPattern = "visualYawOffset|animPlaySpeed|castFrame|recoveryFrame|ResolveVisualYawOffset|summonerSpells"
+
 $visualLeakLines = Invoke-RgLines `
-    -Pattern "visualYawOffset|animPlaySpeed|castFrame|recoveryFrame|ResolveVisualYawOffset|summonerSpells" `
+    -Pattern $visualFieldPattern `
     -Paths @("Data", "Client", "Shared", "Server", "Tools")
+
+$visualClientPublicLines = Invoke-RgLines `
+    -Pattern $visualFieldPattern `
+    -Paths @("Data\LoL\ClientPublic\Visual")
+
+$visualToolLines = Invoke-RgLines `
+    -Pattern $visualFieldPattern `
+    -Paths @("Tools")
+
+$visualGameplayDataLines = Invoke-RgLines `
+    -Pattern $visualFieldPattern `
+    -Paths @("Data\Gameplay")
+
+$visualClientLegacyLines = Invoke-RgLines `
+    -Pattern $visualFieldPattern `
+    -Paths @("Client")
+
+$visualSharedLines = Invoke-RgLines `
+    -Pattern $visualFieldPattern `
+    -Paths @("Shared\GameSim")
+
+$visualServerLines = Invoke-RgLines `
+    -Pattern $visualFieldPattern `
+    -Paths @("Server")
 
 $serverObjectLines = Invoke-RgLines `
     -Pattern "ResolveStageStructureMaxHp|ResolveStageJungle|ServerMinionTuning::kWave|kWaveIntervalTicks|kInitialWaveDelayTicks|AssignDefaultBotSkillRanks|gold.amount|LethalTempo" `
@@ -94,6 +170,14 @@ $serverObjectLines = Invoke-RgLines `
 $projectileVisualLines = Invoke-RgLines `
     -Pattern "ProjectileVisualCatalog|ProjectileVisualDesc" `
     -Paths @("Client", "Shared", "Server")
+
+$skillEffectHardcodeLines = Invoke-RgLines `
+    -Pattern "constexpr\s+f32_t\s+k[A-Za-z0-9_]*(Damage|DamagePerRank|Range|Radius|Speed|DurationSec|MoveSpeedMul|Slow|Stun|Shield|Dash|Gap|Hp|Attack|Cooldown|Lifetime|Ratio|Distance|HalfAngleCos)" `
+    -Paths @("Shared\GameSim\Champions")
+
+$skillEffectQueryLines = Invoke-RgLines `
+    -Pattern "ResolveSkillEffectParam|eSkillEffectParamId::" `
+    -Paths @("Shared\GameSim\Champions")
 
 $report = [ordered]@{
     generatedAtUtc = (Get-Date).ToUniversalTime().ToString("o")
@@ -120,6 +204,24 @@ $report = [ordered]@{
         visualFieldsInGameplayOrLegacy = @($visualLeakLines).Count
         serverObjectHardcode = @($serverObjectLines).Count
         projectileVisualCatalog = @($projectileVisualLines).Count
+        skillEffectHardcodeCandidates = @($skillEffectHardcodeLines).Count
+        skillEffectDataQueryReaders = @($skillEffectQueryLines).Count
+    }
+    skillEffectCutover = [ordered]@{
+        hardcodeCandidateCount = @($skillEffectHardcodeLines).Count
+        dataQueryReaderCount = @($skillEffectQueryLines).Count
+        hardcodeCandidatesByFile = Convert-RgLineBreakdown -Lines $skillEffectHardcodeLines
+        dataQueryReadersByFile = Convert-RgLineBreakdown -Lines $skillEffectQueryLines
+    }
+    visualFieldBreakdown = [ordered]@{
+        total = @($visualLeakLines).Count
+        expectedClientPublicVisual = @($visualClientPublicLines).Count
+        toolExtraction = @($visualToolLines).Count
+        legacyGameplaySource = @($visualGameplayDataLines).Count
+        clientLegacyRuntime = @($visualClientLegacyLines).Count
+        sharedGameSimAuthoritative = @($visualSharedLines).Count
+        serverAuthoritative = @($visualServerLines).Count
+        suspiciousAuthoritative = @($visualGameplayDataLines).Count + @($visualSharedLines).Count + @($visualServerLines).Count
     }
 }
 

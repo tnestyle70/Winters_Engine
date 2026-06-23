@@ -1,5 +1,6 @@
 #include "Shared/GameSim/Champions/Riven/RivenGameSim.h"
 
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
@@ -20,6 +21,27 @@ namespace
     constexpr f32_t kRivenQ3AirborneDurationSec = 0.75f;
     constexpr f32_t kRivenWRadius = 2.5f;
     constexpr f32_t kRivenWStunDurationSec = 0.75f;
+
+    f32_t ResolveRivenSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            *ctx.pTickCtx,
+            eChampion::RIVEN,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
 
     RivenStateComponent& EnsureRivenState(CWorld& world, EntityID caster)
     {
@@ -65,6 +87,21 @@ namespace
         const u8_t nextStack = static_cast<u8_t>(std::min<u32_t>(
             3u,
             static_cast<u32_t>(state.qStackCount) + 1u));
+        const f32_t q3Radius = ResolveRivenSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Radius,
+            kRivenQ3Radius);
+        const f32_t q3AirborneDurationSec = ResolveRivenSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::AirborneDurationSec,
+            kRivenQ3AirborneDurationSec);
+        const f32_t qStackWindowSec = ResolveRivenSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::StackWindowSec,
+            kRivenQStackWindowSec);
 
         if (nextStack >= 3u)
         {
@@ -72,7 +109,7 @@ namespace
                 world,
                 ctx.casterEntity,
                 ctx.casterTeam,
-                kRivenQ3Radius,
+                q3Radius,
                 [&](EntityID target)
                 {
                     GameplayStatus::ApplyAirborne(
@@ -82,7 +119,7 @@ namespace
                         ctx.casterEntity,
                         eChampion::RIVEN,
                         eSkillSlot::Q,
-                        kRivenQ3AirborneDurationSec);
+                        q3AirborneDurationSec);
                 });
 
             state.qStackCount = 0;
@@ -91,7 +128,7 @@ namespace
         else
         {
             state.qStackCount = nextStack;
-            state.qStackTimer = kRivenQStackWindowSec;
+            state.qStackTimer = qStackWindowSec;
         }
 
         std::cout << "[RivenSim] Q caster=" << ctx.casterEntity
@@ -104,11 +141,21 @@ namespace
             return;
 
         CWorld& world = *ctx.pWorld;
+        const f32_t wRadius = ResolveRivenSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Radius,
+            kRivenWRadius);
+        const f32_t wStunDurationSec = ResolveRivenSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::StunDurationSec,
+            kRivenWStunDurationSec);
         ForEachEnemyChampionInRadius(
             world,
             ctx.casterEntity,
             ctx.casterTeam,
-            kRivenWRadius,
+            wRadius,
             [&](EntityID target)
             {
                 GameplayStatus::ApplyStun(
@@ -118,7 +165,7 @@ namespace
                     ctx.casterEntity,
                     eChampion::RIVEN,
                     eSkillSlot::W,
-                    kRivenWStunDurationSec);
+                    wStunDurationSec);
             });
 
         std::cout << "[RivenSim] W stun caster=" << ctx.casterEntity << "\n";

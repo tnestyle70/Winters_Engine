@@ -10,5 +10,5 @@ namespace LeeSinGameSim
 {
 	void RegisterHooks();
 	void Tick(CWorld& world, const TickContext& tc);
-	void ApplySonicWaveMark(CWorld& world, EntityID source, EntityID target);
+	void ApplySonicWaveMark(CWorld& world, const TickContext& tc, EntityID source, EntityID target);
 }

@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "source": "Data/Gameplay/ChampionGameData/champions.json",
+  "buildHash": 1180562775,
+  "championCount": 17,
+  "skillCount": 85,
+  "summonerSpellCount": 1,
+  "definitionKeyCount": 103,
+  "definitionKeyCollisionCount": 0,
+  "serverVisualOwnershipViolationCount": 0,
+  "notes": [
+    "DefId is pack-local and never a network or save identifier.",
+    "DefinitionKey is the stable SharedContract identifier.",
+    "Animation playback and model yaw are emitted only to ClientPublic.",
+    "Spawn/object gameplay policy is emitted only to ServerPrivate.",
+    "Skill effect scalar params are emitted only to ServerPrivate."
+  ]
+}

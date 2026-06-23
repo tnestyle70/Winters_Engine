@@ -1,18 +1,14 @@
 #include "Game/GameRoom.h"
 
+#include "Game/ReplicationEmitter.h"
 #include "Game/ReplayRecorder.h"
 #include "Game/SnapshotBuilder.h"
 #include "Network/Session.h"
 #include "Network/Session_Manager.h"
-#include "Shared/GameSim/Components/ReplicatedActionComponent.h"
-#include "Shared/GameSim/Components/ReplicatedEventComponent.h"
-#include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
-#include "Shared/GameSim/Systems/ReplicatedEventSerializer/ReplicatedEventSerializer.h"
 #include "Shared/Network/PacketEnvelope.h"
 
 #include <Windows.h>
 
-#include <functional>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -79,92 +75,49 @@ void CGameRoom::BroadcastEventPayload(const u8_t* payload, u32_t payloadSize, u3
     }
 }
 
-void CGameRoom::BroadcastReplicatedEvent(const ReplicatedEventComponent& event, TickContext& tc)
-{
-    SharedSim::SerializedReplicatedEvent serialized{};
-    if (!SharedSim::CReplicatedEventSerializer::Build(
-        m_world,
-        m_entityMap,
-        event,
-        tc.tickIndex,
-        serialized))
-    {
-        return;
-    }
-
-    BroadcastEventPayload(
-        serialized.payload.data(),
-        static_cast<u32_t>(serialized.payload.size()),
-        static_cast<u32_t>(tc.tickIndex));
-
-    if (serialized.bUnbindProjectileAfterSend &&
-        serialized.projectileNetToUnbind != NULL_NET_ENTITY)
-    {
-        m_entityMap.Unbind(serialized.projectileNetToUnbind);
-    }
-}
-
 void CGameRoom::Phase_BroadcastEvents(TickContext& tc)
 {
-    struct ActionEvent
+    auto broadcastSerialized = [&](const SharedSim::SerializedReplicatedEvent& serialized)
     {
-        NetEntityId netId = NULL_NET_ENTITY;
-        ReplicatedActionComponent action{};
-    };
-
-    std::vector<ActionEvent> events;
-    m_world.ForEach<ReplicatedActionComponent>(
-        std::function<void(EntityID, ReplicatedActionComponent&)>(
-            [&](EntityID entity, ReplicatedActionComponent& action)
-            {
-                if (action.sequence == 0)
-                    return;
-
-                const NetEntityId netId = m_entityMap.ToNet(entity);
-                if (netId == NULL_NET_ENTITY)
-                    return;
-
-                u32_t& lastSeq = m_lastBroadcastActionSeq[entity];
-                if (lastSeq == action.sequence)
-                    return;
-
-                lastSeq = action.sequence;
-                events.push_back(ActionEvent{ netId, action });
-            }));
-
-    for (const ActionEvent& ev : events)
-    {
-        SharedSim::SerializedReplicatedEvent serialized{};
-        if (!SharedSim::CReplicatedEventSerializer::BuildActionStart(
-            ev.netId,
-            ev.action,
-            tc.tickIndex,
-            serialized))
-        {
-            continue;
-        }
-
         BroadcastEventPayload(
             serialized.payload.data(),
             static_cast<u32_t>(serialized.payload.size()),
             static_cast<u32_t>(tc.tickIndex));
+
+        if (serialized.bUnbindProjectileAfterSend &&
+            serialized.projectileNetToUnbind != NULL_NET_ENTITY)
+        {
+            m_entityMap.Unbind(serialized.projectileNetToUnbind);
+        }
+    };
+
+    const auto actionEvents = CReplicationEmitter::CollectActionStartEvents(
+        m_world,
+        m_entityMap,
+        tc.tickIndex,
+        m_lastBroadcastActionSeq);
+    for (const SharedSim::SerializedReplicatedEvent& serialized : actionEvents)
+    {
+        broadcastSerialized(serialized);
     }
 
     const auto replicatedEvents =
-        DeterministicEntityIterator<ReplicatedEventComponent>::CollectSorted(m_world);
-
+        CReplicationEmitter::CollectReplicatedEventEntities(m_world);
     for (EntityID entity : replicatedEvents)
     {
-        if (!m_world.IsAlive(entity) ||
-            !m_world.HasComponent<ReplicatedEventComponent>(entity))
+        SharedSim::SerializedReplicatedEvent serialized{};
+        if (CReplicationEmitter::TryBuildReplicatedEvent(
+            m_world,
+            m_entityMap,
+            entity,
+            tc.tickIndex,
+            serialized))
         {
-            continue;
+            broadcastSerialized(serialized);
         }
 
-        const ReplicatedEventComponent event =
-            m_world.GetComponent<ReplicatedEventComponent>(entity);
-        BroadcastReplicatedEvent(event, tc);
-        m_world.DestroyEntity(entity);
+        if (m_world.IsAlive(entity))
+            m_world.DestroyEntity(entity);
     }
 }
 

@@ -1,0 +1,342 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": 1,
+  "buildHash": 1180562775,
+  "skillEffects": [
+    {
+      "key": "skill.annie.e",
+      "params": {
+        "moveSpeedMul": 1.1,
+        "shieldAmountPerRank": 45.0,
+        "shieldArmorPerRank": 5.0,
+        "shieldBaseAmount": 50.0,
+        "shieldDurationSec": 3.0
+      }
+    },
+    {
+      "key": "skill.annie.q",
+      "params": {
+        "baseDamage": 80.0,
+        "damagePerRank": 35.0,
+        "stunDurationSec": 1.25
+      }
+    },
+    {
+      "key": "skill.annie.r",
+      "params": {
+        "baseDamage": 150.0,
+        "damagePerRank": 75.0,
+        "radius": 3.0,
+        "range": 6.0,
+        "stunDurationSec": 1.25,
+        "summonAttackCooldownSec": 1.0,
+        "summonAttackDamagePerRank": 15.0,
+        "summonAttackRange": 2.2,
+        "summonBaseAttackDamage": 40.0,
+        "summonBaseHp": 1000.0,
+        "summonDurationSec": 45.0,
+        "summonHpPerRank": 250.0,
+        "summonMoveSpeed": 5.2,
+        "summonRadius": 0.9,
+        "summonSightRange": 14.0
+      }
+    },
+    {
+      "key": "skill.annie.w",
+      "params": {
+        "baseDamage": 70.0,
+        "damagePerRank": 45.0,
+        "halfAngleCos": 0.76604444,
+        "range": 6.0,
+        "stunDurationSec": 1.25
+      }
+    },
+    {
+      "key": "skill.ashe.r",
+      "params": {
+        "baseDamage": 250.0,
+        "range": 200.0,
+        "speed": 20.0,
+        "stunDurationSec": 1.5
+      }
+    },
+    {
+      "key": "skill.ashe.w",
+      "params": {
+        "baseDamage": 45.0,
+        "moveSpeedMul": 0.85,
+        "range": 12.0,
+        "speed": 24.0
+      }
+    },
+    {
+      "key": "skill.fiora.q",
+      "params": {
+        "baseDamage": 70.0,
+        "dashDistance": 3.0,
+        "dashDurationSec": 0.25,
+        "radius": 1.0,
+        "range": 4.0
+      }
+    },
+    {
+      "key": "skill.fiora.r",
+      "params": {
+        "baseDamage": 80.0
+      }
+    },
+    {
+      "key": "skill.fiora.w",
+      "params": {
+        "moveSpeedMul": 0.5,
+        "radius": 0.8,
+        "range": 6.0,
+        "slowDurationSec": 1.5
+      }
+    },
+    {
+      "key": "skill.irelia.e",
+      "params": {
+        "baseDamage": 70.0,
+        "damagePerRank": 30.0,
+        "radius": 1.5,
+        "stunDurationSec": 0.75
+      }
+    },
+    {
+      "key": "skill.irelia.q",
+      "params": {
+        "baseDamage": 45.0,
+        "damagePerRank": 25.0,
+        "dashDurationSec": 0.25
+      }
+    },
+    {
+      "key": "skill.irelia.r",
+      "params": {
+        "baseDamage": 250.0,
+        "disarmDurationSec": 1.5,
+        "effectDurationSec": 2.5,
+        "moveSpeedMul": 0.5,
+        "range": 8.0,
+        "rectLength": 5.0,
+        "rectWidth": 7.5,
+        "slowDurationSec": 0.5,
+        "speed": 15.0
+      }
+    },
+    {
+      "key": "skill.irelia.w",
+      "params": {
+        "baseDamage": 30.0,
+        "damagePerRank": 40.0,
+        "halfWidth": 2.2,
+        "range": 6.0
+      }
+    },
+    {
+      "key": "skill.jax.e",
+      "params": {
+        "stunDurationSec": 1.0
+      }
+    },
+    {
+      "key": "skill.jax.q",
+      "params": {
+        "baseDamage": 70.0,
+        "dashDurationSec": 0.22,
+        "gap": 1.0
+      }
+    },
+    {
+      "key": "skill.kalista.e",
+      "params": {
+        "moveSpeedMul": 0.55,
+        "slowDurationSec": 2.0
+      }
+    },
+    {
+      "key": "skill.kindred.e",
+      "params": {
+        "baseDamage": 80.0,
+        "markDurationSec": 4.0,
+        "moveSpeedMul": 0.65,
+        "slowDurationSec": 1.0
+      }
+    },
+    {
+      "key": "skill.kindred.r",
+      "params": {
+        "effectDurationSec": 4.0,
+        "healAmountPerRank": 75.0,
+        "healBaseAmount": 250.0,
+        "minHealthAmount": 1.0,
+        "radius": 6.0
+      }
+    },
+    {
+      "key": "skill.kindred.w",
+      "params": {
+        "baseDamage": 35.0,
+        "effectDurationSec": 4.0,
+        "radius": 4.0,
+        "tickIntervalSec": 0.6
+      }
+    },
+    {
+      "key": "skill.leesin.e",
+      "params": {
+        "moveSpeedMul": 0.6,
+        "radius": 3.5,
+        "slowDurationSec": 1.5
+      }
+    },
+    {
+      "key": "skill.leesin.q",
+      "params": {
+        "baseDamage": 95.0,
+        "dashDurationSec": 0.18,
+        "gap": 1.0,
+        "markDurationSec": 3.0
+      }
+    },
+    {
+      "key": "skill.leesin.r",
+      "params": {
+        "airborneDurationSec": 1.0,
+        "baseDamage": 150.0
+      }
+    },
+    {
+      "key": "skill.riven.q",
+      "params": {
+        "airborneDurationSec": 0.75,
+        "radius": 2.25,
+        "stackWindowSec": 4.0
+      }
+    },
+    {
+      "key": "skill.riven.w",
+      "params": {
+        "radius": 2.5,
+        "stunDurationSec": 0.75
+      }
+    },
+    {
+      "key": "skill.sylas.e",
+      "params": {
+        "airborneDurationSec": 0.75,
+        "baseDamage": 65.0,
+        "damagePerRank": 25.0,
+        "dashDistance": 3.25,
+        "dashDurationSec": 0.16,
+        "gap": 0.85,
+        "radius": 0.55,
+        "speed": 26.0,
+        "targetDashDurationSec": 0.22
+      }
+    },
+    {
+      "key": "skill.viego.e",
+      "params": {
+        "effectDurationSec": 4.0,
+        "radius": 6.0,
+        "refreshDurationSec": 0.25,
+        "tickIntervalSec": 0.1
+      }
+    },
+    {
+      "key": "skill.viego.q",
+      "params": {
+        "baseDamage": 65.0,
+        "radius": 0.9
+      }
+    },
+    {
+      "key": "skill.viego.r",
+      "params": {
+        "baseDamage": 150.0,
+        "dashDurationSec": 0.18,
+        "moveSpeedMul": 0.6,
+        "radius": 2.0,
+        "slowDurationSec": 1.0
+      }
+    },
+    {
+      "key": "skill.viego.w",
+      "params": {
+        "baseDamage": 55.0,
+        "dashDurationSec": 0.26,
+        "radius": 0.75,
+        "stunDurationSec": 0.75
+      }
+    },
+    {
+      "key": "skill.yone.e",
+      "params": {
+        "dashDistance": 4.0,
+        "dashDurationSec": 0.25,
+        "effectDurationSec": 5.0
+      }
+    },
+    {
+      "key": "skill.yone.q",
+      "params": {
+        "baseDamage": 75.0,
+        "radius": 0.85
+      }
+    },
+    {
+      "key": "skill.yone.r",
+      "params": {
+        "airborneDurationSec": 0.75,
+        "baseDamage": 150.0,
+        "dashDelaySec": 0.5,
+        "dashDurationSec": 0.16,
+        "radius": 1.7
+      }
+    },
+    {
+      "key": "skill.yone.w",
+      "params": {
+        "baseDamage": 65.0,
+        "radius": 1.5
+      }
+    },
+    {
+      "key": "skill.zed.e",
+      "params": {
+        "baseDamage": 65.0,
+        "damagePerRank": 20.0,
+        "moveSpeedMul": 0.6,
+        "radius": 2.75,
+        "slowDurationSec": 1.5
+      }
+    },
+    {
+      "key": "skill.zed.q",
+      "params": {
+        "baseDamage": 70.0,
+        "damagePerRank": 25.0,
+        "radius": 0.45,
+        "speed": 24.0
+      }
+    },
+    {
+      "key": "skill.zed.r",
+      "params": {
+        "effectDurationSec": 5.0,
+        "gap": 0.75,
+        "markDurationSec": 3.0,
+        "missingHealthDamageRatio": 0.3,
+        "vanishDurationSec": 0.75
+      }
+    },
+    {
+      "key": "skill.zed.w",
+      "params": {
+        "effectDurationSec": 5.0
+      }
+    }
+  ]
+}

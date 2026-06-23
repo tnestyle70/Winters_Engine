@@ -1,5 +1,6 @@
 #include "Game/GameRoom.h"
 
+#include "Game/ServerProjectileAuthority.h"
 #include "GameRoomInternal.h"
 
 #include "Shared/GameSim/Champions/LeeSin/LeeSinGameSim.h"
@@ -33,93 +34,6 @@
 
 namespace
 {
-    constexpr u16_t kTurretProjectileKind = 100;
-    constexpr f32_t kServerMinionRangedProjectileTargetHeight = 0.85f;
-    bool_t IsServerMinionRangedProjectileKind(eProjectileKind kind)
-    {
-        return kind == eProjectileKind::MinionRangedBasicBlue ||
-            kind == eProjectileKind::MinionRangedBasicRed;
-    }
-
-    f32_t ResolveCombatRadius(CWorld& world, EntityID entity)
-    {
-        if (world.HasComponent<SpatialAgentComponent>(entity))
-            return std::max(0.2f, world.GetComponent<SpatialAgentComponent>(entity).radius);
-        if (world.HasComponent<StructureComponent>(entity))
-            return 1.5f;
-        if (world.HasComponent<MinionComponent>(entity) ||
-            world.HasComponent<MinionStateComponent>(entity))
-            return 0.45f;
-        return 0.65f;
-    }
-
-    EntityID FindSkillProjectileHitTarget(
-        CWorld& world,
-        const SkillProjectileComponent& projectile,
-        const Vec3& start,
-        const Vec3& end,
-        Vec3& outHitPos)
-    {
-        EntityID bestTarget = NULL_ENTITY;
-        f32_t bestT = 1.f;
-
-        world.ForEach<HealthComponent, TransformComponent>(
-            std::function<void(EntityID, HealthComponent&, TransformComponent&)>(
-                [&](EntityID entity, HealthComponent& health, TransformComponent& transform)
-                {
-                    const bool_t bYasuoTornado =
-                        projectile.kind == eProjectileKind::Tornado;
-                    if (entity == projectile.sourceEntity ||
-                        !world.IsAlive(entity) ||
-                        health.bIsDead ||
-                        health.fCurrent <= 0.f)
-                    {
-                        return;
-                    }
-
-                    eTeam targetTeam = eTeam::Neutral;
-                    if (!TryResolveCombatTeam(world, entity, targetTeam))
-                        return;
-                    if (targetTeam == projectile.sourceTeam &&
-                        targetTeam != eTeam::Neutral)
-                    {
-                        return;
-                    }
-                    if (!GameplayStateQuery::CanReceiveProjectileHit(
-                        world,
-                        projectile.sourceEntity,
-                        entity))
-                    {
-                        return;
-                    }
-
-                    const Vec3 targetPos = transform.GetPosition();
-                    f32_t t = 0.f;
-                    const f32_t distSq = WintersMath::DistanceSqPointToSegmentXZ(
-                        targetPos,
-                        start,
-                        end,
-                        &t,
-                        std::numeric_limits<f32_t>::epsilon());
-                    const f32_t projectileRadius = bYasuoTornado
-                        ? std::max(projectile.hitRadius, 2.25f)
-                        : projectile.hitRadius;
-                    const f32_t radius = projectileRadius + ResolveCombatRadius(world, entity);
-                    if (distSq <= radius * radius && t <= bestT)
-                    {
-                        bestTarget = entity;
-                        bestT = t;
-                        outHitPos = Vec3{
-                            start.x + (end.x - start.x) * t,
-                            targetPos.y + 1.0f,
-                            start.z + (end.z - start.z) * t
-                        };
-                    }
-                }));
-
-        return bestTarget;
-    }
-
     void LogSkillProjectileEvent(
         const char* state,
         EntityID projectileEntity,
@@ -194,15 +108,14 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
         {
             if (currentProjectileNet != NULL_NET_ENTITY)
             {
-                ReplicatedEventComponent hit{};
-                hit.kind = eReplicatedEventKind::ProjectileHit;
-                hit.sourceEntity = projectile.sourceEntity;
-                hit.targetEntity = NULL_ENTITY;
-                hit.projectileEntity = entity;
-                hit.projectileKind = kTurretProjectileKind;
-                hit.position = pos;
-                hit.bDestroyed = true;
-                hit.startTick = tc.tickIndex;
+                const ReplicatedEventComponent hit =
+                    CServerProjectileAuthority::BuildProjectileHitEvent(
+                        projectile.sourceEntity,
+                        NULL_ENTITY,
+                        entity,
+                        CServerProjectileAuthority::kTurretProjectileKind,
+                        pos,
+                        tc.tickIndex);
                 EnqueueReplicatedEvent(m_world, hit);
             }
 
@@ -225,17 +138,17 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
                 Vec3{ targetPos.x - pos.x, 0.f, targetPos.z - pos.z },
                 eTeam::Neutral);
 
-            ReplicatedEventComponent spawn{};
-            spawn.kind = eReplicatedEventKind::ProjectileSpawn;
-            spawn.sourceEntity = projectile.sourceEntity;
-            spawn.targetEntity = projectile.targetEntity;
-            spawn.projectileEntity = entity;
-            spawn.projectileKind = kTurretProjectileKind;
-            spawn.position = pos;
-            spawn.direction = dir;
-            spawn.speed = projectile.speed;
-            spawn.maxDistance = 48.f;
-            spawn.startTick = tc.tickIndex;
+            const ReplicatedEventComponent spawn =
+                CServerProjectileAuthority::BuildProjectileSpawnEvent(
+                    projectile.sourceEntity,
+                    projectile.targetEntity,
+                    entity,
+                    CServerProjectileAuthority::kTurretProjectileKind,
+                    pos,
+                    dir,
+                    projectile.speed,
+                    48.f,
+                    tc.tickIndex);
             EnqueueReplicatedEvent(m_world, spawn);
 
             static u32_t s_turretProjectileLogCount = 0;
@@ -272,24 +185,22 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
             eTeam sourceTeam = eTeam::Neutral;
             (void)TryResolveCombatTeam(m_world, projectile.sourceEntity, sourceTeam);
 
-            DamageRequest request{};
-            request.source = projectile.sourceEntity;
-            request.target = projectile.targetEntity;
-            request.sourceTeam = sourceTeam;
-            request.type = eDamageType::Physical;
-            request.flatAmount = projectile.damage;
-            request.skillId = kTurretProjectileKind;
+            const DamageRequest request =
+                CServerProjectileAuthority::BuildTurretDamageRequest(
+                    projectile.sourceEntity,
+                    projectile.targetEntity,
+                    sourceTeam,
+                    projectile.damage);
             EnqueueDamageRequest(m_world, request);
 
-            ReplicatedEventComponent hit{};
-            hit.kind = eReplicatedEventKind::ProjectileHit;
-            hit.sourceEntity = projectile.sourceEntity;
-            hit.targetEntity = projectile.targetEntity;
-            hit.projectileEntity = entity;
-            hit.projectileKind = kTurretProjectileKind;
-            hit.position = targetAim;
-            hit.bDestroyed = true;
-            hit.startTick = tc.tickIndex;
+            const ReplicatedEventComponent hit =
+                CServerProjectileAuthority::BuildProjectileHitEvent(
+                    projectile.sourceEntity,
+                    projectile.targetEntity,
+                    entity,
+                    CServerProjectileAuthority::kTurretProjectileKind,
+                    targetAim,
+                    tc.tickIndex);
             EnqueueReplicatedEvent(m_world, hit);
             m_world.DestroyEntity(entity);
             continue;
@@ -338,19 +249,19 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
 
             projectile.bSpawned = true;
 
-            ReplicatedEventComponent spawn{};
-            spawn.kind = eReplicatedEventKind::ProjectileSpawn;
-            spawn.sourceEntity = projectile.sourceEntity;
-            spawn.targetEntity = projectile.targetEntity;
-            spawn.projectileEntity = entity;
-            spawn.projectileKind = static_cast<u16_t>(projectile.kind);
-            spawn.position = projectile.currentPos;
-            spawn.direction = projectile.direction;
-            spawn.speed = projectile.speed;
-            spawn.maxDistance = projectile.maxDistance;
-            spawn.startTick = tc.tickIndex;
+            const ReplicatedEventComponent spawn =
+                CServerProjectileAuthority::BuildProjectileSpawnEvent(
+                    projectile.sourceEntity,
+                    projectile.targetEntity,
+                    entity,
+                    static_cast<u16_t>(projectile.kind),
+                    projectile.currentPos,
+                    projectile.direction,
+                    projectile.speed,
+                    projectile.maxDistance,
+                    tc.tickIndex);
             EnqueueReplicatedEvent(m_world, spawn);
-            if (!IsServerMinionRangedProjectileKind(projectile.kind))
+            if (!CServerProjectileAuthority::IsMinionRangedProjectileKind(projectile.kind))
                 LogSkillProjectileEvent(
                     "spawn",
                     entity,
@@ -364,14 +275,14 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
             projectile.speed <= 0.f ||
             projectile.maxDistance <= 0.f)
         {
-            ReplicatedEventComponent hit{};
-            hit.kind = eReplicatedEventKind::ProjectileHit;
-            hit.sourceEntity = projectile.sourceEntity;
-            hit.projectileEntity = entity;
-            hit.projectileKind = static_cast<u16_t>(projectile.kind);
-            hit.position = projectile.currentPos;
-            hit.bDestroyed = true;
-            hit.startTick = tc.tickIndex;
+            const ReplicatedEventComponent hit =
+                CServerProjectileAuthority::BuildProjectileHitEvent(
+                    projectile.sourceEntity,
+                    NULL_ENTITY,
+                    entity,
+                    static_cast<u16_t>(projectile.kind),
+                    projectile.currentPos,
+                    tc.tickIndex);
             EnqueueReplicatedEvent(m_world, hit);
             m_world.DestroyEntity(entity);
             continue;
@@ -390,15 +301,14 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
 
             if (!bTargetAlive)
             {
-                ReplicatedEventComponent hit{};
-                hit.kind = eReplicatedEventKind::ProjectileHit;
-                hit.sourceEntity = projectile.sourceEntity;
-                hit.targetEntity = NULL_ENTITY;
-                hit.projectileEntity = entity;
-                hit.projectileKind = static_cast<u16_t>(projectile.kind);
-                hit.position = projectile.currentPos;
-                hit.bDestroyed = true;
-                hit.startTick = tc.tickIndex;
+                const ReplicatedEventComponent hit =
+                    CServerProjectileAuthority::BuildProjectileHitEvent(
+                        projectile.sourceEntity,
+                        NULL_ENTITY,
+                        entity,
+                        static_cast<u16_t>(projectile.kind),
+                        projectile.currentPos,
+                        tc.tickIndex);
                 EnqueueReplicatedEvent(m_world, hit);
                 m_world.DestroyEntity(entity);
                 continue;
@@ -408,7 +318,7 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
                 m_world.GetComponent<TransformComponent>(projectile.targetEntity).GetPosition();
             const Vec3 targetAim{
                 targetPos.x,
-                targetPos.y + kServerMinionRangedProjectileTargetHeight,
+                targetPos.y + CServerProjectileAuthority::kMinionRangedProjectileTargetHeight,
                 targetPos.z
             };
             const Vec3 delta{
@@ -421,26 +331,21 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
 
             if (distSq <= hitRadiusSq)
             {
-                DamageRequest request{};
-                request.source = projectile.sourceEntity;
-                request.target = projectile.targetEntity;
-                request.sourceTeam = projectile.sourceTeam;
-                request.type = eDamageType::Physical;
-                request.flatAmount = projectile.damage;
-                request.skillId = projectile.skillId;
-                request.rank = projectile.rank;
-                request.flags = DamageFlag_OnHit;
+                const DamageRequest request =
+                    CServerProjectileAuthority::BuildSkillProjectileDamageRequest(
+                        projectile,
+                        projectile.targetEntity,
+                        eDamageType::Physical);
                 EnqueueDamageRequest(m_world, request);
 
-                ReplicatedEventComponent hit{};
-                hit.kind = eReplicatedEventKind::ProjectileHit;
-                hit.sourceEntity = projectile.sourceEntity;
-                hit.targetEntity = projectile.targetEntity;
-                hit.projectileEntity = entity;
-                hit.projectileKind = static_cast<u16_t>(projectile.kind);
-                hit.position = targetAim;
-                hit.bDestroyed = true;
-                hit.startTick = tc.tickIndex;
+                const ReplicatedEventComponent hit =
+                    CServerProjectileAuthority::BuildProjectileHitEvent(
+                        projectile.sourceEntity,
+                        projectile.targetEntity,
+                        entity,
+                        static_cast<u16_t>(projectile.kind),
+                        targetAim,
+                        tc.tickIndex);
                 EnqueueReplicatedEvent(m_world, hit);
                 m_world.DestroyEntity(entity);
                 continue;
@@ -456,15 +361,14 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
             const f32_t remaining = projectile.maxDistance - projectile.traveledDistance;
             if (remaining <= 0.f)
             {
-                ReplicatedEventComponent hit{};
-                hit.kind = eReplicatedEventKind::ProjectileHit;
-                hit.sourceEntity = projectile.sourceEntity;
-                hit.targetEntity = NULL_ENTITY;
-                hit.projectileEntity = entity;
-                hit.projectileKind = static_cast<u16_t>(projectile.kind);
-                hit.position = projectile.currentPos;
-                hit.bDestroyed = true;
-                hit.startTick = tc.tickIndex;
+                const ReplicatedEventComponent hit =
+                    CServerProjectileAuthority::BuildProjectileHitEvent(
+                        projectile.sourceEntity,
+                        NULL_ENTITY,
+                        entity,
+                        static_cast<u16_t>(projectile.kind),
+                        projectile.currentPos,
+                        tc.tickIndex);
                 EnqueueReplicatedEvent(m_world, hit);
                 m_world.DestroyEntity(entity);
                 continue;
@@ -484,15 +388,14 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
 
             if (projectile.traveledDistance >= projectile.maxDistance - 0.001f)
             {
-                ReplicatedEventComponent hit{};
-                hit.kind = eReplicatedEventKind::ProjectileHit;
-                hit.sourceEntity = projectile.sourceEntity;
-                hit.targetEntity = NULL_ENTITY;
-                hit.projectileEntity = entity;
-                hit.projectileKind = static_cast<u16_t>(projectile.kind);
-                hit.position = next;
-                hit.bDestroyed = true;
-                hit.startTick = tc.tickIndex;
+                const ReplicatedEventComponent hit =
+                    CServerProjectileAuthority::BuildProjectileHitEvent(
+                        projectile.sourceEntity,
+                        NULL_ENTITY,
+                        entity,
+                        static_cast<u16_t>(projectile.kind),
+                        next,
+                        tc.tickIndex);
                 EnqueueReplicatedEvent(m_world, hit);
                 m_world.DestroyEntity(entity);
             }
@@ -509,7 +412,7 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
         };
 
         Vec3 hitPos = end;
-        const EntityID target = FindSkillProjectileHitTarget(
+        const EntityID target = CServerProjectileAuthority::FindSkillProjectileHitTarget(
             m_world,
             projectile,
             start,
@@ -521,34 +424,29 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
             if (projectile.kind == eProjectileKind::Tornado)
                 YasuoGameSim::ApplyTornadoAirborne(m_world, tc, projectile.sourceEntity, target);
             if (projectile.kind == eProjectileKind::LeeSinQ)
-                LeeSinGameSim::ApplySonicWaveMark(m_world, projectile.sourceEntity, target);
+                LeeSinGameSim::ApplySonicWaveMark(m_world, tc, projectile.sourceEntity, target);
             if (projectile.kind == eProjectileKind::SylasChain)
                 SylasGameSim::ApplyChainHit(m_world, tc, projectile.sourceEntity, target);
             if (projectile.bApplyOnHitStatus)
                 GameplayStatus::ApplyStatusEffect(m_world, target, projectile.onHitStatus, tc);
 
-            DamageRequest request{};
-            request.source = projectile.sourceEntity;
-            request.target = target;
-            request.sourceTeam = projectile.sourceTeam;
-            request.type = projectile.kind == eProjectileKind::SylasChain
-                ? eDamageType::Magic
-                : eDamageType::Physical;
-            request.flatAmount = projectile.damage;
-            request.skillId = projectile.skillId;
-            request.rank = projectile.rank;
-            request.flags = DamageFlag_OnHit;
+            const DamageRequest request =
+                CServerProjectileAuthority::BuildSkillProjectileDamageRequest(
+                    projectile,
+                    target,
+                    projectile.kind == eProjectileKind::SylasChain
+                        ? eDamageType::Magic
+                        : eDamageType::Physical);
             EnqueueDamageRequest(m_world, request);
 
-            ReplicatedEventComponent hit{};
-            hit.kind = eReplicatedEventKind::ProjectileHit;
-            hit.sourceEntity = projectile.sourceEntity;
-            hit.targetEntity = target;
-            hit.projectileEntity = entity;
-            hit.projectileKind = static_cast<u16_t>(projectile.kind);
-            hit.position = hitPos;
-            hit.bDestroyed = true;
-            hit.startTick = tc.tickIndex;
+            const ReplicatedEventComponent hit =
+                CServerProjectileAuthority::BuildProjectileHitEvent(
+                    projectile.sourceEntity,
+                    target,
+                    entity,
+                    static_cast<u16_t>(projectile.kind),
+                    hitPos,
+                    tc.tickIndex);
             EnqueueReplicatedEvent(m_world, hit);
             LogSkillProjectileEvent("hit", entity, projectile, target, hitPos);
             m_world.DestroyEntity(entity);
@@ -561,14 +459,14 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
 
         if (projectile.traveledDistance >= projectile.maxDistance - 0.001f)
         {
-            ReplicatedEventComponent hit{};
-            hit.kind = eReplicatedEventKind::ProjectileHit;
-            hit.sourceEntity = projectile.sourceEntity;
-            hit.projectileEntity = entity;
-            hit.projectileKind = static_cast<u16_t>(projectile.kind);
-            hit.position = end;
-            hit.bDestroyed = true;
-            hit.startTick = tc.tickIndex;
+            const ReplicatedEventComponent hit =
+                CServerProjectileAuthority::BuildProjectileHitEvent(
+                    projectile.sourceEntity,
+                    NULL_ENTITY,
+                    entity,
+                    static_cast<u16_t>(projectile.kind),
+                    end,
+                    tc.tickIndex);
             EnqueueReplicatedEvent(m_world, hit);
             LogSkillProjectileEvent("expire", entity, projectile, NULL_ENTITY, end);
             m_world.DestroyEntity(entity);

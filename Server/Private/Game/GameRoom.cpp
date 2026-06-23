@@ -8,6 +8,7 @@
 #include "Network/PacketDispatcher.h"
 #include "Network/Session.h"
 #include "Network/Session_Manager.h"
+#include "Server/Private/Data/LoLGameplayDefinitionPack.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
@@ -205,9 +206,11 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
 
         if (!respawn.bPending)
         {
+            const SpawnLoadoutPolicyDef& spawnPolicy =
+                ServerData::GetLoLSpawnObjectDefinitionPack().spawnLoadout;
             respawn.bPending = true;
-            respawn.respawnDelay = kDefaultChampionRespawnDelaySec;
-            respawn.respawnTimer = kDefaultChampionRespawnDelaySec;
+            respawn.respawnDelay = spawnPolicy.respawnDelaySec;
+            respawn.respawnTimer = spawnPolicy.respawnDelaySec;
 
             if (m_world.HasComponent<TargetableTag>(entity))
                 m_world.RemoveComponent<TargetableTag>(entity);

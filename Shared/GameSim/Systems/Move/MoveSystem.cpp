@@ -7,6 +7,7 @@
 #include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -284,6 +285,8 @@ namespace
     }
 
     bool_t IsActionStateLocked(
+        CWorld& world,
+        EntityID entity,
         const StatComponent& stat,
         const ActionStateComponent& action,
         const TickContext& tc)
@@ -305,7 +308,13 @@ namespace
             return false;
         }
 
-        const u64_t lockTicks = ChampionGameDataDB::ResolveSkillActionLockTicks(stat.championId, slot, stage);
+        const u64_t lockTicks = GameplayDefinitionQuery::ResolveSkillActionLockTicks(
+            world,
+            entity,
+            tc,
+            stat.championId,
+            slot,
+            stage);
         return (tc.tickIndex - action.startTick) < lockTicks;
     }
 
@@ -334,7 +343,7 @@ namespace
             return true;
         }
 
-        return IsActionStateLocked(stat, *pAction, tc);
+        return IsActionStateLocked(world, entity, stat, *pAction, tc);
     }
 
     const ActionStateComponent* FindActionState(CWorld& world, EntityID entity)

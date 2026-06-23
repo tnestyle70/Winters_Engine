@@ -426,6 +426,9 @@
     <ClInclude Include="..\Public\Scene\Scene_InGame.h">
       <Filter>01. Scene\05. InGame</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_InGameInternal.h">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\Scene\Scene_Loading.h">
       <Filter>01. Scene\04. Loading</Filter>
     </ClInclude>
@@ -449,6 +452,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\Manager\Jungle_Manager.h">
       <Filter>04. Manager\01. Jungle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\AmbientProp_Manager.h">
+      <Filter>04. Manager</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Manager\Minion_Manager.h">
       <Filter>04. Manager\02. Minion</Filter>
@@ -869,6 +875,30 @@
     <ClCompile Include="..\Private\Scene\Scene_InGame.cpp">
       <Filter>01. Scene\05. InGame</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_InGameImGui.cpp">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_InGameInternal.cpp">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_InGameNetwork.cpp">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_InGameRender.cpp">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_InGameMapNav.cpp">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_InGameLocalSkills.cpp">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_InGameInput.cpp">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_InGameLifecycle.cpp">
+      <Filter>01. Scene\05. InGame</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Scene\Scene_Loading.cpp">
       <Filter>01. Scene\04. Loading</Filter>
     </ClCompile>
@@ -886,6 +916,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Manager\Jungle_Manager.cpp">
       <Filter>04. Manager\01. Jungle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\AmbientProp_Manager.cpp">
+      <Filter>04. Manager</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Manager\Minion_Manager.cpp">
       <Filter>04. Manager\02. Minion</Filter>

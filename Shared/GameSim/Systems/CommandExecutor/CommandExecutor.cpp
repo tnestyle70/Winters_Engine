@@ -29,6 +29,7 @@
 #include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
 #include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
@@ -486,9 +487,14 @@ namespace
         return std::clamp(cdr, 0.f, 0.4f);
     }
 
-    f32_t ResolveCastSkillCooldown(CWorld& world, EntityID entity, eChampion champion, u8_t slot)
+    f32_t ResolveCastSkillCooldown(CWorld& world, EntityID entity, const TickContext& tc, eChampion champion, u8_t slot)
     {
-        f32_t cooldown = ChampionGameDataDB::ResolveSkillCooldown(champion, slot);
+        f32_t cooldown = GameplayDefinitionQuery::ResolveSkillCooldown(
+            world,
+            entity,
+            tc,
+            champion,
+            slot);
         if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
             return std::max(0.f, cooldown);
 
@@ -504,7 +510,7 @@ namespace
         return std::max(0.f, cooldown);
     }
 
-    f32_t ResolveBasicAttackCooldown(CWorld& world, EntityID entity, eChampion champion)
+    f32_t ResolveBasicAttackCooldown(CWorld& world, EntityID entity, const TickContext& tc, eChampion champion)
     {
         if (world.HasComponent<StatComponent>(entity))
         {
@@ -513,7 +519,10 @@ namespace
                 return std::clamp(1.f / attackSpeed, 0.333f, 5.f);
         }
 
-        return std::max(0.333f, ChampionGameDataDB::ResolveSkillCooldown(
+        return std::max(0.333f, GameplayDefinitionQuery::ResolveSkillCooldown(
+            world,
+            entity,
+            tc,
             champion,
             static_cast<u8_t>(eSkillSlot::BasicAttack)));
     }
@@ -666,6 +675,7 @@ namespace
     void ArmKalistaPassiveDashWindow(
         CWorld& world,
         EntityID entity,
+        const TickContext& tc,
         u8_t slot,
         const Vec3& direction,
         bool_t bStartPending = false,
@@ -680,11 +690,24 @@ namespace
         }
 
         auto& action = world.GetComponent<ActionStateComponent>(entity);
-        const u64_t lockTicks = ChampionGameDataDB::ResolveSkillActionLockTicks(eChampion::KALISTA, slot);
+        const u64_t lockTicks = GameplayDefinitionQuery::ResolveSkillActionLockTicks(
+            world,
+            entity,
+            tc,
+            eChampion::KALISTA,
+            slot);
         const f32_t dashDistance =
-            ChampionGameDataDB::ResolvePassiveDashDistance(eChampion::KALISTA);
+            GameplayDefinitionQuery::ResolvePassiveDashDistance(
+                world,
+                entity,
+                tc,
+                eChampion::KALISTA);
         const f32_t dashDurationSec =
-            ChampionGameDataDB::ResolvePassiveDashDurationSec(eChampion::KALISTA);
+            GameplayDefinitionQuery::ResolvePassiveDashDurationSec(
+                world,
+                entity,
+                tc,
+                eChampion::KALISTA);
         const Vec3 fallback = ForwardFromYaw(
             world.GetComponent<TransformComponent>(entity).GetRotation().y,
             eChampion::KALISTA);
@@ -751,10 +774,19 @@ namespace
             return false;
 
         const u8_t slot = SlotFromKalistaPassiveDashAction(actionId);
-        const u64_t lockTicks = ChampionGameDataDB::ResolveSkillActionLockTicks(eChampion::KALISTA, slot);
+        const u64_t lockTicks = GameplayDefinitionQuery::ResolveSkillActionLockTicks(
+            world,
+            cmd.issuerEntity,
+            tc,
+            eChampion::KALISTA,
+            slot);
         const u64_t triggerTick = action.startTick + lockTicks;
         const u64_t inputGraceTicks =
-            ChampionGameDataDB::ResolvePassiveDashInputGraceTicks(eChampion::KALISTA);
+            GameplayDefinitionQuery::ResolvePassiveDashInputGraceTicks(
+                world,
+                cmd.issuerEntity,
+                tc,
+                eChampion::KALISTA);
         const u64_t expireTick = triggerTick + inputGraceTicks;
         if (tc.tickIndex >= expireTick)
         {
@@ -835,8 +867,16 @@ namespace
         dash.direction = dashDir;
         dash.bHasQueuedMove = false;
         dash.queuedMoveTarget = {};
-        dash.distance = ChampionGameDataDB::ResolvePassiveDashDistance(eChampion::KALISTA);
-        dash.durationSec = ChampionGameDataDB::ResolvePassiveDashDurationSec(eChampion::KALISTA);
+        dash.distance = GameplayDefinitionQuery::ResolvePassiveDashDistance(
+            world,
+            cmd.issuerEntity,
+            tc,
+            eChampion::KALISTA);
+        dash.durationSec = GameplayDefinitionQuery::ResolvePassiveDashDurationSec(
+            world,
+            cmd.issuerEntity,
+            tc,
+            eChampion::KALISTA);
         dash.elapsedSec = 0.f;
 
         char msg[256]{};
@@ -942,6 +982,7 @@ namespace
 
     void EnqueueFallbackSkillDamage(
         CWorld& world,
+        const TickContext& tc,
         const GameCommand& cmd,
         eChampion champion,
         u8_t rank)
@@ -958,7 +999,12 @@ namespace
         if (sourceTeam == targetTeam && sourceTeam != eTeam::Neutral)
             return;
 
-        f32_t range = ChampionGameDataDB::ResolveSkillRange(champion, cmd.slot);
+        f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            cmd.issuerEntity,
+            tc,
+            champion,
+            cmd.slot);
         if (range <= 0.f)
             range = 12.f;
         if (world.HasComponent<StatComponent>(cmd.issuerEntity))
@@ -1176,6 +1222,7 @@ namespace
 
     EntityID SpawnServerSkillProjectile(
         CWorld& world,
+        const TickContext& tc,
         const GameCommand& cmd,
         eChampion champion,
         u8_t rank)
@@ -1188,7 +1235,12 @@ namespace
         Vec3 origin = world.GetComponent<TransformComponent>(cmd.issuerEntity).GetPosition();
         origin.y += 1.0f;
 
-        f32_t range = ChampionGameDataDB::ResolveSkillRange(champion, cmd.slot);
+        f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            cmd.issuerEntity,
+            tc,
+            champion,
+            cmd.slot);
         if (range <= 0.f)
             range = 11.f;
 
@@ -1251,7 +1303,12 @@ namespace
 
         const Vec3 direction = ResolveProjectileDirection(
             world, cmd.issuerEntity, NULL_ENTITY, cmd.direction);
-        f32_t range = ChampionGameDataDB::ResolveSkillRange(champion, cmd.slot);
+        f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            cmd.issuerEntity,
+            tc,
+            champion,
+            cmd.slot);
         if (range <= 0.f)
             range = 4.75f;
 
@@ -1778,7 +1835,12 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         bRequestedStage2 &&
         slot.currentStage == 1 &&
         slot.stageWindow > 0.f &&
-        ChampionGameDataDB::IsSkillTwoStage(hookChampion, hookSlot);
+        GameplayDefinitionQuery::IsSkillTwoStage(
+            world,
+            cmd.issuerEntity,
+            tc,
+            hookChampion,
+            hookSlot);
     u8_t skillStage = bStage2 ? 2u : 1u;
     if (!bStage2 &&
         hookChampion == eChampion::YASUO &&
@@ -1798,7 +1860,12 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         hookChampion == eChampion::YASUO &&
         hookSlot == static_cast<u8_t>(eSkillSlot::R))
     {
-        const f32_t searchRadius = ChampionGameDataDB::ResolveSkillRange(hookChampion, hookSlot);
+        const f32_t searchRadius = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            cmd.issuerEntity,
+            tc,
+            hookChampion,
+            hookSlot);
         const EntityID airborneTarget = YasuoGameSim::FindAirborneTarget(
             world,
             cmd.issuerEntity,
@@ -1831,7 +1898,7 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         hookSlot == static_cast<u8_t>(eSkillSlot::R) &&
         !world.HasComponent<SpellbookOverrideComponent>(cmd.issuerEntity);
     if (bSylasHijackCapture &&
-        !SylasGameSim::CanHijackUltimate(world, cmd.issuerEntity, effectiveCmd.targetEntity))
+        !SylasGameSim::CanHijackUltimate(world, tc, cmd.issuerEntity, effectiveCmd.targetEntity))
     {
         LogCastSkill("reject", "no-hijack-target", cmd, hookChampion, 0.f);
         return;
@@ -1850,7 +1917,12 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         world.HasComponent<TransformComponent>(effectiveCmd.issuerEntity) &&
         world.HasComponent<TransformComponent>(effectiveCmd.targetEntity))
     {
-        f32_t range = ChampionGameDataDB::ResolveSkillRange(hookChampion, hookSlot);
+        f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            effectiveCmd.issuerEntity,
+            tc,
+            hookChampion,
+            hookSlot);
         if (range <= 0.f)
             range = 6.25f;
 
@@ -1873,6 +1945,7 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
     const f32_t cooldown = ResolveCastSkillCooldown(
         world,
         cmd.issuerEntity,
+        tc,
         skillIdentity.cooldownChampion,
         skillIdentity.cooldownSlot);
     if (bStage2)
@@ -1884,10 +1957,20 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
     {
         slot.cooldownRemaining = cooldown;
         slot.cooldownDuration = cooldown;
-        if (ChampionGameDataDB::IsSkillTwoStage(hookChampion, hookSlot))
+        if (GameplayDefinitionQuery::IsSkillTwoStage(
+            world,
+            cmd.issuerEntity,
+            tc,
+            hookChampion,
+            hookSlot))
         {
             slot.currentStage = 1;
-            slot.stageWindow = ChampionGameDataDB::ResolveSkillStageWindowSec(hookChampion, hookSlot);
+            slot.stageWindow = GameplayDefinitionQuery::ResolveSkillStageWindowSec(
+                world,
+                cmd.issuerEntity,
+                tc,
+                hookChampion,
+                hookSlot);
         }
     }
     else
@@ -1941,6 +2024,7 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         ArmKalistaPassiveDashWindow(
             world,
             resolvedCmd.issuerEntity,
+            tc,
             resolvedCmd.slot,
             resolvedCmd.direction);
     }
@@ -1961,7 +2045,7 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         DispatchGameplayHookIfAvailable(
             world, tc, resolvedCmd, primaryHookId, hookChampion, rank);
     if (!bServerProjectileSkill && !bGameplayHookHandled)
-        EnqueueFallbackSkillDamage(world, resolvedCmd, hookChampion, rank);
+        EnqueueFallbackSkillDamage(world, tc, resolvedCmd, hookChampion, rank);
 
     ReplicatedEventComponent castEvent{};
     castEvent.kind = eReplicatedEventKind::SkillCast;
@@ -2019,7 +2103,7 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
 #endif
 
     if (bServerProjectileSkill)
-        SpawnServerSkillProjectile(world, resolvedCmd, hookChampion, rank);
+        SpawnServerSkillProjectile(world, tc, resolvedCmd, hookChampion, rank);
 
     const bool_t bShouldEmitGenericProjectile =
         resolvedCmd.slot != static_cast<u8_t>(eSkillSlot::BasicAttack) &&
@@ -2041,7 +2125,12 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         projectileEvent.direction = ResolveProjectileDirection(
             world, resolvedCmd.issuerEntity, resolvedCmd.targetEntity, resolvedCmd.direction);
         projectileEvent.speed = 18.f;
-        projectileEvent.maxDistance = ChampionGameDataDB::ResolveSkillRange(hookChampion, resolvedCmd.slot);
+        projectileEvent.maxDistance = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            resolvedCmd.issuerEntity,
+            tc,
+            hookChampion,
+            resolvedCmd.slot);
         if (projectileEvent.maxDistance <= 0.f)
             projectileEvent.maxDistance = 12.f;
         projectileEvent.startTick = tc.tickIndex;
@@ -2188,6 +2277,7 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     const f32_t cooldown = ResolveBasicAttackCooldown(
         world,
         cmd.issuerEntity,
+        tc,
         champion);
 
     if (world.HasComponent<SkillStateComponent>(cmd.issuerEntity))
@@ -2211,6 +2301,7 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     ArmKalistaPassiveDashWindow(
         world,
         cmd.issuerEntity,
+        tc,
         static_cast<u8_t>(eSkillSlot::BasicAttack),
         attackDirection);
 }
@@ -2371,9 +2462,13 @@ void CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,
         return;
 
     const f32_t range =
-        ChampionGameDataDB::ResolveSummonerSpellRange(ChampionScoreComponent::kSummonerSpellFlash);
+        GameplayDefinitionQuery::ResolveSummonerSpellRange(
+            tc,
+            ChampionScoreComponent::kSummonerSpellFlash);
     const f32_t cooldown =
-        ChampionGameDataDB::ResolveSummonerSpellCooldown(ChampionScoreComponent::kSummonerSpellFlash);
+        GameplayDefinitionQuery::ResolveSummonerSpellCooldown(
+            tc,
+            ChampionScoreComponent::kSummonerSpellFlash);
     if (range <= 0.f || cooldown <= 0.f)
         return;
 

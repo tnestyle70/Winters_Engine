@@ -8,7 +8,7 @@
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/SylasSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
@@ -32,6 +32,44 @@ namespace
     constexpr f32_t kSylasE2AirborneDurationSec = 0.75f;
     constexpr f32_t kSylasE2BaseDamage = 65.f;
     constexpr f32_t kSylasE2DamagePerRank = 25.f;
+
+    f32_t ResolveSylasSkillEffectParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::SYLAS,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveSylasSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return ResolveSylasSkillEffectParam(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            slot,
+            param,
+            fallbackValue);
+    }
 
     void ClearMove(CWorld& world, EntityID entity)
     {
@@ -102,7 +140,12 @@ namespace
         ClearMove(world, caster);
     }
 
-    void StartDirectionalDash(CWorld& world, EntityID caster, const Vec3& direction)
+    void StartDirectionalDash(
+        CWorld& world,
+        EntityID caster,
+        const Vec3& direction,
+        f32_t distance,
+        f32_t durationSec)
     {
         if (!world.HasComponent<TransformComponent>(caster))
             return;
@@ -113,15 +156,20 @@ namespace
 
         const Vec3 start = world.GetComponent<TransformComponent>(caster).GetPosition();
         const Vec3 end{
-            start.x + dir.x * kSylasE1DashDistance,
+            start.x + dir.x * distance,
             start.y,
-            start.z + dir.z * kSylasE1DashDistance
+            start.z + dir.z * distance
         };
 
-        StartDash(world, caster, end, kSylasE1DashDurationSec);
+        StartDash(world, caster, end, durationSec);
     }
 
-    void StartTargetDash(CWorld& world, EntityID caster, EntityID target)
+    void StartTargetDash(
+        CWorld& world,
+        EntityID caster,
+        EntityID target,
+        f32_t gap,
+        f32_t durationSec)
     {
         if (!world.HasComponent<TransformComponent>(caster) ||
             target == NULL_ENTITY ||
@@ -144,7 +192,7 @@ namespace
         const f32_t dx = targetPos.x - start.x;
         const f32_t dz = targetPos.z - start.z;
         const f32_t dist = std::sqrt(dx * dx + dz * dz);
-        const f32_t moveDist = std::max(0.f, dist - kSylasE2DashGap);
+        const f32_t moveDist = std::max(0.f, dist - gap);
 
         const Vec3 end{
             start.x + dir.x * moveDist,
@@ -152,7 +200,7 @@ namespace
             start.z + dir.z * moveDist
         };
 
-        StartDash(world, caster, end, kSylasE2DashDurationSec);
+        StartDash(world, caster, end, durationSec);
     }
 
     void SpawnChainProjectile(GameplayHookContext& ctx)
@@ -169,13 +217,48 @@ namespace
         if (dir.x == 0.f && dir.z == 0.f)
             return;
 
-        f32_t range = ChampionGameDataDB::ResolveSkillRange(eChampion::SYLAS,
+        const TickContext* pTickCtx = ctx.pTickCtx;
+        TickContext fallbackTick{};
+        const TickContext& tc = pTickCtx ? *pTickCtx : fallbackTick;
+        f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            tc,
+            eChampion::SYLAS,
             static_cast<u8_t>(eSkillSlot::E));
         if (range <= 0.f)
             range = 6.f;
 
         const u8_t rank = ctx.skillRank > 0u ? ctx.skillRank : static_cast<u8_t>(1u);
         const f32_t rankBonus = static_cast<f32_t>(rank - 1u);
+        const f32_t chainSpeed = ResolveSylasSkillEffectParam(
+            *ctx.pWorld,
+            tc,
+            ctx.casterEntity,
+            eSkillSlot::E,
+            eSkillEffectParamId::Speed,
+            kSylasE2ChainSpeed);
+        const f32_t chainHitRadius = ResolveSylasSkillEffectParam(
+            *ctx.pWorld,
+            tc,
+            ctx.casterEntity,
+            eSkillSlot::E,
+            eSkillEffectParamId::Radius,
+            kSylasE2ChainHitRadius);
+        const f32_t baseDamage = ResolveSylasSkillEffectParam(
+            *ctx.pWorld,
+            tc,
+            ctx.casterEntity,
+            eSkillSlot::E,
+            eSkillEffectParamId::BaseDamage,
+            kSylasE2BaseDamage);
+        const f32_t damagePerRank = ResolveSylasSkillEffectParam(
+            *ctx.pWorld,
+            tc,
+            ctx.casterEntity,
+            eSkillSlot::E,
+            eSkillEffectParamId::DamagePerRank,
+            kSylasE2DamagePerRank);
 
         SkillProjectileComponent projectile{};
         projectile.sourceEntity = ctx.casterEntity;
@@ -187,10 +270,10 @@ namespace
         projectile.rank = rank;
         projectile.currentPos = origin;
         projectile.direction = dir;
-        projectile.speed = kSylasE2ChainSpeed;
+        projectile.speed = chainSpeed;
         projectile.maxDistance = range;
-        projectile.hitRadius = kSylasE2ChainHitRadius;
-        projectile.damage = kSylasE2BaseDamage + rankBonus * kSylasE2DamagePerRank;
+        projectile.hitRadius = chainHitRadius;
+        projectile.damage = baseDamage + rankBonus * damagePerRank;
 
         const EntityID projectileEntity = ctx.pWorld->CreateEntity();
         ctx.pWorld->AddComponent<SkillProjectileComponent>(projectileEntity, projectile);
@@ -208,7 +291,24 @@ namespace
         if (ctx.pCommand->itemId == 2u)
             SpawnChainProjectile(ctx);
         else
-            StartDirectionalDash(*ctx.pWorld, ctx.casterEntity, ResolveCommandDirection(ctx));
+        {
+            const f32_t dashDistance = ResolveSylasSkillEffectParam(
+                ctx,
+                eSkillSlot::E,
+                eSkillEffectParamId::DashDistance,
+                kSylasE1DashDistance);
+            const f32_t dashDurationSec = ResolveSylasSkillEffectParam(
+                ctx,
+                eSkillSlot::E,
+                eSkillEffectParamId::DashDurationSec,
+                kSylasE1DashDurationSec);
+            StartDirectionalDash(
+                *ctx.pWorld,
+                ctx.casterEntity,
+                ResolveCommandDirection(ctx),
+                dashDistance,
+                dashDurationSec);
+        }
     }
 
     bool_t IsValidChampion(eChampion champion)
@@ -261,7 +361,11 @@ namespace
         return 1u;
     }
 
-    bool_t CanHijackUltimateInternal(CWorld& world, EntityID caster, EntityID target)
+    bool_t CanHijackUltimateInternal(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target)
     {
         if (!IsAliveChampion(world, caster) || !IsAliveChampion(world, target))
             return false;
@@ -287,7 +391,10 @@ namespace
         if (!IsValidChampion(stolenChampion) || stolenChampion == eChampion::SYLAS)
             return false;
 
-        f32_t range = ChampionGameDataDB::ResolveSkillRange(
+        f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            caster,
+            tc,
             eChampion::SYLAS,
             static_cast<u8_t>(eSkillSlot::R));
         if (range <= 0.f)
@@ -313,7 +420,9 @@ namespace
 
         if (world.HasComponent<SpellbookOverrideComponent>(caster))
             return;
-        if (!CanHijackUltimateInternal(world, caster, target))
+        TickContext fallbackTick{};
+        const TickContext& tc = ctx.pTickCtx ? *ctx.pTickCtx : fallbackTick;
+        if (!CanHijackUltimateInternal(world, tc, caster, target))
             return;
 
         SpellbookOverrideComponent spellbook{};
@@ -409,9 +518,9 @@ namespace SylasGameSim
             world.RemoveComponent<SylasDashComponent>(entity);
     }
 
-    bool_t CanHijackUltimate(CWorld& world, EntityID caster, EntityID target)
+    bool_t CanHijackUltimate(CWorld& world, const TickContext& tc, EntityID caster, EntityID target)
     {
-        return CanHijackUltimateInternal(world, caster, target);
+        return CanHijackUltimateInternal(world, tc, caster, target);
     }
 
     void ApplyChainHit(CWorld& world, const TickContext& tc, EntityID source, EntityID target)
@@ -424,7 +533,29 @@ namespace SylasGameSim
             return;
         }
 
-        StartTargetDash(world, source, target);
+        const f32_t targetDashGap = ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            source,
+            eSkillSlot::E,
+            eSkillEffectParamId::Gap,
+            kSylasE2DashGap);
+        const f32_t targetDashDurationSec = ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            source,
+            eSkillSlot::E,
+            eSkillEffectParamId::TargetDashDurationSec,
+            kSylasE2DashDurationSec);
+        const f32_t airborneDurationSec = ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            source,
+            eSkillSlot::E,
+            eSkillEffectParamId::AirborneDurationSec,
+            kSylasE2AirborneDurationSec);
+
+        StartTargetDash(world, source, target, targetDashGap, targetDashDurationSec);
         GameplayStatus::ApplyAirborne(
             world,
             tc,
@@ -432,6 +563,6 @@ namespace SylasGameSim
             source,
             eChampion::SYLAS,
             eSkillSlot::E,
-            kSylasE2AirborneDurationSec);
+            airborneDurationSec);
     }
 }

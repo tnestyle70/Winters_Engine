@@ -56,6 +56,7 @@ out/
 *.tli
 *.tlh
 *.tmp
+*.pyc
 *.tmp_proj
 *.vspscc
 *.vssscc
@@ -64,6 +65,7 @@ out/
 *.scc
 *.FileListAbsolute.txt
 *.CppClean.log
+__pycache__/
 
 # Required clone/build inputs
 !Tools/Bin/flatc.exe

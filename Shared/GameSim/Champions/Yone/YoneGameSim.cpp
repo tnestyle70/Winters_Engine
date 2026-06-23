@@ -6,6 +6,7 @@
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/YoneSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -62,6 +63,62 @@ namespace
             world.AddComponent<YoneSimComponent>(caster, YoneSimComponent{});
 
         return world.GetComponent<YoneSimComponent>(caster);
+    }
+
+    f32_t ResolveYoneSkillRange(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return GameplayDefinitionQuery::ResolveSkillRange(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            *ctx.pTickCtx,
+            eChampion::YONE,
+            static_cast<u8_t>(slot));
+    }
+
+    f32_t ResolveYoneSkillEffectParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::YONE,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveYoneSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return ResolveYoneSkillEffectParam(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            slot,
+            param,
+            fallbackValue);
     }
 
     Vec3 ResolveDirection(const GameplayHookContext& ctx, const Vec3& origin)
@@ -177,8 +234,18 @@ namespace
         if (!state.bSoulUnboundActive || state.bReturning)
             return;
 
+        const f32_t dashDurationSec = pTickCtx
+            ? ResolveYoneSkillEffectParam(
+                world,
+                *pTickCtx,
+                caster,
+                eSkillSlot::E,
+                eSkillEffectParamId::DashDurationSec,
+                kYoneEDashDurationSec)
+            : kYoneEDashDurationSec;
+
         state.bReturning = true;
-        StartDash(world, caster, state.anchorPosition, kYoneEDashDurationSec, eYoneDashKind::SoulReturn);
+        StartDash(world, caster, state.anchorPosition, dashDurationSec, eYoneDashKind::SoulReturn);
         RotateToward(world, caster, Vec3{
             state.anchorPosition.x - world.GetComponent<TransformComponent>(caster).GetPosition().x,
             0.f,
@@ -248,7 +315,8 @@ namespace
         eTeam casterTeam,
         const Vec3& start,
         const Vec3& end,
-        f32_t radius)
+        f32_t radius,
+        f32_t airborneDurationSec)
     {
         const f32_t radiusSq = radius * radius;
         world.ForEach<ChampionComponent, TransformComponent>(
@@ -267,7 +335,7 @@ namespace
                         caster,
                         eChampion::YONE,
                         eSkillSlot::R,
-                        kYoneRAirborneDurationSec);
+                        airborneDurationSec);
                 }));
     }
 
@@ -280,7 +348,18 @@ namespace
         CWorld& world = *ctx.pWorld;
         const Vec3 origin = world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 direction = ResolveDirection(ctx, origin);
-        const Vec3 end{ origin.x + direction.x * kYoneQRange, origin.y, origin.z + direction.z * kYoneQRange };
+        const f32_t range = ResolveYoneSkillRange(ctx, eSkillSlot::Q, kYoneQRange);
+        const f32_t radius = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Radius,
+            kYoneQRadius);
+        const f32_t damage = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::BaseDamage,
+            kYoneQDamage);
+        const Vec3 end{ origin.x + direction.x * range, origin.y, origin.z + direction.z * range };
         RotateToward(world, ctx.casterEntity, direction);
 
         EnqueueLineDamage(
@@ -289,8 +368,8 @@ namespace
             ctx.casterTeam,
             origin,
             end,
-            kYoneQRadius,
-            kYoneQDamage,
+            radius,
+            damage,
             static_cast<u16_t>((static_cast<u32_t>(eChampion::YONE) << 8) | 1u),
             ctx.skillRank);
 
@@ -305,7 +384,18 @@ namespace
         CWorld& world = *ctx.pWorld;
         const Vec3 origin = world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 direction = ResolveDirection(ctx, origin);
-        const Vec3 end{ origin.x + direction.x * kYoneWRange, origin.y, origin.z + direction.z * kYoneWRange };
+        const f32_t range = ResolveYoneSkillRange(ctx, eSkillSlot::W, kYoneWRange);
+        const f32_t radius = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Radius,
+            kYoneWRadius);
+        const f32_t damage = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::BaseDamage,
+            kYoneWDamage);
+        const Vec3 end{ origin.x + direction.x * range, origin.y, origin.z + direction.z * range };
         RotateToward(world, ctx.casterEntity, direction);
 
         EnqueueLineDamage(
@@ -314,8 +404,8 @@ namespace
             ctx.casterTeam,
             origin,
             end,
-            kYoneWRadius,
-            kYoneWDamage,
+            radius,
+            damage,
             static_cast<u16_t>((static_cast<u32_t>(eChampion::YONE) << 8) | 2u),
             ctx.skillRank);
 
@@ -340,19 +430,34 @@ namespace
         }
 
         const Vec3 direction = ResolveDirection(ctx, origin);
+        const f32_t dashDistance = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::DashDistance,
+            kYoneEDashDistance);
+        const f32_t dashDurationSec = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::DashDurationSec,
+            kYoneEDashDurationSec);
+        const f32_t soulDurationSec = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::EffectDurationSec,
+            state.soulDurationSec > 0.f ? state.soulDurationSec : 5.f);
         const Vec3 end{
-            origin.x + direction.x * kYoneEDashDistance,
+            origin.x + direction.x * dashDistance,
             origin.y,
-            origin.z + direction.z * kYoneEDashDistance
+            origin.z + direction.z * dashDistance
         };
 
         state.bSoulUnboundActive = true;
         state.bReturning = false;
-        state.soulDurationSec = 5.f;
+        state.soulDurationSec = soulDurationSec;
         state.soulTimerSec = state.soulDurationSec;
         state.anchorPosition = origin;
 
-        StartDash(world, ctx.casterEntity, end, kYoneEDashDurationSec, eYoneDashKind::SoulOut);
+        StartDash(world, ctx.casterEntity, end, dashDurationSec, eYoneDashKind::SoulOut);
         RotateToward(world, ctx.casterEntity, direction);
 
         std::cout << "[YoneSim] E out caster=" << ctx.casterEntity
@@ -362,16 +467,43 @@ namespace
 
     void OnR(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld || !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
+        if (!ctx.pWorld || !ctx.pTickCtx ||
+            !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
             return;
 
         CWorld& world = *ctx.pWorld;
         const Vec3 origin = world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 direction = ResolveDirection(ctx, origin);
-        const Vec3 end{ origin.x + direction.x * kYoneRRange, origin.y, origin.z + direction.z * kYoneRRange };
+        const f32_t range = ResolveYoneSkillRange(ctx, eSkillSlot::R, kYoneRRange);
+        const f32_t radius = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::Radius,
+            kYoneRRadius);
+        const f32_t dashDelaySec = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::DashDelaySec,
+            kYoneRDashDelaySec);
+        const f32_t dashDurationSec = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::DashDurationSec,
+            kYoneRDashDurationSec);
+        const f32_t damage = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::BaseDamage,
+            kYoneRDamage);
+        const f32_t airborneDurationSec = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::AirborneDurationSec,
+            kYoneRAirborneDurationSec);
+        const Vec3 end{ origin.x + direction.x * range, origin.y, origin.z + direction.z * range };
         RotateToward(world, ctx.casterEntity, direction);
-        StartDash(world, ctx.casterEntity, end, kYoneRDashDurationSec,
-            eYoneDashKind::Ultimate, kYoneRDashDelaySec);
+        StartDash(world, ctx.casterEntity, end, dashDurationSec,
+            eYoneDashKind::Ultimate, dashDelaySec);
 
         EnqueueLineDamage(
             world,
@@ -379,8 +511,8 @@ namespace
             ctx.casterTeam,
             origin,
             end,
-            kYoneRRadius,
-            kYoneRDamage,
+            radius,
+            damage,
             static_cast<u16_t>((static_cast<u32_t>(eChampion::YONE) << 8) | 4u),
             ctx.skillRank);
         ApplyLineAirborne(
@@ -390,7 +522,8 @@ namespace
             ctx.casterTeam,
             origin,
             end,
-            kYoneRRadius);
+            radius,
+            airborneDurationSec);
 
         std::cout << "[YoneSim] R accepted caster=" << ctx.casterEntity << "\n";
     }

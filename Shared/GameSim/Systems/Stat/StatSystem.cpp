@@ -3,6 +3,7 @@
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Components/BuffComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
+#include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
 #include "Shared/GameSim/Components/RuneComponent.h"
@@ -16,6 +17,53 @@
 #ifdef min
 #undef min
 #endif
+
+namespace
+{
+    template <typename TStats>
+    StatComponent BuildBaseStatsFromValues(
+        const TStats& def,
+        eChampion legacyChampion,
+        u8_t level)
+    {
+        const u8_t resolvedLevel = (level > 0) ? level : 1;
+
+        StatComponent stat{};
+        stat.championId = legacyChampion;
+        stat.level = resolvedLevel;
+        stat.hpMax = CCombatFormula::ResolveStatAtLevel(def.baseHp, def.hpPerLevel, resolvedLevel);
+        stat.manaMax = CCombatFormula::ResolveStatAtLevel(def.baseMana, def.manaPerLevel, resolvedLevel);
+
+        stat.baseAd = CCombatFormula::ResolveStatAtLevel(def.baseAd, def.adPerLevel, resolvedLevel);
+        stat.bonusAd = 0.f;
+        stat.ad = stat.baseAd;
+        stat.ap = CCombatFormula::ResolveStatAtLevel(def.baseAp, def.apPerLevel, resolvedLevel);
+
+        stat.baseArmor = CCombatFormula::ResolveStatAtLevel(def.baseArmor, def.armorPerLevel, resolvedLevel);
+        stat.bonusArmor = 0.f;
+        stat.armor = stat.baseArmor;
+
+        stat.baseMr = CCombatFormula::ResolveStatAtLevel(def.baseMr, def.mrPerLevel, resolvedLevel);
+        stat.bonusMr = 0.f;
+        stat.mr = stat.baseMr;
+
+        stat.baseAttackSpeed = def.baseAttackSpeed;
+        stat.attackSpeedRatio = (def.attackSpeedRatio > 0.f) ? def.attackSpeedRatio : def.baseAttackSpeed;
+        stat.attackSpeedGrowth = def.attackSpeedPerLevel;
+        stat.bonusAttackSpeed = 0.f;
+        stat.attackSpeed = CCombatFormula::ResolveAttackSpeed(
+            stat.baseAttackSpeed,
+            stat.attackSpeedRatio,
+            stat.attackSpeedGrowth,
+            stat.bonusAttackSpeed,
+            resolvedLevel);
+
+        stat.attackRange = def.baseAttackRange;
+        stat.moveSpeed = def.baseMoveSpeed;
+        stat.bDirty = false;
+        return stat;
+    }
+}
 #ifdef max
 #undef max
 #endif
@@ -31,42 +79,15 @@ f32_t CStatSystem::Clamp(f32_t value, f32_t minValue, f32_t maxValue)
 
 StatComponent CStatSystem::BuildBaseStats(const ChampionStatsDef& def, u8_t level)
 {
-    const u8_t resolvedLevel = (level > 0) ? level : 1;
+    return BuildBaseStatsFromValues(def, def.championId, level);
+}
 
-    StatComponent stat{};
-    stat.championId = def.championId;
-    stat.level = resolvedLevel;
-    stat.hpMax = CCombatFormula::ResolveStatAtLevel(def.baseHp, def.hpPerLevel, resolvedLevel);
-    stat.manaMax = CCombatFormula::ResolveStatAtLevel(def.baseMana, def.manaPerLevel, resolvedLevel);
-
-    stat.baseAd = CCombatFormula::ResolveStatAtLevel(def.baseAd, def.adPerLevel, resolvedLevel);
-    stat.bonusAd = 0.f;
-    stat.ad = stat.baseAd + stat.bonusAd;
-    stat.ap = CCombatFormula::ResolveStatAtLevel(def.baseAp, def.apPerLevel, resolvedLevel);
-
-    stat.baseArmor = CCombatFormula::ResolveStatAtLevel(def.baseArmor, def.armorPerLevel, resolvedLevel);
-    stat.bonusArmor = 0.f;
-    stat.armor = stat.baseArmor + stat.bonusArmor;
-
-    stat.baseMr = CCombatFormula::ResolveStatAtLevel(def.baseMr, def.mrPerLevel, resolvedLevel);
-    stat.bonusMr = 0.f;
-    stat.mr = stat.baseMr + stat.bonusMr;
-
-    stat.baseAttackSpeed = def.baseAttackSpeed;
-    stat.attackSpeedRatio = (def.attackSpeedRatio > 0.f) ? def.attackSpeedRatio : def.baseAttackSpeed;
-    stat.attackSpeedGrowth = def.attackSpeedPerLevel;
-    stat.bonusAttackSpeed = 0.f;
-    stat.attackSpeed = CCombatFormula::ResolveAttackSpeed(
-        stat.baseAttackSpeed,
-        stat.attackSpeedRatio,
-        stat.attackSpeedGrowth,
-        stat.bonusAttackSpeed,
-        resolvedLevel);
-
-    stat.attackRange = def.baseAttackRange;
-    stat.moveSpeed = def.baseMoveSpeed;
-    stat.bDirty = false;
-    return stat;
+StatComponent CStatSystem::BuildBaseStats(
+    const ChampionStatBlock& stats,
+    eChampion legacyChampion,
+    u8_t level)
+{
+    return BuildBaseStatsFromValues(stats, legacyChampion, level);
 }
 
 void CStatSystem::Recompute(CWorld& world, EntityID entity, StatComponent& stat)
@@ -77,6 +98,44 @@ void CStatSystem::Recompute(CWorld& world, EntityID entity, StatComponent& stat)
     const u32_t oldBuffHash = stat.buffMaskHash;
     const u32_t oldItemHash = stat.itemMaskHash;
     stat = BuildBaseStats(def, level);
+    ApplyRuntimeModifiers(world, entity, stat, oldBuffHash, oldItemHash);
+}
+
+void CStatSystem::Recompute(
+    CWorld& world,
+    EntityID entity,
+    StatComponent& stat,
+    const GameplayDefinitionPack& definitions)
+{
+    const u8_t level = (stat.level > 0) ? stat.level : 1;
+    const u32_t oldBuffHash = stat.buffMaskHash;
+    const u32_t oldItemHash = stat.itemMaskHash;
+
+    const ChampionDefinitionComponent* identity =
+        world.TryGetComponent<ChampionDefinitionComponent>(entity);
+    const ChampionGameplayDef* definition =
+        identity ? definitions.FindChampion(identity->championDefId) : nullptr;
+    if (definition)
+    {
+        stat = BuildBaseStats(definition->stats, definition->legacyChampion, level);
+    }
+    else
+    {
+        const ChampionStatsDef legacyDef =
+            CChampionStatsRegistry::Instance().Resolve(stat.championId);
+        stat = BuildBaseStats(legacyDef, level);
+    }
+
+    ApplyRuntimeModifiers(world, entity, stat, oldBuffHash, oldItemHash);
+}
+
+void CStatSystem::ApplyRuntimeModifiers(
+    CWorld& world,
+    EntityID entity,
+    StatComponent& stat,
+    u32_t oldBuffHash,
+    u32_t oldItemHash)
+{
     stat.buffMaskHash = oldBuffHash;
     stat.itemMaskHash = oldItemHash;
 
@@ -182,5 +241,16 @@ void CStatSystem::Execute(CWorld& world)
         auto& stat = world.GetComponent<StatComponent>(entity);
         if (stat.bDirty)
             Recompute(world, entity, stat);
+    }
+}
+
+void CStatSystem::Execute(CWorld& world, const GameplayDefinitionPack& definitions)
+{
+    const auto entities = DeterministicEntityIterator<StatComponent>::CollectSorted(world);
+    for (EntityID entity : entities)
+    {
+        auto& stat = world.GetComponent<StatComponent>(entity);
+        if (stat.bDirty)
+            Recompute(world, entity, stat, definitions);
     }
 }

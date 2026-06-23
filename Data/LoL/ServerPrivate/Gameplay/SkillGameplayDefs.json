@@ -1,0 +1,3533 @@
+{
+  "schemaVersion": 1,
+  "buildHash": 1180562775,
+  "skills": [
+    {
+      "key": "skill.annie.basic_attack",
+      "definitionKey": 673270010,
+      "defId": 1,
+      "ownerChampionDefId": 1,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 6.25
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.8,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.annie.e",
+      "definitionKey": 1853079016,
+      "defId": 2,
+      "ownerChampionDefId": 1,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 12.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.4,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "moveSpeedMul",
+            "value": 1.1
+          },
+          {
+            "id": "shieldAmountPerRank",
+            "value": 45.0
+          },
+          {
+            "id": "shieldArmorPerRank",
+            "value": 5.0
+          },
+          {
+            "id": "shieldBaseAmount",
+            "value": 50.0
+          },
+          {
+            "id": "shieldDurationSec",
+            "value": 3.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.annie.q",
+      "definitionKey": 1651747588,
+      "defId": 3,
+      "ownerChampionDefId": 1,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 4.0
+      },
+      "range": {
+        "maximum": 6.25
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 80.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 35.0
+          },
+          {
+            "id": "stunDurationSec",
+            "value": 1.25
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.annie.r",
+      "definitionKey": 1702080445,
+      "defId": 4,
+      "ownerChampionDefId": 1,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 100.0
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.2,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 150.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 75.0
+          },
+          {
+            "id": "radius",
+            "value": 3.0
+          },
+          {
+            "id": "range",
+            "value": 6.0
+          },
+          {
+            "id": "stunDurationSec",
+            "value": 1.25
+          },
+          {
+            "id": "summonAttackCooldownSec",
+            "value": 1.0
+          },
+          {
+            "id": "summonAttackDamagePerRank",
+            "value": 15.0
+          },
+          {
+            "id": "summonAttackRange",
+            "value": 2.2
+          },
+          {
+            "id": "summonBaseAttackDamage",
+            "value": 40.0
+          },
+          {
+            "id": "summonBaseHp",
+            "value": 1000.0
+          },
+          {
+            "id": "summonDurationSec",
+            "value": 45.0
+          },
+          {
+            "id": "summonHpPerRank",
+            "value": 250.0
+          },
+          {
+            "id": "summonMoveSpeed",
+            "value": 5.2
+          },
+          {
+            "id": "summonRadius",
+            "value": 0.9
+          },
+          {
+            "id": "summonSightRange",
+            "value": 14.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.annie.w",
+      "definitionKey": 1618192350,
+      "defId": 5,
+      "ownerChampionDefId": 1,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 8.0
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 70.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 45.0
+          },
+          {
+            "id": "halfAngleCos",
+            "value": 0.76604444
+          },
+          {
+            "id": "range",
+            "value": 6.0
+          },
+          {
+            "id": "stunDurationSec",
+            "value": 1.25
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.ashe.basic_attack",
+      "definitionKey": 827084400,
+      "defId": 6,
+      "ownerChampionDefId": 2,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 1.72
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.7,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.ashe.e",
+      "definitionKey": 1183705362,
+      "defId": 7,
+      "ownerChampionDefId": 2,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 25.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.ashe.q",
+      "definitionKey": 1385036790,
+      "defId": 8,
+      "ownerChampionDefId": 2,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.ashe.r",
+      "definitionKey": 1368259171,
+      "defId": 9,
+      "ownerChampionDefId": 2,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 200.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.0,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 250.0
+          },
+          {
+            "id": "range",
+            "value": 200.0
+          },
+          {
+            "id": "speed",
+            "value": 20.0
+          },
+          {
+            "id": "stunDurationSec",
+            "value": 1.5
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.ashe.w",
+      "definitionKey": 1418592028,
+      "defId": 10,
+      "ownerChampionDefId": 2,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 9.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 45.0
+          },
+          {
+            "id": "moveSpeedMul",
+            "value": 0.85
+          },
+          {
+            "id": "range",
+            "value": 12.0
+          },
+          {
+            "id": "speed",
+            "value": 24.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.ezreal.basic_attack",
+      "definitionKey": 2162584332,
+      "defId": 11,
+      "ownerChampionDefId": 3,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.5
+      },
+      "range": {
+        "maximum": 5.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.65,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.ezreal.e",
+      "definitionKey": 1710263382,
+      "defId": 12,
+      "ownerChampionDefId": 3,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.2
+      },
+      "range": {
+        "maximum": 4.75
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.ezreal.q",
+      "definitionKey": 1508931954,
+      "defId": 13,
+      "ownerChampionDefId": 3,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.2
+      },
+      "range": {
+        "maximum": 11.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.ezreal.r",
+      "definitionKey": 1492154335,
+      "defId": 14,
+      "ownerChampionDefId": 3,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.2
+      },
+      "range": {
+        "maximum": 200.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.0,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.ezreal.w",
+      "definitionKey": 1408266240,
+      "defId": 15,
+      "ownerChampionDefId": 3,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.2
+      },
+      "range": {
+        "maximum": 10.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.fiora.basic_attack",
+      "definitionKey": 2910065836,
+      "defId": 16,
+      "ownerChampionDefId": 4,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 1.67
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.0,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.fiora.e",
+      "definitionKey": 1690986934,
+      "defId": 17,
+      "ownerChampionDefId": 4,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.4,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.fiora.q",
+      "definitionKey": 1489655506,
+      "defId": 18,
+      "ownerChampionDefId": 4,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 4.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 70.0
+          },
+          {
+            "id": "dashDistance",
+            "value": 3.0
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.25
+          },
+          {
+            "id": "radius",
+            "value": 1.0
+          },
+          {
+            "id": "range",
+            "value": 4.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.fiora.r",
+      "definitionKey": 1472877887,
+      "defId": 19,
+      "ownerChampionDefId": 4,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 5.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          2.0,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 80.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.fiora.w",
+      "definitionKey": 1388989792,
+      "defId": 20,
+      "ownerChampionDefId": 4,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "moveSpeedMul",
+            "value": 0.5
+          },
+          {
+            "id": "radius",
+            "value": 0.8
+          },
+          {
+            "id": "range",
+            "value": 6.0
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 1.5
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.garen.basic_attack",
+      "definitionKey": 2629635898,
+      "defId": 21,
+      "ownerChampionDefId": 5,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.0,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.garen.e",
+      "definitionKey": 195462184,
+      "defId": 22,
+      "ownerChampionDefId": 5,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 1.65
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          3.0,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.garen.q",
+      "definitionKey": 4289098052,
+      "defId": 23,
+      "ownerChampionDefId": 5,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.garen.r",
+      "definitionKey": 44463613,
+      "defId": 24,
+      "ownerChampionDefId": 5,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 4.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.garen.w",
+      "definitionKey": 4255542814,
+      "defId": 25,
+      "ownerChampionDefId": 5,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.irelia.basic_attack",
+      "definitionKey": 608466189,
+      "defId": 26,
+      "ownerChampionDefId": 6,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 2.1
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.46,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.irelia.e",
+      "definitionKey": 189230869,
+      "defId": 27,
+      "ownerChampionDefId": 6,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 9.0
+      },
+      "stage": {
+        "count": 2,
+        "windowSeconds": 3.5,
+        "lockSeconds": [
+          0.9,
+          0.45
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 70.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 30.0
+          },
+          {
+            "id": "radius",
+            "value": 1.5
+          },
+          {
+            "id": "stunDurationSec",
+            "value": 0.75
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.irelia.q",
+      "definitionKey": 4148645785,
+      "defId": 28,
+      "ownerChampionDefId": 6,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.36,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 45.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 25.0
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.25
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.irelia.r",
+      "definitionKey": 4098312928,
+      "defId": 29,
+      "ownerChampionDefId": 6,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 12.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.65,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 250.0
+          },
+          {
+            "id": "disarmDurationSec",
+            "value": 1.5
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 2.5
+          },
+          {
+            "id": "moveSpeedMul",
+            "value": 0.5
+          },
+          {
+            "id": "range",
+            "value": 8.0
+          },
+          {
+            "id": "rectLength",
+            "value": 5.0
+          },
+          {
+            "id": "rectWidth",
+            "value": 7.5
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 0.5
+          },
+          {
+            "id": "speed",
+            "value": 15.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.irelia.w",
+      "definitionKey": 4182201023,
+      "defId": 30,
+      "ownerChampionDefId": 6,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 2,
+        "windowSeconds": 4.0,
+        "lockSeconds": [
+          5.0,
+          0.4
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 30.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 40.0
+          },
+          {
+            "id": "halfWidth",
+            "value": 2.2
+          },
+          {
+            "id": "range",
+            "value": 6.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.jax.basic_attack",
+      "definitionKey": 2242155272,
+      "defId": 31,
+      "ownerChampionDefId": 7,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 1.67
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.0,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.jax.e",
+      "definitionKey": 672275338,
+      "defId": 32,
+      "ownerChampionDefId": 7,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 2,
+        "windowSeconds": 2.0,
+        "lockSeconds": [
+          2.0,
+          0.7
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "stunDurationSec",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.jax.q",
+      "definitionKey": 873606766,
+      "defId": 33,
+      "ownerChampionDefId": 7,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 7.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 70.0
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.22
+          },
+          {
+            "id": "gap",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.jax.r",
+      "definitionKey": 856829147,
+      "defId": 34,
+      "ownerChampionDefId": 7,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.jax.w",
+      "definitionKey": 907162004,
+      "defId": 35,
+      "ownerChampionDefId": 7,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.kalista.basic_attack",
+      "definitionKey": 3740155244,
+      "defId": 36,
+      "ownerChampionDefId": 8,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.5
+      },
+      "range": {
+        "maximum": 5.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.kalista.e",
+      "definitionKey": 3856209270,
+      "defId": 37,
+      "ownerChampionDefId": 8,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 3.0
+      },
+      "range": {
+        "maximum": 12.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.4,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "moveSpeedMul",
+            "value": 0.55
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 2.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.kalista.q",
+      "definitionKey": 3654877842,
+      "defId": 38,
+      "ownerChampionDefId": 8,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.2
+      },
+      "range": {
+        "maximum": 11.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.3,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.kalista.r",
+      "definitionKey": 3638100223,
+      "defId": 39,
+      "ownerChampionDefId": 8,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 120.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.kalista.w",
+      "definitionKey": 3554212128,
+      "defId": 40,
+      "ownerChampionDefId": 8,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 18.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.kindred.basic_attack",
+      "definitionKey": 855888162,
+      "defId": 41,
+      "ownerChampionDefId": 9,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 5.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.kindred.e",
+      "definitionKey": 1181629872,
+      "defId": 42,
+      "ownerChampionDefId": 9,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 5.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 80.0
+          },
+          {
+            "id": "markDurationSec",
+            "value": 4.0
+          },
+          {
+            "id": "moveSpeedMul",
+            "value": 0.65
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.kindred.q",
+      "definitionKey": 980298444,
+      "defId": 43,
+      "ownerChampionDefId": 9,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 5.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.kindred.r",
+      "definitionKey": 1030631301,
+      "defId": 44,
+      "ownerChampionDefId": 9,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "effectDurationSec",
+            "value": 4.0
+          },
+          {
+            "id": "healAmountPerRank",
+            "value": 75.0
+          },
+          {
+            "id": "healBaseAmount",
+            "value": 250.0
+          },
+          {
+            "id": "minHealthAmount",
+            "value": 1.0
+          },
+          {
+            "id": "radius",
+            "value": 6.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.kindred.w",
+      "definitionKey": 946743206,
+      "defId": 45,
+      "ownerChampionDefId": 9,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 8.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 35.0
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 4.0
+          },
+          {
+            "id": "radius",
+            "value": 4.0
+          },
+          {
+            "id": "tickIntervalSec",
+            "value": 0.6
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.leesin.basic_attack",
+      "definitionKey": 1350851437,
+      "defId": 46,
+      "ownerChampionDefId": 10,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.leesin.e",
+      "definitionKey": 3897164981,
+      "defId": 47,
+      "ownerChampionDefId": 10,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 4.0
+      },
+      "stage": {
+        "count": 2,
+        "windowSeconds": 3.0,
+        "lockSeconds": [
+          0.6,
+          0.45
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "moveSpeedMul",
+            "value": 0.6
+          },
+          {
+            "id": "radius",
+            "value": 3.5
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 1.5
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.leesin.q",
+      "definitionKey": 3561612601,
+      "defId": 48,
+      "ownerChampionDefId": 10,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 11.0
+      },
+      "stage": {
+        "count": 2,
+        "windowSeconds": 3.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 95.0
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.18
+          },
+          {
+            "id": "gap",
+            "value": 1.0
+          },
+          {
+            "id": "markDurationSec",
+            "value": 3.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.leesin.r",
+      "definitionKey": 3511279744,
+      "defId": 49,
+      "ownerChampionDefId": 10,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 3.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "airborneDurationSec",
+            "value": 1.0
+          },
+          {
+            "id": "baseDamage",
+            "value": 150.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.leesin.w",
+      "definitionKey": 3595167839,
+      "defId": 50,
+      "ownerChampionDefId": 10,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 7.0
+      },
+      "stage": {
+        "count": 2,
+        "windowSeconds": 3.0,
+        "lockSeconds": [
+          0.6,
+          0.45
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.masteryi.basic_attack",
+      "definitionKey": 1270151153,
+      "defId": 51,
+      "ownerChampionDefId": 11,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.masteryi.e",
+      "definitionKey": 847679393,
+      "defId": 52,
+      "ownerChampionDefId": 11,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.masteryi.q",
+      "definitionKey": 646347965,
+      "defId": 53,
+      "ownerChampionDefId": 11,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.masteryi.r",
+      "definitionKey": 596015108,
+      "defId": 54,
+      "ownerChampionDefId": 11,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.masteryi.w",
+      "definitionKey": 545682251,
+      "defId": 55,
+      "ownerChampionDefId": 11,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.riven.basic_attack",
+      "definitionKey": 1865895971,
+      "defId": 56,
+      "ownerChampionDefId": 12,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.0,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.riven.e",
+      "definitionKey": 3660065743,
+      "defId": 57,
+      "ownerChampionDefId": 12,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.riven.q",
+      "definitionKey": 3324513363,
+      "defId": 58,
+      "ownerChampionDefId": 12,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 1.5
+      },
+      "range": {
+        "maximum": 4.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.45,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "airborneDurationSec",
+            "value": 0.75
+          },
+          {
+            "id": "radius",
+            "value": 2.25
+          },
+          {
+            "id": "stackWindowSec",
+            "value": 4.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.riven.r",
+      "definitionKey": 3341290982,
+      "defId": 59,
+      "ownerChampionDefId": 12,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.8,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.riven.w",
+      "definitionKey": 3425179077,
+      "defId": 60,
+      "ownerChampionDefId": 12,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "radius",
+            "value": 2.5
+          },
+          {
+            "id": "stunDurationSec",
+            "value": 0.75
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.sylas.basic_attack",
+      "definitionKey": 483112105,
+      "defId": 61,
+      "ownerChampionDefId": 13,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.sylas.e",
+      "definitionKey": 1382254681,
+      "defId": 62,
+      "ownerChampionDefId": 13,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 6.0
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 2,
+        "windowSeconds": 3.0,
+        "lockSeconds": [
+          0.35,
+          0.5
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "airborneDurationSec",
+            "value": 0.75
+          },
+          {
+            "id": "baseDamage",
+            "value": 65.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 25.0
+          },
+          {
+            "id": "dashDistance",
+            "value": 3.25
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.16
+          },
+          {
+            "id": "gap",
+            "value": 0.85
+          },
+          {
+            "id": "radius",
+            "value": 0.55
+          },
+          {
+            "id": "speed",
+            "value": 26.0
+          },
+          {
+            "id": "targetDashDurationSec",
+            "value": 0.22
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.sylas.q",
+      "definitionKey": 1717807061,
+      "defId": 63,
+      "ownerChampionDefId": 13,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 4.0
+      },
+      "range": {
+        "maximum": 4.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.55,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.sylas.r",
+      "definitionKey": 1667474204,
+      "defId": 64,
+      "ownerChampionDefId": 13,
+      "slot": 4,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 10.0
+      },
+      "range": {
+        "maximum": 10.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.8,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.sylas.w",
+      "definitionKey": 1617141347,
+      "defId": 65,
+      "ownerChampionDefId": 13,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 5.0
+      },
+      "range": {
+        "maximum": 5.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.45,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.viego.basic_attack",
+      "definitionKey": 3040518335,
+      "defId": 66,
+      "ownerChampionDefId": 14,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.75,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.viego.e",
+      "definitionKey": 4154970483,
+      "defId": 67,
+      "ownerChampionDefId": 14,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 14.0
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.75,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "effectDurationSec",
+            "value": 4.0
+          },
+          {
+            "id": "radius",
+            "value": 6.0
+          },
+          {
+            "id": "refreshDurationSec",
+            "value": 0.25
+          },
+          {
+            "id": "tickIntervalSec",
+            "value": 0.1
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.viego.q",
+      "definitionKey": 195555567,
+      "defId": 68,
+      "ownerChampionDefId": 14,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 4.0
+      },
+      "range": {
+        "maximum": 5.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 65.0
+          },
+          {
+            "id": "radius",
+            "value": 0.9
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.viego.r",
+      "definitionKey": 212333186,
+      "defId": 69,
+      "ownerChampionDefId": 14,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 100.0
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.8,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 150.0
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.18
+          },
+          {
+            "id": "moveSpeedMul",
+            "value": 0.6
+          },
+          {
+            "id": "radius",
+            "value": 2.0
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 1.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.viego.w",
+      "definitionKey": 162000329,
+      "defId": 70,
+      "ownerChampionDefId": 14,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 8.0
+      },
+      "range": {
+        "maximum": 8.0
+      },
+      "stage": {
+        "count": 2,
+        "windowSeconds": 4.0,
+        "lockSeconds": [
+          0.7,
+          0.3
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 55.0
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.26
+          },
+          {
+            "id": "radius",
+            "value": 0.75
+          },
+          {
+            "id": "stunDurationSec",
+            "value": 0.75
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.yasuo.basic_attack",
+      "definitionKey": 272027900,
+      "defId": 71,
+      "ownerChampionDefId": 15,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 2.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.yasuo.e",
+      "definitionKey": 4093957606,
+      "defId": 72,
+      "ownerChampionDefId": 15,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 4.75
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.4,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.yasuo.q",
+      "definitionKey": 134542690,
+      "defId": 73,
+      "ownerChampionDefId": 15,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 5.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.yasuo.r",
+      "definitionKey": 117765071,
+      "defId": 74,
+      "ownerChampionDefId": 15,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 14.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.yasuo.w",
+      "definitionKey": 33876976,
+      "defId": 75,
+      "ownerChampionDefId": 15,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.6
+      },
+      "range": {
+        "maximum": 4.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.25,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.yone.basic_attack",
+      "definitionKey": 3854873114,
+      "defId": 76,
+      "ownerChampionDefId": 16,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.75
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.9,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.yone.e",
+      "definitionKey": 2583708872,
+      "defId": 77,
+      "ownerChampionDefId": 16,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 22.0
+      },
+      "range": {
+        "maximum": 4.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.75,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "dashDistance",
+            "value": 4.0
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.25
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 5.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.yone.q",
+      "definitionKey": 2382377444,
+      "defId": 78,
+      "ownerChampionDefId": 16,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 4.0
+      },
+      "range": {
+        "maximum": 4.75
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.9,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 75.0
+          },
+          {
+            "id": "radius",
+            "value": 0.85
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.yone.r",
+      "definitionKey": 2432710301,
+      "defId": 79,
+      "ownerChampionDefId": 16,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 120.0
+      },
+      "range": {
+        "maximum": 10.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.2,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "airborneDurationSec",
+            "value": 0.75
+          },
+          {
+            "id": "baseDamage",
+            "value": 150.0
+          },
+          {
+            "id": "dashDelaySec",
+            "value": 0.5
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.16
+          },
+          {
+            "id": "radius",
+            "value": 1.7
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.yone.w",
+      "definitionKey": 2348822206,
+      "defId": 80,
+      "ownerChampionDefId": 16,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 16.0
+      },
+      "range": {
+        "maximum": 6.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.9,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 65.0
+          },
+          {
+            "id": "radius",
+            "value": 1.5
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.zed.basic_attack",
+      "definitionKey": 1351629304,
+      "defId": 81,
+      "ownerChampionDefId": 17,
+      "slot": 0,
+      "target": {
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 0.5
+      },
+      "range": {
+        "maximum": 1.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.0,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": []
+      }
+    },
+    {
+      "key": "skill.zed.e",
+      "definitionKey": 2629843482,
+      "defId": 82,
+      "ownerChampionDefId": 17,
+      "slot": 3,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 2.5
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.6,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 65.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 20.0
+          },
+          {
+            "id": "moveSpeedMul",
+            "value": 0.6
+          },
+          {
+            "id": "radius",
+            "value": 2.75
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 1.5
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.zed.q",
+      "definitionKey": 2294291102,
+      "defId": 83,
+      "ownerChampionDefId": 17,
+      "slot": 1,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 9.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.7,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 70.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 25.0
+          },
+          {
+            "id": "radius",
+            "value": 0.45
+          },
+          {
+            "id": "speed",
+            "value": 24.0
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.zed.r",
+      "definitionKey": 2277513483,
+      "defId": 84,
+      "ownerChampionDefId": 17,
+      "slot": 4,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 6.25
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          1.5,
+          0.6
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "effectDurationSec",
+            "value": 5.0
+          },
+          {
+            "id": "gap",
+            "value": 0.75
+          },
+          {
+            "id": "markDurationSec",
+            "value": 3.0
+          },
+          {
+            "id": "missingHealthDamageRatio",
+            "value": 0.3
+          },
+          {
+            "id": "vanishDurationSec",
+            "value": 0.75
+          }
+        ]
+      }
+    },
+    {
+      "key": "skill.zed.w",
+      "definitionKey": 2327846340,
+      "defId": 85,
+      "ownerChampionDefId": 17,
+      "slot": 2,
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Contextual"
+      },
+      "cost": {
+        "mana": 0.0
+      },
+      "cooldown": {
+        "seconds": 2.0
+      },
+      "range": {
+        "maximum": 6.5
+      },
+      "stage": {
+        "count": 2,
+        "windowSeconds": 5.0,
+        "lockSeconds": [
+          0.5,
+          0.25
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
+            "id": "effectDurationSec",
+            "value": 5.0
+          }
+        ]
+      }
+    }
+  ]
+}

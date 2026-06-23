@@ -1200,7 +1200,7 @@ namespace Engine
         addElement("reference", nullptr, "reference", 0.f, 0.f, 861.f, 167.f);
         addElement("portrait", nullptr, "portrait", 184.f, 37.f, 103.f, 103.f);
         addElement("portrait.xp.arc.track", "portrait.xp.arc.track", nullptr, 252.f, 48.5f, 36.f, 90.f);
-        addElement("portrait.xp.arc.fill", "portrait.xp.arc.fill", nullptr, 245.f, 48.5f, 43.f, 90.f, "xpRatio", nullptr, "bottomToTop");
+        addElement("portrait.xp.arc.fill", "portrait.xp.arc.fill", nullptr, 242.f, 48.5f, 43.f, 90.f, "xpRatio", nullptr, "bottomToTop");
         addElement("hp.bg", "bar.empty", nullptr, 287.f, 124.f, 319.f, 16.f);
         addElement("hp.fill", "bar.hp.fill", nullptr, 289.f, 127.f, 315.f, 10.f, "hpRatio");
         addElement("mp.bg", "bar.empty", nullptr, 287.f, 143.f, 319.f, 14.f);

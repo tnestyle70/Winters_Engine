@@ -1,0 +1,524 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": 1,
+  "buildHash": 1180562775,
+  "buildHashAlgorithm": "sha256-prefix32",
+  "definitionKeyHashAlgorithm": "fnv1a32",
+  "entries": [
+    {
+      "kind": "Champion",
+      "key": "champion.annie",
+      "definitionKey": 2741078545
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.ashe",
+      "definitionKey": 3966662639
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.ezreal",
+      "definitionKey": 3587502323
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.fiora",
+      "definitionKey": 1295790867
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.garen",
+      "definitionKey": 150280625
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.irelia",
+      "definitionKey": 3945320376
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.jax",
+      "definitionKey": 256138807
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.kalista",
+      "definitionKey": 537021619
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.kindred",
+      "definitionKey": 3540133833
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.leesin",
+      "definitionKey": 2954781016
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.masteryi",
+      "definitionKey": 2090450964
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.riven",
+      "definitionKey": 2939407982
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.sylas",
+      "definitionKey": 3075035484
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.viego",
+      "definitionKey": 4043004306
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.yasuo",
+      "definitionKey": 3128480259
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.yone",
+      "definitionKey": 3351462065
+    },
+    {
+      "kind": "Champion",
+      "key": "champion.zed",
+      "definitionKey": 1433293255
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.annie.basic_attack",
+      "definitionKey": 673270010
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.annie.e",
+      "definitionKey": 1853079016
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.annie.q",
+      "definitionKey": 1651747588
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.annie.r",
+      "definitionKey": 1702080445
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.annie.w",
+      "definitionKey": 1618192350
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ashe.basic_attack",
+      "definitionKey": 827084400
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ashe.e",
+      "definitionKey": 1183705362
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ashe.q",
+      "definitionKey": 1385036790
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ashe.r",
+      "definitionKey": 1368259171
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ashe.w",
+      "definitionKey": 1418592028
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ezreal.basic_attack",
+      "definitionKey": 2162584332
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ezreal.e",
+      "definitionKey": 1710263382
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ezreal.q",
+      "definitionKey": 1508931954
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ezreal.r",
+      "definitionKey": 1492154335
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.ezreal.w",
+      "definitionKey": 1408266240
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.fiora.basic_attack",
+      "definitionKey": 2910065836
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.fiora.e",
+      "definitionKey": 1690986934
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.fiora.q",
+      "definitionKey": 1489655506
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.fiora.r",
+      "definitionKey": 1472877887
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.fiora.w",
+      "definitionKey": 1388989792
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.garen.basic_attack",
+      "definitionKey": 2629635898
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.garen.e",
+      "definitionKey": 195462184
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.garen.q",
+      "definitionKey": 4289098052
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.garen.r",
+      "definitionKey": 44463613
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.garen.w",
+      "definitionKey": 4255542814
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.irelia.basic_attack",
+      "definitionKey": 608466189
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.irelia.e",
+      "definitionKey": 189230869
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.irelia.q",
+      "definitionKey": 4148645785
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.irelia.r",
+      "definitionKey": 4098312928
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.irelia.w",
+      "definitionKey": 4182201023
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.jax.basic_attack",
+      "definitionKey": 2242155272
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.jax.e",
+      "definitionKey": 672275338
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.jax.q",
+      "definitionKey": 873606766
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.jax.r",
+      "definitionKey": 856829147
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.jax.w",
+      "definitionKey": 907162004
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kalista.basic_attack",
+      "definitionKey": 3740155244
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kalista.e",
+      "definitionKey": 3856209270
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kalista.q",
+      "definitionKey": 3654877842
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kalista.r",
+      "definitionKey": 3638100223
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kalista.w",
+      "definitionKey": 3554212128
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kindred.basic_attack",
+      "definitionKey": 855888162
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kindred.e",
+      "definitionKey": 1181629872
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kindred.q",
+      "definitionKey": 980298444
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kindred.r",
+      "definitionKey": 1030631301
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.kindred.w",
+      "definitionKey": 946743206
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.leesin.basic_attack",
+      "definitionKey": 1350851437
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.leesin.e",
+      "definitionKey": 3897164981
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.leesin.q",
+      "definitionKey": 3561612601
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.leesin.r",
+      "definitionKey": 3511279744
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.leesin.w",
+      "definitionKey": 3595167839
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.masteryi.basic_attack",
+      "definitionKey": 1270151153
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.masteryi.e",
+      "definitionKey": 847679393
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.masteryi.q",
+      "definitionKey": 646347965
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.masteryi.r",
+      "definitionKey": 596015108
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.masteryi.w",
+      "definitionKey": 545682251
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.riven.basic_attack",
+      "definitionKey": 1865895971
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.riven.e",
+      "definitionKey": 3660065743
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.riven.q",
+      "definitionKey": 3324513363
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.riven.r",
+      "definitionKey": 3341290982
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.riven.w",
+      "definitionKey": 3425179077
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.sylas.basic_attack",
+      "definitionKey": 483112105
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.sylas.e",
+      "definitionKey": 1382254681
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.sylas.q",
+      "definitionKey": 1717807061
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.sylas.r",
+      "definitionKey": 1667474204
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.sylas.w",
+      "definitionKey": 1617141347
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.viego.basic_attack",
+      "definitionKey": 3040518335
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.viego.e",
+      "definitionKey": 4154970483
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.viego.q",
+      "definitionKey": 195555567
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.viego.r",
+      "definitionKey": 212333186
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.viego.w",
+      "definitionKey": 162000329
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yasuo.basic_attack",
+      "definitionKey": 272027900
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yasuo.e",
+      "definitionKey": 4093957606
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yasuo.q",
+      "definitionKey": 134542690
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yasuo.r",
+      "definitionKey": 117765071
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yasuo.w",
+      "definitionKey": 33876976
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yone.basic_attack",
+      "definitionKey": 3854873114
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yone.e",
+      "definitionKey": 2583708872
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yone.q",
+      "definitionKey": 2382377444
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yone.r",
+      "definitionKey": 2432710301
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.yone.w",
+      "definitionKey": 2348822206
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.zed.basic_attack",
+      "definitionKey": 1351629304
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.zed.e",
+      "definitionKey": 2629843482
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.zed.q",
+      "definitionKey": 2294291102
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.zed.r",
+      "definitionKey": 2277513483
+    },
+    {
+      "kind": "Skill",
+      "key": "skill.zed.w",
+      "definitionKey": 2327846340
+    },
+    {
+      "kind": "SummonerSpell",
+      "key": "summoner.flash",
+      "definitionKey": 2877697877
+    }
+  ]
+}

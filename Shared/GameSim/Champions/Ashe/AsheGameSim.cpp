@@ -3,6 +3,7 @@
 #include "Shared/GameSim/Components/AsheSimComponent.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -28,6 +29,45 @@ namespace
     constexpr f32_t kAsheRDamage = 250.0f;
     constexpr f32_t kAsheWMoveSpeedMul = 0.85f;
     constexpr f32_t kAsheRStunDurationSec = 1.5f;
+
+    f32_t ResolveAsheSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            *ctx.pTickCtx,
+            eChampion::ASHE,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveAsheSkillEffectParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::ASHE,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
 
     AsheSimComponent& EnsureAsheState(CWorld& world, EntityID caster)
     {
@@ -125,13 +165,33 @@ namespace
         const Vec3 dir = ResolveDirection(ctx);
         const f32_t halfCone = (kConeDeg * 0.5f) * (WintersMath::kPi / 180.f);
         const AsheSimComponent& state = EnsureAsheState(*ctx.pWorld, ctx.casterEntity);
+        const f32_t moveSpeedMul = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::MoveSpeedMul,
+            kAsheWMoveSpeedMul);
+        const f32_t projectileSpeed = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Speed,
+            kAsheWSpeed);
+        const f32_t projectileRange = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Range,
+            kAsheWRange);
+        const f32_t projectileDamage = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::BaseDamage,
+            kAsheWDamage);
 
         const StatusEffectApplyDesc slow = GameplayStatus::MakeSlowDesc(
             ctx.casterEntity,
             eChampion::ASHE,
             eSkillSlot::W,
             state.frostSlowDurationSec,
-            kAsheWMoveSpeedMul,
+            moveSpeedMul,
             eStatusEffectId::AsheVolleySlow);
 
         for (u32_t i = 0; i < kArrowCount; ++i)
@@ -146,10 +206,10 @@ namespace
                 ctx.casterTeam,
                 WintersMath::RotateXZ(dir, angle),
                 eProjectileKind::AsheVolleyArrow,
-                kAsheWSpeed,
-                kAsheWRange,
+                projectileSpeed,
+                projectileRange,
                 0.45f,
-                kAsheWDamage,
+                projectileDamage,
                 static_cast<u8_t>(eSkillSlot::W),
                 ctx.skillRank,
                 slow);
@@ -168,11 +228,32 @@ namespace
         if (!ctx.pWorld)
             return;
 
+        const f32_t stunDurationSec = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::StunDurationSec,
+            kAsheRStunDurationSec);
+        const f32_t projectileSpeed = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::Speed,
+            kAsheRSpeed);
+        const f32_t projectileRange = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::Range,
+            kAsheRRange);
+        const f32_t projectileDamage = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::BaseDamage,
+            kAsheRDamage);
+
         const StatusEffectApplyDesc stun = GameplayStatus::MakeStunDesc(
             ctx.casterEntity,
             eChampion::ASHE,
             eSkillSlot::R,
-            kAsheRStunDurationSec,
+            stunDurationSec,
             eStatusEffectId::AsheCrystalArrowStun);
 
         SpawnProjectile(
@@ -181,10 +262,10 @@ namespace
             ctx.casterTeam,
             ResolveDirection(ctx),
             eProjectileKind::AsheCrystalArrow,
-            kAsheRSpeed,
-            kAsheRRange,
+            projectileSpeed,
+            projectileRange,
             0.8f,
-            kAsheRDamage,
+            projectileDamage,
             static_cast<u8_t>(eSkillSlot::R),
             ctx.skillRank,
             stun);
@@ -204,6 +285,13 @@ namespace AsheGameSim
         f32_t baseDamage)
     {
         AsheSimComponent& state = EnsureAsheState(world, caster);
+        const f32_t moveSpeedMul = ResolveAsheSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::W,
+            eSkillEffectParamId::MoveSpeedMul,
+            kAsheWMoveSpeedMul);
         GameplayStatus::ApplySlow(
             world,
             tc,
@@ -212,7 +300,7 @@ namespace AsheGameSim
             eChampion::ASHE,
             eSkillSlot::BasicAttack,
             state.frostSlowDurationSec,
-            kAsheWMoveSpeedMul);
+            moveSpeedMul);
 
         if (state.bQActive)
             return baseDamage + state.qBonusDamage;

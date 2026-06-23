@@ -108,7 +108,7 @@ void CStructure_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorl
     uint64_t fowSkippedCount = 0;
 
     m_pWorld->ForEach<StructureComponent, RenderComponent, TransformComponent>(
-        [&](EntityID id, StructureComponent&, RenderComponent& rc, TransformComponent& xform)
+        [&](EntityID id, StructureComponent& structure, RenderComponent& rc, TransformComponent& xform)
         {
             if (!rc.bVisible || !rc.pRenderer)
                 return;
@@ -124,7 +124,13 @@ void CStructure_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorl
             rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
             rc.pRenderer->UpdateCamera(matViewProj, vCameraWorld);
             rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
-            rc.pRenderer->RenderFrustumCulled(matViewProj);
+            const bool_t bBlueNexus =
+                structure.team == eTeam::Blue &&
+                structure.kind == static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus);
+            if (bBlueNexus)
+                rc.pRenderer->Render();
+            else
+                rc.pRenderer->RenderFrustumCulled(matViewProj);
         });
 
     WINTERS_PROFILE_COUNT("Structure::Candidates", candidateCount);

@@ -1,10 +1,13 @@
 #pragma once
 
-#include "RHI/RHIDescriptors.h"
+#include "WintersTypes.h"
 
 #include <memory>
 
 class IRHIDevice;
+class CRHIMaterialResource;
+class CRHIMeshResource;
+class CRHISceneRenderer;
 
 class CRHITestCubeRenderer final
 {
@@ -24,16 +27,11 @@ private:
 	void Shutdown();
 
 private:
+	static constexpr u32_t kMaterialCount = 2;
+
 	IRHIDevice* m_pDevice = nullptr;
-	RHIBufferHandle m_hVertexBuffer{};
-	RHIBufferHandle m_hIndexBuffer{};
-	RHIBufferHandle m_hCameraConstantBuffer{};
-	RHITextureHandle m_hCheckerTexture{};
-	RHISamplerHandle m_hCheckerSampler{};
-	RHIBindGroupLayoutHandle m_hCameraBindGroupLayout{};
-	RHIBindGroupHandle m_hCameraBindGroup{};
-	RHIShaderHandle m_hVertexShader{};
-	RHIShaderHandle m_hPixelShader{};
-	RHIPipelineHandle m_hPipeline{};
+	std::unique_ptr<CRHIMeshResource> m_pMeshResource;
+	std::unique_ptr<CRHIMaterialResource> m_pMaterials[kMaterialCount];
+	std::unique_ptr<CRHISceneRenderer> m_pSceneRenderer;
 	f32_t m_fRotationSeconds = 0.f;
 };

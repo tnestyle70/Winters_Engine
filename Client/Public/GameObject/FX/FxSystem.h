@@ -16,8 +16,6 @@ class CCommandBuffer;
 class CPlaneRenderer;
 class CBlendStateCache;
 class CDynamicCamera;
-class DX11Shader;
-class DX11Pipeline;
 
 namespace Engine 
 { 
@@ -31,8 +29,6 @@ public:
 
 	static std::unique_ptr<CFxSystem> Create(
 		IRHIDevice* pDevice,
-		DX11Shader* pShader,
-		DX11Pipeline* pPipeline,
 		CBlendStateCache* pBlendCache);
 
 	// 매 프레임 tick (lifetime 감소, attachTo 추종, 만료 시 Destroy)

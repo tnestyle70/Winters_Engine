@@ -1,0 +1,1087 @@
+{
+  "schemaVersion": 1,
+  "champions": [
+    {
+      "key": "champion.irelia",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.irelia.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.25,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.irelia.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.2,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.irelia.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.irelia.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.05,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "animationPlaybackSpeed": 1.05,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.irelia.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.yasuo",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.yasuo.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.yasuo.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.yasuo.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.yasuo.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.yasuo.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.kalista",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.kalista.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.kalista.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 2.8,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.kalista.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.kalista.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.kalista.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.garen",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.garen.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.garen.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.garen.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.garen.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.garen.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.zed",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.zed.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.zed.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.zed.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.zed.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.zed.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.riven",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.riven.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.riven.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.riven.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.riven.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.riven.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.ezreal",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.ezreal.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.ezreal.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.ezreal.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.ezreal.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.ezreal.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.fiora",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.fiora.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.fiora.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.fiora.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.fiora.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.fiora.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.jax",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.jax.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.jax.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.jax.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.jax.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.jax.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.leesin",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.leesin.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.leesin.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.leesin.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.leesin.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.leesin.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.kindred",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.kindred.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.kindred.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.kindred.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.kindred.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.kindred.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.masteryi",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.masteryi.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.masteryi.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.masteryi.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.masteryi.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.masteryi.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.annie",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.annie.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.annie.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.annie.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.annie.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.annie.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.ashe",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.ashe.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.ashe.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.ashe.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.ashe.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.ashe.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.viego",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.viego.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.viego.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.viego.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.viego.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.viego.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.yone",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.yone.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.yone.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.yone.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 0.85,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.yone.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.yone.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "champion.sylas",
+      "modelYawOffsetRadians": 3.14159265,
+      "skills": [
+        {
+          "key": "skill.sylas.basic_attack",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.sylas.q",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.sylas.w",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.sylas.e",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            },
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        },
+        {
+          "key": "skill.sylas.r",
+          "replicatedCueId": 0,
+          "stages": [
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 0.0,
+              "recoveryFrame": 0.0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

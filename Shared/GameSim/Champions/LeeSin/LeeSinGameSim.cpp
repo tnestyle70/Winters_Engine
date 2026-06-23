@@ -5,6 +5,7 @@
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
@@ -32,6 +33,44 @@ namespace
     constexpr f32_t kLeeSinESlowMoveSpeedMul = 0.60f;
     constexpr f32_t kLeeSinRDamage = 150.f;
     constexpr f32_t kLeeSinRAirborneDurationSec = 1.0f;
+
+    f32_t ResolveLeeSinSkillEffectParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::LEESIN,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveLeeSinSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return ResolveLeeSinSkillEffectParam(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            slot,
+            param,
+            fallbackValue);
+    }
 
     void ClearMove(CWorld& world, EntityID entity)
     {
@@ -80,7 +119,12 @@ namespace
         EnqueueDamageRequest(world, request);
     }
 
-    void StartTargetDash(CWorld& world, EntityID caster, EntityID target)
+    void StartTargetDash(
+        CWorld& world,
+        EntityID caster,
+        EntityID target,
+        f32_t gap,
+        f32_t durationSec)
     {
         if (!world.HasComponent<TransformComponent>(caster) ||
             target == NULL_ENTITY ||
@@ -99,7 +143,7 @@ namespace
         const f32_t dx = targetPos.x - start.x;
         const f32_t dz = targetPos.z - start.z;
         const f32_t dist = std::sqrt(dx * dx + dz * dz);
-        const f32_t moveDist = std::max(0.f, dist - kLeeSinQDashGap);
+        const f32_t moveDist = std::max(0.f, dist - gap);
 
         LeeSinDashComponent dash{};
         dash.vStart = start;
@@ -108,7 +152,7 @@ namespace
             start.y,
             start.z + dir.z * moveDist
         };
-        dash.fDurationSec = kLeeSinQDashDurationSec;
+        dash.fDurationSec = durationSec;
 
         if (world.HasComponent<LeeSinDashComponent>(caster))
             world.GetComponent<LeeSinDashComponent>(caster) = dash;
@@ -142,13 +186,29 @@ namespace
             return;
         }
 
-        StartTargetDash(*ctx.pWorld, ctx.casterEntity, target);
+        const f32_t q2Damage = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::BaseDamage,
+            kLeeSinQ2Damage);
+        const f32_t qDashGap = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Gap,
+            kLeeSinQDashGap);
+        const f32_t qDashDurationSec = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::DashDurationSec,
+            kLeeSinQDashDurationSec);
+
+        StartTargetDash(*ctx.pWorld, ctx.casterEntity, target, qDashGap, qDashDurationSec);
         EnqueuePhysicalDamage(
             *ctx.pWorld,
             ctx.casterEntity,
             target,
             ctx.casterTeam,
-            kLeeSinQ2Damage,
+            q2Damage,
             static_cast<u8_t>(eSkillSlot::Q),
             ctx.skillRank);
         ctx.pWorld->RemoveComponent<LeeSinQMarkComponent>(target);
@@ -163,7 +223,28 @@ namespace
             return;
 
         const Vec3 origin = world.GetComponent<TransformComponent>(caster).GetPosition();
-        const f32_t radiusSq = kLeeSinERadius * kLeeSinERadius;
+        const f32_t radius = ResolveLeeSinSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::E,
+            eSkillEffectParamId::Radius,
+            kLeeSinERadius);
+        const f32_t slowDurationSec = ResolveLeeSinSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::E,
+            eSkillEffectParamId::SlowDurationSec,
+            kLeeSinESlowDurationSec);
+        const f32_t slowMoveSpeedMul = ResolveLeeSinSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::E,
+            eSkillEffectParamId::MoveSpeedMul,
+            kLeeSinESlowMoveSpeedMul);
+        const f32_t radiusSq = radius * radius;
 
         world.ForEach<ChampionComponent, TransformComponent>(
             std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
@@ -181,8 +262,8 @@ namespace
                         caster,
                         eChampion::LEESIN,
                         eSkillSlot::E,
-                        kLeeSinESlowDurationSec,
-                        kLeeSinESlowMoveSpeedMul);
+                        slowDurationSec,
+                        slowMoveSpeedMul);
                 }));
     }
 
@@ -210,12 +291,23 @@ namespace
         if (target == NULL_ENTITY || !ctx.pWorld->IsAlive(target))
             return;
 
+        const f32_t rDamage = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::BaseDamage,
+            kLeeSinRDamage);
+        const f32_t rAirborneDurationSec = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::AirborneDurationSec,
+            kLeeSinRAirborneDurationSec);
+
         EnqueuePhysicalDamage(
             *ctx.pWorld,
             ctx.casterEntity,
             target,
             ctx.casterTeam,
-            kLeeSinRDamage,
+            rDamage,
             static_cast<u8_t>(eSkillSlot::R),
             ctx.skillRank);
         GameplayStatus::ApplyAirborne(
@@ -225,7 +317,7 @@ namespace
             ctx.casterEntity,
             eChampion::LEESIN,
             eSkillSlot::R,
-            kLeeSinRAirborneDurationSec);
+            rAirborneDurationSec);
 
         std::cout << "[LeeSinSim] R dragon rage caster="
             << ctx.casterEntity << " target=" << target << "\n";
@@ -313,14 +405,22 @@ namespace LeeSinGameSim
             world.RemoveComponent<LeeSinQMarkComponent>(entity);
     }
 
-    void ApplySonicWaveMark(CWorld& world, EntityID source, EntityID target)
+    void ApplySonicWaveMark(CWorld& world, const TickContext& tc, EntityID source, EntityID target)
     {
         if (source == NULL_ENTITY || target == NULL_ENTITY || !world.IsAlive(target))
             return;
 
+        const f32_t markDurationSec = ResolveLeeSinSkillEffectParam(
+            world,
+            tc,
+            source,
+            eSkillSlot::Q,
+            eSkillEffectParamId::MarkDurationSec,
+            kLeeSinQMarkDurationSec);
+
         LeeSinQMarkComponent mark{};
         mark.sourceEntity = source;
-        mark.fRemainingSec = kLeeSinQMarkDurationSec;
+        mark.fRemainingSec = markDurationSec;
 
         if (world.HasComponent<LeeSinQMarkComponent>(target))
             world.GetComponent<LeeSinQMarkComponent>(target) = mark;

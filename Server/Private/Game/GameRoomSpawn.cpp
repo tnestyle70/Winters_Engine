@@ -3,9 +3,13 @@
 #include "GameRoomInternal.h"
 #include "GameRoomSmokeRoster.h"
 
+#include "Game/ServerAICommandProducer.h"
 #include "Game/ServerMinionTuning.h"
+#include "Game/WorldBootstrap.h"
+#include "Server/Private/Game/Factory/ChampionSimComponentTable.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
+#include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
@@ -15,24 +19,18 @@
 #include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Components/RuneComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
+#include "Shared/GameSim/Components/SkillLoadoutComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Components/WaypointPatrolComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
+#include "Shared/GameSim/Definitions/MinionCombatDef.h"
 #include "Shared/GameSim/Definitions/StageData.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
-#include "Shared/GameSim/Components/AnnieSimComponent.h"
-#include "Shared/GameSim/Components/AsheSimComponent.h"
+#include "Server/Private/Data/LoLGameplayDefinitionPack.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
-#include "Shared/GameSim/Components/FioraSimComponent.h"
-#include "Shared/GameSim/Components/JaxSimComponent.h"
-#include "Shared/GameSim/Components/KindredSimComponent.h"
-#include "Shared/GameSim/Components/LeeSinSimComponent.h"
-#include "Shared/GameSim/Components/MasterYiComponent.h"
-#include "Shared/GameSim/Components/ViegoSimComponent.h"
-#include "Shared/GameSim/Components/YoneSimComponent.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
@@ -88,125 +86,6 @@ namespace
 
     constexpr int32_t kStageChampionSpawnWalkableSearchRadius = 16;
     constexpr f32_t kChampionAIInitialDecisionDelaySec = 0.35f;
-
-    eTeam StageTeamToGameTeam(u32_t team)
-    {
-        switch (static_cast<Winters::Map::eTeam>(team))
-        {
-        case Winters::Map::eTeam::Red:
-            return eTeam::Red;
-        case Winters::Map::eTeam::Neutral:
-            return eTeam::Neutral;
-        case Winters::Map::eTeam::Blue:
-        default:
-            return eTeam::Blue;
-        }
-    }
-
-    f32_t ResolveStageStructureMaxHp(u32_t kind)
-    {
-        if (kind == kStructureKindNexus)
-            return 5500.f;
-        if (kind == kStructureKindInhibitor)
-            return 4000.f;
-        return 3000.f;
-    }
-
-    f32_t ResolveStageJungleMaxHp(u32_t subKind)
-    {
-        switch (subKind)
-        {
-        case 0u:
-            return 8000.f;
-        case 1u:
-            return 5000.f;
-        default:
-            return 1500.f;
-        }
-    }
-
-    f32_t ResolveStageJungleRadius(u32_t subKind)
-    {
-        switch (subKind)
-        {
-        case 0u:
-            return 2.5f;
-        case 1u:
-            return 2.2f;
-        case 2u:
-        case 3u:
-        case 5u:
-            return 1.2f;
-        case 4u:
-        case 6u:
-        case 7u:
-            return 1.0f;
-        case 8u:
-        case 9u:
-        case 10u:
-            return 0.7f;
-        default:
-            return 1.0f;
-        }
-    }
-
-    f32_t ResolveStageJungleAttackRange(u32_t subKind)
-    {
-        switch (subKind)
-        {
-        case 0u: return 4.0f;
-        case 1u: return 3.0f;
-        case 2u:
-        case 3u:
-        case 5u: return 2.0f;
-        case 8u:
-        case 9u:
-        case 10u: return 1.4f;
-        default: return 1.7f;
-        }
-    }
-
-    f32_t ResolveStageJungleAttackDamage(u32_t subKind)
-    {
-        switch (subKind)
-        {
-        case 0u: return 120.f;
-        case 1u: return 90.f;
-        case 2u:
-        case 3u: return 65.f;
-        case 5u: return 60.f;
-        case 8u:
-        case 9u:
-        case 10u: return 25.f;
-        default: return 45.f;
-        }
-    }
-
-    f32_t ResolveStageJungleAttackCooldown(u32_t subKind)
-    {
-        switch (subKind)
-        {
-        case 0u: return 1.2f;
-        case 1u: return 1.5f;
-        case 8u:
-        case 9u:
-        case 10u: return 1.25f;
-        default: return 1.4f;
-        }
-    }
-
-    f32_t ResolveStageJungleMoveSpeed(u32_t subKind)
-    {
-        switch (subKind)
-        {
-        case 0u: return 2.5f;
-        case 1u: return 4.0f;
-        case 8u:
-        case 9u:
-        case 10u: return 4.5f;
-        default: return 4.0f;
-        }
-    }
 
     VisibilityComponent BuildServerVisibleToAll()
     {
@@ -340,19 +219,27 @@ void CGameRoom::SpawnServerGameplayObjects()
         InitializeServerWalkableGrid(nullptr, nullptr);
     }
 
-    SpawnServerStructure(eTeam::Blue, kStructureKindTurret, 0, kLaneMid,
-        Vec3{ 18.f, 1.f, 0.f }, Vec3{}, 3000.f, 1.f, true, false, false);
-    SpawnServerStructure(eTeam::Blue, kStructureKindTurret, 1, kLaneMid,
-        Vec3{ 25.f, 1.f, 0.f }, Vec3{}, 3000.f, 1.f, true, false, false);
-    SpawnServerStructure(eTeam::Blue, kStructureKindNexus, 3, kLaneMid,
-        Vec3{ 32.f, 1.f, 0.f }, Vec3{}, 5500.f, 1.f, false, true, false);
-
-    SpawnServerStructure(eTeam::Red, kStructureKindTurret, 0, kLaneMid,
-        Vec3{ -18.f, 1.f, 0.f }, Vec3{}, 3000.f, 1.f, true, false, false);
-    SpawnServerStructure(eTeam::Red, kStructureKindTurret, 1, kLaneMid,
-        Vec3{ -25.f, 1.f, 0.f }, Vec3{}, 3000.f, 1.f, true, false, false);
-    SpawnServerStructure(eTeam::Red, kStructureKindNexus, 3, kLaneMid,
-        Vec3{ -32.f, 1.f, 0.f }, Vec3{}, 5500.f, 1.f, false, true, false);
+    const SpawnObjectDefinitionPack& objectDefs = ServerData::GetLoLSpawnObjectDefinitionPack();
+    const auto fallbackStructures = CWorldBootstrap::BuildFallbackStructures(
+        objectDefs,
+        kStructureKindTurret,
+        kStructureKindNexus,
+        kLaneMid);
+    for (const WorldBootstrapStructureSpawnRequest& request : fallbackStructures)
+    {
+        SpawnServerStructure(
+            request.team,
+            request.kind,
+            request.tier,
+            request.lane,
+            request.position,
+            request.rotation,
+            request.maxHp,
+            request.scale,
+            request.bTurret,
+            request.bNexus,
+            request.bInhibitor);
+    }
 
     CarveServerStructuresOnNavGrid();
     SanitizeServerMoversOnNavGrid();
@@ -372,18 +259,22 @@ void CGameRoom::SpawnServerGameplayObjects()
 EntityID CGameRoom::SpawnServerStructureFromStageEntry(
     const Winters::Map::StructureEntry& entry)
 {
-    if (entry.bVisible == 0u)
+    WorldBootstrapStructureSpawnRequest request{};
+    if (!CWorldBootstrap::TryBuildStageStructureRequest(
+        ServerData::GetLoLSpawnObjectDefinitionPack(),
+        entry,
+        static_cast<u8_t>(entry.lane),
+        kStructureKindTurret,
+        kStructureKindNexus,
+        kStructureKindInhibitor,
+        request))
+    {
         return NULL_ENTITY;
+    }
 
-    const u32_t kind = entry.subKind;
-    const bool_t bTurret = kind == kStructureKindTurret;
-    const bool_t bNexus = kind == kStructureKindNexus;
-    const bool_t bInhibitor = kind == kStructureKindInhibitor;
-    if (!bTurret && !bNexus && !bInhibitor)
-        return NULL_ENTITY;
-
-    const eTeam team = StageTeamToGameTeam(entry.team);
-    const Vec3 pos{ entry.px, entry.py, entry.pz };
+    const u32_t kind = request.kind;
+    const eTeam team = request.team;
+    const Vec3 pos = request.position;
     const u8_t resolvedLane = ResolveServerStructureLane(team, kind, entry.tier, pos);
     if (entry.lane != resolvedLane)
     {
@@ -401,39 +292,48 @@ EntityID CGameRoom::SpawnServerStructureFromStageEntry(
         OutputServerAITrace(msg);
     }
 
+    request.lane = resolvedLane;
+
     return SpawnServerStructure(
-        team,
-        kind,
-        entry.tier,
-        resolvedLane,
-        pos,
-        Vec3{ entry.rx, entry.ry, entry.rz },
-        ResolveStageStructureMaxHp(kind),
-        entry.scale,
-        bTurret,
-        bNexus,
-        bInhibitor);
+        request.team,
+        request.kind,
+        request.tier,
+        request.lane,
+        request.position,
+        request.rotation,
+        request.maxHp,
+        request.scale,
+        request.bTurret,
+        request.bNexus,
+        request.bInhibitor);
 }
 
 EntityID CGameRoom::SpawnServerJungleFromStageEntry(
     const Winters::Map::JungleEntry& entry)
 {
-    if (entry.bVisible == 0u)
+    WorldBootstrapJungleSpawnRequest request{};
+    if (!CWorldBootstrap::TryBuildStageJungleRequest(
+        ServerData::GetLoLSpawnObjectDefinitionPack(),
+        entry,
+        request))
+    {
         return NULL_ENTITY;
+    }
 
     const EntityID entity = m_world.CreateEntity();
 
     TransformComponent transform{};
-    transform.SetPosition(Vec3{ entry.px, entry.py, entry.pz });
-    transform.SetRotation(Vec3{ entry.rx, entry.ry, entry.rz });
-    transform.SetScale(entry.scale > 0.f ? entry.scale : 1.f);
+    transform.SetPosition(request.position);
+    transform.SetRotation(request.rotation);
+    transform.SetScale(request.scale);
     m_world.AddComponent<TransformComponent>(entity, transform);
 
-    const f32_t maxHp = ResolveStageJungleMaxHp(entry.subKind);
+    const JungleCampGameDef& jungleDef = request.combat;
+    const f32_t maxHp = jungleDef.maxHp;
 
     JungleComponent jungle{};
-    jungle.subKind = entry.subKind;
-    jungle.campId = entry.campId;
+    jungle.subKind = request.subKind;
+    jungle.campId = request.campId;
     jungle.hp = maxHp;
     jungle.maxHp = maxHp;
     m_world.AddComponent<JungleComponent>(entity, jungle);
@@ -444,8 +344,8 @@ EntityID CGameRoom::SpawnServerJungleFromStageEntry(
     health.fMaximum = maxHp;
     m_world.AddComponent<HealthComponent>(entity, health);
 
-    const f32_t attackDamage = ResolveStageJungleAttackDamage(entry.subKind);
-    const f32_t attackCooldown = ResolveStageJungleAttackCooldown(entry.subKind);
+    const f32_t attackDamage = jungleDef.attackDamage;
+    const f32_t attackCooldown = jungleDef.attackCooldown;
     const f32_t attackSpeed = 1.f / attackCooldown;
 
     StatComponent stat{};
@@ -454,15 +354,15 @@ EntityID CGameRoom::SpawnServerJungleFromStageEntry(
     stat.hpMax = maxHp;
     stat.baseAd = attackDamage;
     stat.ad = attackDamage;
-    stat.baseArmor = 20.f;
+    stat.baseArmor = jungleDef.baseArmor;
     stat.armor = stat.baseArmor;
-    stat.baseMr = 20.f;
+    stat.baseMr = jungleDef.baseMr;
     stat.mr = stat.baseMr;
     stat.baseAttackSpeed = attackSpeed;
     stat.attackSpeedRatio = attackSpeed;
     stat.attackSpeed = attackSpeed;
-    stat.attackRange = ResolveStageJungleAttackRange(entry.subKind);
-    stat.moveSpeed = ResolveStageJungleMoveSpeed(entry.subKind);
+    stat.attackRange = jungleDef.attackRange;
+    stat.moveSpeed = jungleDef.moveSpeed;
     stat.bDirty = false;
     m_world.AddComponent<StatComponent>(entity, stat);
 
@@ -472,7 +372,7 @@ EntityID CGameRoom::SpawnServerJungleFromStageEntry(
     SpatialAgentComponent spatial{};
     spatial.kind = eSpatialKind::JungleMob;
     spatial.team = TeamByte(eTeam::Neutral);
-    spatial.radius = ResolveStageJungleRadius(entry.subKind);
+    spatial.radius = jungleDef.radius;
     m_world.AddComponent<SpatialAgentComponent>(entity, spatial);
 
     ColliderComponent collider{};
@@ -533,13 +433,14 @@ EntityID CGameRoom::SpawnServerStructure(eTeam team, u32_t kind, u32_t tier, u32
         turret.laneType = static_cast<u8_t>(lane);
         m_world.AddComponent<TurretComponent>(entity, turret);
 
+        const TurretAIGameDef& turretAI = ServerData::GetLoLSpawnObjectDefinitionPack().structure.turretAI;
         TurretAIComponent ai{};
-        ai.attackRange = 7.75f;
-        ai.attackCooldownMax = 1.0f;
+        ai.attackRange = turretAI.attackRange;
+        ai.attackCooldownMax = turretAI.attackCooldownMax;
         ai.attackDamage = (tier == static_cast<u32_t>(Winters::Map::eTurretTier::Nexus))
-            ? 180.f
-            : 150.f;
-        ai.projectileSpeed = 18.f;
+            ? turretAI.nexusAttackDamage
+            : turretAI.attackDamage;
+        ai.projectileSpeed = turretAI.projectileSpeed;
         m_world.AddComponent<TurretAIComponent>(entity, ai);
     }
 
@@ -560,13 +461,14 @@ EntityID CGameRoom::SpawnServerStructure(eTeam team, u32_t kind, u32_t tier, u32
     m_world.AddComponent<SpatialAgentComponent>(entity, spatial);
 
     ColliderComponent collider{};
-    collider.vHalfExtents = { spatial.radius, 2.5f, spatial.radius };
-    collider.vOffset = { 0.f, 1.25f, 0.f };
+    const TurretAIGameDef& structureDef = ServerData::GetLoLSpawnObjectDefinitionPack().structure.turretAI;
+    collider.vHalfExtents = { spatial.radius, structureDef.bodyHeight, spatial.radius };
+    collider.vOffset = { 0.f, structureDef.bodyOffsetY, 0.f };
     collider.bIsTrigger = false;
     m_world.AddComponent<ColliderComponent>(entity, collider);
 
     VisionSourceComponent vision{};
-    vision.sightRange = bTurret ? 12.f : 10.f;
+    vision.sightRange = bTurret ? structureDef.turretSightRange : structureDef.structureSightRange;
     vision.bTrueSight = bTurret;
     m_world.AddComponent<VisionSourceComponent>(entity, vision);
     m_world.AddComponent<VisibilityComponent>(entity, BuildServerVisibleToAll());
@@ -600,11 +502,12 @@ EntityID CGameRoom::SpawnServerMinion(eTeam team, u8_t roleType, u8_t lane, cons
     state.team = team;
     state.type = roleType;
     state.lane = lane;
-    state.moveSpeed = (roleType == 3) ? 5.0f : ((roleType == 2) ? 3.5f : 4.0f);
-    state.attackRange = (roleType == 1) ? 8.0f : ((roleType == 2) ? 10.0f : 1.5f);
-    state.sightRange = (roleType == 0) ? 12.f : ((roleType == 2) ? 16.f : 14.f);
-    state.attackDamage = (roleType == 3) ? 100.f : ((roleType == 2) ? 40.f : ((roleType == 1) ? 30.f : 20.f));
-    state.attackCooldownMax = (roleType == 1) ? 1.2f : 1.0f;
+    const MinionCombatDef combat = ServerData::GetLoLSpawnObjectDefinitionPack().ResolveMinion(roleType);
+    state.moveSpeed = combat.moveSpeed;
+    state.attackRange = combat.attackRange;
+    state.sightRange = combat.sightRange;
+    state.attackDamage = combat.attackDamage;
+    state.attackCooldownMax = combat.attackCooldownMax;
     state.targetScanInterval = ServerMinionTuning::kTargetScanIntervalSec;
     const u32_t scanBucket =
         (static_cast<u32_t>(entity) * 1103515245u +
@@ -617,7 +520,7 @@ EntityID CGameRoom::SpawnServerMinion(eTeam team, u8_t roleType, u8_t lane, cons
             static_cast<f32_t>(ServerMinionTuning::kTargetScanStaggerBuckets));
     m_world.AddComponent<MinionStateComponent>(entity, state);
 
-    const f32_t maxHp = (roleType == 3) ? 1000.f : 450.f;
+    const f32_t maxHp = combat.maxHp;
     HealthComponent health{};
     health.fCurrent = maxHp;
     health.fMaximum = maxHp;
@@ -723,7 +626,8 @@ u8_t CGameRoom::ResolveServerStructureLane(
 
 EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
 {
-    const EntityID entity = m_world.CreateEntity();
+    const EntityHandle entityHandle = m_world.CreateEntityHandle();
+    const EntityID entity = entityHandle.GetIndex();
 
     const Vec3 spawnPos = GetSpawnPositionForLobbySlot(slot);
 
@@ -731,9 +635,40 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
     transform.SetPosition(spawnPos);
     m_world.AddComponent<TransformComponent>(entity, transform);
 
-    const ChampionStatsDef statsDef =
-        CChampionStatsRegistry::Instance().Resolve(slot.champion);
-    StatComponent stat = CStatSystem::BuildBaseStats(statsDef, 6);
+    const SpawnObjectDefinitionPack& objectDefs = ServerData::GetLoLSpawnObjectDefinitionPack();
+    const SpawnLoadoutPolicyDef& spawnPolicy = objectDefs.spawnLoadout;
+    const GameplayDefinitionPack& definitions = ServerData::GetLoLGameplayDefinitionPack();
+    const ChampionGameplayDef* championDef = definitions.FindChampion(slot.champion);
+
+    StatComponent stat{};
+    f32_t spatialRadius = 0.75f;
+    f32_t sightRange = 19.f;
+    if (championDef)
+    {
+        ChampionDefinitionComponent identity{};
+        identity.championDefId = championDef->id;
+        m_world.AddComponent<ChampionDefinitionComponent>(entity, identity);
+
+        SkillLoadoutComponent loadout{};
+        for (u8_t skillSlot = 0u; skillSlot < kChampionSkillSlotCount; ++skillSlot)
+            loadout.skills[skillSlot] = championDef->skillLoadout[skillSlot];
+        m_world.AddComponent<SkillLoadoutComponent>(entity, loadout);
+
+        stat = CStatSystem::BuildBaseStats(
+            championDef->stats,
+            championDef->legacyChampion,
+            spawnPolicy.startLevel);
+        spatialRadius = championDef->stats.spatialRadius;
+        sightRange = championDef->stats.sightRange;
+    }
+    else
+    {
+        const ChampionStatsDef legacyStats =
+            CChampionStatsRegistry::Instance().Resolve(slot.champion);
+        stat = CStatSystem::BuildBaseStats(legacyStats, spawnPolicy.startLevel);
+        spatialRadius = legacyStats.spatialRadius;
+        sightRange = legacyStats.sightRange;
+    }
     stat.hpMax = ResolveServerChampionMaxHpForSlot(slot, stat.hpMax);
     m_world.AddComponent<StatComponent>(entity, stat);
 
@@ -745,7 +680,7 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
 
     RespawnComponent respawn{};
     respawn.spawnPos = spawnPos;
-    respawn.respawnDelay = kDefaultChampionRespawnDelaySec;
+    respawn.respawnDelay = spawnPolicy.respawnDelaySec;
     m_world.AddComponent<RespawnComponent>(entity, respawn);
 
     SkillStateComponent skillState{};
@@ -761,15 +696,15 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
     m_world.AddComponent<SkillRankComponent>(entity, skillRank);
 
     GoldComponent gold{};
-    gold.amount = 10000;
+    gold.amount = spawnPolicy.startGold;
     m_world.AddComponent<GoldComponent>(entity, gold);
 
     InventoryComponent inventory{};
     m_world.AddComponent<InventoryComponent>(entity, inventory);
 
     RuneLoadoutComponent runeLoadout{};
-    runeLoadout.eRunes[0] = eRuneId::LethalTempo;
-    runeLoadout.iCount = 1u;
+    runeLoadout.eRunes[0] = spawnPolicy.startRune;
+    runeLoadout.iCount = spawnPolicy.startRuneCount;
     m_world.AddComponent<RuneLoadoutComponent>(entity, runeLoadout);
     m_world.AddComponent<RuneRuntimeComponent>(entity, RuneRuntimeComponent{});
 
@@ -790,41 +725,23 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
     champion.level = stat.level;
     m_world.AddComponent<ChampionComponent>(entity, champion);
 
-    if (slot.champion == eChampion::YASUO)
-        m_world.AddComponent<YasuoStateComponent>(entity, YasuoStateComponent{});
-    if (slot.champion == eChampion::ASHE)
-        m_world.AddComponent<AsheSimComponent>(entity, AsheSimComponent{});
-    if (slot.champion == eChampion::ANNIE)
-        m_world.AddComponent<AnnieSimComponent>(entity, AnnieSimComponent{});
-    if (slot.champion == eChampion::FIORA)
-        m_world.AddComponent<FioraSimComponent>(entity, FioraSimComponent{});
-    if (slot.champion == eChampion::JAX)
-        m_world.AddComponent<JaxSimComponent>(entity, JaxSimComponent{});
-    if (slot.champion == eChampion::VIEGO)
-        m_world.AddComponent<ViegoSimComponent>(entity, ViegoSimComponent{});
-    if (slot.champion == eChampion::YONE)
-        m_world.AddComponent<YoneSimComponent>(entity, YoneSimComponent{});
-    if (slot.champion == eChampion::LEESIN)
-        m_world.AddComponent<LeeSinSimComponent>(entity, LeeSinSimComponent{});
-    if (slot.champion == eChampion::KINDRED)
-        m_world.AddComponent<KindredSimComponent>(entity, KindredSimComponent{});
-    if (slot.champion == eChampion::MASTERYI)
-        m_world.AddComponent<MasterYiSimComponent>(entity, MasterYiSimComponent{});
+    AttachChampionSimComponents(m_world, entity, slot.champion);
 
     SpatialAgentComponent spatial{};
     spatial.kind = eSpatialKind::Champion;
     spatial.team = slot.team;
-    spatial.radius = statsDef.spatialRadius;
+    spatial.radius = spatialRadius;
     m_world.AddComponent<SpatialAgentComponent>(entity, spatial);
 
+    const ChampionColliderProfileDef& colliderProfile = objectDefs.championCollider;
     ColliderComponent collider{};
-    collider.vHalfExtents = { spatial.radius, 1.8f, spatial.radius };
-    collider.vOffset = { 0.f, 0.9f, 0.f };
+    collider.vHalfExtents = { spatial.radius, colliderProfile.bodyHeight, spatial.radius };
+    collider.vOffset = { 0.f, colliderProfile.bodyOffsetY, 0.f };
     collider.bIsTrigger = false;
     m_world.AddComponent<ColliderComponent>(entity, collider);
 
     VisionSourceComponent vision{};
-    vision.sightRange = statsDef.sightRange;
+    vision.sightRange = sightRange;
     m_world.AddComponent<VisionSourceComponent>(entity, vision);
     m_world.AddComponent<VisibilityComponent>(entity, BuildServerVisibleToAll());
     m_world.AddComponent<TargetableTag>(entity);
@@ -851,7 +768,9 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
         ai.champion = slot.champion;
         ai.team = static_cast<eTeam>(slot.team);
         ai.difficulty = slot.botDifficulty;
-        ai.lane = ResolveInitialBotLane(slot);
+        ai.lane = CServerAICommandProducer::ResolveInitialBotLane(
+            slot,
+            GetGameSimRosterLane(slot.slotId));
         ai.decisionTimer = kChampionAIInitialDecisionDelaySec;
         ai.retreatGoal = spawnPos;
         ai.championScanRange = profile.championScanRange;

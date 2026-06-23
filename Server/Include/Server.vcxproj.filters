@@ -109,6 +109,9 @@
     <Filter Include="02. Game\00. GameRoom\09. Projectiles">
       <UniqueIdentifier>{75c8e1f4-6b29-4d07-8a3c-f29d50b16e87}</UniqueIdentifier>
     </Filter>
+    <Filter Include="02. Game\00. GameRoom\10. WorldBootstrap">
+      <UniqueIdentifier>{49f51a4e-7e48-4b7b-8de9-f3a090d06063}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\main.cpp">
@@ -148,6 +151,9 @@
       <Filter>02. Game\08. Minion\01. WaveRuntime</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Game\GameRoomChampionAI.cpp">
+      <Filter>02. Game\09. ChampionAI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\ServerAICommandProducer.cpp">
       <Filter>02. Game\09. ChampionAI</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Game\ServerEntry.cpp">
@@ -306,6 +312,9 @@
     <ClCompile Include="..\Private\Game\GameRoomReplication.cpp">
       <Filter>02. Game\00. GameRoom\01. Replication</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Game\ReplicationEmitter.cpp">
+      <Filter>02. Game\00. GameRoom\01. Replication</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Game\GameRoomCommands.cpp">
       <Filter>02. Game\00. GameRoom\02. Commands</Filter>
     </ClCompile>
@@ -327,6 +336,9 @@
     <ClCompile Include="..\Private\Game\GameRoomNav.cpp">
       <Filter>02. Game\00. GameRoom\05. Nav</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Game\WalkabilityAuthority.cpp">
+      <Filter>02. Game\00. GameRoom\05. Nav</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Game\GameRoomInternal.cpp">
       <Filter>02. Game\00. GameRoom\06. Internal</Filter>
     </ClCompile>
@@ -339,6 +351,12 @@
     <ClCompile Include="..\Private\Game\GameRoomProjectiles.cpp">
       <Filter>02. Game\00. GameRoom\09. Projectiles</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Game\ServerProjectileAuthority.cpp">
+      <Filter>02. Game\00. GameRoom\09. Projectiles</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\WorldBootstrap.cpp">
+      <Filter>02. Game\00. GameRoom\10. WorldBootstrap</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\Game\GameRoom.h">
@@ -350,6 +368,9 @@
     <ClInclude Include="..\Public\Game\LobbyAuthority.h">
       <Filter>02. Game\00. GameRoom\03. Lobby</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Game\ReplicationEmitter.h">
+      <Filter>02. Game\00. GameRoom\01. Replication</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\Game\SessionBinding.h">
       <Filter>02. Game\00. GameRoom\02. Commands</Filter>
     </ClInclude>
@@ -358,6 +379,18 @@
     </ClInclude>
     <ClInclude Include="..\Private\Game\GameRoomInternal.h">
       <Filter>02. Game\00. GameRoom\06. Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\WalkabilityAuthority.h">
+      <Filter>02. Game\00. GameRoom\05. Nav</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\WorldBootstrap.h">
+      <Filter>02. Game\00. GameRoom\10. WorldBootstrap</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\ServerProjectileAuthority.h">
+      <Filter>02. Game\00. GameRoom\09. Projectiles</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Game\ServerAICommandProducer.h">
+      <Filter>02. Game\09. ChampionAI</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Network\IOCPCore.h">
       <Filter>01. Network\00. IOCP</Filter>

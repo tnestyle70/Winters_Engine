@@ -351,6 +351,7 @@ private:
     void* m_pSRV_PingDanger = nullptr;
     void* m_pSRV_PingAssist = nullptr;
     void* m_pSRV_PingMissing = nullptr;
+    void* m_pSRV_OffscreenPingAtlas = nullptr;
     eCursorMode               m_CursorMode = eCursorMode::Default;
     f32_t                     m_fCursorSize = 32.f;
     bool_t                    m_bShowMouseCursor = true;

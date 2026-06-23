@@ -682,6 +682,18 @@
     <ClInclude Include="..\Public\Renderer\RHIFxSpriteRenderer.h">
       <Filter>03. Renderer\05. FX\08. RHI</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Renderer\RenderWorldSnapshot.h">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\RHIMaterialResource.h">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\RHIMeshResource.h">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Renderer\RHISceneRenderer.h">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\Renderer\UIRenderer.h">
       <Filter>03. Renderer\05. FX\09. UIRenderer</Filter>
     </ClInclude>
@@ -1177,6 +1189,15 @@
     <ClCompile Include="..\Private\Renderer\RHIFxSpriteRenderer.cpp">
       <Filter>03. Renderer\05. FX\08. RHI</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Renderer\RHIMaterialResource.cpp">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\RHIMeshResource.cpp">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\RHISceneRenderer.cpp">
+      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Renderer\UIRenderer.cpp">
       <Filter>03. Renderer\05. FX\09. UIRenderer</Filter>
     </ClCompile>
@@ -1270,5 +1291,30 @@
     <ClCompile Include="..\Private\RHI\DX12\DX12Device.cpp">
       <Filter>02. RHI\02. DX12</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Public\Cinematic\CSequenceAsset.h" />
+    <ClInclude Include="..\Public\Cinematic\CSequencePlayer.h" />
+    <ClInclude Include="..\Public\Cinematic\ISeqBindingResolver.h" />
+    <ClInclude Include="..\Public\Cinematic\ISeqEventSink.h" />
+    <ClInclude Include="..\Public\FX\Exec\FxExecPlan.h" />
+    <ClInclude Include="..\Public\FX\Exec\FxParticlePool.h" />
+    <ClInclude Include="..\Public\FX\Graph\FxGraph.h" />
+    <ClInclude Include="..\Public\FX\Graph\FxGraphValidator.h" />
+    <ClInclude Include="..\Public\Physics3D\HitVolume.h" />
+    <ClInclude Include="..\Public\World\AssetStreamingSystem.h" />
+    <ClInclude Include="..\Public\World\WorldPartitionSystem.h" />
+    <ClInclude Include="..\Public\World\WorldPartitionTypes.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Private\Cinematic\CSequenceAsset.cpp" />
+    <ClCompile Include="..\Private\Cinematic\CSequencePlayer.cpp" />
+    <ClCompile Include="..\Private\FX\Exec\FxExecPlan.cpp" />
+    <ClCompile Include="..\Private\FX\Exec\FxParticlePool.cpp" />
+    <ClCompile Include="..\Private\FX\Graph\FxGraph.cpp" />
+    <ClCompile Include="..\Private\FX\Graph\FxGraphValidator.cpp" />
+    <ClCompile Include="..\Private\Physics3D\HitVolume.cpp" />
+    <ClCompile Include="..\Private\World\AssetStreamingSystem.cpp" />
+    <ClCompile Include="..\Private\World\WorldPartitionSystem.cpp" />
   </ItemGroup>
 </Project>

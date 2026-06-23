@@ -14,6 +14,7 @@
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/ViegoSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -68,6 +69,45 @@ namespace
             world.AddComponent<ViegoSimComponent>(caster, ViegoSimComponent{});
 
         return world.GetComponent<ViegoSimComponent>(caster);
+    }
+
+    f32_t ResolveViegoSkillRange(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return GameplayDefinitionQuery::ResolveSkillRange(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            *ctx.pTickCtx,
+            eChampion::VIEGO,
+            static_cast<u8_t>(slot));
+    }
+
+    f32_t ResolveViegoSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            *ctx.pTickCtx,
+            eChampion::VIEGO,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
     }
 
     constexpr u16_t MakeStatusStackGroup(eChampion champion, u8_t slot)
@@ -177,7 +217,8 @@ namespace
         eTeam sourceTeam,
         const Vec3& start,
         const Vec3& end,
-        f32_t radius)
+        f32_t radius,
+        f32_t stunDurationSec)
     {
         const f32_t radiusSq = radius * radius;
         world.ForEach<ChampionComponent, TransformComponent>(
@@ -196,7 +237,7 @@ namespace
                         source,
                         eChampion::VIEGO,
                         eSkillSlot::W,
-                        kViegoWStunDurationSec);
+                        stunDurationSec);
                 }));
     }
 
@@ -233,7 +274,9 @@ namespace
         EntityID source,
         eTeam sourceTeam,
         const Vec3& origin,
-        f32_t radius)
+        f32_t radius,
+        f32_t slowDurationSec,
+        f32_t moveSpeedMul)
     {
         const f32_t radiusSq = radius * radius;
         world.ForEach<ChampionComponent, TransformComponent>(
@@ -252,8 +295,8 @@ namespace
                         source,
                         eChampion::VIEGO,
                         eSkillSlot::R,
-                        kViegoRSlowDurationSec,
-                        kViegoRSlowMoveSpeedMul);
+                        slowDurationSec,
+                        moveSpeedMul);
                 }));
     }
 
@@ -325,7 +368,18 @@ namespace
 
         const Vec3 origin = ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 dir = ResolveDirection(ctx);
-        const Vec3 end{ origin.x + dir.x * kViegoQRange, origin.y, origin.z + dir.z * kViegoQRange };
+        const f32_t range = ResolveViegoSkillRange(ctx, eSkillSlot::Q, kViegoQRange);
+        const f32_t radius = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Radius,
+            kViegoQRadius);
+        const f32_t damage = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::BaseDamage,
+            kViegoQDamage);
+        const Vec3 end{ origin.x + dir.x * range, origin.y, origin.z + dir.z * range };
         RotateToward(*ctx.pWorld, ctx.casterEntity, dir);
         EnqueueLineDamage(
             *ctx.pWorld,
@@ -333,8 +387,8 @@ namespace
             ctx.casterTeam,
             origin,
             end,
-            kViegoQRadius,
-            kViegoQDamage,
+            radius,
+            damage,
             static_cast<u8_t>(eSkillSlot::Q),
             ctx.skillRank);
 
@@ -353,18 +407,41 @@ namespace
         const bool_t bReleaseStage = ctx.pCommand && ctx.pCommand->itemId >= 2u;
         if (!bReleaseStage)
             return;
+        if (!ctx.pTickCtx)
+            return;
 
         const Vec3& vOrigin =
             ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
+        const f32_t dashRange = ResolveViegoSkillRange(ctx, eSkillSlot::W, kViegoWDashRange);
+        const f32_t dashDurationSec = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::DashDurationSec,
+            kViegoDashDurationSec);
+        const f32_t radius = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Radius,
+            0.75f);
+        const f32_t damage = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::BaseDamage,
+            kViegoWDamage);
+        const f32_t stunDurationSec = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::StunDurationSec,
+            kViegoWStunDurationSec);
 
         const Vec3 vEnd
         {
-            vOrigin.x + vDir.x * kViegoWDashRange,
+            vOrigin.x + vDir.x * dashRange,
             vOrigin.y,
-            vOrigin.z + vDir.z * kViegoWDashRange
+            vOrigin.z + vDir.z * dashRange
         };
 
-        StartDash(*ctx.pWorld, ctx.casterEntity, vEnd, kViegoDashDurationSec);
+        StartDash(*ctx.pWorld, ctx.casterEntity, vEnd, dashDurationSec);
 
         EnqueueLineDamage(
             *ctx.pWorld,
@@ -372,8 +449,8 @@ namespace
             ctx.casterTeam,
             vOrigin,
             vEnd,
-            0.75f,
-            kViegoWDamage,
+            radius,
+            damage,
             static_cast<u8_t>(eSkillSlot::W),
             ctx.skillRank
         );
@@ -384,7 +461,8 @@ namespace
             ctx.casterTeam,
             vOrigin,
             vEnd,
-            0.75f);
+            radius,
+            stunDurationSec);
     }
 
     void OnE(GameplayHookContext& ctx)
@@ -396,6 +474,26 @@ namespace
         ViegoSimComponent& state = EnsureViegoState(*ctx.pWorld, ctx.casterEntity);
         state.bMistActive = false;
         state.mistTimerSec = 0.f;
+        const f32_t mistRadius = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::Radius,
+            kViegoEMistRadius);
+        const f32_t mistDurationSec = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::EffectDurationSec,
+            state.mistDurationSec);
+        const f32_t tickIntervalSec = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::TickIntervalSec,
+            kViegoEMistTickSec);
+        const f32_t refreshDurationSec = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::RefreshDurationSec,
+            kViegoEMistRefreshSec);
 
         AreaAuraComponent aura{};
         aura.owner = ctx.casterEntity;
@@ -403,10 +501,10 @@ namespace
         aura.shape = eAreaAuraShape::Circle;
         aura.applyMode = eAreaAuraApplyMode::OwnerOnly;
         aura.vCenter = ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
-        aura.fRadius = kViegoEMistRadius;
-        aura.fRemainingSec = state.mistDurationSec;
-        aura.fTickIntervalSec = kViegoEMistTickSec;
-        aura.fTickAccumulatorSec = kViegoEMistTickSec;
+        aura.fRadius = mistRadius;
+        aura.fRemainingSec = mistDurationSec;
+        aura.fTickIntervalSec = tickIntervalSec;
+        aura.fTickAccumulatorSec = tickIntervalSec;
         aura.status.effectId = eStatusEffectId::ViegoMist;
         aura.status.stackPolicy = eStatusStackPolicy::RefreshDuration;
         aura.status.sourceEntity = ctx.casterEntity;
@@ -414,7 +512,7 @@ namespace
             eChampion::VIEGO,
             static_cast<u8_t>(eSkillSlot::E));
         aura.status.stateFlags = kGameplayStateInvisibleFlag;
-        aura.status.fDurationSec = kViegoEMistRefreshSec;
+        aura.status.fDurationSec = refreshDurationSec;
         aura.status.fMoveSpeedMul = 1.f;
         aura.bApplyStatus = true;
 
@@ -426,21 +524,48 @@ namespace
 
     void OnR(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld || !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
+        if (!ctx.pWorld || !ctx.pTickCtx ||
+            !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
             return;
 
         const Vec3 origin = ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 dir = ResolveDirection(ctx);
-        const Vec3 end{ origin.x + dir.x * kViegoRRange, origin.y, origin.z + dir.z * kViegoRRange };
+        const f32_t range = ResolveViegoSkillRange(ctx, eSkillSlot::R, kViegoRRange);
+        const f32_t radius = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::Radius,
+            kViegoRRadius);
+        const f32_t damage = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::BaseDamage,
+            kViegoRDamage);
+        const f32_t dashDurationSec = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::DashDurationSec,
+            kViegoRDashDurationSec);
+        const f32_t slowDurationSec = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::SlowDurationSec,
+            kViegoRSlowDurationSec);
+        const f32_t slowMoveSpeedMul = ResolveViegoSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::MoveSpeedMul,
+            kViegoRSlowMoveSpeedMul);
+        const Vec3 end{ origin.x + dir.x * range, origin.y, origin.z + dir.z * range };
         RotateToward(*ctx.pWorld, ctx.casterEntity, dir);
-        StartDash(*ctx.pWorld, ctx.casterEntity, end, kViegoRDashDurationSec);
+        StartDash(*ctx.pWorld, ctx.casterEntity, end, dashDurationSec);
         EnqueueCircleDamage(
             *ctx.pWorld,
             ctx.casterEntity,
             ctx.casterTeam,
             end,
-            kViegoRRadius,
-            kViegoRDamage,
+            radius,
+            damage,
             static_cast<u8_t>(eSkillSlot::R),
             ctx.skillRank);
         ApplyCircleSlow(
@@ -449,7 +574,9 @@ namespace
             ctx.casterEntity,
             ctx.casterTeam,
             end,
-            kViegoRRadius);
+            radius,
+            slowDurationSec,
+            slowMoveSpeedMul);
 
         std::cout << "[ViegoSim] R dash caster=" << ctx.casterEntity << "\n";
     }

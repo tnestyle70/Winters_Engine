@@ -1,11 +1,11 @@
 #include "Game/GameRoom.h"
+#include "Game/ServerAICommandProducer.h"
 #include "Game/ServerMinionWaveRuntime.h"
 #include "GameRoomInternal.h"
 
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
-#include "Shared/GameSim/Systems/ChampionAI/ChampionAISystem.h"
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
@@ -17,13 +17,6 @@
 namespace
 {
     constexpr f32_t kChampionAISafeAnchorBehindTurret = 3.f;
-
-    bool_t IsValidChampionAILane(u8_t lane)
-    {
-        return lane == static_cast<u8_t>(kLaneTop) ||
-            lane == static_cast<u8_t>(kLaneMid) ||
-            lane == static_cast<u8_t>(kLaneBot);
-    }
 }
 
 void CGameRoom::Phase_ServerBotAI(TickContext& tc)
@@ -31,31 +24,7 @@ void CGameRoom::Phase_ServerBotAI(TickContext& tc)
     if (!IsInGamePhase())
         return;
 
-    CChampionAISystem::Execute(m_world, tc, m_pendingExecCommands);
-}
-
-u8_t CGameRoom::ResolveInitialBotLane(const LobbySlotState& slot) const
-{
-    if (!slot.bBot || slot.bDummy)
-        return GetGameSimRosterLane(slot.slotId);
-
-    if (IsValidChampionAILane(slot.botLane))
-        return slot.botLane;
-
-    static constexpr u8_t kBotLanes[] =
-    {
-        static_cast<u8_t>(kLaneTop),
-        static_cast<u8_t>(kLaneMid),
-        static_cast<u8_t>(kLaneBot),
-    };
-
-    const u32_t seed =
-        static_cast<u32_t>(slot.slotId) * 1103515245u ^
-        static_cast<u32_t>(slot.team) * 2654435761u ^
-        static_cast<u32_t>(slot.botDifficulty) * 2246822519u ^
-        static_cast<u32_t>(slot.champion) * 3266489917u;
-
-    return kBotLanes[seed % static_cast<u32_t>(sizeof(kBotLanes) / sizeof(kBotLanes[0]))];
+    CServerAICommandProducer::Execute(m_world, tc, m_pendingExecCommands);
 }
 
 Vec3 CGameRoom::ResolveChampionAILaneGoal(eTeam team, u8_t lane) const

@@ -1,6 +1,7 @@
 #include "Resource/Model.h"
 #include "Resource/Mesh.h"
 #include "Resource/Texture.h"
+#include "RHI/RHITextureLoader.h"
 #include "ProfilerAPI.h"
 #include "WintersPaths.h"
 #include "AssetFormat/Anim/WAnimLoader.h"
@@ -22,6 +23,36 @@ using namespace Engine;
 namespace
 {
 	constexpr size_t kCombinedStaticCoarseCullSubmeshThreshold = 512u;
+
+	RHITextureHandle CreateModelDefaultRHITexture(IRHIDevice* pDevice)
+	{
+		if (!pDevice)
+			return {};
+
+		const u32_t whitePixel = 0xFFFFFFFFu;
+		RHITextureDesc desc{};
+		desc.width = 1;
+		desc.height = 1;
+		desc.format = eRHIFormat::R8G8B8A8_UNorm;
+		desc.usageFlags = static_cast<u32_t>(eRHITextureUsage::ShaderResource);
+		desc.debugName = "CModel.DefaultRHITexture";
+		return pDevice->CreateTexture(desc, &whitePixel, sizeof(whitePixel));
+	}
+
+	RHISamplerHandle CreateModelDefaultRHISampler(IRHIDevice* pDevice)
+	{
+		if (!pDevice)
+			return {};
+
+		RHISamplerDesc desc{};
+		desc.filter = eRHIFilter::Anisotropic;
+		desc.addressU = eRHIAddressMode::Wrap;
+		desc.addressV = eRHIAddressMode::Wrap;
+		desc.addressW = eRHIAddressMode::Wrap;
+		desc.maxAnisotropy = 8;
+		desc.debugName = "CModel.DefaultRHISampler";
+		return pDevice->CreateSampler(desc);
+	}
 
 	ID3D11Device* GetNativeDX11Device(IRHIDevice* pDevice)
 	{
@@ -481,6 +512,11 @@ namespace
 	}
 }
 
+CModel::~CModel()
+{
+	ReleaseRHIResources();
+}
+
 void CModel::Render(IRHIDevice* pDevice)
 {
 	WINTERS_PROFILE_SCOPE("Model::RenderAllMeshes");
@@ -618,6 +654,71 @@ void CModel::RenderWithMask(IRHIDevice* pDevice, const VisibilityMask& mask)
 
 	WINTERS_PROFILE_COUNT("Model::VisibleMeshCalls", visibleMeshes);
 	WINTERS_PROFILE_COUNT("Model::MaterialBinds", uMaterialBinds);
+}
+
+u32_t CModel::AppendRenderSnapshotMeshes(
+	RenderWorldSnapshot& snapshot,
+	const Mat4& matWorld,
+	const VisibilityMask& mask,
+	u32_t maxItems) const
+{
+	u32_t appendedCount = 0;
+
+	auto appendSlice = [&](const RHIMeshSlice& slice, u32_t iSubmesh)
+	{
+		if (!slice.hVertexBuffer.IsValid() ||
+			!slice.hIndexBuffer.IsValid() ||
+			slice.vertexStride == 0 ||
+			slice.indexCount == 0)
+		{
+			return;
+		}
+
+		if (maxItems != 0 && appendedCount >= maxItems)
+			return;
+
+		RenderMeshItem item{};
+		item.matWorld = matWorld;
+		item.mesh = slice;
+		item.hAlbedoTexture = ResolveMaterialRHITexture(iSubmesh);
+		item.hSampler = m_hDefaultRHISampler;
+		item.vTint = Vec4{ 1.f, 1.f, 1.f, 1.f };
+		item.bDepthWrite = false;
+		snapshot.meshes.push_back(item);
+		++appendedCount;
+	};
+
+	if (m_pCombinedStaticMesh)
+	{
+		for (const CombinedSubmeshRange& range : m_vecCombinedSubmeshRanges)
+		{
+			if (maxItems != 0 && appendedCount >= maxItems)
+				break;
+			if (!IsSubmeshVisible(mask, range.submeshIndex) ||
+				range.indexCount == 0)
+			{
+				continue;
+			}
+
+			appendSlice(m_pCombinedStaticMesh->GetRHIMeshSlice(
+				range.indexStart,
+				range.indexCount),
+				range.submeshIndex);
+		}
+		return appendedCount;
+	}
+
+	for (u32_t i = 0; i < static_cast<u32_t>(m_vecMeshes.size()); ++i)
+	{
+		if (maxItems != 0 && appendedCount >= maxItems)
+			break;
+		if (!IsSubmeshVisible(mask, i) || !m_vecMeshes[i])
+			continue;
+
+		appendSlice(m_vecMeshes[i]->GetRHIMeshSlice(), i);
+	}
+
+	return appendedCount;
 }
 
 VisibilityMask CModel::BuildClipVisibilityMask(
@@ -758,6 +859,28 @@ CTexture* CModel::ResolveMaterialTexture(u32_t iMeshIndex) const
 	return m_pDefaultTexture.get();
 }
 
+RHITextureHandle CModel::ResolveMaterialRHITexture(u32_t iMeshIndex) const
+{
+	u32_t matIdx = 0;
+	if (iMeshIndex < m_vecSubmeshInfos.size())
+	{
+		matIdx = m_vecSubmeshInfos[iMeshIndex].materialIndex;
+	}
+	else if (iMeshIndex < m_vecMeshes.size())
+	{
+		matIdx = m_vecMeshes[iMeshIndex]->GetMaterialIndex();
+	}
+	else
+	{
+		return {};
+	}
+
+	if (matIdx < m_vecRHITextures.size() && m_vecRHITextures[matIdx].IsValid())
+		return m_vecRHITextures[matIdx];
+
+	return m_hDefaultRHITexture;
+}
+
 void CModel::BindMaterial(IRHIDevice* pDevice, u32_t iMeshIndex)
 {
 	CTexture* pTexture = ResolveMaterialTexture(iMeshIndex);
@@ -791,6 +914,27 @@ i32_t CModel::FindAnimationIndex(const string& strName) const
 			return (i32_t)i;
 	}
 	return -1;
+}
+
+void CModel::ReleaseRHIResources()
+{
+	if (m_pRHIDevice)
+	{
+		for (RHITextureHandle& hTexture : m_vecRHITextures)
+		{
+			if (hTexture.IsValid())
+				m_pRHIDevice->DestroyTexture(hTexture);
+		}
+		if (m_hDefaultRHITexture.IsValid())
+			m_pRHIDevice->DestroyTexture(m_hDefaultRHITexture);
+		if (m_hDefaultRHISampler.IsValid())
+			m_pRHIDevice->DestroySampler(m_hDefaultRHISampler);
+	}
+
+	m_vecRHITextures.clear();
+	m_hDefaultRHITexture = {};
+	m_hDefaultRHISampler = {};
+	m_pRHIDevice = nullptr;
 }
 
 unique_ptr<CModel> CModel::Create(IRHIDevice* pDevice, const string& strFilePath)
@@ -862,7 +1006,10 @@ HRESULT CModel::LoadModel(IRHIDevice* pDevice, const string& strFilePath)
 		}
 	}
 
+	m_pRHIDevice = pDevice;
 	m_pDefaultTexture = CTexture::CreateDefault(pDevice);
+	m_hDefaultRHITexture = CreateModelDefaultRHITexture(pDevice);
+	m_hDefaultRHISampler = CreateModelDefaultRHISampler(pDevice);
 	LoadCookedTextures(pDevice, ToNarrowPath(resolvedWMeshPath), wm);
 
 	if (bUseSkeleton)
@@ -931,6 +1078,8 @@ void CModel::LoadCookedTextures(IRHIDevice* pDevice,
 		materialCount = (std::max)(materialCount, sub.material_index + 1u);
 	m_vecTextures.clear();
 	m_vecTextures.resize(materialCount);
+	m_vecRHITextures.clear();
+	m_vecRHITextures.resize(materialCount);
 
 	const std::string wmatPath = ReplaceExt(strMeshPath, ".wmat");
 	const std::wstring wmatWPath = ToWidePath(wmatPath);
@@ -943,7 +1092,10 @@ void CModel::LoadCookedTextures(IRHIDevice* pDevice,
 	}
 
 	if (materials.header.material_count > m_vecTextures.size())
+	{
 		m_vecTextures.resize(materials.header.material_count);
+		m_vecRHITextures.resize(materials.header.material_count);
+	}
 
 	for (const auto& entry : materials.entries)
 	{
@@ -957,6 +1109,10 @@ void CModel::LoadCookedTextures(IRHIDevice* pDevice,
 			entry.diffuse_path,
 			eTexSamplerMode::Wrap,
 			eTexColorSpace::ShaderLocalSRGB);
+		m_vecRHITextures[entry.material_index] = RHI_CreateTextureFromFile(
+			pDevice,
+			entry.diffuse_path,
+			"CModel.MaterialRHITexture");
 		if (!m_vecTextures[entry.material_index])
 		{
 			OutputDebugStringW((L"[CModel] cooked texture load failed: "

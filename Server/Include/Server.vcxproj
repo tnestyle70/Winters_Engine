@@ -103,12 +103,15 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Private\Data\Generated\LoLGameplayDefinitions.generated.cpp" />
+    <ClCompile Include="..\Private\Game\Factory\ChampionSimComponentTable.cpp" />
     <ClCompile Include="..\Private\Game\CommandIngress.cpp" />
     <ClCompile Include="..\Private\Game\GameRoom.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomChampionAI.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomCommands.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomInternal.cpp" />
     <ClCompile Include="..\Private\Game\LobbyAuthority.cpp" />
+    <ClCompile Include="..\Private\Game\ReplicationEmitter.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomLobby.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomMinionAI.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomNav.cpp" />
@@ -118,11 +121,15 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Game\GameRoomSpawn.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomTick.cpp" />
     <ClCompile Include="..\Private\Game\ReplayRecorder.cpp" />
+    <ClCompile Include="..\Private\Game\ServerAICommandProducer.cpp" />
     <ClCompile Include="..\Private\Game\ServerEntry.cpp" />
     <ClCompile Include="..\Private\Game\ServerMinionFlowField.cpp" />
     <ClCompile Include="..\Private\Game\ServerMinionWaveRuntime.cpp" />
+    <ClCompile Include="..\Private\Game\ServerProjectileAuthority.cpp" />
     <ClCompile Include="..\Private\Game\SessionBinding.cpp" />
     <ClCompile Include="..\Private\Game\SnapshotBuilder.cpp" />
+    <ClCompile Include="..\Private\Game\WalkabilityAuthority.cpp" />
+    <ClCompile Include="..\Private\Game\WorldBootstrap.cpp" />
     <ClCompile Include="..\Private\main.cpp" />
     <ClCompile Include="..\Private\Network\FrameParser.cpp" />
     <ClCompile Include="..\Private\Network\IOCPCore.cpp" />
@@ -135,15 +142,21 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Game\CommandIngress.h" />
     <ClInclude Include="..\Public\Game\GameRoom.h" />
     <ClInclude Include="..\Public\Game\LobbyAuthority.h" />
+    <ClInclude Include="..\Public\Game\ReplicationEmitter.h" />
     <ClInclude Include="..\Private\Game\GameRoomInternal.h" />
     <ClInclude Include="..\Private\Game\GameRoomSmokeRoster.h" />
+    <ClInclude Include="..\Private\Game\Factory\ChampionSimComponentTable.h" />
     <ClInclude Include="..\Public\Game\ReplayRecorder.h" />
+    <ClInclude Include="..\Public\Game\ServerAICommandProducer.h" />
     <ClInclude Include="..\Public\Game\ServerEntry.h" />
     <ClInclude Include="..\Public\Game\ServerMinionFlowField.h" />
     <ClInclude Include="..\Public\Game\ServerMinionTuning.h" />
     <ClInclude Include="..\Public\Game\ServerMinionWaveRuntime.h" />
+    <ClInclude Include="..\Public\Game\ServerProjectileAuthority.h" />
     <ClInclude Include="..\Public\Game\SessionBinding.h" />
     <ClInclude Include="..\Public\Game\SnapshotBuilder.h" />
+    <ClInclude Include="..\Public\Game\WalkabilityAuthority.h" />
+    <ClInclude Include="..\Public\Game\WorldBootstrap.h" />
     <ClInclude Include="..\Public\Network\FrameParser.h" />
     <ClInclude Include="..\Public\Network\IOCPCore.h" />
     <ClInclude Include="..\Public\Network\PacketDispatcher.h" />

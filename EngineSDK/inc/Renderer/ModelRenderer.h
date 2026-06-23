@@ -3,6 +3,7 @@
 #include "WintersTypes.h"
 #include "WintersMath.h"
 #include "ECS/Components/MeshGroupVisibilityComponent.h"
+#include "Renderer/RenderWorldSnapshot.h"
 #include <string>
 #include <memory>
 
@@ -56,6 +57,9 @@ public:
 		DX11Shader* pSkinnedShader,
 		DX11Pipeline* pSkinnedPipeline,
 		const VisibilityMask& mask);
+	u32_t	AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot, u32_t maxItems = 0) const;
+	u32_t	AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot, const VisibilityMask& mask, u32_t maxItems = 0) const;
+	u32_t	AppendRenderSnapshotMeshesFrustumCulled(RenderWorldSnapshot& snapshot, const Mat4& matViewProj, u32_t maxItems = 0) const;
 	void	Shutdown();
 
 	//텍스쳐 로드

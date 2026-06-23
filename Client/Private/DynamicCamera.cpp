@@ -4,10 +4,18 @@
 #include "Core/CInput.h"
 #include <cmath>
 #include <cstdlib>
+#include <cstdio>
 #pragma push_macro("new")
 #undef new
 #include <imgui.h>
 #pragma pop_macro("new")
+
+namespace
+{
+    constexpr f32_t kEdgeScrollBandPixels = 18.f;
+    constexpr f32_t kEdgeScrollSpeed = 38.f;
+    constexpr f32_t kEdgeScrollMaxDeltaSec = 0.05f;
+}
 
 unique_ptr<CDynamicCamera> CDynamicCamera::Create(
     const Vec3& vEye, const Vec3& vAt, const Vec3& vUp,
@@ -36,10 +44,38 @@ void CDynamicCamera::Update(f32_t fTimeDelta, const CInput& input)
     }
     else { m_bF2Check = false; }
 
+    const bool_t bSpaceFollow = input.IsKeyDown(VK_SPACE) &&
+        m_pTargetTransform != nullptr &&
+        !m_bFix;
+    if (bSpaceFollow)
+    {
+        if (!m_bSpaceFollowActive)
+        {
+            m_bFollowInitialized = false;
+            m_bSpaceFollowActive = true;
+        }
+        m_bFollowMode = true;
+    }
+    else if (m_bSpaceFollowActive)
+    {
+        m_bFollowMode = false;
+        m_bFollowInitialized = false;
+        m_bSpaceFollowActive = false;
+    }
+
     if (m_pTargetTransform && m_bFollowMode)
         Update_FollowCam(fTimeDelta);
     else
         Update_FreeCam(fTimeDelta, input);
+
+    if (bSpaceFollow)
+    {
+        m_bEdgeScrollActive = false;
+    }
+    else
+    {
+        ApplyEdgeScroll(fTimeDelta, input);
+    }
 
     if (m_fShakeTimer < m_fShakeDuration)
     {
@@ -299,4 +335,134 @@ void CDynamicCamera::Mouse_Move(const CInput& input)
         XMStoreFloat3(&r, vLook);
         m_vAt = { m_vEye.x + r.x, m_vEye.y + r.y, m_vEye.z + r.z };
     }
+}
+
+void CDynamicCamera::ApplyEdgeScroll(f32_t fTimeDelta, const CInput& input)
+{
+    auto deactivate = [this]()
+    {
+        m_bEdgeScrollActive = false;
+    };
+
+    if (fTimeDelta <= 0.f || m_bFix)
+    {
+        deactivate();
+        return;
+    }
+
+    HWND hWnd = input.GetWindowHandle();
+    if (!hWnd || GetForegroundWindow() != hWnd)
+    {
+        deactivate();
+        return;
+    }
+
+    RECT rcClient{};
+    if (!GetClientRect(hWnd, &rcClient))
+    {
+        deactivate();
+        return;
+    }
+
+    const f32_t fClientW = static_cast<f32_t>(rcClient.right - rcClient.left);
+    const f32_t fClientH = static_cast<f32_t>(rcClient.bottom - rcClient.top);
+    if (fClientW <= 1.f || fClientH <= 1.f)
+    {
+        deactivate();
+        return;
+    }
+
+    POINT ptCursor{};
+    if (!GetCursorPos(&ptCursor) || !ScreenToClient(hWnd, &ptCursor))
+    {
+        deactivate();
+        return;
+    }
+
+    const f32_t fMouseX = static_cast<f32_t>(ptCursor.x);
+    const f32_t fMouseY = static_cast<f32_t>(ptCursor.y);
+    if (fMouseX < 0.f || fMouseY < 0.f ||
+        fMouseX >= fClientW || fMouseY >= fClientH)
+    {
+        deactivate();
+        return;
+    }
+
+    const f32_t fBandX =
+        (fClientW < kEdgeScrollBandPixels * 2.f)
+        ? fClientW * 0.5f
+        : kEdgeScrollBandPixels;
+    const f32_t fBandY =
+        (fClientH < kEdgeScrollBandPixels * 2.f)
+        ? fClientH * 0.5f
+        : kEdgeScrollBandPixels;
+
+    f32_t fMoveX = 0.f;
+    f32_t fMoveY = 0.f;
+    if (fMouseX <= fBandX)
+        fMoveX = -1.f;
+    else if (fMouseX >= fClientW - 1.f - fBandX)
+        fMoveX = 1.f;
+
+    if (fMouseY <= fBandY)
+        fMoveY = 1.f;
+    else if (fMouseY >= fClientH - 1.f - fBandY)
+        fMoveY = -1.f;
+
+    if (fMoveX == 0.f && fMoveY == 0.f)
+    {
+        deactivate();
+        return;
+    }
+
+    Vec3 vForward = GetForward();
+    vForward.y = 0.f;
+    vForward = vForward.Normalized();
+    if (vForward.Length() <= 0.0001f)
+        vForward = { 0.f, 0.f, 1.f };
+
+    Vec3 vRight = GetRight();
+    vRight.y = 0.f;
+    vRight = vRight.Normalized();
+    if (vRight.Length() <= 0.0001f)
+        vRight = { 1.f, 0.f, 0.f };
+
+    Vec3 vMoveDir = (vRight * fMoveX) + (vForward * fMoveY);
+    vMoveDir.y = 0.f;
+    vMoveDir = vMoveDir.Normalized();
+    if (vMoveDir.Length() <= 0.0001f)
+    {
+        deactivate();
+        return;
+    }
+
+    if (m_bFollowMode)
+    {
+        m_bFollowMode = false;
+        m_bFollowInitialized = false;
+    }
+
+    const f32_t fDelta = (fTimeDelta > kEdgeScrollMaxDeltaSec)
+        ? kEdgeScrollMaxDeltaSec
+        : fTimeDelta;
+    const Vec3 vDelta = vMoveDir * (kEdgeScrollSpeed * fDelta);
+    m_vEye += vDelta;
+    m_vAt += vDelta;
+
+#ifdef _DEBUG
+    if (!m_bEdgeScrollActive)
+    {
+        char szMsg[160]{};
+        std::snprintf(
+            szMsg,
+            sizeof(szMsg),
+            "[CameraEdgeScroll] begin x=%.0f y=%.0f dir=(%.2f,%.2f)\n",
+            fMouseX,
+            fMouseY,
+            vMoveDir.x,
+            vMoveDir.z);
+        OutputDebugStringA(szMsg);
+    }
+#endif
+    m_bEdgeScrollActive = true;
 }

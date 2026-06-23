@@ -1,6 +1,7 @@
 #include "Game/GameRoom.h"
 
 #include "Security/LagCompensation.h"
+#include "Server/Private/Data/LoLGameplayDefinitionPack.h"
 
 #include "Shared/GameSim/Champions/Annie/AnnieGameSim.h"
 #include "Shared/GameSim/Champions/Ashe/AsheGameSim.h"
@@ -62,6 +63,7 @@ void CGameRoom::Tick()
 	++m_tickIndex;
 	m_visibleTickIndex.store(m_tickIndex, std::memory_order_relaxed);
 
+	const GameplayDefinitionPack& definitions = ServerData::GetLoLGameplayDefinitionPack();
 	TickContext tc{
 		m_tickIndex,
 		DeterministicTime::kFixedDt,
@@ -70,6 +72,7 @@ void CGameRoom::Tick()
 	};
 
 	tc.pLagCompensation = m_pLagCompensation.get();
+	tc.pDefinitions = &definitions;
 
 	Phase_DrainCommands(tc);
 	Phase_ServerBotAI(tc);
@@ -90,11 +93,13 @@ void CGameRoom::Phase_ExecuteCommands(TickContext& tc)
 
 void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 {
+	const GameplayDefinitionPack& definitions =
+		tc.pDefinitions ? *tc.pDefinitions : ServerData::GetLoLGameplayDefinitionPack();
 	GameplayStatus::TickStatusEffects(m_world, tc);
 	CSpellbookFormOverrideSystem::Execute(m_world, tc);
 	CAreaAuraSystem::Execute(m_world, tc);
 	CRuneSystem::Execute(m_world, tc);
-	CStatSystem::Execute(m_world);
+	CStatSystem::Execute(m_world, definitions);
 	CBuffSystem::Execute(m_world, tc);
 	CSkillCooldownSystem::Execute(m_world, tc);
 	CRecallSystem::Execute(m_world, tc);
@@ -125,7 +130,7 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	Phase_ServerTurretAI(tc);
 	Phase_ServerProjectiles(tc);
 	CDamageQueueSystem::Execute(m_world, tc);
-	CStatSystem::Execute(m_world);
+	CStatSystem::Execute(m_world, definitions);
 	CDeathSystem::Execute(m_world, tc);
 	Phase_ServerDeathAndRespawn(tc);
 }

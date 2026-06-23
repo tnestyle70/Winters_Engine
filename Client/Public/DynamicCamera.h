@@ -52,6 +52,7 @@ private:
 
     void Key_Input(f32_t fTimeDelta, const CInput& input);
     void Mouse_Move(const CInput& input);
+    void ApplyEdgeScroll(f32_t fTimeDelta, const CInput& input);
 
     //FPS cursor lock stats change
     void Enter_FPSMode(const CInput& input);
@@ -70,6 +71,8 @@ private:
     bool m_bFix = false;
     bool m_bF2Check = false;
     bool m_bTabCheck = false;
+    bool_t m_bEdgeScrollActive = false;
+    bool_t m_bSpaceFollowActive = false;
 
     f32_t m_fMouseSensitivity = 0.004f;
     f32_t m_fSmoothDX = 0.f;

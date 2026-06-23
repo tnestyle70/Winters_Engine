@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <memory>
 
+struct GameplayDefinitionPack;
+
 struct IWalkableQuery
 {
     virtual ~IWalkableQuery() = default;
@@ -54,6 +56,7 @@ struct TickContext
     EntityID localPlayer = NULL_ENTITY;
     const IWalkableQuery* pWalkable = nullptr;
     const ILagCompensationQuery* pLagCompensation = nullptr;
+    const GameplayDefinitionPack* pDefinitions = nullptr;
 };
 
 enum class eCommandKind : uint8_t

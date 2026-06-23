@@ -15,6 +15,7 @@
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/PoseStateComponent.h"
+#include "Shared/GameSim/Definitions/MinionCombatDef.h"
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
@@ -39,6 +40,8 @@ namespace
     static constexpr uint64_t kMinionAnimUpdateBudget = 3u;
     static constexpr f32_t kMinionScreenCullMargin = 48.f;
     static constexpr uint32_t kNetworkVisualBindBudgetPerFrame = 3u;
+    static constexpr u32_t kNetworkWarmRoleCount = 2u;
+    static constexpr u32_t kNetworkWarmPoolSizePerTeamAndRole = 9u;
 
 	void OutputMinionDebug(const char* msg)
 	{
@@ -1114,16 +1117,12 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     ms.team            = (eTeamParam == eMinionTeam::Blue) ? eTeam::Blue : eTeam::Red;
     ms.type            = static_cast<uint8_t>(eType);
     ms.lane            = static_cast<uint8_t>(eWay);
-    switch (eType)
-    {
-    // sightRange ????긽 attackRange 蹂대떎 異⑸텇???ш쾶 (媛먯? ??異붽꺽 ???ш굅由?吏꾩엯 ?먮쫫 蹂댁옣).
-    case eMinionType::Melee:  ms.moveSpeed = 4.0f; ms.attackRange = 1.5f;  ms.sightRange = 12.f; ms.attackDamage = 20.f;   break;
-    case eMinionType::Ranged: ms.moveSpeed = 4.0f; ms.attackRange = 8.f;   ms.sightRange = 14.f; ms.attackDamage = 30.f;   break;
-    case eMinionType::Siege:  ms.moveSpeed = 3.5f; ms.attackRange = 10.0f; ms.sightRange = 16.f; ms.attackDamage = 40.f;  break;
-    case eMinionType::Super:  ms.moveSpeed = 5.0f; ms.attackRange = 2.0f;  ms.sightRange = 14.f; ms.attackDamage = 100.f; break;
-    case eMinionType::Tibbers: ms.moveSpeed = 5.2f; ms.attackRange = 2.2f; ms.sightRange = 14.f; ms.attackDamage = 80.f; break;
-    default: break;
-    }
+    const MinionCombatDef combat = ResolveMinionCombatDef(ms.type);
+    ms.moveSpeed = combat.moveSpeed;
+    ms.attackRange = combat.attackRange;
+    ms.sightRange = combat.sightRange;
+    ms.attackDamage = combat.attackDamage;
+    ms.attackCooldownMax = combat.attackCooldownMax;
 
     const u32_t scanSeed = (static_cast<u32_t>(id) * 1103515245u + 12345u) & 7u;
     ms.targetScanCooldown = 0.03f * static_cast<f32_t>(scanSeed);
@@ -1132,8 +1131,7 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     ms.animUpdateAccumulator = ResolveMinionAnimPhase(id, ms.animUpdateInterval);
 
     auto& hp = m_pWorld->AddComponent<HealthComponent>(id);
-    hp.fMaximum = hp.fCurrent =
-        (eType == eMinionType::Tibbers) ? 1500.f : ((eType == eMinionType::Super) ? 1000.f : 450.f);
+    hp.fMaximum = hp.fCurrent = combat.maxHp;
 
     //Velocity!
     auto& vel = m_pWorld->AddComponent<VelocityComponent>(id);
@@ -1223,11 +1221,14 @@ std::unique_ptr<ModelRenderer> CMinion_Manager::AcquireNetworkRenderer(
     auto& pool = m_vecNetworkRendererPool[teamIndex][typeIndex];
     if (!pool.empty())
     {
+        ++m_uNetworkPoolHitsThisFrame;
         std::unique_ptr<ModelRenderer> pRenderer = std::move(pool.back());
         pool.pop_back();
         return pRenderer;
     }
 
+    ++m_uNetworkColdCreatesThisFrame;
+    WINTERS_PROFILE_SCOPE("MinionVisual::ColdCreate");
     std::unique_ptr<ModelRenderer> pRenderer(new ModelRenderer());
     if (!pRenderer->Initialize(pPath, L"Shaders/Mesh3D.hlsl"))
         return nullptr;
@@ -1270,6 +1271,7 @@ void CMinion_Manager::PrewarmNetworkVisualResources()
 
     uint64_t loadedCount = 0u;
     uint64_t failedCount = 0u;
+    uint64_t rendererCount = 0u;
 
     for (u32_t teamIndex = 0u;
         teamIndex < static_cast<u32_t>(eMinionTeam::End);
@@ -1283,20 +1285,35 @@ void CMinion_Manager::PrewarmNetworkVisualResources()
         {
             const eMinionType type = static_cast<eMinionType>(typeIndex);
             const char* pPath = ResolveModelPath(type, team);
-            if (!pPath)
+            if (!pPath || !ModelRenderer::PrewarmModel(pPath))
             {
                 ++failedCount;
                 continue;
             }
 
-            if (ModelRenderer::PrewarmModel(pPath))
-                ++loadedCount;
-            else
-                ++failedCount;
+            ++loadedCount;
+            if (typeIndex >= kNetworkWarmRoleCount)
+                continue;
+
+            auto& pool = m_vecNetworkRendererPool[teamIndex][typeIndex];
+            while (pool.size() < kNetworkWarmPoolSizePerTeamAndRole)
+            {
+                WINTERS_PROFILE_SCOPE("MinionVisual::PrewarmRenderer");
+                std::unique_ptr<ModelRenderer> pRenderer(new ModelRenderer());
+                if (!pRenderer->Initialize(pPath, L"Shaders/Mesh3D.hlsl"))
+                {
+                    ++failedCount;
+                    break;
+                }
+
+                pool.push_back(std::move(pRenderer));
+                ++rendererCount;
+            }
         }
     }
     WINTERS_PROFILE_COUNT("MinionVisual::PrewarmLoaded", loadedCount);
     WINTERS_PROFILE_COUNT("MinionVisual::PrewarmFailed", failedCount);
+    WINTERS_PROFILE_COUNT("MinionVisual::PrewarmRenderers", rendererCount);
 }
 
 // ?????????????????????????????????????????????????????????????
@@ -1376,6 +1393,11 @@ uint32_t CMinion_Manager::ProcessQueueNetworkVisual(uint32_t maxCreates)
     if (!m_pWorld || maxCreates == 0)
         return 0u;
 
+    WINTERS_PROFILE_SCOPE("MinionVisual::BindQueue");
+    const uint64_t queueBefore = static_cast<uint64_t>(m_deqPendingNetworkVisuals.size());
+    m_uNetworkPoolHitsThisFrame = 0u;
+    m_uNetworkColdCreatesThisFrame = 0u;
+
     uint32_t createdCount = 0u;
     uint32_t skippedCount = 0u;
     uint32_t failedCount = 0u;
@@ -1406,10 +1428,34 @@ uint32_t CMinion_Manager::ProcessQueueNetworkVisual(uint32_t maxCreates)
         else
             ++failedCount;
     }
+    WINTERS_PROFILE_COUNT("MinionVisual::QueueBefore", queueBefore);
     WINTERS_PROFILE_COUNT("MinionVisual::Queue", static_cast<uint64_t>(m_deqPendingNetworkVisuals.size()));
     WINTERS_PROFILE_COUNT("MinionVisual::Created", createdCount);
     WINTERS_PROFILE_COUNT("MinionVisual::Skipped", skippedCount);
     WINTERS_PROFILE_COUNT("MinionVisual::Failed", failedCount);
+    WINTERS_PROFILE_COUNT("MinionVisual::PoolHit", m_uNetworkPoolHitsThisFrame);
+    WINTERS_PROFILE_COUNT("MinionVisual::ColdCreate", m_uNetworkColdCreatesThisFrame);
+
+#if defined(_DEBUG)
+    if (createdCount > 0u || failedCount > 0u)
+    {
+        static u32_t s_networkVisualBatchLogCount = 0u;
+        if (s_networkVisualBatchLogCount < 256u)
+        {
+            char msg[256]{};
+            sprintf_s(msg,
+                "[MinionVisualBatch] queue=%llu->%llu created=%u poolHit=%u coldCreate=%u failed=%u\n",
+                static_cast<unsigned long long>(queueBefore),
+                static_cast<unsigned long long>(m_deqPendingNetworkVisuals.size()),
+                createdCount,
+                m_uNetworkPoolHitsThisFrame,
+                m_uNetworkColdCreatesThisFrame,
+                failedCount);
+            OutputDebugStringA(msg);
+            ++s_networkVisualBatchLogCount;
+        }
+    }
+#endif
 
     return createdCount;
 }

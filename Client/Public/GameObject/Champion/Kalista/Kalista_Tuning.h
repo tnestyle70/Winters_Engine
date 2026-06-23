@@ -15,7 +15,7 @@ namespace Kalista
         f32_t baFlySpearGirthMul = 0.5f;
         f32_t baStuckSpearScale = 0.01f;
 
-        f32_t qSpeed = 30.f;
+        f32_t qSpeed = 9.f;
         f32_t qMaxDist = 14.f;
         f32_t qRadius = 0.6f;
         f32_t qDamage = 70.f;

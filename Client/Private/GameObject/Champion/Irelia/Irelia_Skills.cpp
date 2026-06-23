@@ -13,7 +13,8 @@
 #include "GameObject/FX/FxMeshSystem.h"
 #include "GameObject/FX/FxRibbonComponent.h"
 #include "GamePlay/VisualHookRegistry.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 
 #include <Windows.h>
 #include <cmath>
@@ -69,7 +70,7 @@ namespace
         {
             const f32_t yaw =
                 world.GetComponent<TransformComponent>(casterEntity).GetRotation().y -
-                ChampionGameDataDB::ResolveVisualYawOffset(eChampion::IRELIA);
+                ClientData::ResolveChampionModelYawOffset(eChampion::IRELIA);
             return { std::sinf(yaw), 0.f, std::cosf(yaw) };
         }
 
@@ -509,10 +510,8 @@ namespace Irelia
         const Vec3 pStart =
             ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 pTarget =
-            ctx.pWorld->GetComponent<TransformComponent>(target).m_LocalPosition;
-
-        Vec3 pEnd = pTarget;
-        pEnd.y = pStart.y;
+            ctx.pWorld->GetComponent<TransformComponent>(target).GetPosition();
+        const Vec3 pEnd = IreliaGameSim::ResolveQDashEndPos(pStart, pTarget);
 
         const f32_t duration = ctx.getLocalDashDuration ? ctx.getLocalDashDuration() : 0.3f;
         ctx.startPointDash(pStart, pEnd, duration, target);

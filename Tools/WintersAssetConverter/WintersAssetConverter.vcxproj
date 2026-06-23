@@ -47,7 +47,7 @@
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <!-- NOMINMAX: Windows.h 의 min/max 매크로가 std::min/max 와 충돌하는 것 방지 -->
       <!-- WINTERS_STATIC_BUILD: 이 EXE 는 DLL 이 아니므로 dllexport/dllimport 비활성 -->
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;NOMINMAX;WINTERS_STATIC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>

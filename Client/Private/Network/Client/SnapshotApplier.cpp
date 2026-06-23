@@ -28,7 +28,7 @@
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 //Viego Soul
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "GameObject/Champion/Viego/Viego_FxPresets.h"
@@ -99,7 +99,7 @@ namespace
 
     Vec3 GameplayForwardFromVisualYaw(eChampion champion, f32_t yaw)
     {
-        const f32_t gameplayYaw = yaw - ChampionGameDataDB::ResolveVisualYawOffset(champion);
+        const f32_t gameplayYaw = yaw - ClientData::ResolveChampionModelYawOffset(champion);
         return Vec3{ std::sinf(gameplayYaw), 0.f, std::cosf(gameplayYaw) };
     }
 
@@ -661,7 +661,7 @@ void CSnapshotApplier::OnSnapshot(
                 const f32_t serverYawDelta = NormalizeChampionVisualYaw(serverYaw - rot.y);
                 const f32_t protectedYawDelta = NormalizeChampionVisualYaw(protectedYaw - rot.y);
                 const eChampion championId = static_cast<eChampion>(es->championId());
-                const f32_t visualYawOffset = ChampionGameDataDB::ResolveVisualYawOffset(championId);
+                const f32_t visualYawOffset = ClientData::ResolveChampionModelYawOffset(championId);
                 const Vec3 serverForward =
                     GameplayForwardFromVisualYaw(championId, serverYaw);
                 const Vec3 appliedForward =

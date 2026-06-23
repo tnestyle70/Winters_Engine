@@ -41,7 +41,6 @@ namespace Engine
 }
 
 class CSnapshotBuilder;
-struct ReplicatedEventComponent;
 class CLagCompensation;
 //Replay
 class CReplayRecorder;
@@ -108,7 +107,6 @@ private:
     void Phase_BroadcastEvents(TickContext& tc);
     void Phase_BroadcastSnapshot(TickContext& tc);
     void BroadcastEventPayload(const u8_t* payload, u32_t payloadSize, u32_t sequence);
-    void BroadcastReplicatedEvent(const ReplicatedEventComponent& event, TickContext& tc);
 
     EntityID SpawnChampionForLobbySlot(LobbySlotState& slot);
     void SpawnChampionsFromLobby();
@@ -175,7 +173,6 @@ private:
     u32_t GetServerMinionWaypointCount(eTeam team, u8_t lane) const;
     Vec3 GetServerMinionWaypoint(eTeam team, u8_t lane, u32_t index) const;
     u8_t ResolveServerStructureLane(eTeam team, u32_t kind, u32_t tier, const Vec3& pos) const;
-    u8_t ResolveInitialBotLane(const LobbySlotState& slot) const;
     Vec3 ResolveChampionAILaneGoal(eTeam team, u8_t lane) const;
     Vec3 ResolveChampionAISafeAnchor(eTeam team, u8_t lane);
     void RefreshChampionAIGoals();

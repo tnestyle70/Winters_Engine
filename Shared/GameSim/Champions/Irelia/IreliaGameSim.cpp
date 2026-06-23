@@ -5,6 +5,7 @@
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
@@ -34,10 +35,54 @@ namespace
     constexpr u8_t kIreliaREffectStageWall = 3u;
     constexpr u8_t kIreliaREffectStageWallMark = 4u;
     constexpr f32_t kIreliaQDashDurationSec = 0.25f;
+    constexpr f32_t kIreliaQBaseDamage = 45.f;
+    constexpr f32_t kIreliaQDamagePerRank = 25.f;
     constexpr f32_t kIreliaWRange = 6.0f;
     constexpr f32_t kIreliaWHalfWidth = 2.2f;
     constexpr f32_t kIreliaWBaseDamage = 30.f;
     constexpr f32_t kIreliaWDamagePerRank = 40.f;
+    constexpr f32_t kIreliaEBeamRadius = 1.5f;
+    constexpr f32_t kIreliaEStunSec = 0.75f;
+    constexpr f32_t kIreliaEBaseDamage = 70.f;
+    constexpr f32_t kIreliaEDamagePerRank = 30.f;
+
+    f32_t ResolveIreliaSkillEffectParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::IRELIA,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveIreliaSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return ResolveIreliaSkillEffectParam(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            slot,
+            param,
+            fallbackValue);
+    }
 
     void ClearMove(CWorld& world, EntityID entity)
     {
@@ -227,11 +272,12 @@ namespace
         const TickContext& tc,
         EntityID caster,
         IreliaSimComponent& state,
-        bool_t bEmitWallCue)
+        bool_t bEmitWallCue,
+        f32_t wallDurationSec)
     {
         state.bRWaveActive = false;
         state.bRWallActive = true;
-        state.rWallRemainingSec = kIreliaRWallDurationSec;
+        state.rWallRemainingSec = wallDurationSec;
 
         if (bEmitWallCue)
         {
@@ -242,7 +288,7 @@ namespace
                 kIreliaREffectStageWall,
                 state.rWavePos,
                 state.rWaveDir,
-                static_cast<u16_t>(kIreliaRWallDurationSec * 1000.f),
+                static_cast<u16_t>(wallDurationSec * 1000.f),
                 tc);
         }
     }
@@ -259,10 +305,29 @@ namespace
 
         const eTeam casterTeam = world.GetComponent<ChampionComponent>(caster).team;
 
+        const f32_t rRange = ResolveIreliaSkillEffectParam(
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Range, kIreliaRRange);
+        const f32_t rSpeed = ResolveIreliaSkillEffectParam(
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Speed, kIreliaRSpeed);
+        const f32_t rLength = ResolveIreliaSkillEffectParam(
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::RectLength, kIreliaRLength);
+        const f32_t rWidth = ResolveIreliaSkillEffectParam(
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::RectWidth, kIreliaRWidth);
+        const f32_t rDamage = ResolveIreliaSkillEffectParam(
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::BaseDamage, kIreliaRDamage);
+        const f32_t rDisarmSec = ResolveIreliaSkillEffectParam(
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::DisarmDurationSec, kIreliaRDisarmSec);
+        const f32_t rWallSlowSec = ResolveIreliaSkillEffectParam(
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::SlowDurationSec, kIreliaRWallSlowSec);
+        const f32_t rWallSlowMul = ResolveIreliaSkillEffectParam(
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::MoveSpeedMul, kIreliaRWallSlowMul);
+        const f32_t rWallDurationSec = ResolveIreliaSkillEffectParam(
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::EffectDurationSec, kIreliaRWallDurationSec);
+
         if (state.bRWaveActive)
         {
-            const f32_t remaining = kIreliaRRange - state.rWaveTravelled;
-            const f32_t step = kIreliaRSpeed * tc.fDt;
+            const f32_t remaining = rRange - state.rWaveTravelled;
+            const f32_t step = rSpeed * tc.fDt;
             const f32_t appliedStep = step < remaining ? step : remaining;
             state.rWavePos.x += state.rWaveDir.x * appliedStep;
             state.rWavePos.z += state.rWaveDir.z * appliedStep;
@@ -286,7 +351,7 @@ namespace
 
                         const Vec3 targetPos = tf.GetPosition();
                         if (!IsInRRectangle(targetPos, state.rWavePos, state.rWaveDir,
-                            kIreliaRLength, kIreliaRWidth))
+                            rLength, rWidth))
                         {
                             return;
                         }
@@ -306,11 +371,11 @@ namespace
                     caster,
                     hitTarget,
                     casterTeam,
-                    kIreliaRDamage,
+                    rDamage,
                     static_cast<u16_t>((static_cast<u32_t>(eChampion::IRELIA) << 8) |
                         static_cast<u32_t>(eSkillSlot::R)),
                     state.rRank);
-                ApplyDisarm(world, hitTarget, caster, kIreliaRDisarmSec);
+                ApplyDisarm(world, hitTarget, caster, rDisarmSec);
                 GameplayStatus::ApplySlow(
                     world,
                     tc,
@@ -318,8 +383,8 @@ namespace
                     caster,
                     eChampion::IRELIA,
                     eSkillSlot::R,
-                    kIreliaRWallSlowSec,
-                    kIreliaRWallSlowMul);
+                    rWallSlowSec,
+                    rWallSlowMul);
 
                 EmitIreliaREffect(world,
                     caster,
@@ -328,15 +393,15 @@ namespace
                     kIreliaREffectStageHit,
                     hitPos,
                     state.rWaveDir,
-                    static_cast<u16_t>(kIreliaRWallDurationSec * 1000.f),
+                    static_cast<u16_t>(rWallDurationSec * 1000.f),
                     tc);
-                StartRWall(world, tc, caster, state, false);
+                StartRWall(world, tc, caster, state, false, rWallDurationSec);
                 return;
             }
 
-            if (state.rWaveTravelled >= kIreliaRRange)
+            if (state.rWaveTravelled >= rRange)
             {
-                StartRWall(world, tc, caster, state, true);
+                StartRWall(world, tc, caster, state, true, rWallDurationSec);
                 return;
             }
         }
@@ -364,7 +429,7 @@ namespace
 
                     const Vec3 targetPos = tf.GetPosition();
                     if (!IsInRRectangle(targetPos, state.rWavePos, state.rWaveDir,
-                        kIreliaRLength, kIreliaRWidth))
+                        rLength, rWidth))
                     {
                         return;
                     }
@@ -377,9 +442,9 @@ namespace
                         caster,
                         eChampion::IRELIA,
                         eSkillSlot::R,
-                        kIreliaRWallSlowSec,
-                        kIreliaRWallSlowMul);
-                    ApplyDisarm(world, target, caster, kIreliaRDisarmSec);
+                        rWallSlowSec,
+                        rWallSlowMul);
+                    ApplyDisarm(world, target, caster, rDisarmSec);
                     EmitIreliaREffect(world,
                         caster,
                         target,
@@ -387,7 +452,7 @@ namespace
                         kIreliaREffectStageWallMark,
                         targetPos,
                         state.rWaveDir,
-                        static_cast<u16_t>(kIreliaRDisarmSec * 1000.f),
+                        static_cast<u16_t>(rDisarmSec * 1000.f),
                         tc);
                 }));
     }
@@ -407,32 +472,30 @@ namespace
         auto& casterTf = world.GetComponent<TransformComponent>(ctx.casterEntity);
         const Vec3 casterPos = casterTf.GetPosition();
         const Vec3 targetPos = world.GetComponent<TransformComponent>(cmd.targetEntity).GetPosition();
-
-        const Vec3 dir = WintersMath::NormalizeXZ(Vec3{ targetPos.x - casterPos.x, 0.f, targetPos.z - casterPos.z });
-        const f32_t gap = 1.35f;
-
-        Vec3 endPos{
-            targetPos.x - dir.x * gap,
-            casterPos.y,
-            targetPos.z - dir.z * gap
-        };
+        const Vec3 endPos = IreliaGameSim::ResolveQDashEndPos(casterPos, targetPos);
 
         IreliaSimComponent& state = GetIreliaState(world, ctx.casterEntity);
         state.dashStartPos = casterPos;
         state.dashEndPos = endPos;
         state.dashElapsedSec = 0.f;
-        state.dashDurationSec = kIreliaQDashDurationSec;
+        state.dashDurationSec = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::DashDurationSec, kIreliaQDashDurationSec);
         state.dashTarget = cmd.targetEntity;
         state.bDashActive = true;
 
         ClearMove(world, ctx.casterEntity);
+
+        const f32_t qBaseDamage = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::BaseDamage, kIreliaQBaseDamage);
+        const f32_t qDamagePerRank = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::DamagePerRank, kIreliaQDamagePerRank);
 
         EnqueuePhysicalDamage(
             world,
             ctx.casterEntity,
             cmd.targetEntity,
             ctx.casterTeam,
-            45.f + 25.f * static_cast<f32_t>(ctx.skillRank),
+            qBaseDamage + qDamagePerRank * static_cast<f32_t>(ctx.skillRank),
             static_cast<u16_t>((static_cast<u32_t>(eChampion::IRELIA) << 8) | 1u),
             ctx.skillRank);
 
@@ -458,8 +521,16 @@ namespace
         const Vec3 origin =
             world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 forward = ResolveRForward(world, ctx.casterEntity, ctx.pCommand);
+        const f32_t wBaseDamage = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::W, eSkillEffectParamId::BaseDamage, kIreliaWBaseDamage);
+        const f32_t wDamagePerRank = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::W, eSkillEffectParamId::DamagePerRank, kIreliaWDamagePerRank);
+        const f32_t wRange = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::W, eSkillEffectParamId::Range, kIreliaWRange);
+        const f32_t wHalfWidth = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::W, eSkillEffectParamId::HalfWidth, kIreliaWHalfWidth);
         const f32_t damage =
-            kIreliaWBaseDamage + kIreliaWDamagePerRank * static_cast<f32_t>(ctx.skillRank);
+            wBaseDamage + wDamagePerRank * static_cast<f32_t>(ctx.skillRank);
 
         auto tryHit = [&](EntityID target, eTeam team, const Vec3& targetPos)
         {
@@ -468,7 +539,7 @@ namespace
 
             const Vec3 delta{ targetPos.x - origin.x, 0.f, targetPos.z - origin.z };
             const f32_t along = delta.x * forward.x + delta.z * forward.z;
-            if (along < 0.f || along > kIreliaWRange)
+            if (along < 0.f || along > wRange)
                 return;
 
             const Vec3 perp{
@@ -477,7 +548,7 @@ namespace
                 delta.z - forward.z * along
             };
             if ((perp.x * perp.x + perp.z * perp.z) >
-                kIreliaWHalfWidth * kIreliaWHalfWidth)
+                wHalfWidth * wHalfWidth)
             {
                 return;
             }
@@ -540,7 +611,14 @@ namespace
         const f32_t dx = b.x - a.x;
         const f32_t dz = b.z - a.z;
         const f32_t segLenSq = dx * dx + dz * dz + 0.000001f;
-        constexpr f32_t kBeamRadius = 1.5f;
+        const f32_t beamRadius = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::E, eSkillEffectParamId::Radius, kIreliaEBeamRadius);
+        const f32_t stunSec = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::E, eSkillEffectParamId::StunDurationSec, kIreliaEStunSec);
+        const f32_t eBaseDamage = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::E, eSkillEffectParamId::BaseDamage, kIreliaEBaseDamage);
+        const f32_t eDamagePerRank = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::E, eSkillEffectParamId::DamagePerRank, kIreliaEDamagePerRank);
 
         world.ForEach<ChampionComponent, TransformComponent>(
             std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
@@ -555,7 +633,7 @@ namespace
                     if (u > 1.f) u = 1.f;
 
                     const Vec3 closest{ a.x + dx * u, pos.y, a.z + dz * u };
-                    if (WintersMath::DistanceSqXZ(pos, closest) > kBeamRadius * kBeamRadius)
+                    if (WintersMath::DistanceSqXZ(pos, closest) > beamRadius * beamRadius)
                         return;
 
                     GameplayStatus::ApplyStun(
@@ -565,14 +643,14 @@ namespace
                         ctx.casterEntity,
                         eChampion::IRELIA,
                         eSkillSlot::E,
-                        0.75f);
+                        stunSec);
 
                     EnqueuePhysicalDamage(
                         world,
                         ctx.casterEntity,
                         target,
                         ctx.casterTeam,
-                        70.f + 30.f * static_cast<f32_t>(ctx.skillRank),
+                        eBaseDamage + eDamagePerRank * static_cast<f32_t>(ctx.skillRank),
                         static_cast<u16_t>((static_cast<u32_t>(eChampion::IRELIA) << 8) | 3u),
                         ctx.skillRank);
                 }));

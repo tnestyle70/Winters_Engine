@@ -646,6 +646,60 @@ void ModelRenderer::RenderNormalPassWithVisibility(DX11Shader* pMeshShader,
     pMeshShader->Unbind(pContext);
 }
 
+u32_t ModelRenderer::AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot, u32_t maxItems) const
+{
+    return AppendRenderSnapshotMeshes(snapshot, MakeAllVisibleMask(), maxItems);
+}
+
+u32_t ModelRenderer::AppendRenderSnapshotMeshes(
+    RenderWorldSnapshot& snapshot,
+    const VisibilityMask& mask,
+    u32_t maxItems) const
+{
+    if (!m_pImpl ||
+        !m_pImpl->bReady ||
+        !m_pImpl->pSharedModel ||
+        !m_pImpl->bHasWorldMatrix)
+    {
+        return 0;
+    }
+
+    return m_pImpl->pSharedModel->AppendRenderSnapshotMeshes(
+        snapshot,
+        m_pImpl->matWorld,
+        mask,
+        maxItems);
+}
+
+u32_t ModelRenderer::AppendRenderSnapshotMeshesFrustumCulled(
+    RenderWorldSnapshot& snapshot,
+    const Mat4& matViewProj,
+    u32_t maxItems) const
+{
+    if (!m_pImpl ||
+        !m_pImpl->bReady ||
+        !m_pImpl->pSharedModel)
+    {
+        return 0;
+    }
+
+    if (!m_pImpl->bHasWorldMatrix)
+        return AppendRenderSnapshotMeshes(snapshot, maxItems);
+
+    const Mat4 matLocalToClip(
+        m_pImpl->matWorld.ToXMMATRIX() * matViewProj.ToXMMATRIX());
+    bool_t bAnyVisible = true;
+    VisibilityMask mask{};
+    {
+        WINTERS_PROFILE_SCOPE("ModelRenderer::BuildClipVisibilityMask");
+        mask = m_pImpl->pSharedModel->BuildClipVisibilityMask(matLocalToClip, &bAnyVisible);
+    }
+    if (!bAnyVisible)
+        return 0;
+
+    return AppendRenderSnapshotMeshes(snapshot, mask, maxItems);
+}
+
 bool ModelRenderer::LoadTexture(const wstring& strPath)
 {
     if (!m_pImpl) return false;

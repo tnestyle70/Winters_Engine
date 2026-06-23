@@ -23,7 +23,7 @@ class CModel
 private:
 	CModel() = default;
 public:
-	~CModel() = default;
+	~CModel();
 
 	struct SubmeshInfo
 	{
@@ -50,6 +50,11 @@ public:
 	
 	void Render(IRHIDevice* pDevice);
 	void RenderWithMask(IRHIDevice* pDevice, const VisibilityMask& mask);
+	u32_t AppendRenderSnapshotMeshes(
+		RenderWorldSnapshot& snapshot,
+		const Mat4& matWorld,
+		const VisibilityMask& mask,
+		u32_t maxItems = 0) const;
 
 	u32_t GetMeshCount() const
 	{
@@ -92,6 +97,8 @@ private:
 	void LoadCookedAnimations(const string& strMeshPath,
 		const Winters::Asset::WSkelLoaded& ws);
 	CTexture* ResolveMaterialTexture(u32_t iMeshIndex) const;
+	RHITextureHandle ResolveMaterialRHITexture(u32_t iMeshIndex) const;
+	void ReleaseRHIResources();
 	void RenderCombinedStaticWithMask(IRHIDevice* pDevice, const VisibilityMask& mask);
 
 	//스켈레톤, 애니메이션 로딩
@@ -106,8 +113,12 @@ private:
 	vector<LocalBounds> m_vecSubmeshBounds;
 	LocalBounds m_LocalBounds{};
 	vector<unique_ptr<CTexture>> m_vecTextures;
+	vector<RHITextureHandle> m_vecRHITextures;
 	vector<CTexture*> m_vecMeshTextureOverrides; //비소유 메시 인덱스 기준
 	unique_ptr<CTexture> m_pDefaultTexture;
+	RHITextureHandle m_hDefaultRHITexture{};
+	RHISamplerHandle m_hDefaultRHISampler{};
+	IRHIDevice* m_pRHIDevice = nullptr;
 	CTexture* m_pOverrideTexture = nullptr;		// 비소유 (ModelRenderer가 소유)
 	u32_t m_iAnimCount = 0;
 

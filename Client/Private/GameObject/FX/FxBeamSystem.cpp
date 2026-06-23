@@ -7,6 +7,7 @@
 #include "Renderer/FxShaderConstants.h"
 #include "Resource/Texture.h"
 #include "RHI/RHITextureLoader.h"
+#include "GameInstance.h"
 #include "DynamicCamera.h"
 #include "ProfilerAPI.h"
 #include <DirectXMath.h>
@@ -293,8 +294,6 @@ namespace
 
 std::unique_ptr<CFxBeamSystem> CFxBeamSystem::Create(
     IRHIDevice* pDevice,
-    DX11Shader* pShader,
-    DX11Pipeline* pPipeline,
     CBlendStateCache* pBlendCache)
 {
     if (!pDevice)
@@ -310,7 +309,16 @@ std::unique_ptr<CFxBeamSystem> CFxBeamSystem::Create(
         return p->m_pRHISprite ? std::move(p) : nullptr;
     }
 
-    if (!pShader || !pPipeline || !pBlendCache)
+    if (!pBlendCache)
+        return nullptr;
+
+    Engine::CGameInstance* pGI = Engine::CGameInstance::Get();
+    if (!pGI)
+        return nullptr;
+
+    DX11Shader* pShader = pGI->Get_FxSpriteShader();
+    DX11Pipeline* pPipeline = pGI->Get_FxSpritePipeline();
+    if (!pShader || !pPipeline)
         return nullptr;
 
     p->m_pPlane = CPlaneRenderer::Create(pDevice, pShader, pPipeline);

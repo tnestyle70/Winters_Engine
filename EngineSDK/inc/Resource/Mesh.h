@@ -1,6 +1,7 @@
 #pragma once
 #include "Engine_Defines.h"
 #include "RHI/IRHIDevice.h"
+#include "Renderer/RenderWorldSnapshot.h"
 
 NS_BEGIN(Engine)
 
@@ -17,6 +18,7 @@ public:
 	void Render(IRHIDevice* pDevice);
 	void RenderIndexRange(IRHIDevice* pDevice, u32_t iStartIndex, u32_t iIndexCount);
 
+	RHIMeshSlice GetRHIMeshSlice(u32_t iStartIndex = 0, u32_t iIndexCount = 0) const;
 	u32_t GetIndexCount() const { return m_iIndexCount; }
 	u32_t GetMaterialIndex() const { return m_iMaterialIndex; }
 	void	SetMaterialIndex(u32_t iIndex) { m_iMaterialIndex = iIndex; }

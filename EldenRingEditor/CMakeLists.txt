@@ -5,11 +5,15 @@ set(WINTERS_ELDENRING_EDITOR_SOURCES
 	"${WINTERS_ELDENRING_EDITOR_DIR}/Private/main.cpp"
 	"${WINTERS_ELDENRING_EDITOR_DIR}/Private/EldenRingEditorApp.cpp"
 	"${WINTERS_ELDENRING_EDITOR_DIR}/Private/EldenRingEditorScene.cpp"
+	"${WINTERS_ELDENRING_EDITOR_DIR}/Private/World/EditorTransaction.cpp"
+	"${WINTERS_ELDENRING_EDITOR_DIR}/Private/World/WorldCellDocument.cpp"
 )
 
 set(WINTERS_ELDENRING_EDITOR_HEADERS
 	"${WINTERS_ELDENRING_EDITOR_DIR}/Public/EldenRingEditorApp.h"
 	"${WINTERS_ELDENRING_EDITOR_DIR}/Public/EldenRingEditorScene.h"
+	"${WINTERS_ELDENRING_EDITOR_DIR}/Public/World/EditorTransaction.h"
+	"${WINTERS_ELDENRING_EDITOR_DIR}/Public/World/WorldCellDocument.h"
 )
 
 add_executable(WintersEldenRingEditor WIN32
@@ -42,6 +46,7 @@ target_compile_definitions(WintersEldenRingEditor PRIVATE
 target_include_directories(WintersEldenRingEditor PRIVATE
 	"${WINTERS_ROOT_DIR}"
 	"${WINTERS_ELDENRING_EDITOR_DIR}/Public"
+	"${WINTERS_ROOT_DIR}/Engine/External/imgui"
 	"${WINTERS_ROOT_DIR}/Engine/ThirdPartyLib/FlatBuffers/Inc"
 )
 

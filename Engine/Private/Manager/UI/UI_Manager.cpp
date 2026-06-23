@@ -64,6 +64,7 @@ namespace
     constexpr const wchar_t* kPathPingDanger = L"Resource/Texture/UI/ux/minimap/pings/caution.png";
     constexpr const wchar_t* kPathPingAssist = L"Resource/Texture/UI/ux/minimap/pings/assist.png";
     constexpr const wchar_t* kPathPingMissing = L"Resource/Texture/UI/ux/minimap/pings/mia_new.png";
+    constexpr const wchar_t* kPathOffscreenPingAtlas = L"Resource/Texture/UI/HUD/offscreenping_atlas.png";
     constexpr const wchar_t* kPathAbilityAtlas = L"Resource/Texture/UI/HUD/clarity_abilityatlas.png";
     constexpr const wchar_t* kPathChampionHUDIrelia = L"Resource/Texture/UI/HUD_Irelia_2.png";
     constexpr const wchar_t* kPathHUDHit = L"Resource/Texture/UI/HUD/lol_ingame_hit.png";
@@ -380,6 +381,116 @@ namespace
                 Tint);
         }
         pDraw->AddCircle(Center, Half * 0.88f, Border, 32, bSelected ? 2.6f : 1.4f);
+    }
+
+    struct UIPingAtlasSprite
+    {
+        f32_t X0 = 0.f;
+        f32_t Y0 = 0.f;
+        f32_t X1 = 0.f;
+        f32_t Y1 = 0.f;
+    };
+
+    ImVec2 UI_PingAtlasUV(f32_t x, f32_t y)
+    {
+        constexpr f32_t kAtlasSize = 1024.f;
+        return ImVec2(x / kAtlasSize, y / kAtlasSize);
+    }
+
+    void UI_DrawPingAtlasSpriteCentered(
+        ImDrawList* pDraw,
+        void* pAtlasSRV,
+        const UIPingAtlasSprite& Sprite,
+        const ImVec2& Center,
+        f32_t MaxSize,
+        ImU32 Tint)
+    {
+        if (!pDraw || !pAtlasSRV || MaxSize <= 0.f)
+            return;
+
+        const f32_t SrcW = std::max(1.f, Sprite.X1 - Sprite.X0);
+        const f32_t SrcH = std::max(1.f, Sprite.Y1 - Sprite.Y0);
+        const f32_t Scale = MaxSize / std::max(SrcW, SrcH);
+        const f32_t W = SrcW * Scale;
+        const f32_t H = SrcH * Scale;
+        const ImVec2 Min(Center.x - W * 0.5f, Center.y - H * 0.5f);
+        const ImVec2 Max(Center.x + W * 0.5f, Center.y + H * 0.5f);
+
+        pDraw->AddImage(
+            reinterpret_cast<ImTextureID>(pAtlasSRV),
+            Min,
+            Max,
+            UI_PingAtlasUV(Sprite.X0, Sprite.Y0),
+            UI_PingAtlasUV(Sprite.X1, Sprite.Y1),
+            Tint);
+    }
+
+    UIPingAtlasSprite UI_ResolvePingAtlasBaseSprite(u8_t iDirection)
+    {
+        switch (iDirection)
+        {
+        case 1: return UIPingAtlasSprite{ 142.f, 25.f, 238.f, 109.f };
+        case 2: return UIPingAtlasSprite{ 268.f, 19.f, 352.f, 116.f };
+        case 3: return UIPingAtlasSprite{ 28.f, 19.f, 112.f, 115.f };
+        case 4: return UIPingAtlasSprite{ 382.f, 25.f, 479.f, 109.f };
+        case 0:
+        default:
+            return UIPingAtlasSprite{ 28.f, 19.f, 112.f, 115.f };
+        }
+    }
+
+    UIPingAtlasSprite UI_ResolvePingAtlasIconSprite(u8_t iDirection)
+    {
+        switch (iDirection)
+        {
+        case 1: return UIPingAtlasSprite{ 960.f, 202.f, 1018.f, 250.f };
+        case 2: return UIPingAtlasSprite{ 960.f, 450.f, 1018.f, 508.f };
+        case 3: return UIPingAtlasSprite{ 956.f, 140.f, 1018.f, 205.f };
+        case 4: return UIPingAtlasSprite{ 960.f, 8.f, 1018.f, 100.f };
+        case 0:
+        default:
+            return UIPingAtlasSprite{ 960.f, 202.f, 1018.f, 250.f };
+        }
+    }
+
+    void UI_DrawPingAtlasMarker(ImDrawList* pDraw, void* pAtlasSRV,
+        u8_t iDirection, const ImVec2& Center, f32_t Size, bool_t bSelected,
+        f32_t Alpha = 1.f)
+    {
+        if (!pDraw || !pAtlasSRV || Size <= 0.f)
+            return;
+
+        const f32_t ClampedAlpha = UI_Clamp01(Alpha);
+        if (bSelected)
+        {
+            pDraw->AddCircleFilled(
+                Center,
+                Size * 0.48f,
+                UI_ColorWithAlpha(30, 144, 205, 0.28f * ClampedAlpha),
+                32);
+        }
+
+        UI_DrawPingAtlasSpriteCentered(
+            pDraw,
+            pAtlasSRV,
+            UI_ResolvePingAtlasBaseSprite(iDirection),
+            Center,
+            Size,
+            UI_ColorWithAlpha(255, 255, 255, ClampedAlpha));
+
+        f32_t IconSize = Size * 0.50f;
+        if (iDirection == 3u)
+            IconSize = Size * 0.58f;
+        else if (iDirection == 4u)
+            IconSize = Size * 0.62f;
+
+        UI_DrawPingAtlasSpriteCentered(
+            pDraw,
+            pAtlasSRV,
+            UI_ResolvePingAtlasIconSprite(iDirection),
+            Center,
+            IconSize,
+            UI_ColorWithAlpha(255, 255, 255, ClampedAlpha));
     }
 
     Vec4 UI_WhiteVec(f32_t alpha = 1.f)
@@ -761,6 +872,7 @@ void CUI_Manager::Shutdown()
     ReleaseSRV(m_pSRV_PingDanger);
     ReleaseSRV(m_pSRV_PingAssist);
     ReleaseSRV(m_pSRV_PingMissing);
+    ReleaseSRV(m_pSRV_OffscreenPingAtlas);
     m_MapPingMarkers.clear();
     ReleaseSRV(m_pSRV_AbilityAtlas);
     ReleaseSRV(m_pSRV_HUDHit);
@@ -886,7 +998,10 @@ void CUI_Manager::LoadPingWheelAssets()
     ReleaseSRV(m_pSRV_PingDanger);
     ReleaseSRV(m_pSRV_PingAssist);
     ReleaseSRV(m_pSRV_PingMissing);
+    ReleaseSRV(m_pSRV_OffscreenPingAtlas);
 
+    if (FAILED(Load_TextureSRV(kPathOffscreenPingAtlas, &m_pSRV_OffscreenPingAtlas)))
+        OutputDebugStringA("[UI_Manager] offscreenping_atlas.png load failed - legacy ping images used\n");
     if (FAILED(Load_TextureSRV(kPathPingWheelCursor, &m_pSRV_PingWheelCursor)))
         OutputDebugStringA("[UI_Manager] radialmenucursor_ping.png load failed - ping wheel uses ping icon fallback\n");
     if (FAILED(Load_TextureSRV(kPathPingDefault, &m_pSRV_PingDefault)))
@@ -1255,6 +1370,32 @@ void CUI_Manager::DrawPingWheel(ImDrawList* pDraw)
     pDraw->AddCircleFilled(Center, kOuterRadius, IM_COL32(4, 8, 13, 104), 48);
     pDraw->AddCircle(Center, kOuterRadius, IM_COL32(44, 88, 116, 128), 48, 1.5f);
     pDraw->AddCircle(Center, 28.f, IM_COL32(86, 220, 255, 92), 32, 1.3f);
+
+    if (m_pSRV_OffscreenPingAtlas)
+    {
+        UI_DrawPingAtlasMarker(pDraw, m_pSRV_OffscreenPingAtlas,
+            static_cast<u8_t>(ePingWheelDirection::OnMyWay),
+            ImVec2(Center.x + kRingRadius, Center.y),
+            kIconSize, m_ePingWheelDirection == ePingWheelDirection::OnMyWay);
+        UI_DrawPingAtlasMarker(pDraw, m_pSRV_OffscreenPingAtlas,
+            static_cast<u8_t>(ePingWheelDirection::Danger),
+            ImVec2(Center.x, Center.y - kRingRadius),
+            kIconSize, m_ePingWheelDirection == ePingWheelDirection::Danger);
+        UI_DrawPingAtlasMarker(pDraw, m_pSRV_OffscreenPingAtlas,
+            static_cast<u8_t>(ePingWheelDirection::Assist),
+            ImVec2(Center.x, Center.y + kRingRadius),
+            kIconSize, m_ePingWheelDirection == ePingWheelDirection::Assist);
+        UI_DrawPingAtlasMarker(pDraw, m_pSRV_OffscreenPingAtlas,
+            static_cast<u8_t>(ePingWheelDirection::Missing),
+            ImVec2(Center.x - kRingRadius, Center.y),
+            kIconSize, m_ePingWheelDirection == ePingWheelDirection::Missing);
+        UI_DrawPingAtlasMarker(pDraw, m_pSRV_OffscreenPingAtlas,
+            static_cast<u8_t>(m_ePingWheelDirection),
+            Center,
+            kCenterIconSize,
+            m_ePingWheelDirection == ePingWheelDirection::None);
+        return;
+    }
 
     UI_DrawPingWheelIcon(pDraw, m_pSRV_PingOnMyWay,
         ImVec2(Center.x + kRingRadius, Center.y),
@@ -3486,6 +3627,19 @@ void CUI_Manager::DrawMapPings(ImDrawList* pDraw,
         const ImVec2 Min(Screen.x - Half, Screen.y - Half);
         const ImVec2 Max(Screen.x + Half, Screen.y + Half);
 
+        if (m_pSRV_OffscreenPingAtlas)
+        {
+            UI_DrawPingAtlasMarker(
+                pDraw,
+                m_pSRV_OffscreenPingAtlas,
+                static_cast<u8_t>(Marker.eDirection),
+                Screen,
+                Size * 1.34f,
+                false,
+                Alpha);
+            continue;
+        }
+
         pDraw->AddCircleFilled(
             Screen,
             Half * 0.82f,
@@ -3670,6 +3824,8 @@ struct HealthBarScreenRects
     ImVec2 BarMax{};
     ImVec2 FillMin{};
     ImVec2 FillMax{};
+    ImVec2 ManaMin{};
+    ImVec2 ManaMax{};
 };
 
 static HealthBarScreenRects BuildHealthBarScreenRects(const ImVec2& center, f32_t width, f32_t height)
@@ -3683,6 +3839,12 @@ static HealthBarScreenRects BuildHealthBarScreenRects(const ImVec2& center, f32_
     rects.FillMax = ImVec2(
         rects.BarMax.x - width * 0.012f,
         rects.BarMin.y + height * 0.60f);
+    rects.ManaMin = ImVec2(
+        rects.BarMin.x + width * 0.012f,
+        rects.BarMin.y + height * 0.68f);
+    rects.ManaMax = ImVec2(
+        rects.BarMax.x - width * 0.012f,
+        rects.BarMax.y - height * 0.10f);
     return rects;
 }
 
@@ -3756,6 +3918,7 @@ void CUI_Manager::DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP
         {
             if (!m_pWorld->HasComponent<ChampionComponent>(id))
                 return;
+            ChampionComponent& champion = m_pWorld->GetComponent<ChampionComponent>(id);
             if (hp.bIsDead || hp.fMaximum <= 0.f)
                 return;
 
@@ -3768,7 +3931,7 @@ void CUI_Manager::DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP
             const f32_t clamped = std::clamp(hp.fCurrent / hp.fMaximum, 0.f, 1.f);
             const HealthBarScreenRects rects = BuildHealthBarScreenRects(screen, w, h);
 
-            const eTeam team = UI_Resolve_Team(m_pWorld, id);
+            const eTeam team = champion.team;
             const bool_t bAlly = (team != eTeam::TEAM_END && team == localTeam);
 
             pDraw->AddRectFilled(rects.BarMin, rects.BarMax, IM_COL32(10, 10, 10, 226));
@@ -3804,6 +3967,31 @@ void CUI_Manager::DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP
                     topColor);
             }
 
+            const f32_t manaMax = champion.maxMana;
+            const f32_t manaRatio = (manaMax > 0.f)
+                ? std::clamp(champion.mana / manaMax, 0.f, 1.f)
+                : 0.f;
+            if (manaMax > 0.f)
+            {
+                pDraw->AddRectFilled(
+                    rects.ManaMin,
+                    rects.ManaMax,
+                    IM_COL32(6, 13, 25, 235));
+                if (manaRatio > 0.f)
+                {
+                    const f32_t manaW = (rects.ManaMax.x - rects.ManaMin.x) * manaRatio;
+                    const ImVec2 manaFillMax(rects.ManaMin.x + manaW, rects.ManaMax.y);
+                    pDraw->AddRectFilled(
+                        rects.ManaMin,
+                        manaFillMax,
+                        IM_COL32(36, 125, 226, 255));
+                    pDraw->AddRectFilled(
+                        rects.ManaMin,
+                        ImVec2(manaFillMax.x, rects.ManaMin.y + 1.f),
+                        IM_COL32(108, 210, 255, 92));
+                }
+            }
+
             DrawHealthBarcode(pDraw, rects.FillMin, rects.FillMax, hp.fMaximum);
             pDraw->AddRect(rects.BarMin, rects.BarMax, IM_COL32(0, 0, 0, 240), 0.f, 0, 1.25f);
         });
@@ -3828,6 +4016,7 @@ void CUI_Manager::DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP)
         {
             if (!m_pWorld->HasComponent<ChampionComponent>(id))
                 return;
+            ChampionComponent& champion = m_pWorld->GetComponent<ChampionComponent>(id);
             if (hp.bIsDead || hp.fMaximum <= 0.f)
                 return;
 
@@ -3840,7 +4029,7 @@ void CUI_Manager::DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP)
             const f32_t clamped = std::clamp(hp.fCurrent / hp.fMaximum, 0.f, 1.f);
             const HealthBarScreenRects rects = BuildHealthBarScreenRects(s, w, h);
 
-            const eTeam team = UI_Resolve_Team(m_pWorld, id);
+            const eTeam team = champion.team;
             const bool_t bAlly = (team != eTeam::TEAM_END && team == localTeam);
 
             m_pRHIUIRenderer->DrawImage(
@@ -3894,6 +4083,42 @@ void CUI_Manager::DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP)
                     1.0f,
                     uvFull,
                     bAlly ? Vec4(0.56f, 1.0f, 0.46f, 0.28f) : Vec4(1.0f, 0.52f, 0.41f, 0.28f));
+            }
+
+            const f32_t manaMax = champion.maxMana;
+            const f32_t manaRatio = (manaMax > 0.f)
+                ? std::clamp(champion.mana / manaMax, 0.f, 1.f)
+                : 0.f;
+            if (manaMax > 0.f)
+            {
+                m_pRHIUIRenderer->DrawImage(
+                    nullptr,
+                    rects.ManaMin.x,
+                    rects.ManaMin.y,
+                    rects.ManaMax.x - rects.ManaMin.x,
+                    rects.ManaMax.y - rects.ManaMin.y,
+                    uvFull,
+                    Vec4(0.024f, 0.05f, 0.098f, 0.92f));
+                if (manaRatio > 0.f)
+                {
+                    const f32_t manaW = (rects.ManaMax.x - rects.ManaMin.x) * manaRatio;
+                    m_pRHIUIRenderer->DrawImage(
+                        nullptr,
+                        rects.ManaMin.x,
+                        rects.ManaMin.y,
+                        manaW,
+                        rects.ManaMax.y - rects.ManaMin.y,
+                        uvFull,
+                        Vec4(0.14f, 0.49f, 0.89f, 1.0f));
+                    m_pRHIUIRenderer->DrawImage(
+                        nullptr,
+                        rects.ManaMin.x,
+                        rects.ManaMin.y,
+                        manaW,
+                        1.0f,
+                        uvFull,
+                        Vec4(0.42f, 0.82f, 1.0f, 0.36f));
+                }
             }
 
         });

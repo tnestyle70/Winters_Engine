@@ -136,6 +136,8 @@ private:
     std::unordered_map<EntityID, MinionVisualPlaybackState>       m_mapVisualStates;
     std::deque<NetworkVisualRequest> m_deqPendingNetworkVisuals;
     std::vector<std::unique_ptr<ModelRenderer>> m_vecNetworkRendererPool[2][5];
+    u32_t m_uNetworkPoolHitsThisFrame = 0u;
+    u32_t m_uNetworkColdCreatesThisFrame = 0u;
 
     f32_t   m_fSpawnTimer = 0.f;
     f32_t   m_fSpawnInterval = 20.f;

@@ -98,6 +98,8 @@ private:
 		D3D12_CPU_DESCRIPTOR_HANDLE srvBaseCpu,
 		D3D12_CPU_DESCRIPTOR_HANDLE samplerBaseCpu);
 
+	void WaitForFenceValue(u64_t fenceValue);
+	void WaitForFrame(u32_t frameIndex);
 	void WaitForGpu();
 
 	static constexpr u32_t kFrameCount = 2;
@@ -120,7 +122,8 @@ private:
 	std::unique_ptr<CDX12FrameCommandList> m_pFrameCommandList;
 
 	HANDLE m_hFenceEvent = nullptr;
-	u64_t m_uFenceValue = 1;
+	u64_t m_uNextFenceValue = 1;
+	u64_t m_uFrameFenceValues[kFrameCount] = {};
 	u32_t m_iFrameIndex = 0;
 	u32_t m_iRTVDescriptorSize = 0;
 	u32_t m_iWidth = 1280;

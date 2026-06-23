@@ -292,8 +292,8 @@ WintersEngineSourceGroup("03. Renderer\\05. FX\\07. ParameterMap"
     "/Engine/Public/FX/ParameterMap\\.h$"
 )
 WintersEngineSourceGroup("03. Renderer\\05. FX\\08. RHI"
-    "/Engine/Private/Renderer/RHIFx(MeshResource|SpriteRenderer)\\.cpp$"
-    "/Engine/Public/Renderer/RHIFx(MeshResource|SpriteRenderer)\\.h$"
+    "/Engine/Private/Renderer/RHI(Fx(MeshResource|SpriteRenderer)|MaterialResource|MeshResource|SceneRenderer)\\.cpp$"
+    "/Engine/Public/Renderer/(RenderWorldSnapshot|RHI(Fx(MeshResource|SpriteRenderer)|MaterialResource|MeshResource|SceneRenderer))\\.h$"
 )
 WintersEngineSourceGroup("03. Renderer\\05. FX\\09. UIRenderer"
     "/Engine/Private/Renderer/UIRenderer\\.cpp$"

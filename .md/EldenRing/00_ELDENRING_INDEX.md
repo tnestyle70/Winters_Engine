@@ -32,6 +32,14 @@ WintersEngine.dll
 | `12_UE5_REFERENCE_DX12_RHI_EDITOR_BIG_PICTURE.md` | UE5 reference, DX12 RHI, Elden editor 전체 큰그림 |
 | `13_HKX_ANIMATION_PIPELINE.md` | anibnd HKX -> Soulstruct -> FBX -> `.wanim` 샘플 애니메이션 변환 파이프라인 |
 | `14_PIPELINE_V2_RUNTIME_CONTRACT.md` | 파이프라인 V2 전체 흐름, Winters 런타임 에셋 계약, 신구 비교, 내부 정보 커버리지 |
+| `15_TEAM_2MONTH_FULL_BINARYIZE_PLAN.md` | 4인 팀 2개월 전체 에셋 바이너리화 마스터 플랜(역할·게이트·기술부채·루프) |
+| `16_CODEX_BOOTSTRAP_PROMPT.md` | Codex에 바로 붙여넣는 레인별 작업 루프 지시 프롬프트 |
+| `17_UE5_GRADE_EDITOR_SUITE_MASTER.md` | UE5급 5대 시스템(World Editor/Niagara FX/Sequencer/World Partition/Boss Testing) 설계 + UE5↔Winters 매핑 + Codex 프롬프트 |
+| `18_WORLD_EDITOR_DESIGN.md` | World Editor 상세 설계(UE5 Editor급) — Slate/Gizmo/Transaction↔ImGui+command, `.wcell` 편집 + Codex 프롬프트(`SYSTEM=WORLD_EDITOR`) |
+| `19_FX_NIAGARA_DESIGN.md` | FX Editor 상세 설계(Niagara급) — System/Emitter/Module↔`.wfx` 그래프+CPU exec plan, FXR→`.wfx` + Codex(`SYSTEM=FX_NIAGARA`) |
+| `20_SEQUENCER_DESIGN.md` | Sequencer 상세 설계 — Track/Section/Possessable↔`.wseq`+`CSequencePlayer` + Codex(`SYSTEM=SEQUENCER`) |
+| `21_WORLD_PARTITION_DESIGN.md` | World Partition+Asset Streaming 상세 설계 — Grid/OFPA/HashGrid/cell state↔`.wmap`/`.wcell` + Codex(`SYSTEM=WORLD_PARTITION`) |
+| `22_BOSS_TESTING_DESIGN.md` | Boss Pattern Testing 상세 설계 — BT/Blackboard/Gauntlet↔자동 패턴 테스트+서버 권위 hitbox + Codex(`SYSTEM=BOSS_TESTING`) |
 
 ## 현재 로컬 입력 자산
 

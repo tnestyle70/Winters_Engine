@@ -7,6 +7,7 @@
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
 #include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Buff/BuffSystem.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
@@ -50,7 +51,7 @@ namespace
     constexpr u32_t kEShieldBuffDefId = (static_cast<u32_t>(eChampion::ANNIE) << 16) | 3u;
 
     constexpr u8_t kTibbersRoleType = 4;
-    // 0xff = any-lane: ?œë²„ ë¯¸ë‹ˆ??AI??lane ?€ê²??„í„°ë¥??°íšŒ?œë‹¤ (?Œí™˜???„ìš©).
+    // 0xff = any-lane: Tibbers bypasses lane-gated minion AI paths.
     constexpr u8_t kTibbersLane = 0xff;
     constexpr f32_t kTibbersDurationSec = 45.f;
     constexpr f32_t kTibbersMoveSpeed = 5.2f;
@@ -62,6 +63,137 @@ namespace
     constexpr f32_t kTibbersBaseHp = 1000.f;
     constexpr f32_t kTibbersHpPerRank = 250.f;
     constexpr f32_t kTibbersRadius = 0.9f;
+
+    f32_t ResolveAnnieSkillEffectParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::ANNIE,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveAnnieSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return ResolveAnnieSkillEffectParam(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            slot,
+            param,
+            fallbackValue);
+    }
+
+    struct TibbersSpawnTuning
+    {
+        f32_t durationSec = kTibbersDurationSec;
+        f32_t moveSpeed = kTibbersMoveSpeed;
+        f32_t attackRange = kTibbersAttackRange;
+        f32_t sightRange = kTibbersSightRange;
+        f32_t attackCooldownSec = kTibbersAttackCooldownSec;
+        f32_t baseAttackDamage = kTibbersBaseAttackDamage;
+        f32_t attackDamagePerRank = kTibbersAttackDamagePerRank;
+        f32_t baseHp = kTibbersBaseHp;
+        f32_t hpPerRank = kTibbersHpPerRank;
+        f32_t radius = kTibbersRadius;
+    };
+
+    TibbersSpawnTuning ResolveTibbersSpawnTuning(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster)
+    {
+        TibbersSpawnTuning tuning{};
+        tuning.durationSec = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonDurationSec,
+            kTibbersDurationSec);
+        tuning.moveSpeed = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonMoveSpeed,
+            kTibbersMoveSpeed);
+        tuning.attackRange = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonAttackRange,
+            kTibbersAttackRange);
+        tuning.sightRange = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonSightRange,
+            kTibbersSightRange);
+        tuning.attackCooldownSec = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonAttackCooldownSec,
+            kTibbersAttackCooldownSec);
+        tuning.baseAttackDamage = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonBaseAttackDamage,
+            kTibbersBaseAttackDamage);
+        tuning.attackDamagePerRank = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonAttackDamagePerRank,
+            kTibbersAttackDamagePerRank);
+        tuning.baseHp = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonBaseHp,
+            kTibbersBaseHp);
+        tuning.hpPerRank = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonHpPerRank,
+            kTibbersHpPerRank);
+        tuning.radius = ResolveAnnieSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::SummonRadius,
+            kTibbersRadius);
+        return tuning;
+    }
 
     u16_t SkillIdForSlot(u8_t slot)
     {
@@ -173,7 +305,8 @@ namespace
         const TickContext& tc,
         EntityID source,
         EntityID target,
-        eSkillSlot slot)
+        eSkillSlot slot,
+        f32_t durationSec)
     {
         if (!IsAliveDamageTarget(world, target))
             return;
@@ -185,7 +318,7 @@ namespace
             source,
             eChampion::ANNIE,
             slot,
-            kStunDurationSec);
+            durationSec);
     }
 
     bool_t ConsumeStunReady(AnnieSimComponent& state)
@@ -235,7 +368,7 @@ namespace
     }
 
     Vec3 ResolveGroundCastPosition(CWorld& world, const TickContext& tc,
-        EntityID caster, const GameCommand* pCommand)
+        EntityID caster, const GameCommand* pCommand, f32_t maxRange)
     {
         Vec3 origin{};
         if (world.HasComponent<TransformComponent>(caster))
@@ -244,17 +377,17 @@ namespace
         Vec3 pos = pCommand ? pCommand->groundPos : origin;
         const Vec3 delta{ pos.x - origin.x, 0.f, pos.z - origin.z };
         const f32_t distSq = delta.x * delta.x + delta.z * delta.z;
-        if (distSq > kRRange * kRRange)
+        if (distSq > maxRange * maxRange)
         {
             const f32_t invDist = 1.f / std::sqrtf(distSq);
-            pos.x = origin.x + delta.x * invDist * kRRange;
-            pos.z = origin.z + delta.z * invDist * kRRange;
+            pos.x = origin.x + delta.x * invDist * maxRange;
+            pos.z = origin.z + delta.z * invDist * maxRange;
         }
         else if (distSq <= 0.0001f)
         {
             const Vec3 forward = ResolveForward(world, caster, pCommand);
-            pos.x = origin.x + forward.x * kRRange;
-            pos.z = origin.z + forward.z * kRRange;
+            pos.x = origin.x + forward.x * maxRange;
+            pos.z = origin.z + forward.z * maxRange;
         }
 
         if (tc.pWalkable)
@@ -302,7 +435,11 @@ namespace
     }
 
     void CollectConeTargets(CWorld& world, const Vec3& origin, const Vec3& forward,
-        f32_t range, EntityID source, eTeam sourceTeam, std::vector<EntityID>& outTargets)
+        f32_t range,
+        f32_t halfAngleCos,
+        EntityID source,
+        eTeam sourceTeam,
+        std::vector<EntityID>& outTargets)
     {
         const f32_t rangeSq = range * range;
         auto tryAdd = [&](EntityID target, const Vec3& pos)
@@ -318,7 +455,7 @@ namespace
 
             const f32_t invDist = 1.f / std::sqrtf(distSq);
             const f32_t dot = (dx * invDist) * forward.x + (dz * invDist) * forward.z;
-            if (dot >= kWHalfAngleCos)
+            if (dot >= halfAngleCos)
                 outTargets.push_back(target);
         };
 
@@ -353,7 +490,11 @@ namespace
     }
 
     EntityID SpawnTibbersMinion(CWorld& world, const TickContext& tc,
-        EntityID owner, eTeam ownerTeam, const Vec3& pos, u8_t rank)
+        EntityID owner,
+        eTeam ownerTeam,
+        const Vec3& pos,
+        u8_t rank,
+        const TibbersSpawnTuning& tuning)
     {
         AnnieSimComponent& annie = EnsureAnnieState(world, owner);
         if (annie.tibbersEntity != NULL_ENTITY && world.IsAlive(annie.tibbersEntity))
@@ -372,18 +513,18 @@ namespace
         state.team = ownerTeam;
         state.type = kTibbersRoleType;
         state.lane = kTibbersLane;
-        state.moveSpeed = kTibbersMoveSpeed;
-        state.attackRange = kTibbersAttackRange;
-        state.sightRange = kTibbersSightRange;
+        state.moveSpeed = tuning.moveSpeed;
+        state.attackRange = tuning.attackRange;
+        state.sightRange = tuning.sightRange;
         state.attackDamage =
-            kTibbersBaseAttackDamage + kTibbersAttackDamagePerRank * static_cast<f32_t>(rank);
-        state.attackCooldownMax = kTibbersAttackCooldownSec;
+            tuning.baseAttackDamage + tuning.attackDamagePerRank * static_cast<f32_t>(rank);
+        state.attackCooldownMax = tuning.attackCooldownSec;
         state.targetScanInterval = 0.16f;
         state.targetScanCooldown = 0.f;
         state.animUpdateInterval = 1.f / 15.f;
         world.AddComponent<MinionStateComponent>(tibbers, state);
 
-        const f32_t maxHp = kTibbersBaseHp + kTibbersHpPerRank * static_cast<f32_t>(rank);
+        const f32_t maxHp = tuning.baseHp + tuning.hpPerRank * static_cast<f32_t>(rank);
         HealthComponent health{};
         health.fCurrent = maxHp;
         health.fMaximum = maxHp;
@@ -403,17 +544,17 @@ namespace
         SpatialAgentComponent spatial{};
         spatial.kind = eSpatialKind::Minion;
         spatial.team = TeamByte(ownerTeam);
-        spatial.radius = kTibbersRadius;
+        spatial.radius = tuning.radius;
         world.AddComponent<SpatialAgentComponent>(tibbers, spatial);
 
         ColliderComponent collider{};
-        collider.vHalfExtents = { kTibbersRadius, 1.5f, kTibbersRadius };
+        collider.vHalfExtents = { tuning.radius, 1.5f, tuning.radius };
         collider.vOffset = { 0.f, 0.75f, 0.f };
         collider.bIsTrigger = false;
         world.AddComponent<ColliderComponent>(tibbers, collider);
 
         VisionSourceComponent vision{};
-        vision.sightRange = kTibbersSightRange;
+        vision.sightRange = tuning.sightRange;
         world.AddComponent<VisionSourceComponent>(tibbers, vision);
         world.AddComponent<VisibilityComponent>(tibbers, BuildVisibleToAll());
         world.AddComponent<TargetableTag>(tibbers, TargetableTag{});
@@ -431,7 +572,7 @@ namespace
         AnnieTibbersComponent tibbersState{};
         tibbersState.owner = owner;
         tibbersState.ownerTeam = ownerTeam;
-        tibbersState.fRemainingSec = kTibbersDurationSec;
+        tibbersState.fRemainingSec = tuning.durationSec;
         world.AddComponent<AnnieTibbersComponent>(tibbers, tibbersState);
 
         annie.tibbersEntity = tibbers;
@@ -456,6 +597,21 @@ namespace
         AnnieSimComponent& state = EnsureAnnieState(world, ctx.casterEntity);
         const bool_t bShouldStun = ConsumeStunReady(state);
         const EntityID target = ctx.pCommand->targetEntity;
+        const f32_t baseDamage = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::BaseDamage,
+            kQBaseDamage);
+        const f32_t damagePerRank = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::DamagePerRank,
+            kQDamagePerRank);
+        const f32_t stunDurationSec = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::StunDurationSec,
+            kStunDurationSec);
 
         ApplyMagicDamage(
             world,
@@ -465,9 +621,9 @@ namespace
             ctx.casterTeam,
             static_cast<u8_t>(eSkillSlot::Q),
             ctx.skillRank,
-            RankedDamage(kQBaseDamage, kQDamagePerRank, ctx.skillRank));
+            RankedDamage(baseDamage, damagePerRank, ctx.skillRank));
         if (bShouldStun)
-            ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::Q);
+            ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::Q, stunDurationSec);
 
         AddStunStack(state);
     }
@@ -485,10 +641,43 @@ namespace
         const bool_t bShouldStun = ConsumeStunReady(state);
         const Vec3 origin = world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 forward = ResolveForward(world, ctx.casterEntity, ctx.pCommand);
+        const f32_t baseDamage = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::BaseDamage,
+            kWBaseDamage);
+        const f32_t damagePerRank = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::DamagePerRank,
+            kWDamagePerRank);
+        const f32_t range = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Range,
+            kWRange);
+        const f32_t halfAngleCos = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::HalfAngleCos,
+            kWHalfAngleCos);
+        const f32_t stunDurationSec = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::StunDurationSec,
+            kStunDurationSec);
 
         std::vector<EntityID> targets;
         targets.reserve(8);
-        CollectConeTargets(world, origin, forward, kWRange, ctx.casterEntity, ctx.casterTeam, targets);
+        CollectConeTargets(
+            world,
+            origin,
+            forward,
+            range,
+            halfAngleCos,
+            ctx.casterEntity,
+            ctx.casterTeam,
+            targets);
 
         for (EntityID target : targets)
         {
@@ -500,9 +689,9 @@ namespace
                 ctx.casterTeam,
                 static_cast<u8_t>(eSkillSlot::W),
                 ctx.skillRank,
-                RankedDamage(kWBaseDamage, kWDamagePerRank, ctx.skillRank));
+                RankedDamage(baseDamage, damagePerRank, ctx.skillRank));
             if (bShouldStun)
-                ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::W);
+                ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::W, stunDurationSec);
         }
 
         AddStunStack(state);
@@ -515,10 +704,35 @@ namespace
 
         CWorld& world = *ctx.pWorld;
         AnnieSimComponent& state = EnsureAnnieState(world, ctx.casterEntity);
+        const f32_t shieldDurationSec = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::ShieldDurationSec,
+            kEShieldDurationSec);
+        const f32_t shieldBaseAmount = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::ShieldBaseAmount,
+            kEShieldBaseAmount);
+        const f32_t shieldAmountPerRank = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::ShieldAmountPerRank,
+            kEShieldAmountPerRank);
+        const f32_t shieldArmorPerRank = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::ShieldArmorPerRank,
+            kEShieldArmorPerRank);
+        const f32_t moveSpeedMul = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::MoveSpeedMul,
+            kEShieldMoveMul);
         const f32_t shieldAmount =
-            kEShieldBaseAmount + kEShieldAmountPerRank * static_cast<f32_t>(ctx.skillRank);
+            shieldBaseAmount + shieldAmountPerRank * static_cast<f32_t>(ctx.skillRank);
 
-        state.fEShieldRemainingSec = kEShieldDurationSec;
+        state.fEShieldRemainingSec = shieldDurationSec;
         state.fEShieldAmount = shieldAmount;
         state.fEShieldMaxAmount = shieldAmount;
 
@@ -529,11 +743,11 @@ namespace
         BuffInstance buff{};
         buff.buffDefId = kEShieldBuffDefId;
         buff.source = ctx.casterEntity;
-        buff.fDurationRemaining = kEShieldDurationSec;
+        buff.fDurationRemaining = shieldDurationSec;
         buff.stackCount = 1;
-        buff.flatArmorPerStack = kEShieldArmorPerRank * static_cast<f32_t>(ctx.skillRank);
-        buff.flatMrPerStack = kEShieldArmorPerRank * static_cast<f32_t>(ctx.skillRank);
-        buff.moveSpeedMul = kEShieldMoveMul;
+        buff.flatArmorPerStack = shieldArmorPerRank * static_cast<f32_t>(ctx.skillRank);
+        buff.flatMrPerStack = shieldArmorPerRank * static_cast<f32_t>(ctx.skillRank);
+        buff.moveSpeedMul = moveSpeedMul;
         CBuffSystem::AddOrRefresh(buffs, buff);
 
         if (world.HasComponent<StatComponent>(ctx.casterEntity))
@@ -550,12 +764,39 @@ namespace
         CWorld& world = *ctx.pWorld;
         AnnieSimComponent& state = EnsureAnnieState(world, ctx.casterEntity);
         const bool_t bShouldStun = ConsumeStunReady(state);
+        const f32_t baseDamage = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::BaseDamage,
+            kRBaseDamage);
+        const f32_t damagePerRank = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::DamagePerRank,
+            kRDamagePerRank);
+        const f32_t range = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::Range,
+            kRRange);
+        const f32_t radius = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::Radius,
+            kRRadius);
+        const f32_t stunDurationSec = ResolveAnnieSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::StunDurationSec,
+            kStunDurationSec);
+        const TibbersSpawnTuning tibbersTuning =
+            ResolveTibbersSpawnTuning(world, *ctx.pTickCtx, ctx.casterEntity);
         const Vec3 center =
-            ResolveGroundCastPosition(world, *ctx.pTickCtx, ctx.casterEntity, ctx.pCommand);
+            ResolveGroundCastPosition(world, *ctx.pTickCtx, ctx.casterEntity, ctx.pCommand, range);
 
         std::vector<EntityID> targets;
         targets.reserve(8);
-        CollectCircleTargets(world, center, kRRadius, ctx.casterEntity, ctx.casterTeam, targets);
+        CollectCircleTargets(world, center, radius, ctx.casterEntity, ctx.casterTeam, targets);
 
         for (EntityID target : targets)
         {
@@ -567,12 +808,19 @@ namespace
                 ctx.casterTeam,
                 static_cast<u8_t>(eSkillSlot::R),
                 ctx.skillRank,
-                RankedDamage(kRBaseDamage, kRDamagePerRank, ctx.skillRank));
+                RankedDamage(baseDamage, damagePerRank, ctx.skillRank));
             if (bShouldStun)
-                ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::R);
+                ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::R, stunDurationSec);
         }
 
-        SpawnTibbersMinion(world, *ctx.pTickCtx, ctx.casterEntity, ctx.casterTeam, center, ctx.skillRank);
+        SpawnTibbersMinion(
+            world,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            ctx.casterTeam,
+            center,
+            ctx.skillRank,
+            tibbersTuning);
         AddStunStack(state);
     }
 }

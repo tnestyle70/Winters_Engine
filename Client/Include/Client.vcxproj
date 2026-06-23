@@ -114,6 +114,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Private\Data\Generated\LoLVisualDefinitions.generated.cpp" />
     <ClCompile Include="..\Private\ClientShell\ClientShellBackendService.cpp" />
     <ClCompile Include="..\Private\ClientShell\ClientShellDataStore.cpp" />
     <ClCompile Include="..\Private\ClientShell\ClientShellSession.cpp" />
@@ -215,6 +216,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\Private\main.cpp" />
+    <ClCompile Include="..\Private\Manager\AmbientProp_Manager.cpp" />
     <ClCompile Include="..\Private\Manager\Minion_Manager.cpp" />
     <ClCompile Include="..\Private\Manager\Structure_Manager.cpp" />
     <ClCompile Include="..\Private\Manager\Jungle_Manager.cpp" />
@@ -242,6 +244,14 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Scene\Scene_CustomMode.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_Editor.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_InGame.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_InGameImGui.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_InGameInternal.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_InGameNetwork.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_InGameRender.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_InGameMapNav.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_InGameLocalSkills.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_InGameInput.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_InGameLifecycle.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_Loading.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_Login.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_MainMenu.cpp" />
@@ -363,6 +373,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\GamePlay\Systems\Damage.h" />
     <ClInclude Include="..\Public\GamePlay\Systems\SkillDispatchSystem.h" />
     <ClInclude Include="..\Public\GamePlay\VisualHookRegistry.h" />
+    <ClInclude Include="..\Public\Manager\AmbientProp_Manager.h" />
     <ClInclude Include="..\Public\Manager\Minion_Manager.h" />
     <ClInclude Include="..\Public\Manager\Structure_Manager.h" />
     <ClInclude Include="..\Public\Manager\Jungle_Manager.h" />
@@ -392,6 +403,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Scene\Scene_CustomMode.h" />
     <ClInclude Include="..\Public\Scene\Scene_Editor.h" />
     <ClInclude Include="..\Public\Scene\Scene_InGame.h" />
+    <ClInclude Include="..\Public\Scene\Scene_InGameInternal.h" />
     <ClInclude Include="..\Public\Scene\Scene_Loading.h" />
     <ClInclude Include="..\Public\Scene\Scene_Login.h" />
     <ClInclude Include="..\Public\Scene\Scene_MainMenu.h" />

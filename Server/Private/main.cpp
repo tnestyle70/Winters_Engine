@@ -70,7 +70,7 @@ int main(int argc, char** argv)
         return 3;
     }
 
-    std::cout << "[Server] WintersServer v0.2 running on port 9000.\n";
+    std::cout << "[Server] WintersServer v0.2 running on 0.0.0.0:9000.\n";
     if (smokeSeconds > 0)
     {
         std::cout << "[Server] Smoke mode: running for " << smokeSeconds << " seconds.\n";

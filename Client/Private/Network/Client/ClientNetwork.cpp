@@ -43,6 +43,47 @@ namespace
             error);
         Winters::DevSmoke::Log("%s", msg);
     }
+
+    bool ResolveIPv4Endpoint(const char* pHost, u16_t port, sockaddr_in& outAddr)
+    {
+        outAddr = {};
+        outAddr.sin_family = AF_INET;
+        outAddr.sin_port = htons(port);
+
+        if (!pHost || pHost[0] == '\0')
+        {
+            OutputSocketError("resolve(empty host)", pHost, port, 0);
+            return false;
+        }
+
+        if (inet_pton(AF_INET, pHost, &outAddr.sin_addr) == 1)
+            return true;
+
+        addrinfo hints{};
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+        hints.ai_protocol = IPPROTO_TCP;
+
+        char service[16]{};
+        sprintf_s(service, "%u", static_cast<u32_t>(port));
+
+        addrinfo* pResult = nullptr;
+        const int gai = getaddrinfo(pHost, service, &hints, &pResult);
+        if (gai != 0 || !pResult)
+        {
+            Winters::DevSmoke::Log(
+                "[ClientNetwork] getaddrinfo failed host=%s port=%u gai=%d wsa=%d\n",
+                pHost,
+                static_cast<u32_t>(port),
+                gai,
+                WSAGetLastError());
+            return false;
+        }
+
+        std::memcpy(&outAddr, pResult->ai_addr, sizeof(sockaddr_in));
+        freeaddrinfo(pResult);
+        return true;
+    }
 }
 
 
@@ -70,15 +111,12 @@ bool CClientNetwork::Connect(const char* host, u16_t port)
     }
     
     sockaddr_in addr{};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
     const char* pConnectHost = host;
     if (host && std::strcmp(host, "localhost") == 0)
         pConnectHost = "127.0.0.1";
 
-    if (inet_pton(AF_INET, pConnectHost, &addr.sin_addr) != 1)
+    if (!ResolveIPv4Endpoint(pConnectHost, port, addr))
     {
-        OutputSocketError("inet_pton()", host, port, WSAGetLastError());
         closesocket(m_socket);
         m_socket = INVALID_SOCKET;
         return false;

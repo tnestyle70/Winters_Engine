@@ -64,7 +64,7 @@ bool CScene_CustomMode::OnEnter()
 		720);
 	m_vReplayItems = CReplayLibrary::ListLocalReplays();
 
-	m_bServerLobbyActive = CGameSessionClient::Instance().Connect("127.0.0.1", 9000);
+	m_bServerLobbyActive = CGameSessionClient::Instance().Connect();
 	if (!m_bServerLobbyActive)
 	{
 		GameContext& context = CGameInstance::Get()->Get_GameContext();

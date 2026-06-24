@@ -609,13 +609,25 @@ void CScene_InGame::InitializeNetworkSession()
             ? "[Scene_InGame] Reusing BanPick TCP session.\n"
             : "[Scene_InGame] Network roster active without shared session; local roster only.\n");
     }
-    else if (m_pNetworkView->Connect("127.0.0.1", 9000))
-    {
-        Winters::DevSmoke::Log("[Scene_InGame] Connected to local Winters server.\n");
-    }
     else
     {
-        Winters::DevSmoke::Log("[Scene_InGame] Server not reachable; running local-only mode.\n");
+        const CGameSessionClient::ServerEndpoint endpoint =
+            CGameSessionClient::ResolveServerEndpoint();
+        if (m_pNetworkView->Connect(endpoint.host.c_str(), endpoint.port))
+        {
+            Winters::DevSmoke::Log(
+                "[Scene_InGame] Connected to Winters server host=%s port=%u source=%s.\n",
+                endpoint.host.c_str(),
+                static_cast<u32_t>(endpoint.port),
+                endpoint.bFromCommandLine ? "command-line" : "default");
+        }
+        else
+        {
+            Winters::DevSmoke::Log(
+                "[Scene_InGame] Server not reachable host=%s port=%u; running local-only mode.\n",
+                endpoint.host.c_str(),
+                static_cast<u32_t>(endpoint.port));
+        }
     }
 }
 

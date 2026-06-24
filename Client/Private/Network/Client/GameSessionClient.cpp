@@ -16,6 +16,9 @@
 
 #include <Windows.h>
 #include <cstdio>
+#include <cstdlib>
+#include <cwchar>
+#include <cwctype>
 #include <cstring>
 #include <string>
 #include <utility>
@@ -23,6 +26,99 @@
 
 namespace
 {
+	constexpr const char* kDefaultServerHost = "127.0.0.1";
+	constexpr u16_t kDefaultServerPort = 9000;
+
+	const wchar_t* GetCommandLineText()
+	{
+		const wchar_t* pCommandLine = ::GetCommandLineW();
+		return pCommandLine ? pCommandLine : L"";
+	}
+
+	const wchar_t* FindCommandLineValue(const wchar_t* pPrefix)
+	{
+		if (!pPrefix)
+			return nullptr;
+
+		const wchar_t* pFound = std::wcsstr(GetCommandLineText(), pPrefix);
+		return pFound ? pFound + std::wcslen(pPrefix) : nullptr;
+	}
+
+	std::string ReadCommandLineTextValue(const wchar_t* pPrefix)
+	{
+		const wchar_t* pValue = FindCommandLineValue(pPrefix);
+		if (!pValue || *pValue == L'\0')
+			return {};
+
+		if (*pValue == L'"')
+			++pValue;
+
+		wchar_t wide[256]{};
+		size_t i = 0;
+		while (pValue[i] != L'\0' && i + 1 < (sizeof(wide) / sizeof(wide[0])))
+		{
+			const wchar_t ch = pValue[i];
+			if (ch == L'"' || std::iswspace(ch))
+				break;
+
+			wide[i] = ch;
+			++i;
+		}
+
+		if (i == 0)
+			return {};
+
+		char text[256]{};
+		const int converted = ::WideCharToMultiByte(
+			CP_UTF8,
+			0,
+			wide,
+			-1,
+			text,
+			static_cast<int>(sizeof(text)),
+			nullptr,
+			nullptr);
+		return converted > 0 ? std::string(text) : std::string{};
+	}
+
+	std::string FindServerHostOverride()
+	{
+		std::string host = ReadCommandLineTextValue(L"--server-host=");
+		if (!host.empty())
+			return host;
+
+		host = ReadCommandLineTextValue(L"/server-host:");
+		if (!host.empty())
+			return host;
+
+		host = ReadCommandLineTextValue(L"--server-ip=");
+		if (!host.empty())
+			return host;
+
+		host = ReadCommandLineTextValue(L"/server-ip:");
+		if (!host.empty())
+			return host;
+
+		return ReadCommandLineTextValue(L"/server:");
+	}
+
+	u16_t ParseServerPortOverride(bool_t& outOverridden)
+	{
+		const wchar_t* pValue = FindCommandLineValue(L"--server-port=");
+		if (!pValue)
+			pValue = FindCommandLineValue(L"/server-port:");
+		if (!pValue)
+			return kDefaultServerPort;
+
+		wchar_t* pEnd = nullptr;
+		const unsigned long parsed = std::wcstoul(pValue, &pEnd, 10);
+		if (pEnd == pValue || parsed == 0 || parsed > 65535)
+			return kDefaultServerPort;
+
+		outOverridden = true;
+		return static_cast<u16_t>(parsed);
+	}
+
 	const char* GetLobbyCommandKindName(Shared::Schema::LobbyCommandKind kind)
 	{
 		switch (kind)
@@ -73,7 +169,7 @@ namespace
 
 	bool IsLocalEndpoint(const char* pHost, u16_t port)
 	{
-		if (port != 9000 || !pHost)
+		if (port != kDefaultServerPort || !pHost)
 			return false;
 
 		return std::strcmp(pHost, "127.0.0.1") == 0 ||
@@ -87,10 +183,34 @@ CGameSessionClient& CGameSessionClient::Instance()
 	return s_instance;
 }
 
+CGameSessionClient::ServerEndpoint CGameSessionClient::ResolveServerEndpoint()
+{
+	ServerEndpoint endpoint{};
+	endpoint.host = kDefaultServerHost;
+	endpoint.port = kDefaultServerPort;
+
+	const std::string hostOverride = FindServerHostOverride();
+	if (!hostOverride.empty())
+	{
+		endpoint.host = hostOverride;
+		endpoint.bFromCommandLine = true;
+	}
+
+	bool_t bPortOverridden = false;
+	endpoint.port = ParseServerPortOverride(bPortOverridden);
+	endpoint.bFromCommandLine = endpoint.bFromCommandLine || bPortOverridden;
+
+	return endpoint;
+}
+
 bool CGameSessionClient::Connect(const char* host, u16_t port)
 {
 	if (IsConnected())
 		return true;
+
+	const ServerEndpoint endpoint = ResolveServerEndpoint();
+	const char* pConnectHost = (host && host[0] != '\0') ? host : endpoint.host.c_str();
+	const u16_t connectPort = port != 0 ? port : endpoint.port;
 
 	m_bServerLoading = false;
 	m_bHasLobbyState = false;
@@ -108,17 +228,18 @@ bool CGameSessionClient::Connect(const char* host, u16_t port)
 			OnFrame(type, sequence, payload, len);
 		});
 
-	const bool_t bLocalEndpoint = IsLocalEndpoint(host, port);
+	const bool_t bLocalEndpoint = IsLocalEndpoint(pConnectHost, connectPort);
 	const int attempts = bLocalEndpoint ? 20 : 1;
 	for (int attempt = 1; attempt <= attempts; ++attempt)
 	{
-		if (m_pNetwork->Connect(host, port))
+		if (m_pNetwork->Connect(pConnectHost, connectPort))
 		{
 			Winters::DevSmoke::Log(
-				"[GameSessionClient] connected to lobby server host=%s port=%u attempt=%d\n",
-				host ? host : "-",
-				static_cast<u32_t>(port),
-				attempt);
+				"[GameSessionClient] connected to lobby server host=%s port=%u attempt=%d source=%s\n",
+				pConnectHost ? pConnectHost : "-",
+				static_cast<u32_t>(connectPort),
+				attempt,
+				endpoint.bFromCommandLine ? "command-line" : "default");
 			return true;
 		}
 
@@ -129,10 +250,11 @@ bool CGameSessionClient::Connect(const char* host, u16_t port)
 	if (!m_pNetwork->IsConnected())
 	{
 		Winters::DevSmoke::Log(
-			"[GameSessionClient] connect failed host=%s port=%u attempts=%d\n",
-			host ? host : "-",
-			static_cast<u32_t>(port),
-			attempts);
+			"[GameSessionClient] connect failed host=%s port=%u attempts=%d source=%s\n",
+			pConnectHost ? pConnectHost : "-",
+			static_cast<u32_t>(connectPort),
+			attempts,
+			endpoint.bFromCommandLine ? "command-line" : "default");
 		m_pNetwork.reset();
 		return false;
 	}

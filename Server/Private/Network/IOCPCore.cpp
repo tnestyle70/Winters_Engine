@@ -128,7 +128,7 @@ bool CIOCPCore::Start()
             delete ctx;
     }
 
-    std::cout << "[IOCPCore] listening on port " << m_port
+    std::cout << "[IOCPCore] listening on 0.0.0.0:" << m_port
         << " (workers=" << m_workerCount << ")\n";
     return true;
 }

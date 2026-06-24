@@ -17,9 +17,17 @@ class CGameSessionClient final
 public:
 	using FrameCallback = std::function<void(ePacketType, u32_t, const u8_t*, u32_t)>;
 
-	static CGameSessionClient& Instance();
+	struct ServerEndpoint
+	{
+		std::string host = "127.0.0.1";
+		u16_t port = 9000;
+		bool_t bFromCommandLine = false;
+	};
 
-	bool Connect(const char* host = "127.0.0.1", u16_t port = 9000);
+	static CGameSessionClient& Instance();
+	static ServerEndpoint ResolveServerEndpoint();
+
+	bool Connect(const char* host = nullptr, u16_t port = 0);
 	void Disconnect();
 	void Pump();
 

@@ -305,7 +305,7 @@ bool CScene_BanPick::OnEnter()
 		Winters::DevSmoke::Log("%s", msg);
 	}
 
-	m_bServerLobbyActive = CGameSessionClient::Instance().Connect("127.0.0.1", 9000);
+	m_bServerLobbyActive = CGameSessionClient::Instance().Connect();
 	if (m_bServerLobbyActive)
 	{
 		if (!m_ServerSmoke.bEnabled)

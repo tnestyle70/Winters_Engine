@@ -6,6 +6,7 @@ namespace Sylas
 {
 	namespace Visual
 	{
+		void OnBACastFrame(VisualHookContext& ctx);
 		void OnQCastFrame(VisualHookContext& ctx);
 		void OnWCastFrame(VisualHookContext& ctx);
 		void OnECastFrame(VisualHookContext& ctx);

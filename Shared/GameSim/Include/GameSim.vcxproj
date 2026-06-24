@@ -114,6 +114,7 @@
     <ClCompile Include="..\Systems\ChampionAI\ChampionAIBrain.cpp" />
     <ClCompile Include="..\Systems\ChampionAI\ChampionAIPolicy.cpp" />
     <ClCompile Include="..\Systems\ChampionAI\ChampionAISystem.cpp" />
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAIValuation.cpp" />
     <ClCompile Include="..\Systems\Combat\CombatActionSystem.cpp" />
     <ClCompile Include="..\Systems\Combat\CombatFormula.cpp" />
     <ClCompile Include="..\Systems\CommandExecutor\CommandExecutor.cpp" />

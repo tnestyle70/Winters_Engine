@@ -1129,7 +1129,10 @@ void CEventApplier::PlayReplicatedActionVisual(
         animName = ResolveRecallAnimName(*cd, *render.pRenderer);
         break;
     case eReplicatedActionId::BasicAttack:
-        animName = PrefixAnim(*cd, cd->basicAttackKey);
+        animName = PrefixAnim(*cd,
+            animationChampion == eChampion::SYLAS && actionStage >= 2u
+                ? "skinned_mesh_sylas_attack_passive"
+                : cd->basicAttackKey);
         break;
     case eReplicatedActionId::DeathStart:
         animName = PrefixAnim(*cd, "death");

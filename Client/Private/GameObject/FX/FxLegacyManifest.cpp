@@ -222,6 +222,22 @@ namespace LegacyFx
                 "WfxPilot"
             },
             {
+                "Sylas.BA.Hit", "Sylas", "CFxCuePlayer::Play",
+                "Client/Private/GameObject/Champion/Sylas/SylasSkills.cpp",
+                "MeshParticle",
+                L"Data/LoL/FX/Champions/Sylas/ba_hit.wfx",
+                L"",
+                "WfxPilot"
+            },
+            {
+                "Sylas.PassiveBA.Hit", "Sylas", "CFxCuePlayer::Play",
+                "Client/Private/GameObject/Champion/Sylas/SylasSkills.cpp",
+                "MeshParticle,Billboard",
+                L"Data/LoL/FX/Champions/Sylas/passive_ba.wfx",
+                L"",
+                "WfxPilot"
+            },
+            {
                 "Sylas.Q.Cast", "Sylas", "CFxCuePlayer::Play",
                 "Client/Private/GameObject/Champion/Sylas/SylasSkills.cpp",
                 "Billboard,GroundDecal,MeshParticle",

@@ -24,6 +24,7 @@ enum class eCombatActionMovePolicy : u8_t
 namespace CombatActionFlags
 {
     constexpr u16_t JaxEmpower = 0x0001u;
+    constexpr u16_t SylasPassive = 0x0002u;
 }
 
 struct CombatActionComponent

@@ -359,6 +359,13 @@ namespace
 
         const u8_t stage = action.stage == 0u ? 1u : action.stage;
         const bool_t bStage2 = stage >= 2u;
+        if (champion == eChampion::SYLAS &&
+            static_cast<eActionStateId>(action.actionId) == eActionStateId::BasicAttack &&
+            bStage2)
+        {
+            return ResolveNetworkAnimName(*pChampionDef, "skinned_mesh_sylas_attack_passive");
+        }
+
         const char* pAnimKey = (bStage2 && pSkillDef->stage2AnimKey)
             ? pSkillDef->stage2AnimKey
             : pSkillDef->animKey;

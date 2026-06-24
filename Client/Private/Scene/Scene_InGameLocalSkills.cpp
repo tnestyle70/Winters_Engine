@@ -185,6 +185,39 @@ namespace
         }
     }
 
+    bool_t IsLeeSinSafeguardLocalTarget(
+        CWorld& world,
+        EntityID player,
+        EntityID target,
+        eTeam playerTeam)
+    {
+        if (target == NULL_ENTITY ||
+            target == player ||
+            !world.IsAlive(target) ||
+            !world.HasComponent<TransformComponent>(target) ||
+            !world.HasComponent<TargetableTag>(target))
+        {
+            return false;
+        }
+
+        if (world.HasComponent<WardComponent>(target))
+            return world.GetComponent<WardComponent>(target).ownerTeam == playerTeam;
+        if (world.HasComponent<SpatialAgentComponent>(target))
+        {
+            const auto& spatial = world.GetComponent<SpatialAgentComponent>(target);
+            if (spatial.kind == eSpatialKind::Ward)
+                return spatial.team == static_cast<u8_t>(playerTeam);
+        }
+        if (world.HasComponent<ChampionComponent>(target))
+            return world.GetComponent<ChampionComponent>(target).team == playerTeam;
+        if (world.HasComponent<MinionComponent>(target))
+            return world.GetComponent<MinionComponent>(target).team == playerTeam;
+        if (world.HasComponent<MinionStateComponent>(target))
+            return world.GetComponent<MinionStateComponent>(target).team == playerTeam;
+
+        return false;
+    }
+
     eRotateMode ToLegacyRotateMode(eSkillFacingMode mode)
     {
         switch (mode)
@@ -2108,6 +2141,22 @@ bool CScene_InGame::BuildCastCommand(
     }
     case eTargetMode::UnitTarget:
     {
+        if (GetPlayerChampionId() == eChampion::LEESIN &&
+            outCmd.slot == static_cast<u8_t>(eSkillSlot::W))
+        {
+            if (!IsLeeSinSafeguardLocalTarget(
+                m_World,
+                m_PlayerEntity,
+                m_HoveredEntity,
+                m_PlayerTeam))
+            {
+                return false;
+            }
+
+            outCmd.targetEntityId = m_HoveredEntity;
+            return true;
+        }
+
         if (!IsEnemyOfPlayer(m_HoveredEntity))
             return false;
         outCmd.targetEntityId = m_HoveredEntity;

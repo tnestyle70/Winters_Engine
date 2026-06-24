@@ -32,6 +32,8 @@ namespace
     constexpr f32_t kSylasE2AirborneDurationSec = 0.75f;
     constexpr f32_t kSylasE2BaseDamage = 65.f;
     constexpr f32_t kSylasE2DamagePerRank = 25.f;
+    constexpr u8_t kSylasPassiveMaxStacks = 3u;
+    constexpr f32_t kSylasPassiveWindowSec = 4.0f;
 
     f32_t ResolveSylasSkillEffectParam(
         CWorld& world,
@@ -466,6 +468,23 @@ namespace SylasGameSim
 
     void Tick(CWorld& world, const TickContext& tc)
     {
+        world.ForEach<SylasSimComponent>(
+            std::function<void(EntityID, SylasSimComponent&)>(
+                [&](EntityID, SylasSimComponent& sylas)
+                {
+                    if (sylas.passiveRemainingSec <= 0.f)
+                    {
+                        sylas.passiveStacks = 0u;
+                        sylas.passiveRemainingSec = 0.f;
+                        return;
+                    }
+
+                    sylas.passiveRemainingSec =
+                        std::max(0.f, sylas.passiveRemainingSec - tc.fDt);
+                    if (sylas.passiveRemainingSec <= 0.f)
+                        sylas.passiveStacks = 0u;
+                }));
+
         std::vector<EntityID> finishedDashes;
         world.ForEach<SylasDashComponent, TransformComponent>(
             std::function<void(EntityID, SylasDashComponent&, TransformComponent&)>(
@@ -521,6 +540,40 @@ namespace SylasGameSim
     bool_t CanHijackUltimate(CWorld& world, const TickContext& tc, EntityID caster, EntityID target)
     {
         return CanHijackUltimateInternal(world, tc, caster, target);
+    }
+
+    void ArmPassiveOnSkillCast(CWorld& world, EntityID caster)
+    {
+        if (caster == NULL_ENTITY || !world.IsAlive(caster))
+            return;
+
+        SylasSimComponent& sylas = world.HasComponent<SylasSimComponent>(caster)
+            ? world.GetComponent<SylasSimComponent>(caster)
+            : world.AddComponent<SylasSimComponent>(caster, SylasSimComponent{});
+        sylas.passiveStacks = static_cast<u8_t>(
+            std::min<u32_t>(kSylasPassiveMaxStacks, sylas.passiveStacks + 1u));
+        sylas.passiveRemainingSec = kSylasPassiveWindowSec;
+    }
+
+    bool_t TryConsumePassiveBasicAttack(CWorld& world, EntityID caster)
+    {
+        if (caster == NULL_ENTITY ||
+            !world.IsAlive(caster) ||
+            !world.HasComponent<SylasSimComponent>(caster))
+        {
+            return false;
+        }
+
+        auto& sylas = world.GetComponent<SylasSimComponent>(caster);
+        if (sylas.passiveStacks == 0u || sylas.passiveRemainingSec <= 0.f)
+            return false;
+
+        --sylas.passiveStacks;
+        if (sylas.passiveStacks == 0u)
+            sylas.passiveRemainingSec = 0.f;
+        else
+            sylas.passiveRemainingSec = kSylasPassiveWindowSec;
+        return true;
     }
 
     void ApplyChainHit(CWorld& world, const TickContext& tc, EntityID source, EntityID target)

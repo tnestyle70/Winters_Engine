@@ -6,7 +6,8 @@
 
 struct SylasSimComponent
 {
-
+	u8_t passiveStacks = 0;
+	f32_t passiveRemainingSec = 0.f;
 };
 
 struct SylasDashComponent

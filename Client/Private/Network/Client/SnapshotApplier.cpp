@@ -348,6 +348,56 @@ namespace
             world.AddComponent<VisibilityComponent>(entity);
     }
 
+    void EnsureSnapshotWardRuntimeTags(
+        CWorld& world,
+        EntityID entity,
+        u8_t team,
+        u16_t subtype)
+    {
+        if (entity == NULL_ENTITY)
+            return;
+
+        WardComponent& ward = world.HasComponent<WardComponent>(entity)
+            ? world.GetComponent<WardComponent>(entity)
+            : world.AddComponent<WardComponent>(entity, WardComponent{});
+        ward.ownerTeam = static_cast<eTeam>(team);
+        ward.bControlWard = subtype != 0u;
+
+        SpatialAgentComponent& spatial = world.HasComponent<SpatialAgentComponent>(entity)
+            ? world.GetComponent<SpatialAgentComponent>(entity)
+            : world.AddComponent<SpatialAgentComponent>(entity, SpatialAgentComponent{});
+        spatial.kind = eSpatialKind::Ward;
+        spatial.team = team;
+        spatial.radius = 0.35f;
+
+        VisionSourceComponent& vision = world.HasComponent<VisionSourceComponent>(entity)
+            ? world.GetComponent<VisionSourceComponent>(entity)
+            : world.AddComponent<VisionSourceComponent>(entity, VisionSourceComponent{});
+        vision.sightRange = 10.f;
+
+        if (!world.HasComponent<VisibilityComponent>(entity))
+            world.AddComponent<VisibilityComponent>(entity);
+        if (!world.HasComponent<TargetableTag>(entity))
+            world.AddComponent<TargetableTag>(entity);
+        if (!world.HasComponent<FxBillboardComponent>(entity))
+        {
+            FxBillboardComponent fx{};
+            fx.attachTo = entity;
+            fx.vAttachOffset = { 0.f, 0.45f, 0.f };
+            fx.fLifetime = 3600.f;
+            fx.fFadeOut = 0.f;
+            fx.bBillboard = true;
+            fx.blendMode = eBlendPreset::AlphaBlend;
+            fx.texturePath = kStructureMarkerTexture;
+            fx.fWidth = 0.45f;
+            fx.fHeight = 0.45f;
+            fx.vColor = (team == static_cast<u8_t>(eTeam::Red))
+                ? Vec4{ 1.f, 0.20f, 0.16f, 0.95f }
+                : Vec4{ 0.20f, 0.55f, 1.f, 0.95f };
+            world.AddComponent<FxBillboardComponent>(entity, fx);
+        }
+    }
+
     EntityID TryBindStageJungleVisual(
         CWorld& world,
         EntityIdMap& entityMap,
@@ -1393,7 +1443,9 @@ void CSnapshotApplier::OnSnapshot(
             world.HasComponent<ViegoSoulComponent>(entity);
         const bool_t bKalistaSentinel =
             world.HasComponent<KalistaSentinelComponent>(entity);
-        if (!bServerMinion && !bViegoSoul && !bKalistaSentinel)
+        const bool_t bWard =
+            world.HasComponent<WardComponent>(entity);
+        if (!bServerMinion && !bViegoSoul && !bKalistaSentinel && !bWard)
             continue;
 
         if (bServerMinion)
@@ -1488,6 +1540,12 @@ EntityID CSnapshotApplier::EnsureEntity(
             EnsureSnapshotJungleRuntimeTags(world, e, subtype);
         }
 
+        if (kind == Shared::Schema::EntityKind::Ward)
+        {
+            MarkServerId(world, e, netId);
+            EnsureSnapshotWardRuntimeTags(world, e, team, subtype);
+        }
+
         return e;
     }
 
@@ -1507,6 +1565,7 @@ EntityID CSnapshotApplier::EnsureEntity(
         world.AddComponent<TransformComponent>(e, TransformComponent{});
 
     if (kind != Shared::Schema::EntityKind::Projectile &&
+        kind != Shared::Schema::EntityKind::Ward &&
         !world.HasComponent<HealthComponent>(e))
     {
         HealthComponent hp{};
@@ -1564,6 +1623,11 @@ EntityID CSnapshotApplier::EnsureEntity(
     if (kind == Shared::Schema::EntityKind::JungleMonster)
     {
         EnsureSnapshotJungleRuntimeTags(world, e, subtype);
+    }
+
+    if (kind == Shared::Schema::EntityKind::Ward)
+    {
+        EnsureSnapshotWardRuntimeTags(world, e, team, subtype);
     }
 
     if (kind == Shared::Schema::EntityKind::Champion &&

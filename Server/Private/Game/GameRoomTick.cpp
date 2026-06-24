@@ -18,6 +18,7 @@
 #include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
 #include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
 #include "Shared/GameSim/Champions/Zed/ZedGameSim.h"
+#include "Shared/GameSim/Components/NetEntityIdComponent.h"
 
 #include "Shared/GameSim/Systems/AreaAura/AreaAuraSystem.h"
 #include "Shared/GameSim/Systems/AttackChase/AttackChaseSystem.h"
@@ -35,9 +36,34 @@
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 #include "Shared/GameSim/Systems/WaypointPatrol/WaypointPatrolSystem.h"
 
+#include "ECS/Components/VisionComponents.h"
+
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <vector>
+
+namespace
+{
+	void TickServerWards(CWorld& world, EntityIdMap& entityMap, const TickContext& tc)
+	{
+		std::vector<EntityID> expired;
+		world.ForEach<WardComponent>(
+			[&](EntityID entity, WardComponent& ward)
+			{
+				ward.remainingDuration -= tc.fDt;
+				if (ward.remainingDuration <= 0.f)
+					expired.push_back(entity);
+			});
+
+		for (EntityID entity : expired)
+		{
+			if (world.HasComponent<NetEntityIdComponent>(entity))
+				entityMap.Unbind(world.GetComponent<NetEntityIdComponent>(entity).netId);
+			world.DestroyEntity(entity);
+		}
+	}
+}
 
 void CGameRoom::TickThread()
 {
@@ -116,6 +142,7 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	JaxGameSim::Tick(m_world, tc);
 	KalistaGameSim::Tick(m_world, tc);
 	LeeSinGameSim::Tick(m_world, tc);
+	TickServerWards(m_world, m_entityMap, tc);
 	KindredGameSim::Tick(m_world, tc);
 	MasterYiGameSim::Tick(m_world, tc);
 	RivenGameSim::Tick(m_world, tc);

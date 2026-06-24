@@ -270,7 +270,10 @@ namespace
         effectEvent.targetEntity = target;
         effectEvent.effectId = BuildBasicAttackEffectId(world, source);
         effectEvent.slot = static_cast<u8_t>(eSkillSlot::BasicAttack);
-        effectEvent.flags = static_cast<u16_t>(eSkillSlot::BasicAttack);
+        const u8_t stage = action.uStage == 0u ? 1u : action.uStage;
+        effectEvent.flags = static_cast<u16_t>(
+            (static_cast<u16_t>(stage & 0x0fu) << 12) |
+            static_cast<u16_t>(eSkillSlot::BasicAttack));
         effectEvent.position = ResolveEventPosition(world, source, target);
         effectEvent.direction = ResolveDirection(world, source, target);
         effectEvent.durationMs = 500;

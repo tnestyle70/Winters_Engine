@@ -123,6 +123,14 @@ namespace Sylas
 {
 	namespace Visual
 	{
+		void OnBACastFrame(VisualHookContext& ctx)
+		{
+			PlaySylasCue(
+				ctx,
+				ctx.skillStage >= 2u ? "Sylas.PassiveBA.Hit" : "Sylas.BA.Hit",
+				true);
+		}
+
 		void OnQCastFrame(VisualHookContext& ctx)
 		{
 			PlaySylasCue(ctx, "Sylas.Q.Cast", true);

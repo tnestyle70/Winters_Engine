@@ -2,6 +2,7 @@
 
 #include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
+#include "ECS/Components/VisionComponents.h"
 #include "ECS/World.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
@@ -373,6 +374,16 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         if (world.HasComponent<NexusTag>(entity))
         {
             entityKind = Shared::Schema::EntityKind::Nexus;
+        }
+
+        if (world.HasComponent<WardComponent>(entity))
+        {
+            const auto& ward = world.GetComponent<WardComponent>(entity);
+            team = static_cast<u8_t>(ward.ownerTeam);
+            subtype = ward.bControlWard ? 1u : 0u;
+            entityKind = Shared::Schema::EntityKind::Ward;
+            if (maxHp <= 0.f)
+                maxHp = 1.f;
         }
 
         if (world.HasComponent<JungleComponent>(entity))

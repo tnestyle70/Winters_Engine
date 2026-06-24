@@ -6,12 +6,15 @@
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
+#include "Shared/GameSim/Definitions/WardDefinitions.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/GameplayComponents.h"
+#include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
 #include "Shared/GameSim/Core/World/World.h"
@@ -28,6 +31,9 @@ namespace
     constexpr f32_t kLeeSinQ2Damage = 95.f;
     constexpr f32_t kLeeSinQDashGap = 1.0f;
     constexpr f32_t kLeeSinQDashDurationSec = 0.18f;
+    constexpr f32_t kLeeSinWRange = 7.0f;
+    constexpr f32_t kLeeSinWDashGap = 0.25f;
+    constexpr f32_t kLeeSinWDashDurationSec = 0.18f;
     constexpr f32_t kLeeSinERadius = 3.5f;
     constexpr f32_t kLeeSinESlowDurationSec = 1.5f;
     constexpr f32_t kLeeSinESlowMoveSpeedMul = 0.60f;
@@ -163,6 +169,47 @@ namespace
         ClearMove(world, caster);
     }
 
+    bool_t IsAlliedWardTarget(CWorld& world, EntityID target, eTeam casterTeam)
+    {
+        if (world.HasComponent<WardComponent>(target) &&
+            world.GetComponent<WardComponent>(target).ownerTeam == casterTeam)
+        {
+            return true;
+        }
+
+        if (world.HasComponent<SpatialAgentComponent>(target))
+        {
+            const auto& spatial = world.GetComponent<SpatialAgentComponent>(target);
+            return spatial.kind == eSpatialKind::Ward &&
+                spatial.team == static_cast<u8_t>(casterTeam);
+        }
+
+        return false;
+    }
+
+    bool_t IsSafeguardTarget(CWorld& world, EntityID caster, EntityID target, eTeam casterTeam)
+    {
+        if (target == NULL_ENTITY ||
+            target == caster ||
+            !world.IsAlive(target) ||
+            !world.HasComponent<TransformComponent>(target))
+        {
+            return false;
+        }
+
+        if (IsAlliedWardTarget(world, target, casterTeam))
+            return true;
+
+        if (world.HasComponent<ChampionComponent>(target))
+            return world.GetComponent<ChampionComponent>(target).team == casterTeam;
+        if (world.HasComponent<MinionComponent>(target))
+            return world.GetComponent<MinionComponent>(target).team == casterTeam;
+        if (world.HasComponent<MinionStateComponent>(target))
+            return world.GetComponent<MinionStateComponent>(target).team == casterTeam;
+
+        return false;
+    }
+
     void OnQ(GameplayHookContext& ctx)
     {
         if (!ctx.pWorld || !ctx.pCommand || ctx.pCommand->itemId != 2u)
@@ -214,6 +261,58 @@ namespace
         ctx.pWorld->RemoveComponent<LeeSinQMarkComponent>(target);
 
         std::cout << "[LeeSinSim] Q2 resonating strike caster="
+            << ctx.casterEntity << " target=" << target << "\n";
+    }
+
+    void OnW(GameplayHookContext& ctx)
+    {
+        if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx)
+            return;
+        if (ctx.pCommand->itemId == 2u)
+            return;
+
+        const EntityID target = ctx.pCommand->targetEntity;
+        if (!IsSafeguardTarget(*ctx.pWorld, ctx.casterEntity, target, ctx.casterTeam))
+        {
+            std::cout << "[LeeSinSim] W rejected invalid safeguard target caster="
+                << ctx.casterEntity << " target=" << target << "\n";
+            return;
+        }
+
+        const f32_t wRange = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Range,
+            kLeeSinWRange);
+        const f32_t effectiveRange =
+            wRange +
+            GameplayStateQuery::ResolveGameplayRadius(*ctx.pWorld, ctx.casterEntity) +
+            GameplayStateQuery::ResolveGameplayRadius(*ctx.pWorld, target);
+        if (ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity) &&
+            ctx.pWorld->HasComponent<TransformComponent>(target) &&
+            WintersMath::DistanceSqXZ(
+                ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition(),
+                ctx.pWorld->GetComponent<TransformComponent>(target).GetPosition()) >
+                effectiveRange * effectiveRange)
+        {
+            std::cout << "[LeeSinSim] W rejected range caster="
+                << ctx.casterEntity << " target=" << target << "\n";
+            return;
+        }
+
+        const f32_t dashGap = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::Gap,
+            kLeeSinWDashGap);
+        const f32_t dashDuration = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::DashDurationSec,
+            kLeeSinWDashDurationSec);
+        StartTargetDash(*ctx.pWorld, ctx.casterEntity, target, dashGap, dashDuration);
+
+        std::cout << "[LeeSinSim] W safeguard caster="
             << ctx.casterEntity << " target=" << target << "\n";
     }
 
@@ -334,6 +433,8 @@ namespace LeeSinGameSim
 
         CGameplayHookRegistry::Instance().Register(
             MakeGameplayHookId(eChampion::LEESIN, GameplayHookVariant::Q_CastFrame), &OnQ);
+        CGameplayHookRegistry::Instance().Register(
+            MakeGameplayHookId(eChampion::LEESIN, GameplayHookVariant::W_CastFrame), &OnW);
         CGameplayHookRegistry::Instance().Register(
             MakeGameplayHookId(eChampion::LEESIN, GameplayHookVariant::E_CastFrame), &OnE);
         CGameplayHookRegistry::Instance().Register(

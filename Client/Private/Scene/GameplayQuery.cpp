@@ -3,6 +3,7 @@
 #include "ECS/World.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
+#include "ECS/Components/VisionComponents.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
@@ -87,7 +88,7 @@ bool_t GameplayQuery::TryFindHoverTarget(CWorld& world, EntityID player,
     const auto TestCylinder = [&](EntityID entity, const Vec3& vPos, f32_t fRadius,
         f32_t fHeight, eTeam team)
         {
-            if (entity == player || team == playerTeam)
+            if (entity == player)
                 return;
             if (!IsAttackTargetLocallySelectable(world, player, entity))
                 return;
@@ -127,6 +128,13 @@ bool_t GameplayQuery::TryFindHoverTarget(CWorld& world, EntityID player,
         [&](EntityID entity, JungleComponent&, TransformComponent& tf)
         {
             TestCylinder(entity, tf.GetPosition(), GameplayStateQuery::ResolveGameplayRadius(world, entity), 3.f, eTeam::Neutral);
+        }
+    );
+
+    world.ForEach<WardComponent, TransformComponent>(
+        [&](EntityID entity, WardComponent& ward, TransformComponent& tf)
+        {
+            TestCylinder(entity, tf.GetPosition(), 0.45f, 1.8f, ward.ownerTeam);
         }
     );
 

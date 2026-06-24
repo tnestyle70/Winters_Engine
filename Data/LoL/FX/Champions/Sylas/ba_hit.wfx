@@ -1,0 +1,25 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Sylas.BA.Hit",
+  "emitters": [
+    {
+      "name": "ba_gold_swipe",
+      "render_type": "MeshParticle",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Sylas/particles/fbx/sylas_base_ba_swipe1.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/render/sylas_base_ba_swipe1.png",
+      "max_particles": 1,
+      "spawn_rate": 0.0,
+      "lifetime": 0.28,
+      "fade_in": 0.01,
+      "fade_out": 0.18,
+      "scale": [0.018, 0.018, 0.018],
+      "color": [1.55, 1.20, 0.62, 0.72],
+      "attach_offset": [0.0, 1.05, 0.55],
+      "blockable_by_wind_wall": false
+    }
+  ]
+}
+

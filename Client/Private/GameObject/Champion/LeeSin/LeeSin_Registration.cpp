@@ -108,7 +108,7 @@ namespace
 
             RegisterSkill(0, eTargetMode::UnitTarget, "skinned_mesh_attack1", kLeeSin_BA_Cast);
             RegisterSkill(1, eTargetMode::Direction, "skinned_mesh_spell1_cast", kLeeSin_Q_Cast);
-            RegisterSkill(2, eTargetMode::Self, "skinned_mesh_spell2_fly", kLeeSin_W_Cast);
+            RegisterSkill(2, eTargetMode::UnitTarget, "skinned_mesh_spell2_fly", kLeeSin_W_Cast);
             RegisterSkill(3, eTargetMode::Self, "skinned_mesh_spell3_cast", kLeeSin_E_Cast);
             RegisterSkill(4, eTargetMode::UnitTarget, "skinned_mesh_spell4a", kLeeSin_R_Cast);
 

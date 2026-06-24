@@ -26,6 +26,8 @@ public:
 	u32_t SendBasicAttack(CClientNetwork& net, NetEntityId targetNet,
 		const Vec3& groundPos = {}, const Vec3& direction = {});
 	void SendBuyItem(CClientNetwork& net, u16_t itemId);
+	void SendUseItem(CClientNetwork& net, u16_t itemId,
+		const Vec3& groundPos, const Vec3& direction = {});
 	void SendRecall(CClientNetwork& net);
 	void SendFlash(CClientNetwork& net, const Vec3& groundPos,
 		const Vec3& direction);

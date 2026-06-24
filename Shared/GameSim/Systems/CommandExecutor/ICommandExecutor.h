@@ -126,6 +126,7 @@ private:
     void HandleBasicAttack(CWorld&, const TickContext&, const GameCommand&);
     void HandleLevelSkill(CWorld&, const TickContext&, const GameCommand&);
     void HandleBuyItem(CWorld&, const TickContext&, const GameCommand&);
+    void HandleUseItem(CWorld&, const TickContext&, const GameCommand&);
     void HandleRecall(CWorld&, const TickContext&, const GameCommand&);
     void HandleRecallCancel(CWorld&, const TickContext&, const GameCommand&);
     void HandleAIDebugControl(CWorld&, const TickContext&, const GameCommand&);

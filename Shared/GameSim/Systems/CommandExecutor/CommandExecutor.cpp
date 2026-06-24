@@ -3,7 +3,9 @@
 #include "Shared/GameSim/Components/AttackChaseComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/KalistaPassiveDashComponent.h"
+#include "Shared/GameSim/Components/LeeSinSimComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
+#include "Shared/GameSim/Components/NetEntityIdComponent.h"
 
 #include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
@@ -31,6 +33,7 @@
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
+#include "Shared/GameSim/Definitions/WardDefinitions.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
@@ -44,7 +47,9 @@
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 
 #include "ECS/Components/GameplayComponents.h"
+#include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
+#include "ECS/Components/VisionComponents.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
@@ -392,6 +397,97 @@ namespace
             std::fabs(v.z) <= kMaxMoveCommandAbs;
     }
 
+    bool_t TryResolveWardPlacement(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        const Vec3& rawPos,
+        Vec3& outPos)
+    {
+        if (!IsFiniteMoveTarget(rawPos) ||
+            caster == NULL_ENTITY ||
+            !world.HasComponent<TransformComponent>(caster))
+        {
+            return false;
+        }
+
+        const Vec3 casterPos = world.GetComponent<TransformComponent>(caster).GetLocalPosition();
+        Vec3 target{ rawPos.x, casterPos.y, rawPos.z };
+        Vec3 direction = WintersMath::DirectionXZ(casterPos, target, Vec3{});
+        const f32_t distSq = WintersMath::DistanceSqXZ(casterPos, target);
+        if (direction.x == 0.f && direction.z == 0.f)
+        {
+            direction = Vec3{ 0.f, 0.f, 1.f };
+            target = Vec3{ casterPos.x, casterPos.y, casterPos.z + kWardSpatialRadius };
+        }
+        else if (distSq > kWardPlacementRange * kWardPlacementRange)
+        {
+            target = Vec3{
+                casterPos.x + direction.x * kWardPlacementRange,
+                casterPos.y,
+                casterPos.z + direction.z * kWardPlacementRange
+            };
+        }
+
+        if (tc.pWalkable)
+        {
+            Vec3 clamped = target;
+            if (!tc.pWalkable->TryClampMoveSegmentXZ(casterPos, target, kWardSpatialRadius, clamped))
+                return false;
+
+            target = clamped;
+            f32_t sampledY = target.y;
+            if (tc.pWalkable->TrySampleHeight(target.x, target.z, sampledY))
+                target.y = sampledY;
+        }
+
+        outPos = target;
+        return true;
+    }
+
+    void SpawnWardEntity(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eTeam ownerTeam,
+        const Vec3& position)
+    {
+        const EntityID ward = world.CreateEntity();
+
+        TransformComponent transform{};
+        transform.SetPosition(position);
+        world.AddComponent<TransformComponent>(ward, transform);
+
+        WardComponent wardState{};
+        wardState.remainingDuration = kWardDurationSec;
+        wardState.ownerTeam = ownerTeam;
+        world.AddComponent<WardComponent>(ward, wardState);
+
+        LeeSinWardOwnerComponent owner{};
+        owner.owner = caster;
+        world.AddComponent<LeeSinWardOwnerComponent>(ward, owner);
+
+        SpatialAgentComponent spatial{};
+        spatial.kind = eSpatialKind::Ward;
+        spatial.team = static_cast<u8_t>(ownerTeam);
+        spatial.radius = kWardSpatialRadius;
+        world.AddComponent<SpatialAgentComponent>(ward, spatial);
+
+        VisionSourceComponent vision{};
+        vision.sightRange = kWardSightRange;
+        world.AddComponent<VisionSourceComponent>(ward, vision);
+
+        VisibilityComponent visibility{};
+        world.AddComponent<VisibilityComponent>(ward, visibility);
+        world.AddComponent<TargetableTag>(ward);
+
+        if (tc.pEntityMap)
+        {
+            NetEntityIdComponent net{};
+            net.netId = tc.pEntityMap->IssueNew(ward);
+            world.AddComponent<NetEntityIdComponent>(ward, net);
+        }
+    }
     void StartCommandActionState(
         CWorld& world,
         EntityID entity,
@@ -1587,6 +1683,9 @@ void CDefaultCommandExecutor::ExecuteCommand(CWorld& world, const TickContext& t
     case eCommandKind::BuyItem:
         HandleBuyItem(world, tc, cmd);
         break;
+    case eCommandKind::UseItem:
+        HandleUseItem(world, tc, cmd);
+        break;
     case eCommandKind::Recall:
         HandleRecall(world, tc, cmd);
         break;
@@ -2033,6 +2132,8 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
 
     LogCastSkill("accept", bStage2 ? "stage2" : "ok", effectiveCmd, hookChampion, cooldown);
     ClearMoveTarget(world, effectiveCmd.issuerEntity);
+    if (champion == eChampion::SYLAS)
+        SylasGameSim::ArmPassiveOnSkillCast(world, effectiveCmd.issuerEntity);
 
     if (!ShouldSuppressCastActionState(hookChampion, hookSlot, skillStage))
     {
@@ -2280,6 +2381,9 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     const bool_t bJaxEmpowerAttack =
         champion == eChampion::JAX &&
         JaxGameSim::TryConsumeEmpowerForBasicAttack(world, cmd.issuerEntity);
+    const bool_t bSylasPassiveAttack =
+        champion == eChampion::SYLAS &&
+        SylasGameSim::TryConsumePassiveBasicAttack(world, cmd.issuerEntity);
     const f32_t attackSpeedScale =
         ResolveBasicAttackAnimSpeedScale(world, cmd.issuerEntity);
     const ChampionBasicAttackTimingDefaults attackTiming =
@@ -2301,8 +2405,11 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     action.eKind = eCombatActionKind::BasicAttack;
     action.eMovePolicy = ResolveBasicAttackMovePolicy(champion);
     action.uSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
-    action.uStage = 1;
+    const u8_t attackActionStage = bSylasPassiveAttack ? 2u : 1u;
+    action.uStage = attackActionStage;
     action.uFlags = bJaxEmpowerAttack ? CombatActionFlags::JaxEmpower : 0u;
+    if (bSylasPassiveAttack)
+        action.uFlags |= CombatActionFlags::SylasPassive;
     action.entityTarget = cmd.targetEntity;
     action.uSequenceNum = cmd.sequenceNum;
     action.uStartTick = tc.tickIndex;
@@ -2340,7 +2447,8 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
         world,
         cmd.issuerEntity,
         attackActionId,
-        tc);
+        tc,
+        attackActionStage);
 
     ArmKalistaPassiveDashWindow(
         world,
@@ -2415,6 +2523,34 @@ void CDefaultCommandExecutor::HandleBuyItem(CWorld& world, const TickContext& tc
     stat.bDirty = true;
 }
 
+void CDefaultCommandExecutor::HandleUseItem(CWorld& world, const TickContext& tc,
+    const GameCommand& cmd)
+{
+    if (cmd.itemId != kTrinketWardItemId)
+        return;
+    if (!GameplayStateQuery::CanCast(world, cmd.issuerEntity))
+        return;
+
+    Vec3 placement{};
+    if (!TryResolveWardPlacement(world, tc, cmd.issuerEntity, cmd.groundPos, placement))
+        return;
+
+    ClearMoveTarget(world, cmd.issuerEntity);
+    ClearAttackChase(world, cmd.issuerEntity);
+    SpawnWardEntity(world, tc, cmd.issuerEntity, ResolveTeam(world, cmd.issuerEntity), placement);
+
+#if defined(_DEBUG)
+    char msg[240]{};
+    sprintf_s(msg,
+        "[Command] use-item ward accept issuer=%u seq=%u pos=(%.2f,%.2f,%.2f)\n",
+        static_cast<u32_t>(cmd.issuerEntity),
+        cmd.sequenceNum,
+        placement.x,
+        placement.y,
+        placement.z);
+    OutputCommandDebug(msg);
+#endif
+}
 void CDefaultCommandExecutor::HandleRecall(CWorld& world, const TickContext& tc,
     const GameCommand& cmd)
 {

@@ -42,6 +42,8 @@ namespace
             return "RecallCancel";
         case eCommandKind::BuyItem:
             return "BuyItem";
+        case eCommandKind::UseItem:
+            return "UseItem";
         case eCommandKind::LevelSkill:
             return "LevelSkill";
         case eCommandKind::AIDebugControl:
@@ -228,6 +230,23 @@ void CCommandSerializer::SendBuyItem(CClientNetwork& net, u16_t itemId)
     wire.itemId = itemId;
 
     //Smoke 안 넣을게
+    SendSingle(net, wire);
+}
+
+void CCommandSerializer::SendUseItem(CClientNetwork& net, u16_t itemId,
+    const Vec3& groundPos, const Vec3& direction)
+{
+    if (itemId == 0 || !IsValidMoveGroundPos(groundPos))
+        return;
+
+    GameCommandWire wire{};
+    wire.kind = eCommandKind::UseItem;
+    wire.clientTick = m_clientTick++;
+    wire.sequenceNum = m_nextSequenceNum++;
+    wire.itemId = itemId;
+    wire.groundPos = groundPos;
+    wire.direction = WintersMath::NormalizeXZ(direction, Vec3{}, 0.0001f);
+
     SendSingle(net, wire);
 }
 

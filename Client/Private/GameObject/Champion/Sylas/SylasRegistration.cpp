@@ -93,6 +93,7 @@ namespace
 			RegisterSkill(3, eTargetMode::Direction, "skinned_mesh_sylas_spell3_dash", kSylasECast);
 			RegisterSkill(4, eTargetMode::UnitTarget, "skinned_mesh_sylas_spell4_cast", kSylasRCast);
 
+			CVisualHookRegistry::Instance().Register(kSylasBACast, &Sylas::Visual::OnBACastFrame);
 			CVisualHookRegistry::Instance().Register(kSylasQCast, &Sylas::Visual::OnQCastFrame);
 			CVisualHookRegistry::Instance().Register(kSylasWCast, &Sylas::Visual::OnWCastFrame);
 			CVisualHookRegistry::Instance().Register(kSylasECast, &Sylas::Visual::OnECastFrame);

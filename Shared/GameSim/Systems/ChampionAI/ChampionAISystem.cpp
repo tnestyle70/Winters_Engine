@@ -5,27 +5,35 @@
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Components/CombatActionComponent.h"
+#include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/LeeSinSimComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
+#include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Components/YoneSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
+#include "Shared/GameSim/Definitions/WardDefinitions.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIBrain.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
+#include "Shared/GameSim/Systems/ChampionAI/ChampionAIValuation.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
 #include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
 #include "Shared/GameSim/Core/World/World.h"
+#include "ECS/Components/VisionComponents.h"
 #include "WintersMath.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 
 namespace
 {
@@ -42,6 +50,10 @@ namespace
 
         f32_t selfHpRatio = 1.f;
         f32_t enemyHpRatio = 1.f;
+        f32_t selfGold = 0.f;
+        f32_t enemyGold = 0.f;
+        u8_t  selfLevel = 1;
+        u8_t  enemyLevel = 1;
         f32_t enemyDistance = 999.f;
         f32_t lowHpEnemyRatio = 1.f;
         f32_t lowHpEnemyDistance = 999.f;
@@ -202,9 +214,157 @@ namespace
             .cooldownRemaining[slot] <= 0.f;
     }
 
-    bool_t CanUseComboStep(
+    bool_t IsWardBehindTargetComboStep(const ChampionAIComboStep& step)
+    {
+        return step.itemId == kTrinketWardItemId &&
+            step.targetMode == static_cast<u8_t>(eChampionAIComboTargetMode::WardBehindTarget);
+    }
+
+    bool_t IsLastOwnWardComboStep(const ChampionAIComboStep& step)
+    {
+        return step.targetMode == static_cast<u8_t>(eChampionAIComboTargetMode::LastOwnWard);
+    }
+
+    bool_t IsSylasHijackComboStep(const ChampionAIComboStep& step)
+    {
+        return step.targetMode == static_cast<u8_t>(eChampionAIComboTargetMode::SylasHijackTarget);
+    }
+
+    bool_t IsSylasStolenUltimateComboStep(const ChampionAIComboStep& step)
+    {
+        return step.targetMode ==
+            static_cast<u8_t>(eChampionAIComboTargetMode::SylasStolenUltimateTarget);
+    }
+
+    bool_t HasActiveSylasStolenUltimate(CWorld& world, EntityID self)
+    {
+        if (!world.HasComponent<SpellbookOverrideComponent>(self))
+            return false;
+
+        const auto& spellbook = world.GetComponent<SpellbookOverrideComponent>(self);
+        return spellbook.bActive &&
+            spellbook.localSlot == static_cast<u8_t>(eSkillSlot::R) &&
+            spellbook.fRemainingSec > 0.f;
+    }
+
+    Vec3 ResolveWardBehindTargetPosition(const Vec3& selfPos, const Vec3& targetPos)
+    {
+        Vec3 direction = WintersMath::DirectionXZ(selfPos, targetPos, Vec3{});
+        if (direction.x == 0.f && direction.z == 0.f)
+            direction = Vec3{ 0.f, 0.f, 1.f };
+
+        Vec3 desired{
+            targetPos.x + direction.x * 1.25f,
+            selfPos.y,
+            targetPos.z + direction.z * 1.25f
+        };
+        if (WintersMath::DistanceSqXZ(selfPos, desired) > kWardPlacementRange * kWardPlacementRange)
+        {
+            desired = Vec3{
+                selfPos.x + direction.x * kWardPlacementRange,
+                selfPos.y,
+                selfPos.z + direction.z * kWardPlacementRange
+            };
+        }
+
+        return desired;
+    }
+
+    bool_t TryFindOwnedWardNear(
+        CWorld& world,
+        EntityID owner,
+        const Vec3& selfPos,
+        const Vec3& desiredPos,
+        f32_t maxRange,
+        EntityID& outWard)
+    {
+        outWard = NULL_ENTITY;
+        f32_t bestScore = (std::numeric_limits<f32_t>::max)();
+        const f32_t maxRangeSq = maxRange > 0.f ? maxRange * maxRange : 49.f;
+
+        world.ForEach<LeeSinWardOwnerComponent, WardComponent, TransformComponent>(
+            [&](EntityID entity, LeeSinWardOwnerComponent& wardOwner, WardComponent&, TransformComponent& transform)
+            {
+                if (wardOwner.owner != owner)
+                    return;
+
+                const Vec3 wardPos = transform.GetPosition();
+                if (WintersMath::DistanceSqXZ(selfPos, wardPos) > maxRangeSq)
+                    return;
+
+                const f32_t score = WintersMath::DistanceSqXZ(desiredPos, wardPos);
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    outWard = entity;
+                }
+            });
+
+        return outWard != NULL_ENTITY;
+    }
+
+    bool_t IsComboStepUnlearned(
         CWorld& world,
         EntityID self,
+        const ChampionAIComboStep& step)
+    {
+        if (step.slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+            return false;
+        if (step.slot >= static_cast<u8_t>(eSkillSlot::SLOT_END))
+            return true;
+        if (!world.HasComponent<SkillRankComponent>(self))
+            return true;
+
+        return world.GetComponent<SkillRankComponent>(self).ranks[step.slot] == 0u;
+    }
+
+    bool_t IsStage2ComboStepReady(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID self,
+        eChampion champion,
+        const ChampionAIComboStep& step,
+        const ChampionAIContext& ctx)
+    {
+        if (step.itemId != 2u ||
+            step.slot == static_cast<u8_t>(eSkillSlot::BasicAttack) ||
+            step.slot >= static_cast<u8_t>(eSkillSlot::SLOT_END))
+        {
+            return false;
+        }
+        if (IsComboStepUnlearned(world, self, step))
+            return false;
+        if (!world.HasComponent<SkillStateComponent>(self))
+            return false;
+
+        const auto& skillSlot = world.GetComponent<SkillStateComponent>(self).slots[step.slot];
+        if (skillSlot.currentStage != 1u || skillSlot.stageWindow <= 0.f)
+            return false;
+        if (!GameplayDefinitionQuery::IsSkillTwoStage(world, self, tc, champion, step.slot))
+            return false;
+
+        if (champion == eChampion::LEESIN &&
+            step.slot == static_cast<u8_t>(eSkillSlot::Q))
+        {
+            if (ctx.enemyChampion == NULL_ENTITY ||
+                !world.HasComponent<LeeSinQMarkComponent>(ctx.enemyChampion))
+            {
+                return false;
+            }
+
+            const auto& mark = world.GetComponent<LeeSinQMarkComponent>(ctx.enemyChampion);
+            if (mark.sourceEntity != self || mark.fRemainingSec <= 0.f)
+                return false;
+        }
+
+        return true;
+    }
+
+    bool_t CanUseComboStep(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID self,
+        eChampion champion,
         const ChampionAIComboStep& step,
         const ChampionAIContext& ctx)
     {
@@ -216,8 +376,73 @@ namespace
             return false;
         if (ctx.enemyDistance + 0.001f < step.minRange)
             return false;
-        if (step.maxRange > 0.f && ctx.enemyDistance > step.maxRange)
+
+        f32_t maxRange = step.maxRange;
+        if (maxRange <= 0.f)
+        {
+            maxRange = step.slot == static_cast<u8_t>(eSkillSlot::BasicAttack)
+                ? ctx.attackRange
+                : GameplayDefinitionQuery::ResolveSkillRange(
+                    world,
+                    self,
+                    tc,
+                    champion,
+                    step.slot);
+        }
+        if (maxRange > 0.f && ctx.enemyDistance > maxRange)
             return false;
+
+        if (step.itemId == 2u)
+            return IsStage2ComboStepReady(world, tc, self, champion, step, ctx);
+
+        if (IsSylasHijackComboStep(step))
+        {
+            return champion == eChampion::SYLAS &&
+                step.slot == static_cast<u8_t>(eSkillSlot::R) &&
+                !HasActiveSylasStolenUltimate(world, self) &&
+                IsSkillReady(world, self, step.slot) &&
+                SylasGameSim::CanHijackUltimate(
+                    world,
+                    tc,
+                    self,
+                    ctx.enemyChampion);
+        }
+
+        if (IsSylasStolenUltimateComboStep(step))
+        {
+            return champion == eChampion::SYLAS &&
+                step.slot == static_cast<u8_t>(eSkillSlot::R) &&
+                HasActiveSylasStolenUltimate(world, self) &&
+                IsSkillReady(world, self, step.slot);
+        }
+
+        if (IsLastOwnWardComboStep(step))
+        {
+            Vec3 selfPos{};
+            Vec3 enemyPos{};
+            EntityID ward = NULL_ENTITY;
+            if (!TryGetPosition(world, self, selfPos) ||
+                !TryGetPosition(world, ctx.enemyChampion, enemyPos))
+            {
+                return false;
+            }
+
+            const f32_t wardRange = GameplayDefinitionQuery::ResolveSkillRange(
+                world,
+                self,
+                tc,
+                champion,
+                step.slot);
+            return IsSkillReady(world, self, step.slot) &&
+                TryFindOwnedWardNear(
+                    world,
+                    self,
+                    selfPos,
+                    ResolveWardBehindTargetPosition(selfPos, enemyPos),
+                    wardRange > 0.f ? wardRange : 7.f,
+                    ward);
+        }
+
         return IsSkillReady(world, self, step.slot);
     }
 
@@ -566,10 +791,28 @@ namespace
         u8_t targetMode = static_cast<u8_t>(eChampionAIComboTargetMode::TargetEntity),
         eChampionAIAction action = eChampionAIAction::AttackChampion)
     {
-        if (!IsSkillReady(world, self, slot))
+        const bool_t bStage2 = itemId == 2u;
+        if (!bStage2 && !IsSkillReady(world, self, slot))
         {
             SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::SkillCooldown);
             return false;
+        }
+        if (bStage2)
+        {
+            if (!world.HasComponent<SkillStateComponent>(self))
+            {
+                SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::SkillCooldown);
+                return false;
+            }
+
+            const auto& skillSlot = world.GetComponent<SkillStateComponent>(self).slots[slot];
+            if (skillSlot.currentStage != 1u ||
+                skillSlot.stageWindow <= 0.f ||
+                !GameplayDefinitionQuery::IsSkillTwoStage(world, self, tc, champion, slot))
+            {
+                SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::SkillCooldown);
+                return false;
+            }
         }
         if (target == NULL_ENTITY)
         {
@@ -1169,6 +1412,19 @@ namespace
             ctx.enemyHpRatio = HealthRatio(world, targetChampion);
         }
 
+        if (world.HasComponent<GoldComponent>(self))
+            ctx.selfGold = static_cast<f32_t>(world.GetComponent<GoldComponent>(self).amount);
+        if (world.HasComponent<StatComponent>(self))
+            ctx.selfLevel = world.GetComponent<StatComponent>(self).level;
+        if (targetChampion != NULL_ENTITY)
+        {
+            if (world.HasComponent<GoldComponent>(targetChampion))
+                ctx.enemyGold =
+                    static_cast<f32_t>(world.GetComponent<GoldComponent>(targetChampion).amount);
+            if (world.HasComponent<StatComponent>(targetChampion))
+                ctx.enemyLevel = world.GetComponent<StatComponent>(targetChampion).level;
+        }
+
         ctx.lowHpEnemyChampion = FindLowHpEnemyChampion(
             world,
             self,
@@ -1313,11 +1569,68 @@ namespace
         const ChampionAIComboStep& step,
         std::vector<GameCommand>& outCommands)
     {
+        if (IsWardBehindTargetComboStep(step))
+        {
+            Vec3 targetPos{};
+            if (!TryGetPosition(world, target, targetPos))
+            {
+                SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::NoTarget);
+                return false;
+            }
+
+            const Vec3 wardPos = ResolveWardBehindTargetPosition(selfPos, targetPos);
+            GameCommand cmd = MakeAICommand(ai, tc, self, eCommandKind::UseItem);
+            cmd.slot = step.slot;
+            cmd.itemId = step.itemId;
+            cmd.targetEntity = NULL_ENTITY;
+            cmd.groundPos = wardPos;
+            cmd.direction = WintersMath::DirectionXZ(selfPos, wardPos, Vec3{});
+            outCommands.push_back(cmd);
+            RecordChampionAICommandDebug(ai, target, cmd.kind, cmd.slot, wardPos);
+            PushChampionAIDecisionTrace(ai, tc, target);
+            LogChampionAICommand("combo-attack-champion-ward", tc, self, ai, champion.id, selfPos,
+                wardPos, target, cmd.kind, cmd.slot);
+            return true;
+        }
+
         if (step.slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
         {
             return EmitBasicAttackCommand(world, tc, self, ai, champion.id, selfPos,
                 target, eChampionAIAction::AttackChampion,
                 "combo-attack-champion-ba", outCommands);
+        }
+
+        if (IsLastOwnWardComboStep(step))
+        {
+            Vec3 targetPos{};
+            if (!TryGetPosition(world, target, targetPos))
+            {
+                SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::NoTarget);
+                return false;
+            }
+
+            EntityID ward = NULL_ENTITY;
+            const f32_t wardRange = GameplayDefinitionQuery::ResolveSkillRange(
+                world,
+                self,
+                tc,
+                champion.id,
+                step.slot);
+            if (!TryFindOwnedWardNear(
+                world,
+                self,
+                selfPos,
+                ResolveWardBehindTargetPosition(selfPos, targetPos),
+                wardRange > 0.f ? wardRange : 7.f,
+                ward))
+            {
+                SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::NoTarget);
+                return false;
+            }
+
+            return EmitSkillCommand(world, tc, self, ai, champion.id, selfPos, ward,
+                step.slot, "combo-attack-champion-ward-hop", outCommands,
+                step.itemId, static_cast<u8_t>(eChampionAIComboTargetMode::TargetEntity));
         }
 
         return EmitSkillCommand(world, tc, self, ai, champion.id, selfPos, target,
@@ -1347,15 +1660,47 @@ namespace
             ai.comboStep = 0u;
         }
 
-        const u8_t stepCount = std::min(combo.stepCount, static_cast<u8_t>(8u));
+        const u8_t stepCount = std::min(combo.stepCount, static_cast<u8_t>(10u));
         const u8_t index = static_cast<u8_t>(ai.comboStep % stepCount);
         const ChampionAIComboStep& step = combo.steps[index];
-        if (!CanUseComboStep(world, self, step, ctx))
+        if (IsComboStepUnlearned(world, self, step))
+        {
+            const u8_t nextStep = static_cast<u8_t>((index + 1u) % stepCount);
+            ai.comboStep = nextStep;
+            if (nextStep == 0u)
+                CompleteChampionAICombo(ai, ctx);
+            return true;
+        }
+
+        if (!CanUseComboStep(world, tc, self, champion.id, step, ctx))
         {
             if (bWasActive &&
-                step.maxRange > 0.f &&
-                ctx.enemyDistance > step.maxRange)
+                ctx.enemyDistance > 0.f)
             {
+                f32_t maxRange = step.maxRange;
+                if (maxRange <= 0.f)
+                {
+                    maxRange = step.slot == static_cast<u8_t>(eSkillSlot::BasicAttack)
+                        ? ctx.attackRange
+                        : GameplayDefinitionQuery::ResolveSkillRange(
+                            world,
+                            self,
+                            tc,
+                            champion.id,
+                            step.slot);
+                }
+                if (maxRange <= 0.f || ctx.enemyDistance <= maxRange)
+                {
+                    // 사거리 안인데 조건 불충족(쿨다운/스테이지/강탈/override 등):
+                    // 정지 대신 다음 step으로 진행해 콤보가 교착되지 않게 한다.
+                    const u8_t nextComboStep =
+                        static_cast<u8_t>((index + 1u) % stepCount);
+                    ai.comboStep = nextComboStep;
+                    if (nextComboStep == 0u)
+                        CompleteChampionAICombo(ai, ctx);
+                    return bWasActive;
+                }
+
                 Vec3 targetPos{};
                 if (TryGetPosition(world, target, targetPos))
                 {
@@ -1576,17 +1921,27 @@ namespace
             SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::NoTarget);
         ai.bCanAttackChampion = CanAttackChampion(ai, ctx);
 
-        ai.fFarmDecisionScore = ctx.enemyMinion != NULL_ENTITY ? 0.55f : 0.15f;
-        if (ctx.selfHpRatio <= ai.retreatHpRatio + 0.10f)
-            ai.fFarmDecisionScore += 0.15f;
-
-        ai.fStructureDecisionScore =
+        ChampionAIValuation::ValueInput vin{};
+        vin.selfHpRatio = ctx.selfHpRatio;
+        vin.enemyHpRatio = ctx.enemyHpRatio;
+        vin.selfGold = ctx.selfGold;
+        vin.enemyGold = ctx.enemyGold;
+        vin.selfLevel = ctx.selfLevel;
+        vin.enemyLevel = ctx.enemyLevel;
+        vin.enemyDistance = ctx.enemyDistance;
+        vin.attackRange = ctx.attackRange;
+        vin.turretDanger = ctx.turretDanger;
+        vin.retreatHpRatio = ai.retreatHpRatio;
+        vin.bAlliedWaveNearby = ctx.bAlliedWaveNearby;
+        vin.bEnemyMinionInRange = (ctx.enemyMinion != NULL_ENTITY);
+        vin.bStructureExposed =
             (ctx.enemyChampion == NULL_ENTITY &&
                 ctx.enemyStructure != NULL_ENTITY &&
                 ctx.alliedWave != NULL_ENTITY &&
-                ctx.bStructureWaveTanking)
-            ? 0.70f
-            : 0.f;
+                ctx.bStructureWaveTanking);
+
+        ai.fFarmDecisionScore = ChampionAIValuation::MinionFarmValue(vin);
+        ai.fStructureDecisionScore = ChampionAIValuation::StructureValue(vin);
 
         if (!ai.bCanAttackChampion)
         {
@@ -1594,12 +1949,7 @@ namespace
             return;
         }
 
-        f32_t championScore = 0.45f;
-        championScore += (ctx.selfHpRatio - ai.retreatHpRatio) * 0.30f;
-        championScore += (ctx.selfHpRatio - ctx.enemyHpRatio) * 0.35f;
-        championScore += (ctx.enemyDistance <= ctx.attackRange) ? 0.20f : -0.10f;
-        championScore += ctx.bAlliedWaveNearby ? 0.10f : 0.f;
-        championScore -= ctx.turretDanger * 0.50f;
+        f32_t championScore = ChampionAIValuation::ChampionFightValue(vin);
 
         if (ai.fPostComboBATimer > 0.f)
         {
@@ -1609,8 +1959,6 @@ namespace
         }
 
         ai.fChampionDecisionScore = WintersMath::Clamp01(championScore);
-        ai.fFarmDecisionScore = WintersMath::Clamp01(ai.fFarmDecisionScore);
-        ai.fStructureDecisionScore = WintersMath::Clamp01(ai.fStructureDecisionScore);
     }
 
     void SampleLaneCombatIntent(

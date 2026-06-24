@@ -15,6 +15,10 @@ enum class eChampionAIComboTargetMode : u8_t
 {
     TargetEntity,
     AwayFromTarget,
+    WardBehindTarget,
+    LastOwnWard,
+    SylasHijackTarget,
+    SylasStolenUltimateTarget,
 };
 
 struct ChampionAIComboStep
@@ -30,7 +34,7 @@ struct ChampionAIComboStep
 
 struct ChampionAIComboPlan
 {
-    ChampionAIComboStep steps[8]{};
+    ChampionAIComboStep steps[10]{};
     u8_t stepCount = 0;
 };
 

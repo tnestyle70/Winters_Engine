@@ -1,4 +1,5 @@
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
+#include "Shared/GameSim/Definitions/WardDefinitions.h"
 
 namespace
 {
@@ -498,7 +499,16 @@ const ChampionAIProfile& GetChampionAIProfile(eChampion champion)
 
 const ChampionAIComboPlan& GetChampionAIComboPlan(eChampion champion)
 {
-    static constexpr ChampionAIComboPlan s_Default{};
+    static constexpr ChampionAIComboPlan s_Default{
+        {
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::Q), 0, 0.f, 0.f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::BasicAttack), 0, 0.f, 0.f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::E), 0, 0.f, 0.f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::BasicAttack), 0, 0.f, 0.f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::R), 0, 0.f, 0.f, 0.35f, 0.60f },
+        },
+        5
+    };
 
     static constexpr ChampionAIComboPlan s_Jax{
         {
@@ -552,6 +562,67 @@ const ChampionAIComboPlan& GetChampionAIComboPlan(eChampion champion)
         7
     };
 
+    static constexpr ChampionAIComboPlan s_LeeSin{
+        {
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::Q), 0, 0.f, 11.0f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::Q), 2, 0.f, 11.0f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::BasicAttack), 0, 0.f, 1.75f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::E), 0, 0.f, 3.5f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::BasicAttack), 0, 0.f, 1.75f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::E), 2, 0.f, 3.5f, 0.35f, 1.00f },
+            ChampionAIComboStep{
+                static_cast<u8_t>(eSkillSlot::W),
+                kTrinketWardItemId,
+                0.f,
+                kWardPlacementRange,
+                0.35f,
+                1.00f,
+                static_cast<u8_t>(eChampionAIComboTargetMode::WardBehindTarget)
+            },
+            ChampionAIComboStep{
+                static_cast<u8_t>(eSkillSlot::W),
+                0,
+                0.f,
+                7.0f,
+                0.35f,
+                1.00f,
+                static_cast<u8_t>(eChampionAIComboTargetMode::LastOwnWard)
+            },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::R), 0, 0.f, 3.0f, 0.35f, 0.70f },
+        },
+        9
+    };
+
+    static constexpr ChampionAIComboPlan s_Sylas{
+        {
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::Q), 0, 0.f, 4.0f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::E), 0, 0.f, 6.0f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::E), 2, 0.f, 6.0f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::BasicAttack), 0, 0.f, 1.75f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::W), 0, 0.f, 5.0f, 0.35f, 1.00f },
+            ChampionAIComboStep{ static_cast<u8_t>(eSkillSlot::BasicAttack), 0, 0.f, 1.75f, 0.35f, 1.00f },
+            ChampionAIComboStep{
+                static_cast<u8_t>(eSkillSlot::R),
+                0,
+                0.f,
+                10.0f,
+                0.35f,
+                1.00f,
+                static_cast<u8_t>(eChampionAIComboTargetMode::SylasHijackTarget)
+            },
+            ChampionAIComboStep{
+                static_cast<u8_t>(eSkillSlot::R),
+                0,
+                0.f,
+                10.0f,
+                0.35f,
+                1.00f,
+                static_cast<u8_t>(eChampionAIComboTargetMode::SylasStolenUltimateTarget)
+            },
+        },
+        8
+    };
+
     switch (champion)
     {
     case eChampion::JAX:
@@ -562,6 +633,10 @@ const ChampionAIComboPlan& GetChampionAIComboPlan(eChampion champion)
         return s_Ashe;
     case eChampion::RIVEN:
         return s_Riven;
+    case eChampion::LEESIN:
+        return s_LeeSin;
+    case eChampion::SYLAS:
+        return s_Sylas;
     default:
         return s_Default;
     }

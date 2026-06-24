@@ -26,11 +26,15 @@
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
+#include "Shared/GameSim/Components/KalistaSentinelComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/EffectAnchorSubtype.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
 #include "Client/Private/Data/LoLVisualDefinitionPack.h"
 //Viego Soul
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
+#include "GameObject/Champion/Kalista/KalistaFxPresets.h"
+#include "GameObject/Champion/Kalista/KalistaSentinelVisualComponent.h"
 #include "GameObject/Champion/Viego/Viego_FxPresets.h"
 
 #include "GameObject/ChampionDef.h"
@@ -897,7 +901,6 @@ void CSnapshotApplier::OnSnapshot(
         }
 
         const bool_t bViegoSoul =
-            kind == Shared::Schema::EntityKind::Champion &&
             (es->stateFlags() & kSnapshotStateViegoSoulFlag) != 0u;
         if (bViegoSoul)
         {
@@ -914,11 +917,118 @@ void CSnapshotApplier::OnSnapshot(
                 : eTeam::Blue);
             soul.fRemainingSec = 5.f;
 
+            const bool_t bNeedsChampionVisual =
+                !world.HasComponent<ChampionComponent>(e) ||
+                world.GetComponent<ChampionComponent>(e).id != soul.champion ||
+                !world.HasComponent<RenderComponent>(e);
+
+            ChampionComponent& soulChampion = world.HasComponent<ChampionComponent>(e)
+                ? world.GetComponent<ChampionComponent>(e)
+                : world.AddComponent<ChampionComponent>(e, ChampionComponent{});
+            soulChampion.id = soul.champion;
+            soulChampion.team = static_cast<eTeam>(es->team());
+            soulChampion.hp = 1.f;
+            soulChampion.maxHp = 1.f;
+
+            SpatialAgentComponent& soulAgent = world.HasComponent<SpatialAgentComponent>(e)
+                ? world.GetComponent<SpatialAgentComponent>(e)
+                : world.AddComponent<SpatialAgentComponent>(e, SpatialAgentComponent{});
+            soulAgent.kind = eSpatialKind::Champion;
+            soulAgent.team = es->team();
+            soulAgent.radius = 0.85f;
+
             if (!world.HasComponent<TargetableTag>(e))
                 world.AddComponent<TargetableTag>(e);
 
+            if (bNeedsChampionVisual && m_onChampionVisualChanged)
+                m_onChampionVisualChanged(e, static_cast<u8_t>(soul.champion), es->team());
+
+            if (world.HasComponent<RenderComponent>(e))
+            {
+                auto& soulRender = world.GetComponent<RenderComponent>(e);
+                if (soulRender.pRenderer)
+                {
+                    soulRender.pRenderer->SetMaterialOverrideColor(
+                        Vec4{ 0.20f, 1.05f, 0.72f, 0.80f },
+                        true);
+                }
+            }
+
             if (bNewSoul)
                 Viego::Fx::SpawnSoulIdle(world, e, 5.f);
+        }
+
+        const bool_t bKalistaSentinel =
+            kind == Shared::Schema::EntityKind::EffectAnchor &&
+            snapshotChampionId == static_cast<u8_t>(eChampion::KALISTA) &&
+            es->subtype() == EffectAnchorSubtype::KalistaWSentinel;
+        if (bKalistaSentinel)
+        {
+            const bool_t bNewSentinel = !world.HasComponent<KalistaSentinelComponent>(e);
+            if (!world.HasComponent<KalistaSentinelComponent>(e))
+                world.AddComponent<KalistaSentinelComponent>(e, KalistaSentinelComponent{});
+
+            const f32_t yaw = es->yaw();
+            const Vec3 forward{ std::sinf(yaw), 0.f, std::cosf(yaw) };
+            auto& sentinel = world.GetComponent<KalistaSentinelComponent>(e);
+            sentinel.team = static_cast<eTeam>(es->team());
+            sentinel.forward = forward;
+            sentinel.lifetimeSec = 12.f;
+            sentinel.sightRange = 10.f;
+            sentinel.halfAngleCos = 0.8660254f;
+
+            SpatialAgentComponent& agent = world.HasComponent<SpatialAgentComponent>(e)
+                ? world.GetComponent<SpatialAgentComponent>(e)
+                : world.AddComponent<SpatialAgentComponent>(e, SpatialAgentComponent{});
+            agent.kind = eSpatialKind::Ward;
+            agent.team = es->team();
+            agent.radius = 0.45f;
+
+            VisionSourceComponent& vision = world.HasComponent<VisionSourceComponent>(e)
+                ? world.GetComponent<VisionSourceComponent>(e)
+                : world.AddComponent<VisionSourceComponent>(e, VisionSourceComponent{});
+            vision.sightRange = sentinel.sightRange;
+
+            VisionConeComponent& cone = world.HasComponent<VisionConeComponent>(e)
+                ? world.GetComponent<VisionConeComponent>(e)
+                : world.AddComponent<VisionConeComponent>(e, VisionConeComponent{});
+            cone.forward = forward;
+            cone.halfAngleCos = sentinel.halfAngleCos;
+
+            if (!world.HasComponent<VisibilityComponent>(e))
+                world.AddComponent<VisibilityComponent>(e, VisibilityComponent{});
+
+            if (bNewSentinel || !world.HasComponent<KalistaSentinelVisualComponent>(e))
+            {
+                EntityID avatarFx = NULL_ENTITY;
+                EntityID coneFx = NULL_ENTITY;
+                KalistaFx::SpawnWSentinelIdle(world, e, forward, 12.f, &avatarFx, &coneFx);
+
+                KalistaSentinelVisualComponent visual{};
+                visual.avatarFx = avatarFx;
+                visual.coneFx = coneFx;
+                if (world.HasComponent<KalistaSentinelVisualComponent>(e))
+                    world.GetComponent<KalistaSentinelVisualComponent>(e) = visual;
+                else
+                    world.AddComponent<KalistaSentinelVisualComponent>(e, visual);
+            }
+
+            if (world.HasComponent<KalistaSentinelVisualComponent>(e))
+            {
+                const auto& visual = world.GetComponent<KalistaSentinelVisualComponent>(e);
+                if (visual.coneFx != NULL_ENTITY &&
+                    world.IsAlive(visual.coneFx) &&
+                    world.HasComponent<FxBillboardComponent>(visual.coneFx))
+                {
+                    auto& coneFx = world.GetComponent<FxBillboardComponent>(visual.coneFx);
+                    coneFx.vAttachOffset = {
+                        forward.x * 4.2f,
+                        0.055f,
+                        forward.z * 4.2f
+                    };
+                    coneFx.fYaw = std::atan2f(forward.x, forward.z);
+                }
+            }
         }
 
         if (kind == Shared::Schema::EntityKind::Champion)
@@ -1270,14 +1380,24 @@ void CSnapshotApplier::OnSnapshot(
             staleNetIds.push_back(netId);
             continue;
         }
+        if (!world.IsAlive(entity))
+        {
+            staleNetIds.push_back(netId);
+            continue;
+        }
 
         const bool_t bServerMinion =
             world.HasComponent<MinionComponent>(entity) ||
             world.HasComponent<MinionStateComponent>(entity);
-        if (!bServerMinion)
+        const bool_t bViegoSoul =
+            world.HasComponent<ViegoSoulComponent>(entity);
+        const bool_t bKalistaSentinel =
+            world.HasComponent<KalistaSentinelComponent>(entity);
+        if (!bServerMinion && !bViegoSoul && !bKalistaSentinel)
             continue;
 
-        CMinion_Manager::Get()->Release_NetworkVisual(entity);
+        if (bServerMinion)
+            CMinion_Manager::Get()->Release_NetworkVisual(entity);
         if (m_onRemoveEntity)
             m_onRemoveEntity(entity);
         world.DestroyEntity(entity);
@@ -1312,6 +1432,13 @@ EntityID CSnapshotApplier::EnsureEntity(
 
     const auto kind = static_cast<Shared::Schema::EntityKind>(entityKind);
     EntityID e = entityMap.FromNet(netId);
+    if (e != NULL_ENTITY && !world.IsAlive(e))
+    {
+        entityMap.Unbind(netId);
+        m_seenNetIds.erase(netId);
+        e = NULL_ENTITY;
+    }
+
     if (e == NULL_ENTITY)
     {
         e = TryBindStageStructureVisual(world, entityMap, netId, kind, subtype, team, vPos);

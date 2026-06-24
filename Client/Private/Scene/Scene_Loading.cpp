@@ -26,6 +26,9 @@ void CScene_Loading::OnUpdate(f32_t /*dt*/)
 {
     if (!m_pLoader || m_bTransitioned) return;
 
+    if (!m_pLoader->IsFinished())
+        m_pLoader->TickMainThreadLoad();
+
     if (m_pLoader->IsFinished())
     {
         m_bTransitioned = true;

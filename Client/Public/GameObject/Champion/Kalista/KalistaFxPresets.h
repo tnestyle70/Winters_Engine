@@ -24,4 +24,9 @@ namespace KalistaFx
         EntityID target, f32_t fScale);
 
     void SpawnEExplode(CWorld& world, EntityID target, f32_t fLifetime);
+
+    void SpawnWSentinelIdle(CWorld& world, EntityID sentinel,
+        const Vec3& vForward, f32_t fLifetime,
+        EntityID* pOutAvatarFx = nullptr,
+        EntityID* pOutConeFx = nullptr);
 }

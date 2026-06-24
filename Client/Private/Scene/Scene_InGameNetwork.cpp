@@ -206,7 +206,30 @@ namespace
         return pDef;
     }
 
-    f32_t ResolveNetworkActionDurationSec(
+    f32_t ResolveNetworkActionPlaySpeed(
+        eChampion champion,
+        const SkillDef* pDef,
+        u16_t actionId,
+        u8_t stage)
+    {
+        const u8_t slot = NetworkActionToSkillSlot(actionId);
+        f32_t playSpeed = 1.f;
+        if (ChampionGameDataDB::FindSkill(champion, slot))
+        {
+            playSpeed =
+                ChampionGameDataDB::ResolveSkillTiming(champion, slot, stage).animPlaySpeed;
+        }
+        else if (pDef)
+        {
+            playSpeed = (stage >= 2u && pDef->stage2PlaySpeed > 0.01f)
+                ? pDef->stage2PlaySpeed
+                : pDef->animPlaySpeed;
+        }
+
+        return (std::isfinite(playSpeed) && playSpeed > 0.01f) ? playSpeed : 1.f;
+    }
+
+    f32_t ResolveNetworkActionLockDurationSec(
         eChampion champion,
         const SkillDef* pDef,
         u16_t actionId,
@@ -228,6 +251,41 @@ namespace
             durationSec = static_cast<eActionStateId>(actionId) == eActionStateId::BasicAttack ? 0.45f : 0.6f;
 
         return durationSec;
+    }
+
+    f32_t ResolveNetworkActionDurationSec(
+        eChampion champion,
+        const SkillDef* pDef,
+        u16_t actionId,
+        u8_t stage,
+        const RenderComponent& render,
+        const std::string& animName)
+    {
+        const f32_t lockDurationSec =
+            ResolveNetworkActionLockDurationSec(champion, pDef, actionId, stage);
+        const bool_t bLoopAction =
+            champion == eChampion::JAX &&
+            static_cast<eActionStateId>(actionId) == eActionStateId::SkillE &&
+            stage <= 1u;
+        if (bLoopAction ||
+            !render.pRenderer ||
+            animName.empty())
+        {
+            return lockDurationSec;
+        }
+
+        const f32_t animDurationSec =
+            render.pRenderer->GetAnimationDurationSecondsByName(animName);
+        if (!std::isfinite(animDurationSec) || animDurationSec <= 0.01f)
+            return lockDurationSec;
+
+        const f32_t playSpeed =
+            ResolveNetworkActionPlaySpeed(champion, pDef, actionId, stage);
+        const f32_t visualDurationSec = animDurationSec / playSpeed;
+        if (!std::isfinite(visualDurationSec) || visualDurationSec <= 0.01f)
+            return lockDurationSec;
+
+        return (std::min)(lockDurationSec, visualDurationSec);
     }
 
     std::string ResolveNetworkAnimName(const ChampionDef& championDef, const char* pAnimKey)
@@ -324,7 +382,11 @@ namespace
             animName,
             true,
             false,
-            1.f);
+            ResolveNetworkActionPlaySpeed(
+                champion,
+                pSkillDef,
+                action.actionId,
+                action.stage));
     }
 
     void LogNetworkEndTransition(
@@ -804,6 +866,8 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                     if (actionState.actionSeq != pAction->sequence)
                     {
                         const SkillDef* pSkillDef = FindNetworkSkillDef(champ.id, pAction->actionId);
+                        const std::string actionAnimName =
+                            ResolveNetworkActionAnimName(champ.id, pSkillDef, *pAction);
                         actionState = {};
                         actionState.actionSeq = pAction->sequence;
                         actionState.actionId = pAction->actionId;
@@ -812,7 +876,9 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                                 champ.id,
                                 pSkillDef,
                                 pAction->actionId,
-                                pAction->stage);
+                                pAction->stage,
+                                rc,
+                                actionAnimName);
                         actionState.transitionDurationSec =
                             pSkillDef ? pSkillDef->endTransitionDuration : 0.f;
                         if (pSkillDef)

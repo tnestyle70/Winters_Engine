@@ -189,6 +189,7 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
         const bool_t bDead = health.bIsDead || health.fCurrent <= 0.f;
         if (!bDead)
         {
+            respawn.bDeathCredited = false;
             if (respawn.bPending)
             {
                 respawn.bPending = false;
@@ -310,6 +311,7 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
 
         respawn.bPending = false;
         respawn.respawnTimer = 0.f;
+        respawn.bDeathCredited = false;
 
         if (champion.id == eChampion::SYLAS &&
             m_world.HasComponent<PracticeDummyTag>(entity) &&

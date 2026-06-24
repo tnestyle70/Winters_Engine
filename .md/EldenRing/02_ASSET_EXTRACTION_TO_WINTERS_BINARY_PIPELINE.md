@@ -1,5 +1,101 @@
 # EldenRing Asset Extraction To Winters Binary Pipeline
 
+## 2026-06-18 Vertical Slice Direction
+
+The desktop pipeline is no longer trying to unpack all Elden Ring content.
+The target is a complete Limgrave vertical slice:
+
+```text
+Limgrave selected tiles
++ player character
++ a small NPC set
++ Tree Sentinel / c3251
++ Margit / c2130
+```
+
+"Complete" means every visible slice asset has the full runtime contract:
+
+```text
+.wmesh
+.wmat with existing diffuse DDS path
+.dds texture payloads
+.wskel for skeletal meshes
+.wanim for animated characters
+map placement / editor seed / resource catalog entry
+```
+
+Extraction must use a staging flow:
+
+```text
+EldenRingExtract/VerticalSlice/SourceLoose
+-> EldenRingExtract/VerticalSlice/Work
+-> EldenRingExtract/VerticalSlice/Candidate/Resource/EldenRing
+-> audit
+-> promote verified files into Client/Bin/Resource/EldenRing
+```
+
+The runtime still resolves resources only from:
+
+```text
+Client/Bin/Resource/EldenRing
+```
+
+Do not copy unverified extracted output directly into the runtime resource
+folder. Promote only files covered by the slice manifest, queue status, and
+audit report.
+
+## 2026-06-18 Map Pipeline Decision
+
+The map bottleneck should not be handled like the old LoL map flow.
+The LoL flow could import one large GLB and then repair texture bindings by
+hand because the exported scene already carried a unified mesh scene.
+
+Elden Ring maps are different:
+
+```text
+MSB map placement
+-> mapbnd map pieces
+-> AEG asset geometry binders
+-> MATBIN material records
+-> TPF/AET/map texture binders
+```
+
+Therefore the stable strategy is dependency-driven assembly, not one-shot GLB
+import.
+
+Recommended Limgrave map flow:
+
+```text
+1. Pick a small set of Limgrave tiles.
+2. Parse/carry MSB Part placement into map_placement.json/txt.
+3. Build a dependency queue from placement:
+   - MapPiece model ids -> map/.../*.mapbnd.dcx
+   - Asset model ids -> asset/aeg/.../*.geombnd.dcx
+   - Material texture stems -> asset/aet or map texture TPFs
+4. Cook each dependency into Winters outputs.
+5. Verify every placement row points to an existing .wmesh.
+6. Verify every sibling .wmat points to an existing .dds.
+7. Rebuild the resource catalog.
+8. Run WintersElden limgrave smoke.
+```
+
+Do not merge all map pieces into one GLB as the primary pipeline. A temporary
+Blender/GLB preview is allowed only as an editor visualization tool, not as the
+source of truth for runtime assets. The source of truth is:
+
+```text
+MSB placement + cooked per-binder Winters assets + audit manifest
+```
+
+Current known map gate:
+
+```text
+models can render
+textures are now present for the AET static set
+remaining map failures are mostly missing FullGame map/asset geometry roots,
+not the texture payload itself
+```
+
 ## 목표
 
 먼저 에셋 파이프라인을 안정화한다.

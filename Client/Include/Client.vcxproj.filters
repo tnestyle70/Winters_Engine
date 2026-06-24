@@ -31,6 +31,9 @@
     <Filter Include="04. Manager\02. Minion">
       <UniqueIdentifier>{6c006f14-88a6-498d-af60-578f91b26185}</UniqueIdentifier>
     </Filter>
+    <Filter Include="04. Manager\03. Bush">
+      <UniqueIdentifier>{da6c5f13-7a59-49de-8d47-d122a7729277}</UniqueIdentifier>
+    </Filter>
     <Filter Include="05. UI">
       <UniqueIdentifier>{f08250ce-9341-4fc7-9667-c5db3a02d537}</UniqueIdentifier>
     </Filter>
@@ -452,6 +455,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\Manager\Jungle_Manager.h">
       <Filter>04. Manager\01. Jungle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\Bush_Manager.h">
+      <Filter>04. Manager\03. Bush</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Manager\AmbientProp_Manager.h">
       <Filter>04. Manager</Filter>
@@ -916,6 +922,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Manager\Jungle_Manager.cpp">
       <Filter>04. Manager\01. Jungle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Manager\Bush_Manager.cpp">
+      <Filter>04. Manager\03. Bush</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Manager\AmbientProp_Manager.cpp">
       <Filter>04. Manager</Filter>

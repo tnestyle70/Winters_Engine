@@ -11,6 +11,7 @@
 | LoL runtime bridge | Desktop | `Client/Private/Scene/Scene_InGameRender.cpp`, `Client/Private/Scene/Scene_InGameLifecycle.cpp`, `Client/Public/Scene/Scene_InGame.h` | `Scene_InGame.h`는 lock 파일처럼 취급한다. |
 | Resource/model bridge | Laptop-first, Desktop handoff | `Engine/Private/Resource/Model.cpp`, `Engine/Public/Resource/Model.h`, `Engine/Private/Resource/Mesh.cpp`, `Engine/Public/Resource/Mesh.h` | public header와 SDK sync가 같이 움직인다. |
 | Gameplay/GameSim | Laptop or explicit packet | `Shared/GameSim/**`, `Server/**` | 렌더/RHI 작업과 같은 packet에서 섞지 않는다. |
+| Bot AI / Champion tactics | Explicit packet | `Shared/GameSim/Systems/ChampionAI/**`, `Shared/GameSim/Components/ChampionAIComponent.h`, `Shared/GameSim/Systems/CommandExecutor/**`, `Data/LoL/ServerPrivate/Gameplay/**`, `Tools/SimLab/**` | AI는 command-only 원칙을 지키고, gameplay definition data와 scenario harness를 같은 packet에서 검증한다. |
 | Runtime resource packaging | Desktop | `Client/Bin/Resource/**`, `.md/build/*RESOURCE*` | 대용량 리소스는 git 대상인지 먼저 확인한다. |
 | Docs/reports | Current packet owner | `.md/build/YYYY-MM-DD_*.md`, `.md/collab/work-packets/*.md` | 날짜별 새 파일을 선호한다. |
 

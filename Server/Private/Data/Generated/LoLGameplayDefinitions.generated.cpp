@@ -2,7 +2,7 @@
 
 namespace
 {
-    inline constexpr u32_t kBuildHash = 0x465DF557u;
+    inline constexpr u32_t kBuildHash = 0x07D4F0AAu;
 
     ChampionGameplayDef MakeChampion_ANNIE()
     {
@@ -658,7 +658,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 12.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -696,7 +696,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 4.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.25f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -730,7 +730,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 100.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -788,7 +788,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 8.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -853,7 +853,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 25.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -880,7 +880,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -907,7 +907,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 200.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -943,7 +943,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 9.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1006,7 +1006,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.2f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.75f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1033,7 +1033,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.2f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 11.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1060,7 +1060,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.2f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 200.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1087,7 +1087,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.2f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 10.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1141,7 +1141,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1168,7 +1168,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1206,7 +1206,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 5.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1236,7 +1236,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1299,7 +1299,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 1.65f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1326,7 +1326,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1353,7 +1353,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1380,7 +1380,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1434,7 +1434,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 9.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.5f;
@@ -1470,7 +1470,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1504,7 +1504,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 12.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1550,7 +1550,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 4.f;
@@ -1613,7 +1613,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 2.f;
@@ -1643,7 +1643,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 7.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1677,7 +1677,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1704,7 +1704,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1758,7 +1758,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 3.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 12.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1790,7 +1790,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.2f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 11.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1817,7 +1817,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 120.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1842,21 +1842,34 @@ namespace
         def.slot = 2u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 18.f;
-        def.range.rangeMax = 0.f;
+        def.cooldown.cooldownSec = 1.f;
+        def.range.rangeMax = 12.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(6u);
+        def.effect.params[0].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[0].value = 12.f;
+        def.effect.params[1].id = eSkillEffectParamId::HalfAngleCos;
+        def.effect.params[1].value = 0.8660254f;
+        def.effect.params[2].id = eSkillEffectParamId::Range;
+        def.effect.params[2].value = 12.f;
+        def.effect.params[3].id = eSkillEffectParamId::Speed;
+        def.effect.params[3].value = 3.5f;
+        def.effect.params[4].id = eSkillEffectParamId::SummonRadius;
+        def.effect.params[4].value = 0.45f;
+        def.effect.params[5].id = eSkillEffectParamId::SummonSightRange;
+        def.effect.params[5].value = 10.f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.5f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -1898,7 +1911,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 5.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1934,7 +1947,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 5.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1961,7 +1974,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1999,7 +2012,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 8.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2062,7 +2075,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.f;
@@ -2096,7 +2109,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 11.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.f;
@@ -2132,7 +2145,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 3.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2164,7 +2177,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 7.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.f;
@@ -2218,7 +2231,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2245,7 +2258,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2272,7 +2285,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2299,7 +2312,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2353,7 +2366,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2380,7 +2393,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.5f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2414,7 +2427,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2441,7 +2454,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2500,7 +2513,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 6.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.f;
@@ -2546,7 +2559,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 4.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2573,7 +2586,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 10.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 10.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2600,7 +2613,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 5.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 5.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2654,7 +2667,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 14.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2690,7 +2703,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 4.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 5.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2722,7 +2735,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 100.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2760,8 +2773,8 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 8.f;
-        def.range.rangeMax = 8.f;
+        def.cooldown.cooldownSec = 1.f;
+        def.range.rangeMax = 4.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 4.f;
         def.effect.scalingTableId = 0u;
@@ -2823,7 +2836,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.75f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2850,7 +2863,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 5.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2877,7 +2890,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 14.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2904,7 +2917,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 0.6f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2958,10 +2971,10 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 22.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.f;
-        def.stage.stageCount = 1u;
-        def.stage.stageWindowSec = 0.f;
+        def.stage.stageCount = 2u;
+        def.stage.stageWindowSec = 5.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
@@ -2992,7 +3005,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 4.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 4.75f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3024,7 +3037,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 120.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 10.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3062,7 +3075,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 16.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3121,7 +3134,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 2.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3159,7 +3172,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 9.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3195,7 +3208,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.25f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3233,7 +3246,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 2.f;
+        def.cooldown.cooldownSec = 1.f;
         def.range.rangeMax = 6.5f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 5.f;

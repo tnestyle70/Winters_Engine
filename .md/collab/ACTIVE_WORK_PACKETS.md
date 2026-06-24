@@ -23,6 +23,8 @@
 | ID | 상태 | Owner | Branch | 범위 | Report |
 | --- | --- | --- | --- | --- | --- |
 | `2026-06-24_s17_collab_harness_bootstrap` | `Handoff` | Desktop | `main` | `.md/collab/**`, `Tools/Harness/Run-S17RhiValidation.ps1` | `.md/build/2026-06-24_COLLAB_HARNESS_BOOTSTRAP_REPORT.md` |
+| `2026-06-24_yone_bot_ai_collab_pipeline` | `Active` | Desktop | `main` | Bot AI 협업 규칙, Yone audit plan, Bot AI validation harness | `.md/build/2026-06-24_BOT_AI_COLLAB_PIPELINE_REPORT.md` |
+| `2026-06-24_iocp_rhi_thread_ownership_fix` | `Active` | Desktop | `main` | Server IOCP disconnect ownership, MatchLoading RHI thread ownership, validation handoff | `.md/plan/2026-06-24_IOCP_RHI_THREAD_OWNERSHIP_FIX_HANDOFF_PLAN.md` |
 
 ## Packet Template
 

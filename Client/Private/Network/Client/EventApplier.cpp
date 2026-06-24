@@ -34,6 +34,7 @@
 #include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Feedback/GameplayFeedback.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 
 #include <cmath>
 #include <cstring>
@@ -247,6 +248,28 @@ namespace
         }
     }
 
+    f32_t ResolveReplicatedActionPlaySpeed(
+        eChampion champion,
+        u8_t slot,
+        u8_t stage,
+        const SkillDef* pDef)
+    {
+        f32_t playSpeed = 1.f;
+        if (ChampionGameDataDB::FindSkill(champion, slot))
+        {
+            playSpeed =
+                ChampionGameDataDB::ResolveSkillTiming(champion, slot, stage).animPlaySpeed;
+        }
+        else if (pDef)
+        {
+            playSpeed = (stage >= 2u && pDef->stage2PlaySpeed > 0.01f)
+                ? pDef->stage2PlaySpeed
+                : pDef->animPlaySpeed;
+        }
+
+        return (std::isfinite(playSpeed) && playSpeed > 0.01f) ? playSpeed : 1.f;
+    }
+
     u8_t SlotFromHookId(u32_t hookId)
     {
         switch (hookId & 0x00ffu)
@@ -412,6 +435,24 @@ namespace
         return h;
     }
 
+    EntityID ResolveLiveEntity(CWorld& world, EntityIdMap& entityMap, NetEntityId netId)
+    {
+        if (netId == NULL_NET_ENTITY)
+            return NULL_ENTITY;
+
+        const EntityID entity = entityMap.FromNet(netId);
+        if (entity == NULL_ENTITY || !world.IsAlive(entity))
+            return NULL_ENTITY;
+
+        return entity;
+    }
+
+    void DestroyEntityIfAlive(CWorld& world, EntityID entity)
+    {
+        if (entity != NULL_ENTITY && world.IsAlive(entity))
+            world.DestroyEntity(entity);
+    }
+
     void SpawnTurretTopBeam(CWorld& world, EntityID ownerEntity, const Vec3& fallbackPos)
     {
         // No .wfx asset exists for this cue yet, so use the runtime billboard path.
@@ -504,7 +545,7 @@ void CEventApplier::ApplyActionStart(
 {
     if (!ev || ev->netId() == NULL_NET_ENTITY)
         return;
-    const EntityID entity = entityMap.FromNet(ev->netId());
+    const EntityID entity = ResolveLiveEntity(world, entityMap, ev->netId());
     if (entity == NULL_ENTITY)
         return;
     auto& action = world.HasComponent<ReplicatedActionComponent>(entity)
@@ -546,9 +587,7 @@ void CEventApplier::ApplyProjectileSpawn(
     if (!m_seenProjectileCueKeys.insert(cueKey).second)
         return;
 
-    const EntityID ownerEntity = ev->ownerNet() != NULL_NET_ENTITY
-        ? entityMap.FromNet(ev->ownerNet())
-        : NULL_ENTITY;
+    const EntityID ownerEntity = ResolveLiveEntity(world, entityMap, ev->ownerNet());
     const bool_t bTurretProjectile = ProjectileVisualCatalog::IsTurretProjectileKind(ev->kind());
 
     const Vec3 pos{ ev->startX(), ev->startY(), ev->startZ() };
@@ -602,8 +641,7 @@ void CEventApplier::ApplyProjectileSpawn(
             {
                 for (EntityID spawned : spawnedCueEntities)
                 {
-                    if (spawned != NULL_ENTITY)
-                        world.DestroyEntity(spawned);
+                    DestroyEntityIfAlive(world, spawned);
                 }
 
                 bPlayedProjectileWfxCue = false;
@@ -628,7 +666,7 @@ void CEventApplier::ApplyProjectileSpawn(
         return;
     }
 
-    EntityID entity = entityMap.FromNet(ev->netId());
+    EntityID entity = ResolveLiveEntity(world, entityMap, ev->netId());
     if (entity == NULL_ENTITY)
     {
         entity = world.CreateEntity();
@@ -681,7 +719,7 @@ void CEventApplier::ApplyProjectileHit(
     {
         EntityID attachTo = NULL_ENTITY;
         if (ev->targetNet() != NULL_NET_ENTITY)
-            attachTo = entityMap.FromNet(ev->targetNet());
+            attachTo = ResolveLiveEntity(world, entityMap, ev->targetNet());
 
         if (attachTo != NULL_ENTITY)
         {
@@ -707,9 +745,8 @@ void CEventApplier::ApplyProjectileHit(
     if (ev->bDestroyed() && ev->netId() != NULL_NET_ENTITY)
     {
         DestroyProjectileVisuals(world, ev->netId());
-        const EntityID entity = entityMap.FromNet(ev->netId());
-        if (entity != NULL_ENTITY)
-            world.DestroyEntity(entity);
+        const EntityID entity = ResolveLiveEntity(world, entityMap, ev->netId());
+        DestroyEntityIfAlive(world, entity);
         entityMap.Unbind(ev->netId());
     }
 }
@@ -722,8 +759,7 @@ void CEventApplier::DestroyProjectileVisuals(CWorld& world, NetEntityId projecti
 
     for (EntityID visualEntity : it->second)
     {
-        if (visualEntity != NULL_ENTITY && world.IsAlive(visualEntity))
-            world.DestroyEntity(visualEntity);
+        DestroyEntityIfAlive(world, visualEntity);
     }
     m_projectileVisualEntities.erase(it);
 }
@@ -799,9 +835,9 @@ void CEventApplier::ApplyEffectTrigger(
 
     EntityID attachTo = NULL_ENTITY;
     if (ev->targetNet() != NULL_NET_ENTITY)
-        attachTo = entityMap.FromNet(ev->targetNet());
+        attachTo = ResolveLiveEntity(world, entityMap, ev->targetNet());
     if (attachTo == NULL_ENTITY && ev->sourceNet() != NULL_NET_ENTITY)
-        attachTo = entityMap.FromNet(ev->sourceNet());
+        attachTo = ResolveLiveEntity(world, entityMap, ev->sourceNet());
 
     Vec3 pos{ ev->posX(), ev->posY(), ev->posZ() };
     if (!bKeepEventPosition &&
@@ -825,7 +861,7 @@ void CEventApplier::ApplyEffectTrigger(
         return;
 
     const EntityID source = ev->sourceNet() != NULL_NET_ENTITY
-        ? entityMap.FromNet(ev->sourceNet())
+        ? ResolveLiveEntity(world, entityMap, ev->sourceNet())
         : NULL_ENTITY;
 
     if (eventSlot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
@@ -848,7 +884,7 @@ void CEventApplier::ApplyEffectTrigger(
     if (effectId != 0)
     {
         const EntityID target = ev->targetNet() != NULL_NET_ENTITY
-            ? entityMap.FromNet(ev->targetNet())
+            ? ResolveLiveEntity(world, entityMap, ev->targetNet())
             : NULL_ENTITY;
 
         const u8_t slot = hookSlot;
@@ -946,12 +982,12 @@ void CEventApplier::ApplyDamage(
     if (!ev || ev->targetNet() == NULL_NET_ENTITY)
         return;
 
-    const EntityID target = entityMap.FromNet(ev->targetNet());
+    const EntityID target = ResolveLiveEntity(world, entityMap, ev->targetNet());
     if (target == NULL_ENTITY)
         return;
 
     const EntityID source = ev->sourceNet() != NULL_NET_ENTITY
-        ? entityMap.FromNet(ev->sourceNet())
+        ? ResolveLiveEntity(world, entityMap, ev->sourceNet())
         : NULL_ENTITY;
 
     Vec3 pos{};
@@ -1079,6 +1115,9 @@ void CEventApplier::PlayReplicatedActionVisual(
             animationChampion = form.visualChampion;
         }
     }
+    if (actionId == static_cast<u16_t>(eReplicatedActionId::ViegoConsumeSoul))
+        animationChampion = eChampion::VIEGO;
+
     const ChampionDef* cd = FindClientChampionDefForEvent(animationChampion);
     if (!cd)
         return;
@@ -1138,15 +1177,12 @@ void CEventApplier::PlayReplicatedActionVisual(
             const SkillDef* def = CSkillRegistry::Instance().Find(animationChampion, actionSlot);
             if (!def)
                 def = FindSkillDef(animationChampion, actionSlot);
-            if (def)
-            {
-                playSpeed = (actionStage >= 2u && def->stage2PlaySpeed > 0.01f)
-                    ? def->stage2PlaySpeed
-                    : def->animPlaySpeed;
-            }
+            playSpeed = ResolveReplicatedActionPlaySpeed(
+                animationChampion,
+                actionSlot,
+                actionStage,
+                def);
         }
-        if (!std::isfinite(playSpeed) || playSpeed <= 0.01f)
-            playSpeed = 1.f;
         const bool_t bPlayed = render.pRenderer->PlayAnimationByNameAdvanced(
             animName.c_str(),
             ShouldLoopReplicatedAction(animationChampion, actionId, actionStage),

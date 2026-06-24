@@ -3,6 +3,7 @@
 #include "Manager/Structure_Manager.h"
 #include "Manager/Jungle_Manager.h"
 #include "Manager/Minion_Manager.h"
+#include "Manager/Bush_Manager.h"
 #include <Windows.h>
 #include <cstdio>
 #include <string>
@@ -103,6 +104,7 @@ HRESULT CMapDataIO::Save_Stage(const wchar_t* pAbsPath)
     if (FAILED(CStructure_Manager::Get()->Save_ToFile(pFile)))       { fclose(pFile); return E_FAIL; }
     if (FAILED(CJungle_Manager::Get()->Save_ToFile(pFile)))          { fclose(pFile); return E_FAIL; }
     if (FAILED(CMinion_Manager::Get()->Save_ToFile(pFile)))          { fclose(pFile); return E_FAIL; }
+    if (FAILED(CBush_Manager::Get()->Save_ToFile(pFile)))            { fclose(pFile); return E_FAIL; }
 
     fclose(pFile);
 
@@ -112,10 +114,11 @@ HRESULT CMapDataIO::Save_Stage(const wchar_t* pAbsPath)
             static_cast<eMinionTeam>(t), static_cast<eMinionWay>(l));
 
     char ok[MAX_PATH + 128];
-    sprintf_s(ok, "[MapDataIO] saved: S=%u J=%u W=%u -> %ws\n",
+    sprintf_s(ok, "[MapDataIO] saved: S=%u J=%u W=%u B=%u -> %ws\n",
         CStructure_Manager::Get()->Get_Count(),
         CJungle_Manager::Get()->Get_Count(),
         wpTotal,
+        CBush_Manager::Get()->Get_Count(),
         pAbsPath);
     return S_OK;
 }
@@ -165,6 +168,15 @@ HRESULT CMapDataIO::Load_Stage(const wchar_t* pAbsPath)
         CMinion_Manager::Get()->LoadDefaults();
     }
 
+    if (header.version >= 5)
+    {
+        if (FAILED(CBush_Manager::Get()->Load_FromFile(pFile)))        { fclose(pFile); return E_FAIL; }
+    }
+    else
+    {
+        CBush_Manager::Get()->Clear();
+    }
+
     fclose(pFile);
 
     u32_t wpTotal = 0;
@@ -173,11 +185,12 @@ HRESULT CMapDataIO::Load_Stage(const wchar_t* pAbsPath)
             static_cast<eMinionTeam>(t), static_cast<eMinionWay>(l));
 
     char ok[MAX_PATH + 128];
-    sprintf_s(ok, "[MapDataIO] loaded(v%u): S=%u J=%u W=%u <- %ws\n",
+    sprintf_s(ok, "[MapDataIO] loaded(v%u): S=%u J=%u W=%u B=%u <- %ws\n",
         header.version,
         CStructure_Manager::Get()->Get_Count(),
         CJungle_Manager::Get()->Get_Count(),
         wpTotal,
+        CBush_Manager::Get()->Get_Count(),
         pAbsPath);
     return S_OK;
 }

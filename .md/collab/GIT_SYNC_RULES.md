@@ -23,6 +23,7 @@ git switch -c codex/<area>-<short-task>
 - `codex/rhi-desktop-*`
 - `codex/data-*`
 - `codex/server-*`
+- `codex/bot-ai-*`
 
 ## 작업 중
 

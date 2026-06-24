@@ -34,19 +34,23 @@ void CDynamicCamera::Update(f32_t fTimeDelta, const CInput& input)
         if (!m_bF2Check)
         {
             m_bF2Check = true;
-            m_bFollowMode = !m_bFollowMode;
-            m_bFix = !m_bFollowMode;
-            if (m_bFix)
+            if (!m_bFreeCameraMode)
+            {
+                SetFollowMode(false);
+                m_bFix = true;
                 Enter_FPSMode(input);
+            }
             else
-                Exit_FPSMode();
+            {
+                SetFollowMode(true);
+            }
         }
     }
     else { m_bF2Check = false; }
 
     const bool_t bSpaceFollow = input.IsKeyDown(VK_SPACE) &&
         m_pTargetTransform != nullptr &&
-        !m_bFix;
+        !m_bFreeCameraMode;
     if (bSpaceFollow)
     {
         if (!m_bSpaceFollowActive)
@@ -121,9 +125,10 @@ void CDynamicCamera::Update_FollowCam(f32_t fTimeDelta)
 
 void CDynamicCamera::Update_FreeCam(f32_t fTimeDelta, const CInput& input)
 {
-    Key_Input(fTimeDelta, input);
+    if (m_bFreeCameraMode)
+        Key_Input(fTimeDelta, input);
 
-    if (input.IsKeyDown(VK_TAB))
+    if (m_bFreeCameraMode && input.IsKeyDown(VK_TAB))
     {
         if (!m_bTabCheck)
         {
@@ -140,10 +145,25 @@ void CDynamicCamera::Update_FreeCam(f32_t fTimeDelta, const CInput& input)
         m_bTabCheck = false;
     }
 
-    if (m_bFix)
+    if (m_bFreeCameraMode && m_bFix)
     {
         // Raw Input (WM_INPUT) 기반 — 커서 워프/Mouse_Fix 불필요
         Mouse_Move(input);
+    }
+}
+
+void CDynamicCamera::SetFollowMode(bool bFollow)
+{
+    if (m_bFollowMode != bFollow)
+        m_bFollowInitialized = false;
+
+    m_bFollowMode = bFollow;
+    m_bFreeCameraMode = !bFollow;
+
+    if (bFollow)
+    {
+        m_bFix = false;
+        Exit_FPSMode();
     }
 }
 
@@ -213,6 +233,7 @@ void CDynamicCamera::JumpToWorldXZ(const Vec3& vWorldPos)
 
     Exit_FPSMode();
     m_bFollowMode = false;
+    m_bFreeCameraMode = false;
     m_bFix = false;
     m_bFollowInitialized = false;
 
@@ -344,7 +365,7 @@ void CDynamicCamera::ApplyEdgeScroll(f32_t fTimeDelta, const CInput& input)
         m_bEdgeScrollActive = false;
     };
 
-    if (fTimeDelta <= 0.f || m_bFix)
+    if (fTimeDelta <= 0.f || m_bFreeCameraMode || m_bFix)
     {
         deactivate();
         return;

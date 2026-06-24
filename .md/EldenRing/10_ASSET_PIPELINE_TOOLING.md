@@ -15,6 +15,52 @@ WitchyBND XML
 -> .wskel/.wmesh/.wmat/.wanim
 ```
 
+## 2026-06-18 Map / Vertical Slice Tooling Decision
+
+The current target is a complete Limgrave vertical slice, not a full-game
+extraction. The pipeline should produce a small, verified runtime set for:
+
+```text
+selected Limgrave map tiles
+player character
+NPC sample set
+Tree Sentinel / c3251
+Margit / c2130
+```
+
+Map extraction should be driven by MSB placement dependencies. Do not make a
+single merged GLB the runtime source of truth. A merged Blender/GLB scene is
+useful as an editor preview, but runtime assets should stay as independently
+cooked Winters resources referenced by placement metadata.
+
+Required map tooling flow:
+
+```text
+map_placement.json/txt
+-> collect MapPiece and AEG model ids
+-> build selected mapbnd/geombnd/texture queue
+-> run-full-pipeline into Candidate Resource
+-> audit every placement wmesh and wmat texture path
+-> promote verified Candidate files into Client/Bin/Resource/EldenRing
+```
+
+The next tool improvements should be:
+
+| Tooling | Purpose |
+|---|---|
+| `build-vertical-slice-queue` | Build a queue from selected Limgrave placement files and character ids. |
+| `audit-vertical-slice` | Verify placement, WMesh/WMat/WAnim, DDS, catalog, and old absolute paths. |
+| `promote-verified-slice` | Copy only audited Candidate files into the runtime Resource tree. |
+| `source-unpack-selected` | Formalize selective BHD/UXM extraction with `Skip unknown` behavior. |
+
+Current map bottleneck:
+
+```text
+Textures are available for the extracted AET static set.
+The remaining failed placements are primarily missing mapbnd/geombnd FullGame
+geometry roots or placement/runtime loader coverage.
+```
+
 ## Added Tools
 
 | Tool | Role |

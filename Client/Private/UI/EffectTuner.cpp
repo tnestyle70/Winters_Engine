@@ -144,13 +144,13 @@ namespace
     {
         switch ((ePreset)s_State.ePreset)
         {
-        case ePreset::QTrail: return L"Client/Bin/Resource/FX/LoL/Irelia/Irelia_Q_Trail.wfx";
-        case ePreset::QMark: return L"Client/Bin/Resource/FX/LoL/Irelia/Irelia_Q_Mark.wfx";
-        case ePreset::WSpin: return L"Client/Bin/Resource/FX/LoL/Irelia/Irelia_W_Spin.wfx";
-        case ePreset::WStage2Slash: return L"Client/Bin/Resource/FX/LoL/Irelia/Irelia_W_Stage2Slash.wfx";
-        case ePreset::EBeam: return L"Client/Bin/Resource/FX/LoL/Irelia/Irelia_E_Beam.wfx";
-        case ePreset::RPulse: return L"Client/Bin/Resource/FX/LoL/Irelia/Irelia_R_Pulse.wfx";
-        default: return L"Client/Bin/Resource/FX/LoL/Irelia/Irelia_Unknown.wfx";
+        case ePreset::QTrail: return L"Data/LoL/FX/Champions/Irelia/q_leadingedge.wfx";
+        case ePreset::QMark: return L"Data/LoL/FX/Champions/Irelia/target_mark.wfx";
+        case ePreset::WSpin: return L"Data/LoL/FX/Champions/Irelia/w_hold.wfx";
+        case ePreset::WStage2Slash: return L"Data/LoL/FX/Champions/Irelia/w_release.wfx";
+        case ePreset::EBeam: return L"Data/LoL/FX/Champions/Irelia/e_connect.wfx";
+        case ePreset::RPulse: return L"Data/LoL/FX/Champions/Irelia/r_pulse.wfx";
+        default: return L"Data/LoL/FX/Champions/Irelia/unknown.wfx";
         }
     }
 
@@ -512,7 +512,7 @@ void UI::CEffectTuner::Render(CScene_InGame* pScene)
     if (ImGui::Button("Dump EFX-0 Manifest", ImVec2(180, 30)))
     {
         const bool bSaved = LegacyFx::SaveSeedManifest(
-            L"Client/Bin/Resource/FX/Manifest/LoL/LegacyFxSeedManifest.json");
+            L"Data/LoL/FX/Manifest/LegacyFxSeedManifest.json");
         if (bSaved)
             ImGui::OpenPopup("manifest_saved");
         else

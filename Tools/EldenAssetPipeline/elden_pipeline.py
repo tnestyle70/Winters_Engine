@@ -166,6 +166,16 @@ try:
 except Exception as ex:
     print(f"GPU_STUB_SKIPPED={ex}")
 
+try:
+    user_modules = Path(bpy.utils.user_resource("SCRIPTS", path="addons/modules"))
+    if user_modules.exists():
+        user_modules_text = str(user_modules)
+        sys.path = [path for path in sys.path if path != user_modules_text]
+        sys.path.insert(0, user_modules_text)
+        print(f"BLENDER_USER_MODULES_FIRST={user_modules_text}")
+except Exception as ex:
+    print(f"BLENDER_USER_MODULES_SKIPPED={ex}")
+
 argv = sys.argv
 if "--" in argv:
     argv = argv[argv.index("--") + 1:]
@@ -182,7 +192,9 @@ args = parser.parse_args(argv)
 
 addon_root = Path(args.soulstruct_root)
 io_soulstruct = addon_root / "io_soulstruct"
-for path in (io_soulstruct.parent, io_soulstruct):
+soulstruct_src = addon_root / "io_soulstruct_lib" / "soulstruct" / "src"
+soulstruct_havok_src = addon_root / "io_soulstruct_lib" / "soulstruct-havok" / "src"
+for path in (io_soulstruct.parent, io_soulstruct, soulstruct_src, soulstruct_havok_src):
     path_text = str(path)
     if path_text not in sys.path:
         sys.path.insert(0, path_text)
@@ -279,6 +291,16 @@ try:
 except Exception as ex:
     print(f"GPU_STUB_SKIPPED={ex}")
 
+try:
+    user_modules = Path(bpy.utils.user_resource("SCRIPTS", path="addons/modules"))
+    if user_modules.exists():
+        user_modules_text = str(user_modules)
+        sys.path = [path for path in sys.path if path != user_modules_text]
+        sys.path.insert(0, user_modules_text)
+        print(f"BLENDER_USER_MODULES_FIRST={user_modules_text}")
+except Exception as ex:
+    print(f"BLENDER_USER_MODULES_SKIPPED={ex}")
+
 argv = sys.argv
 if "--" in argv:
     argv = argv[argv.index("--") + 1:]
@@ -293,7 +315,9 @@ args = parser.parse_args(argv)
 
 addon_root = Path(args.soulstruct_root)
 io_soulstruct = addon_root / "io_soulstruct"
-for path in (io_soulstruct.parent, io_soulstruct):
+soulstruct_src = addon_root / "io_soulstruct_lib" / "soulstruct" / "src"
+soulstruct_havok_src = addon_root / "io_soulstruct_lib" / "soulstruct-havok" / "src"
+for path in (io_soulstruct.parent, io_soulstruct, soulstruct_src, soulstruct_havok_src):
     path_text = str(path)
     if path_text not in sys.path:
         sys.path.insert(0, path_text)

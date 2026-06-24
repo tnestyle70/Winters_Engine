@@ -1,0 +1,54 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Viego.W.ChargeGlow",
+  "emitters": [
+    {
+      "name": "w_charge_glow_01",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Viego/particles/viego_base_e_glow.png",
+      "lifetime": 4.0,
+      "fade_in": 0.12,
+      "fade_out": 0.35,
+      "width": 1.05,
+      "height": 1.05,
+      "color": [0.42, 1.45, 0.92, 0.64],
+      "attach_offset": [0.0, 1.05, 1.05],
+      "billboard": true
+    },
+    {
+      "name": "w_charge_glow_02",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Viego/particles/viego_base_e_glow.png",
+      "lifetime": 2.67,
+      "start_delay": 1.33,
+      "fade_in": 0.12,
+      "fade_out": 0.35,
+      "width": 1.12,
+      "height": 1.12,
+      "color": [0.50, 1.62, 1.02, 0.70],
+      "attach_offset": [-0.44, 1.12, 1.42],
+      "billboard": true
+    },
+    {
+      "name": "w_charge_glow_03",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Viego/particles/viego_base_e_glow.png",
+      "lifetime": 1.33,
+      "start_delay": 2.67,
+      "fade_in": 0.12,
+      "fade_out": 0.35,
+      "width": 1.18,
+      "height": 1.18,
+      "color": [0.62, 1.80, 1.15, 0.78],
+      "attach_offset": [0.44, 1.18, 1.42],
+      "billboard": true
+    }
+  ]
+}

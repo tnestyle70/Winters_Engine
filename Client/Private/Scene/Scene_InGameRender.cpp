@@ -40,6 +40,7 @@
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/VisionComponents.h"
+#include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "ECS/SpatialIndex.h"
 #include "ProfilerAPI.h"
 #include "Manager/Navigation/MapSurfaceSampler.h"
@@ -179,6 +180,49 @@ namespace
             matScale * matTrans);
 
         return matWorld;
+    }
+
+    bool_t IsViegoMistInvisible(CWorld& world, EntityID entity, const ChampionComponent& champion)
+    {
+        if (entity == NULL_ENTITY || champion.id != eChampion::VIEGO)
+            return false;
+        if (!world.HasComponent<ReplicatedStateComponent>(entity))
+            return false;
+
+        const auto& state = world.GetComponent<ReplicatedStateComponent>(entity);
+        return (state.stateFlags & kSnapshotStateInvisibleFlag) != 0u;
+    }
+
+    void ApplyViegoMistMaterialOverride(
+        CWorld& world,
+        EntityID entity,
+        const ChampionComponent& champion,
+        ModelRenderer* pRenderer)
+    {
+        if (!pRenderer)
+            return;
+
+        if (world.HasComponent<ViegoSoulComponent>(entity))
+        {
+            pRenderer->SetMaterialOverrideColor(
+                Vec4{ 0.20f, 1.05f, 0.72f, 0.80f },
+                true);
+            return;
+        }
+
+        if (champion.id != eChampion::VIEGO)
+            return;
+
+        if (IsViegoMistInvisible(world, entity, champion))
+        {
+            pRenderer->SetMaterialOverrideColor(
+                Vec4{ 0.24f, 0.78f, 0.56f, 0.50f },
+                true);
+        }
+        else
+        {
+            pRenderer->ClearMaterialOverrideColor();
+        }
     }
 
     void RenderAttackRangePreview(
@@ -393,6 +437,7 @@ void CScene_InGame::OnRender()
                 {
                     rc.pRenderer->ClearYawTraceContext();
                 }
+                ApplyViegoMistMaterialOverride(m_World, e, champion, rc.pRenderer);
                 rc.pRenderer->UpdateTransform(tf.GetWorldMatrix());
                 if (m_World.HasComponent<MeshGroupVisibilityComponent>(e)
                     && m_World.GetComponent<MeshGroupVisibilityComponent>(e).bEnabled)
@@ -501,5 +546,43 @@ void CScene_InGame::OnRender()
         UI::CMinimapPanel::RenderRuntime(MinimapState);
     }
 
+    RenderViegoMistScreenOverlay();
     RenderDeathScreenOverlay();
+}
+
+void CScene_InGame::RenderViegoMistScreenOverlay()
+{
+    if (!m_pWhiteTexture ||
+        m_PlayerEntity == NULL_ENTITY ||
+        !m_World.HasComponent<ChampionComponent>(m_PlayerEntity) ||
+        !m_World.HasComponent<ReplicatedStateComponent>(m_PlayerEntity))
+    {
+        return;
+    }
+
+    const auto& champion = m_World.GetComponent<ChampionComponent>(m_PlayerEntity);
+    if (!IsViegoMistInvisible(m_World, m_PlayerEntity, champion))
+        return;
+
+    const ImVec2 DisplaySize = ImGui::GetIO().DisplaySize;
+    const u32_t iScreenWidth = static_cast<u32_t>(
+        DisplaySize.x > 0.f ? DisplaySize.x : kFallbackScreenWidth);
+    const u32_t iScreenHeight = static_cast<u32_t>(
+        DisplaySize.y > 0.f ? DisplaySize.y : kFallbackScreenHeight);
+    if (iScreenWidth == 0u || iScreenHeight == 0u)
+        return;
+
+    CGameInstance* pGameInstance = CGameInstance::Get();
+    if (!pGameInstance->UI_Begin_RawImagePass(iScreenWidth, iScreenHeight, false))
+        return;
+
+    pGameInstance->UI_Draw_RawImage(
+        m_pWhiteTexture->GetNativeSRV(),
+        0.f,
+        0.f,
+        static_cast<f32_t>(iScreenWidth),
+        static_cast<f32_t>(iScreenHeight),
+        Vec4(0.f, 0.f, 1.f, 1.f),
+        Vec4(0.32f, 0.34f, 0.33f, 0.28f));
+    pGameInstance->UI_End_RawImagePass();
 }

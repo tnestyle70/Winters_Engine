@@ -6,6 +6,8 @@
 #include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Components/JungleAIComponent.h"
 #include "Shared/GameSim/Components/MatchScore.h"
+#include "Shared/GameSim/Components/RespawnComponent.h"
+#include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Core/Determinism/DeterministicTime.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
@@ -278,6 +280,29 @@ namespace
         ai.target = request.source;
         ai.bAggro = true;
     }
+
+    bool_t TryMarkChampionDeathCredit(CWorld& world, EntityID target)
+    {
+        if (target != NULL_ENTITY &&
+            world.HasComponent<ViegoSoulComponent>(target))
+        {
+            return false;
+        }
+
+        if (target == NULL_ENTITY ||
+            !world.HasComponent<ChampionComponent>(target) ||
+            !world.HasComponent<RespawnComponent>(target))
+        {
+            return true;
+        }
+
+        RespawnComponent& respawn = world.GetComponent<RespawnComponent>(target);
+        if (respawn.bDeathCredited)
+            return false;
+
+        respawn.bDeathCredited = true;
+        return true;
+    }
 }
 
 void CDamageQueueSystem::Execute(CWorld& world, const TickContext& tc)
@@ -311,7 +336,8 @@ void CDamageQueueSystem::Execute(CWorld& world, const TickContext& tc)
 
         if (result.bKilled &&
             request.source != NULL_ENTITY &&
-            request.target != NULL_ENTITY)
+            request.target != NULL_ENTITY &&
+            TryMarkChampionDeathCredit(world, request.target))
         {
             ApplyScoreForKill(world, tc, request);
             TryEnqueueKillFeedEvent(world, tc, request);

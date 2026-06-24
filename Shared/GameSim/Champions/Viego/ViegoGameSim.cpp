@@ -71,6 +71,59 @@ namespace
         return world.GetComponent<ViegoSimComponent>(caster);
     }
 
+    bool_t IsValidPossessionChampion(eChampion champion)
+    {
+        return champion != eChampion::NONE && champion != eChampion::END;
+    }
+
+    void ClearViegoPossession(CWorld& world, EntityID caster, ViegoSimComponent& state)
+    {
+        state.bPossessionActive = false;
+        state.bPossessionPending = false;
+        state.pendingPossessionChampion = eChampion::END;
+        state.pendingPossessedTarget = NULL_ENTITY;
+        state.possessionApplyTimerSec = 0.f;
+        state.possessedTarget = NULL_ENTITY;
+        state.possessionTimerSec = 0.f;
+
+        if (world.HasComponent<FormOverrideComponent>(caster))
+            world.RemoveComponent<FormOverrideComponent>(caster);
+    }
+
+    void ApplyViegoPossession(CWorld& world, EntityID caster, ViegoSimComponent& state)
+    {
+        if (!IsValidPossessionChampion(state.pendingPossessionChampion))
+        {
+            ClearViegoPossession(world, caster, state);
+            return;
+        }
+
+        const f32_t durationSec = state.possessionDurationSec > 0.f
+            ? state.possessionDurationSec
+            : 5.f;
+
+        FormOverrideComponent form{};
+        form.baseChampion = eChampion::VIEGO;
+        form.visualChampion = state.pendingPossessionChampion;
+        form.skillChampion = state.pendingPossessionChampion;
+        form.skillSlotMask = FormOverrideComponent{}.skillSlotMask;
+        form.fRemainingSec = durationSec;
+        form.bActive = true;
+
+        if (world.HasComponent<FormOverrideComponent>(caster))
+            world.GetComponent<FormOverrideComponent>(caster) = form;
+        else
+            world.AddComponent<FormOverrideComponent>(caster, form);
+
+        state.bPossessionActive = true;
+        state.bPossessionPending = false;
+        state.possessedTarget = state.pendingPossessedTarget;
+        state.possessionTimerSec = durationSec;
+        state.pendingPossessionChampion = eChampion::END;
+        state.pendingPossessedTarget = NULL_ENTITY;
+        state.possessionApplyTimerSec = 0.f;
+    }
+
     f32_t ResolveViegoSkillRange(
         const GameplayHookContext& ctx,
         eSkillSlot slot,
@@ -528,6 +581,14 @@ namespace
             !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
             return;
 
+        ViegoSimComponent& viegoState = EnsureViegoState(*ctx.pWorld, ctx.casterEntity);
+        if (viegoState.bPossessionActive ||
+            viegoState.bPossessionPending ||
+            ctx.pWorld->HasComponent<FormOverrideComponent>(ctx.casterEntity))
+        {
+            ClearViegoPossession(*ctx.pWorld, ctx.casterEntity, viegoState);
+        }
+
         const Vec3 origin = ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 dir = ResolveDirection(ctx);
         const f32_t range = ResolveViegoSkillRange(ctx, eSkillSlot::R, kViegoRRange);
@@ -588,6 +649,7 @@ namespace ViegoGameSim
         EntityID, EntityID deadChampion)
     {
         if (deadChampion == NULL_ENTITY ||
+            world.HasComponent<ViegoSoulComponent>(deadChampion) ||
             !world.HasComponent<ChampionComponent>(deadChampion) ||
             !world.HasComponent<TransformComponent>(deadChampion))
             return;
@@ -668,6 +730,15 @@ namespace ViegoGameSim
                 [&](EntityID entity, ViegoSoulComponent& soul)
                 {
                     soul.fRemainingSec = std::max(0.f, soul.fRemainingSec - tc.fDt);
+                    if (world.HasComponent<HealthComponent>(entity))
+                    {
+                        const auto& hp = world.GetComponent<HealthComponent>(entity);
+                        if (hp.bIsDead || hp.fCurrent <= 0.f)
+                        {
+                            expiredSouls.push_back(entity);
+                            return;
+                        }
+                    }
                     if (soul.fRemainingSec <= 0.f)
                         expiredSouls.push_back(entity);
                 }
@@ -725,7 +796,7 @@ namespace ViegoGameSim
 
         world.ForEach<ViegoSimComponent>(
             std::function<void(EntityID, ViegoSimComponent&)>(
-                [&](EntityID, ViegoSimComponent& state)
+                [&](EntityID entity, ViegoSimComponent& state)
                 {
                     if (state.bMistActive)
                     {
@@ -734,13 +805,20 @@ namespace ViegoGameSim
                             state.bMistActive = false;
                     }
 
+                    if (state.bPossessionPending)
+                    {
+                        state.possessionApplyTimerSec =
+                            std::max(0.f, state.possessionApplyTimerSec - tc.fDt);
+                        if (state.possessionApplyTimerSec <= 0.f)
+                            ApplyViegoPossession(world, entity, state);
+                    }
+
                     if (state.bPossessionActive)
                     {
                         state.possessionTimerSec = std::max(0.f, state.possessionTimerSec - tc.fDt);
                         if (state.possessionTimerSec <= 0.f)
                         {
-                            state.bPossessionActive = false;
-                            state.possessedTarget = NULL_ENTITY;
+                            ClearViegoPossession(world, entity, state);
                         }
                     }
                 }));

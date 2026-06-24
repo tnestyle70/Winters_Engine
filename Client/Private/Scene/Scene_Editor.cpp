@@ -5,6 +5,7 @@
 #include "Manager/Structure_Manager.h"
 #include "Manager/Jungle_Manager.h"
 #include "Manager/Minion_Manager.h"
+#include "Manager/Bush_Manager.h"
 #include "Core/CInput.h"
 #include "WintersPaths.h"
 #include "GameInstance.h"
@@ -109,6 +110,7 @@ bool CScene_Editor::OnEnter()
     CStructure_Manager::Get()->Initialize(&m_World);
     CJungle_Manager::Get()->Initialize(&m_World);
     CMinion_Manager::Get()->Initialize(&m_World);
+    CBush_Manager::Get()->Initialize(&m_World);
 
     // 맵 메시 (InGame 과 동일)
     m_Map.Initialize("Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh",
@@ -140,6 +142,7 @@ void CScene_Editor::OnExit()
     CStructure_Manager::Get()->Shutdown();
     CJungle_Manager::Get()->Shutdown();
     CMinion_Manager::Get()->Shutdown();
+    CBush_Manager::Get()->Shutdown();
 }
 
 void CScene_Editor::OnUpdate(f32_t dt)
@@ -181,6 +184,9 @@ void CScene_Editor::OnRender()
 
     CStructure_Manager::Get()->Render(matVP);
     CJungle_Manager::Get()->Render(matVP);
+    CBush_Manager::Get()->RenderEditorOverlay(
+        matVP,
+        (m_eSelectedCategory == eCategory::Bush) ? m_iSelectedIndex : -1);
     RenderNavGridOverlay(matVP);
 
     // 편집 중인 레인의 웨이포인트를 스크린 공간 라인스트립 + 점 + 인덱스로 시각화
@@ -272,9 +278,10 @@ void CScene_Editor::Render_MenuBar()
         ImGui::EndMenu();
     }
     ImGui::Separator();
-    ImGui::TextDisabled("S:%u J:%u",
+    ImGui::TextDisabled("S:%u J:%u B:%u",
         CStructure_Manager::Get()->Get_Count(),
-        CJungle_Manager::Get()->Get_Count());
+        CJungle_Manager::Get()->Get_Count(),
+        CBush_Manager::Get()->Get_Count());
     ImGui::Separator();
     ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
     ImGui::EndMainMenuBar();
@@ -286,7 +293,7 @@ void CScene_Editor::Render_Palette()
     ImGui::SetNextWindowSize(ImVec2(240, 420), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Palette")) { ImGui::End(); return; }
 
-    const char* modes[] = { "Structure", "Jungle", "MinionWP", "NavGrid" };
+    const char* modes[] = { "Structure", "Jungle", "MinionWP", "NavGrid", "Bush" };
     int modeIdx = static_cast<int>(m_eAddMode);
     if (ImGui::Combo("AddMode", &modeIdx, modes, IM_ARRAYSIZE(modes)))
         m_eAddMode = static_cast<eAddMode>(modeIdx);
@@ -411,6 +418,25 @@ void CScene_Editor::Render_Palette()
         if (ImGui::Button("Load NavGrid"))
             LoadCurrentNavGrid();
     }
+    else if (m_eAddMode == eAddMode::Bush)
+    {
+        int bushId = static_cast<int>(m_PendingBushId);
+        if (ImGui::InputInt("BushId", &bushId))
+            m_PendingBushId = (bushId < 0) ? 0u : static_cast<u32_t>(bushId);
+
+        ImGui::DragFloat("Radius", &m_PendingBushRadius, 0.1f, 0.1f, 50.f, "%.2f");
+        ImGui::DragFloat("Width", &m_PendingBushWidth, 0.1f, 0.1f, 80.f, "%.2f");
+        ImGui::DragFloat("Height", &m_PendingBushHeight, 0.1f, 0.1f, 40.f, "%.2f");
+        ImGui::InputText("Asset", m_szPendingBushAsset, IM_ARRAYSIZE(m_szPendingBushAsset));
+
+        CBush_Manager::Get()->Set_DefaultRadius(m_PendingBushRadius);
+        CBush_Manager::Get()->Set_DefaultWidth(m_PendingBushWidth);
+        CBush_Manager::Get()->Set_DefaultHeight(m_PendingBushHeight);
+        CBush_Manager::Get()->Set_DefaultAssetPath(m_szPendingBushAsset);
+
+        ImGui::Text("Bush count: %u", CBush_Manager::Get()->Get_Count());
+        ImGui::TextDisabled("Left-click map = add bush volume");
+    }
 
     ImGui::Separator();
     ImGui::TextDisabled("Left-click on map = Add / Paint");
@@ -450,6 +476,9 @@ void CScene_Editor::Render_Hierarchy()
     drawCategory(eCategory::Jungle, "Jungle",
         CJungle_Manager::Get()->Get_Count(),
         [&](u32_t i) { return CJungle_Manager::Get()->Get_Name(i); });
+    drawCategory(eCategory::Bush, "Bush",
+        CBush_Manager::Get()->Get_Count(),
+        [&](u32_t i) { return CBush_Manager::Get()->Get_Name(i); });
 
     // Minion 웨이포인트 — 현재 편집 중인 레인만 표시 (Palette 의 Team/Lane 과 연동)
     {
@@ -525,6 +554,100 @@ void CScene_Editor::Render_Inspector()
                 m_bDirty = true;
             }
         }
+        ImGui::End();
+        return;
+    }
+
+    if (m_eSelectedCategory == eCategory::Bush)
+    {
+        const u32_t idx = static_cast<u32_t>(m_iSelectedIndex);
+        if (idx >= CBush_Manager::Get()->Get_Count())
+        {
+            ImGui::TextDisabled("(invalid Bush)");
+            ImGui::End();
+            return;
+        }
+
+        ImGui::Text("%s", CBush_Manager::Get()->Get_Name(idx));
+        ImGui::Separator();
+
+        int bushId = static_cast<int>(CBush_Manager::Get()->Get_BushId(idx));
+        if (ImGui::InputInt("BushId", &bushId))
+        {
+            CBush_Manager::Get()->Set_BushId(idx, (bushId < 0) ? 0u : static_cast<u32_t>(bushId));
+            m_bDirty = true;
+        }
+
+        Vec3 pos = CBush_Manager::Get()->Get_Position(idx);
+        if (ImGui::DragFloat3("Position", &pos.x, 0.1f))
+        {
+            CBush_Manager::Get()->Set_Position(idx, pos);
+            m_bDirty = true;
+        }
+
+        f32_t yawDeg = DirectX::XMConvertToDegrees(CBush_Manager::Get()->Get_Yaw(idx));
+        if (ImGui::DragFloat("Yaw(deg)", &yawDeg, 1.0f))
+        {
+            CBush_Manager::Get()->Set_Yaw(idx, DirectX::XMConvertToRadians(yawDeg));
+            m_bDirty = true;
+        }
+
+        f32_t radius = CBush_Manager::Get()->Get_Radius(idx);
+        if (ImGui::DragFloat("Radius", &radius, 0.1f, 0.1f, 50.f, "%.2f"))
+        {
+            CBush_Manager::Get()->Set_Radius(idx, radius);
+            m_bDirty = true;
+        }
+
+        f32_t width = 0.f;
+        f32_t height = 0.f;
+        f32_t scale = 1.f;
+        CBush_Manager::Get()->Get_VisualSize(idx, width, height, scale);
+        bool_t bSizeChanged = false;
+        bSizeChanged |= ImGui::DragFloat("Width", &width, 0.1f, 0.1f, 80.f, "%.2f");
+        bSizeChanged |= ImGui::DragFloat("Height", &height, 0.1f, 0.1f, 40.f, "%.2f");
+        bSizeChanged |= ImGui::DragFloat("Scale", &scale, 0.01f, 0.01f, 20.f, "%.2f");
+        if (bSizeChanged)
+        {
+            CBush_Manager::Get()->Set_VisualSize(idx, width, height, scale);
+            m_bDirty = true;
+        }
+
+        int renderKind = static_cast<int>(CBush_Manager::Get()->Get_RenderKind(idx));
+        const char* renderKinds[] = { "Billboard", "Mesh" };
+        if (ImGui::Combo("RenderKind", &renderKind, renderKinds, IM_ARRAYSIZE(renderKinds)))
+        {
+            CBush_Manager::Get()->Set_RenderKind(
+                idx,
+                static_cast<Winters::Map::eBushRenderKind>(renderKind));
+            m_bDirty = true;
+        }
+
+        char assetPath[128]{};
+        strncpy_s(assetPath, CBush_Manager::Get()->Get_AssetPath(idx), _TRUNCATE);
+        if (ImGui::InputText("Asset", assetPath, IM_ARRAYSIZE(assetPath)))
+        {
+            CBush_Manager::Get()->Set_AssetPath(idx, assetPath);
+            m_bDirty = true;
+        }
+
+        bool visible = CBush_Manager::Get()->Get_Visible(idx) != 0;
+        if (ImGui::Checkbox("Visible", &visible))
+        {
+            CBush_Manager::Get()->Set_Visible(idx, visible);
+            m_bDirty = true;
+        }
+
+        ImGui::Separator();
+        if (ImGui::Button("Delete", ImVec2(-1, 0)))
+        {
+            if (CBush_Manager::Get()->Remove_At(idx))
+            {
+                m_iSelectedIndex = -1;
+                m_bDirty = true;
+            }
+        }
+
         ImGui::End();
         return;
     }
@@ -670,6 +793,26 @@ void CScene_Editor::Handle_MousePlacement()
         }
         break;
     }
+    case eAddMode::Bush:
+    {
+        newIdx = CBush_Manager::Get()->Add_At(
+            m_PendingBushId,
+            ground,
+            m_PendingBushRadius,
+            m_szPendingBushAsset,
+            Winters::Map::eBushRenderKind::Billboard);
+        if (newIdx >= 0)
+        {
+            CBush_Manager::Get()->Set_VisualSize(
+                static_cast<u32_t>(newIdx),
+                m_PendingBushWidth,
+                m_PendingBushHeight,
+                1.f);
+            m_eSelectedCategory = eCategory::Bush;
+            m_iSelectedIndex = newIdx;
+        }
+        break;
+    }
     case eAddMode::NavGrid:
         break;
     }
@@ -795,10 +938,11 @@ void CScene_Editor::Save_CurrentStage()
     }
     m_bDirty = false;
     wchar_t ok[MAX_PATH + 128];
-    swprintf_s(ok, L"Stage%d.dat 저장 완료!\n\nS=%u J=%u\n경로: %s",
+    swprintf_s(ok, L"Stage%d.dat 저장 완료!\n\nS=%u J=%u B=%u\n경로: %s",
         m_iCurrentStage,
         CStructure_Manager::Get()->Get_Count(),
         CJungle_Manager::Get()->Get_Count(),
+        CBush_Manager::Get()->Get_Count(),
         stagePath);
     MessageBoxW(nullptr, ok, L"Editor Save", MB_OK | MB_ICONINFORMATION);
 }

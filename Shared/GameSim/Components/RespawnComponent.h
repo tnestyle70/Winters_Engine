@@ -11,6 +11,7 @@ struct RespawnComponent
     f32_t respawnDelay = 3.f;
     Vec3 spawnPos{};
     bool_t bPending = false;
+    bool_t bDeathCredited = false;
 };
 
 static_assert(std::is_trivially_copyable_v<RespawnComponent>,

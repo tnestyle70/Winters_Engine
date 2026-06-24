@@ -75,7 +75,10 @@ namespace Viego
 
         const Vec3 origin = ResolveOrigin(ctx.pWorld, ctx.casterEntity);
         const Vec3 dir = ResolveDirection(ctx.pWorld, ctx.casterEntity, ctx.pCommand);
-        Fx::SpawnWMissile(*ctx.pWorld, ctx.pFxMeshRenderer, ctx.casterEntity, origin, dir, 0.45f);
+        if (ctx.skillStage >= 2u)
+            Fx::SpawnWMissile(*ctx.pWorld, ctx.pFxMeshRenderer, ctx.casterEntity, origin, dir, 0.45f);
+        else
+            Fx::SpawnWChargeGlow(*ctx.pWorld, ctx.pFxMeshRenderer, ctx.casterEntity, origin, dir);
     }
 
     void OnCastFrame_E(SkillHookContext& ctx)
@@ -139,7 +142,10 @@ namespace Viego
 
             const Vec3 origin = ResolveOrigin(ctx.pWorld, ctx.casterEntity);
             const Vec3 dir = ResolveDirection(ctx.pWorld, ctx.casterEntity, ctx.pCommand);
-            Fx::SpawnWMissile(*ctx.pWorld, ctx.pFxMeshRenderer, ctx.casterEntity, origin, dir, 0.45f);
+            if (ctx.skillStage >= 2u)
+                Fx::SpawnWMissile(*ctx.pWorld, ctx.pFxMeshRenderer, ctx.casterEntity, origin, dir, 0.45f);
+            else
+                Fx::SpawnWChargeGlow(*ctx.pWorld, ctx.pFxMeshRenderer, ctx.casterEntity, origin, dir);
         }
 
         void OnCastFrame_E_Visual(VisualHookContext& ctx)

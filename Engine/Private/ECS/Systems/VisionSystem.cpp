@@ -71,6 +71,32 @@ namespace
         fOutV = (ux * wz - uz * wx) / det;
         return true;
     }
+
+    bool_t IsInsideVisionConeXZ(
+        const VisionConeComponent* pCone,
+        const Vec3& vSourcePos,
+        const Vec3& vTargetPos)
+    {
+        if (!pCone)
+            return true;
+
+        const f32_t fwdLenSq =
+            pCone->forward.x * pCone->forward.x +
+            pCone->forward.z * pCone->forward.z;
+        if (fwdLenSq <= 0.0001f)
+            return true;
+
+        const f32_t dx = vTargetPos.x - vSourcePos.x;
+        const f32_t dz = vTargetPos.z - vSourcePos.z;
+        const f32_t dirLenSq = dx * dx + dz * dz;
+        if (dirLenSq <= 0.0001f)
+            return true;
+
+        const f32_t dot =
+            (dx * pCone->forward.x + dz * pCone->forward.z) /
+            std::sqrt(dirLenSq * fwdLenSq);
+        return dot >= pCone->halfAngleCos;
+    }
 }
 
 NS_BEGIN(Engine)
@@ -190,6 +216,9 @@ void CVisionSystem::TickVisibility(CWorld& world)
                 const VisibilityComponent* pSourceVis = nullptr;
                 if (world.HasComponent<VisibilityComponent>(srcId))
                     pSourceVis = &world.GetComponent<VisibilityComponent>(srcId);
+                const VisionConeComponent* pCone = nullptr;
+                if (world.HasComponent<VisionConeComponent>(srcId))
+                    pCone = &world.GetComponent<VisionConeComponent>(srcId);
 
                 m_vecVisibilityCandidates.clear();
                 if (m_pIndex)
@@ -218,6 +247,8 @@ void CVisionSystem::TickVisibility(CWorld& world)
 
                     VisibilityComponent& targetVis = world.GetComponent<VisibilityComponent>(target);
                     const Vec3 targetPos = world.GetComponent<TransformComponent>(target).GetPosition();
+                    if (!IsInsideVisionConeXZ(pCone, srcPos, targetPos))
+                        continue;
                     if (!IsTargetVisibleFast(pSourceVis, srcPos, targetVis, targetPos,
                         vs.bTrueSight, sightRangeSq))
                     {
@@ -254,6 +285,12 @@ bool CVisionSystem::IsTargetVisible(CWorld& world, EntityID source, EntityID tar
     const f32_t dz = tgtPos.z - srcPos.z;
     if (dx * dx + dz * dz > sightRange * sightRange)
         return false;
+
+    if (world.HasComponent<VisionConeComponent>(source) &&
+        !IsInsideVisionConeXZ(&world.GetComponent<VisionConeComponent>(source), srcPos, tgtPos))
+    {
+        return false;
+    }
 
     if (world.HasComponent<VisibilityComponent>(target))
     {
@@ -333,12 +370,15 @@ void CVisionSystem::UpdateFowTexture(CWorld& world)
 
     world.ForEach<TransformComponent, VisionSourceComponent, SpatialAgentComponent>(
         function<void(EntityID, TransformComponent&, VisionSourceComponent&, SpatialAgentComponent&)>(
-            [&](EntityID, TransformComponent& xf, VisionSourceComponent& vs, SpatialAgentComponent& agent)
+            [&](EntityID srcId, TransformComponent& xf, VisionSourceComponent& vs, SpatialAgentComponent& agent)
             {
                 if (agent.team != localTeam)
                     return;
 
                 const Vec3 srcPos = xf.GetPosition();
+                const VisionConeComponent* pCone = nullptr;
+                if (world.HasComponent<VisionConeComponent>(srcId))
+                    pCone = &world.GetComponent<VisionConeComponent>(srcId);
                 const f32_t r = vs.sightRange;
                 if (r <= 0.f)
                     return;
@@ -375,6 +415,8 @@ void CVisionSystem::UpdateFowTexture(CWorld& world)
                         const f32_t tz = samplePos.z - srcPos.z;
                         const f32_t distSq = tx * tx + tz * tz;
                         if (distSq > r2)
+                            continue;
+                        if (!IsInsideVisionConeXZ(pCone, srcPos, samplePos))
                             continue;
 
                         u8_t visibleValue = VisibleValue;

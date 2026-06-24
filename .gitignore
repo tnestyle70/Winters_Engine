@@ -78,6 +78,9 @@ __pycache__/
 /Client/Bin/Resource/
 /Client/Bin/Resource.zip
 
+# Local external extraction/decoding tools
+/Tools/External/vgmstream/
+
 # Local/editor noise
 .cursorrules
 GEMINI.md

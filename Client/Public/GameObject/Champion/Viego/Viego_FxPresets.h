@@ -17,6 +17,9 @@ namespace Viego::Fx
         EntityID owner, EntityID target, f32_t fLifetime);
     void SpawnQSlash(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
         EntityID owner, const Vec3& origin, const Vec3& dir, f32_t fLifetime);
+    void StopWChargeGlow(CWorld& world, EntityID owner);
+    void SpawnWChargeGlow(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
+        EntityID owner, const Vec3& origin, const Vec3& dir);
     void SpawnWMissile(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
         EntityID owner, const Vec3& origin, const Vec3& dir, f32_t fLifetime);
     void SpawnEMist(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,

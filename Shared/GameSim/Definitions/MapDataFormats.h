@@ -5,7 +5,7 @@
 namespace Winters::Map
 {
     constexpr u32_t STAGE_MAGIC = 0x47545357; // 'W','S','T','G'
-    constexpr u32_t STAGE_VERSION = 4;
+    constexpr u32_t STAGE_VERSION = 5;
     constexpr u32_t STAGE_VERSION_MIN_COMPAT = 3;
 
     enum class eObjectKind : u32_t
@@ -92,9 +92,34 @@ namespace Winters::Map
         u32_t reserved = 0;
     };
 
+    enum class eBushRenderKind : u32_t
+    {
+        Billboard = 0,
+        Mesh = 1,
+    };
+
+    struct BushEntry
+    {
+        char name[64]{};
+        u32_t bushId = 0;
+        u32_t renderKind = static_cast<u32_t>(eBushRenderKind::Billboard);
+        f32_t px = 0.f;
+        f32_t py = 0.f;
+        f32_t pz = 0.f;
+        f32_t yaw = 0.f;
+        f32_t radius = 4.f;
+        f32_t width = 8.f;
+        f32_t height = 4.f;
+        f32_t scale = 1.f;
+        u32_t bVisible = 1;
+        char assetPath[128]{};
+        u32_t reserved[4]{};
+    };
+
     static_assert(sizeof(StageHeader) == 8 * sizeof(u32_t), "StageHeader size fixed");
     static_assert(sizeof(StructureEntry) == 64 + 12 * sizeof(u32_t), "StructureEntry size fixed");
     static_assert(sizeof(JungleEntry) == 64 + 10 * sizeof(u32_t), "JungleEntry size fixed");
     static_assert(sizeof(MinionWaypointEntry) == 4 * sizeof(u32_t) + 3 * sizeof(f32_t),
         "MinionWaypointEntry size fixed");
+    static_assert(sizeof(BushEntry) == 252, "BushEntry size fixed");
 }

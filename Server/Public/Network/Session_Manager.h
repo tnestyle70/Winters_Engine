@@ -15,6 +15,7 @@ public:
     static CSession_Manager* Get();
 
     std::shared_ptr<CSession> OnAccept(SOCKET clientSocket, const sockaddr_in& addr);
+    void OnIoDisconnect(u32_t sessionId);
     void OnDisconnect(u32_t sessionId);
     void OnRecvComplete(u32_t sessionId, const u8_t* bytes, u32_t len);
     void OnSendComplete(u32_t sessionId, u32_t bytes);

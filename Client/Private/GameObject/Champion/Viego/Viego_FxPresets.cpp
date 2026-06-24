@@ -5,16 +5,22 @@
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
 
+#include <unordered_map>
+#include <vector>
+
 namespace
 {
     constexpr const char* kCueBAHit = "Viego.BA.Hit";
     constexpr const char* kCueQSlash = "Viego.Q.Slash";
+    constexpr const char* kCueWChargeGlow = "Viego.W.ChargeGlow";
     constexpr const char* kCueWCast = "Viego.W.Cast";
     constexpr const char* kCueWMissile = "Viego.W.Missile";
     constexpr const char* kCueEMist = "Viego.E.Mist";
     constexpr const char* kCueEBodyGlow = "Viego.E.BodyGlow";
     constexpr const char* kCueRImpact = "Viego.R.Impact";
     constexpr const char* kCueSoulIdle = "Viego.Soul.Idle";
+
+    std::unordered_map<EntityID, std::vector<EntityID>> g_WChargeGlowEntities;
 
     Vec3 ResolvePosition(CWorld& world, EntityID entity)
     {
@@ -75,6 +81,15 @@ namespace
         cue.fLifetimeOverride = fLifetime;
         return cue;
     }
+
+    void DestroyLiveEntities(CWorld& world, const std::vector<EntityID>& entities)
+    {
+        for (const EntityID entity : entities)
+        {
+            if (entity != NULL_ENTITY && world.IsAlive(entity))
+                world.DestroyEntity(entity);
+        }
+    }
 }
 
 namespace Viego::Fx
@@ -105,21 +120,56 @@ namespace Viego::Fx
     void SpawnWMissile(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
         EntityID owner, const Vec3& origin, const Vec3& dir, f32_t fLifetime)
     {
+        StopWChargeGlow(world, owner);
+
         const Vec3 start = owner != NULL_ENTITY ? ResolvePosition(world, owner) : origin;
         const Vec3 forward = NormalizeOrForward(dir);
 
         FxCueContext castCue = MakeWorldCue(start, forward, pRenderer, fLifetime);
         castCue.bOverrideEndWorldPos = true;
-        castCue.vEndWorldPos = OffsetForward(start, forward, 4.6f);
+        castCue.vEndWorldPos = OffsetForward(start, forward, 2.3f);
         CFxCuePlayer::Play(world, kCueWCast, castCue);
 
         FxCueContext missileCue = MakeWorldCue(OffsetForward(start, forward, 0.7f, 0.85f),
             forward, pRenderer, fLifetime);
-        missileCue.vVelocity = { forward.x * 7.2f, 0.f, forward.z * 7.2f };
+        missileCue.vVelocity = { forward.x * 3.6f, 0.f, forward.z * 3.6f };
         missileCue.bOverrideVelocity = true;
         missileCue.bOverrideEndWorldPos = true;
-        missileCue.vEndWorldPos = OffsetForward(start, forward, 4.8f, 0.85f);
+        missileCue.vEndWorldPos = OffsetForward(start, forward, 2.4f, 0.85f);
         CFxCuePlayer::Play(world, kCueWMissile, missileCue);
+    }
+
+    void StopWChargeGlow(CWorld& world, EntityID owner)
+    {
+        if (owner == NULL_ENTITY)
+            return;
+
+        const auto it = g_WChargeGlowEntities.find(owner);
+        if (it == g_WChargeGlowEntities.end())
+            return;
+
+        DestroyLiveEntities(world, it->second);
+        g_WChargeGlowEntities.erase(it);
+    }
+
+    void SpawnWChargeGlow(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
+        EntityID owner, const Vec3& origin, const Vec3& dir)
+    {
+        StopWChargeGlow(world, owner);
+
+        const Vec3 start = owner != NULL_ENTITY ? ResolvePosition(world, owner) : origin;
+        const Vec3 forward = NormalizeOrForward(dir);
+
+        FxCueContext cue{};
+        cue.vWorldPos = start;
+        cue.vForward = forward;
+        cue.pFxMeshRenderer = pRenderer;
+
+        std::vector<EntityID> spawned;
+        CFxCuePlayer::PlayAll(world, kCueWChargeGlow, cue, &spawned);
+
+        if (owner != NULL_ENTITY && !spawned.empty())
+            g_WChargeGlowEntities[owner] = spawned;
     }
 
     void SpawnEMist(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,

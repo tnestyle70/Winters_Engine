@@ -767,7 +767,7 @@ namespace
         def.skills[2].stages[1].animationPlaybackSpeed = 1.f;
         def.skills[2].stages[1].castFrame = 0.f;
         def.skills[2].stages[1].recoveryFrame = 0.f;
-        def.skills[3].stageCount = 1u;
+        def.skills[3].stageCount = 2u;
         def.skills[3].replicatedCueId = 0u;
         def.skills[3].stages[0].animationPlaybackSpeed = 1.f;
         def.skills[3].stages[0].castFrame = 0.f;

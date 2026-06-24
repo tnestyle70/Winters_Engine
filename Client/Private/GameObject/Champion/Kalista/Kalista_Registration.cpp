@@ -100,14 +100,14 @@ namespace
                 SkillDef s{};
                 s.champ = eChampion::KALISTA;
                 s.slot = 2;
-                s.targetMode = eTargetMode::Self;
-                s.cooldownSec = 18.f;
-                s.rangeMax = 0.f;
+                s.targetMode = eTargetMode::Direction;
+                s.cooldownSec = 1.f;
+                s.rangeMax = 12.f;
                 s.manaCost = 50.f;
                 s.animKey = "spell2";
                 s.lockDurationSec = 0.5f;
                 s.bOneShot = true;
-                s.rotate = eRotateMode::None;
+                s.rotate = eRotateMode::TowardsCursor;
                 CSkillRegistry::Instance().Add(eChampion::KALISTA, 2, s);
             }
 

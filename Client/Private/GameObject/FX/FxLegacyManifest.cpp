@@ -9,17 +9,17 @@ namespace LegacyFx
                 "Irelia.Q.Trail", "Irelia", "IreliaFx::SpawnQTrail",
                 "Client/Private/GameObject/Champion/Irelia/IreliaFxPresets.cpp",
                 "Billboard",
-                L"Client/Bin/Resource/FX/LoL/Irelia/Irelia_Q_Trail.wfx",
-                L"Client/Bin/Resource/FX/LoL/Irelia/MI_Irelia_Q_Trail.wmi",
-                "LegacyOnly"
+                L"Data/LoL/FX/Champions/Irelia/q_leadingedge.wfx",
+                L"",
+                "WfxPilot"
             },
             {
                 "Irelia.Q.Mark", "Irelia", "IreliaFx::SpawnQMark",
                 "Client/Private/GameObject/Champion/Irelia/IreliaFxPresets.cpp",
                 "Billboard",
-                L"Client/Bin/Resource/FX/LoL/Irelia/Irelia_Q_Mark.wfx",
-                L"Client/Bin/Resource/FX/LoL/Irelia/MI_Irelia_Q_Mark.wmi",
-                "LegacyOnly"
+                L"Data/LoL/FX/Champions/Irelia/target_mark.wfx",
+                L"",
+                "WfxPilot"
             },
             {
                 "Irelia.W.Spin", "Irelia", "CFxCuePlayer::PlayAll",

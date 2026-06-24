@@ -51,9 +51,12 @@ namespace
                 s.targetMode = eTargetMode::UnitTarget;
                 s.cooldownSec = 0.75f; s.rangeMax = 1.5f; s.manaCost = 0.f;
                 s.animKey = "attack1";
-                s.lockDurationSec = 0.65f; s.bOneShot = true;
+                s.lockDurationSec = 0.9f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 5.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 1.f;
+                s.castFrame = 5.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 0.85f;
+                s.endTransitionIdleAnim = "attack1_toidle1";
+                s.endTransitionRunAnim = "attack1_towalk1";
+                s.endTransitionDuration = 0.18f;
                 s.castFrameHookId = kYon_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 0, s);
             }
@@ -63,9 +66,11 @@ namespace
                 s.targetMode = eTargetMode::Direction;
                 s.cooldownSec = 4.f; s.rangeMax = 4.75f; s.manaCost = 0.f;
                 s.animKey = "spell1_a1";
-                s.lockDurationSec = 0.55f; s.bOneShot = true;
+                s.lockDurationSec = 0.9f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 4.f; s.recoveryFrame = 10.f; s.animPlaySpeed = 1.f;
+                s.castFrame = 4.f; s.recoveryFrame = 10.f; s.animPlaySpeed = 0.85f;
+                s.endTransitionRunAnim = "spell1a_towalk1";
+                s.endTransitionDuration = 0.16f;
                 s.castFrameHookId = kYon_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 1, s);
             }

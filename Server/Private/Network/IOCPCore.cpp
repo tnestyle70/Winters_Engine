@@ -226,13 +226,17 @@ void CIOCPCore::WorkerLoop(u32_t workerId)
 
         if (!ok)
         {
-            if (ctx->op != eIOOp::Accept)
-                CSession_Manager::Get()->OnDisconnect(ctx->sessionId);
+            if (ctx->op == eIOOp::Accept)
+            {
+                if (ctx->acceptSocket != INVALID_SOCKET)
+                    ::closesocket(ctx->acceptSocket);
+                delete ctx;
+            }
+            else
+            {
+                CSession_Manager::Get()->OnIoDisconnect(ctx->sessionId);
+            }
 
-            if (ctx->op == eIOOp::Accept && ctx->acceptSocket != INVALID_SOCKET)
-                ::closesocket(ctx->acceptSocket);
-
-            delete ctx;
             continue;
         }
 
@@ -279,7 +283,7 @@ void CIOCPCore::WorkerLoop(u32_t workerId)
         case eIOOp::Recv:
             if (bytes == 0)
             {
-                CSession_Manager::Get()->OnDisconnect(ctx->sessionId);
+                CSession_Manager::Get()->OnIoDisconnect(ctx->sessionId);
                 break;
             }
 

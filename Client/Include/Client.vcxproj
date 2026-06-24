@@ -217,6 +217,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     </ClCompile>
     <ClCompile Include="..\Private\main.cpp" />
     <ClCompile Include="..\Private\Manager\AmbientProp_Manager.cpp" />
+    <ClCompile Include="..\Private\Manager\Bush_Manager.cpp" />
     <ClCompile Include="..\Private\Manager\Minion_Manager.cpp" />
     <ClCompile Include="..\Private\Manager\Structure_Manager.cpp" />
     <ClCompile Include="..\Private\Manager\Jungle_Manager.cpp" />
@@ -374,6 +375,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\GamePlay\Systems\SkillDispatchSystem.h" />
     <ClInclude Include="..\Public\GamePlay\VisualHookRegistry.h" />
     <ClInclude Include="..\Public\Manager\AmbientProp_Manager.h" />
+    <ClInclude Include="..\Public\Manager\Bush_Manager.h" />
     <ClInclude Include="..\Public\Manager\Minion_Manager.h" />
     <ClInclude Include="..\Public\Manager\Structure_Manager.h" />
     <ClInclude Include="..\Public\Manager\Jungle_Manager.h" />

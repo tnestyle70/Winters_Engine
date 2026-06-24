@@ -4,6 +4,8 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <string>
+#include <vector>
 
 class IScene;
 
@@ -23,6 +25,7 @@ public:
 		SceneFactory pFactory);
 	~CLoader();
 
+	void TickMainThreadLoad();
 	bool IsFinished() const { return m_bFinished.load(); }
 	f32_t Get_Progress() const { return m_fProgress.load(); }
 	eSceneID Get_NextSceneID() const { return m_eNextSceneID; }
@@ -37,13 +40,28 @@ private:
 	void Ready_For_InGame();
 
 	void RunLoadJob();
-	void PreloadInGameAssets();
 	void PreloadChampionAssets(eChampion eChampionId);
 	void PreloadModel(const char* pPath, f32_t fProgressStep);
 	void PreloadTexture(const wchar_t* pPath, f32_t fProgressStep);
+	void PrepareMainThreadInGameLoad();
 	void SetProgress(f32_t fValue);
 
 private:
+	enum class eLoadStepType
+	{
+		FxDirectory,
+		Model,
+		Texture
+	};
+
+	struct LoadStep
+	{
+		eLoadStepType eType = eLoadStepType::Model;
+		std::string strModelPath{};
+		std::wstring strTexturePath{};
+		f32_t fProgressAfter = 0.f;
+	};
+
 	eSceneID m_eNextSceneID = eSceneID::End;
 	SceneFactory m_pFactory = { nullptr };
 	
@@ -52,6 +70,10 @@ private:
 
 	std::unique_ptr<CJobCounter> m_pCounter{};
 	GameContext m_LoadContext{};
+
+	bool_t m_bMainThreadLoad = false;
+	std::vector<LoadStep> m_LoadSteps{};
+	u32_t m_iNextLoadStep = 0;
 };
 
 NS_END

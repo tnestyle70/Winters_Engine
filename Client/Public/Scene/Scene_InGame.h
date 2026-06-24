@@ -360,6 +360,7 @@ private:
     bool_t UpdatePingWheelInput(bool_t bImGuiMouse);
     void UpdateCombatInput(bool& outSkipGroundMove);
     void ApplyPlayerDeathInputLock();
+    void RenderViegoMistScreenOverlay();
     void RenderDeathScreenOverlay();
     void FirePlayerAction(const char* actionKey);
     bool IsEnemyOfPlayer(EntityID entity);

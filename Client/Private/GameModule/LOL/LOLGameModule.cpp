@@ -5,6 +5,7 @@
 #include "GameObject/ChampionDef.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
+#include "Manager/Bush_Manager.h"
 #include "Manager/Jungle_Manager.h"
 #include "Manager/Minion_Manager.h"
 #include "Manager/Structure_Manager.h"
@@ -37,6 +38,7 @@ bool_t CLOLGameModule::InitializeClient(const GameLaunchConfig& config)
 	CStructure_Manager::Get()->Initialize(nullptr);
 	CJungle_Manager::Get()->Initialize(nullptr);
 	CMinion_Manager::Get()->Initialize(nullptr);
+	CBush_Manager::Get()->Initialize(nullptr);
 
 	BootstrapChampionModules();
 	RegisterAllLegacy();
@@ -53,6 +55,7 @@ void CLOLGameModule::ShutdownClient()
 
 	CJungle_Manager::Get()->Shutdown();
 	CMinion_Manager::Get()->Shutdown();
+	CBush_Manager::Get()->Shutdown();
 	CStructure_Manager::Get()->Shutdown();
 
 	m_pGameMode.reset();

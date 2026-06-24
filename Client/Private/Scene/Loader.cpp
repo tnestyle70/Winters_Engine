@@ -13,6 +13,7 @@
 #include "Scene/InGameRosterSpawner.h"
 #include "Scene/LobbyRosterHelpers.h"
 
+#include <algorithm>
 #include <chrono>
 #include <thread>
 
@@ -45,11 +46,15 @@ std::unique_ptr<CLoader> CLoader::Create(eSceneID eNextSceneID, SceneFactory pFa
     pInstance->m_eNextSceneID = eNextSceneID;
     pInstance->m_pFactory = std::move(pFactory);
     pInstance->m_LoadContext = CGameInstance::Get()->Get_GameContext();
-    pInstance->m_pCounter = std::make_unique<CJobCounter>();
 
     if (eNextSceneID == eSceneID::InGame)
+    {
         Register_Blueprints_InGame();
+        pInstance->PrepareMainThreadInGameLoad();
+        return pInstance;
+    }
 
+    pInstance->m_pCounter = std::make_unique<CJobCounter>();
     CLoader* pRaw = pInstance.get();
     if (CJobSystem* pJS = CGameInstance::Get()->Get_JobSystem())
         pJS->Submit([pRaw]() {pRaw->RunLoadJob(); }, pInstance->m_pCounter.get());
@@ -70,6 +75,42 @@ CLoader::~CLoader()
             while (!m_bFinished.load())
                 std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
+    }
+}
+
+void CLoader::TickMainThreadLoad()
+{
+    if (!m_bMainThreadLoad || m_bFinished.load())
+        return;
+
+    if (m_iNextLoadStep >= m_LoadSteps.size())
+    {
+        SetProgress(1.f);
+        m_bFinished.store(true);
+        return;
+    }
+
+    const LoadStep& step = m_LoadSteps[m_iNextLoadStep++];
+    switch (step.eType)
+    {
+    case eLoadStepType::FxDirectory:
+        CFxCuePlayer::PreloadDirectory(step.strTexturePath.c_str());
+        break;
+    case eLoadStepType::Model:
+        PreloadModel(step.strModelPath.c_str(), 0.f);
+        break;
+    case eLoadStepType::Texture:
+        PreloadTexture(step.strTexturePath.c_str(), 0.f);
+        break;
+    default:
+        break;
+    }
+
+    SetProgress(step.fProgressAfter);
+    if (m_iNextLoadStep >= m_LoadSteps.size())
+    {
+        SetProgress(1.f);
+        m_bFinished.store(true);
     }
 }
 
@@ -112,16 +153,63 @@ void CLoader::Ready_For_BanPick()
 
 void CLoader::Ready_For_InGame()
 {
-    PreloadInGameAssets();
+    PrepareMainThreadInGameLoad();
 }
 
-void CLoader::PreloadInGameAssets()
+void CLoader::PrepareMainThreadInGameLoad()
 {
+    m_bMainThreadLoad = true;
+    m_LoadSteps.clear();
+    m_iNextLoadStep = 0;
+    m_bFinished.store(false);
     SetProgress(0.05f);
-    PreloadModel(kSummonersRiftMapModelPath, 0.15f);
 
-    CFxCuePlayer::PreloadDirectory(L"Data/LoL/FX");
-    SetProgress(0.30f);
+    LoadStep mapStep{};
+    mapStep.eType = eLoadStepType::Model;
+    mapStep.strModelPath = kSummonersRiftMapModelPath;
+    mapStep.fProgressAfter = 0.15f;
+    m_LoadSteps.push_back(std::move(mapStep));
+
+    LoadStep fxStep{};
+    fxStep.eType = eLoadStepType::FxDirectory;
+    fxStep.strTexturePath = L"Data/LoL/FX";
+    fxStep.fProgressAfter = 0.30f;
+    m_LoadSteps.push_back(std::move(fxStep));
+
+    const size_t championStepBegin = m_LoadSteps.size();
+    auto appendChampionAssets = [this](eChampion eChampionId)
+    {
+        const ChampionDef* pDef = FindLoaderChampionDef(eChampionId);
+        if (!pDef)
+            return;
+
+        if (pDef->fbxPath && pDef->fbxPath[0] != '\0')
+        {
+            LoadStep step{};
+            step.eType = eLoadStepType::Model;
+            step.strModelPath = pDef->fbxPath;
+            m_LoadSteps.push_back(std::move(step));
+        }
+
+        if (pDef->defaultTexturePath && pDef->defaultTexturePath[0] != L'\0')
+        {
+            LoadStep step{};
+            step.eType = eLoadStepType::Texture;
+            step.strTexturePath = pDef->defaultTexturePath;
+            m_LoadSteps.push_back(std::move(step));
+        }
+
+        for (u32_t i = 0; i < kChampionTextureSlotMax; ++i)
+        {
+            if (!pDef->texturePath[i] || pDef->texturePath[i][0] == L'\0')
+                continue;
+
+            LoadStep step{};
+            step.eType = eLoadStepType::Texture;
+            step.strTexturePath = pDef->texturePath[i];
+            m_LoadSteps.push_back(std::move(step));
+        }
+    };
 
     u32_t iLoadableSlotCount = 0;
     for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
@@ -137,22 +225,35 @@ void CLoader::PreloadInGameAssets()
             ? m_LoadContext.SelectedChampion
             : eChampion::EZREAL;
 
-        PreloadChampionAssets(eFallbackChampion);
-        PreloadChampionAssets(CInGameRosterSpawner::ResolvePracticeBotChampion());
-        SetProgress(0.95f);
-        return;
+        appendChampionAssets(eFallbackChampion);
+        appendChampionAssets(CInGameRosterSpawner::ResolvePracticeBotChampion());
     }
-
-    const f32_t fSlotStep = 0.65f / static_cast<f32_t>(iLoadableSlotCount);
-    for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
+    else
     {
-        const GameRosterSlot& slot = m_LoadContext.Roster[i];
-        if (!IsSlotOccupied(slot) || !IsLoadableChampion(slot.champion))
-            continue;
+        for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
+        {
+            const GameRosterSlot& slot = m_LoadContext.Roster[i];
+            if (!IsSlotOccupied(slot) || !IsLoadableChampion(slot.champion))
+                continue;
 
-        PreloadChampionAssets(slot.champion);
-        SetProgress(m_fProgress.load() + fSlotStep);
+            appendChampionAssets(slot.champion);
+        }
     }
+
+    const size_t championStepCount = m_LoadSteps.size() - championStepBegin;
+    if (championStepCount > 0)
+    {
+        for (size_t i = 0; i < championStepCount; ++i)
+        {
+            const f32_t t = static_cast<f32_t>(i + 1) /
+                static_cast<f32_t>(championStepCount);
+            m_LoadSteps[championStepBegin + i].fProgressAfter =
+                (std::min)(0.95f, 0.30f + 0.65f * t);
+        }
+    }
+
+    if (m_LoadSteps.empty())
+        m_bFinished.store(true);
 }
 
 void CLoader::PreloadChampionAssets(eChampion eChampionId)

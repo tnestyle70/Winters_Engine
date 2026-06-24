@@ -59,6 +59,16 @@ void CSession_Manager::OnDisconnect(u32_t sessionId)
     ReapClosingSessions();
 }
 
+void CSession_Manager::OnIoDisconnect(u32_t sessionId)
+{
+    auto pSession = Find(sessionId);
+    if (pSession)
+        pSession->CompletePendingIo();
+
+    OnDisconnect(sessionId);
+    ReapClosingSessions();
+}
+
 void CSession_Manager::OnRecvComplete(u32_t sessionId, const u8_t* bytes, u32_t len)
 {
     auto pSession = Find(sessionId);

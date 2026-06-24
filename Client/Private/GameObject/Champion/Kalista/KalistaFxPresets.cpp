@@ -20,6 +20,10 @@ namespace
         L"Client/Bin/Resource/Texture/FX/Kalista/kalista_base_e_spear_glow.png";
     constexpr const wchar_t* kPathERendWispAtlasTex =
         L"Client/Bin/Resource/Texture/Character/Kalista/particles/kalista_base_q_precast_wisps.png";
+    constexpr const wchar_t* kPathWSentinelAvatarTex =
+        L"Client/Bin/Resource/Texture/Character/Kalista/particles/kalista_base_w_avatar.png";
+    constexpr const wchar_t* kPathWSentinelViewConeTex =
+        L"Client/Bin/Resource/Texture/Character/Kalista/particles/kalista_base_w_viewcone.png";
 }
 
 EntityID KalistaFx::SpawnQSpear(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
@@ -108,4 +112,58 @@ void KalistaFx::SpawnEExplode(CWorld& world, EntityID target, f32_t fLifetime)
     fx.fAtlasFps = tuning.eRendWispAtlasFps;
     fx.bAtlasLoop = false;
     CFxSystem::Spawn(world, fx);
+}
+
+void KalistaFx::SpawnWSentinelIdle(CWorld& world, EntityID sentinel,
+    const Vec3& vForward, f32_t fLifetime,
+    EntityID* pOutAvatarFx,
+    EntityID* pOutConeFx)
+{
+    if (sentinel == NULL_ENTITY)
+        return;
+
+    const Vec3 forward = WintersMath::NormalizeXZ(
+        vForward,
+        Vec3{ 0.f, 0.f, 1.f },
+        0.0001f);
+    const f32_t lifetime = fLifetime > 0.1f ? fLifetime : 0.1f;
+
+    FxBillboardComponent avatar{};
+    avatar.attachTo = sentinel;
+    avatar.vAttachOffset = { 0.f, 1.25f, 0.f };
+    avatar.texturePath = kPathWSentinelAvatarTex;
+    avatar.fWidth = 1.05f;
+    avatar.fHeight = 1.35f;
+    avatar.bBillboard = true;
+    avatar.renderType = eFxRenderType::Billboard;
+    avatar.fLifetime = lifetime;
+    avatar.vColor = { 0.76f, 0.86f, 0.92f, 0.88f };
+    avatar.blendMode = eBlendPreset::AlphaBlend;
+    avatar.depthMode = eFxDepthMode::DepthTestWriteOff;
+    avatar.fFadeIn = 0.08f;
+    avatar.fFadeOut = 0.35f;
+    avatar.fAlphaClip = 0.02f;
+    const EntityID avatarFx = CFxSystem::Spawn(world, avatar);
+    if (pOutAvatarFx)
+        *pOutAvatarFx = avatarFx;
+
+    FxBillboardComponent cone{};
+    cone.attachTo = sentinel;
+    cone.vAttachOffset = { forward.x * 4.2f, 0.055f, forward.z * 4.2f };
+    cone.texturePath = kPathWSentinelViewConeTex;
+    cone.renderType = eFxRenderType::GroundDecal;
+    cone.fWidth = 8.4f;
+    cone.fHeight = 8.4f;
+    cone.fYaw = std::atan2f(forward.x, forward.z);
+    cone.bBillboard = false;
+    cone.fLifetime = lifetime;
+    cone.vColor = { 0.62f, 0.68f, 0.72f, 0.34f };
+    cone.blendMode = eBlendPreset::AlphaBlend;
+    cone.depthMode = eFxDepthMode::DepthTestWriteOff;
+    cone.fFadeIn = 0.08f;
+    cone.fFadeOut = 0.35f;
+    cone.fAlphaClip = 0.02f;
+    const EntityID coneFx = CFxSystem::Spawn(world, cone);
+    if (pOutConeFx)
+        *pOutConeFx = coneFx;
 }

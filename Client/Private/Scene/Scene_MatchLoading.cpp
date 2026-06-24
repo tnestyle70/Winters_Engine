@@ -59,6 +59,9 @@ void CScene_MatchLoading::OnUpdate(f32_t dt)
 
 	m_fElapsed += dt;
 
+	if (m_pLoader && !m_pLoader->IsFinished())
+		m_pLoader->TickMainThreadLoad();
+
 	if (bNetworkLoading)
 	{
 		session.Pump();

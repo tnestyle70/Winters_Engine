@@ -2554,8 +2554,47 @@ void CUI_Manager::DrawGameContextHUD(ImDrawList* pDraw)
     const ImU32 RedColor = IM_COL32(245, 104, 104, 255);
     const ImU32 TextColor = IM_COL32(238, 224, 177, 255);
 
+    u16_t iBlueKills = m_GameContextHUD.iBlueKills;
+    u16_t iRedKills = m_GameContextHUD.iRedKills;
+    u16_t iLocalKills = m_GameContextHUD.iLocalKills;
+    u16_t iLocalDeaths = m_GameContextHUD.iLocalDeaths;
+    u16_t iLocalAssists = m_GameContextHUD.iLocalAssists;
+
+    if (m_pWorld)
+    {
+        bool_t bScoreFound = false;
+        m_pWorld->ForEach<MatchScoreComponent>(
+            [&](EntityID, MatchScoreComponent& MatchScore)
+            {
+                if (bScoreFound)
+                    return;
+
+                bScoreFound = true;
+                iBlueKills = MatchScore.Blue.iTotalKills;
+                iRedKills = MatchScore.Red.iTotalKills;
+            });
+
+        bool_t bLocalScoreFound = false;
+        m_pWorld->ForEach<ChampionComponent, LocalPlayerTag>(
+            [&](EntityID Entity, ChampionComponent&, LocalPlayerTag&)
+            {
+                if (bLocalScoreFound ||
+                    !m_pWorld->HasComponent<ChampionScoreComponent>(Entity))
+                {
+                    return;
+                }
+
+                const ChampionScoreComponent& Score =
+                    m_pWorld->GetComponent<ChampionScoreComponent>(Entity);
+                iLocalKills = Score.iKills;
+                iLocalDeaths = Score.iDeaths;
+                iLocalAssists = Score.iAssists;
+                bLocalScoreFound = true;
+            });
+    }
+
     char buffer[32]{};
-    std::snprintf(buffer, sizeof(buffer), "%u", static_cast<u32_t>(m_GameContextHUD.iBlueKills));
+    std::snprintf(buffer, sizeof(buffer), "%u", static_cast<u32_t>(iBlueKills));
     UI_DrawOutlinedText(pDraw, pFont, kFontSize, ImVec2(root.x + 26.f, root.y + 8.f), BlueColor, buffer);
 
     UI_DrawManifestSprite(
@@ -2566,7 +2605,7 @@ void CUI_Manager::DrawGameContextHUD(ImDrawList* pDraw)
         ImVec2(root.x + 79.f, root.y + 26.f),
         1.f);
 
-    std::snprintf(buffer, sizeof(buffer), "%u", static_cast<u32_t>(m_GameContextHUD.iRedKills));
+    std::snprintf(buffer, sizeof(buffer), "%u", static_cast<u32_t>(iRedKills));
     UI_DrawOutlinedText(pDraw, pFont, kFontSize, ImVec2(root.x + 90.f, root.y + 8.f), RedColor, buffer);
 
     UI_DrawManifestSprite(
@@ -2577,9 +2616,9 @@ void CUI_Manager::DrawGameContextHUD(ImDrawList* pDraw)
         ImVec2(root.x + 146.f, root.y + 27.f),
         1.f);
     std::snprintf(buffer, sizeof(buffer), "%u/%u/%u",
-        static_cast<u32_t>(m_GameContextHUD.iLocalKills),
-        static_cast<u32_t>(m_GameContextHUD.iLocalDeaths),
-        static_cast<u32_t>(m_GameContextHUD.iLocalAssists));
+        static_cast<u32_t>(iLocalKills),
+        static_cast<u32_t>(iLocalDeaths),
+        static_cast<u32_t>(iLocalAssists));
     UI_DrawOutlinedText(pDraw, pFont, kSmallFontSize, ImVec2(root.x + 153.f, root.y + 9.f), TextColor, buffer);
 
     UI_DrawManifestSprite(

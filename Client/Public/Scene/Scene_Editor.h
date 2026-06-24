@@ -6,6 +6,7 @@
 #include "Core/CTransform.h"
 #include "ECS/Systems/TransformSystem.h"
 #include "Manager/Navigation/NavGrid.h"
+#include "Manager/Bush_Manager.h"
 
 #include "Map/MapDataFormats.h"
 #include "Manager/Jungle_Manager.h"          // eJungleSub 타입 참조
@@ -57,12 +58,12 @@ private:
     bool  m_bDirty        = false;
 
     // 선택
-    enum class eCategory { Structure, Jungle, MinionWP };
+    enum class eCategory { Structure, Jungle, MinionWP, Bush };
     eCategory m_eSelectedCategory = eCategory::Structure;
     i32_t     m_iSelectedIndex    = -1;
 
     // Palette (Add 모드 + 선택값)
-    enum class eAddMode { Structure, Jungle, MinionWP, NavGrid };
+    enum class eAddMode { Structure, Jungle, MinionWP, NavGrid, Bush };
     eAddMode m_eAddMode = eAddMode::Structure;
 
     Winters::Map::eObjectKind m_PendingStructKind = Winters::Map::eObjectKind::Structure_Turret;
@@ -75,6 +76,14 @@ private:
     // MinionWP 편집 상태
     eMinionTeam m_PendingMinionTeam = eMinionTeam::Blue;
     eMinionWay  m_PendingMinionLane = eMinionWay::Top;
+
+    // Bush placement state
+    u32_t m_PendingBushId = 1;
+    f32_t m_PendingBushRadius = 4.6f;
+    f32_t m_PendingBushWidth = 8.f;
+    f32_t m_PendingBushHeight = 4.f;
+    char  m_szPendingBushAsset[128] =
+        "Client/Bin/Resource/Texture/MAP/output/textures/assets/maps/kitpieces/srx/textures/sru_brush.png";
 
     // 마우스 좌클릭 에지 감지 (GetAsyncKeyState 직접 사용)
     unique_ptr<Engine::CNavGrid> m_pEditorNavGrid;

@@ -27,12 +27,7 @@ public:
     void SetFollowOffset(const Vec3& vOffset) { m_vFollowOffset = vOffset; }
 
     // Follow <-> Free 전환 (F2)
-    void SetFollowMode(bool bFollow)
-    {
-        if (m_bFollowMode != bFollow)
-            m_bFollowInitialized = false;
-        m_bFollowMode = bFollow;
-    }
+    void SetFollowMode(bool bFollow);
     bool IsFollowMode() const { return m_bFollowMode; }
 
     // 바로 플레이어 시점으로 스냅
@@ -68,6 +63,7 @@ private:
     bool_t m_bFollowInitialized = false;
 
     bool m_bFollowMode = true;
+    bool_t m_bFreeCameraMode = false;
     bool m_bFix = false;
     bool m_bF2Check = false;
     bool m_bTabCheck = false;

@@ -37,6 +37,7 @@
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
+#include "Server/Private/Data/LoLGameplayDefinitionPack.h"
 
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/AreaAura/AreaAuraSystem.h"
@@ -307,6 +308,7 @@ namespace
             tc.pEntityMap = &entityMap;
             tc.localPlayer = NULL_ENTITY;
             tc.pWalkable = &walkable;
+            tc.pDefinitions = &ServerData::GetLoLGameplayDefinitionPack();
 
             // Deterministic command script: converge on center, trade attacks and skills.
             for (size_t i = 0; i < champs.size(); ++i)
@@ -442,6 +444,160 @@ namespace
         result.finalHash = finalHash;
         return result;
     }
+
+    TickContext MakeProbeTickContext(
+        u64_t tick,
+        DeterministicRng& rng,
+        EntityIdMap& entityMap,
+        FlatWalkable& walkable)
+    {
+        TickContext tc{};
+        tc.tickIndex = tick;
+        tc.fDt = DeterministicTime::kFixedDt;
+        tc.fSimulatedTimeSec = DeterministicTime::TickToSec(tick);
+        tc.pRng = &rng;
+        tc.pEntityMap = &entityMap;
+        tc.localPlayer = NULL_ENTITY;
+        tc.pWalkable = &walkable;
+        tc.pDefinitions = &ServerData::GetLoLGameplayDefinitionPack();
+        return tc;
+    }
+
+    void TickYoneProbe(CWorld& world, const TickContext& tc)
+    {
+        GameplayStatus::TickStatusEffects(world, tc);
+        CSpellbookFormOverrideSystem::Execute(world, tc);
+        CSkillCooldownSystem::Execute(world, tc);
+        CCombatActionSystem::Execute(world, tc);
+        CMoveSystem::Execute(world, tc);
+        YoneGameSim::Tick(world, tc);
+        CDamageQueueSystem::Execute(world, tc);
+        CStatSystem::Execute(world);
+        CDeathSystem::Execute(world, tc);
+    }
+
+    void TickYoneProbeRange(
+        CWorld& world,
+        u64_t firstTick,
+        u64_t lastTick,
+        DeterministicRng& rng,
+        EntityIdMap& entityMap,
+        FlatWalkable& walkable)
+    {
+        for (u64_t tick = firstTick; tick <= lastTick; ++tick)
+        {
+            TickContext tc = MakeProbeTickContext(tick, rng, entityMap, walkable);
+            TickYoneProbe(world, tc);
+        }
+    }
+
+    f32_t DistanceSqXZLocal(const Vec3& a, const Vec3& b)
+    {
+        const f32_t dx = a.x - b.x;
+        const f32_t dz = a.z - b.z;
+        return dx * dx + dz * dz;
+    }
+
+    bool_t RunYoneEReturnProbe()
+    {
+        CWorld world;
+        DeterministicRng rng(20260624ull);
+        EntityIdMap entityMap;
+        FlatWalkable walkable;
+        auto executor = CDefaultCommandExecutor::Create();
+
+        const EntityID yone = SpawnChampion(world, entityMap, eChampion::YONE, 0, 0);
+        const EntityID target = SpawnChampion(world, entityMap, eChampion::JAX, 1, 5);
+
+        const Vec3 anchor{ 0.f, 0.f, 0.f };
+        const Vec3 targetPos{ 6.f, 0.f, 0.f };
+        world.GetComponent<TransformComponent>(yone).SetPosition(anchor);
+        world.GetComponent<TransformComponent>(target).SetPosition(targetPos);
+
+        auto& ranks = world.GetComponent<SkillRankComponent>(yone);
+        if (!CSkillRankSystem::TryLevelSkill(ranks, static_cast<u8_t>(eSkillSlot::E)))
+        {
+            std::printf("[SimLab][YoneE] FAIL: could not learn E\n");
+            return false;
+        }
+
+        TickContext tick1 = MakeProbeTickContext(1ull, rng, entityMap, walkable);
+        GameCommand eOut{};
+        eOut.kind = eCommandKind::CastSkill;
+        eOut.issuerEntity = yone;
+        eOut.issuedAtTick = tick1.tickIndex;
+        eOut.sequenceNum = 1u;
+        eOut.slot = static_cast<u8_t>(eSkillSlot::E);
+        eOut.targetEntity = target;
+        eOut.groundPos = targetPos;
+        eOut.direction = Vec3{ 1.f, 0.f, 0.f };
+        executor->ExecuteCommand(world, tick1, eOut);
+
+        const auto& stateAfterOut = world.GetComponent<YoneSimComponent>(yone);
+        if (!stateAfterOut.bSoulUnboundActive || stateAfterOut.bReturning)
+        {
+            std::printf("[SimLab][YoneE] FAIL: E out did not enter soul state\n");
+            return false;
+        }
+        if (DistanceSqXZLocal(stateAfterOut.anchorPosition, anchor) > 0.0001f)
+        {
+            std::printf("[SimLab][YoneE] FAIL: E out anchor mismatch\n");
+            return false;
+        }
+
+        TickYoneProbeRange(world, 2ull, 28ull, rng, entityMap, walkable);
+
+        const auto& skillSlot =
+            world.GetComponent<SkillStateComponent>(yone)
+                .slots[static_cast<u8_t>(eSkillSlot::E)];
+        if (skillSlot.currentStage != 1u || skillSlot.stageWindow <= 0.f)
+        {
+            std::printf("[SimLab][YoneE] FAIL: E stage window closed before recast\n");
+            return false;
+        }
+
+        TickContext recastTick = MakeProbeTickContext(29ull, rng, entityMap, walkable);
+        GameCommand eReturn{};
+        eReturn.kind = eCommandKind::CastSkill;
+        eReturn.issuerEntity = yone;
+        eReturn.issuedAtTick = recastTick.tickIndex;
+        eReturn.sequenceNum = 2u;
+        eReturn.slot = static_cast<u8_t>(eSkillSlot::E);
+        eReturn.itemId = 2u;
+        eReturn.groundPos = anchor;
+        eReturn.direction = Vec3{ -1.f, 0.f, 0.f };
+        executor->ExecuteCommand(world, recastTick, eReturn);
+
+        const auto& stateAfterRecast = world.GetComponent<YoneSimComponent>(yone);
+        if (!stateAfterRecast.bSoulUnboundActive || !stateAfterRecast.bReturning)
+        {
+            std::printf("[SimLab][YoneE] FAIL: E stage-2 did not start return\n");
+            return false;
+        }
+
+        TickYoneProbeRange(world, 30ull, 70ull, rng, entityMap, walkable);
+
+        const auto& stateAfterReturn = world.GetComponent<YoneSimComponent>(yone);
+        const Vec3 finalPos = world.GetComponent<TransformComponent>(yone).GetPosition();
+        if (stateAfterReturn.bSoulUnboundActive ||
+            stateAfterReturn.bReturning ||
+            stateAfterReturn.soulTimerSec > 0.f)
+        {
+            std::printf("[SimLab][YoneE] FAIL: return did not clear soul state\n");
+            return false;
+        }
+        if (DistanceSqXZLocal(finalPos, anchor) > 0.0001f)
+        {
+            std::printf("[SimLab][YoneE] FAIL: return did not reach anchor\n");
+            return false;
+        }
+
+        std::printf("[SimLab][YoneE] PASS: stage-2 return reached anchor=(%.2f,%.2f,%.2f)\n",
+            anchor.x,
+            anchor.y,
+            anchor.z);
+        return true;
+    }
 }
 
 int main(int argc, char** argv)
@@ -455,11 +611,13 @@ int main(int argc, char** argv)
 
     RegisterAllChampionHooks();
 
+    const bool_t bYoneEReturnProbePass = RunYoneEReturnProbe();
+
     const MatchResult runA = RunMatch(seed, tickCount);
     const MatchResult runB = RunMatch(seed, tickCount);
     const MatchResult runC = RunMatch(seed + 1, tickCount);
 
-    bool bPass = true;
+    bool bPass = bYoneEReturnProbePass;
 
     if (runA.finalHash != runB.finalHash)
     {

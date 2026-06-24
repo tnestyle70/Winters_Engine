@@ -36,6 +36,11 @@ Cross-agent operating rules for Winters. Keep the behavioral core aligned with `
 - Replace stale rules instead of appending around them.
 - Keep examples short. Long examples belong in task docs, tests, or skills.
 
+## Plan Document Placement
+- When asked for a design guide, implementation guide, handoff plan, or architecture plan, create a dated Markdown file under `.md/plan/YYYY-MM-DD_<TOPIC>.md` unless the user names a more specific plan subfolder.
+- Start the document with `Session - ...`, include current code evidence, ownership boundaries, staged direction, and verification/handoff notes.
+- Keep `AGENTS.md` as the rule pointer only; put detailed design guidance in the dated plan document.
+
 ## Andrej Karpathy Coding Guardrail
 Behavioral guidelines to reduce common LLM coding mistakes. Apply before coding unless the task is truly trivial. **Tradeoff:** caution over speed; use judgment for tiny edits.
 

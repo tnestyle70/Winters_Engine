@@ -10,6 +10,7 @@
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/KalistaSentinelComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedPoseComponent.h"
@@ -23,6 +24,7 @@
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/EffectAnchorSubtype.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/Schemas/Generated/cpp/Snapshot_generated.h"
@@ -198,8 +200,21 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             const auto& soul = world.GetComponent<ViegoSoulComponent>(entity);
             championId = static_cast<u8_t>(soul.champion);
             subtype = static_cast<u16_t>(soul.champion);
-            entityKind = Shared::Schema::EntityKind::Champion;
+            entityKind = Shared::Schema::EntityKind::EffectAnchor;
             stateFlags |= kSnapshotStateViegoSoulFlag;
+        }
+
+        if (world.HasComponent<KalistaSentinelComponent>(entity))
+        {
+            const auto& sentinel = world.GetComponent<KalistaSentinelComponent>(entity);
+            championId = static_cast<u8_t>(eChampion::KALISTA);
+            baseChampionId = championId;
+            visualChampionId = championId;
+            skillChampionId = championId;
+            team = static_cast<u8_t>(sentinel.team);
+            subtype = EffectAnchorSubtype::KalistaWSentinel;
+            ownerNet = entityMap.ToNet(sentinel.owner);
+            entityKind = Shared::Schema::EntityKind::EffectAnchor;
         }
 
         if (world.HasComponent<FormOverrideComponent>(entity))

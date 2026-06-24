@@ -21,6 +21,7 @@
 #include "Manager/Jungle_Manager.h"
 #include "Manager/Minion_Manager.h"
 #include "Manager/AmbientProp_Manager.h"
+#include "Manager/Bush_Manager.h"
 #include "Map/MapDataIO.h"
 #include "Core/CInput.h"
 #include "WintersPaths.h"
@@ -424,6 +425,7 @@ bool CScene_InGame::OnEnter()
     CStructure_Manager::Get()->Initialize(&m_World);
     CJungle_Manager::Get()->Initialize(&m_World);
     CMinion_Manager::Get()->Initialize(&m_World);
+    CBush_Manager::Get()->Initialize(&m_World);
     CMinion_Manager::Get()->PrewarmNetworkVisualResources();
 
     wchar_t stagePath[MAX_PATH] = {};
@@ -464,11 +466,8 @@ bool CScene_InGame::OnEnter()
     Winters::DevSmoke::Log("[InGameBootstrap] CreateECSEntities done player=%u total=%u\n",
         static_cast<u32_t>(m_PlayerEntity),
         m_World.GetEntityCount());
-    if (!SeedMap11BrushesFromBinaryForBootstrap(m_World) &&
-        !SeedMap11BrushesFromResourceForBootstrap(m_World))
-    {
-        SeedPracticeBushesForBootstrap(m_World);
-    }
+    Winters::DevSmoke::Log("[InGameBootstrap] Stage bushes=%u\n",
+        CBush_Manager::Get()->Get_Count());
     m_BushIndex.Build(m_World);
     if (m_pVisionSystem)
         m_pVisionSystem->ForceRebuildNextFrame();
@@ -990,6 +989,7 @@ void CScene_InGame::OnExit()
     m_pAttackRangePlane.reset();
     CMinion_Manager::Get()->Set_Enabled(false);
     CMinion_Manager::Get()->Shutdown();
+    CBush_Manager::Get()->Shutdown();
     CJungle_Manager::Get()->Shutdown();
     CStructure_Manager::Get()->Shutdown();
 }

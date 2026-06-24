@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Globalization;
 using LeagueToolkit.Core.Meta;
+using LeagueToolkit.Core.Wad;
 
 static IEnumerable<(uint nameHash, string value)> FindStrings(BinTreeProperty property)
 {
@@ -199,6 +200,57 @@ static IEnumerable<(string name, System.Numerics.Matrix4x4 m)> FindNamedTransfor
             }
         }
     }
+}
+
+if (args.Length >= 3 && args[0].Equals("wad-has", StringComparison.OrdinalIgnoreCase))
+{
+    using var wad = new WadFile(args[1]);
+    foreach (var chunkPath in args.Skip(2))
+    {
+        try
+        {
+            _ = wad.FindChunk(chunkPath);
+            Console.WriteLine($"FOUND {chunkPath}");
+        }
+        catch
+        {
+            Console.WriteLine($"MISS {chunkPath}");
+        }
+    }
+
+    return;
+}
+
+if (args.Length >= 4 && args[0].Equals("wad-extract", StringComparison.OrdinalIgnoreCase))
+{
+    using var wad = new WadFile(args[1]);
+    var outRoot = Path.GetFullPath(args[2]);
+    Directory.CreateDirectory(outRoot);
+
+    foreach (var chunkPath in args.Skip(3))
+    {
+        WadChunk chunk;
+        try
+        {
+            chunk = wad.FindChunk(chunkPath);
+        }
+        catch
+        {
+            Console.WriteLine($"MISS {chunkPath}");
+            continue;
+        }
+
+        var relativePath = chunkPath.Replace('/', Path.DirectorySeparatorChar);
+        var outPath = Path.Combine(outRoot, relativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(outPath) ?? outRoot);
+
+        using var input = wad.OpenChunk(chunk);
+        using var output = File.Create(outPath);
+        input.CopyTo(output);
+        Console.WriteLine($"WROTE {outPath}");
+    }
+
+    return;
 }
 
 if (args.Length >= 2 && args[0].Equals("levelprops", StringComparison.OrdinalIgnoreCase))

@@ -1440,22 +1440,18 @@ namespace
         auto& viego = world.HasComponent<ViegoSimComponent>(cmd.issuerEntity)
             ? world.GetComponent<ViegoSimComponent>(cmd.issuerEntity)
             : world.AddComponent<ViegoSimComponent>(cmd.issuerEntity, ViegoSimComponent{});
-        viego.bPossessionActive = true;
-        viego.possessedTarget = soul.deadChampion;
+        viego.bPossessionActive = false;
+        viego.bPossessionPending = true;
+        viego.pendingPossessionChampion = soul.champion;
+        viego.pendingPossessedTarget = soul.deadChampion;
+        viego.possessionApplyDelaySec = 0.72f;
+        viego.possessionApplyTimerSec = viego.possessionApplyDelaySec;
+        viego.possessedTarget = NULL_ENTITY;
         viego.possessionDurationSec = 5.f;
-        viego.possessionTimerSec = 5.f;
-
-        FormOverrideComponent form{};
-        form.visualChampion = soul.champion;
-        form.skillChampion = soul.champion;
-        form.skillSlotMask = FormOverrideComponent{}.skillSlotMask;
-        form.fRemainingSec = 5.f;
-        form.bActive = true;
+        viego.possessionTimerSec = 0.f;
 
         if (world.HasComponent<FormOverrideComponent>(cmd.issuerEntity))
-            world.GetComponent<FormOverrideComponent>(cmd.issuerEntity) = form;
-        else
-            world.AddComponent<FormOverrideComponent>(cmd.issuerEntity, form);
+            world.RemoveComponent<FormOverrideComponent>(cmd.issuerEntity);
 
         StartCommandActionState(world, cmd.issuerEntity, eActionStateId::ViegoConsumeSoul, tc);
 

@@ -14,6 +14,12 @@ struct VisionSourceComponent
     f32_t  sightRangeInBush = 0.f;
 };
 
+struct VisionConeComponent
+{
+    Vec3 forward{ 0.f, 0.f, 1.f };
+    f32_t halfAngleCos = 0.8660254f;
+};
+
 struct VisibilityComponent
 {
     u8_t teamVisibilityMask = 0;

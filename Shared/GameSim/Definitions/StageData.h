@@ -13,6 +13,7 @@ namespace Winters::Map
         std::vector<StructureEntry> structures;
         std::vector<JungleEntry> jungles;
         std::vector<MinionWaypointEntry> minionWaypoints;
+        std::vector<BushEntry> bushes;
 
         void Clear()
         {
@@ -20,6 +21,7 @@ namespace Winters::Map
             structures.clear();
             jungles.clear();
             minionWaypoints.clear();
+            bushes.clear();
         }
     };
 
@@ -93,6 +95,18 @@ namespace Winters::Map
             u32_t waypointCount = 0;
             if (!ReadStageBlockCount(pFile, waypointCount) ||
                 !ReadStageEntries(pFile, waypointCount, outData.minionWaypoints))
+            {
+                std::fclose(pFile);
+                outData.Clear();
+                return false;
+            }
+        }
+
+        if (header.version >= 5)
+        {
+            u32_t bushCount = 0;
+            if (!ReadStageBlockCount(pFile, bushCount) ||
+                !ReadStageEntries(pFile, bushCount, outData.bushes))
             {
                 std::fclose(pFile);
                 outData.Clear();

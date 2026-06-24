@@ -582,6 +582,48 @@ namespace
                 eCombatActionKind::BasicAttack;
     }
 
+    bool_t IsMoveBlockingSkillAction(eActionStateId actionId)
+    {
+        switch (actionId)
+        {
+        case eActionStateId::SkillQ:
+        case eActionStateId::SkillW:
+        case eActionStateId::SkillE:
+        case eActionStateId::SkillR:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool_t IsMoveLockedBySkillAction(CWorld& world, const TickContext& tc, EntityID entity)
+    {
+        if (entity == NULL_ENTITY ||
+            !world.HasComponent<ActionStateComponent>(entity))
+        {
+            return false;
+        }
+
+        const auto& action = world.GetComponent<ActionStateComponent>(entity);
+        const auto actionId = static_cast<eActionStateId>(action.actionId);
+        if (!IsMoveBlockingSkillAction(actionId))
+            return false;
+        if (tc.tickIndex < action.startTick)
+            return false;
+
+        const eChampion champion = ResolveChampion(world, entity);
+        const u8_t slot = SkillSlotFromActionId(actionId);
+        const u8_t stage = action.stage == 0u ? 1u : action.stage;
+        const u64_t lockTicks = GameplayDefinitionQuery::ResolveSkillActionLockTicks(
+            world,
+            entity,
+            tc,
+            champion,
+            slot,
+            stage);
+        return (tc.tickIndex - action.startTick) < lockTicks;
+    }
+
     bool_t ConsumeMoveForCombatAction(CWorld& world, const TickContext& tc, const GameCommand& cmd)
     {
         if (!HasActiveBasicAttackAction(world, cmd.issuerEntity))
@@ -1584,12 +1626,18 @@ void CDefaultCommandExecutor::HandleMove(CWorld& world, const TickContext& tc,
     if (!GameplayStateQuery::CanMove(world, cmd.issuerEntity))
         return;
 
+    if (TryConsumeKalistaPassiveDashMove(world, tc, cmd))
+        return;
+
+    if (IsMoveLockedBySkillAction(world, tc, cmd.issuerEntity))
+    {
+        ClearMoveTarget(world, cmd.issuerEntity);
+        return;
+    }
+
     CancelRecall(world, cmd.issuerEntity);
 
     ClearAttackChase(world, cmd.issuerEntity);
-
-    if (TryConsumeKalistaPassiveDashMove(world, tc, cmd))
-        return;
 
     if (ConsumeMoveForCombatAction(world, tc, cmd))
         return;

@@ -447,6 +447,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
     const bool bActionLockedBefore = (m_fLastActionTimer > 0.f);
     if (m_fLastActionTimer > 0.f) m_fLastActionTimer -= dt;
+    if (m_fNetworkMoveInputLockTimer > 0.f) m_fNetworkMoveInputLockTimer -= dt;
 
     if (m_fEndTransitionTimer > 0.f)
     {

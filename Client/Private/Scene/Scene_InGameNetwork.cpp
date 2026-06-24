@@ -176,6 +176,21 @@ namespace
             id == eActionStateId::ViegoConsumeSoul;
     }
 
+    bool_t IsMoveBlockingNetworkAction(u16_t actionId)
+    {
+        switch (static_cast<eActionStateId>(actionId))
+        {
+        case eActionStateId::SkillQ:
+        case eActionStateId::SkillW:
+        case eActionStateId::SkillE:
+        case eActionStateId::SkillR:
+        case eActionStateId::ViegoConsumeSoul:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     u8_t NetworkActionToSkillSlot(u16_t actionId)
     {
         switch (static_cast<eActionStateId>(actionId))
@@ -795,6 +810,13 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                 m_World.HasComponent<ActionStateComponent>(e)
                 ? &m_World.GetComponent<ActionStateComponent>(e)
                 : nullptr;
+            NetworkActionAnimationState& actionState = m_NetworkActionAnimStates[e];
+            const bool_t bMoveBlockedByNetworkAction =
+                pAction &&
+                pAction->sequence != 0u &&
+                IsMoveBlockingNetworkAction(pAction->actionId) &&
+                (actionState.bActionActive ||
+                    actionState.actionSeq != pAction->sequence);
 
             const f32_t dx = pos.x - prevIt->second.x;
             const f32_t dz = pos.z - prevIt->second.z;
@@ -813,8 +835,10 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                 if (moveGrace < 0.f)
                     moveGrace = 0.f;
             }
+            if (bMoveBlockedByNetworkAction)
+                moveGrace = 0.f;
 
-            bPositionMoving = (moveGrace > 0.f);
+            bPositionMoving = !bMoveBlockedByNetworkAction && (moveGrace > 0.f);
             const bool_t bPoseRequestsIdle =
                 pPose && pPose->poseId == static_cast<u16_t>(ePoseStateId::Idle);
             const bool_t bPoseRequestsDeath =
@@ -822,7 +846,10 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             if (bPoseRequestsDeath)
                 moveGrace = 0.f;
 
-            bool_t bMoving = !bPoseRequestsDeath && (bServerMoving || bPositionMoving);
+            bool_t bMoving =
+                !bPoseRequestsDeath &&
+                !bMoveBlockedByNetworkAction &&
+                (bServerMoving || bPositionMoving);
             if (bPoseRequestsIdle && !bServerMoving && !bPositionMoving)
                 bMoving = false;
 
@@ -831,7 +858,6 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             if (e == m_PlayerEntity)
                 m_bMoving = bMoving;
 
-            NetworkActionAnimationState& actionState = m_NetworkActionAnimStates[e];
             if (bPoseRequestsDeath)
             {
                 const u32_t deathSeq = pAction &&

@@ -327,6 +327,7 @@ private:
 
     const char* m_pLastActionLabel = "(none)";
     f32_t m_fLastActionTimer = 0.f;
+    f32_t m_fNetworkMoveInputLockTimer = 0.f;
     bool  m_bShowCombatDebug = false;
     bool  m_bShowMapTuner = false;
 
@@ -377,6 +378,8 @@ private:
     void UpdateLocalPostAnimation();
     bool_t CanResumeBaseAnimation() const;
     bool_t IsLocalActionProtected() const;
+    bool_t IsPlayerNetworkMoveInputLocked() const;
+    void ArmNetworkMoveInputLock(const SkillGameAtomBundle& gameData, const SkillDef& legacyDef, u8_t skillStage);
     void ResetLocalSkillRuntimeState();
     bool_t TryQueueLocalPassiveDashFromCursor();
     bool_t TriggerNetworkPassiveDashFromAction(u16_t actionId, u32_t actionSeq, bool_t bServerDashLikely);

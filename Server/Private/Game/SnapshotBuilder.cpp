@@ -33,6 +33,69 @@
 #include <cstdio>
 #include <vector>
 
+namespace
+{
+    bool_t IsMoveBlockingSnapshotAction(eActionStateId actionId)
+    {
+        switch (actionId)
+        {
+        case eActionStateId::SkillQ:
+        case eActionStateId::SkillW:
+        case eActionStateId::SkillE:
+        case eActionStateId::SkillR:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    u8_t ResolveMoveBlockingActionSlot(eActionStateId actionId)
+    {
+        switch (actionId)
+        {
+        case eActionStateId::SkillQ:
+            return static_cast<u8_t>(eSkillSlot::Q);
+        case eActionStateId::SkillW:
+            return static_cast<u8_t>(eSkillSlot::W);
+        case eActionStateId::SkillE:
+            return static_cast<u8_t>(eSkillSlot::E);
+        case eActionStateId::SkillR:
+            return static_cast<u8_t>(eSkillSlot::R);
+        default:
+            return static_cast<u8_t>(eSkillSlot::BasicAttack);
+        }
+    }
+
+    eChampion ResolveSnapshotChampion(CWorld& world, EntityID entity)
+    {
+        if (world.HasComponent<ChampionComponent>(entity))
+            return world.GetComponent<ChampionComponent>(entity).id;
+        if (world.HasComponent<StatComponent>(entity))
+            return world.GetComponent<StatComponent>(entity).championId;
+        return eChampion::NONE;
+    }
+
+    bool_t IsMoveLockedBySnapshotAction(CWorld& world, EntityID entity, u64_t serverTick)
+    {
+        if (!world.HasComponent<ReplicatedActionComponent>(entity))
+            return false;
+
+        const auto& action = world.GetComponent<ReplicatedActionComponent>(entity);
+        const auto actionId = static_cast<eActionStateId>(action.actionId);
+        if (!IsMoveBlockingSnapshotAction(actionId))
+            return false;
+        if (serverTick < action.startTick)
+            return false;
+
+        const eChampion champion = ResolveSnapshotChampion(world, entity);
+        const u8_t slot = ResolveMoveBlockingActionSlot(actionId);
+        const u8_t stage = action.stage == 0u ? 1u : action.stage;
+        const u64_t lockTicks =
+            GetDefaultChampionSkillActionLockTicks(champion, slot, stage);
+        return (serverTick - action.startTick) < lockTicks;
+    }
+}
+
 std::unique_ptr<CSnapshotBuilder> CSnapshotBuilder::Create()
 {
     return std::unique_ptr<CSnapshotBuilder>(new CSnapshotBuilder());
@@ -363,7 +426,8 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             actionStage = action.stage;
         }
 
-        if (world.HasComponent<MoveTargetComponent>(entity) &&
+        if (!IsMoveLockedBySnapshotAction(world, entity, serverTick) &&
+            world.HasComponent<MoveTargetComponent>(entity) &&
             world.GetComponent<MoveTargetComponent>(entity).bHasTarget)
         {
             stateFlags |= kSnapshotStateMovingFlag;

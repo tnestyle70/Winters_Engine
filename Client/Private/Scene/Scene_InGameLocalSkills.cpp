@@ -219,6 +219,21 @@ namespace
         return legacyDef.lockDurationSec;
     }
 
+    bool_t IsMoveBlockingNetworkActionId(u16_t actionId)
+    {
+        switch (static_cast<eActionStateId>(actionId))
+        {
+        case eActionStateId::SkillQ:
+        case eActionStateId::SkillW:
+        case eActionStateId::SkillE:
+        case eActionStateId::SkillR:
+        case eActionStateId::ViegoConsumeSoul:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     SkillDef BuildLegacyHookBridge(
         const SkillGameAtomBundle& gameData,
         const SkillVisualData& visualData,
@@ -718,6 +733,39 @@ bool_t CScene_InGame::IsLocalActionProtected() const
         m_bKalistaPassiveDashActive;
 }
 
+bool_t CScene_InGame::IsPlayerNetworkMoveInputLocked() const
+{
+    if (!m_bNetworkAuthoritativeGameplay)
+        return false;
+
+    if (m_fNetworkMoveInputLockTimer > 0.f)
+        return true;
+
+    if (m_PlayerEntity == NULL_ENTITY)
+        return false;
+
+    const auto it = m_NetworkActionAnimStates.find(m_PlayerEntity);
+    return it != m_NetworkActionAnimStates.end() &&
+        it->second.bActionActive &&
+        IsMoveBlockingNetworkActionId(it->second.actionId);
+}
+
+void CScene_InGame::ArmNetworkMoveInputLock(
+    const SkillGameAtomBundle& gameData,
+    const SkillDef& legacyDef,
+    u8_t skillStage)
+{
+    if (!m_bNetworkAuthoritativeGameplay)
+        return;
+
+    if (gameData.slot.slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+        return;
+
+    const f32_t lockSec = ResolveSkillStageLockSec(gameData, legacyDef, skillStage);
+    if (lockSec > 0.f)
+        m_fNetworkMoveInputLockTimer = (std::max)(m_fNetworkMoveInputLockTimer, lockSec);
+}
+
 void CScene_InGame::UpdateLocalPostAnimation()
 {
     if (m_bKalistaPassiveDashAnimActive && !m_bKalistaPassiveDashActive)
@@ -1201,6 +1249,12 @@ bool_t CScene_InGame::IssuePlayerMoveTarget(
 {
     if (IsPlayerDead())
         return false;
+    if (bNetworkActive &&
+        IsPlayerNetworkMoveInputLocked() &&
+        !m_bKalistaPassiveDashMoveCommandPending)
+    {
+        return false;
+    }
 
     Vec3 ground = rawGround;
     Vec3 resolvedGround = ground;
@@ -1403,6 +1457,8 @@ void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t 
     }
 
     const bool_t bActionLocked = (m_fLastActionTimer > 0.f);
+    const bool_t bNetworkMoveInputLocked =
+        bNetworkActive && IsPlayerNetworkMoveInputLocked();
 
     if (m_pPlayerRenderer &&
         (!bNetworkActive || m_bKalistaPassiveDashAnimActive))
@@ -1453,7 +1509,9 @@ void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t 
 
         if (!bImGuiMouse &&
             !bSkipGroundMove &&
-            (bNetworkActive || !bActionLocked) &&
+            (bNetworkActive
+                ? (!bNetworkMoveInputLocked || m_bKalistaPassiveDashMoveCommandPending)
+                : !bActionLocked) &&
             !m_bKalistaPassiveDashActive &&
             !bPassiveDashAnimBlocksMove &&
             bMoveIntent)
@@ -1946,6 +2004,7 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
             RotatePlayerToward(gameData.facing, 2, cmd);
 
         SendNetworkSkillCommand(slot, cmd, 2);
+        ArmNetworkMoveInputLock(gameData, *def, 2);
         if (bRequestedStage2 && !bLocalStage2Ready)
         {
             Winters::DevSmoke::Log(
@@ -1993,6 +2052,7 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
     {
         RotatePlayerToward(gameData.facing, 1, cmd);
         SendNetworkSkillCommand(slot, cmd, 1);
+        ArmNetworkMoveInputLock(gameData, *def, 1);
         if (gameData.stage.stageCount == 2)
         {
             slotState.currentStage = 1;

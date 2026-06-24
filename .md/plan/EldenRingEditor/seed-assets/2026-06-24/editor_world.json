@@ -1,0 +1,31 @@
+{
+  "schema": "winters.world.partition.v1",
+  "name": "EditorSeedWorld",
+  "cellSizeMeters": 64.0,
+  "origin": [0.0, 0.0, 0.0],
+  "gridDim": { "x": 1, "z": 1 },
+  "tileBase": { "x": 0, "z": 0 },
+  "cells": [
+    {
+      "id": "editor_cell_0_0",
+      "coord": { "x": 0, "z": 0 },
+      "boundsMin": [-32.0, -8.0, -32.0],
+      "boundsMax": [32.0, 24.0, 32.0],
+      "file": "editor_seed_cell.json",
+      "instances": [
+        {
+          "name": "EditorSeedRock",
+          "kind": "StaticMesh",
+          "wmesh": "Client/Bin/Resource/EldenRing/Assets/seed.wmesh",
+          "wmat": "",
+          "position": [0.0, 0.0, 0.0],
+          "rotationDeg": [0.0, 0.0, 0.0],
+          "scale": [1.0, 1.0, 1.0],
+          "placeable": true,
+          "required": true,
+          "dataLayer": "Base"
+        }
+      ]
+    }
+  ]
+}

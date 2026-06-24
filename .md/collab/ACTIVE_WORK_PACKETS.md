@@ -25,6 +25,10 @@
 | `2026-06-24_s17_collab_harness_bootstrap` | `Handoff` | Desktop | `main` | `.md/collab/**`, `Tools/Harness/Run-S17RhiValidation.ps1` | `.md/build/2026-06-24_COLLAB_HARNESS_BOOTSTRAP_REPORT.md` |
 | `2026-06-24_yone_bot_ai_collab_pipeline` | `Active` | Desktop | `main` | Bot AI 협업 규칙, Yone audit plan, Bot AI validation harness | `.md/build/2026-06-24_BOT_AI_COLLAB_PIPELINE_REPORT.md` |
 | `2026-06-24_iocp_rhi_thread_ownership_fix` | `Active` | Desktop | `main` | Server IOCP disconnect ownership, MatchLoading RHI thread ownership, validation handoff | `.md/plan/2026-06-24_IOCP_RHI_THREAD_OWNERSHIP_FIX_HANDOFF_PLAN.md` |
+| `2026-06-24_s17_lol_runtime_snapshot_bridge` | `Handoff` | Desktop | `main` | `Client/Private/Scene/Scene_InGameRender.cpp`, RHI snapshot bridge docs/report | `.md/build/2026-06-24_S17_LOL_RUNTIME_SNAPSHOT_BRIDGE_REPORT.md` |
+| `2026-06-24_s17_scene_object_snapshot_bridge` | `Handoff` | Desktop | `main` | `Client/Public/Manager/*_Manager.h`, `Client/Private/Manager/*_Manager.cpp`, `Client/Private/Scene/Scene_InGameRender.cpp`, RHI snapshot bridge docs/report | `.md/build/2026-06-24_S17_SCENE_OBJECT_SNAPSHOT_BRIDGE_REPORT.md` |
+| `2026-06-24_s18_rhi_scene_only_parity_gate` | `Handoff` | Desktop | `main` | `Client/Private/Scene/Scene_InGameRender.cpp`, `Tools/Harness/Run-S17RhiValidation.ps1`, RHI scene-only parity docs/report | `.md/build/2026-06-24_S18_RHI_SCENE_ONLY_PARITY_REPORT.md` |
+| `2026-06-24_elden_editor_validation_panels` | `Active` | Laptop | `main` | `EldenRingEditor/Public/EldenRingEditorScene.h`, `EldenRingEditor/Private/EldenRingEditorScene.cpp`, Elden editor docs/report/seed assets | `.md/build/2026-06-24_ELDEN_EDITOR_VALIDATION_PANELS_REPORT.md` |
 
 ## Packet Template
 

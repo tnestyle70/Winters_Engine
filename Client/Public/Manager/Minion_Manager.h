@@ -30,6 +30,9 @@ public:
     void    Render(const Mat4& matVP, const Vec3& vCameraWorld = Vec3{},
         void* pAmbientOcclusionSRV = nullptr,
         bool_t bIgnoreFogOfWar = false);
+    u32_t   AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot,
+        const Mat4& matVP,
+        bool_t bIgnoreFogOfWar = false);
     void    Clear();
 
     void    Set_Enabled(bool_t b) { m_bEnabled = b; m_fSpawnTimer = 0.f; }

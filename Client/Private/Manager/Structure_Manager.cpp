@@ -138,6 +138,51 @@ void CStructure_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorl
     WINTERS_PROFILE_COUNT("Structure::FowSkipped", fowSkippedCount);
 }
 
+u32_t CStructure_Manager::AppendRenderSnapshotMeshes(
+    RenderWorldSnapshot& snapshot,
+    const Mat4& matViewProj,
+    bool_t bIgnoreFogOfWar)
+{
+    if (!m_pWorld)
+        return 0;
+
+    const u8_t localTeam = UI::QueryLocalTeam(*m_pWorld);
+    uint64_t candidateCount = 0;
+    uint64_t visibleCount = 0;
+    uint64_t fowSkippedCount = 0;
+    u32_t appendedCount = 0;
+
+    m_pWorld->ForEach<StructureComponent, RenderComponent, TransformComponent>(
+        [&](EntityID id, StructureComponent& structure, RenderComponent& rc, TransformComponent& xform)
+        {
+            if (!rc.bVisible || !rc.pRenderer)
+                return;
+
+            ++candidateCount;
+            if (!UI::IsRenderableForLocal(*m_pWorld, id, localTeam, bIgnoreFogOfWar))
+            {
+                ++fowSkippedCount;
+                return;
+            }
+
+            ++visibleCount;
+            rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
+
+            const bool_t bBlueNexus =
+                structure.team == eTeam::Blue &&
+                structure.kind == static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus);
+            appendedCount += bBlueNexus
+                ? rc.pRenderer->AppendRenderSnapshotMeshes(snapshot)
+                : rc.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(snapshot, matViewProj);
+        });
+
+    WINTERS_PROFILE_COUNT("Structure::RHISnapshotCandidates", candidateCount);
+    WINTERS_PROFILE_COUNT("Structure::RHISnapshotVisible", visibleCount);
+    WINTERS_PROFILE_COUNT("Structure::RHISnapshotFowSkipped", fowSkippedCount);
+    WINTERS_PROFILE_COUNT("Structure::RHISnapshotMeshes", appendedCount);
+    return appendedCount;
+}
+
 i32_t CStructure_Manager::Add_At(Winters::Map::eObjectKind kind, eTeam team,
     Winters::Map::eTurretTier tier, Winters::Map::eLane lane,
     const Vec3& vPos, const char* pCustomName)

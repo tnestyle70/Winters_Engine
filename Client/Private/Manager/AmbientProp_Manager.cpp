@@ -3,6 +3,7 @@
 
 #include "WintersPaths.h"
 #include "Dev/SmokeLog.h"
+#include "ProfilerAPI.h"
 
 #include <DirectXMath.h>
 #include <cstdio>
@@ -130,6 +131,27 @@ void CAmbientProp_Manager::Render(const Mat4& matViewProjection, const Vec3& cam
         prop.pRenderer->UpdateTransform(prop.transform.GetWorldMatrix());
         prop.pRenderer->RenderFrustumCulled(matViewProjection);
     }
+}
+
+u32_t CAmbientProp_Manager::AppendRenderSnapshotMeshes(
+    RenderWorldSnapshot& snapshot,
+    const Mat4& matViewProjection)
+{
+    u32_t appendedCount = 0;
+
+    for (Prop& prop : m_props)
+    {
+        if (!prop.pRenderer)
+            continue;
+
+        prop.pRenderer->UpdateTransform(prop.transform.GetWorldMatrix());
+        appendedCount += prop.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(
+            snapshot,
+            matViewProjection);
+    }
+
+    WINTERS_PROFILE_COUNT("AmbientProp::RHISnapshotMeshes", appendedCount);
+    return appendedCount;
 }
 
 void CAmbientProp_Manager::Shutdown()

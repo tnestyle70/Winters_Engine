@@ -25,6 +25,8 @@ public:
         const std::function<void(Vec3&)>& projectToSurface);
     void Tick(f32_t dt);
     void Render(const Mat4& matViewProjection, const Vec3& cameraWorld);
+    u32_t AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot,
+        const Mat4& matViewProjection);
     void Shutdown();
 
 private:

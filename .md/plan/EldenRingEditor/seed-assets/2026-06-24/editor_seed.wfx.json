@@ -1,0 +1,72 @@
+{
+  "schema": "WintersWfx",
+  "version": 2,
+  "emitters": [],
+  "graph": {
+    "userParams": [
+      {
+        "name": "User.Intensity",
+        "scope": "User",
+        "type": "Float",
+        "value": 1.0
+      }
+    ],
+    "emitterGraphs": [
+      {
+        "name": "EditorSeed_BillboardBurst",
+        "renderType": "Billboard",
+        "nodes": [
+          {
+            "id": 1,
+            "type": "SpawnBurst",
+            "x": 40.0,
+            "y": 40.0,
+            "params": {
+              "count": 12
+            }
+          },
+          {
+            "id": 2,
+            "type": "InitLifetime",
+            "x": 220.0,
+            "y": 40.0,
+            "params": {
+              "lifetime": 1.25
+            }
+          },
+          {
+            "id": 3,
+            "type": "InitColor",
+            "x": 400.0,
+            "y": 40.0,
+            "params": {
+              "color": [1.0, 0.72, 0.28, 1.0]
+            }
+          },
+          {
+            "id": 4,
+            "type": "Age",
+            "x": 580.0,
+            "y": 40.0
+          },
+          {
+            "id": 5,
+            "type": "BillboardRenderer",
+            "x": 760.0,
+            "y": 40.0,
+            "params": {
+              "texture": "Client/Bin/Resource/EldenRing/FX/editor_seed_billboard.dds",
+              "maxParticles": 64
+            }
+          }
+        ],
+        "edges": [
+          { "from": 1, "to": 2 },
+          { "from": 2, "to": 3 },
+          { "from": 3, "to": 4 },
+          { "from": 4, "to": 5 }
+        ]
+      }
+    ]
+  }
+}

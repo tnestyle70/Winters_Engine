@@ -216,7 +216,8 @@ function Invoke-RuntimeSmoke {
         @{ Name = "WintersElden_probe_dx12"; Exe = "EldenRingClient\Bin\$Configuration\WintersElden.exe"; Args = @("--scene=probe"); Cwd = "EldenRingClient\Bin\$Configuration" },
         @{ Name = "WintersElden_probe_dx11"; Exe = "EldenRingClient\Bin\$Configuration\WintersElden.exe"; Args = @("--scene=probe", "--rhi=dx11"); Cwd = "EldenRingClient\Bin\$Configuration" },
         @{ Name = "WintersEldenRingEditor"; Exe = "EldenRingEditor\Bin\$Configuration\WintersEldenRingEditor.exe"; Args = @(); Cwd = "EldenRingEditor\Bin\$Configuration" },
-        @{ Name = "WintersGame"; Exe = "Client\Bin\$Configuration\WintersGame.exe"; Args = @(); Cwd = "Client\Bin\$Configuration" }
+        @{ Name = "WintersGame"; Exe = "Client\Bin\$Configuration\WintersGame.exe"; Args = @(); Cwd = "Client\Bin\$Configuration" },
+        @{ Name = "WintersGame_rhi_scene_only"; Exe = "Client\Bin\$Configuration\WintersGame.exe"; Args = @("--rhi-scene-only"); Cwd = "Client\Bin\$Configuration" }
     )
 
     foreach ($test in $tests) {

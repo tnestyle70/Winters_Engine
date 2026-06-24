@@ -1,0 +1,58 @@
+{
+  "schema": "WintersSequence",
+  "version": 1,
+  "name": "EditorSeed_Intro",
+  "duration": 3.0,
+  "displayRate": 60,
+  "loop": false,
+  "tracks": [
+    {
+      "type": "Camera",
+      "name": "SeedCamera",
+      "binding": "EditorCamera",
+      "keys": [
+        {
+          "time": 0.0,
+          "pos": [0.0, 2.0, -6.0],
+          "rotEuler": [12.0, 0.0, 0.0],
+          "fov": 60.0,
+          "interp": "linear",
+          "cut": true
+        },
+        {
+          "time": 3.0,
+          "pos": [0.0, 2.6, -3.5],
+          "rotEuler": [8.0, 0.0, 0.0],
+          "fov": 52.0,
+          "interp": "linear",
+          "cut": false
+        }
+      ]
+    },
+    {
+      "type": "Fx",
+      "name": "SeedFx",
+      "binding": "EditorAnchor",
+      "keys": [
+        {
+          "time": 0.5,
+          "wfx": "Client/Bin/Resource/EldenRing/FX/editor_seed.wfx.json",
+          "anchor": "EditorAnchor",
+          "oneShot": true
+        }
+      ]
+    },
+    {
+      "type": "Event",
+      "name": "SeedEvent",
+      "binding": "",
+      "keys": [
+        {
+          "time": 1.0,
+          "event": "EditorSeed.Marker",
+          "payload": "validation"
+        }
+      ]
+    }
+  ]
+}

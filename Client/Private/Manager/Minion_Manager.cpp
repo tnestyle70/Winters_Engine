@@ -851,6 +851,48 @@ void CMinion_Manager::Render(const Mat4& matVP, const Vec3& vCameraWorld,
     WINTERS_PROFILE_COUNT("Minion::RenderMeshCount", meshCount);
 }
 
+u32_t CMinion_Manager::AppendRenderSnapshotMeshes(
+    RenderWorldSnapshot& snapshot,
+    const Mat4& matVP,
+    bool_t bIgnoreFogOfWar)
+{
+    if (!m_pWorld)
+        return 0;
+
+    const u8_t localTeam = UI::QueryLocalTeam(*m_pWorld);
+    uint64_t candidateCount = 0;
+    uint64_t visibleCount = 0;
+    uint64_t fowSkippedCount = 0;
+    u32_t appendedCount = 0;
+
+    m_pWorld->ForEach<MinionStateComponent, RenderComponent, TransformComponent>(
+        [&](EntityID id, MinionStateComponent&, RenderComponent& rc, TransformComponent& xform)
+        {
+            if (!rc.bVisible || !rc.pRenderer)
+                return;
+
+            ++candidateCount;
+            if (!UI::IsRenderableForLocal(*m_pWorld, id, localTeam, bIgnoreFogOfWar))
+            {
+                ++fowSkippedCount;
+                return;
+            }
+
+            ++visibleCount;
+            FlushTransformForRender(xform);
+            rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
+            appendedCount += rc.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(
+                snapshot,
+                matVP);
+        });
+
+    WINTERS_PROFILE_COUNT("Minion::RHISnapshotCandidates", candidateCount);
+    WINTERS_PROFILE_COUNT("Minion::RHISnapshotVisible", visibleCount);
+    WINTERS_PROFILE_COUNT("Minion::RHISnapshotFowSkipped", fowSkippedCount);
+    WINTERS_PROFILE_COUNT("Minion::RHISnapshotMeshes", appendedCount);
+    return appendedCount;
+}
+
 // ?????????????????????????????????????????????????????????????
 // Spawn ??ECS ?뷀떚???앹꽦
 // ?????????????????????????????????????????????????????????????

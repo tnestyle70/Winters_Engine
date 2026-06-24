@@ -48,6 +48,8 @@ public:
     void    Update(f32_t dt);
     void    Render(const Mat4& matViewProj, const Vec3& vCameraWorld = Vec3{},
         void* pAmbientOcclusionSRV = nullptr);
+    u32_t   AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot,
+        const Mat4& matViewProj);
 
     i32_t    Add_At(eJungleSub sub, u32_t campId, const Vec3& vPos,
         const char* pCustomName = nullptr);  

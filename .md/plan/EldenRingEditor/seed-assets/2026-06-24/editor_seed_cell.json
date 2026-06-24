@@ -1,0 +1,31 @@
+{
+  "schema": "winters.world.cell.v1",
+  "cellId": "editor_cell_0_0",
+  "area": 0,
+  "blockX": 0,
+  "blockY": 0,
+  "variant": 0,
+  "cellSizeMeters": 64.0,
+  "origin": [0.0, 0.0, 0.0],
+  "dataLayer": "Base",
+  "placements": [
+    {
+      "id": 1,
+      "kind": "StaticMesh",
+      "name": "EditorSeedRock",
+      "wmesh": "Client/Bin/Resource/EldenRing/Assets/seed.wmesh",
+      "position": [0.0, 0.0, 0.0],
+      "rotationDeg": [0.0, 0.0, 0.0],
+      "scale": [1.0, 1.0, 1.0],
+      "animated": false,
+      "transformResolved": true
+    }
+  ],
+  "references": [
+    {
+      "kind": "Authoring",
+      "model": "EditorSeedRock",
+      "reason": "Validation panel seed"
+    }
+  ]
+}

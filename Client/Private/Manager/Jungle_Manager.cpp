@@ -243,6 +243,37 @@ void CJungle_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorld,
         });
 }
 
+u32_t CJungle_Manager::AppendRenderSnapshotMeshes(
+    RenderWorldSnapshot& snapshot,
+    const Mat4& matViewProj)
+{
+    if (!m_pWorld)
+        return 0;
+
+    uint64_t candidateCount = 0;
+    uint64_t visibleCount = 0;
+    u32_t appendedCount = 0;
+
+    m_pWorld->ForEach<JungleComponent, RenderComponent, TransformComponent>(
+        [&](EntityID, JungleComponent&, RenderComponent& rc, TransformComponent& xform)
+        {
+            if (!rc.bVisible || !rc.pRenderer)
+                return;
+
+            ++candidateCount;
+            ++visibleCount;
+            rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
+            appendedCount += rc.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(
+                snapshot,
+                matViewProj);
+        });
+
+    WINTERS_PROFILE_COUNT("Jungle::RHISnapshotCandidates", candidateCount);
+    WINTERS_PROFILE_COUNT("Jungle::RHISnapshotVisible", visibleCount);
+    WINTERS_PROFILE_COUNT("Jungle::RHISnapshotMeshes", appendedCount);
+    return appendedCount;
+}
+
 i32_t CJungle_Manager::Add_At(eJungleSub sub, u32_t campId, const Vec3& vPos,
     const char* pCustomName)
 {

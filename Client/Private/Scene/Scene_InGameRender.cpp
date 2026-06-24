@@ -278,6 +278,52 @@ namespace
             scene.GetAttackRangePlane()->Render(pDevice, matViewProjection);
         }
     }
+
+    u32_t AppendChampionSnapshotMeshes(
+        CWorld& world,
+        RenderWorldSnapshot& snapshot,
+        const Mat4& matViewProjection,
+        const u8_t localTeam,
+        bool_t bRevealAllForPlayback)
+    {
+        u32_t appendedCount = 0;
+
+        world.ForEach<ChampionComponent, RenderComponent, TransformComponent>(
+            [&](EntityID e, ChampionComponent& champion, RenderComponent& rc, TransformComponent& tf)
+            {
+                if (rc.bSceneManaged || !rc.bVisible || !rc.pRenderer)
+                    return;
+                if (!UI::IsRenderableForLocal(world, e, localTeam, bRevealAllForPlayback))
+                    return;
+
+                FlushTransformForRender(tf);
+                ApplyViegoMistMaterialOverride(world, e, champion, rc.pRenderer);
+                rc.pRenderer->UpdateTransform(tf.GetWorldMatrix());
+
+                if (world.HasComponent<MeshGroupVisibilityComponent>(e)
+                    && world.GetComponent<MeshGroupVisibilityComponent>(e).bEnabled)
+                {
+                    const auto& visibility = world.GetComponent<MeshGroupVisibilityComponent>(e);
+                    appendedCount += rc.pRenderer->AppendRenderSnapshotMeshes(
+                        snapshot,
+                        visibility.mask);
+                }
+                else
+                {
+                    appendedCount += rc.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(
+                        snapshot,
+                        matViewProjection);
+                }
+            });
+
+        return appendedCount;
+    }
+
+    bool_t IsRHISceneOnlyMode()
+    {
+        return HasCommandLineToken(L"--rhi-scene-only") ||
+            HasCommandLineToken(L"/rhi-scene-only");
+    }
 }
 
 void CScene_InGame::OnRender()
@@ -304,11 +350,14 @@ void CScene_InGame::OnRender()
     const bool_t bUseDX12RHI = pDevice && pDevice->GetBackend() == eRHIBackend::DX12;
     const bool_t bUseDX11RHI = pDevice && pDevice->GetBackend() == eRHIBackend::DX11;
     const bool_t bSSAOEnabled = m_pSSAOPass && m_pSSAOPass->GetEnabled();
+    const bool_t bRHISceneReady = m_pRHISceneRenderer && m_pRHISceneRenderer->IsReady();
+    const bool_t bRHISceneOnly = bRHISceneReady && IsRHISceneOnlyMode();
+    WINTERS_PROFILE_COUNT("RHISceneOnly", bRHISceneOnly ? 1u : 0u);
 
     const u8_t localTeam = UI::QueryLocalTeam(m_World);
     const bool_t bRevealAllForPlayback = ShouldRevealAllForPlayback();
 
-    if (bUseDX11RHI && m_pNormalPass && bSSAOEnabled)
+    if (!bRHISceneOnly && bUseDX11RHI && m_pNormalPass && bSSAOEnabled)
     {
         WINTERS_PROFILE_SCOPE("Render::NormalPass");
         m_pNormalPass->Begin(pDevice);
@@ -387,7 +436,7 @@ void CScene_InGame::OnRender()
             WINTERS_PROFILE_SCOPE("Map::SetAmbientOcclusion");
             m_Map.SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
         }
-        if (m_pRHISceneRenderer && m_pRHISceneRenderer->IsReady())
+        if (bRHISceneReady)
         {
             WINTERS_PROFILE_SCOPE("Map::RHISceneSnapshot");
 
@@ -402,6 +451,7 @@ void CScene_InGame::OnRender()
             if (appendedCount > 0)
                 m_pRHISceneRenderer->Render(pDevice, snapshot);
         }
+        if (!bRHISceneOnly)
         {
             WINTERS_PROFILE_SCOPE("Map::DrawFrustumCulled");
             m_Map.RenderFrustumCulled(vp);
@@ -410,62 +460,115 @@ void CScene_InGame::OnRender()
 
     {
         WINTERS_PROFILE_SCOPE("Champion::Render");
-        m_World.ForEach<ChampionComponent, RenderComponent, TransformComponent>(
-            [&](EntityID e, ChampionComponent& champion, RenderComponent& rc,
-                TransformComponent& tf)
-            {
-                if (rc.bSceneManaged) return;
-                if (!rc.bVisible || !rc.pRenderer) return;
-                if (!UI::IsRenderableForLocal(m_World, e, localTeam, bRevealAllForPlayback)) return;
-                FlushTransformForRender(tf);
-                rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
-                rc.pRenderer->UpdateCamera(vp, cameraWorld);
-                const bool_t bLocalYawTraceTarget =
-                    IsNetworkAuthoritativeGameplay() &&
-                    e == GetPlayerEntity();
-                if (bLocalYawTraceTarget && bHasYawTraceProtection)
+        if (bRHISceneReady)
+        {
+            WINTERS_PROFILE_SCOPE("Champion::RHISceneSnapshot");
+
+            RenderWorldSnapshot snapshot{};
+            snapshot.view.matViewProjection = vp;
+            snapshot.view.vCameraWorld = cameraWorld;
+
+            const u32_t appendedCount = AppendChampionSnapshotMeshes(
+                m_World,
+                snapshot,
+                vp,
+                localTeam,
+                bRevealAllForPlayback);
+            WINTERS_PROFILE_COUNT("Champion::RHISceneSnapshotMeshes", appendedCount);
+
+            if (appendedCount > 0)
+                m_pRHISceneRenderer->Render(pDevice, snapshot);
+        }
+
+        if (!bRHISceneOnly)
+        {
+            m_World.ForEach<ChampionComponent, RenderComponent, TransformComponent>(
+                [&](EntityID e, ChampionComponent& champion, RenderComponent& rc,
+                    TransformComponent& tf)
                 {
-                    rc.pRenderer->SetYawTraceContext(
-                        lastSnapshotTick,
-                        static_cast<u32_t>(e),
-                        static_cast<u32_t>(champion.id),
-                        yawTraceCommandSeq,
-                        tf.GetRotation().y,
-                        GameplayForwardFromVisualYaw(champion.id, tf.GetRotation().y));
+                    if (rc.bSceneManaged) return;
+                    if (!rc.bVisible || !rc.pRenderer) return;
+                    if (!UI::IsRenderableForLocal(m_World, e, localTeam, bRevealAllForPlayback)) return;
+                    FlushTransformForRender(tf);
+                    rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
+                    rc.pRenderer->UpdateCamera(vp, cameraWorld);
+                    const bool_t bLocalYawTraceTarget =
+                        IsNetworkAuthoritativeGameplay() &&
+                        e == GetPlayerEntity();
+                    if (bLocalYawTraceTarget && bHasYawTraceProtection)
+                    {
+                        rc.pRenderer->SetYawTraceContext(
+                            lastSnapshotTick,
+                            static_cast<u32_t>(e),
+                            static_cast<u32_t>(champion.id),
+                            yawTraceCommandSeq,
+                            tf.GetRotation().y,
+                            GameplayForwardFromVisualYaw(champion.id, tf.GetRotation().y));
+                    }
+                    else if (bLocalYawTraceTarget)
+                    {
+                        rc.pRenderer->ClearYawTraceContext();
+                    }
+                    ApplyViegoMistMaterialOverride(m_World, e, champion, rc.pRenderer);
+                    rc.pRenderer->UpdateTransform(tf.GetWorldMatrix());
+                    if (m_World.HasComponent<MeshGroupVisibilityComponent>(e)
+                        && m_World.GetComponent<MeshGroupVisibilityComponent>(e).bEnabled)
+                    {
+                        const auto& visibility = m_World.GetComponent<MeshGroupVisibilityComponent>(e);
+                        rc.pRenderer->RenderWithVisibility(visibility.mask);
+                    }
+                    else
+                    {
+                        rc.pRenderer->RenderFrustumCulled(vp);
+                    }
                 }
-                else if (bLocalYawTraceTarget)
-                {
-                    rc.pRenderer->ClearYawTraceContext();
-                }
-                ApplyViegoMistMaterialOverride(m_World, e, champion, rc.pRenderer);
-                rc.pRenderer->UpdateTransform(tf.GetWorldMatrix());
-                if (m_World.HasComponent<MeshGroupVisibilityComponent>(e)
-                    && m_World.GetComponent<MeshGroupVisibilityComponent>(e).bEnabled)
-                {
-                    const auto& visibility = m_World.GetComponent<MeshGroupVisibilityComponent>(e);
-                    rc.pRenderer->RenderWithVisibility(visibility.mask);
-                }
-                else
-                {
-                    rc.pRenderer->RenderFrustumCulled(vp);
-                }
-            }
-        );
+            );
+        }
     }
 
+    if (bRHISceneReady)
     {
-        WINTERS_PROFILE_SCOPE("Structure::Render");
-        CStructure_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV, bRevealAllForPlayback);
+        WINTERS_PROFILE_SCOPE("SceneObjects::RHISceneSnapshot");
+
+        RenderWorldSnapshot snapshot{};
+        snapshot.view.matViewProjection = vp;
+        snapshot.view.vCameraWorld = cameraWorld;
+
+        u32_t appendedCount = 0;
+        appendedCount += CStructure_Manager::Get()->AppendRenderSnapshotMeshes(
+            snapshot,
+            vp,
+            bRevealAllForPlayback);
+        appendedCount += CJungle_Manager::Get()->AppendRenderSnapshotMeshes(snapshot, vp);
+        appendedCount += CMinion_Manager::Get()->AppendRenderSnapshotMeshes(
+            snapshot,
+            vp,
+            bRevealAllForPlayback);
+        appendedCount += CAmbientProp_Manager::Get()->AppendRenderSnapshotMeshes(
+            snapshot,
+            vp);
+        WINTERS_PROFILE_COUNT("SceneObjects::RHISceneSnapshotMeshes", appendedCount);
+
+        if (appendedCount > 0)
+            m_pRHISceneRenderer->Render(pDevice, snapshot);
     }
+
+    if (!bRHISceneOnly)
     {
-        WINTERS_PROFILE_SCOPE("Jungle::Render");
-        CJungle_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV);
+        {
+            WINTERS_PROFILE_SCOPE("Structure::Render");
+            CStructure_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV, bRevealAllForPlayback);
+        }
+        {
+            WINTERS_PROFILE_SCOPE("Jungle::Render");
+            CJungle_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV);
+        }
+        CMinion_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV, bRevealAllForPlayback);
+
+        CAmbientProp_Manager::Get()->Render(vp, cameraWorld);
     }
-    CMinion_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV, bRevealAllForPlayback);
 
-    CAmbientProp_Manager::Get()->Render(vp, cameraWorld);
-
-    if (!bUseDX12RHI && m_pContactShadowPlane)
+    if (!bRHISceneOnly && !bUseDX12RHI && m_pContactShadowPlane)
     {
         WINTERS_PROFILE_SCOPE("ContactShadow::Render");
         m_World.ForEach<ChampionComponent, RenderComponent, TransformComponent>(

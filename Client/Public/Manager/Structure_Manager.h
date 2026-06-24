@@ -26,6 +26,9 @@ public:
     void    Render(const Mat4& matViewProj, const Vec3& vCameraWorld = Vec3{},
         void* pAmbientOcclusionSRV = nullptr,
         bool_t bIgnoreFogOfWar = false);
+    u32_t   AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot,
+        const Mat4& matViewProj,
+        bool_t bIgnoreFogOfWar = false);
 
     // 반환 타입 변경: EntityID → i32_t (인덱스. 실패 시 -1)
     i32_t    Add_At(Winters::Map::eObjectKind kind,

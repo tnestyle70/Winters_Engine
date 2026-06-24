@@ -35,6 +35,7 @@
 | S15 | `S15_ENGINE_RENDERING_FILTER_AUDIT.md` | Engine 렌더링/RHI 실사용 파일 표, 필터 재배치안, 삭제 후보를 코드 이동 전 고정 | 없음 |
 | S16 | `S16_RHI_PRODUCTION_HARDENING_CODEX_HANDOFF.md` | DX11/DX12 device 완성 이후: 빌드위생(/FS), DX12 프레임 파이프라이닝+descriptor ring, 공용 `CRHISceneRenderer`+`RenderWorldSnapshot`. Codex 핸드오프 + 복붙 프롬프트 | 큼 |
 | S17 | `S17_RHI_SCENE_RENDERER_CODEX_HANDOFF.md` | S16 G1~G4 검토(완료) + descriptor ring frame-in-flight 파티션 P0 게이트 + 공용 Scene Renderer(F2/F3, LoL 이관·Client/Public DX11 제거). Codex 핸드오프 | 큼 |
+| S18 | `S18_2026-06-24_RHI_SCENE_ONLY_PARITY_GATE.md` | LoL normal F5 legacy draw를 유지하면서 `--rhi-scene-only` 명시 플래그에서 RHI scene snapshot parity를 검증하는 비교 게이트 | 적용 |
 
 ## 지금 바로 시작할 세션
 

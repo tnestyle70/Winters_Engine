@@ -2,7 +2,7 @@
 
 #include "WintersTypes.h"
 #include "ECS/Entity.h"
-#include "GameContext.h"
+#include "../Definitions/LoLMatchContext.h"
 
 struct ViegoSimComponent
 {

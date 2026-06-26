@@ -56,20 +56,20 @@ namespace SkillDefAdapters
         SkillVisualStageData& stage1 = data.stages[0];
         stage1.stage = 1;
         stage1.animationKey = def.animKey;
-        stage1.playbackSpeed = def.animPlaySpeed;
+        stage1.playbackSpeed = def.visualPlaySpeed;
         stage1.bLoop = false;
         AppendSkillVisualEvent(stage1, eVisualEventKind::KeySwap, 0.f, def.keySwapHookId);
         AppendSkillVisualEvent(stage1, eVisualEventKind::CastAccepted, 0.f, def.onCastAcceptedHookId);
-        AppendSkillVisualEvent(stage1, eVisualEventKind::Cast, def.castFrame, def.castFrameHookId);
-        AppendSkillVisualEvent(stage1, eVisualEventKind::Recovery, def.recoveryFrame, def.recoveryHookId);
+        AppendSkillVisualEvent(stage1, eVisualEventKind::Cast, def.visualCastFrame, def.castHookId);
+        AppendSkillVisualEvent(stage1, eVisualEventKind::Recovery, def.visualRecoveryFrame, def.recoveryHookId);
 
         SkillVisualStageData& stage2 = data.stages[1];
         stage2.stage = 2;
         stage2.animationKey = def.stage2AnimKey;
-        stage2.playbackSpeed = def.stage2PlaySpeed;
+        stage2.playbackSpeed = def.stage2VisualPlaySpeed;
         stage2.bLoop = false;
-        AppendSkillVisualEvent(stage2, eVisualEventKind::Cast, def.stage2CastFrame, def.castFrameHookId);
-        AppendSkillVisualEvent(stage2, eVisualEventKind::Recovery, def.stage2RecoveryFrame, def.recoveryHookId);
+        AppendSkillVisualEvent(stage2, eVisualEventKind::Cast, def.stage2VisualCastFrame, def.castHookId);
+        AppendSkillVisualEvent(stage2, eVisualEventKind::Recovery, def.stage2VisualRecoveryFrame, def.recoveryHookId);
 
         return data;
     }
@@ -84,20 +84,20 @@ namespace SkillDefAdapters
         ChampionActionVisualStageData& stage1 = data.stages[0];
         stage1.stage = 1;
         stage1.animationKey = def.animKey;
-        stage1.playbackSpeed = def.animPlaySpeed;
+        stage1.playbackSpeed = def.visualPlaySpeed;
         stage1.bLoop = false;
         AppendVisualEvent(stage1, eVisualEventKind::KeySwap, 0.f, def.keySwapHookId);
         AppendVisualEvent(stage1, eVisualEventKind::CastAccepted, 0.f, def.onCastAcceptedHookId);
-        AppendVisualEvent(stage1, eVisualEventKind::Cast, def.castFrame, def.castFrameHookId);
-        AppendVisualEvent(stage1, eVisualEventKind::Recovery, def.recoveryFrame, def.recoveryHookId);
+        AppendVisualEvent(stage1, eVisualEventKind::Cast, def.visualCastFrame, def.castHookId);
+        AppendVisualEvent(stage1, eVisualEventKind::Recovery, def.visualRecoveryFrame, def.recoveryHookId);
 
         ChampionActionVisualStageData& stage2 = data.stages[1];
         stage2.stage = 2;
         stage2.animationKey = def.stage2AnimKey;
-        stage2.playbackSpeed = def.stage2PlaySpeed;
+        stage2.playbackSpeed = def.stage2VisualPlaySpeed;
         stage2.bLoop = false;
-        AppendVisualEvent(stage2, eVisualEventKind::Cast, def.stage2CastFrame, def.castFrameHookId);
-        AppendVisualEvent(stage2, eVisualEventKind::Recovery, def.stage2RecoveryFrame, def.recoveryHookId);
+        AppendVisualEvent(stage2, eVisualEventKind::Cast, def.stage2VisualCastFrame, def.castHookId);
+        AppendVisualEvent(stage2, eVisualEventKind::Recovery, def.stage2VisualRecoveryFrame, def.recoveryHookId);
 
         return data;
     }

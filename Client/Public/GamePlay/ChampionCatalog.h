@@ -2,7 +2,7 @@
 
 #include "Defines.h"
 #include "GameObject/ChampionDef.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 
 #include <vector>
 

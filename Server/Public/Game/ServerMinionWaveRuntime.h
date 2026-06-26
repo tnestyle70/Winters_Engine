@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Game/ServerMinionFlowField.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"

@@ -45,7 +45,7 @@
 #include "GamePlay/SkillRegistry.h"
 #include "Renderer/ModelRenderer.h"
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
@@ -67,11 +67,11 @@
 namespace
 {
     constexpr const wchar_t* kMinionMarkerTexture =
-        L"Client/Bin/Resource/Texture/FX/Kalista/common_glowring_blue.png";
+        L"Texture/FX/Kalista/common_glowring_blue.png";
     constexpr const wchar_t* kStructureMarkerTexture =
-        L"Client/Bin/Resource/Texture/FX/Kalista/common_global_indicator_ring_bright.png";
+        L"Texture/FX/Kalista/common_global_indicator_ring_bright.png";
     constexpr const wchar_t* kMonsterMarkerTexture =
-        L"Client/Bin/Resource/Texture/FX/Kalista/common_color-hit-physical.png";
+        L"Texture/FX/Kalista/common_color-hit-physical.png";
     constexpr f32_t kNetworkMinionVisualScale = 0.006f;
     constexpr f32_t kNetworkMinionVisualYOffset = kNetworkMinionVisualScale * 2.f;
     constexpr bool_t kSnapshotMinionDebugOutput = false;
@@ -339,7 +339,7 @@ namespace
             world.AddComponent<SpatialAgentComponent>(entity, SpatialAgentComponent{});
 
         SpatialAgentComponent& spatial = world.GetComponent<SpatialAgentComponent>(entity);
-        spatial.kind = eSpatialKind::JungleMob;
+        spatial.kind = eSpatialKind::NeutralUnit;
         spatial.team = static_cast<u8_t>(eTeam::Neutral);
         if (spatial.radius <= 0.f)
             spatial.radius = 2.f;
@@ -357,16 +357,16 @@ namespace
         if (entity == NULL_ENTITY)
             return;
 
-        WardComponent& ward = world.HasComponent<WardComponent>(entity)
-            ? world.GetComponent<WardComponent>(entity)
-            : world.AddComponent<WardComponent>(entity, WardComponent{});
-        ward.ownerTeam = static_cast<eTeam>(team);
-        ward.bControlWard = subtype != 0u;
+        VisionSensorComponent& ward = world.HasComponent<VisionSensorComponent>(entity)
+            ? world.GetComponent<VisionSensorComponent>(entity)
+            : world.AddComponent<VisionSensorComponent>(entity, VisionSensorComponent{});
+        ward.ownerTeam = team;
+        ward.bControlSensor = subtype != 0u;
 
         SpatialAgentComponent& spatial = world.HasComponent<SpatialAgentComponent>(entity)
             ? world.GetComponent<SpatialAgentComponent>(entity)
             : world.AddComponent<SpatialAgentComponent>(entity, SpatialAgentComponent{});
-        spatial.kind = eSpatialKind::Ward;
+        spatial.kind = eSpatialKind::Sensor;
         spatial.team = team;
         spatial.radius = 0.35f;
 
@@ -983,7 +983,7 @@ void CSnapshotApplier::OnSnapshot(
             SpatialAgentComponent& soulAgent = world.HasComponent<SpatialAgentComponent>(e)
                 ? world.GetComponent<SpatialAgentComponent>(e)
                 : world.AddComponent<SpatialAgentComponent>(e, SpatialAgentComponent{});
-            soulAgent.kind = eSpatialKind::Champion;
+            soulAgent.kind = eSpatialKind::Character;
             soulAgent.team = es->team();
             soulAgent.radius = 0.85f;
 
@@ -1030,7 +1030,7 @@ void CSnapshotApplier::OnSnapshot(
             SpatialAgentComponent& agent = world.HasComponent<SpatialAgentComponent>(e)
                 ? world.GetComponent<SpatialAgentComponent>(e)
                 : world.AddComponent<SpatialAgentComponent>(e, SpatialAgentComponent{});
-            agent.kind = eSpatialKind::Ward;
+            agent.kind = eSpatialKind::Sensor;
             agent.team = es->team();
             agent.radius = 0.45f;
 
@@ -1444,7 +1444,7 @@ void CSnapshotApplier::OnSnapshot(
         const bool_t bKalistaSentinel =
             world.HasComponent<KalistaSentinelComponent>(entity);
         const bool_t bWard =
-            world.HasComponent<WardComponent>(entity);
+            world.HasComponent<VisionSensorComponent>(entity);
         if (!bServerMinion && !bViegoSoul && !bKalistaSentinel && !bWard)
             continue;
 

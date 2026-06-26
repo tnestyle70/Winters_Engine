@@ -1,4 +1,4 @@
-﻿#include "GameObject/Champion/LeeSin/LeeSin_Skills.h"
+#include "GameObject/Champion/LeeSin/LeeSin_Skills.h"
 
 #include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
@@ -42,10 +42,10 @@ namespace
         s.lockDurationSec = 0.6f;
         s.bOneShot = true;
         s.rotate = targetMode == eTargetMode::Self ? eRotateMode::None : eRotateMode::TowardsCursor;
-        s.castFrame = 4.f;
-        s.recoveryFrame = 12.f;
-        s.animPlaySpeed = 1.f;
-        s.castFrameHookId = hookId;
+        s.visualCastFrame = 4.f;
+        s.visualRecoveryFrame = 12.f;
+        s.visualPlaySpeed = 1.f;
+        s.castHookId = hookId;
         if (slot == static_cast<u8_t>(eSkillSlot::Q))
         {
             s.stageCount = 2;
@@ -54,9 +54,9 @@ namespace
             s.stage2LockSec = 0.6f;
             s.stage2Rotate = eRotateMode::TowardsTarget;
             s.stageWindowSec = 3.f;
-            s.stage2CastFrame = 4.f;
-            s.stage2RecoveryFrame = 12.f;
-            s.stage2PlaySpeed = 1.f;
+            s.stage2VisualCastFrame = 4.f;
+            s.stage2VisualRecoveryFrame = 12.f;
+            s.stage2VisualPlaySpeed = 1.f;
         }
         else if (slot == static_cast<u8_t>(eSkillSlot::W))
         {
@@ -66,9 +66,9 @@ namespace
             s.stage2LockSec = 0.45f;
             s.stage2Rotate = eRotateMode::None;
             s.stageWindowSec = 3.f;
-            s.stage2CastFrame = 4.f;
-            s.stage2RecoveryFrame = 12.f;
-            s.stage2PlaySpeed = 1.f;
+            s.stage2VisualCastFrame = 4.f;
+            s.stage2VisualRecoveryFrame = 12.f;
+            s.stage2VisualPlaySpeed = 1.f;
         }
         else if (slot == static_cast<u8_t>(eSkillSlot::E))
         {
@@ -78,9 +78,9 @@ namespace
             s.stage2LockSec = 0.45f;
             s.stage2Rotate = eRotateMode::None;
             s.stageWindowSec = 3.f;
-            s.stage2CastFrame = 4.f;
-            s.stage2RecoveryFrame = 12.f;
-            s.stage2PlaySpeed = 1.f;
+            s.stage2VisualCastFrame = 4.f;
+            s.stage2VisualRecoveryFrame = 12.f;
+            s.stage2VisualPlaySpeed = 1.f;
         }
         CSkillRegistry::Instance().Add(eChampion::LEESIN, slot, s);
     }
@@ -96,9 +96,9 @@ namespace
             cd.runAnimKey = "skinned_mesh_run_base";
             cd.basicAttackKey = "skinned_mesh_attack1";
             cd.basicAttackRange = 1.5f;
-            cd.fbxPath = "Client/Bin/Resource/Texture/Character/LeeSin/leesin.fbx";
+            cd.fbxPath = "Texture/Character/LeeSin/leesin.fbx";
             cd.shaderPath = L"Shaders/Mesh3D.hlsl";
-            cd.defaultTexturePath = L"Client/Bin/Resource/Texture/Character/LeeSin/leesin_base_tx_cm.png";
+            cd.defaultTexturePath = L"Texture/Character/LeeSin/leesin_base_tx_cm.png";
             for (u32_t i = 0; i < kChampionTextureSlotMax; ++i)
                 cd.texturePath[i] = cd.defaultTexturePath;
             cd.spawnPosition = { 39.f, 1.f, 0.f };

@@ -58,11 +58,10 @@ namespace
         return stat;
     }
 
-    ChampionSkillTimingDefaults MakeSkillTiming(f32_t lockDurationSec, f32_t animPlaySpeed)
+    ChampionSkillTimingDefaults MakeSkillTiming(f32_t lockDurationSec)
     {
         ChampionSkillTimingDefaults timing{};
         timing.lockDurationSec = SanitizePositive(lockDurationSec, 0.6f);
-        timing.animPlaySpeed = SanitizePositive(animPlaySpeed, 1.f);
         return timing;
     }
 
@@ -73,7 +72,6 @@ namespace
             slot == static_cast<u8_t>(eSkillSlot::BasicAttack)
             ? 0.75f
             : 0.6f;
-        timing.animPlaySpeed = 1.f;
         return timing;
     }
 
@@ -82,7 +80,6 @@ namespace
     {
         ChampionBasicAttackTimingDefaults timing{};
         timing.fActionDurationSec = SanitizePositive(skillTiming.lockDurationSec, 0.75f);
-        timing.fAnimPlaySpeed = SanitizePositive(skillTiming.animPlaySpeed, 1.f);
 
         const f32_t fRawWindup = timing.fActionDurationSec * 0.35f;
         const f32_t fMaxWindup = (std::max)(0.05f, timing.fActionDurationSec - 0.03f);
@@ -100,36 +97,6 @@ namespace
         return roundedUp > 0u ? roundedUp : 1u;
     }
 
-    f32_t ResolveFallbackVisualYawOffset(eChampion champion)
-    {
-        switch (champion)
-        {
-        case eChampion::NONE:
-        case eChampion::END:
-            return 0.f;
-        default:
-            return WintersMath::kPi;
-        }
-    }
-
-    const ChampionGameDataSummonerSpell* FindSummonerSpell(u16_t spellId)
-    {
-        const ChampionGameData* pTable = ChampionGameDataGenerated::GetChampionTable();
-        const std::size_t count = ChampionGameDataGenerated::GetChampionCount();
-        for (std::size_t championIndex = 0; championIndex < count; ++championIndex)
-        {
-            const ChampionGameData& data = pTable[championIndex];
-            for (const ChampionGameDataSummonerSpell& spell : data.summonerSpells)
-            {
-                if (spell.bValid && spell.spellId == spellId)
-                {
-                    return &spell;
-                }
-            }
-        }
-
-        return nullptr;
-    }
 }
 
 namespace ChampionGameDataDB
@@ -221,7 +188,7 @@ namespace ChampionGameDataDB
             if (stageIndex < kChampionGameDataSkillStageMax)
             {
                 const ChampionGameDataSkillStage& skillStage = pSkill->stages[stageIndex];
-                return MakeSkillTiming(skillStage.lockDurationSec, skillStage.animPlaySpeed);
+                return MakeSkillTiming(skillStage.lockDurationSec);
             }
         }
 
@@ -263,36 +230,6 @@ namespace ChampionGameDataDB
         if (const ChampionGameDataSkill* pSkill = FindSkill(champion, slot))
         {
             return pSkill->stageWindowSec;
-        }
-
-        return 0.f;
-    }
-
-    f32_t ResolveVisualYawOffset(eChampion champion)
-    {
-        if (const ChampionGameData* pData = FindChampion(champion))
-        {
-            return pData->visualYawOffset;
-        }
-
-        return ResolveFallbackVisualYawOffset(champion);
-    }
-
-    f32_t ResolveSummonerSpellRange(u16_t spellId)
-    {
-        if (const ChampionGameDataSummonerSpell* pSpell = FindSummonerSpell(spellId))
-        {
-            return pSpell->rangeMax;
-        }
-
-        return 0.f;
-    }
-
-    f32_t ResolveSummonerSpellCooldown(u16_t spellId)
-    {
-        if (const ChampionGameDataSummonerSpell* pSpell = FindSummonerSpell(spellId))
-        {
-            return pSpell->cooldownSec;
         }
 
         return 0.f;

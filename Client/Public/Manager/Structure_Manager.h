@@ -2,7 +2,7 @@
 #include "Defines.h"
 #include "Renderer/ModelRenderer.h"
 #include "Map/MapDataFormats.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"   // ← 추가
 #include "ECS/World.h"
 #include "ECS/Entity.h"
@@ -61,7 +61,6 @@ public:
     void  Set_DefaultScale(f32_t s) { m_fDefaultScale = s; }
 
 private:
-    static const char* ResolveModelPath(Winters::Map::eObjectKind kind, eTeam team);
     void Make_AutoName(Winters::Map::eObjectKind kind, eTeam team,
         Winters::Map::eTurretTier tier, Winters::Map::eLane lane,
         char* pOutBuf, size_t capacity);

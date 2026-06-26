@@ -370,7 +370,7 @@ EntityID CGameRoom::SpawnServerJungleFromStageEntry(
     m_world.AddComponent<JungleAIComponent>(entity, JungleAIComponent{});
 
     SpatialAgentComponent spatial{};
-    spatial.kind = eSpatialKind::JungleMob;
+    spatial.kind = eSpatialKind::NeutralUnit;
     spatial.team = TeamByte(eTeam::Neutral);
     spatial.radius = jungleDef.radius;
     m_world.AddComponent<SpatialAgentComponent>(entity, spatial);
@@ -451,11 +451,11 @@ EntityID CGameRoom::SpawnServerStructure(eTeam team, u32_t kind, u32_t tier, u32
 
     SpatialAgentComponent spatial{};
     if (bTurret)
-        spatial.kind = eSpatialKind::Turret;
+        spatial.kind = eSpatialKind::Structure;
     else if (bInhibitor)
-        spatial.kind = eSpatialKind::Inhibitor;
+        spatial.kind = eSpatialKind::Objective;
     else
-        spatial.kind = eSpatialKind::Nexus;
+        spatial.kind = eSpatialKind::Core;
     spatial.team = TeamByte(team);
     spatial.radius = ResolveStageStructureRadius(kind, tier);
     m_world.AddComponent<SpatialAgentComponent>(entity, spatial);
@@ -538,7 +538,7 @@ EntityID CGameRoom::SpawnServerMinion(eTeam team, u8_t roleType, u8_t lane, cons
     m_world.AddComponent<VelocityComponent>(entity, velocity);
 
     SpatialAgentComponent spatial{};
-    spatial.kind = eSpatialKind::Minion;
+    spatial.kind = eSpatialKind::Unit;
     spatial.team = TeamByte(team);
     spatial.radius = 0.5f;
     m_world.AddComponent<SpatialAgentComponent>(entity, spatial);
@@ -728,7 +728,7 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
     AttachChampionSimComponents(m_world, entity, slot.champion);
 
     SpatialAgentComponent spatial{};
-    spatial.kind = eSpatialKind::Champion;
+    spatial.kind = eSpatialKind::Character;
     spatial.team = slot.team;
     spatial.radius = spatialRadius;
     m_world.AddComponent<SpatialAgentComponent>(entity, spatial);

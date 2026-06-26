@@ -1,4 +1,4 @@
-﻿#include "GameObject/Champion/Kalista/Kalista_Skills.h"
+#include "GameObject/Champion/Kalista/Kalista_Skills.h"
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/SkillRegistry.h"
@@ -66,11 +66,11 @@ namespace
                 s.lockDurationSec = 0.6f;
                 s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 6.f;
-                s.recoveryFrame = 14.f;
-                s.animPlaySpeed = 1.0f;
-                s.stage2PlaySpeed = 1.f;
-                s.castFrameHookId = kKal_BA_Cast;
+                s.visualCastFrame = 6.f;
+                s.visualRecoveryFrame = 14.f;
+                s.visualPlaySpeed = 1.0f;
+                s.stage2VisualPlaySpeed = 1.f;
+                s.castHookId = kKal_BA_Cast;
                 s.recoveryHookId = kKal_BA_Recovery;
                 CSkillRegistry::Instance().Add(eChampion::KALISTA, 0, s);
             }
@@ -87,11 +87,11 @@ namespace
                 s.lockDurationSec = 0.3f;
                 s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 4.f;
-                s.recoveryFrame = 10.f;
-                s.animPlaySpeed = 2.8f;
-                s.stage2PlaySpeed = 1.f;
-                s.castFrameHookId = kKal_Q_Cast;
+                s.visualCastFrame = 4.f;
+                s.visualRecoveryFrame = 10.f;
+                s.visualPlaySpeed = 2.8f;
+                s.stage2VisualPlaySpeed = 1.f;
+                s.castHookId = kKal_Q_Cast;
                 s.recoveryHookId = kKal_Q_Recovery;
                 CSkillRegistry::Instance().Add(eChampion::KALISTA, 1, s);
             }

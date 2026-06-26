@@ -579,6 +579,12 @@
     <ClInclude Include="..\Public\GamePlay\Systems\Damage.h">
       <Filter>03. GamePlay\00. System\00. Damage</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\Systems\LocalStatusEffectSystem.h">
+      <Filter>03. GamePlay</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\Systems\LocalUnitAISystem.h">
+      <Filter>03. GamePlay</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\GameObject\Champion\Ezreal\Ezreal_Components.h">
       <Filter>02. GameObject\01. Champions\00. Champion\07. Ezreal</Filter>
     </ClInclude>
@@ -815,6 +821,12 @@
     </ClInclude>
     <ClInclude Include="..\Public\GamePlay\ChampionCatalog.h">
       <Filter>03. GamePlay\02. Champion\00. Catalog</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\LoLMatchContextRuntime.h">
+      <Filter>03. GamePlay</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\LoLUIContentRegistry.h">
+      <Filter>03. GamePlay</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\GamePlay\ChampionModuleBootstrap.h">
       <Filter>03. GamePlay\02. Champion\01. ModuleBootstrap</Filter>
@@ -1238,6 +1250,12 @@
     <ClCompile Include="..\Private\GamePlay\System\SkillDispatchSystem.cpp">
       <Filter>03. GamePlay\01. Skill\00. Dispatch</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\System\LocalStatusEffectSystem.cpp">
+      <Filter>03. GamePlay</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\System\LocalUnitAISystem.cpp">
+      <Filter>03. GamePlay</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\GamePlay\SkillHookRegistry.cpp">
       <Filter>03. GamePlay\01. Skill\02. HookRegistry</Filter>
     </ClCompile>
@@ -1249,6 +1267,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\GamePlay\ChampionCatalog.cpp">
       <Filter>03. GamePlay\02. Champion\00. Catalog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\LoLMatchContextRuntime.cpp">
+      <Filter>03. GamePlay</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\LoLUIContentRegistry.cpp">
+      <Filter>03. GamePlay</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\GamePlay\ChampionModuleBootstrap.cpp">
       <Filter>03. GamePlay\02. Champion\01. ModuleBootstrap</Filter>

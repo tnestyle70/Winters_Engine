@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ECS/Entity.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "WintersTypes.h"
 
 class CWorld;

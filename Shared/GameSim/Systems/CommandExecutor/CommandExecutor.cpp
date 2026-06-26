@@ -46,7 +46,7 @@
 #include "Shared/GameSim/Components/ViegoSimComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
@@ -458,17 +458,17 @@ namespace
         transform.SetPosition(position);
         world.AddComponent<TransformComponent>(ward, transform);
 
-        WardComponent wardState{};
+        VisionSensorComponent wardState{};
         wardState.remainingDuration = kWardDurationSec;
-        wardState.ownerTeam = ownerTeam;
-        world.AddComponent<WardComponent>(ward, wardState);
+        wardState.ownerTeam = static_cast<u8_t>(ownerTeam);
+        world.AddComponent<VisionSensorComponent>(ward, wardState);
 
         LeeSinWardOwnerComponent owner{};
         owner.owner = caster;
         world.AddComponent<LeeSinWardOwnerComponent>(ward, owner);
 
         SpatialAgentComponent spatial{};
-        spatial.kind = eSpatialKind::Ward;
+        spatial.kind = eSpatialKind::Sensor;
         spatial.team = static_cast<u8_t>(ownerTeam);
         spatial.radius = kWardSpatialRadius;
         world.AddComponent<SpatialAgentComponent>(ward, spatial);
@@ -550,13 +550,18 @@ namespace
         return (champion << 8) | static_cast<u32_t>(slot);
     }
 
-    u16_t ResolveSkillEffectDurationMs(eChampion champion, u8_t slot)
+    u16_t ResolveSkillEffectDurationMs(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eChampion champion,
+        u8_t slot)
     {
         if (champion == eChampion::KINDRED &&
             slot == static_cast<u8_t>(eSkillSlot::R))
         {
             return static_cast<u16_t>(
-                KindredGameSim::GetUltimateDurationSec() * 1000.f + 0.5f);
+                KindredGameSim::ResolveUltimateDurationSec(world, tc, caster) * 1000.f + 0.5f);
         }
 
         return 700;
@@ -778,28 +783,28 @@ namespace
         if (entity != NULL_ENTITY && world.HasComponent<JungleComponent>(entity))
             return WintersMath::kPi;
 
-        return ChampionGameDataDB::ResolveVisualYawOffset(ResolveChampion(world, entity));
+        return GetDefaultChampionVisualYawOffset(ResolveChampion(world, entity));
     }
 
-    f32_t ResolveVisualYawFromDirection(const Vec3& direction, f32_t visualYawOffset)
+    f32_t ResolveVisualYawFromDirection(const Vec3& direction, f32_t modelYawOffset)
     {
         return WintersMath::NormalizeRadians(
-            WintersMath::YawFromDirectionXZ(direction, visualYawOffset));
+            WintersMath::YawFromDirectionXZ(direction, modelYawOffset));
     }
 
     f32_t ResolveVisualYawNear(
         const Vec3& direction,
         f32_t referenceYaw,
-        f32_t visualYawOffset)
+        f32_t modelYawOffset)
     {
         return MakeChampionVisualYawNear(
-            ResolveVisualYawFromDirection(direction, visualYawOffset),
+            ResolveVisualYawFromDirection(direction, modelYawOffset),
             referenceYaw);
     }
 
-    Vec3 ForwardFromYaw(f32_t yaw, f32_t visualYawOffset)
+    Vec3 ForwardFromYaw(f32_t yaw, f32_t modelYawOffset)
     {
-        const f32_t gameplayYaw = yaw - visualYawOffset;
+        const f32_t gameplayYaw = yaw - modelYawOffset;
         return WintersMath::DirectionFromYawXZ(gameplayYaw);
     }
 
@@ -807,7 +812,7 @@ namespace
     {
         return ForwardFromYaw(
             yaw,
-            ChampionGameDataDB::ResolveVisualYawOffset(champion));
+            GetDefaultChampionVisualYawOffset(champion));
     }
 
     void ArmKalistaPassiveDashWindow(
@@ -1234,9 +1239,9 @@ namespace
         auto& transform = world.GetComponent<TransformComponent>(entity);
         const Vec3 rot = transform.GetRotation();
         const eChampion champion = ResolveChampion(world, entity);
-        const f32_t visualYawOffset = ResolveEntityVisualYawOffset(world, entity);
+        const f32_t modelYawOffset = ResolveEntityVisualYawOffset(world, entity);
         const f32_t resolvedYaw =
-            ResolveVisualYawNear(direction, rot.y, visualYawOffset);
+            ResolveVisualYawNear(direction, rot.y, modelYawOffset);
         transform.SetRotation({
             rot.x,
             resolvedYaw,
@@ -1249,8 +1254,8 @@ namespace
                 std::fabs(std::fabs(yawDelta) - WintersMath::kPi) <= 0.35f) &&
             s_rotateYawTraceCount < 512u)
         {
-            const Vec3 prevForward = ForwardFromYaw(rot.y, visualYawOffset);
-            const Vec3 nextForward = ForwardFromYaw(resolvedYaw, visualYawOffset);
+            const Vec3 prevForward = ForwardFromYaw(rot.y, modelYawOffset);
+            const Vec3 nextForward = ForwardFromYaw(resolvedYaw, modelYawOffset);
             const Vec3 normalizedDirection =
                 WintersMath::NormalizeXZ(direction, Vec3{}, 0.0001f);
             const f32_t prevVsDirDot =
@@ -1275,7 +1280,7 @@ namespace
                 nextForward.z,
                 prevVsDirDot,
                 nextVsDirDot,
-                visualYawOffset);
+                modelYawOffset);
             OutputCommandDebug(msg);
             ++s_rotateYawTraceCount;
         }
@@ -1794,7 +1799,7 @@ void CDefaultCommandExecutor::HandleMove(CWorld& world, const TickContext& tc,
         auto& transform = world.GetComponent<TransformComponent>(cmd.issuerEntity);
         const f32_t yawBefore = transform.GetRotation().y;
         const eChampion champion = ResolveChampion(world, cmd.issuerEntity);
-        const f32_t yawOffset = ChampionGameDataDB::ResolveVisualYawOffset(champion);
+        const f32_t yawOffset = GetDefaultChampionVisualYawOffset(champion);
         const bool_t bHasFacingDirection =
             facingDirection.x != 0.f || facingDirection.z != 0.f;
         const f32_t yawFromFacing = bHasFacingDirection
@@ -2216,7 +2221,12 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         static_cast<u16_t>(skillIdentity.localSlot));
     effectEvent.position = eventPos;
     effectEvent.direction = resolvedCmd.direction;
-    effectEvent.durationMs = ResolveSkillEffectDurationMs(hookChampion, hookSlot);
+    effectEvent.durationMs = ResolveSkillEffectDurationMs(
+        world,
+        tc,
+        resolvedCmd.issuerEntity,
+        hookChampion,
+        hookSlot);
     effectEvent.startTick = tc.tickIndex;
     EnqueueReplicatedEvent(world, effectEvent);
 

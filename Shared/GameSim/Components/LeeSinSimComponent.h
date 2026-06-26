@@ -1,6 +1,6 @@
 #pragma once
 #include "ECS/Entity.h"
-#include "GameContext.h"
+#include "../Definitions/LoLMatchContext.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
 

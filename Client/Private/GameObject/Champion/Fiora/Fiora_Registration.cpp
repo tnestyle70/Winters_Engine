@@ -1,4 +1,4 @@
-﻿#include "GamePlay/ChampionRegistry.h"
+#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -28,10 +28,10 @@ namespace
             cd.runAnimKey    = "run";
             cd.basicAttackKey = "attack1";
             cd.basicAttackRange = 1.5f;
-            cd.fbxPath = "Client/Bin/Resource/Texture/Character/Fiora/fiora.fbx";
+            cd.fbxPath = "Texture/Character/Fiora/fiora.fbx";
             cd.shaderPath = L"Shaders/Mesh3D.hlsl";
             const wchar_t* fioraBaseTexture =
-                L"Client/Bin/Resource/Texture/Character/Fiora/fiora_base_tx_cm.png";
+                L"Texture/Character/Fiora/fiora_base_tx_cm.png";
             cd.defaultTexturePath = fioraBaseTexture;
             for (u32_t i = 0; i < kChampionTextureSlotMax; ++i)
                 cd.texturePath[i] = fioraBaseTexture;
@@ -49,8 +49,8 @@ namespace
                 s.animKey = "attack1";
                 s.lockDurationSec = 1.0f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 6.f; s.recoveryFrame = 14.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kFio_BA_Cast;
+                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kFio_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 0, s);
             }
             // Q
@@ -62,8 +62,8 @@ namespace
                 s.animKey = "spell1";
                 s.lockDurationSec = 0.5f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 4.f; s.recoveryFrame = 10.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kFio_Q_Cast;
+                s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kFio_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 1, s);
             }
             // W
@@ -75,8 +75,8 @@ namespace
                 s.animKey = "spell2";
                 s.lockDurationSec = 1.5f; s.bOneShot = true;
                 s.rotate = eRotateMode::None;
-                s.castFrame = 1.f; s.recoveryFrame = 18.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kFio_W_Cast;
+                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 18.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kFio_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 2, s);
             }
             // E
@@ -88,8 +88,8 @@ namespace
                 s.animKey = "attack1";
                 s.lockDurationSec = 0.4f; s.bOneShot = true;
                 s.rotate = eRotateMode::None;
-                s.castFrame = 1.f; s.recoveryFrame = 8.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kFio_E_Cast;
+                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 8.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kFio_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 3, s);
             }
             // R
@@ -101,8 +101,8 @@ namespace
                 s.animKey = "channel";
                 s.lockDurationSec = 2.0f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 18.f; s.recoveryFrame = 36.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kFio_R_Cast;
+                s.visualCastFrame = 18.f; s.visualRecoveryFrame = 36.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kFio_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 4, s);
             }
 

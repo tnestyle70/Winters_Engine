@@ -1,6 +1,6 @@
 #include "GameObject/Champion/Zed/ZedFxPresets.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
@@ -20,15 +20,15 @@
 namespace
 {
     constexpr const wchar_t* kPathQRazorTex =
-        L"Client/Bin/Resource/Texture/Character/Zed/particles/zed_shuriken_tx.png";
+        L"Texture/Character/Zed/particles/zed_shuriken_tx.png";
     constexpr const wchar_t* kPathWShadowTex =
-        L"Client/Bin/Resource/Texture/Character/Zed/particles/zed_base_w_team_indicator_blue.png";
+        L"Texture/Character/Zed/particles/zed_base_w_team_indicator_blue.png";
     constexpr const wchar_t* kPathWShadowWispsTex =
-        L"Client/Bin/Resource/Texture/Character/Zed/particles/zed_shadowwisps.png";
+        L"Texture/Character/Zed/particles/zed_shadowwisps.png";
     constexpr const wchar_t* kPathESlashTex =
-        L"Client/Bin/Resource/Texture/Character/Zed/particles/zed_e_slash.png";
+        L"Texture/Character/Zed/particles/zed_e_slash.png";
     constexpr const wchar_t* kPathRMarkTex =
-        L"Client/Bin/Resource/Texture/Character/Zed/particles/zed_r_marker.png";
+        L"Texture/Character/Zed/particles/zed_r_marker.png";
     Vec4 MakeShadowCloneOverrideColor()
     {
         return Vec4{ 0.015f, 0.017f, 0.024f, 1.f };

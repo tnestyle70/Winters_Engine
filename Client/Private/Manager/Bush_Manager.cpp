@@ -116,13 +116,13 @@ void CBush_Manager::RenderEditorOverlay(const Mat4& matViewProj, i32_t selectedI
         const EntityID entity = m_vecEntities[i];
         if (!m_pWorld->IsAlive(entity) ||
             !m_pWorld->HasComponent<TransformComponent>(entity) ||
-            !m_pWorld->HasComponent<BushVolumeComponent>(entity))
+            !m_pWorld->HasComponent<ConcealmentVolumeComponent>(entity))
         {
             continue;
         }
 
         const Vec3 center = m_pWorld->GetComponent<TransformComponent>(entity).GetPosition();
-        const f32_t radius = m_pWorld->GetComponent<BushVolumeComponent>(entity).radius;
+        const f32_t radius = m_pWorld->GetComponent<ConcealmentVolumeComponent>(entity).radius;
         const bool_t bSelected = selectedIndex == static_cast<i32_t>(i);
         const ImU32 color = bSelected
             ? IM_COL32(255, 230, 80, 245)
@@ -298,10 +298,10 @@ f32_t CBush_Manager::Get_Radius(u32_t iIndex) const
         return 0.f;
 
     const EntityID entity = m_vecEntities[iIndex];
-    if (!m_pWorld->HasComponent<BushVolumeComponent>(entity))
+    if (!m_pWorld->HasComponent<ConcealmentVolumeComponent>(entity))
         return 0.f;
 
-    return m_pWorld->GetComponent<BushVolumeComponent>(entity).radius;
+    return m_pWorld->GetComponent<ConcealmentVolumeComponent>(entity).radius;
 }
 
 void CBush_Manager::Set_Radius(u32_t iIndex, f32_t radius)
@@ -310,8 +310,8 @@ void CBush_Manager::Set_Radius(u32_t iIndex, f32_t radius)
         return;
 
     const EntityID entity = m_vecEntities[iIndex];
-    if (m_pWorld->HasComponent<BushVolumeComponent>(entity))
-        m_pWorld->GetComponent<BushVolumeComponent>(entity).radius = (std::max)(0.1f, radius);
+    if (m_pWorld->HasComponent<ConcealmentVolumeComponent>(entity))
+        m_pWorld->GetComponent<ConcealmentVolumeComponent>(entity).radius = (std::max)(0.1f, radius);
 }
 
 u32_t CBush_Manager::Get_BushId(u32_t iIndex) const
@@ -418,11 +418,11 @@ EntityID CBush_Manager::Spawn_FromEntry(const Winters::Map::BushEntry& entry)
     transform.SetRotation({ 0.f, entry.yaw, 0.f });
     transform.SetScale(entry.scale);
 
-    BushVolumeComponent volume{};
+    ConcealmentVolumeComponent volume{};
     volume.center = { entry.px, entry.py, entry.pz };
     volume.radius = (std::max)(0.1f, entry.radius);
-    volume.bushId = entry.bushId;
-    m_pWorld->AddComponent<BushVolumeComponent>(entity, volume);
+    volume.volumeId = entry.bushId;
+    m_pWorld->AddComponent<ConcealmentVolumeComponent>(entity, volume);
 
     BushRuntimeData data{};
     data.name = entry.name[0] ? entry.name : "Bush";
@@ -469,8 +469,8 @@ Winters::Map::BushEntry CBush_Manager::BuildEntry(u32_t iIndex) const
         entry.yaw = rot.y;
     }
 
-    if (m_pWorld->HasComponent<BushVolumeComponent>(entity))
-        entry.radius = m_pWorld->GetComponent<BushVolumeComponent>(entity).radius;
+    if (m_pWorld->HasComponent<ConcealmentVolumeComponent>(entity))
+        entry.radius = m_pWorld->GetComponent<ConcealmentVolumeComponent>(entity).radius;
 
     return entry;
 }
@@ -481,13 +481,13 @@ void CBush_Manager::Sync_BushComponents(u32_t iIndex)
         return;
 
     const EntityID entity = m_vecEntities[iIndex];
-    if (!m_pWorld->HasComponent<BushVolumeComponent>(entity))
+    if (!m_pWorld->HasComponent<ConcealmentVolumeComponent>(entity))
         return;
 
-    BushVolumeComponent& volume = m_pWorld->GetComponent<BushVolumeComponent>(entity);
+    ConcealmentVolumeComponent& volume = m_pWorld->GetComponent<ConcealmentVolumeComponent>(entity);
     if (m_pWorld->HasComponent<TransformComponent>(entity))
         volume.center = m_pWorld->GetComponent<TransformComponent>(entity).GetPosition();
-    volume.bushId = m_vecData[iIndex].bushId;
+    volume.volumeId = m_vecData[iIndex].bushId;
 }
 
 void CBush_Manager::Sync_FxComponent(u32_t iIndex)

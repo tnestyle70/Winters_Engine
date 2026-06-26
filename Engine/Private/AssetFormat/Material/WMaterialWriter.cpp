@@ -212,50 +212,102 @@ namespace Winters::Asset
         return {};
     }
 
-    static std::wstring ResolveKnownChampionDiffusePath(
+    static std::string ToAssetToken(std::string s)
+    {
+        std::string out;
+        out.reserve(s.size());
+        for (char ch : s)
+        {
+            const unsigned char c = static_cast<unsigned char>(ch);
+            if (std::isalnum(c))
+                out.push_back(static_cast<char>(std::tolower(c)));
+        }
+        return out;
+    }
+
+    static int ScoreDiffuseCandidate(
+        const std::filesystem::path& path,
+        const std::string& materialName,
+        const std::string& materialToken)
+    {
+        const std::string fileName = ToLowerAscii(NarrowAscii(path.filename().wstring()));
+        const std::string stemToken = ToAssetToken(NarrowAscii(path.stem().wstring()));
+        if (stemToken.empty())
+            return 0;
+
+        int score = 0;
+        if (!materialToken.empty() && stemToken.find(materialToken) != std::string::npos)
+            score += 100;
+
+        const bool defaultLike =
+            materialName == "default" ||
+            materialName == "defaultmaterial" ||
+            materialName == "body" ||
+            materialName.find("base") != std::string::npos;
+        if (defaultLike &&
+            (fileName.find("base") != std::string::npos ||
+                fileName.find("body") != std::string::npos))
+        {
+            score += 60;
+        }
+
+        if (fileName.find("basecolor") != std::string::npos ||
+            fileName.find("albedo") != std::string::npos ||
+            fileName.find("diffuse") != std::string::npos ||
+            fileName.find("_cm") != std::string::npos ||
+            fileName.find("_tx") != std::string::npos)
+        {
+            score += 20;
+        }
+
+        return score;
+    }
+
+    static std::filesystem::path FindBestDiffuseTextureInModelDir(
         const std::filesystem::path& modelDir,
         const char* pMaterialName)
     {
         if (!pMaterialName || !pMaterialName[0])
             return {};
 
-        const std::string championDir =
-            ToLowerAscii(NarrowAscii(modelDir.filename().wstring()));
         const std::string materialName = ToLowerAscii(pMaterialName);
-        std::filesystem::path texturePath;
+        const std::string materialToken = ToAssetToken(materialName);
 
-        if (championDir == "viego")
+        std::error_code ec;
+        if (!std::filesystem::exists(modelDir, ec))
+            return {};
+
+        std::filesystem::path bestPath;
+        int bestScore = 0;
+        for (const std::filesystem::directory_entry& entry :
+            std::filesystem::directory_iterator(modelDir, ec))
         {
-            if (materialName == "defaultmaterial" ||
-                materialName == "default" ||
-                materialName == "body")
+            if (ec)
+                break;
+            if (!entry.is_regular_file(ec) || ec)
+                continue;
+
+            const std::string ext = NarrowAscii(entry.path().extension().wstring());
+            if (!IsKnownImageExtension(ext))
+                continue;
+
+            const int score = ScoreDiffuseCandidate(entry.path(), materialName, materialToken);
+            if (score > bestScore)
             {
-                texturePath = FindTextureInModelDir(modelDir, "viego_base_body_tx_cm.png");
-            }
-            else if (materialName == "sword" || materialName == "crown")
-            {
-                texturePath = FindTextureInModelDir(modelDir, "viego_base_crown_sword_tx_cm.png");
-            }
-            else if (materialName == "wraith")
-            {
-                texturePath = FindTextureInModelDir(modelDir, "viego_base_wraith_tx_cm.png");
-            }
-        }
-        else if (championDir == "sylas")
-        {
-            if (materialName == "defaultmaterial" ||
-                materialName == "sylas_base_mat")
-            {
-                texturePath = FindTextureInModelDir(modelDir, "sylas_base_tx_cm.png");
-            }
-            else if (materialName.find("gauntlet") != std::string::npos ||
-                materialName.find("chain") != std::string::npos ||
-                materialName.find("shackle") != std::string::npos)
-            {
-                texturePath = FindTextureInModelDir(modelDir, "sylas_base_shackles_tx_cm.png");
+                bestScore = score;
+                bestPath = entry.path();
             }
         }
 
+        return bestScore > 0 ? bestPath : std::filesystem::path{};
+    }
+
+    static std::wstring ResolveNearbyDiffusePath(
+        const std::filesystem::path& modelDir,
+        const char* pMaterialName)
+    {
+        const std::filesystem::path texturePath =
+            FindBestDiffuseTextureInModelDir(modelDir, pMaterialName);
         return texturePath.empty() ? std::wstring{} : ToRuntimePath(texturePath);
     }
 
@@ -299,7 +351,7 @@ namespace Winters::Asset
             else
             {
                 const std::wstring resolved =
-                    ResolveKnownChampionDiffusePath(modelDir, pName);
+                    ResolveNearbyDiffusePath(modelDir, pName);
                 if (!resolved.empty())
                     wcsncpy_s(entry.diffuse_path, WMAT_MAX_PATH, resolved.c_str(), _TRUNCATE);
             }

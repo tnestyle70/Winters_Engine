@@ -119,7 +119,7 @@
     <Filter Include="05. ECS\02. Components\04. Navigation">
       <UniqueIdentifier>{4570992c-4fd4-4f03-9f2d-971d1706e08d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\02. Components\05. Minion">
+    <Filter Include="05. ECS\02. Components\05. NavigationThrottle">
       <UniqueIdentifier>{53ef3052-38b1-4bef-9f9a-d45953f57b4c}</UniqueIdentifier>
     </Filter>
     <Filter Include="05. ECS\02. Components\06. FX">
@@ -134,13 +134,13 @@
     <Filter Include="05. ECS\02. Components\09. Vision">
       <UniqueIdentifier>{a8d72657-eae2-45b5-9576-8eb082bdaf54}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\02. Components\10. Bush">
+    <Filter Include="05. ECS\02. Components\10. VisionVolume">
       <UniqueIdentifier>{28ffd7dd-f069-418c-adfa-fe0477ea82c5}</UniqueIdentifier>
     </Filter>
     <Filter Include="05. ECS\03. Systems\00. Core">
       <UniqueIdentifier>{85bcb94b-e244-4171-b62a-74d92cc34e17}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\03. Systems\01. Minion">
+    <Filter Include="05. ECS\03. Systems\01. UnitFlow">
       <UniqueIdentifier>{5d066b70-bd1e-4237-a98f-f90dba43c890}</UniqueIdentifier>
     </Filter>
     <Filter Include="05. ECS\03. Systems\02. Entity">
@@ -149,13 +149,13 @@
     <Filter Include="05. ECS\03. Systems\03. Collision">
       <UniqueIdentifier>{f49d228e-38df-4f9d-a763-dcf62eecf75a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\03. Systems\01. Minion\00. AI">
+    <Filter Include="05. ECS\03. Systems\01. UnitFlow\00. AI">
       <UniqueIdentifier>{9554e630-692f-4788-80d1-91a2cf88cee4}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\03. Systems\01. Minion\01. Performance">
+    <Filter Include="05. ECS\03. Systems\01. UnitFlow\01. NavigationThrottle">
       <UniqueIdentifier>{c980d8f2-6181-4188-87c7-7f5bf86fcdc6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\03. Systems\01. Minion\02. Separation">
+    <Filter Include="05. ECS\03. Systems\01. UnitFlow\02. Separation">
       <UniqueIdentifier>{a7338edc-7231-473a-b049-dd3a6052d61b}</UniqueIdentifier>
     </Filter>
     <Filter Include="05. ECS\03. Systems\04. Vision">
@@ -164,13 +164,13 @@
     <Filter Include="05. ECS\03. Systems\06. Navigation">
       <UniqueIdentifier>{e42365d5-a6b0-48fe-85a6-5fb140753d2f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\03. Systems\07. Turret">
+    <Filter Include="05. ECS\03. Systems\07. Structure">
       <UniqueIdentifier>{f15f4fd6-5280-4d26-8336-83b68eac5b09}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\03. Systems\07. Turret\00. AI">
+    <Filter Include="05. ECS\03. Systems\07. Structure\00. AI">
       <UniqueIdentifier>{0f236708-4b27-4c74-b5d8-b585691ae59e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\03. Systems\07. Turret\01. Projectile">
+    <Filter Include="05. ECS\03. Systems\07. Structure\01. Projectile">
       <UniqueIdentifier>{9cb37582-3728-48e2-9d57-6b144658469c}</UniqueIdentifier>
     </Filter>
     <Filter Include="05. ECS\03. Systems\08. StatusEffect">
@@ -251,7 +251,7 @@
     <Filter Include="01. Runtime\01. WintersEngine">
       <UniqueIdentifier>{F1300003-0000-0000-0000-000000000003}</UniqueIdentifier>
     </Filter>
-    <Filter Include="01. Runtime\03. GameContext">
+    <Filter Include="01. Runtime\03. MatchContext">
       <UniqueIdentifier>{cad0ac76-0bc8-4d94-a3f9-ddecb2ae6a7d}</UniqueIdentifier>
     </Filter>
     <Filter Include="04. Resource">
@@ -499,9 +499,6 @@
     <ClInclude Include="..\Public\Scene\Scene_Manager.h">
       <Filter>01. Runtime\04. Scene</Filter>
     </ClInclude>
-    <ClInclude Include="GameContext.h">
-      <Filter>01. Runtime\03. GameContext</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\Sound\Sound_Manager.h">
       <Filter>08. Sound</Filter>
     </ClInclude>
@@ -610,10 +607,19 @@
     <ClInclude Include="..\Public\Manager\UI\UIAtlasManifest.h">
       <Filter>07. UI\00. AtlasManifest</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\Manager\UI\ChampionHUDState.h">
+    <ClInclude Include="..\Public\Manager\UI\ActorHUDAssets.h">
       <Filter>07. UI\01. HUD</Filter>
     </ClInclude>
-    <ClInclude Include="..\Private\Manager\UI\ChampionHUDPanel.h">
+    <ClInclude Include="..\Public\Manager\UI\ActorHUDState.h">
+      <Filter>07. UI\01. HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\UI\StatusPanelState.h">
+      <Filter>07. UI\01. HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\UI\WorldHealthBarState.h">
+      <Filter>07. UI\01. HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Manager\UI\ActorHUDPanel.h">
       <Filter>07. UI\01. HUD</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Manager\UI\Font_Manager.h">
@@ -709,8 +715,8 @@
     <ClInclude Include="..\Public\ECS\Components\CoreComponents.h">
       <Filter>05. ECS\02. Components\00. Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\ECS\Components\GameplayComponents.h">
-      <Filter>05. ECS\02. Components\02. Gameplay</Filter>
+    <ClInclude Include="..\Public\ECS\Components\AIControlComponents.h">
+      <Filter>05. ECS\02. Components\00. Core</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\Components\MeshGroupVisibilityComponent.h">
       <Filter>05. ECS\02. Components\03. MeshGroupVisibility</Filter>
@@ -718,8 +724,11 @@
     <ClInclude Include="..\Public\ECS\Components\NavAgentComponent.h">
       <Filter>05. ECS\02. Components\04. Navigation</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\ECS\Components\MinionPerformanceComponents.h">
-      <Filter>05. ECS\02. Components\05. Minion</Filter>
+    <ClInclude Include="..\Public\ECS\Components\NavigationThrottleComponent.h">
+      <Filter>05. ECS\02. Components\05. NavigationThrottle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\ECS\Components\NavigationControlComponent.h">
+      <Filter>05. ECS\02. Components\04. Navigation</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\Components\FxInstanceComponent.h">
       <Filter>05. ECS\02. Components\06. FX</Filter>
@@ -736,8 +745,8 @@
     <ClInclude Include="..\Public\ECS\SpatialIndex.h">
       <Filter>05. ECS\02. Components\04. Navigation</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\ECS\BushVolumeIndex.h">
-      <Filter>05. ECS\02. Components\10. Bush</Filter>
+    <ClInclude Include="..\Public\ECS\ConcealmentVolumeIndex.h">
+      <Filter>05. ECS\02. Components\10. VisionVolume</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\Systems\CoreSystems.h">
       <Filter>05. ECS\03. Systems\00. Core</Filter>
@@ -748,11 +757,8 @@
     <ClInclude Include="..\Public\ECS\Systems\EntityBlueprintRegistry.h">
       <Filter>05. ECS\03. Systems\02. Entity</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\ECS\Systems\MinionAISystem.h">
-      <Filter>05. ECS\03. Systems\01. Minion\00. AI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\ECS\Systems\MinionPerformanceSystem.h">
-      <Filter>05. ECS\03. Systems\01. Minion\01. Performance</Filter>
+    <ClInclude Include="..\Public\ECS\Systems\NavigationThrottleSystem.h">
+      <Filter>05. ECS\03. Systems\01. UnitFlow\01. NavigationThrottle</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\Systems\VisionSystem.h">
       <Filter>05. ECS\03. Systems\04. Vision</Filter>
@@ -766,12 +772,6 @@
     <ClInclude Include="..\Public\ECS\Systems\BehaviorTreeSystem.h">
       <Filter>09. AI\00. BT</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\ECS\Systems\TurretAISystem.h">
-      <Filter>05. ECS\03. Systems\07. Turret\00. AI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\ECS\Systems\TurretProjectileSystem.h">
-      <Filter>05. ECS\03. Systems\07. Turret\01. Projectile</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\ECS\Systems\StatusEffectSystem.h">
       <Filter>05. ECS\03. Systems\08. StatusEffect</Filter>
     </ClInclude>
@@ -784,7 +784,7 @@
     <ClInclude Include="..\Public\AI\Blackboard.h">
       <Filter>09. AI\00. BT</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\AI\BTNodes_Champion.h">
+    <ClInclude Include="..\Public\AI\BTNodes_CombatAgent.h">
       <Filter>09. AI\00. BT</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\AI\MCTSPlanner.h">
@@ -1132,7 +1132,7 @@
     <ClCompile Include="..\Private\Manager\UI\UIAtlasManifest.cpp">
       <Filter>07. UI\00. AtlasManifest</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\Manager\UI\ChampionHUDPanel.cpp">
+    <ClCompile Include="..\Private\Manager\UI\ActorHUDPanel.cpp">
       <Filter>07. UI\01. HUD</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Manager\UI\Font_Manager.cpp">
@@ -1207,8 +1207,8 @@
     <ClCompile Include="..\Private\ECS\SpatialIndex.cpp">
       <Filter>05. ECS\02. Components\04. Navigation</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\ECS\BushVolumeIndex.cpp">
-      <Filter>05. ECS\02. Components\10. Bush</Filter>
+    <ClCompile Include="..\Private\ECS\ConcealmentVolumeIndex.cpp">
+      <Filter>05. ECS\02. Components\10. VisionVolume</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\ECS\Systems\CoreSystems.cpp">
       <Filter>05. ECS\03. Systems\00. Core</Filter>
@@ -1219,11 +1219,8 @@
     <ClCompile Include="..\Private\ECS\Systems\EntityBlueprintRegistry.cpp">
       <Filter>05. ECS\03. Systems\02. Entity</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\ECS\Systems\MinionAISystem.cpp">
-      <Filter>05. ECS\03. Systems\01. Minion\00. AI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\ECS\Systems\MinionPerformanceSystem.cpp">
-      <Filter>05. ECS\03. Systems\01. Minion\01. Performance</Filter>
+    <ClCompile Include="..\Private\ECS\Systems\NavigationThrottleSystem.cpp">
+      <Filter>05. ECS\03. Systems\01. UnitFlow\01. NavigationThrottle</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\ECS\Systems\VisionSystem.cpp">
       <Filter>05. ECS\03. Systems\04. Vision</Filter>
@@ -1237,12 +1234,6 @@
     <ClCompile Include="..\Private\ECS\Systems\BehaviorTreeSystem.cpp">
       <Filter>09. AI\00. BT</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\ECS\Systems\TurretAISystem.cpp">
-      <Filter>05. ECS\03. Systems\07. Turret\00. AI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\ECS\Systems\TurretProjectileSystem.cpp">
-      <Filter>05. ECS\03. Systems\07. Turret\01. Projectile</Filter>
-    </ClCompile>
     <ClCompile Include="..\Private\ECS\Systems\StatusEffectSystem.cpp">
       <Filter>05. ECS\03. Systems\08. StatusEffect</Filter>
     </ClCompile>
@@ -1252,7 +1243,7 @@
     <ClCompile Include="..\Private\AI\BehaviorTree.cpp">
       <Filter>09. AI\00. BT</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\AI\BTNodes_Champion.cpp">
+    <ClCompile Include="..\Private\AI\BTNodes_CombatAgent.cpp">
       <Filter>09. AI\00. BT</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\AI\MCTSPlanner.cpp">

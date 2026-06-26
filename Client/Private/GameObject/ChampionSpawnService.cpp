@@ -258,7 +258,7 @@ ChampionSpawnResult CChampionSpawnService::Spawn(
 	AttachVisionAgent(
 		context.world,
 		entity,
-		eSpatialKind::Champion,
+		eSpatialKind::Character,
 		request.team,
 		statsDef.spatialRadius,
 		statsDef.sightRange);

@@ -20,7 +20,7 @@ namespace FxPresetStyle
 		material.vUVScroll = { fx.fUvScrollU, fx.fUvScrollV };
 		material.fAlphaClip = fx.fAlphaClip;
 		material.fErodeThreshold = fx.fErodeThreshold;
-		material.iStyleMode = static_cast<u32_t>(eFxMaterialStyleMode::LOLMagicSurface);
+		material.iStyleMode = static_cast<u32_t>(eFxMaterialStyleMode::MagicSurface);
 		material.vStyleColorA = vHotCore;
 		material.vStyleColorB = vEdge;
 		material.vRimColor = vRim;

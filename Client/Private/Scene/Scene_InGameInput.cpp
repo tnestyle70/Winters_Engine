@@ -1,6 +1,6 @@
-// Scene_InGameInput.cpp ??CScene_InGame???�력/?�게팅/?�투 ?�도/???�망 ?�력??책임 TU.
-// Stage 1 (mechanical split): Scene_InGame.cpp?�서 verbatim ?�동. ?�작/?�그?�처/?�출?�서 불�?.
-// ?�계: .md/plan/refactor/15_INGAME_SCENE_THINNING_DESIGN.md
+// Scene_InGameInput.cpp ??CScene_InGame???�력/?�게팅/?�투 ?�도/???�망 ?�력??책임 TU.
+// Stage 1 (mechanical split): Scene_InGame.cpp?�서 verbatim ?�동. ?�작/?�그?�처/?�출?�서 불�?.
+// ?�계: .md/plan/refactor/15_INGAME_SCENE_THINNING_DESIGN.md
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "Network/Client/ClientNetwork.h"
@@ -25,16 +25,13 @@
 #include "WintersPaths.h"
 #include "GameInstance.h"
 #include "ECS/Components/CoreComponents.h"   // ColliderComponent
-#include "ECS/Systems/MinionAISystem.h"
 #include "ECS/Systems/SpatialHashSystem.h"
 #include "ECS/Systems/BehaviorTreeSystem.h"
 #include "ECS/Systems/MCTSSystem.h"
-#include "ECS/Systems/TurretAISystem.h"
-#include "ECS/Systems/TurretProjectileSystem.h"
-#include "ECS/Systems/MinionPerformanceSystem.h"
+#include "ECS/Systems/NavigationThrottleSystem.h"
 #include "ECS/Systems/YoneSoulSpawnSystem.h"
 #include "ECS/Systems/VisionSystem.h"
-#include "ECS/BushVolumeIndex.h"
+#include "ECS/ConcealmentVolumeIndex.h"
 #include "ECS/Components/NavAgentComponent.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
@@ -82,7 +79,7 @@
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
 #include "GameObject/SkillDefVisualDataAdapter.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -111,7 +108,7 @@
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
 #include "ECS/Systems/StatusEffectSystem.h"
-#include "ECS/Components/GameplayComponents.h"   // Stun/Slow/Disarm
+#include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "Renderer/FxStaticMeshRenderer.h"
@@ -358,6 +355,28 @@ void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
     {
         if (in.IsKeyPressed('P'))
             CGameInstance::Get()->UI_Toggle_InGameShop();
+
+        if (in.IsKeyPressed('L'))
+        {
+            static bool_t s_bCursorLocked = false;
+            s_bCursorLocked = !s_bCursorLocked;
+            HWND hWnd = in.GetWindowHandle();
+            if (s_bCursorLocked && hWnd)
+            {
+                RECT rcClient{};
+                GetClientRect(hWnd, &rcClient);
+                POINT ptTL{ rcClient.left, rcClient.top };
+                POINT ptBR{ rcClient.right, rcClient.bottom };
+                ClientToScreen(hWnd, &ptTL);
+                ClientToScreen(hWnd, &ptBR);
+                RECT rcClip{ ptTL.x, ptTL.y, ptBR.x, ptBR.y };
+                ClipCursor(&rcClip);
+            }
+            else
+            {
+                ClipCursor(nullptr);
+            }
+        }
 
         if (in.IsKeyPressed('B') && IsNetworkAuthoritativeGameplay())
         {

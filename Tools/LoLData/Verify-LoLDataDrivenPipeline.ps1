@@ -38,6 +38,12 @@ try {
     Invoke-Checked "Legacy ownership audit" {
         powershell -ExecutionPolicy Bypass -File Tools/LoLData/Collect-LoLLegacyDataAudit.ps1
     }
+    Invoke-Checked "Data-driven goal status" {
+        powershell -ExecutionPolicy Bypass -File Tools/LoLData/Get-LoLDataDrivenGoalStatus.ps1
+    }
+    Invoke-Checked "Raw product asset path audit" {
+        powershell -ExecutionPolicy Bypass -File Tools/LoLData/FindRawAssetPaths.ps1
+    }
     Invoke-Checked "Client visual timing parity" {
         powershell -ExecutionPolicy Bypass -File Tools/LoLData/Export-LoLChampionVisualTimingSeed.ps1
     }

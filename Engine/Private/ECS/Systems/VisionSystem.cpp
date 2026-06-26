@@ -1,9 +1,8 @@
 #include "WintersPCH.h"
 #include "ECS/Systems/VisionSystem.h"
-#include "ECS/BushVolumeIndex.h"
+#include "ECS/ConcealmentVolumeIndex.h"
 #include "ECS/SpatialIndex.h"
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
@@ -102,15 +101,15 @@ namespace
 NS_BEGIN(Engine)
 
 std::unique_ptr<CVisionSystem> CVisionSystem::Create(CSpatialIndex* pIndex,
-    CBushVolumeIndex* pBushIndex)
+    CConcealmentVolumeIndex* pConcealmentIndex)
 {
     std::unique_ptr<CVisionSystem> p(new CVisionSystem());
     p->m_pIndex = pIndex;
-    p->m_pBushIndex = pBushIndex;
+    p->m_pConcealmentIndex = pConcealmentIndex;
     p->m_vecFowTexture.assign(FOW_TEX_DIM * FOW_TEX_DIM, 0);
     p->m_vecDebugRecords.reserve(128);
     p->m_vecVisibilityCandidates.reserve(256);
-    p->m_vecMinionVisionCells.reserve(128);
+    p->m_vecUnitVisionCells.reserve(128);
     return p;
 }
 
@@ -125,7 +124,7 @@ void CVisionSystem::Execute(CWorld& world, f32_t fTimeDelta)
     m_fAccumDt = 0.f;
     m_bForceRebuild = false;
 
-    UpdateBushOccupancy(world);
+    UpdateConcealmentOccupancy(world);
     TickVisibility(world);
     UpdateFowTexture(world);
 }
@@ -140,22 +139,50 @@ void CVisionSystem::SetFowProjection(const FowProjection& Projection)
     m_bFowTextureDirty = true;
 }
 
-void CVisionSystem::UpdateBushOccupancy(CWorld& world)
+void CVisionSystem::SetFowLocalTeam(u8_t iTeam)
 {
-    if (!m_pBushIndex)
+    if (iTeam == 255u)
+    {
+        ClearFowLocalTeam();
+        return;
+    }
+
+    if (m_bHasFowLocalTeam && m_iFowLocalTeam == iTeam)
+        return;
+
+    m_iFowLocalTeam = iTeam;
+    m_bHasFowLocalTeam = true;
+    m_bForceRebuild = true;
+    m_bFowTextureDirty = true;
+}
+
+void CVisionSystem::ClearFowLocalTeam()
+{
+    if (!m_bHasFowLocalTeam && m_iFowLocalTeam == 255u)
+        return;
+
+    m_iFowLocalTeam = 255u;
+    m_bHasFowLocalTeam = false;
+    m_bForceRebuild = true;
+    m_bFowTextureDirty = true;
+}
+
+void CVisionSystem::UpdateConcealmentOccupancy(CWorld& world)
+{
+    if (!m_pConcealmentIndex)
         return;
 
     world.ForEach<TransformComponent, VisibilityComponent, SpatialAgentComponent>(
         function<void(EntityID, TransformComponent&, VisibilityComponent&, SpatialAgentComponent&)>(
             [&](EntityID, TransformComponent& xf, VisibilityComponent& vis, SpatialAgentComponent&)
             {
-                const EntityID prevBush = vis.bushId;
-                const EntityID nowBush = m_pBushIndex->QueryBushAt(xf.GetPosition());
+                const EntityID prevConcealment = vis.concealmentId;
+                const EntityID nowConcealment = m_pConcealmentIndex->QueryVolumeAt(xf.GetPosition());
 
-                vis.bInBush = (nowBush != NULL_ENTITY);
-                vis.bushId = nowBush;
+                vis.bInConcealment = (nowConcealment != NULL_ENTITY);
+                vis.concealmentId = nowConcealment;
 
-                if (prevBush != nowBush)
+                if (prevConcealment != nowConcealment)
                     m_bForceRebuild = true;
             }));
 }
@@ -165,7 +192,7 @@ void CVisionSystem::TickVisibility(CWorld& world)
     WINTERS_PROFILE_SCOPE("Vision::TickVisibility");
 
     m_vecDebugRecords.clear();
-    m_vecMinionVisionCells.clear();
+    m_vecUnitVisionCells.clear();
     u64_t sourceCount = 0;
     u64_t skippedSourceCount = 0;
     u64_t candidateCount = 0;
@@ -189,7 +216,7 @@ void CVisionSystem::TickVisibility(CWorld& world)
         function<void(EntityID, TransformComponent&, VisionSourceComponent&, SpatialAgentComponent&)>(
             [&](EntityID srcId, TransformComponent& srcXf, VisionSourceComponent& vs, SpatialAgentComponent& srcAgent)
             {
-                if (srcAgent.kind == eSpatialKind::Minion)
+                if (srcAgent.kind == eSpatialKind::Unit)
                 {
                     const i64_t cellXKey =
                         static_cast<i64_t>(static_cast<u32_t>(srcAgent.cachedCellX) & 0xFFFFFu);
@@ -199,13 +226,13 @@ void CVisionSystem::TickVisibility(CWorld& world)
                         (static_cast<i64_t>(srcAgent.team) << 40) |
                         (cellXKey << 20) |
                         cellZKey;
-                    if (std::find(m_vecMinionVisionCells.begin(),
-                        m_vecMinionVisionCells.end(), cellKey) != m_vecMinionVisionCells.end())
+                    if (std::find(m_vecUnitVisionCells.begin(),
+                        m_vecUnitVisionCells.end(), cellKey) != m_vecUnitVisionCells.end())
                     {
                         ++skippedSourceCount;
                         return;
                     }
-                    m_vecMinionVisionCells.push_back(cellKey);
+                    m_vecUnitVisionCells.push_back(cellKey);
                 }
 
                 ++sourceCount;
@@ -223,14 +250,14 @@ void CVisionSystem::TickVisibility(CWorld& world)
                 m_vecVisibilityCandidates.clear();
                 if (m_pIndex)
                 {
-                    const u32_t mask = SpatialMask(eSpatialKind::Champion)
-                        | SpatialMask(eSpatialKind::Minion)
-                        | SpatialMask(eSpatialKind::Turret)
-                        | SpatialMask(eSpatialKind::JungleMob)
+                    const u32_t mask = SpatialMask(eSpatialKind::Character)
+                        | SpatialMask(eSpatialKind::Unit)
+                        | SpatialMask(eSpatialKind::Structure)
+                        | SpatialMask(eSpatialKind::NeutralUnit)
                         | SpatialMask(eSpatialKind::Projectile)
-                        | SpatialMask(eSpatialKind::Inhibitor)
-                        | SpatialMask(eSpatialKind::Nexus)
-                        | SpatialMask(eSpatialKind::Ward);
+                        | SpatialMask(eSpatialKind::Objective)
+                        | SpatialMask(eSpatialKind::Core)
+                        | SpatialMask(eSpatialKind::Sensor);
                     m_pIndex->QueryRadius(srcPos, vs.sightRange, mask,
                         sourceTeamMask, m_vecVisibilityCandidates);
                 }
@@ -295,12 +322,12 @@ bool CVisionSystem::IsTargetVisible(CWorld& world, EntityID source, EntityID tar
     if (world.HasComponent<VisibilityComponent>(target))
     {
         const VisibilityComponent& tgtVis = world.GetComponent<VisibilityComponent>(target);
-        if (tgtVis.bInBush)
+        if (tgtVis.bInConcealment)
         {
             if (world.HasComponent<VisibilityComponent>(source))
             {
                 const VisibilityComponent& srcVis = world.GetComponent<VisibilityComponent>(source);
-                if (srcVis.bInBush && srcVis.bushId == tgtVis.bushId)
+                if (srcVis.bInConcealment && srcVis.concealmentId == tgtVis.concealmentId)
                     return true;
             }
 
@@ -327,10 +354,11 @@ bool CVisionSystem::IsTargetVisibleFast(const VisibilityComponent* pSourceVis,
     if (dx * dx + dz * dz > sightRangeSq)
         return false;
 
-    if (!targetVis.bInBush)
+    if (!targetVis.bInConcealment)
         return true;
 
-    if (pSourceVis && pSourceVis->bInBush && pSourceVis->bushId == targetVis.bushId)
+    if (pSourceVis && pSourceVis->bInConcealment &&
+        pSourceVis->concealmentId == targetVis.concealmentId)
         return true;
 
     return bSourceTrueSight;
@@ -340,17 +368,10 @@ void CVisionSystem::UpdateFowTexture(CWorld& world)
 {
     WINTERS_PROFILE_SCOPE("Vision::UpdateFow");
 
-    u8_t localTeam = 0;
-    bool_t bLocalFound = false;
-    world.ForEach<LocalPlayerTag, SpatialAgentComponent>(
-        function<void(EntityID, LocalPlayerTag&, SpatialAgentComponent&)>(
-            [&](EntityID, LocalPlayerTag&, SpatialAgentComponent& agent)
-            {
-                localTeam = agent.team;
-                bLocalFound = true;
-            }));
-    if (!bLocalFound)
+    if (!m_bHasFowLocalTeam)
         return;
+    const u8_t localTeam = m_iFowLocalTeam;
+
     constexpr u8_t ExploredValue = 127;
     constexpr u8_t VisibleValue = 255;
 

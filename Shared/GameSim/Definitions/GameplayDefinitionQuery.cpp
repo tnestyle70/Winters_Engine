@@ -1,6 +1,6 @@
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
 #include "Shared/GameSim/Components/SkillLoadoutComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
@@ -217,6 +217,23 @@ namespace GameplayDefinitionQuery
         return fallbackValue;
     }
 
+    f32_t ResolveSummonPolicyParam(
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        eSummonPolicyParamId param,
+        f32_t fallbackValue)
+    {
+        if (const SkillGameplayDef* skill = FindSkill(world, entity, tc, fallbackChampion, slot))
+        {
+            return ::ResolveSummonPolicyParam(skill->summonPolicy, param, fallbackValue);
+        }
+
+        return fallbackValue;
+    }
+
     u64_t ResolveSkillActionLockTicks(
         CWorld& world,
         EntityID entity,
@@ -285,7 +302,7 @@ namespace GameplayDefinitionQuery
             }
         }
 
-        return ChampionGameDataDB::ResolveSummonerSpellRange(legacySpellId);
+        return 0.f;
     }
 
     f32_t ResolveSummonerSpellCooldown(const TickContext& tc, u16_t legacySpellId)
@@ -299,7 +316,7 @@ namespace GameplayDefinitionQuery
             }
         }
 
-        return ChampionGameDataDB::ResolveSummonerSpellCooldown(legacySpellId);
+        return 0.f;
     }
 
     f32_t ResolvePassiveDashDistance(

@@ -24,14 +24,12 @@ f32_t ResolveChampionVisualYawNear(eChampion champion, const Vec3& direction,
 struct ChampionSkillTimingDefaults
 {
     f32_t lockDurationSec = 0.6f;
-    f32_t animPlaySpeed = 1.f;
 };
 
 struct ChampionBasicAttackTimingDefaults
 {
     f32_t fWindupSec = 0.25f;
     f32_t fActionDurationSec = 0.75f;
-    f32_t fAnimPlaySpeed = 1.f;
 };
 
 ChampionSkillTimingDefaults GetDefaultChampionSkillTiming(eChampion champion, u8_t slot);

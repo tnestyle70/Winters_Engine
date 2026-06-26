@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "GameObject/ChampionDef.h"
 #include "WintersTypes.h"
 
@@ -15,18 +15,18 @@ bool_t IsRosterChampionSupported(eChampion champion);
 const char* GetRosterChampionLabel(eChampion champion);
 const wchar_t* GetRosterChampionLoadscreenPath(eChampion champion);
 const wchar_t* GetRosterChampionPortraitPath(eChampion champion);
-void ClearSlot(GameContext& context, u32_t slotId);
-i32_t FindLocalHumanSlot(const GameContext& context);
-void JoinLocalPlayerSlot(GameContext& context, u32_t slotId);
+void ClearSlot(MatchContext& context, u32_t slotId);
+i32_t FindLocalHumanSlot(const MatchContext& context);
+void JoinLocalPlayerSlot(MatchContext& context, u32_t slotId);
 eChampion GetDefaultBotChampion(u32_t slotId);
 u8_t GetDefaultBotLane(u32_t slotId);
 const char* GetBotLaneLabel(u8_t lane);
-void AddBotToSlot(GameContext& context, u32_t slotId, eChampion champion);
-void SetBotSlotLane(GameContext& context, u32_t slotId, u8_t lane);
-void AssignChampionToSlot(GameContext& context, u32_t slotId, eChampion champion);
-void FillEmptySlotsWithBots(GameContext& context);
-void ClearBotSlots(GameContext& context);
-void InitializeLocalCustomRoom(GameContext& context);
-bool_t ValidateRosterForStart(const GameContext& context, char* pReason, size_t reasonBytes);
-void FinalizeRosterForStart(GameContext& context);
-void CountRoster(const GameContext& context, u32_t& outHumans, u32_t& outBots, u32_t& outOccupied);
+void AddBotToSlot(MatchContext& context, u32_t slotId, eChampion champion);
+void SetBotSlotLane(MatchContext& context, u32_t slotId, u8_t lane);
+void AssignChampionToSlot(MatchContext& context, u32_t slotId, eChampion champion);
+void FillEmptySlotsWithBots(MatchContext& context);
+void ClearBotSlots(MatchContext& context);
+void InitializeLocalCustomRoom(MatchContext& context);
+bool_t ValidateRosterForStart(const MatchContext& context, char* pReason, size_t reasonBytes);
+void FinalizeRosterForStart(MatchContext& context);
+void CountRoster(const MatchContext& context, u32_t& outHumans, u32_t& outBots, u32_t& outOccupied);

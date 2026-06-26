@@ -10,19 +10,19 @@ namespace
 {
     // ★ v2: 실제 가렌 추출 구조 — particles/fbx/, particles/ 하위
     constexpr const char* kPathESpinFbx =
-        "Client/Bin/Resource/Texture/FX/Garen/particles/fbx/garen_base_e_spin.fbx";
+        "Texture/FX/Garen/particles/fbx/garen_base_e_spin.fbx";
     constexpr const char* kPathWShieldFbx =
-        "Client/Bin/Resource/Texture/FX/Garen/particles/fbx/garen_base_w_shield.fbx";
+        "Texture/FX/Garen/particles/fbx/garen_base_w_shield.fbx";
     constexpr const char* kPathRSwordFbx =
-        "Client/Bin/Resource/Texture/FX/Garen/particles/fbx/garen_base_r_sword_plane.fbx";
+        "Texture/FX/Garen/particles/fbx/garen_base_r_sword_plane.fbx";
 
     // 1차는 가렌 base aura/ball 텍스처 사용 — 정확한 머티리얼 매핑은 RenderDoc 검증 후 확정
     constexpr const wchar_t* kPathQTrailTex =
-        L"Client/Bin/Resource/Texture/FX/Garen/particles/garen_aura_self.png";
+        L"Texture/FX/Garen/particles/garen_aura_self.png";
     constexpr const wchar_t* kPathWShieldTex =
-        L"Client/Bin/Resource/Texture/FX/Garen/particles/garen_aura_self_02.png";
+        L"Texture/FX/Garen/particles/garen_aura_self_02.png";
     constexpr const wchar_t* kPathRSwordTex =
-        L"Client/Bin/Resource/Texture/FX/Garen/particles/garen_ball01.png";
+        L"Texture/FX/Garen/particles/garen_ball01.png";
 }
 
 void GarenFx::SpawnQTrail(CWorld& world, EntityID owner, f32_t fLifetime)

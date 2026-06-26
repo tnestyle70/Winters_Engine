@@ -2,7 +2,7 @@
 
 #include "Game/ServerMinionWaveRuntime.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/World.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"

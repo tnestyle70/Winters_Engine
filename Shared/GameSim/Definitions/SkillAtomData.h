@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameContext.h"
+#include "LoLMatchContext.h"
 #include "SkillTypes.h"
 #include "WintersTypes.h"
 
@@ -76,16 +76,6 @@ enum class eSkillEffectParamId : u8_t
     ShieldBaseAmount,
     ShieldAmountPerRank,
     ShieldArmorPerRank,
-    SummonDurationSec,
-    SummonMoveSpeed,
-    SummonAttackRange,
-    SummonSightRange,
-    SummonAttackCooldownSec,
-    SummonBaseAttackDamage,
-    SummonAttackDamagePerRank,
-    SummonBaseHp,
-    SummonHpPerRank,
-    SummonRadius,
     DashDelaySec,
     EffectDurationSec,
     TickIntervalSec,
@@ -99,11 +89,40 @@ enum class eSkillEffectParamId : u8_t
     RectWidth,
     HalfWidth,
     DisarmDurationSec,
+    TornadoSpeed,
+    TornadoDurationSec,
+    TornadoRadius,
+    TornadoDamage,
+    DashAreaRadius,
+    DashAreaDamage,
+};
+
+enum class eSummonPolicyParamId : u8_t
+{
+    None = 0,
+    DurationSec,
+    MoveSpeed,
+    AttackRange,
+    SightRange,
+    AttackCooldownSec,
+    BaseAttackDamage,
+    AttackDamagePerRank,
+    BaseHp,
+    HpPerRank,
+    Radius,
+    RoleType,
+    Lane,
 };
 
 struct SkillEffectParam
 {
     eSkillEffectParamId id = eSkillEffectParamId::None;
+    f32_t value = 0.f;
+};
+
+struct SummonPolicyParam
+{
+    eSummonPolicyParamId id = eSummonPolicyParamId::None;
     f32_t value = 0.f;
 };
 
@@ -114,6 +133,15 @@ struct SkillEffectSpec
     u32_t replicatedCueId = 0;
     u8_t paramCount = 0;
     SkillEffectParam params[kSkillEffectParamMax] = {};
+};
+
+inline constexpr u8_t kSummonPolicyParamMax = 16;
+
+struct SummonPolicySpec
+{
+    bool_t bValid = false;
+    u8_t paramCount = 0;
+    SummonPolicyParam params[kSummonPolicyParamMax] = {};
 };
 
 inline const SkillEffectParam* FindSkillEffectParam(
@@ -144,6 +172,34 @@ inline f32_t ResolveSkillEffectParam(
     return fallbackValue;
 }
 
+inline const SummonPolicyParam* FindSummonPolicyParam(
+    const SummonPolicySpec& policy,
+    eSummonPolicyParamId id)
+{
+    for (u8_t index = 0; index < policy.paramCount && index < kSummonPolicyParamMax; ++index)
+    {
+        if (policy.params[index].id == id)
+        {
+            return &policy.params[index];
+        }
+    }
+
+    return nullptr;
+}
+
+inline f32_t ResolveSummonPolicyParam(
+    const SummonPolicySpec& policy,
+    eSummonPolicyParamId id,
+    f32_t fallbackValue = 0.f)
+{
+    if (const SummonPolicyParam* param = FindSummonPolicyParam(policy, id))
+    {
+        return param->value;
+    }
+
+    return fallbackValue;
+}
+
 struct SkillGameAtomBundle
 {
     bool_t bValid = false;
@@ -155,4 +211,5 @@ struct SkillGameAtomBundle
     SkillStageSpec stage{};
     SkillFacingSpec facing{};
     SkillEffectSpec effect{};
+    SummonPolicySpec summonPolicy{};
 };

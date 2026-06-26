@@ -9,8 +9,6 @@ from pathlib import Path
 
 SKILL_SLOT_COUNT = 5
 SKILL_STAGE_MAX = 2
-SUMMONER_SPELL_COUNT = 2
-
 STAT_FIELDS = {
     "baseHp": 600.0,
     "hpPerLevel": 100.0,
@@ -36,9 +34,6 @@ STAT_FIELDS = {
 
 STAGE_FIELDS = {
     "lockDurationSec": 0.6,
-    "animPlaySpeed": 1.0,
-    "castFrame": 0.0,
-    "recoveryFrame": 0.0,
 }
 
 
@@ -150,6 +145,18 @@ def normalize_passive_dash(passive_dash: object, champion: str) -> dict | None:
     }
 
 
+def normalize_passive_soul(passive_soul: object, champion: str) -> dict | None:
+    if passive_soul is None:
+        return None
+    if not isinstance(passive_soul, dict):
+        fail(f"champions[{champion}].passiveSoul must be an object")
+    path = f"champions[{champion}].passiveSoul"
+    return {
+        "lifetimeSec": as_float(passive_soul.get("lifetimeSec"), f"{path}.lifetimeSec"),
+        "radius": as_float(passive_soul.get("radius"), f"{path}.radius"),
+    }
+
+
 def normalize_champion(champion: dict, index: int) -> dict:
     if not isinstance(champion, dict):
         fail(f"champions[{index}] must be an object")
@@ -178,10 +185,10 @@ def normalize_champion(champion: dict, index: int) -> dict:
     return {
         "champion": name,
         "dataVersion": as_int(champion.get("dataVersion", 1), f"champions[{name}].dataVersion"),
-        "visualYawOffset": as_float(champion.get("visualYawOffset", 0.0), f"champions[{name}].visualYawOffset"),
         "stats": stats,
         "skills": skills,
         "passiveDash": normalize_passive_dash(champion.get("passiveDash"), name),
+        "passiveSoul": normalize_passive_soul(champion.get("passiveSoul"), name),
     }
 
 
@@ -193,15 +200,6 @@ def normalize_root(root: dict) -> dict:
     if not isinstance(champions, list) or not champions:
         fail("champions must be a non-empty array")
 
-    spells = root.get("summonerSpells", [])
-    if not isinstance(spells, list):
-        fail("summonerSpells must be an array")
-
-    normalized_spells = []
-    for index in range(SUMMONER_SPELL_COUNT):
-        source = spells[index] if index < len(spells) else {}
-        normalized_spells.append(normalize_spell(source, index))
-
     normalized_champions = [normalize_champion(champion, index) for index, champion in enumerate(champions)]
     seen = set()
     for champion in normalized_champions:
@@ -212,7 +210,6 @@ def normalize_root(root: dict) -> dict:
 
     return {
         "schemaVersion": as_int(root.get("schemaVersion", 1), "schemaVersion"),
-        "summonerSpells": normalized_spells,
         "champions": normalized_champions,
     }
 
@@ -258,21 +255,6 @@ def append_skill(lines: list[str], skill: dict) -> None:
     for stage_index, stage in enumerate(skill["stages"]):
         lines.append(f"        auto& stage{slot}_{stage_index} = skill{slot}.stages[{stage_index}];")
         lines.append(f"        stage{slot}_{stage_index}.lockDurationSec = {cpp_float(stage['lockDurationSec'])};")
-        lines.append(f"        stage{slot}_{stage_index}.animPlaySpeed = {cpp_float(stage['animPlaySpeed'])};")
-        lines.append(f"        stage{slot}_{stage_index}.castFrame = {cpp_float(stage['castFrame'])};")
-        lines.append(f"        stage{slot}_{stage_index}.recoveryFrame = {cpp_float(stage['recoveryFrame'])};")
-
-
-def append_spell(lines: list[str], spell: dict, index: int) -> None:
-    if spell["spellId"] == 0:
-        return
-    lines.append(f"        auto& spell{index} = data.summonerSpells[{index}];")
-    lines.append(f"        spell{index}.bValid = true;")
-    lines.append(f"        spell{index}.spellId = {spell['spellId']}u;")
-    lines.append(f"        spell{index}.rangeMax = {cpp_float(spell['rangeMax'])};")
-    lines.append(f"        spell{index}.cooldownSec = {cpp_float(spell['cooldownSec'])};")
-    lines.append(f"        spell{index}.gameplayPolicyId = {spell['gameplayPolicyId']}u;")
-    lines.append(f"        spell{index}.visualCueId = {spell['visualCueId']}u;")
 
 
 def append_passive_dash(lines: list[str], passive_dash: dict | None) -> None:
@@ -303,14 +285,11 @@ def emit_cpp(data: dict, build_hash: int) -> str:
         lines.append(f"        data.champion = {enum_value('eChampion', name)};")
         lines.append(f"        data.dataVersion = {champion['dataVersion']}u;")
         lines.append("        data.authoringHash = kGeneratedChampionGameDataBuildHash;")
-        lines.append(f"        data.visualYawOffset = {cpp_float(champion['visualYawOffset'])};")
         lines.append(f"        data.stats.championId = {enum_value('eChampion', name)};")
         for key, value in champion["stats"].items():
             lines.append(f"        data.stats.{key} = {cpp_float(value)};")
         for skill in champion["skills"]:
             append_skill(lines, skill)
-        for index, spell in enumerate(data["summonerSpells"]):
-            append_spell(lines, spell, index)
         append_passive_dash(lines, champion["passiveDash"])
         lines.append("        return data;")
         lines.append("    }")

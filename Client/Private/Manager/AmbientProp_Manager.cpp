@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "Manager/AmbientProp_Manager.h"
 
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 #include "WintersPaths.h"
 #include "Dev/SmokeLog.h"
 #include "ProfilerAPI.h"
@@ -10,9 +11,6 @@
 
 namespace
 {
-    constexpr wchar_t kMapAmbientPropBinPath[] =
-        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/map11_ambient_props.wamb";
-
     struct MapAmbientPropRecord
     {
         u32_t kind = 0;
@@ -22,19 +20,6 @@ namespace
         f32_t lolYaw = 0.f;
         f32_t scale = 1.f;
     };
-
-    struct MapAmbientAssetDesc
-    {
-        const char* pMeshPath;
-        const char* pIdleAnim;
-    };
-
-    constexpr MapAmbientAssetDesc kMapAmbientAssets[] = {
-        { "Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/ambient/sru_bird/sru_bird.wmesh",
-          "sru_bird_idle_tree1" },
-        { "Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/ambient/sru_duck/sru_duck.wmesh",
-          "sru_duck_idle1" },
-    };
 }
 
 void CAmbientProp_Manager::Spawn(const Mat4& mapWorld, f32_t mapYaw,
@@ -42,9 +27,15 @@ void CAmbientProp_Manager::Spawn(const Mat4& mapWorld, f32_t mapYaw,
 {
     m_props.clear();
 
+    const ClientData::AmbientPropVisualPack& visualPack =
+        ClientData::GetAmbientPropVisualPack();
+
     wchar_t resolvedPath[MAX_PATH]{};
-    if (!WintersResolveContentPath(kMapAmbientPropBinPath, resolvedPath, MAX_PATH))
+    if (!visualPack.placement.resourceRelativePath ||
+        !WintersResolveContentPath(visualPack.placement.resourceRelativePath, resolvedPath, MAX_PATH))
+    {
         return;
+    }
 
     FILE* fp = nullptr;
     if (_wfopen_s(&fp, resolvedPath, L"rb") != 0 || !fp)
@@ -65,25 +56,25 @@ void CAmbientProp_Manager::Spawn(const Mat4& mapWorld, f32_t mapYaw,
     const DirectX::XMMATRIX xmMapWorld =
         DirectX::XMLoadFloat4x4(reinterpret_cast<const DirectX::XMFLOAT4X4*>(&mapWorld.m));
 
-    constexpr u32_t kAssetCount =
-        static_cast<u32_t>(sizeof(kMapAmbientAssets) / sizeof(kMapAmbientAssets[0]));
-
     for (u32_t i = 0; i < header[2]; ++i)
     {
         MapAmbientPropRecord record{};
         if (fread(&record, sizeof(record), 1, fp) != 1)
             break;
-        if (record.kind >= kAssetCount)
+
+        const ClientData::AmbientPropVisualDefinition* pVisual =
+            ClientData::FindAmbientPropVisualDefinition(record.kind);
+        if (!pVisual || !pVisual->mesh.resourceRelativePath || !pVisual->shader.runtimePath)
             continue;
 
-        const MapAmbientAssetDesc& asset = kMapAmbientAssets[record.kind];
         auto pRenderer = std::make_unique<ModelRenderer>();
-        if (!pRenderer->Initialize(asset.pMeshPath, L"Shaders/Mesh3D.hlsl"))
+        if (!pRenderer->Initialize(pVisual->mesh.resourceRelativePath, pVisual->shader.runtimePath))
         {
             Winters::DevSmoke::Log("[MapAmbient] init failed kind=%u\n", record.kind);
             continue;
         }
-        pRenderer->PlayAnimationByName(asset.pIdleAnim, true);
+        if (pVisual->idleAnimation && pVisual->idleAnimation[0])
+            pRenderer->PlayAnimationByName(pVisual->idleAnimation, true);
 
         const DirectX::XMFLOAT3 lolPos{ record.lolX, record.lolY, record.lolZ };
         const DirectX::XMVECTOR vWorld = DirectX::XMVector3TransformCoord(

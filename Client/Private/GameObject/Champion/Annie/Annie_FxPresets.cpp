@@ -10,21 +10,21 @@
 namespace
 {
     constexpr const wchar_t* kPathBAFlashTex =
-        L"Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_q_ash.png";
+        L"Texture/Character/Annie/particles/annie_base_q_ash.png";
     constexpr const wchar_t* kPathQFireballTex =
-        L"Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_q_mis_flames.png";
+        L"Texture/Character/Annie/particles/annie_base_q_mis_flames.png";
     constexpr const wchar_t* kPathQFireballTrailTex =
-        L"Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_q_mis_trail.png";
+        L"Texture/Character/Annie/particles/annie_base_q_mis_trail.png";
     constexpr const wchar_t* kPathWConeTex =
-        L"Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_w_grounddecalfinal.png";
+        L"Texture/Character/Annie/particles/annie_base_w_grounddecalfinal.png";
     constexpr const wchar_t* kPathEShieldTex =
-        L"Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_e_circle.png";
+        L"Texture/Character/Annie/particles/annie_base_e_circle.png";
     constexpr const wchar_t* kPathEGlowTex =
-        L"Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_e_buf_glow2.png";
+        L"Texture/Character/Annie/particles/annie_base_e_buf_glow2.png";
     constexpr const wchar_t* kPathRSummonTex =
-        L"Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_brazier_flame_temp_01.png";
+        L"Texture/Character/Annie/particles/annie_base_brazier_flame_temp_01.png";
     constexpr const wchar_t* kPathStunChargeTex =
-        L"Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_glow.png";
+        L"Texture/Character/Annie/particles/annie_base_glow.png";
 }
 
 namespace Annie::Fx

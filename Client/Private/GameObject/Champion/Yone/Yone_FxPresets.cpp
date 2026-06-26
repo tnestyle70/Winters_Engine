@@ -16,15 +16,15 @@ namespace
     constexpr const char* kCueFateSealed = "Yone.R.FateSealed";
 
     constexpr const wchar_t* kFallbackImpact =
-        L"Client/Bin/Resource/Texture/Character/Yone/particles/yone_basic_attack_impact_slash.png";
+        L"Texture/Character/Yone/particles/yone_basic_attack_impact_slash.png";
     constexpr const wchar_t* kFallbackQSword =
-        L"Client/Bin/Resource/Texture/Character/Yone/particles/yone_q_sword.png";
+        L"Texture/Character/Yone/particles/yone_q_sword.png";
     constexpr const wchar_t* kFallbackWArc =
-        L"Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_w_groundswipe_01.png";
+        L"Texture/Character/Yone/particles/yone_base_w_groundswipe_01.png";
     constexpr const wchar_t* kFallbackETether =
-        L"Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_e_timer_sumi-e_erode.png";
+        L"Texture/Character/Yone/particles/yone_base_e_timer_sumi-e_erode.png";
     constexpr const wchar_t* kFallbackRGround =
-        L"Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_r_ground.png";
+        L"Texture/Character/Yone/particles/yone_base_r_ground.png";
 
     Vec3 NormalizeForward(const Vec3& vForward)
     {

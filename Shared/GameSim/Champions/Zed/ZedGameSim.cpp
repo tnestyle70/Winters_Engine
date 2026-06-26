@@ -1,6 +1,6 @@
 #include "Shared/GameSim/Champions/Zed/ZedGameSim.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
@@ -27,27 +27,7 @@
 
 namespace
 {
-    constexpr f32_t kZedQDamage = 70.f;
-    constexpr f32_t kZedQDamagePerRank = 25.f;
-    constexpr f32_t kZedQSpeed = 24.f;
-    constexpr f32_t kZedQRange = 9.0f;
-    constexpr f32_t kZedQRadius = 0.45f;
-
-    constexpr f32_t kZedWRange = 6.5f;
-    constexpr f32_t kZedWShadowDurationSec = 5.f;
-    constexpr f32_t kZedRShadowDurationSec = 5.f;
-    constexpr f32_t kZedRBehindPadding = 0.75f;
     constexpr u8_t kZedRSourceShadowStage = 3u;
-
-    constexpr f32_t kZedEDamage = 65.f;
-    constexpr f32_t kZedEDamagePerRank = 20.f;
-    constexpr f32_t kZedERadius = 2.75f;
-    constexpr f32_t kZedESlowDurationSec = 1.5f;
-    constexpr f32_t kZedESlowMoveSpeedMul = 0.60f;
-
-    constexpr f32_t kZedRVanishDurationSec = 0.75f;
-    constexpr f32_t kZedRMarkDurationSec = 3.f;
-    constexpr f32_t kZedRMissingHealthDamageRatio = 0.30f;
 
     u16_t CastFrameVariantForZedSlot(u8_t slot)
     {
@@ -79,7 +59,7 @@ namespace
     f32_t ResolveZedSkillRange(
         const GameplayHookContext& ctx,
         eSkillSlot slot,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -98,7 +78,7 @@ namespace
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -139,9 +119,9 @@ namespace
         if (!world.HasComponent<TransformComponent>(caster))
             return Vec3{ 0.f, 0.f, 1.f };
 
-        const f32_t visualYaw = world.GetComponent<TransformComponent>(caster).GetRotation().y;
+        const f32_t modelYaw = world.GetComponent<TransformComponent>(caster).GetRotation().y;
         return WintersMath::DirectionFromYawXZ(
-            visualYaw - ChampionGameDataDB::ResolveVisualYawOffset(eChampion::ZED));
+            modelYaw - GetDefaultChampionVisualYawOffset(eChampion::ZED));
     }
 
     void SetZedShadowState(
@@ -170,9 +150,9 @@ namespace
         if (world.HasComponent<ChampionComponent>(entity))
             championId = world.GetComponent<ChampionComponent>(entity).id;
 
-        const f32_t visualYaw = world.GetComponent<TransformComponent>(entity).GetRotation().y;
+        const f32_t modelYaw = world.GetComponent<TransformComponent>(entity).GetRotation().y;
         return WintersMath::DirectionFromYawXZ(
-            visualYaw - ChampionGameDataDB::ResolveVisualYawOffset(championId));
+            modelYaw - GetDefaultChampionVisualYawOffset(championId));
     }
 
     Vec3 ResolveDeathMarkLandingPosition(
@@ -480,27 +460,23 @@ namespace
         RotateToward(world, ctx.casterEntity, dir);
         ClearMove(world, ctx.casterEntity);
 
-        const f32_t range = ResolveZedSkillRange(ctx, eSkillSlot::Q, kZedQRange);
+        const f32_t range = ResolveZedSkillRange(ctx, eSkillSlot::Q);
         const f32_t speed = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::Speed,
-            kZedQSpeed);
+            eSkillEffectParamId::Speed);
         const f32_t radius = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::Radius,
-            kZedQRadius);
+            eSkillEffectParamId::Radius);
         const f32_t baseDamage = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::BaseDamage,
-            kZedQDamage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t damagePerRank = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::DamagePerRank,
-            kZedQDamagePerRank);
+            eSkillEffectParamId::DamagePerRank);
         const Vec3 casterPos = world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         SpawnZedShuriken(
             world,
@@ -553,14 +529,15 @@ namespace
             }
             return;
         }
+        if (!ctx.pTickCtx)
+            return;
 
         const Vec3 dir = ResolveDirectionFromCommand(world, ctx.pCommand, ctx.casterEntity);
-        const f32_t range = ResolveZedSkillRange(ctx, eSkillSlot::W, kZedWRange);
+        const f32_t range = ResolveZedSkillRange(ctx, eSkillSlot::W);
         const f32_t shadowDurationSec = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::EffectDurationSec,
-            kZedWShadowDurationSec);
+            eSkillEffectParamId::EffectDurationSec);
         const Vec3 target = ResolveClampedGroundTarget(
             world,
             ctx.pTickCtx,
@@ -594,28 +571,23 @@ namespace
         const f32_t radius = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::Radius,
-            kZedERadius);
+            eSkillEffectParamId::Radius);
         const f32_t baseDamage = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::BaseDamage,
-            kZedEDamage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t damagePerRank = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::DamagePerRank,
-            kZedEDamagePerRank);
+            eSkillEffectParamId::DamagePerRank);
         const f32_t slowDurationSec = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::SlowDurationSec,
-            kZedESlowDurationSec);
+            eSkillEffectParamId::SlowDurationSec);
         const f32_t slowMoveSpeedMul = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::MoveSpeedMul,
-            kZedESlowMoveSpeedMul);
+            eSkillEffectParamId::MoveSpeedMul);
 
         const Vec3 casterPos = ResolvePosition(world, ctx.casterEntity);
         CollectEnemiesInCircle(world, ctx.casterEntity, sourceTeam, casterPos, radius, targets);
@@ -667,7 +639,7 @@ namespace
 
     void OnR(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld || !ctx.pCommand)
+        if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx)
             return;
 
         CWorld& world = *ctx.pWorld;
@@ -693,28 +665,23 @@ namespace
         const f32_t shadowDurationSec = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::EffectDurationSec,
-            kZedRShadowDurationSec);
+            eSkillEffectParamId::EffectDurationSec);
         const f32_t behindPadding = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::Gap,
-            kZedRBehindPadding);
+            eSkillEffectParamId::Gap);
         const f32_t vanishDurationSec = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::VanishDurationSec,
-            kZedRVanishDurationSec);
+            eSkillEffectParamId::VanishDurationSec);
         const f32_t markDurationSec = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::MarkDurationSec,
-            kZedRMarkDurationSec);
+            eSkillEffectParamId::MarkDurationSec);
         const f32_t missingHealthDamageRatio = ResolveZedSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::MissingHealthDamageRatio,
-            kZedRMissingHealthDamageRatio);
+            eSkillEffectParamId::MissingHealthDamageRatio);
         SetZedShadowState(
             world,
             ctx.casterEntity,

@@ -3,8 +3,8 @@
 #include "WintersTypes.h"
 #include "WintersMath.h"
 #include "ECS/Entity.h"
-#include "GameContext.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "GameObject/SkillDef.h"
 
 #include <functional>

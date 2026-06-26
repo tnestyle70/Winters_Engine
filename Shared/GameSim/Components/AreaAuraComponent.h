@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Entity.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"

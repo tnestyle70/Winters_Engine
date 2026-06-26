@@ -1,10 +1,10 @@
 #pragma once
 
 #include "ECS/Entity.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Game/CommandIngress.h"
 #include "Game/LobbyAuthority.h"
 #include "Game/SessionBinding.h"
@@ -35,9 +35,12 @@ namespace Winters::Map
 namespace Engine
 {
     class CSpatialHashSystem;
-    class CTurretAISystem;
     class CMapSurfaceSampler;
     class CNavGrid;
+}
+namespace GameplayTurret
+{
+    class CTurretAISystem;
 }
 
 class CSnapshotBuilder;
@@ -99,7 +102,7 @@ private:
     void Phase_ServerBotAI(TickContext& tc);
     void Phase_SimulationSystems(TickContext& tc);
     void Phase_ServerMinionWave(TickContext& tc);
-    void Phase_ServerMinionAI(TickContext& tc);
+    void Phase_ServerUnitAI(TickContext& tc);
     void Phase_ServerTurretAI(TickContext& tc);
     void Phase_ServerMinionDepenetration(TickContext& tc);
     void Phase_ServerProjectiles(TickContext& tc);
@@ -210,7 +213,7 @@ private:
     bool_t m_bReplayFinalized = false;
 
     std::unique_ptr<Engine::CSpatialHashSystem> m_pSpatialSystem;
-    std::unique_ptr<Engine::CTurretAISystem> m_pTurretAI;
+    std::unique_ptr<GameplayTurret::CTurretAISystem> m_pTurretAI;
     std::unique_ptr<Engine::CMapSurfaceSampler> m_pMapSurfaceSampler;
     std::unique_ptr<Engine::CNavGrid> m_pNavGrid;
     std::unique_ptr<Engine::CNavGrid> m_pPathNavGrid;

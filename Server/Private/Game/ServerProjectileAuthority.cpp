@@ -159,7 +159,7 @@ DamageRequest CServerProjectileAuthority::BuildTurretDamageRequest(
     request.sourceTeam = sourceTeam;
     request.type = eDamageType::Physical;
     request.flatAmount = damage;
-    request.skillId = kTurretProjectileKind;
+    request.skillId = kStructureProjectileKind;
     return request;
 }
 

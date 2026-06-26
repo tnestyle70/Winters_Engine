@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Defines.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/Network/PacketEnvelope.h"
 
 #include <functional>
@@ -38,8 +38,8 @@ public:
 	void ClearServerLoading() { m_bServerLoading = false; }
 	void ClearGameStarting() { m_bGameStarting = false; }
 
-	const GameContext& GetLobbyContext() const { return m_lobbyContext; }
-	void CopyLobbyToGameContext(GameContext& outContext) const;
+	const MatchContext& GetLobbyContext() const { return m_lobbyContext; }
+	void CopyLobbyToMatchContext(MatchContext& outContext) const;
 
 	bool SendLobbyCommand(
 		Shared::Schema::LobbyCommandKind kind,
@@ -68,7 +68,7 @@ private:
 	void OnHello(const u8_t* payload, u32_t len);
 
 	std::unique_ptr<CClientNetwork> m_pNetwork;
-	GameContext m_lobbyContext{};
+	MatchContext m_lobbyContext{};
 	bool_t m_bHasLobbyState = false;
 	bool_t m_bGameStarting = false;
 	u32_t m_nextLobbySequence = 1;

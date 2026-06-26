@@ -63,8 +63,10 @@ InGameScene owner는 Client presentation이다:
 5. CLAUDE.md, .claude/gotchas.md, .md/계획서작성규칙.md       ← 코딩/계획서 규칙(각 owner 직전 계획서를 이 형식으로)
 
 [현재 코드베이스 사실 — 다시 만들지 마라. 라인 번호 변동 가능, rg/Read로 재확인]
-- Stage 1 완료: Scene_InGame.cpp 760줄 shell + 8 TU + Scene_InGameInternal.h/.cpp(공유 helper). 빌드 green.
-- 각 TU 메서드는 CScene_InGame 멤버 정의이고 scene.m_*를 직접 접근. owner 추출 = 그 멤버 + 메서드를 owner로 이동.
+- Stage 1 완료: Scene_InGame.cpp 757줄 shell + 8 TU + Scene_InGameInternal.h/.cpp(공유 helper). 빌드 green.
+- S2-A 완료: CAmbientProp_Manager(Client/Public/Manager + Client/Private/Manager, DECLARE_SINGLETON) 추출 끝. 다시 만들지 마라. 다음은 OWNER=MAPNAV.
+- **신규 Client 매니저/owner 헤더는 맨 앞에 #include "Defines.h"** 를 둔다. ModelRenderer.h의 const wstring&/uint32가 using namespace std(=Defines.h) 전제라 빠지면 미정의 빌드 실패. Minion_Manager.h/AmbientProp_Manager.h 패턴 그대로.
+- 각 TU 메서드는 CScene_InGame 멤버 정의이고 scene.m_*를 직접 접근. owner 추출 = 그 멤버 + 메서드를 owner로 이동. presentation owner는 RHI snapshot 경로(AppendRenderSnapshotMeshes)도 흡수할 수 있다(AmbientProp가 예시).
 - 참조 패턴(흡수·소비만): GameRoom Stage 2 owner(CLobbyAuthority=stateful, CWorldBootstrap/CWalkabilityAuthority=static),
   Manager 싱글톤(CMinion_Manager: Initialize/Tick/Render/Shutdown), ECS 스케줄러(m_pScheduler->RegisterSystem).
 - 외부 UI 패널이 호출하는 scene accessor(15 §7: GetWorld/GetPlayerEntity/GetNavGrid/GetCameraPtr/GetFxMeshRenderer/
@@ -128,13 +130,21 @@ G5 본질: owner가 한 이유로만 바뀌고 scene은 조립/위임만. friend
 
 ## OWNER별 첫 슬라이스 예시
 
-### AMBIENT — 패턴 검증 (가장 안전)
+### AMBIENT — ✅ 완료 (참고용, 다시 하지 마라)
 ```text
-OWNER=AMBIENT
-CAmbientProp_Manager.h/.cpp 추가(Minion_Manager 싱글톤 패턴: Initialize(world)/SpawnFromBinary/Tick(dt)/Render(vp,...)/Shutdown).
-m_AmbientProps + struct MapAmbientProp + SpawnMapAmbientProps(Scene_InGameLifecycle.cpp) + OnUpdate 업데이트 루프 +
-Scene_InGameRender.cpp 렌더 루프 + OnExit clear를 매니저로 이동. scene은 CAmbientProp_Manager::Get() 호출.
-빌드 + F5에서 새 5/오리 1이 같은 위치·동작으로 보이는지 확인.
+완료됨: CAmbientProp_Manager(DECLARE_SINGLETON) 추출. Spawn(mapWorld,mapYaw,projectCb)/Tick/Render/
+AppendRenderSnapshotMeshes/Shutdown. scene 위임: OnEnter Spawn, OnUpdate Tick, OnRender Render(+RHI append), OnExit Shutdown.
+이 owner가 나머지 S2-B~G의 레퍼런스 — 같은 형태(헤더 맨 앞 Defines.h, owner 상태 소유, scene 위임, friend 0)로 진행.
+```
+
+### MAPNAV — 다음 (첫 슬라이스)
+```text
+OWNER=MAPNAV
+CMapNavService.h/.cpp 추가(헤더 맨 앞 #include "Defines.h"). m_pNavGrid/m_pPathNavGrid/m_pMapSurfaceSampler + nav 튜닝을
+service로 이동, Scene_InGameMapNav.cpp의 메서드를 service 멤버로. calc(TryResolveWalkableMoveTarget/TryProjectToMapSurface/
+IsWalkableMoveSegment/ResolveMouseMapSurfacePos)는 입력받아 결과 반환. scene/다른 TU의 m_pNavGrid 직접 접근을 service API로 교체.
+GetNavGrid/GetPathNavGrid accessor(외부 패널·DebugDraw가 호출, 15 §7)는 service로 forward해 시그니처 보존.
+빌드 + F5에서 클릭 이동/경로/구조물 차단/미니언 이동 불변 확인.
 ```
 
 ### PREDICTION — 최대 부채 (NETCODE 다음, 분리 유지)

@@ -1,8 +1,8 @@
 #include "WintersPCH.h"
 #include "AI/MCTSPlanner.h"
 #include "ECS/World.h"
+#include "ECS/Components/AIControlComponents.h"
 #include "ECS/Components/CoreComponents.h"
-#include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ProfilerAPI.h"
@@ -38,12 +38,13 @@ void WorldSnapshot::CaptureFromWorld(CWorld& world, EntityID self, f32_t radius)
                 state.hp = hp.fCurrent;
                 state.maxHp = (hp.fMaximum > 0.f) ? hp.fMaximum : 1.f;
 
-                if (world.HasComponent<ChampionComponent>(id))
+                if (world.HasComponent<AIResourceStateComponent>(id))
                 {
-                    const ChampionComponent& champion = world.GetComponent<ChampionComponent>(id);
-                    state.mana = champion.mana;
+                    const AIResourceStateComponent& resource =
+                        world.GetComponent<AIResourceStateComponent>(id);
+                    state.mana = resource.fMana;
                     for (u32_t i = 0; i < 4; ++i)
-                        state.cooldowns[i] = champion.cooldowns[i];
+                        state.cooldowns[i] = resource.fCooldowns[i];
                 }
 
                 units.push_back(state);

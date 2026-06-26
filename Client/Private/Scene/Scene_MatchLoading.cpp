@@ -1,6 +1,7 @@
-﻿#include "Scene/Scene_MatchLoading.h"
+#include "Scene/Scene_MatchLoading.h"
 
 #include "GameInstance.h"
+#include "GamePlay/LoLMatchContextRuntime.h"
 #include "Network/Client/GameSessionClient.h"
 #include "Scene/LobbyRosterHelpers.h"
 
@@ -22,7 +23,7 @@ namespace
 	const Vec4 kBlueFrameColor = Vec4(0.16f, 0.46f, 0.92f, 0.95f);
 	const Vec4 kCardShadowColor = Vec4(0.f, 0.f, 0.f, 0.48f);
 
-	bool_t HasRosterEntries(const GameContext& context)
+	bool_t HasRosterEntries(const MatchContext& context)
 	{
 		for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
 		{
@@ -53,7 +54,7 @@ void CScene_MatchLoading::OnUpdate(f32_t dt)
 	if (m_bTransitioning)
 		return;
 
-	GameContext& context = CGameInstance::Get()->Get_GameContext();
+	MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 	CGameSessionClient& session = CGameSessionClient::Instance();
 	const bool_t bNetworkLoading = context.bUseNetworkRoster && session.IsConnected();
 
@@ -68,7 +69,7 @@ void CScene_MatchLoading::OnUpdate(f32_t dt)
 
 		if (session.HasLobbyState())
 		{
-			session.CopyLobbyToGameContext(context);
+			session.CopyLobbyToMatchContext(context);
 			if (!m_bChampionCardsBuilt && HasRosterEntries(context))
 				BuildChampionCards();
 		}
@@ -122,7 +123,7 @@ void CScene_MatchLoading::BuildChampionCards()
 	ShutdownMatchLoadingTextures();
 
 	m_ImageUI.Initialize(
-		L"Client/Bin/Resource/Texture/UI/MatchLoadingBackground.png",
+		L"Texture/UI/MatchLoadingBackground.png",
 		g_iWinSizeX,
 		g_iWinSizeY);
 
@@ -132,7 +133,7 @@ void CScene_MatchLoading::BuildChampionCards()
 	if (!pDevice)
 		return;
 
-	const GameContext& context = CGameInstance::Get()->Get_GameContext();
+	const MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 	if (!HasRosterEntries(context))
 		return;
 

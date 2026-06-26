@@ -26,17 +26,19 @@
 #include "Core/CInput.h"
 #include "WintersPaths.h"
 #include "GameInstance.h"
+#include "GamePlay/LoLMatchContextRuntime.h"
+#include "GamePlay/LoLUIContentRegistry.h"
 #include "ECS/Components/CoreComponents.h"   // ColliderComponent
-#include "ECS/Systems/MinionAISystem.h"
+#include "GamePlay/Systems/LocalUnitAISystem.h"
 #include "ECS/Systems/SpatialHashSystem.h"
 #include "ECS/Systems/BehaviorTreeSystem.h"
 #include "ECS/Systems/MCTSSystem.h"
-#include "ECS/Systems/TurretAISystem.h"
-#include "ECS/Systems/TurretProjectileSystem.h"
-#include "ECS/Systems/MinionPerformanceSystem.h"
+#include "Shared/GameSim/Systems/Turret/TurretAISystem.h"
+#include "Shared/GameSim/Systems/Turret/StructureProjectileSystem.h"
+#include "ECS/Systems/NavigationThrottleSystem.h"
 #include "ECS/Systems/YoneSoulSpawnSystem.h"
 #include "ECS/Systems/VisionSystem.h"
-#include "ECS/BushVolumeIndex.h"
+#include "ECS/ConcealmentVolumeIndex.h"
 #include "ECS/Components/NavAgentComponent.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
@@ -84,7 +86,7 @@
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
 #include "GameObject/SkillDefVisualDataAdapter.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -111,8 +113,8 @@
 #pragma pop_macro("min")
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
-#include "ECS/Systems/StatusEffectSystem.h"
-#include "ECS/Components/GameplayComponents.h"   // Stun/Slow/Disarm
+#include "GamePlay/Systems/LocalStatusEffectSystem.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "Renderer/RHISceneRenderer.h"
 #include "GameObject/FX/FxBillboardComponent.h"
@@ -134,19 +136,6 @@
 
 namespace
 {
-    constexpr char kBaseMapMeshPath[] =
-        "Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh";
-    constexpr wchar_t kBaseMapMeshPathW[] =
-        L"Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh";
-    constexpr char kFullLayerMapMeshPath[] =
-        "Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh";
-    constexpr wchar_t kFullLayerMapMeshPathW[] =
-        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh";
-    constexpr wchar_t kMapBrushVolumeCsvPath[] =
-        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/manifest/map11_brush_volumes.csv";
-    constexpr wchar_t kMapBrushVolumeBinPath[] =
-        L"Client/Bin/Resource/Texture/MAP/Map11_Rebuild/cooked/map11_brush_volumes.wbrush";
-
     void UI_SendBuyItemCommand(void* pUser, u16_t itemId)
     {
         CScene_InGame* pScene = static_cast<CScene_InGame*>(pUser);
@@ -201,12 +190,20 @@ namespace
 
     const char* SelectMapMeshPath()
     {
-        return ShouldUseFullLayerMap() ? kFullLayerMapMeshPath : kBaseMapMeshPath;
+        const ClientData::MapRuntimeVisualDefinition& visual =
+            ClientData::GetMapRuntimeVisualDefinition();
+        return ShouldUseFullLayerMap()
+            ? visual.fullLayerMapMesh.resourceRelativePath
+            : visual.baseMapMesh.resourceRelativePath;
     }
 
     const wchar_t* SelectMapSurfacePath()
     {
-        return ShouldUseFullLayerMap() ? kFullLayerMapMeshPathW : kBaseMapMeshPathW;
+        const ClientData::MapRuntimeVisualDefinition& visual =
+            ClientData::GetMapRuntimeVisualDefinition();
+        return ShouldUseFullLayerMap()
+            ? visual.fullLayerMapSurface.resourceRelativePath
+            : visual.baseMapSurface.resourceRelativePath;
     }
 
     void SeedPracticeBushesForBootstrap(CWorld& world)
@@ -236,11 +233,11 @@ namespace
         for (const BushSeed& bush : kBushes)
         {
             const EntityID entity = world.CreateEntity();
-            BushVolumeComponent component{};
+            ConcealmentVolumeComponent component{};
             component.center = bush.center;
             component.radius = bush.radius;
-            component.bushId = bush.bushId;
-            world.AddComponent<BushVolumeComponent>(entity, component);
+            component.volumeId = bush.bushId;
+            world.AddComponent<ConcealmentVolumeComponent>(entity, component);
         }
     }
 
@@ -254,9 +251,14 @@ namespace
 
     bool_t SeedMap11BrushesFromBinaryForBootstrap(CWorld& world)
     {
+        const ClientData::MapRuntimeVisualDefinition& visual =
+            ClientData::GetMapRuntimeVisualDefinition();
         wchar_t resolvedPath[MAX_PATH]{};
-        if (!WintersResolveContentPath(kMapBrushVolumeBinPath, resolvedPath, MAX_PATH))
+        if (!visual.brushVolumeBinary.resourceRelativePath ||
+            !WintersResolveContentPath(visual.brushVolumeBinary.resourceRelativePath, resolvedPath, MAX_PATH))
+        {
             return false;
+        }
 
         FILE* fp = nullptr;
         if (_wfopen_s(&fp, resolvedPath, L"rb") != 0 || !fp)
@@ -284,11 +286,11 @@ namespace
                 continue;
 
             const EntityID entity = world.CreateEntity();
-            BushVolumeComponent component{};
+            ConcealmentVolumeComponent component{};
             component.center = { record.worldX, 0.f, record.worldZ };
             component.radius = record.radius;
-            component.bushId = record.bushId;
-            world.AddComponent<BushVolumeComponent>(entity, component);
+            component.volumeId = record.bushId;
+            world.AddComponent<ConcealmentVolumeComponent>(entity, component);
             ++iSeeded;
         }
 
@@ -298,8 +300,11 @@ namespace
 
     bool_t SeedMap11BrushesFromResourceForBootstrap(CWorld& world)
     {
+        const ClientData::MapRuntimeVisualDefinition& visual =
+            ClientData::GetMapRuntimeVisualDefinition();
         wchar_t resolvedPath[MAX_PATH]{};
-        if (!WintersResolveContentPath(kMapBrushVolumeCsvPath, resolvedPath, MAX_PATH))
+        if (!visual.brushVolumeCsv.resourceRelativePath ||
+            !WintersResolveContentPath(visual.brushVolumeCsv.resourceRelativePath, resolvedPath, MAX_PATH))
         {
             return false;
         }
@@ -328,11 +333,11 @@ namespace
                 continue;
 
             const EntityID entity = world.CreateEntity();
-            BushVolumeComponent component{};
+            ConcealmentVolumeComponent component{};
             component.center = { x, 0.f, z };
             component.radius = radius;
-            component.bushId = bushId;
-            world.AddComponent<BushVolumeComponent>(entity, component);
+            component.volumeId = bushId;
+            world.AddComponent<ConcealmentVolumeComponent>(entity, component);
             ++iSeeded;
         }
 
@@ -343,7 +348,7 @@ namespace
 
     void SendServerInGameReady()
     {
-        GameContext& context = CGameInstance::Get()->Get_GameContext();
+        MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
         CGameSessionClient& session = CGameSessionClient::Instance();
 
         if (!context.bUseNetworkRoster || !session.IsConnected())
@@ -351,7 +356,7 @@ namespace
 
         session.Pump();
         if (session.HasLobbyState())
-            session.CopyLobbyToGameContext(context);
+            session.CopyLobbyToMatchContext(context);
 
         if (context.MySessionId == 0 || context.MySlotId == kInvalidGameRosterSlot)
         {
@@ -371,7 +376,7 @@ namespace
 
 bool CScene_InGame::OnEnter()
 {
-    const GameContext& gameContext = CGameInstance::Get()->Get_GameContext();
+    const MatchContext& gameContext = Client::CLoLMatchContextRuntime::Instance().Context();
     Winters::DevSmoke::Log(
         "[InGameBootstrap] enter useNetworkRoster=%u selected=%u mySlot=%u sid=%u net=%u\n",
         gameContext.bUseNetworkRoster ? 1u : 0u,
@@ -392,7 +397,7 @@ bool CScene_InGame::OnEnter()
 
     m_pScheduler = std::unique_ptr<CSystemSchedular>(new CSystemSchedular());
     m_pScheduler->Initialize(pJS);
-    m_World.Initialize_Spatial(LoLSpatialGridDesc());
+    m_World.Initialize_Spatial(DefaultSpatialGridDesc());
 
     {
         auto pTx = CTransformSystem::Create();
@@ -406,12 +411,12 @@ bool CScene_InGame::OnEnter()
     }
 
     {
-        auto pStatus = CStatusEffectSystem::Create();
+        auto pStatus = CLocalStatusEffectSystem::Create();
         m_pScheduler->RegisterSystem(std::move(pStatus));
     }
 
     {
-        auto pVision = Engine::CVisionSystem::Create(m_World.Get_SpatialIndex(), &m_BushIndex);
+        auto pVision = Engine::CVisionSystem::Create(m_World.Get_SpatialIndex(), &m_ConcealmentIndex);
         const UI::MinimapProjection& MinimapProjection = UI::GetDefaultMinimapProjection();
         Engine::CVisionSystem::FowProjection FowProjection{};
         FowProjection.vWorldAtUv00 = MinimapProjection.vWorldAtUv00;
@@ -468,12 +473,12 @@ bool CScene_InGame::OnEnter()
         m_World.GetEntityCount());
     Winters::DevSmoke::Log("[InGameBootstrap] Stage bushes=%u\n",
         CBush_Manager::Get()->Get_Count());
-    m_BushIndex.Build(m_World);
+    m_ConcealmentIndex.Build(m_World);
     if (m_pVisionSystem)
         m_pVisionSystem->ForceRebuildNextFrame();
 
     const eChampion selectedChampion = GetPlayerChampionId();
-    if (CGameInstance::Get()->Get_GameContext().bUseNetworkRoster
+    if (Client::CLoLMatchContextRuntime::Instance().Context().bUseNetworkRoster
         || selectedChampion == eChampion::RIVEN
         || selectedChampion == eChampion::EZREAL
         || selectedChampion == eChampion::FIORA
@@ -486,6 +491,7 @@ bool CScene_InGame::OnEnter()
     }
 
     CGameInstance::Get()->UI_Bind_World(&m_World);
+    Client::RegisterLoLUIContent(*CGameInstance::Get());
     CGameInstance::Get()->UI_Set_InGameBuyItemCallback(&UI_SendBuyItemCommand, this);
     CGameInstance::Get()->UI_Set_LevelSkillCallback(&UI_SendLevelSkillCommand, this);
 
@@ -520,27 +526,27 @@ bool CScene_InGame::OnEnter()
 
     if (!m_bNetworkAuthoritativeGameplay)
     {
-        auto pAI = CMinionAISystem::Create();
+        auto pAI = CLocalUnitAISystem::Create();
         pAI->Set_JobSystem(pJS);
         m_pScheduler->RegisterSystem(std::move(pAI));
     }
 
     if (!m_bNetworkAuthoritativeGameplay)
     {
-        auto pMinionPerformance = Engine::CMinionPerformanceSystem::Create();
-        m_pScheduler->RegisterSystem(std::move(pMinionPerformance));
+        auto pNavigationThrottle = Engine::CNavigationThrottleSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pNavigationThrottle));
     }
 
     if (!m_bNetworkAuthoritativeGameplay)
     {
-        auto pTurretAI = Engine::CTurretAISystem::Create();
+        auto pTurretAI = GameplayTurret::CTurretAISystem::Create();
         m_pScheduler->RegisterSystem(std::move(pTurretAI));
     }
 
     if (!m_bNetworkAuthoritativeGameplay)
     {
-        auto pTurretProjectiles = Engine::CTurretProjectileSystem::Create();
-        m_pScheduler->RegisterSystem(std::move(pTurretProjectiles));
+        auto pStructureProjectiles = GameplayTurret::CStructureProjectileSystem::Create();
+        m_pScheduler->RegisterSystem(std::move(pStructureProjectiles));
     }
 
     if (!m_bNetworkAuthoritativeGameplay)
@@ -566,6 +572,8 @@ bool CScene_InGame::OnEnter()
         CGameInstance* pGI = CGameInstance::Get();
         IRHIDevice* pRhiDevice = pGI->Get_RHIDevice();
         const bool_t bUseDX12RHI = pRhiDevice && pRhiDevice->GetBackend() == eRHIBackend::DX12;
+        const ClientData::MapRuntimeVisualDefinition& mapVisual =
+            ClientData::GetMapRuntimeVisualDefinition();
 
         m_pRHISceneRenderer = CRHISceneRenderer::Create(pRhiDevice);
         if (!m_pRHISceneRenderer)
@@ -576,7 +584,7 @@ bool CScene_InGame::OnEnter()
             m_pRHIUtilityPlaneRenderer = CRHIFxSpriteRenderer::Create(pRhiDevice);
             m_hRHIAttackRangeTex = RHI_CreateTextureFromFile(
                 pRhiDevice,
-                L"Client/Bin/Resource/Texture/UI/UI_AttackRange.png",
+                mapVisual.attackRangeTexture.resourceRelativePath,
                 "RHI_AttackRangeTexture");
             if (!m_hRHIAttackRangeTex.IsValid())
                 m_hRHIAttackRangeTex = CreateDefaultRHITexture(pRhiDevice, "RHI_AttackRangeFallback");
@@ -591,7 +599,7 @@ bool CScene_InGame::OnEnter()
 
             m_pAttackRangeTex = CTexture::Create(
                 pRhiDevice,
-                L"Client/Bin/Resource/Texture/UI/UI_AttackRange.png",
+                mapVisual.attackRangeTexture.resourceRelativePath,
                 eTexSamplerMode::Clamp);
 
             if (!m_pAttackRangeTex)
@@ -681,37 +689,21 @@ bool CScene_InGame::OnEnter()
     }
     else if (m_pFxMeshRenderer)
     {
-        static const struct { const char* fbx; const wchar_t* tex; } kIreliaFx[] = {
-            { "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_blade.fbx",
-              L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_blades_passive_4_texture.png" },
-            { "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx",
-              L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_beam_mult.png" },
-        };
-        for (const auto& it : kIreliaFx)
-            m_pFxMeshRenderer->PreloadMesh(it.fbx, it.tex);
-
-        static const struct { const char* fbx; const wchar_t* tex; } kYasuoFx[] = {
-            { "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_base_q_tornado_blade_cas.fbx",
-              L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_base_e_tonado_blend.png" },
-            { "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_w_windwall_mesh.fbx",
-              L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_w_windwall_dust.png" },
-            { "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_base_r_sword_wind2.fbx",
-              L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_r_sword_glow.png" },
-        };
-        for (const auto& it : kYasuoFx)
-            m_pFxMeshRenderer->PreloadMesh(it.fbx, it.tex);
-
-        static const struct { const char* fbx; const wchar_t* tex; } kKalistaFx[] = {
-            { "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_q_mis_spear.fbx",
-              L"Client/Bin/Resource/Texture/FX/Kalista/kalista_base_q_mis_glow_color.png" },
-            { "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_e_spear_hold.fbx",
-              L"Client/Bin/Resource/Texture/FX/Kalista/kalista_base_e_spear_glow.png" },
-        };
-        for (const auto& it : kKalistaFx)
-            m_pFxMeshRenderer->PreloadMesh(it.fbx, it.tex);
+        const ClientData::FxMeshPreloadVisualPack& preloadPack =
+            ClientData::GetFxMeshPreloadVisualPack();
+        for (u32_t i = 0u; i < preloadPack.entryCount; ++i)
+        {
+            const ClientData::FxMeshPreloadVisualDefinition& preload =
+                preloadPack.entries[i];
+            if (!preload.mesh.resourceRelativePath || !preload.texture.resourceRelativePath)
+                continue;
+            m_pFxMeshRenderer->PreloadMesh(
+                preload.mesh.resourceRelativePath,
+                preload.texture.resourceRelativePath);
+        }
     }
 
-    CGameInstance::Get()->UI_Set_PlayerChampion(GetPlayerChampionId());
+    CGameInstance::Get()->UI_Set_PlayerActorContent(static_cast<u8_t>(GetPlayerChampionId()));
 
     Winters::DevSmoke::Log("[InGameBootstrap] done player=%u champion=%u\n",
         static_cast<u32_t>(m_PlayerEntity),
@@ -822,7 +814,13 @@ void CScene_InGame::BindPlayerToECSChampion(EntityID entity)
 
     eChampion championId = eChampion::NONE;
     if (m_World.HasComponent<ChampionComponent>(entity))
-        championId = m_World.GetComponent<ChampionComponent>(entity).id;
+    {
+        const ChampionComponent& champion = m_World.GetComponent<ChampionComponent>(entity);
+        championId = champion.id;
+        // 네트워크 경로에서도 로컬 플레이어 팀이 채워지도록 설정한다.
+        // (이전엔 로스터 경로에서만 대입되어 Red 진영 클라가 Blue 기본값에 머물렀다.)
+        m_PlayerTeam = champion.team;
+    }
 
     const ChampionDef* cd = FindClientChampionDef(championId);
 
@@ -863,7 +861,7 @@ void CScene_InGame::BindPlayerToECSChampion(EntityID entity)
 
 void CScene_InGame::CreateECSEntities()
 {
-    GameContext& context = CGameInstance::Get()->Get_GameContext();
+    MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
     CInGameRosterSpawner::EnsureLocalRosterFallback(context);
     m_PlayerEntity = NULL_ENTITY;
 
@@ -936,6 +934,9 @@ void CScene_InGame::OnExit()
 
     CGameInstance::Get()->UI_Set_InGameBuyItemCallback(nullptr, nullptr);
     CGameInstance::Get()->UI_Set_LevelSkillCallback(nullptr, nullptr);
+    CGameInstance::Get()->UI_Clear_ActorHUDState();
+    CGameInstance::Get()->UI_Clear_StatusPanelState();
+    CGameInstance::Get()->UI_Clear_WorldHealthBars();
     CGameInstance::Get()->UI_Bind_World(nullptr);
     UI::CMinimapPanel::ShutdownRuntime();
 
@@ -975,8 +976,10 @@ void CScene_InGame::OnExit()
     m_pSSAOPass.reset();
     m_pNormalPass.reset();
     m_pFogOfWarRenderer.reset();
+    if (m_pVisionSystem)
+        m_pVisionSystem->ClearFowLocalTeam();
     m_pVisionSystem = nullptr;
-    m_BushIndex.Clear();
+    m_ConcealmentIndex.Clear();
     m_pWhiteTexture.reset();
     m_pRHIUtilityPlaneRenderer.reset();
     if (IRHIDevice* pDevice = CGameInstance::Get()->Get_RHIDevice())

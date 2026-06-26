@@ -3,7 +3,7 @@
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/NavAgentComponent.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "ECS/Components/NavigationControlComponent.h"
 #include "Manager/Navigation/NavGrid.h"
 #include "Manager/Navigation/Pathfinder.h"
 #include "Core/JobSystem.h"
@@ -16,20 +16,18 @@
 NS_BEGIN(Engine)
 
 static constexpr uint32_t kParallelThreshold = 16;
-static constexpr bool_t kMinionNavDebugOutput = false;
+static constexpr bool_t kNavAgentDebugOutput = false;
 static void FaceMoveDirection(
-    CWorld& world,
-    EntityID id,
     TransformComponent& transform,
-    const Vec3& dir)
+    const Vec3& dir,
+    bool_t bUseReverseFacing)
 {
     const Vec3 forward = WintersMath::NormalizeXZOrZero(dir, 0.0001f);
     if (forward.x == 0.f && forward.z == 0.f)
         return;
 
     Vec3 rot = transform.GetRotation();
-    if (world.HasComponent<MinionStateComponent>(id) ||
-        world.HasComponent<MinionComponent>(id))
+    if (bUseReverseFacing)
     {
         rot.y = static_cast<f32_t>(std::atan2(-forward.x, -forward.z));
     }
@@ -45,9 +43,7 @@ void CNavigationSystem::DescribeAccess(CSystemAccessBuilder& builder) const
     builder.Write<NavAgentComponent>()
         .Write<TransformComponent>()
         .Write<VelocityComponent>()
-        .Read<StunComponent>()
-        .Read<MinionStateComponent>()
-        .Read<MinionComponent>();
+        .Read<NavigationControlComponent>();
 }
 
 void CNavigationSystem::Execute(CWorld& world, f32_t /*fTimeDelta*/)
@@ -105,7 +101,12 @@ void CNavigationSystem::ProcessAgent(CWorld& world, EntityID id)
     WINTERS_PROFILE_SCOPE("Nav::ProcessAgent");
 
     //Phase T-8 Stun 가드 - 스턴 시 이동 정지, 속도 0
-    if (world.HasComponent<StunComponent>(id))
+    const NavigationControlComponent* pControl =
+        world.HasComponent<NavigationControlComponent>(id)
+            ? &world.GetComponent<NavigationControlComponent>(id)
+            : nullptr;
+
+    if (pControl && pControl->bMovementBlocked)
     {
         if (world.HasComponent<VelocityComponent>(id))
         {
@@ -150,14 +151,14 @@ void CNavigationSystem::ProcessAgent(CWorld& world, EntityID id)
         WINTERS_PROFILE_COUNT("Nav::PathNodes", path.size());
 
 #if defined(_DEBUG)
-        if constexpr (kMinionNavDebugOutput)
+        if constexpr (kNavAgentDebugOutput)
         {
             static i32_t s_navLogCount = 0;
-            if (world.HasComponent<MinionStateComponent>(id) && s_navLogCount < 160)
+            if (pControl && pControl->bUseReverseFacing && s_navLogCount < 160)
             {
                 char dbg[512];
                 sprintf_s(dbg,
-                    "[MinionNav] #%d id=%u pos=(%.2f,%.2f,%.2f) target=(%.2f,%.2f,%.2f) start=(%d,%d,%d) goal=(%d,%d,%d) path=%u speed=%.2f arrive=%.2f\n",
+                    "[NavAgent] #%d id=%u pos=(%.2f,%.2f,%.2f) target=(%.2f,%.2f,%.2f) start=(%d,%d,%d) goal=(%d,%d,%d) path=%u speed=%.2f arrive=%.2f\n",
                     s_navLogCount,
                     static_cast<u32_t>(id),
                     vPos.x, vPos.y, vPos.z,
@@ -189,11 +190,10 @@ void CNavigationSystem::ProcessAgent(CWorld& world, EntityID id)
         {
             WINTERS_PROFILE_COUNT("Nav::PathEmpty", 1);
 
-            const bool_t bMinionChase =
-                world.HasComponent<MinionStateComponent>(id) &&
-                world.GetComponent<MinionStateComponent>(id).current == MinionStateComponent::Chase;
+            const bool_t bChaseFallback =
+                pControl && pControl->bChaseFallbackEnabled;
 
-            if (bMinionChase)
+            if (bChaseFallback)
             {
                 const Vec3 vMyPos = xform.GetWorldPosition();
                 const Vec3 vDelta =
@@ -208,25 +208,28 @@ void CNavigationSystem::ProcessAgent(CWorld& world, EntityID id)
                     m_pGrid->SegmentWalkable(vMyPos, agent.vTarget))
                 {
                     vel.vDirection = { vDelta.x / fDist, 0.f, vDelta.z / fDist };
-                    FaceMoveDirection(world, id, xform, vel.vDirection);
+                    FaceMoveDirection(
+                        xform,
+                        vel.vDirection,
+                        pControl && pControl->bUseReverseFacing);
 
                     f32_t fFinalSpeed = agent.fSpeed;
-                    if (world.HasComponent<SlowComponent>(id))
-                        fFinalSpeed *= world.GetComponent<SlowComponent>(id).fMoveSpeedMul;
+                    if (pControl)
+                        fFinalSpeed *= pControl->fMoveSpeedMul;
                     vel.fSpeed = fFinalSpeed;
 
                     agent.bPathDirty = true;
 
                     WINTERS_PROFILE_COUNT("Nav::DirectFallback", 1);
 #if defined(_DEBUG)
-                    if constexpr (kMinionNavDebugOutput)
+                    if constexpr (kNavAgentDebugOutput)
                     {
                         static i32_t s_directFallbackLogCount = 0;
                         if (s_directFallbackLogCount < 80)
                         {
                             char dbg[512];
                             sprintf_s(dbg,
-                                "[MinionNavFallback] #%d id=%u pos=(%.2f,%.2f,%.2f) target=(%.2f,%.2f,%.2f) start=(%d,%d,%d) goal=(%d,%d,%d) dist=%.2f speed=%.2f\n",
+                                "[NavAgentFallback] #%d id=%u pos=(%.2f,%.2f,%.2f) target=(%.2f,%.2f,%.2f) start=(%d,%d,%d) goal=(%d,%d,%d) dist=%.2f speed=%.2f\n",
                                 s_directFallbackLogCount,
                                 static_cast<u32_t>(id),
                                 vMyPos.x, vMyPos.y, vMyPos.z,
@@ -245,17 +248,17 @@ void CNavigationSystem::ProcessAgent(CWorld& world, EntityID id)
             }
 
 #if defined(_DEBUG)
-            if constexpr (kMinionNavDebugOutput)
+            if constexpr (kNavAgentDebugOutput)
             {
                 static i32_t s_pathEmptyLogCount = 0;
-                if (world.HasComponent<MinionStateComponent>(id) && s_pathEmptyLogCount < 80)
+                if (pControl && pControl->bUseReverseFacing && s_pathEmptyLogCount < 80)
                 {
                     char dbg[512];
                     sprintf_s(dbg,
-                        "[MinionNavEmpty] #%d id=%u chase=%d pos=(%.2f,%.2f,%.2f) target=(%.2f,%.2f,%.2f) start=(%d,%d,%d) goal=(%d,%d,%d)\n",
+                        "[NavAgentEmpty] #%d id=%u chase=%d pos=(%.2f,%.2f,%.2f) target=(%.2f,%.2f,%.2f) start=(%d,%d,%d) goal=(%d,%d,%d)\n",
                         s_pathEmptyLogCount,
                         static_cast<u32_t>(id),
-                        bMinionChase ? 1 : 0,
+                        bChaseFallback ? 1 : 0,
                         vPos.x, vPos.y, vPos.z,
                         agent.vTarget.x, agent.vTarget.y, agent.vTarget.z,
                         start.x, start.y, bStartWalkable ? 1 : 0,
@@ -297,11 +300,14 @@ void CNavigationSystem::ProcessAgent(CWorld& world, EntityID id)
     }
 
     vel.vDirection = { vDelta.x / fDist, 0.f, vDelta.z / fDist };
-    FaceMoveDirection(world, id, xform, vel.vDirection);
+    FaceMoveDirection(
+        xform,
+        vel.vDirection,
+        pControl && pControl->bUseReverseFacing);
     // [Phase T-8] Slow 반영
     f32_t fFinalSpeed = agent.fSpeed;
-    if (world.HasComponent<SlowComponent>(id))
-        fFinalSpeed *= world.GetComponent<SlowComponent>(id).fMoveSpeedMul;
+    if (pControl)
+        fFinalSpeed *= pControl->fMoveSpeedMul;
     vel.fSpeed = fFinalSpeed;
 }
 

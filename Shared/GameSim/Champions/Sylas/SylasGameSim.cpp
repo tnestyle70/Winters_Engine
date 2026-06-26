@@ -17,21 +17,14 @@
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
+#include "Shared/GameSim/Systems/Move/DashArrival.h"
+
 #include <cmath>
 #include <functional>
 #include <vector>
 
 namespace
 {
-    constexpr f32_t kSylasE1DashDistance = 3.25f;
-    constexpr f32_t kSylasE1DashDurationSec = 0.16f;
-    constexpr f32_t kSylasE2ChainSpeed = 26.f;
-    constexpr f32_t kSylasE2ChainHitRadius = 0.55f;
-    constexpr f32_t kSylasE2DashGap = 0.85f;
-    constexpr f32_t kSylasE2DashDurationSec = 0.22f;
-    constexpr f32_t kSylasE2AirborneDurationSec = 0.75f;
-    constexpr f32_t kSylasE2BaseDamage = 65.f;
-    constexpr f32_t kSylasE2DamagePerRank = 25.f;
     constexpr u8_t kSylasPassiveMaxStacks = 3u;
     constexpr f32_t kSylasPassiveWindowSec = 4.0f;
 
@@ -41,7 +34,7 @@ namespace
         EntityID caster,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         return GameplayDefinitionQuery::ResolveSkillEffectParam(
             world,
@@ -57,7 +50,7 @@ namespace
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -238,29 +231,25 @@ namespace
             tc,
             ctx.casterEntity,
             eSkillSlot::E,
-            eSkillEffectParamId::Speed,
-            kSylasE2ChainSpeed);
+            eSkillEffectParamId::Speed);
         const f32_t chainHitRadius = ResolveSylasSkillEffectParam(
             *ctx.pWorld,
             tc,
             ctx.casterEntity,
             eSkillSlot::E,
-            eSkillEffectParamId::Radius,
-            kSylasE2ChainHitRadius);
+            eSkillEffectParamId::Radius);
         const f32_t baseDamage = ResolveSylasSkillEffectParam(
             *ctx.pWorld,
             tc,
             ctx.casterEntity,
             eSkillSlot::E,
-            eSkillEffectParamId::BaseDamage,
-            kSylasE2BaseDamage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t damagePerRank = ResolveSylasSkillEffectParam(
             *ctx.pWorld,
             tc,
             ctx.casterEntity,
             eSkillSlot::E,
-            eSkillEffectParamId::DamagePerRank,
-            kSylasE2DamagePerRank);
+            eSkillEffectParamId::DamagePerRank);
 
         SkillProjectileComponent projectile{};
         projectile.sourceEntity = ctx.casterEntity;
@@ -297,13 +286,11 @@ namespace
             const f32_t dashDistance = ResolveSylasSkillEffectParam(
                 ctx,
                 eSkillSlot::E,
-                eSkillEffectParamId::DashDistance,
-                kSylasE1DashDistance);
+                eSkillEffectParamId::DashDistance);
             const f32_t dashDurationSec = ResolveSylasSkillEffectParam(
                 ctx,
                 eSkillSlot::E,
-                eSkillEffectParamId::DashDurationSec,
-                kSylasE1DashDurationSec);
+                eSkillEffectParamId::DashDurationSec);
             StartDirectionalDash(
                 *ctx.pWorld,
                 ctx.casterEntity,
@@ -534,7 +521,12 @@ namespace SylasGameSim
                 }));
 
         for (EntityID entity : finishedDashes)
+        {
+            if (world.HasComponent<SylasDashComponent>(entity))
+                SnapDashArrivalToWalkable(world, tc, entity,
+                    world.GetComponent<SylasDashComponent>(entity).vStart);
             world.RemoveComponent<SylasDashComponent>(entity);
+        }
     }
 
     bool_t CanHijackUltimate(CWorld& world, const TickContext& tc, EntityID caster, EntityID target)
@@ -591,22 +583,19 @@ namespace SylasGameSim
             tc,
             source,
             eSkillSlot::E,
-            eSkillEffectParamId::Gap,
-            kSylasE2DashGap);
+            eSkillEffectParamId::Gap);
         const f32_t targetDashDurationSec = ResolveSylasSkillEffectParam(
             world,
             tc,
             source,
             eSkillSlot::E,
-            eSkillEffectParamId::TargetDashDurationSec,
-            kSylasE2DashDurationSec);
+            eSkillEffectParamId::TargetDashDurationSec);
         const f32_t airborneDurationSec = ResolveSylasSkillEffectParam(
             world,
             tc,
             source,
             eSkillSlot::E,
-            eSkillEffectParamId::AirborneDurationSec,
-            kSylasE2AirborneDurationSec);
+            eSkillEffectParamId::AirborneDurationSec);
 
         StartTargetDash(world, source, target, targetDashGap, targetDashDurationSec);
         GameplayStatus::ApplyAirborne(

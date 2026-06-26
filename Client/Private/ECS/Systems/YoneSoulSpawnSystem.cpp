@@ -2,13 +2,14 @@
 
 #include "ECS/World.h"
 #include "ECS/Components/CoreComponents.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/MeshGroupVisibilityComponent.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "GameObject/Champion/Yone/Yone_Components.h"
 #include "GameObject/Champion/Yone/Yone_MeshGroups.h"
 #include "Renderer/ModelRenderer.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "GameObject/FX/FxRibbonComponent.h"
@@ -22,9 +23,9 @@
 namespace
 {
     constexpr const wchar_t* kYoneSoulOuterGlowTexture =
-        L"Client/Bin/Resource/Texture/Character/Yone/particles/aura_self.png";
+        L"Texture/Character/Yone/particles/aura_self.png";
     constexpr const wchar_t* kYoneSoulEyeTrailTexture =
-        L"Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_e_blue_flame.png";
+        L"Texture/Character/Yone/particles/yone_base_e_blue_flame.png";
 
     Vec4 MakeYoneSoulBodyOverrideColor()
     {
@@ -183,20 +184,20 @@ void CYoneSoulSpawnSystem::SpawnSoul(CWorld& world, EntityID owner)
     }
 
     auto pRenderer = std::make_unique<ModelRenderer>();
-	if (!pRenderer->Initialize("Client/Bin/Resource/Texture/Character/Yone/yone.fbx",
+	if (!pRenderer->Initialize("Texture/Character/Yone/yone.fbx",
 		L"Shaders/Mesh3D.hlsl"))
 	{
 		return;
 	}
 
     pRenderer->LoadTextureForAllMeshes(
-        L"Client/Bin/Resource/Texture/Character/Yone/yone_base_tx_cm.png");
+        L"Texture/Character/Yone/yone_base_tx_cm.png");
     pRenderer->LoadMeshTexture(1,
-        L"Client/Bin/Resource/Texture/Character/Yone/yone_base_swords_tx_cm.png");
+        L"Texture/Character/Yone/yone_base_swords_tx_cm.png");
     pRenderer->LoadMeshTexture(2,
-        L"Client/Bin/Resource/Texture/Character/Yone/yone_base_swords_tx_cm.png");
+        L"Texture/Character/Yone/yone_base_swords_tx_cm.png");
     pRenderer->LoadMeshTexture(3,
-        L"Client/Bin/Resource/Texture/Character/Yone/yone_base_props_tx_cm.png");
+        L"Texture/Character/Yone/yone_base_props_tx_cm.png");
     pRenderer->PlayAnimationByName("yone_idle1", true);
     pRenderer->SetMaterialOverrideColor(MakeYoneSoulBodyOverrideColor(), true);
 

@@ -1,7 +1,7 @@
 #include "UI/SkillTimingPanel.h"
 #include "Scene/Scene_InGame.h"
 #include "GameObject/SkillDef.h"
-#include "GameContext.h"   // eChampion
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"   // eChampion
 
 #pragma push_macro("new")
 #undef new
@@ -27,16 +27,16 @@ namespace UI
                 (d.champ == eChampion::YASUO) ? "Yasuo" : "?";
             ImGui::Text("%s slot=%d anim=%s", champName, (int)d.slot,
                 d.animKey ? d.animKey : "(null)");
-            ImGui::SliderFloat("castFrame", &d.castFrame, 0.f, 60.f);
-            ImGui::SliderFloat("recoveryFrame", &d.recoveryFrame, 0.f, 60.f);
+            ImGui::SliderFloat("castFrame", &d.visualCastFrame, 0.f, 60.f);
+            ImGui::SliderFloat("recoveryFrame", &d.visualRecoveryFrame, 0.f, 60.f);
             ImGui::SliderFloat("lockDuration", &d.lockDurationSec, 0.1f, 5.f, "%.2f s");
-            ImGui::SliderFloat("animPlaySpeed", &d.animPlaySpeed, 0.2f, 3.f, "%.2fx");
+            ImGui::SliderFloat("animPlaySpeed", &d.visualPlaySpeed, 0.2f, 3.f, "%.2fx");
             if (d.stageCount == 2)
             {
-                ImGui::SliderFloat("stg2 cast", &d.stage2CastFrame, 0.f, 60.f);
-                ImGui::SliderFloat("stg2 recovery", &d.stage2RecoveryFrame, 0.f, 60.f);
+                ImGui::SliderFloat("stg2 cast", &d.stage2VisualCastFrame, 0.f, 60.f);
+                ImGui::SliderFloat("stg2 recovery", &d.stage2VisualRecoveryFrame, 0.f, 60.f);
                 ImGui::SliderFloat("stg2 lock", &d.stage2LockSec, 0.1f, 5.f, "%.2f s");
-                ImGui::SliderFloat("stg2 playSpeed", &d.stage2PlaySpeed, 0.2f, 3.f, "%.2fx");
+                ImGui::SliderFloat("stg2 playSpeed", &d.stage2VisualPlaySpeed, 0.2f, 3.f, "%.2fx");
             }
             ImGui::Separator();
             ImGui::PopID();

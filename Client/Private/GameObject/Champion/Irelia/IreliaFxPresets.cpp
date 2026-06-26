@@ -1,4 +1,4 @@
-﻿#include "GameObject/Champion/Irelia/IreliaFxPresets.h"
+#include "GameObject/Champion/Irelia/IreliaFxPresets.h"
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxMeshSystem.h"
 #include "GameObject/FX/FxCuePlayer.h"
@@ -14,58 +14,58 @@ namespace
 {
     // ?? ?띿뒪泥?寃쎈줈 const (LoL 蹂몄껜 癒명떚由ъ뼹 PNG) ??
     constexpr const wchar_t* kPathQTrail =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_q_dark_trail.png";
+        L"Texture/FX/Irelia/irelia_base_q_dark_trail.png";
     constexpr const wchar_t* kPathQMark =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_q_mark_pulse_erode.png";
+        L"Texture/FX/Irelia/irelia_base_q_mark_pulse_erode.png";
     constexpr const wchar_t* kPathQLeadingEdge =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_q_leadingedge.png";
+        L"Texture/FX/Irelia/irelia_base_q_leadingedge.png";
     constexpr const wchar_t* kPathWSpin =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_w_bladeimages_spin_02.png";
+        L"Texture/FX/Irelia/irelia_base_w_bladeimages_spin_02.png";
     constexpr const wchar_t* kPathWBlade =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_w_blade_erode.png";
+        L"Texture/FX/Irelia/irelia_base_w_blade_erode.png";
     constexpr const wchar_t* kPathWShieldSoft =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_w_shield_soft_tex.png";
+        L"Texture/FX/Irelia/irelia_base_w_shield_soft_tex.png";
     constexpr const wchar_t* kPathWBlockMult =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_temp_w_block_mult.png";
+        L"Texture/FX/Irelia/irelia_base_temp_w_block_mult.png";
     constexpr const wchar_t* kPathWAmbientGlow =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_temp_w_ambientglow.png";
+        L"Texture/FX/Irelia/irelia_base_temp_w_ambientglow.png";
     constexpr const wchar_t* kPathShards =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_shards.png";
+        L"Texture/FX/Irelia/irelia_base_shards.png";
     //  W2 release 2-layer ?⑹꽦 (blade_erode ??kPathWBlade 濡?SpawnWStage2Slash 媛 ?ъ슜)
     constexpr const wchar_t* kPathWSwipeBlades =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_w_swipe_blades.png";
+        L"Texture/FX/Irelia/irelia_base_w_swipe_blades.png";
     constexpr const wchar_t* kPathWMisGlow =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_w_mis_glow.png";
-    constexpr const wchar_t* kPathRPulse = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_r_pulse_mesh_tex.png";
+        L"Texture/FX/Irelia/irelia_base_w_mis_glow.png";
+    constexpr const wchar_t* kPathRPulse = L"Texture/FX/Irelia/irelia_base_r_pulse_mesh_tex.png";
     constexpr const wchar_t* kPathRTrail =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_temp_r_mis_trail_mult.png";
+        L"Texture/FX/Irelia/irelia_base_temp_r_mis_trail_mult.png";
     constexpr const wchar_t* kPathRLead =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_r_mis_glow_lines.png";
+        L"Texture/FX/Irelia/irelia_base_r_mis_glow_lines.png";
     constexpr const wchar_t* kPathRDisarmRing =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_disarm_ring.png";
+        L"Texture/FX/Irelia/irelia_base_disarm_ring.png";
     constexpr const wchar_t* kPathRWallDecal =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_r_hit_wall_dissarm_muzzle.png";
+        L"Texture/FX/Irelia/irelia_base_r_hit_wall_dissarm_muzzle.png";
 
     // ?? E mesh ??
-    constexpr const char* kPathEBeamFbx = "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx";
-    constexpr const wchar_t* kPathEBeamTex = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_beam_mult.png";
+    constexpr const char* kPathEBeamFbx = "Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx";
+    constexpr const wchar_t* kPathEBeamTex = L"Texture/FX/Irelia/irelia_base_e_beam_mult.png";
 
     constexpr const wchar_t* kPathEGroundTyphoon =
-        L"Client/Bin/Resource/Texture/FX/Irelia/render/irelia_base_temp_e_tar_blade_indicator_typhoon.png";
+        L"Texture/FX/Irelia/render/irelia_base_temp_e_tar_blade_indicator_typhoon.png";
     constexpr const wchar_t* kPathEWarningSpark =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_warnig_spark.png";
+        L"Texture/FX/Irelia/irelia_base_e_warnig_spark.png";
     constexpr const wchar_t* kPathEStunBeam =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_stun_beam.png";
+        L"Texture/FX/Irelia/irelia_base_e_stun_beam.png";
     constexpr const wchar_t* kPathEStunBeamDark =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_stun_beam_dark.png";
+        L"Texture/FX/Irelia/irelia_base_e_stun_beam_dark.png";
     constexpr const wchar_t* kPathEStunTrail =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_blade_stun_trail.png";
+        L"Texture/FX/Irelia/irelia_base_e_blade_stun_trail.png";
     constexpr const wchar_t* kPathLensflareStreak =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_lensflare_streak.png";
+        L"Texture/FX/Irelia/irelia_base_lensflare_streak.png";
 
     // ?? R 遺梨꾧섦 移쇰궇 (E sword ? ?숈씪 mesh + 蹂몄껜 癒명떚由ъ뼹 ?띿뒪泥? ??
-    constexpr const char*    kPathRBladeFbx = "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_blade.fbx";
-    constexpr const wchar_t* kPathRBladeTex = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_blades_passive_4_texture.png";
+    constexpr const char*    kPathRBladeFbx = "Texture/FX/Irelia/fbx/irelia_base_e_blade.fbx";
+    constexpr const wchar_t* kPathRBladeTex = L"Texture/FX/Irelia/irelia_base_blades_passive_4_texture.png";
 
     EntityID SpawnBillboardAsset(CWorld& world, const FxBillboardComponent& fx, const char* pszAssetName)
     {
@@ -705,7 +705,7 @@ void IreliaFx::SpawnRHitLayers(CWorld& world, const Vec3& vHitPos, const Vec3& v
     SpawnRuntimeBillboard(world, wall);
 
     FxBillboardComponent flash = ring;
-    flash.texturePath = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_r_hit_flash.png";
+    flash.texturePath = L"Texture/FX/Irelia/irelia_base_r_hit_flash.png";
     flash.fWidth = 2.6f;
     flash.fHeight = 2.6f;
     flash.fLifetime = 0.22f;

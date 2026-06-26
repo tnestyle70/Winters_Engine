@@ -18,12 +18,12 @@
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
+#include "Shared/GameSim/Systems/Turret/TurretAISystem.h"
 
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/SpatialIndex.h"
 #include "ECS/Systems/SpatialHashSystem.h"
-#include "ECS/Systems/TurretAISystem.h"
 
 #include <algorithm>
 #include <cmath>
@@ -79,18 +79,18 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
         return;
 
     const auto projectiles =
-        DeterministicEntityIterator<TurretProjectileComponent>::CollectSorted(m_world);
+        DeterministicEntityIterator<StructureProjectileComponent>::CollectSorted(m_world);
 
     for (EntityID entity : projectiles)
     {
         if (!m_world.IsAlive(entity) ||
-            !m_world.HasComponent<TurretProjectileComponent>(entity) ||
+            !m_world.HasComponent<StructureProjectileComponent>(entity) ||
             !m_world.HasComponent<TransformComponent>(entity))
         {
             continue;
         }
 
-        auto& projectile = m_world.GetComponent<TurretProjectileComponent>(entity);
+        auto& projectile = m_world.GetComponent<StructureProjectileComponent>(entity);
         auto& transform = m_world.GetComponent<TransformComponent>(entity);
         const Vec3 pos = projectile.currentPos;
         const NetEntityId currentProjectileNet = m_entityMap.ToNet(entity);
@@ -113,7 +113,7 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
                         projectile.sourceEntity,
                         NULL_ENTITY,
                         entity,
-                        CServerProjectileAuthority::kTurretProjectileKind,
+                        CServerProjectileAuthority::kStructureProjectileKind,
                         pos,
                         tc.tickIndex);
                 EnqueueReplicatedEvent(m_world, hit);
@@ -143,7 +143,7 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
                     projectile.sourceEntity,
                     projectile.targetEntity,
                     entity,
-                    CServerProjectileAuthority::kTurretProjectileKind,
+                    CServerProjectileAuthority::kStructureProjectileKind,
                     pos,
                     dir,
                     projectile.speed,
@@ -198,7 +198,7 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
                     projectile.sourceEntity,
                     projectile.targetEntity,
                     entity,
-                    CServerProjectileAuthority::kTurretProjectileKind,
+                    CServerProjectileAuthority::kStructureProjectileKind,
                     targetAim,
                     tc.tickIndex);
             EnqueueReplicatedEvent(m_world, hit);

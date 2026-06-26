@@ -3,7 +3,8 @@
 #include "WintersTypes.h"
 #include "WintersMath.h"
 #include "ECS/Entity.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 
 enum class eChampionAIState : u8_t
 {
@@ -144,7 +145,7 @@ struct ChampionAITuning
 
 inline constexpr u32_t kChampionAIActionBitMoveToSafeAnchor = 1u << 0;
 inline constexpr u32_t kChampionAIActionBitFollowWave = 1u << 1;
-inline constexpr u32_t kChampionAIActionBitAttackMinion = 1u << 2;
+inline constexpr u32_t kChampionAIActionBitAttackUnit = 1u << 2;
 inline constexpr u32_t kChampionAIActionBitAttackChampion = 1u << 3;
 inline constexpr u32_t kChampionAIActionBitAttackStructure = 1u << 4;
 inline constexpr u32_t kChampionAIActionBitRetreat = 1u << 5;

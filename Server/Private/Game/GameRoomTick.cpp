@@ -48,8 +48,8 @@ namespace
 	void TickServerWards(CWorld& world, EntityIdMap& entityMap, const TickContext& tc)
 	{
 		std::vector<EntityID> expired;
-		world.ForEach<WardComponent>(
-			[&](EntityID entity, WardComponent& ward)
+		world.ForEach<VisionSensorComponent>(
+			[&](EntityID entity, VisionSensorComponent& ward)
 			{
 				ward.remainingDuration -= tc.fDt;
 				if (ward.remainingDuration <= 0.f)
@@ -152,7 +152,7 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	YasuoGameSim::Tick(m_world, tc);
 	ZedGameSim::Tick(m_world, tc);
 	Phase_ServerMinionWave(tc);
-	Phase_ServerMinionAI(tc);
+	Phase_ServerUnitAI(tc);
 	Phase_ServerMinionDepenetration(tc);
 	Phase_ServerTurretAI(tc);
 	Phase_ServerProjectiles(tc);

@@ -1,6 +1,6 @@
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/World.h"
 #include "Shared/GameSim/Components/HealthComponent.h"

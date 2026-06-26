@@ -1,4 +1,4 @@
-﻿#include "GameObject/Champion/Yasuo/Yasuo_Skills.h"
+#include "GameObject/Champion/Yasuo/Yasuo_Skills.h"
 
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
@@ -29,7 +29,7 @@ namespace
                 s.manaCost = 0.f;
                 s.animKey = "attack1";
                 s.lockDurationSec = 0.5f;
-                s.animPlaySpeed = 0.85f;
+                s.visualPlaySpeed = 0.85f;
                 s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
                 CSkillRegistry::Instance().Add(eChampion::YASUO, 0, s);
@@ -45,7 +45,7 @@ namespace
                 s.manaCost = 0.f;
                 s.animKey = "spell1";
                 s.lockDurationSec = 0.5f;
-                s.animPlaySpeed = 0.85f;
+                s.visualPlaySpeed = 0.85f;
                 s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
                 s.keySwapHookId = kYas_Q_KeySwap;

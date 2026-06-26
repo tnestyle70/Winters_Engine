@@ -1,5 +1,6 @@
 #include "Scene/LobbyRosterHelpers.h"
 
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
 #include "GamePlay/ChampionRegistry.h"
@@ -84,45 +85,10 @@ const char* GetRosterChampionLabel(eChampion champion)
 
 const wchar_t* GetRosterChampionLoadscreenPath(eChampion champion)
 {
-	switch (champion)
-	{
-	case eChampion::ANNIE:
-		return L"Client/Bin/Resource/Texture/Character/Annie/annieloadscreen.dds";
-	case eChampion::ASHE:
-		return L"Client/Bin/Resource/Texture/Character/Ashe/asheloadscreen.dds";
-	case eChampion::EZREAL:
-		return L"Client/Bin/Resource/Texture/Character/Ezreal/ezrealloadscreen.dds";
-	case eChampion::FIORA:
-		return L"Client/Bin/Resource/Texture/Character/Fiora/fioraloadscreen.dds";
-	case eChampion::GAREN:
-		return L"Client/Bin/Resource/Texture/Character/Garen/garenloadscreen.dds";
-	case eChampion::IRELIA:
-		return L"Client/Bin/Resource/Texture/Character/Irelia/irelialoadscreen.dds";
-	case eChampion::JAX:
-		return L"Client/Bin/Resource/Texture/Character/Jax/jaxloadscreen_0.dds";
-	case eChampion::KALISTA:
-		return L"Client/Bin/Resource/Texture/Character/Kalista/kalistaloadscreen.dds";
-	case eChampion::KINDRED:
-		return L"Client/Bin/Resource/Texture/Character/Kindred/kindredloadscreen.dds";
-	case eChampion::LEESIN:
-		return L"Client/Bin/Resource/Texture/Character/LeeSin/leesinloadscreen_0.dds";
-	case eChampion::MASTERYI:
-		return L"Client/Bin/Resource/Texture/Character/MasterYi/masteryiloadscreen.dds";
-	case eChampion::RIVEN:
-		return L"Client/Bin/Resource/Texture/Character/Riven/rivenloadscreen.dds";
-	case eChampion::SYLAS:
-		return L"Client/Bin/Resource/Texture/Character/Sylas/sylasloadscreen.dds";
-	case eChampion::VIEGO:
-		return L"Client/Bin/Resource/Texture/Character/Viego/viegoloadscreen.dds";
-	case eChampion::YASUO:
-		return L"Client/Bin/Resource/Texture/Character/Yasuo/yasuoloadscreen.dds";
-	case eChampion::YONE:
-		return L"Client/Bin/Resource/Texture/Character/Yone/yoneloadscreen.dds";
-	case eChampion::ZED:
-		return L"Client/Bin/Resource/Texture/Character/Zed/zedloadscreen.dds";
-	default:
-		break;
-	}
+	const ClientData::ChampionUiVisualDefinition* pVisual =
+		ClientData::FindChampionUiVisualDefinition(champion);
+	if (pVisual && pVisual->loadscreen.resourceRelativePath)
+		return pVisual->loadscreen.resourceRelativePath;
 
 	const ChampionDef* pDef = FindRosterChampionDef(champion);
 	return pDef ? pDef->defaultTexturePath : nullptr;
@@ -130,49 +96,15 @@ const wchar_t* GetRosterChampionLoadscreenPath(eChampion champion)
 
 const wchar_t* GetRosterChampionPortraitPath(eChampion champion)
 {
-	switch (champion)
-	{
-	case eChampion::ANNIE:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/annie_square.png";
-	case eChampion::ASHE:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/ashe_square.png";
-	case eChampion::EZREAL:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/ezreal_square_0.png";
-	case eChampion::FIORA:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/fiora_square.png";
-	case eChampion::GAREN:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/garen_square.png";
-	case eChampion::IRELIA:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/irelia_square_0.png";
-	case eChampion::JAX:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/jax_square_0.png";
-	case eChampion::KALISTA:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/kalista_square_0.png";
-	case eChampion::KINDRED:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/kindred_square.png";
-	case eChampion::LEESIN:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/leesin_square_0.png";
-	case eChampion::MASTERYI:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/masteryi_square_0.png";
-	case eChampion::RIVEN:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/riven_square.png";
-	case eChampion::SYLAS:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/sylas_square.png";
-	case eChampion::VIEGO:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/viego_square.png";
-	case eChampion::YASUO:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/yasuo_square.png";
-	case eChampion::YONE:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/yone_square.png";
-	case eChampion::ZED:
-		return L"Client/Bin/Resource/Texture/UI/Champion/Portraits/zed_square_0.png";
-	default:
-		break;
-	}
+	const ClientData::ChampionUiVisualDefinition* pVisual =
+		ClientData::FindChampionUiVisualDefinition(champion);
+	if (pVisual && pVisual->portrait.resourceRelativePath)
+		return pVisual->portrait.resourceRelativePath;
+
 	return nullptr;
 }
 
-void ClearSlot(GameContext& context, u32_t slotId)
+void ClearSlot(MatchContext& context, u32_t slotId)
 {
 	if (slotId >= kGameRosterSlotCount)
 		return;
@@ -191,7 +123,7 @@ void ClearSlot(GameContext& context, u32_t slotId)
 	}
 }
 
-i32_t FindLocalHumanSlot(const GameContext& context)
+i32_t FindLocalHumanSlot(const MatchContext& context)
 {
 	for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
 	{
@@ -202,7 +134,7 @@ i32_t FindLocalHumanSlot(const GameContext& context)
 	return -1;
 }
 
-void JoinLocalPlayerSlot(GameContext& context, u32_t slotId)
+void JoinLocalPlayerSlot(MatchContext& context, u32_t slotId)
 {
 	if (slotId >= kGameRosterSlotCount)
 		return;
@@ -277,7 +209,7 @@ const char* GetBotLaneLabel(u8_t lane)
 	}
 }
 
-void AddBotToSlot(GameContext& context, u32_t slotId, eChampion champion)
+void AddBotToSlot(MatchContext& context, u32_t slotId, eChampion champion)
 {
 	if (slotId >= kGameRosterSlotCount)
 		return;
@@ -297,7 +229,7 @@ void AddBotToSlot(GameContext& context, u32_t slotId, eChampion champion)
 	slot.botLane = GetDefaultBotLane(slotId);
 }
 
-void SetBotSlotLane(GameContext& context, u32_t slotId, u8_t lane)
+void SetBotSlotLane(MatchContext& context, u32_t slotId, u8_t lane)
 {
 	if (slotId >= kGameRosterSlotCount)
 		return;
@@ -307,7 +239,7 @@ void SetBotSlotLane(GameContext& context, u32_t slotId, u8_t lane)
 		slot.botLane = lane;
 }
 
-void AssignChampionToSlot(GameContext& context, u32_t slotId, eChampion champion)
+void AssignChampionToSlot(MatchContext& context, u32_t slotId, eChampion champion)
 {
 	if (slotId >= kGameRosterSlotCount || !IsRosterChampionSupported(champion))
 		return;
@@ -322,7 +254,7 @@ void AssignChampionToSlot(GameContext& context, u32_t slotId, eChampion champion
 		context.SelectedChampion = champion;
 }
 
-void FillEmptySlotsWithBots(GameContext& context)
+void FillEmptySlotsWithBots(MatchContext& context)
 {
 	for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
 	{
@@ -331,7 +263,7 @@ void FillEmptySlotsWithBots(GameContext& context)
 	}
 }
 
-void ClearBotSlots(GameContext& context)
+void ClearBotSlots(MatchContext& context)
 {
 	for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
 	{
@@ -340,7 +272,7 @@ void ClearBotSlots(GameContext& context)
 	}
 }
 
-void InitializeLocalCustomRoom(GameContext& context)
+void InitializeLocalCustomRoom(MatchContext& context)
 {
 	context.bUseNetworkRoster = true;
 	context.MySessionId = kLocalSessionId;
@@ -355,7 +287,7 @@ void InitializeLocalCustomRoom(GameContext& context)
 	JoinLocalPlayerSlot(context, 0);
 }
 
-bool_t ValidateRosterForStart(const GameContext& context, char* pReason, size_t reasonBytes)
+bool_t ValidateRosterForStart(const MatchContext& context, char* pReason, size_t reasonBytes)
 {
 	if (pReason && reasonBytes > 0)
 		pReason[0] = '\0';
@@ -399,7 +331,7 @@ bool_t ValidateRosterForStart(const GameContext& context, char* pReason, size_t 
 	return true;
 }
 
-void FinalizeRosterForStart(GameContext& context)
+void FinalizeRosterForStart(MatchContext& context)
 {
 	context.bUseNetworkRoster = true;
 	context.MySessionId = kLocalSessionId;
@@ -431,7 +363,7 @@ void FinalizeRosterForStart(GameContext& context)
 	}
 }
 
-void CountRoster(const GameContext& context, u32_t& outHumans, u32_t& outBots, u32_t& outOccupied)
+void CountRoster(const MatchContext& context, u32_t& outHumans, u32_t& outBots, u32_t& outOccupied)
 {
 	outHumans = 0;
 	outBots = 0;

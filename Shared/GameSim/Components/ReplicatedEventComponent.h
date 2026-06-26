@@ -3,6 +3,7 @@
 #include "WintersMath.h"
 #include "WintersTypes.h"
 #include "ECS/Entity.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
 
 #include <type_traits>

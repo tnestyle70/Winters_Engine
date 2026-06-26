@@ -3,6 +3,7 @@
 #include "Core/CInput.h"
 #include "GameInstance.h"
 #include "GamePlay/ChampionCatalog.h"
+#include "GamePlay/LoLMatchContextRuntime.h"
 #include "Network/Client/GameSessionClient.h"
 #include "Scene/LobbyRosterHelpers.h"
 #include "Scene/Scene_BanPick.h"
@@ -38,7 +39,7 @@ namespace
 	constexpr f32_t kSlotTop = 213.24f;
 	constexpr f32_t kSlotHeight = 48.50f;
 
-	bool_t HasLocalServerMatchSlot(const GameContext& context)
+	bool_t HasLocalServerMatchSlot(const MatchContext& context)
 	{
 		return context.bUseNetworkRoster &&
 			context.MySessionId != 0 &&
@@ -59,7 +60,7 @@ bool CScene_CustomMode::OnEnter()
 	m_bSceneTransitionStarted = false;
 	m_SelectedSlotId = 0;
 	m_ImageUI.Initialize(
-		L"Client/Bin/Resource/Texture/UI/CustomMode1.png",
+		L"Texture/UI/CustomMode1.png",
 		1280,
 		720);
 	m_vReplayItems = CReplayLibrary::ListLocalReplays();
@@ -67,7 +68,7 @@ bool CScene_CustomMode::OnEnter()
 	m_bServerLobbyActive = CGameSessionClient::Instance().Connect();
 	if (!m_bServerLobbyActive)
 	{
-		GameContext& context = CGameInstance::Get()->Get_GameContext();
+		MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 		InitializeLocalCustomRoom(context);
 		m_SelectedSlotId = context.MySlotId;
 	}
@@ -88,10 +89,10 @@ void CScene_CustomMode::OnUpdate(f32_t /*dt*/)
 	{
 		CGameSessionClient& session = CGameSessionClient::Instance();
 		session.Pump();
-		GameContext& context = CGameInstance::Get()->Get_GameContext();
+		MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 
 		if (session.HasLobbyState())
-			session.CopyLobbyToGameContext(context);
+			session.CopyLobbyToMatchContext(context);
 
 		if (session.GetLobbyPhase() == static_cast<u8_t>(Shared::Schema::LobbyPhase::ChampionSelect))
 		{
@@ -272,7 +273,7 @@ bool_t CScene_CustomMode::AddBotToFirstEmptySlot(u32_t beginSlot, u32_t endSlot)
 	if (m_bServerLobbyActive)
 	{
 		CGameSessionClient& session = CGameSessionClient::Instance();
-		const GameContext& context = session.GetLobbyContext();
+		const MatchContext& context = session.GetLobbyContext();
 		for (u32_t i = beginSlot; i < endSlot && i < kGameRosterSlotCount; ++i)
 		{
 			if (!IsSlotEmpty(context.Roster[i]))
@@ -288,7 +289,7 @@ bool_t CScene_CustomMode::AddBotToFirstEmptySlot(u32_t beginSlot, u32_t endSlot)
 		return false;
 	}
 
-	GameContext& context = CGameInstance::Get()->Get_GameContext();
+	MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 	for (u32_t i = beginSlot; i < endSlot && i < kGameRosterSlotCount; ++i)
 	{
 		if (!IsSlotEmpty(context.Roster[i]))
@@ -314,7 +315,7 @@ bool_t CScene_CustomMode::JoinSlot(u8_t slotId)
 			slotId);
 	}
 
-	JoinLocalPlayerSlot(CGameInstance::Get()->Get_GameContext(), slotId);
+	JoinLocalPlayerSlot(Client::CLoLMatchContextRuntime::Instance().Context(), slotId);
 	return true;
 }
 
@@ -324,7 +325,7 @@ bool_t CScene_CustomMode::RemoveBotAndCompactTeam(u32_t beginSlot, u32_t endSlot
 		return SendBotRemoval(slotId);
 
 	return CompactLocalBotRemoval(
-		CGameInstance::Get()->Get_GameContext(),
+		Client::CLoLMatchContextRuntime::Instance().Context(),
 		beginSlot,
 		endSlot,
 		slotId);
@@ -338,7 +339,7 @@ bool_t CScene_CustomMode::SendBotRemoval(u8_t slotId)
 		eChampion::END);
 }
 
-bool_t CScene_CustomMode::CompactLocalBotRemoval(GameContext& context, u32_t beginSlot, u32_t endSlot, u8_t slotId)
+bool_t CScene_CustomMode::CompactLocalBotRemoval(MatchContext& context, u32_t beginSlot, u32_t endSlot, u8_t slotId)
 {
 	if (slotId < beginSlot || slotId >= endSlot || slotId >= kGameRosterSlotCount)
 		return false;
@@ -392,7 +393,7 @@ void CScene_CustomMode::SetBotLane(u8_t slotId, u8_t lane)
 		return;
 	}
 
-	SetBotSlotLane(CGameInstance::Get()->Get_GameContext(), slotId, lane);
+	SetBotSlotLane(Client::CLoLMatchContextRuntime::Instance().Context(), slotId, lane);
 }
 
 bool_t CScene_CustomMode::SetBotChampion(u8_t slotId, eChampion champion)
@@ -403,7 +404,7 @@ bool_t CScene_CustomMode::SetBotChampion(u8_t slotId, eChampion champion)
 	if (m_bServerLobbyActive)
 	{
 		CGameSessionClient& session = CGameSessionClient::Instance();
-		const GameContext& context = session.GetLobbyContext();
+		const MatchContext& context = session.GetLobbyContext();
 		if (!context.Roster[slotId].bBot)
 			return false;
 
@@ -415,7 +416,7 @@ bool_t CScene_CustomMode::SetBotChampion(u8_t slotId, eChampion champion)
 			context.Roster[slotId].botDifficulty ? context.Roster[slotId].botDifficulty : 2);
 	}
 
-	GameContext& context = CGameInstance::Get()->Get_GameContext();
+	MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 	if (!context.Roster[slotId].bBot)
 		return false;
 
@@ -426,9 +427,9 @@ bool_t CScene_CustomMode::SetBotChampion(u8_t slotId, eChampion champion)
 
 void CScene_CustomMode::RenderRosterOverlay()
 {
-	const GameContext& context = m_bServerLobbyActive
+	const MatchContext& context = m_bServerLobbyActive
 		? CGameSessionClient::Instance().GetLobbyContext()
-		: CGameInstance::Get()->Get_GameContext();
+		: Client::CLoLMatchContextRuntime::Instance().Context();
 
 	RenderTeamRoster(context, 0, 5, kBlueRosterRect);
 	RenderTeamRoster(context, 5, 10, kRedRosterRect);
@@ -436,9 +437,9 @@ void CScene_CustomMode::RenderRosterOverlay()
 
 void CScene_CustomMode::RenderBotChampionButton(u8_t slotId, f32_t width, f32_t height)
 {
-	const GameContext& context = m_bServerLobbyActive
+	const MatchContext& context = m_bServerLobbyActive
 		? CGameSessionClient::Instance().GetLobbyContext()
-		: CGameInstance::Get()->Get_GameContext();
+		: Client::CLoLMatchContextRuntime::Instance().Context();
 
 	if (slotId >= kGameRosterSlotCount || !context.Roster[slotId].bBot)
 		return;
@@ -492,7 +493,7 @@ void CScene_CustomMode::RenderBotChampionButton(u8_t slotId, f32_t width, f32_t 
 }
 
 void CScene_CustomMode::RenderTeamRoster(
-	const GameContext& context,
+	const MatchContext& context,
 	u32_t beginSlot,
 	u32_t endSlot,
 	const ImageSourceRect& rect)

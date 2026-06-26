@@ -10,6 +10,7 @@
 
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
+#include "Shared/GameSim/Systems/Move/DashArrival.h"
 #include "WintersMath.h"
 
 namespace
@@ -125,7 +126,8 @@ namespace
 
             if (t >= 1.f || bDashBlocked)
             {
-                dash.endPos = guardedPos;
+                SnapDashArrivalToWalkable(world, tc, entity, dash.startPos);
+                dash.endPos = transform.GetLocalPosition();
                 if (dash.bHasQueuedMove)
                 {
                     auto& moveTarget = world.HasComponent<MoveTargetComponent>(entity)

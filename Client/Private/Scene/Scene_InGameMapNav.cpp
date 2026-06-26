@@ -25,16 +25,13 @@
 #include "WintersPaths.h"
 #include "GameInstance.h"
 #include "ECS/Components/CoreComponents.h"   // ColliderComponent
-#include "ECS/Systems/MinionAISystem.h"
 #include "ECS/Systems/SpatialHashSystem.h"
 #include "ECS/Systems/BehaviorTreeSystem.h"
 #include "ECS/Systems/MCTSSystem.h"
-#include "ECS/Systems/TurretAISystem.h"
-#include "ECS/Systems/TurretProjectileSystem.h"
-#include "ECS/Systems/MinionPerformanceSystem.h"
+#include "ECS/Systems/NavigationThrottleSystem.h"
 #include "ECS/Systems/YoneSoulSpawnSystem.h"
 #include "ECS/Systems/VisionSystem.h"
-#include "ECS/BushVolumeIndex.h"
+#include "ECS/ConcealmentVolumeIndex.h"
 #include "ECS/Components/NavAgentComponent.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
@@ -82,7 +79,7 @@
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
 #include "GameObject/SkillDefVisualDataAdapter.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -110,7 +107,7 @@
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
 #include "ECS/Systems/StatusEffectSystem.h"
-#include "ECS/Components/GameplayComponents.h"   // Stun/Slow/Disarm
+#include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "Renderer/FxStaticMeshRenderer.h"
@@ -201,7 +198,7 @@ void CScene_InGame::InitializeMapSurfaceSampler(bool_t bMapLoaded, const wchar_t
     wchar_t surfacePath[MAX_PATH]{};
     const wchar_t* pPath = (pSurfaceMeshPath && pSurfaceMeshPath[0] != L'\0')
         ? pSurfaceMeshPath
-        : L"Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh";
+        : L"Texture/MAP/output/sr_base_flip.wmesh";
     if (!WintersResolveContentPath(
         pPath,
         surfacePath,

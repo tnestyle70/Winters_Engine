@@ -26,16 +26,13 @@
 #include "WintersPaths.h"
 #include "GameInstance.h"
 #include "ECS/Components/CoreComponents.h"   // ColliderComponent
-#include "ECS/Systems/MinionAISystem.h"
 #include "ECS/Systems/SpatialHashSystem.h"
 #include "ECS/Systems/BehaviorTreeSystem.h"
 #include "ECS/Systems/MCTSSystem.h"
-#include "ECS/Systems/TurretAISystem.h"
-#include "ECS/Systems/TurretProjectileSystem.h"
-#include "ECS/Systems/MinionPerformanceSystem.h"
+#include "ECS/Systems/NavigationThrottleSystem.h"
 #include "ECS/Systems/YoneSoulSpawnSystem.h"
 #include "ECS/Systems/VisionSystem.h"
-#include "ECS/BushVolumeIndex.h"
+#include "ECS/ConcealmentVolumeIndex.h"
 #include "ECS/Components/NavAgentComponent.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
@@ -83,7 +80,7 @@
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
 #include "GameObject/SkillDefVisualDataAdapter.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -111,7 +108,7 @@
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
 #include "ECS/Systems/StatusEffectSystem.h"
-#include "ECS/Components/GameplayComponents.h"   // Stun/Slow/Disarm
+#include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "Renderer/FxStaticMeshRenderer.h"
@@ -200,12 +197,12 @@ namespace
             return false;
         }
 
-        if (world.HasComponent<WardComponent>(target))
-            return world.GetComponent<WardComponent>(target).ownerTeam == playerTeam;
+        if (world.HasComponent<VisionSensorComponent>(target))
+            return world.GetComponent<VisionSensorComponent>(target).ownerTeam == static_cast<u8_t>(playerTeam);
         if (world.HasComponent<SpatialAgentComponent>(target))
         {
             const auto& spatial = world.GetComponent<SpatialAgentComponent>(target);
-            if (spatial.kind == eSpatialKind::Ward)
+            if (spatial.kind == eSpatialKind::Sensor)
                 return spatial.team == static_cast<u8_t>(playerTeam);
         }
         if (world.HasComponent<ChampionComponent>(target))
@@ -287,9 +284,9 @@ namespace
         bridge.stageWindowSec = gameData.stage.stageWindowSec;
         bridge.rotate = ToLegacyRotateMode(GetFacingMode(gameData.facing, skillStage));
         bridge.animKey = visualStage.animationKey ? visualStage.animationKey : legacyDef.animKey;
-        bridge.animPlaySpeed = visualStage.playbackSpeed > 0.f
+        bridge.visualPlaySpeed = visualStage.playbackSpeed > 0.f
             ? visualStage.playbackSpeed
-            : legacyDef.animPlaySpeed;
+            : legacyDef.visualPlaySpeed;
 
         if (const VisualEventData* eventData =
             FindVisualEvent(visualStage, eVisualEventKind::KeySwap))
@@ -304,13 +301,13 @@ namespace
         if (const VisualEventData* eventData =
             FindVisualEvent(visualStage, eVisualEventKind::Cast))
         {
-            bridge.castFrame = eventData->frame;
-            bridge.castFrameHookId = eventData->hookId;
+            bridge.visualCastFrame = eventData->frame;
+            bridge.castHookId = eventData->hookId;
         }
         if (const VisualEventData* eventData =
             FindVisualEvent(visualStage, eVisualEventKind::Recovery))
         {
-            bridge.recoveryFrame = eventData->frame;
+            bridge.visualRecoveryFrame = eventData->frame;
             bridge.recoveryHookId = eventData->hookId;
         }
 
@@ -347,7 +344,7 @@ namespace
 
     bool_t IsPlayerMoveBlockingKind(eSpatialKind kind)
     {
-        return kind == eSpatialKind::JungleMob;
+        return kind == eSpatialKind::NeutralUnit;
     }
 
     f32_t ResolveAgentRadius(CWorld& world, EntityID entity)
@@ -486,7 +483,7 @@ namespace
     void SpawnMovementIndicator(CScene_InGame& scene, const Vec3& center)
     {
         static constexpr const wchar_t* kTexturePath =
-            L"Client/Bin/Resource/Texture/UI/movement_indicator.png";
+            L"Texture/UI/movement_indicator.png";
 
         static constexpr f32_t kLifetime = 0.32f;
         static constexpr f32_t kStartRadius = 0.95f;
@@ -2110,7 +2107,7 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
         "[SkillDispatch] accepted slot=%u champ=%u hook=0x%08X anim=%s\n",
         static_cast<u32_t>(slot),
         static_cast<u32_t>(champ),
-        m_ActiveSkill.legacyHookBridge.castFrameHookId,
+        m_ActiveSkill.legacyHookBridge.castHookId,
         m_ActiveSkill.legacyHookBridge.animKey
         ? m_ActiveSkill.legacyHookBridge.animKey
         : "(null)");

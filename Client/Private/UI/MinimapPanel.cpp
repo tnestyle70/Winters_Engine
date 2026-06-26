@@ -9,12 +9,14 @@
 #include "ProfilerAPI.h"
 #include "Renderer/FogOfWarRenderer.h"
 #include "Resource/Texture.h"
+#include "Scene/LobbyRosterHelpers.h"
 
 #include <algorithm>
 #include <cmath>
 #include <functional>
 #include <memory>
 #include <string>
+#include <unordered_map>
 
 namespace
 {
@@ -47,17 +49,49 @@ namespace
         return s_pMinimapBaseTexture != nullptr;
     }
 
+    std::unordered_map<eChampion, std::unique_ptr<Engine::CTexture>> s_ChampionPortraits;
+
+    Engine::CTexture* EnsureChampionPortrait(eChampion champion)
+    {
+        if (champion == eChampion::END || champion == eChampion::NONE)
+            return nullptr;
+
+        auto it = s_ChampionPortraits.find(champion);
+        if (it != s_ChampionPortraits.end())
+            return it->second.get();
+
+        CGameInstance* pGameInstance = CGameInstance::Get();
+        if (!pGameInstance)
+            return nullptr;
+        IRHIDevice* pDevice = pGameInstance->Get_RHIDevice();
+        if (!pDevice)
+            return nullptr;
+
+        const wchar_t* pPath = GetRosterChampionPortraitPath(champion);
+        if (!pPath)
+            return nullptr;
+
+        auto tex = Engine::CTexture::Create(
+            pDevice,
+            std::wstring(pPath),
+            Engine::eTexSamplerMode::Clamp,
+            Engine::eTexColorSpace::IgnoreSRGB);
+        Engine::CTexture* pRaw = tex.get();
+        s_ChampionPortraits.emplace(champion, std::move(tex));
+        return pRaw;
+    }
+
     UI::eMinimapIconKind ResolveMinimapIconKind(eSpatialKind eKind)
     {
         switch (eKind)
         {
-        case eSpatialKind::Champion: return UI::eMinimapIconKind::Champion;
-        case eSpatialKind::Minion: return UI::eMinimapIconKind::Minion;
-        case eSpatialKind::Turret: return UI::eMinimapIconKind::Turret;
-        case eSpatialKind::JungleMob: return UI::eMinimapIconKind::JungleMob;
-        case eSpatialKind::Inhibitor: return UI::eMinimapIconKind::Inhibitor;
-        case eSpatialKind::Nexus: return UI::eMinimapIconKind::Nexus;
-        case eSpatialKind::Ward: return UI::eMinimapIconKind::Ward;
+        case eSpatialKind::Character: return UI::eMinimapIconKind::Champion;
+        case eSpatialKind::Unit: return UI::eMinimapIconKind::Minion;
+        case eSpatialKind::Structure: return UI::eMinimapIconKind::Turret;
+        case eSpatialKind::NeutralUnit: return UI::eMinimapIconKind::JungleMob;
+        case eSpatialKind::Objective: return UI::eMinimapIconKind::Inhibitor;
+        case eSpatialKind::Core: return UI::eMinimapIconKind::Nexus;
+        case eSpatialKind::Sensor: return UI::eMinimapIconKind::Ward;
         default: return UI::eMinimapIconKind::Unknown;
         }
     }
@@ -270,15 +304,41 @@ namespace
             kUVFull,
             vBorder,
             28);
-        pGameInstance->UI_Draw_RawImageCircle(
-            nullptr,
-            fCenterX - fRadius,
-            fCenterY - fRadius,
-            fRadius * 2.f,
-            fRadius * 2.f,
-            kUVFull,
-            vFill,
-            28);
+
+        void* pPortraitSRV = nullptr;
+        if (Icon.eKind == UI::eMinimapIconKind::Champion)
+        {
+            if (Engine::CTexture* pPortrait = EnsureChampionPortrait(Icon.eChampionId))
+                pPortraitSRV = pPortrait->GetNativeSRV();
+        }
+
+        if (pPortraitSRV)
+        {
+            const Vec4 vTint = Icon.bAlive
+                ? Vec4{ 1.f, 1.f, 1.f, 1.f }
+                : Vec4{ 0.45f, 0.45f, 0.45f, 0.95f };
+            pGameInstance->UI_Draw_RawImageCircle(
+                pPortraitSRV,
+                fCenterX - fRadius,
+                fCenterY - fRadius,
+                fRadius * 2.f,
+                fRadius * 2.f,
+                kUVFull,
+                vTint,
+                40);
+        }
+        else
+        {
+            pGameInstance->UI_Draw_RawImageCircle(
+                nullptr,
+                fCenterX - fRadius,
+                fCenterY - fRadius,
+                fRadius * 2.f,
+                fRadius * 2.f,
+                kUVFull,
+                vFill,
+                28);
+        }
     }
 }
 
@@ -506,5 +566,6 @@ namespace UI
     void CMinimapPanel::ShutdownRuntime()
     {
         s_pMinimapBaseTexture.reset();
+        s_ChampionPortraits.clear();
     }
 }

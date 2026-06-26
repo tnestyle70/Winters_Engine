@@ -1,4 +1,4 @@
-﻿#include "GamePlay/ChampionRegistry.h"
+#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -32,10 +32,10 @@ namespace
             cd.runAnimKey = "annie_2012_run";
             cd.basicAttackKey = "annie_2012_attack1";
             cd.basicAttackRange = 6.25f;
-            cd.fbxPath = "Client/Bin/Resource/Texture/Character/Annie/annie.fbx";
+            cd.fbxPath = "Texture/Character/Annie/annie.fbx";
             cd.shaderPath = L"Shaders/Mesh3D.hlsl";
             const wchar_t* annieBaseTexture =
-                L"Client/Bin/Resource/Texture/Character/Annie/annie_base_2012_cm.png";
+                L"Texture/Character/Annie/annie_base_2012_cm.png";
             cd.defaultTexturePath = annieBaseTexture;
             for (u32_t i = 0; i < kChampionTextureSlotMax; ++i)
                 cd.texturePath[i] = annieBaseTexture;
@@ -52,8 +52,8 @@ namespace
                 s.animKey = "annie_2012_attack1";
                 s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 6.f; s.recoveryFrame = 14.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAnn_BA_Cast;
+                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAnn_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 0, s);
             }
             {
@@ -64,8 +64,8 @@ namespace
                 s.animKey = "annie_2012_spell1";
                 s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 5.f; s.recoveryFrame = 10.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAnn_Q_Cast;
+                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAnn_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 1, s);
             }
             {
@@ -76,8 +76,8 @@ namespace
                 s.animKey = "annie_2012_spell2";
                 s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 5.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAnn_W_Cast;
+                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAnn_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 2, s);
             }
             {
@@ -88,8 +88,8 @@ namespace
                 s.animKey = "annie_spell3";
                 s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
                 s.rotate = eRotateMode::None;
-                s.castFrame = 1.f; s.recoveryFrame = 8.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAnn_E_Cast;
+                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 8.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAnn_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 3, s);
             }
             {
@@ -100,8 +100,8 @@ namespace
                 s.animKey = "annie_2012_spell4";
                 s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 12.f; s.recoveryFrame = 24.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAnn_R_Cast;
+                s.visualCastFrame = 12.f; s.visualRecoveryFrame = 24.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAnn_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 4, s);
             }
 

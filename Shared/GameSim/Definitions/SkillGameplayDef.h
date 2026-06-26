@@ -17,4 +17,5 @@ struct SkillGameplayDef
     SkillStageSpec stage{};
     SkillFacingSpec facing{};
     SkillEffectSpec effect{};
+    SummonPolicySpec summonPolicy{};
 };

@@ -3,7 +3,6 @@
 #include "Engine_Defines.h"
 #include "WintersMath.h"
 #include "IScene.h"
-#include "GameContext.h"
 #include "Sound/SoundChannel.h"
 #include "ECS/Systems/EntityBlueprint.h"
 #include "Manager/Profiler/ProfilerOverlay.h"
@@ -22,6 +21,13 @@ class CFxAssetRegistry;
 NS_BEGIN(Engine)
 
 class CScene_Manager;
+struct ActorHUDAssetDesc;
+struct ActorHUDState;
+    struct StatusPanelActorRow;
+    struct StatusPanelMatchScore;
+    struct UIIconAssetDesc;
+    struct UIShopItemAssetDesc;
+    struct UIWorldHealthBarDesc;
 
 class ENGINE_DLL CGameInstance
 {
@@ -58,9 +64,6 @@ public: // Sound
     void SetChannelVolume(eSoundChannel eChannel, f32_t fVolume);
     void SetMasterVolume(f32_t fVolume);
 
-public: // Game context
-    GameContext& Get_GameContext() { return m_GameContext; }
-
 public: // UI
     HRESULT UI_Initialize(CWorld* pWorld, IRHIDevice* pDevice,
         uint32_t iWinSizeX, uint32_t iWinSizeY);
@@ -87,7 +90,25 @@ public: // UI
     void UI_Toggle_StatusPanel();
     void UI_Set_StatusPanelOpen(bool_t bOpen);
     void UI_Set_ShowHealthBars(bool_t b);
-    void UI_Set_PlayerChampion(eChampion champ);
+    void UI_Register_ActorHUDAssets(const ActorHUDAssetDesc* pAssets, u32_t iAssetCount);
+    void UI_Clear_ActorHUDAssets();
+    void UI_Register_StatusPanelSpellIconAssets(const UIIconAssetDesc* pAssets, u32_t iAssetCount);
+    void UI_Clear_StatusPanelSpellIconAssets();
+    void UI_Set_StatusPanelDefaultSpellIds(const u16_t* pSpellIds, u32_t iSpellCount);
+    void UI_Register_InGameShopItems(const UIShopItemAssetDesc* pItems, u32_t iItemCount);
+    void UI_Clear_InGameShopItems();
+    void UI_Set_ActorHUDState(const ActorHUDState* pState);
+    void UI_Clear_ActorHUDState();
+    void UI_Set_StatusPanelState(const StatusPanelMatchScore* pScore,
+        const StatusPanelActorRow* pBlueRows, u32_t iBlueCount,
+        const StatusPanelActorRow* pRedRows, u32_t iRedCount);
+    void UI_Clear_StatusPanelState();
+    void UI_Set_WorldHealthBars(const UIWorldHealthBarDesc* pBars, u32_t iBarCount, u8_t iLocalTeam);
+    void UI_Clear_WorldHealthBars();
+    void UI_Set_MatchContextHUDScoreStats(
+        u16_t iBlueKills, u16_t iRedKills,
+        u16_t iLocalKills, u16_t iLocalDeaths, u16_t iLocalAssists);
+    void UI_Set_PlayerActorContent(u8_t iActorContentId);
     void UI_Set_EnemyHoverCursor(bool_t bEnemyHover);
     void UI_Set_AttackMode(bool_t bAttackMode);
     void UI_Set_PingWheel(bool_t bVisible,
@@ -103,12 +124,12 @@ public: // UI
     void UI_Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
         f32_t fLifetime);
     //Kill, Slay, Destroy Log
-    void UI_Push_KillFeedBanner(eChampion eSourceChampion, eChampion eTargetChampion,
+    void UI_Push_KillFeedBanner(u8_t iSourceActorId, u8_t iTargetActorId,
         u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage);
-    void UI_RecordGameContextChampionKill(u8_t iSourceTeam, u8_t iTargetTeam,
+    void UI_RecordMatchContextActorKill(u8_t iSourceTeam, u8_t iTargetTeam,
         bool_t bLocalSource, bool_t bLocalTarget);
-    void UI_RecordGameContextMinionKill();
-    void UI_SetGameContextServerTimeMs(u64_t iServerTimeMs);
+    void UI_RecordMatchContextUnitKill();
+    void UI_SetMatchContextServerTimeMs(u64_t iServerTimeMs);
 
 public: // Blueprint
     HRESULT Add_Blueprint(uint32_t iSceneID, const std::wstring& strKey,
@@ -160,7 +181,6 @@ private:
     unique_ptr<class CJobSystem> m_pJobSystem = {};
     unique_ptr<::CFxAssetRegistry> m_pFxAssetRegistry = {};
 
-    GameContext m_GameContext{};
 };
 
 NS_END

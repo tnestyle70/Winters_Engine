@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "dataVersion": 1,
-  "buildHash": 131395754,
+  "buildHash": 2493520265,
   "skillEffects": [
     {
       "key": "skill.annie.e",
@@ -28,17 +28,21 @@
         "damagePerRank": 75.0,
         "radius": 3.0,
         "range": 6.0,
-        "stunDurationSec": 1.25,
-        "summonAttackCooldownSec": 1.0,
-        "summonAttackDamagePerRank": 15.0,
-        "summonAttackRange": 2.2,
-        "summonBaseAttackDamage": 40.0,
-        "summonBaseHp": 1000.0,
-        "summonDurationSec": 45.0,
-        "summonHpPerRank": 250.0,
-        "summonMoveSpeed": 5.2,
-        "summonRadius": 0.9,
-        "summonSightRange": 14.0
+        "stunDurationSec": 1.25
+      },
+      "summonPolicy": {
+        "attackCooldownSec": 1.0,
+        "attackDamagePerRank": 15.0,
+        "attackRange": 2.2,
+        "baseAttackDamage": 40.0,
+        "baseHp": 1000.0,
+        "durationSec": 45.0,
+        "hpPerRank": 250.0,
+        "lane": 255.0,
+        "moveSpeed": 5.2,
+        "radius": 0.9,
+        "roleType": 4.0,
+        "sightRange": 14.0
       }
     },
     {
@@ -108,7 +112,8 @@
       "params": {
         "baseDamage": 45.0,
         "damagePerRank": 25.0,
-        "dashDurationSec": 0.25
+        "dashDurationSec": 0.25,
+        "gap": 1.35
       }
     },
     {
@@ -158,12 +163,14 @@
     {
       "key": "skill.kalista.w",
       "params": {
-        "effectDurationSec": 12.0,
         "halfAngleCos": 0.8660254,
-        "range": 12.0,
-        "speed": 3.5,
-        "summonRadius": 0.45,
-        "summonSightRange": 10.0
+        "range": 12.0
+      },
+      "summonPolicy": {
+        "durationSec": 12.0,
+        "moveSpeed": 3.5,
+        "radius": 0.45,
+        "sightRange": 10.0
       }
     },
     {
@@ -216,6 +223,13 @@
       "params": {
         "airborneDurationSec": 1.0,
         "baseDamage": 150.0
+      }
+    },
+    {
+      "key": "skill.leesin.w",
+      "params": {
+        "dashDurationSec": 0.18,
+        "gap": 0.25
       }
     },
     {
@@ -280,6 +294,41 @@
         "dashDurationSec": 0.26,
         "radius": 0.75,
         "stunDurationSec": 0.75
+      }
+    },
+    {
+      "key": "skill.yasuo.e",
+      "params": {
+        "baseDamage": 80.0,
+        "dashDistance": 5.5,
+        "dashDurationSec": 0.25,
+        "effectDurationSec": 0.5,
+        "gap": 0.75
+      }
+    },
+    {
+      "key": "skill.yasuo.q",
+      "params": {
+        "airborneDurationSec": 1.25,
+        "baseDamage": 60.0,
+        "dashAreaDamage": 70.0,
+        "dashAreaRadius": 2.5,
+        "effectDurationSec": 0.5,
+        "radius": 0.8,
+        "speed": 25.0,
+        "stackWindowSec": 6.0,
+        "tornadoDamage": 100.0,
+        "tornadoDurationSec": 1.5,
+        "tornadoRadius": 2.25,
+        "tornadoSpeed": 18.0
+      }
+    },
+    {
+      "key": "skill.yasuo.r",
+      "params": {
+        "airborneDurationSec": 1.0,
+        "baseDamage": 200.0,
+        "gap": 1.1
       }
     },
     {

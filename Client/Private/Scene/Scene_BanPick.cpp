@@ -4,6 +4,7 @@
 #include "Dev/SmokeLog.h"
 #include "GameInstance.h"
 #include "GamePlay/ChampionCatalog.h"
+#include "GamePlay/LoLMatchContextRuntime.h"
 #include "Network/Client/GameSessionClient.h"
 #include "Scene/LobbyRosterHelpers.h"
 #include "Scene/Scene_CustomMode.h"
@@ -202,7 +203,7 @@ namespace
 	}
 
 	bool_t GetChampionSelectSlotRect(
-		const GameContext& context,
+		const MatchContext& context,
 		u32_t slotId,
 		ImageSourceRect& outRect)
 	{
@@ -234,7 +235,7 @@ namespace
 		};
 	}
 
-	u8_t ResolveVisibleSelectedSlotId(const GameContext& context, u8_t requestedSlotId)
+	u8_t ResolveVisibleSelectedSlotId(const MatchContext& context, u8_t requestedSlotId)
 	{
 		if (requestedSlotId < kGameRosterSlotCount && IsSlotOccupied(context.Roster[requestedSlotId]))
 			return requestedSlotId;
@@ -243,7 +244,7 @@ namespace
 		return kInvalidGameRosterSlot;
 	}
 
-	bool_t IsLocalHumanSlot(const GameRosterSlot& slot, const GameContext& context)
+	bool_t IsLocalHumanSlot(const GameRosterSlot& slot, const MatchContext& context)
 	{
 		return slot.bHuman &&
 			context.MySessionId != 0 &&
@@ -257,7 +258,7 @@ namespace
 			slot.sessionId == session.GetMySessionId();
 	}
 
-	bool_t HasLocalServerMatchSlot(const GameContext& context)
+	bool_t HasLocalServerMatchSlot(const MatchContext& context)
 	{
 		return context.bUseNetworkRoster &&
 			context.MySessionId != 0 &&
@@ -280,7 +281,7 @@ bool CScene_BanPick::OnEnter()
 	m_ChampionCells.clear();
 	m_ServerSmoke = {};
 	m_ImageUI.Initialize(
-		L"Client/Bin/Resource/Texture/UI/IreliaSelect1.png",
+		L"Texture/UI/IreliaSelect1.png",
 		1555,
 		861);
 	BuildChampionCells();
@@ -310,14 +311,14 @@ bool CScene_BanPick::OnEnter()
 	{
 		if (!m_ServerSmoke.bEnabled)
 		{
-			const GameContext& context = CGameSessionClient::Instance().GetLobbyContext();
+			const MatchContext& context = CGameSessionClient::Instance().GetLobbyContext();
 			m_SelectedSlotId = context.MySlotId < kGameRosterSlotCount ? context.MySlotId : 0;
 		}
 		Winters::DevSmoke::Log("[BanPick] server champion select mode\n");
 		return true;
 	}
 
-	GameContext& context = CGameInstance::Get()->Get_GameContext();
+	MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 	if (context.MySessionId == 0 || context.MySlotId == kInvalidGameRosterSlot)
 		InitializeLocalCustomRoom(context);
 
@@ -367,8 +368,8 @@ void CScene_BanPick::OnUpdate(f32_t dt)
 
 	if (session.HasLobbyState())
 	{
-		session.CopyLobbyToGameContext(CGameInstance::Get()->Get_GameContext());
-		const GameContext& context = session.GetLobbyContext();
+		session.CopyLobbyToMatchContext(Client::CLoLMatchContextRuntime::Instance().Context());
+		const MatchContext& context = session.GetLobbyContext();
 		if (ResolveVisibleSelectedSlotId(context, m_SelectedSlotId) == kInvalidGameRosterSlot &&
 			context.MySlotId < kGameRosterSlotCount)
 		{
@@ -387,7 +388,7 @@ void CScene_BanPick::OnUpdate(f32_t dt)
 		return;
 	}
 
-	GameContext& gameContext = CGameInstance::Get()->Get_GameContext();
+	MatchContext& gameContext = Client::CLoLMatchContextRuntime::Instance().Context();
 	if (session.IsServerLoading() && HasLocalServerMatchSlot(gameContext))
 	{
 		session.ClearServerLoading();
@@ -437,7 +438,7 @@ void CScene_BanPick::HandleServerChampionSelectInput()
 	if (!session.HasLobbyState())
 		return;
 
-	const GameContext& context = session.GetLobbyContext();
+	const MatchContext& context = session.GetLobbyContext();
 	f32_t fSourceX = 0.f;
 	f32_t fSourceY = 0.f;
 	const bool_t bClicked = CInput::Get().IsLButtonPressed() &&
@@ -494,7 +495,7 @@ void CScene_BanPick::HandleServerChampionSelectInput()
 
 void CScene_BanPick::HandleLocalChampionSelectInput()
 {
-	GameContext& context = CGameInstance::Get()->Get_GameContext();
+	MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 	if (context.MySessionId == 0 || context.MySlotId == kInvalidGameRosterSlot)
 	{
 		InitializeLocalCustomRoom(context);
@@ -547,9 +548,9 @@ void CScene_BanPick::HandleLocalChampionSelectInput()
 
 void CScene_BanPick::RenderChampionGridAndRosterOverlay()
 {
-	const GameContext& context = m_bServerLobbyActive
+	const MatchContext& context = m_bServerLobbyActive
 		? CGameSessionClient::Instance().GetLobbyContext()
-		: CGameInstance::Get()->Get_GameContext();
+		: Client::CLoLMatchContextRuntime::Instance().Context();
 
 	const u8_t selectedSlotId = ResolveVisibleSelectedSlotId(context, m_SelectedSlotId);
 	const eChampion selectedSlotChampion =
@@ -574,7 +575,7 @@ void CScene_BanPick::RenderChampionGridAndRosterOverlay()
 	}
 }
 
-void CScene_BanPick::RenderChampionSelectSlots(const GameContext& context, u8_t selectedSlotId)
+void CScene_BanPick::RenderChampionSelectSlots(const MatchContext& context, u8_t selectedSlotId)
 {
 	for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
 	{
@@ -681,7 +682,7 @@ void CScene_BanPick::UpdateServerSmokeAutomation(f32_t dt)
 		return;
 	m_ServerSmoke.commandRetryTimerSec = 0.f;
 
-	const GameContext& context = session.GetLobbyContext();
+	const MatchContext& context = session.GetLobbyContext();
 	const u32_t slotId = m_ServerSmoke.slotId < kGameRosterSlotCount ? m_ServerSmoke.slotId : 0u;
 	const GameRosterSlot& slot = context.Roster[slotId];
 	const bool_t bSlotIsMine = IsLocalHumanSlot(slot, session);
@@ -781,7 +782,7 @@ eChampion CScene_BanPick::ResolveClickedChampion(f32_t fSourceX, f32_t fSourceY)
 u8_t CScene_BanPick::ResolveClickedChampionSlot(
 	f32_t fSourceX,
 	f32_t fSourceY,
-	const GameContext& context) const
+	const MatchContext& context) const
 {
 	for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
 	{
@@ -817,9 +818,9 @@ bool_t CScene_BanPick::IsReadyButtonClicked() const
 
 bool_t CScene_BanPick::IsLocalPlayerChampionPicked() const
 {
-	const GameContext& context = m_bServerLobbyActive
+	const MatchContext& context = m_bServerLobbyActive
 		? CGameSessionClient::Instance().GetLobbyContext()
-		: CGameInstance::Get()->Get_GameContext();
+		: Client::CLoLMatchContextRuntime::Instance().Context();
 
 	const i32_t slotId = FindLocalHumanSlot(context);
 	if (slotId < 0)

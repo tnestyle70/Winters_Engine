@@ -26,7 +26,7 @@ public:
     }
 
     // ISystem
-    uint32_t    GetPhase()  const override { return 3; }   // MinionAI(2) sets nav.vTarget/bPathDirty before path rebuild.
+    uint32_t    GetPhase()  const override { return 3; }
     const char* GetName()   const override { return "NavigationSystem"; }
     void        DescribeAccess(CSystemAccessBuilder& builder) const override;
     void        Execute(CWorld& world, f32_t fTimeDelta) override;

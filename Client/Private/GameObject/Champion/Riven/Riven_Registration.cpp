@@ -1,4 +1,4 @@
-﻿#include "GameObject/Champion/Riven/Riven_Skills.h"
+#include "GameObject/Champion/Riven/Riven_Skills.h"
 
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
@@ -47,7 +47,7 @@ namespace
                 }
                 else
                 {
-                    s.castFrameHookId = ResolveRivenCastHook(slot);
+                    s.castHookId = ResolveRivenCastHook(slot);
                 }
 
                 CSkillRegistry::Instance().Add(eChampion::RIVEN, slot, s);

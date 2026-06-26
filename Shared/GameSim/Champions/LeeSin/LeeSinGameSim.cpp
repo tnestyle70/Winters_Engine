@@ -13,7 +13,7 @@
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
@@ -21,32 +21,21 @@
 
 #include <algorithm>
 #include <cmath>
+#include "Shared/GameSim/Systems/Move/DashArrival.h"
+
 #include <functional>
 #include <iostream>
 #include <vector>
 
 namespace
 {
-    constexpr f32_t kLeeSinQMarkDurationSec = 3.f;
-    constexpr f32_t kLeeSinQ2Damage = 95.f;
-    constexpr f32_t kLeeSinQDashGap = 1.0f;
-    constexpr f32_t kLeeSinQDashDurationSec = 0.18f;
-    constexpr f32_t kLeeSinWRange = 7.0f;
-    constexpr f32_t kLeeSinWDashGap = 0.25f;
-    constexpr f32_t kLeeSinWDashDurationSec = 0.18f;
-    constexpr f32_t kLeeSinERadius = 3.5f;
-    constexpr f32_t kLeeSinESlowDurationSec = 1.5f;
-    constexpr f32_t kLeeSinESlowMoveSpeedMul = 0.60f;
-    constexpr f32_t kLeeSinRDamage = 150.f;
-    constexpr f32_t kLeeSinRAirborneDurationSec = 1.0f;
-
     f32_t ResolveLeeSinSkillEffectParam(
         CWorld& world,
         const TickContext& tc,
         EntityID caster,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         return GameplayDefinitionQuery::ResolveSkillEffectParam(
             world,
@@ -62,7 +51,7 @@ namespace
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -171,8 +160,8 @@ namespace
 
     bool_t IsAlliedWardTarget(CWorld& world, EntityID target, eTeam casterTeam)
     {
-        if (world.HasComponent<WardComponent>(target) &&
-            world.GetComponent<WardComponent>(target).ownerTeam == casterTeam)
+        if (world.HasComponent<VisionSensorComponent>(target) &&
+            world.GetComponent<VisionSensorComponent>(target).ownerTeam == static_cast<u8_t>(casterTeam))
         {
             return true;
         }
@@ -180,7 +169,7 @@ namespace
         if (world.HasComponent<SpatialAgentComponent>(target))
         {
             const auto& spatial = world.GetComponent<SpatialAgentComponent>(target);
-            return spatial.kind == eSpatialKind::Ward &&
+            return spatial.kind == eSpatialKind::Sensor &&
                 spatial.team == static_cast<u8_t>(casterTeam);
         }
 
@@ -236,18 +225,15 @@ namespace
         const f32_t q2Damage = ResolveLeeSinSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::BaseDamage,
-            kLeeSinQ2Damage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t qDashGap = ResolveLeeSinSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::Gap,
-            kLeeSinQDashGap);
+            eSkillEffectParamId::Gap);
         const f32_t qDashDurationSec = ResolveLeeSinSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::DashDurationSec,
-            kLeeSinQDashDurationSec);
+            eSkillEffectParamId::DashDurationSec);
 
         StartTargetDash(*ctx.pWorld, ctx.casterEntity, target, qDashGap, qDashDurationSec);
         EnqueuePhysicalDamage(
@@ -279,11 +265,12 @@ namespace
             return;
         }
 
-        const f32_t wRange = ResolveLeeSinSkillEffectParam(
-            ctx,
-            eSkillSlot::W,
-            eSkillEffectParamId::Range,
-            kLeeSinWRange);
+        const f32_t wRange = GameplayDefinitionQuery::ResolveSkillRange(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            *ctx.pTickCtx,
+            eChampion::LEESIN,
+            static_cast<u8_t>(eSkillSlot::W));
         const f32_t effectiveRange =
             wRange +
             GameplayStateQuery::ResolveGameplayRadius(*ctx.pWorld, ctx.casterEntity) +
@@ -303,13 +290,11 @@ namespace
         const f32_t dashGap = ResolveLeeSinSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::Gap,
-            kLeeSinWDashGap);
+            eSkillEffectParamId::Gap);
         const f32_t dashDuration = ResolveLeeSinSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::DashDurationSec,
-            kLeeSinWDashDurationSec);
+            eSkillEffectParamId::DashDurationSec);
         StartTargetDash(*ctx.pWorld, ctx.casterEntity, target, dashGap, dashDuration);
 
         std::cout << "[LeeSinSim] W safeguard caster="
@@ -327,22 +312,19 @@ namespace
             tc,
             caster,
             eSkillSlot::E,
-            eSkillEffectParamId::Radius,
-            kLeeSinERadius);
+            eSkillEffectParamId::Radius);
         const f32_t slowDurationSec = ResolveLeeSinSkillEffectParam(
             world,
             tc,
             caster,
             eSkillSlot::E,
-            eSkillEffectParamId::SlowDurationSec,
-            kLeeSinESlowDurationSec);
+            eSkillEffectParamId::SlowDurationSec);
         const f32_t slowMoveSpeedMul = ResolveLeeSinSkillEffectParam(
             world,
             tc,
             caster,
             eSkillSlot::E,
-            eSkillEffectParamId::MoveSpeedMul,
-            kLeeSinESlowMoveSpeedMul);
+            eSkillEffectParamId::MoveSpeedMul);
         const f32_t radiusSq = radius * radius;
 
         world.ForEach<ChampionComponent, TransformComponent>(
@@ -393,13 +375,11 @@ namespace
         const f32_t rDamage = ResolveLeeSinSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::BaseDamage,
-            kLeeSinRDamage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t rAirborneDurationSec = ResolveLeeSinSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::AirborneDurationSec,
-            kLeeSinRAirborneDurationSec);
+            eSkillEffectParamId::AirborneDurationSec);
 
         EnqueuePhysicalDamage(
             *ctx.pWorld,
@@ -490,7 +470,12 @@ namespace LeeSinGameSim
                 }));
 
         for (EntityID entity : finishedDashes)
+        {
+            if (world.HasComponent<LeeSinDashComponent>(entity))
+                SnapDashArrivalToWalkable(world, tc, entity,
+                    world.GetComponent<LeeSinDashComponent>(entity).vStart);
             world.RemoveComponent<LeeSinDashComponent>(entity);
+        }
 
         std::vector<EntityID> expiredMarks;
         world.ForEach<LeeSinQMarkComponent>(
@@ -516,8 +501,7 @@ namespace LeeSinGameSim
             tc,
             source,
             eSkillSlot::Q,
-            eSkillEffectParamId::MarkDurationSec,
-            kLeeSinQMarkDurationSec);
+            eSkillEffectParamId::MarkDurationSec);
 
         LeeSinQMarkComponent mark{};
         mark.sourceEntity = source;

@@ -6,7 +6,7 @@
 #include <memory>
 
 #include "AI/Blackboard.h"
-#include "AI/BTNodes_Champion.h"
+#include "AI/BTNodes_CombatAgent.h"
 #include "ECS/World.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Systems/BehaviorTreeSystem.h"
@@ -90,14 +90,14 @@ eChampion CInGameRosterSpawner::ResolvePracticeBotChampion()
     return eChampion::SYLAS;
 }
 
-void CInGameRosterSpawner::EnsureLocalRosterFallback(GameContext& context)
+void CInGameRosterSpawner::EnsureLocalRosterFallback(MatchContext& context)
 {
     if (context.bUseNetworkRoster)
         return;
 
     const eChampion selected = ResolveLocalSelectedChampion(context.SelectedChampion);
 
-    context = GameContext{};
+    context = MatchContext{};
     context.bUseNetworkRoster = true;
     context.SelectedChampion = selected;
     context.MySessionId = 1;
@@ -129,7 +129,7 @@ void CInGameRosterSpawner::EnsureLocalRosterFallback(GameContext& context)
         practiceBot.netId);
 }
 
-bool_t CInGameRosterSpawner::IsLocalRosterSlot(const GameContext& context, const GameRosterSlot& slot)
+bool_t CInGameRosterSpawner::IsLocalRosterSlot(const MatchContext& context, const GameRosterSlot& slot)
 {
     if (!slot.bHuman)
         return false;
@@ -190,7 +190,7 @@ EntityID CInGameRosterSpawner::SpawnSlot(InGameRosterSpawnDesc& desc, const Game
 
     if (slot.bBot && !desc.bNetworkAuthoritative)
     {
-        auto pTree = Engine::BuildStandardChampionBT();
+        auto pTree = Engine::BuildStandardCombatAgentBT();
         auto& bot = desc.world.AddComponent<Engine::BotComponent>(entity);
         bot.difficulty = slot.botDifficulty ? slot.botDifficulty : 2;
         bot.bUseRL = false;
@@ -231,7 +231,7 @@ EntityID CInGameRosterSpawner::SpawnSlot(InGameRosterSpawnDesc& desc, const Game
 
 InGameRosterSpawnResult CInGameRosterSpawner::SpawnFromContext(
     InGameRosterSpawnDesc& desc,
-    const GameContext& context)
+    const MatchContext& context)
 {
     InGameRosterSpawnResult result{};
     EntityID firstHumanEntity = NULL_ENTITY;

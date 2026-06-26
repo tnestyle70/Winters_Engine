@@ -3,7 +3,7 @@
 #include "Defines.h"
 #include "ECS/Entity.h"
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/VisionComponents.h"
 #include "Shared/GameSim/Components/ReplicatedStateComponent.h"

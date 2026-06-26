@@ -15,8 +15,8 @@
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "ECS/Components/CoreComponents.h"
-#include "ECS/Components/GameplayComponents.h"
-#include "ECS/Components/MinionPerformanceComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
+#include "ECS/Components/NavigationThrottleComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
@@ -30,39 +30,11 @@
 namespace
 {
     constexpr u8_t kStunThreshold = 4;
-    constexpr f32_t kStunDurationSec = 1.25f;
-
-    constexpr f32_t kQBaseDamage = 80.f;
-    constexpr f32_t kQDamagePerRank = 35.f;
-    constexpr f32_t kWBaseDamage = 70.f;
-    constexpr f32_t kWDamagePerRank = 45.f;
-    constexpr f32_t kWRange = 6.0f;
-    constexpr f32_t kWHalfAngleCos = 0.76604444f;
-    constexpr f32_t kRBaseDamage = 150.f;
-    constexpr f32_t kRDamagePerRank = 75.f;
-    constexpr f32_t kRRange = 6.0f;
-    constexpr f32_t kRRadius = 3.0f;
-
-    constexpr f32_t kEShieldDurationSec = 3.0f;
-    constexpr f32_t kEShieldBaseAmount = 50.f;
-    constexpr f32_t kEShieldAmountPerRank = 45.f;
-    constexpr f32_t kEShieldArmorPerRank = 5.f;
-    constexpr f32_t kEShieldMoveMul = 1.10f;
     constexpr u32_t kEShieldBuffDefId = (static_cast<u32_t>(eChampion::ANNIE) << 16) | 3u;
 
     constexpr u8_t kTibbersRoleType = 4;
     // 0xff = any-lane: Tibbers bypasses lane-gated minion AI paths.
     constexpr u8_t kTibbersLane = 0xff;
-    constexpr f32_t kTibbersDurationSec = 45.f;
-    constexpr f32_t kTibbersMoveSpeed = 5.2f;
-    constexpr f32_t kTibbersAttackRange = 2.2f;
-    constexpr f32_t kTibbersSightRange = 14.f;
-    constexpr f32_t kTibbersAttackCooldownSec = 1.0f;
-    constexpr f32_t kTibbersBaseAttackDamage = 40.f;
-    constexpr f32_t kTibbersAttackDamagePerRank = 15.f;
-    constexpr f32_t kTibbersBaseHp = 1000.f;
-    constexpr f32_t kTibbersHpPerRank = 250.f;
-    constexpr f32_t kTibbersRadius = 0.9f;
 
     f32_t ResolveAnnieSkillEffectParam(
         CWorld& world,
@@ -70,7 +42,7 @@ namespace
         EntityID caster,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         return GameplayDefinitionQuery::ResolveSkillEffectParam(
             world,
@@ -86,7 +58,7 @@ namespace
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -102,18 +74,36 @@ namespace
             fallbackValue);
     }
 
+    f32_t ResolveAnnieSummonPolicyParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSummonPolicyParamId param,
+        f32_t fallbackValue = 0.f)
+    {
+        return GameplayDefinitionQuery::ResolveSummonPolicyParam(
+            world,
+            caster,
+            tc,
+            eChampion::ANNIE,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
     struct TibbersSpawnTuning
     {
-        f32_t durationSec = kTibbersDurationSec;
-        f32_t moveSpeed = kTibbersMoveSpeed;
-        f32_t attackRange = kTibbersAttackRange;
-        f32_t sightRange = kTibbersSightRange;
-        f32_t attackCooldownSec = kTibbersAttackCooldownSec;
-        f32_t baseAttackDamage = kTibbersBaseAttackDamage;
-        f32_t attackDamagePerRank = kTibbersAttackDamagePerRank;
-        f32_t baseHp = kTibbersBaseHp;
-        f32_t hpPerRank = kTibbersHpPerRank;
-        f32_t radius = kTibbersRadius;
+        f32_t durationSec = 0.f;
+        f32_t moveSpeed = 0.f;
+        f32_t attackRange = 0.f;
+        f32_t sightRange = 0.f;
+        f32_t attackCooldownSec = 0.f;
+        f32_t baseAttackDamage = 0.f;
+        f32_t attackDamagePerRank = 0.f;
+        f32_t baseHp = 0.f;
+        f32_t hpPerRank = 0.f;
+        f32_t radius = 0.f;
     };
 
     TibbersSpawnTuning ResolveTibbersSpawnTuning(
@@ -122,76 +112,66 @@ namespace
         EntityID caster)
     {
         TibbersSpawnTuning tuning{};
-        tuning.durationSec = ResolveAnnieSkillEffectParam(
+        tuning.durationSec = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonDurationSec,
-            kTibbersDurationSec);
-        tuning.moveSpeed = ResolveAnnieSkillEffectParam(
+            eSummonPolicyParamId::DurationSec);
+        tuning.moveSpeed = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonMoveSpeed,
-            kTibbersMoveSpeed);
-        tuning.attackRange = ResolveAnnieSkillEffectParam(
+            eSummonPolicyParamId::MoveSpeed);
+        tuning.attackRange = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonAttackRange,
-            kTibbersAttackRange);
-        tuning.sightRange = ResolveAnnieSkillEffectParam(
+            eSummonPolicyParamId::AttackRange);
+        tuning.sightRange = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonSightRange,
-            kTibbersSightRange);
-        tuning.attackCooldownSec = ResolveAnnieSkillEffectParam(
+            eSummonPolicyParamId::SightRange);
+        tuning.attackCooldownSec = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonAttackCooldownSec,
-            kTibbersAttackCooldownSec);
-        tuning.baseAttackDamage = ResolveAnnieSkillEffectParam(
+            eSummonPolicyParamId::AttackCooldownSec);
+        tuning.baseAttackDamage = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonBaseAttackDamage,
-            kTibbersBaseAttackDamage);
-        tuning.attackDamagePerRank = ResolveAnnieSkillEffectParam(
+            eSummonPolicyParamId::BaseAttackDamage);
+        tuning.attackDamagePerRank = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonAttackDamagePerRank,
-            kTibbersAttackDamagePerRank);
-        tuning.baseHp = ResolveAnnieSkillEffectParam(
+            eSummonPolicyParamId::AttackDamagePerRank);
+        tuning.baseHp = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonBaseHp,
-            kTibbersBaseHp);
-        tuning.hpPerRank = ResolveAnnieSkillEffectParam(
+            eSummonPolicyParamId::BaseHp);
+        tuning.hpPerRank = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonHpPerRank,
-            kTibbersHpPerRank);
-        tuning.radius = ResolveAnnieSkillEffectParam(
+            eSummonPolicyParamId::HpPerRank);
+        tuning.radius = ResolveAnnieSummonPolicyParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::SummonRadius,
-            kTibbersRadius);
+            eSummonPolicyParamId::Radius);
         return tuning;
     }
 
@@ -542,7 +522,7 @@ namespace
         world.AddComponent<VelocityComponent>(tibbers, VelocityComponent{});
 
         SpatialAgentComponent spatial{};
-        spatial.kind = eSpatialKind::Minion;
+        spatial.kind = eSpatialKind::Unit;
         spatial.team = TeamByte(ownerTeam);
         spatial.radius = tuning.radius;
         world.AddComponent<SpatialAgentComponent>(tibbers, spatial);
@@ -558,7 +538,7 @@ namespace
         world.AddComponent<VisionSourceComponent>(tibbers, vision);
         world.AddComponent<VisibilityComponent>(tibbers, BuildVisibleToAll());
         world.AddComponent<TargetableTag>(tibbers, TargetableTag{});
-        world.AddComponent<MinionNavThrottleComponent>(tibbers, MinionNavThrottleComponent{});
+        world.AddComponent<NavRepathThrottleComponent>(tibbers, NavRepathThrottleComponent{});
 
         SetPoseState(world, tibbers, ePoseStateId::Run, tc.tickIndex, true);
 
@@ -600,18 +580,15 @@ namespace
         const f32_t baseDamage = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::BaseDamage,
-            kQBaseDamage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t damagePerRank = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::DamagePerRank,
-            kQDamagePerRank);
+            eSkillEffectParamId::DamagePerRank);
         const f32_t stunDurationSec = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::StunDurationSec,
-            kStunDurationSec);
+            eSkillEffectParamId::StunDurationSec);
 
         ApplyMagicDamage(
             world,
@@ -644,28 +621,23 @@ namespace
         const f32_t baseDamage = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::BaseDamage,
-            kWBaseDamage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t damagePerRank = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::DamagePerRank,
-            kWDamagePerRank);
+            eSkillEffectParamId::DamagePerRank);
         const f32_t range = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::Range,
-            kWRange);
+            eSkillEffectParamId::Range);
         const f32_t halfAngleCos = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::HalfAngleCos,
-            kWHalfAngleCos);
+            eSkillEffectParamId::HalfAngleCos);
         const f32_t stunDurationSec = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::StunDurationSec,
-            kStunDurationSec);
+            eSkillEffectParamId::StunDurationSec);
 
         std::vector<EntityID> targets;
         targets.reserve(8);
@@ -699,7 +671,7 @@ namespace
 
     void OnE(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld)
+        if (!ctx.pWorld || !ctx.pTickCtx)
             return;
 
         CWorld& world = *ctx.pWorld;
@@ -707,28 +679,23 @@ namespace
         const f32_t shieldDurationSec = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::ShieldDurationSec,
-            kEShieldDurationSec);
+            eSkillEffectParamId::ShieldDurationSec);
         const f32_t shieldBaseAmount = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::ShieldBaseAmount,
-            kEShieldBaseAmount);
+            eSkillEffectParamId::ShieldBaseAmount);
         const f32_t shieldAmountPerRank = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::ShieldAmountPerRank,
-            kEShieldAmountPerRank);
+            eSkillEffectParamId::ShieldAmountPerRank);
         const f32_t shieldArmorPerRank = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::ShieldArmorPerRank,
-            kEShieldArmorPerRank);
+            eSkillEffectParamId::ShieldArmorPerRank);
         const f32_t moveSpeedMul = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::MoveSpeedMul,
-            kEShieldMoveMul);
+            eSkillEffectParamId::MoveSpeedMul);
         const f32_t shieldAmount =
             shieldBaseAmount + shieldAmountPerRank * static_cast<f32_t>(ctx.skillRank);
 
@@ -767,28 +734,23 @@ namespace
         const f32_t baseDamage = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::BaseDamage,
-            kRBaseDamage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t damagePerRank = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::DamagePerRank,
-            kRDamagePerRank);
+            eSkillEffectParamId::DamagePerRank);
         const f32_t range = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::Range,
-            kRRange);
+            eSkillEffectParamId::Range);
         const f32_t radius = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::Radius,
-            kRRadius);
+            eSkillEffectParamId::Radius);
         const f32_t stunDurationSec = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::StunDurationSec,
-            kStunDurationSec);
+            eSkillEffectParamId::StunDurationSec);
         const TibbersSpawnTuning tibbersTuning =
             ResolveTibbersSpawnTuning(world, *ctx.pTickCtx, ctx.casterEntity);
         const Vec3 center =

@@ -2,7 +2,7 @@
 
 #include "Defines.h"
 #include "GamePlay/SkillHookContext.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 
 #include <cstddef>
 #include <functional>

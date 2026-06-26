@@ -25,17 +25,15 @@
 #include "Core/CInput.h"
 #include "WintersPaths.h"
 #include "GameInstance.h"
+#include "GamePlay/LoLMatchContextRuntime.h"
 #include "ECS/Components/CoreComponents.h"   // ColliderComponent
-#include "ECS/Systems/MinionAISystem.h"
 #include "ECS/Systems/SpatialHashSystem.h"
 #include "ECS/Systems/BehaviorTreeSystem.h"
 #include "ECS/Systems/MCTSSystem.h"
-#include "ECS/Systems/TurretAISystem.h"
-#include "ECS/Systems/TurretProjectileSystem.h"
-#include "ECS/Systems/MinionPerformanceSystem.h"
+#include "ECS/Systems/NavigationThrottleSystem.h"
 #include "ECS/Systems/YoneSoulSpawnSystem.h"
 #include "ECS/Systems/VisionSystem.h"
-#include "ECS/BushVolumeIndex.h"
+#include "ECS/ConcealmentVolumeIndex.h"
 #include "ECS/Components/NavAgentComponent.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
@@ -83,7 +81,7 @@
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
 #include "GameObject/SkillDefVisualDataAdapter.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -111,7 +109,7 @@
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
 #include "ECS/Systems/StatusEffectSystem.h"
-#include "ECS/Components/GameplayComponents.h"   // Stun/Slow/Disarm
+#include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "Renderer/FxStaticMeshRenderer.h"
@@ -228,17 +226,23 @@ namespace
         u8_t stage)
     {
         const u8_t slot = NetworkActionToSkillSlot(actionId);
+        const u8_t stageIndex = stage > 0u ? static_cast<u8_t>(stage - 1u) : 0u;
         f32_t playSpeed = 1.f;
-        if (ChampionGameDataDB::FindSkill(champion, slot))
+        if (const ClientData::ChampionVisualDefinition* pVisual =
+            ClientData::FindChampionVisualDefinition(champion))
         {
-            playSpeed =
-                ChampionGameDataDB::ResolveSkillTiming(champion, slot, stage).animPlaySpeed;
+            if (slot < ClientData::kVisualSkillSlotCount &&
+                stageIndex < pVisual->skills[slot].stageCount &&
+                stageIndex < ClientData::kVisualSkillStageCount)
+            {
+                playSpeed = pVisual->skills[slot].stages[stageIndex].animationPlaybackSpeed;
+            }
         }
         else if (pDef)
         {
-            playSpeed = (stage >= 2u && pDef->stage2PlaySpeed > 0.01f)
-                ? pDef->stage2PlaySpeed
-                : pDef->animPlaySpeed;
+            playSpeed = (stage >= 2u && pDef->stage2VisualPlaySpeed > 0.01f)
+                ? pDef->stage2VisualPlaySpeed
+                : pDef->visualPlaySpeed;
         }
 
         return (std::isfinite(playSpeed) && playSpeed > 0.01f) ? playSpeed : 1.f;
@@ -444,7 +448,7 @@ namespace
 
 void CScene_InGame::InitializeNetworkSession()
 {
-    const GameContext& gameContext = CGameInstance::Get()->Get_GameContext();
+    const MatchContext& gameContext = Client::CLoLMatchContextRuntime::Instance().Context();
     const bool_t bUseNetworkRoster = gameContext.bUseNetworkRoster;
     const bool_t bDisableLiveNetwork = m_bReplayPlaybackMode;
 
@@ -516,7 +520,7 @@ void CScene_InGame::InitializeNetworkSession()
                 u32_t lastAckedCommandSeq,
                 u32_t localNetId)
             {
-                CGameInstance::Get()->UI_SetGameContextServerTimeMs(iServerTimeMs);
+                CGameInstance::Get()->UI_SetMatchContextServerTimeMs(iServerTimeMs);
                 OnAuthoritativeSnapshot(
                     serverTick,
                     iServerTimeMs,
@@ -555,7 +559,7 @@ void CScene_InGame::InitializeNetworkSession()
                     &myNetId,
                     &mySessionId);
 
-                const GameContext& context = CGameInstance::Get()->Get_GameContext();
+                const MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
                 const u32_t bindNetId = myNetId != 0
                     ? myNetId
                     : (context.bUseNetworkRoster ? context.MyNetId : 0);

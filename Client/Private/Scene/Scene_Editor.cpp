@@ -113,7 +113,7 @@ bool CScene_Editor::OnEnter()
     CBush_Manager::Get()->Initialize(&m_World);
 
     // 맵 메시 (InGame 과 동일)
-    m_Map.Initialize("Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh",
+    m_Map.Initialize("Texture/MAP/output/sr_base_flip.wmesh",
         L"Shaders/Mesh3D.hlsl");
     m_MapTransform.SetPosition(0.f, 0.f, 0.f);
     // InGame 과 동일한 X mirror 적용 (lol2gltf --flipX false 무력화 우회).

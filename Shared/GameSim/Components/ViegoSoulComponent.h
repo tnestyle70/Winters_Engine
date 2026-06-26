@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ECS/Entity.h"
-#include "ECS/Components/GameplayComponents.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
+#include "../Definitions/LoLMatchContext.h"
 #include "WintersTypes.h"
 
 struct ViegoSoulComponent

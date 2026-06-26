@@ -91,7 +91,7 @@ private:
     f32_t m_fDefaultWidth = 8.0f;
     f32_t m_fDefaultHeight = 4.0f;
     std::string m_strDefaultAssetPath =
-        "Client/Bin/Resource/Texture/MAP/output/textures/assets/maps/kitpieces/srx/textures/sru_brush.png";
+        "Texture/MAP/output/textures/assets/maps/kitpieces/srx/textures/sru_brush.png";
     u32_t m_uAutoNumber = 0;
     bool_t m_bInitialized = false;
 };

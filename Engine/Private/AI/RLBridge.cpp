@@ -2,8 +2,8 @@
 #include "AI/RLBridge.h"
 #include "AI/MCTSPlanner.h"
 #include "ECS/World.h"
+#include "ECS/Components/AIControlComponents.h"
 #include "ECS/Components/CoreComponents.h"
-#include "ECS/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 
 #include <algorithm>
@@ -47,12 +47,15 @@ void CRLBridge::EncodeState(CWorld& world, EntityID self, std::vector<f32_t>& ou
     out[2] = myPos.z / 280.f;
     out[3] = (hp.fMaximum > 0.f) ? (hp.fCurrent / hp.fMaximum) : 0.f;
 
-    if (world.HasComponent<ChampionComponent>(self))
+    if (world.HasComponent<AIResourceStateComponent>(self))
     {
-        const ChampionComponent& champion = world.GetComponent<ChampionComponent>(self);
+        const AIResourceStateComponent& resource =
+            world.GetComponent<AIResourceStateComponent>(self);
         for (u32_t i = 0; i < 4; ++i)
-            out[4 + i] = champion.cooldowns[i];
-        out[8] = (champion.maxMana > 0.f) ? (champion.mana / champion.maxMana) : 0.f;
+            out[4 + i] = resource.fCooldowns[i];
+        out[8] = (resource.fMaxMana > 0.f)
+            ? (resource.fMana / resource.fMaxMana)
+            : 0.f;
     }
 }
 

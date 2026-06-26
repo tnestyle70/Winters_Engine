@@ -56,7 +56,7 @@ namespace
         int iSelectedTexture = -1;
         int iSelectedEmitter = -1;
         char szRootPath[512] = "Data/LoL/FX/Champions";
-        char szTextureRoot[512] = "Client/Bin/Resource/Texture/Character";
+        char szTextureRoot[512] = "Texture/Character";
         char szPath[512] = "Data/LoL/FX/Champions/Annie/q_fireball.wfx";
         char szNewCueName[128] = "Wfx.New";
         char szNewWfxPath[512] = "Data/LoL/FX/Champions/New/new_effect.wfx";
@@ -352,7 +352,7 @@ namespace
             ScanTextureCatalog();
 
         constexpr const char* pszQTexture =
-            "Client/Bin/Resource/Texture/Character/Irelia/particles/irelia_base_q_leadingedge.png";
+            "Texture/Character/Irelia/particles/irelia_base_q_leadingedge.png";
 
         const std::vector<UI::WfxTextureEntry>& entries =
             s_State.catalog.GetTextureEntries();
@@ -1005,8 +1005,8 @@ namespace
         if (!ImGui::TreeNode("Reference"))
             return;
 
-        ImGui::BulletText("Q frames: Client/Bin/Resource/Texture/UI/Annie/Q/00.png - 02.png");
-        ImGui::BulletText("W frames: Client/Bin/Resource/Texture/UI/Annie/W/00.png - 02.png");
+        ImGui::BulletText("Q frames: Texture/UI/Annie/Q/00.png - 02.png");
+        ImGui::BulletText("W frames: Texture/UI/Annie/W/00.png - 02.png");
         ImGui::BulletText("Tune in .wfx first; Niagara-style graph nodes can be layered on this document model later.");
         ImGui::TreePop();
     }

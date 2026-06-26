@@ -1,4 +1,4 @@
-﻿#include "GamePlay/ChampionRegistry.h"
+#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GameObject/ChampionDef.h"
@@ -40,10 +40,10 @@ namespace
         s.lockDurationSec = 0.6f;
         s.bOneShot = true;
         s.rotate = targetMode == eTargetMode::Self ? eRotateMode::None : eRotateMode::TowardsCursor;
-        s.castFrame = 4.f;
-        s.recoveryFrame = 12.f;
-        s.animPlaySpeed = 1.f;
-        s.castFrameHookId = hookId;
+        s.visualCastFrame = 4.f;
+        s.visualRecoveryFrame = 12.f;
+        s.visualPlaySpeed = 1.f;
+        s.castHookId = hookId;
         CSkillRegistry::Instance().Add(eChampion::MASTERYI, slot, s);
     }
 
@@ -58,9 +58,9 @@ namespace
             cd.runAnimKey = "skinned_mesh_masteryi_2013_run";
             cd.basicAttackKey = "skinned_mesh_masteryi_2013_attack1";
             cd.basicAttackRange = 1.5f;
-            cd.fbxPath = "Client/Bin/Resource/Texture/Character/MasterYi/masteryi.fbx";
+            cd.fbxPath = "Texture/Character/MasterYi/masteryi.fbx";
             cd.shaderPath = L"Shaders/Mesh3D.hlsl";
-            cd.defaultTexturePath = L"Client/Bin/Resource/Texture/Character/MasterYi/masteryi_2013_tx_cm.png";
+            cd.defaultTexturePath = L"Texture/Character/MasterYi/masteryi_2013_tx_cm.png";
             for (u32_t i = 0; i < kChampionTextureSlotMax; ++i)
                 cd.texturePath[i] = cd.defaultTexturePath;
             cd.spawnPosition = { 45.f, 1.f, 0.f };

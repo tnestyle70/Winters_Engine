@@ -25,7 +25,7 @@ namespace
 {
     constexpr f32_t kYawTraceHalfTurnTolerance = 0.35f;
 
-    // GPU bone palette: structured buffer SRV (t8) so 512+ bone Elden Ring
+    // GPU bone palette: structured buffer SRV (t8) so 512+ bone large-character
     // rigs skin in one draw. Replaces the old 256/512 cbuffer palette.
     constexpr u32_t kMaxGPUBones = 1024;
 
@@ -103,14 +103,11 @@ namespace
 
     bool_t ShouldLogAnimationName(const string& animName)
     {
-        return animName.find("minion_") == string::npos;
+        return !animName.empty();
     }
 
     void LogMissingAnimationName(const string& keyword)
     {
-        if (keyword.find("minion_") != string::npos)
-            return;
-
         static u32_t s_missingAnimationLogCount = 0;
         if (s_missingAnimationLogCount >= 128u)
             return;
@@ -159,7 +156,7 @@ struct ModelRenderer::Impl
     bool_t                              bYawTraceHasPrevWorldYaw = false;
     u64_t                               yawTraceSnapshotTick = 0;
     u32_t                               yawTraceEntity = 0;
-    u32_t                               yawTraceChampion = 0;
+    u32_t                               yawTraceSubject = 0;
     u32_t                               yawTraceCommandSeq = 0;
     f32_t                               yawTraceExpectedYaw = 0.f;
     f32_t                               yawTracePrevWorldYaw = 0.f;
@@ -266,7 +263,7 @@ bool ModelRenderer::PrewarmModel(const std::string& strFbxPath)
 void ModelRenderer::SetYawTraceContext(
     u64_t snapshotTick,
     u32_t entity,
-    u32_t champion,
+    u32_t subject,
     u32_t commandSeq,
     f32_t expectedYaw,
     const Vec3& expectedForward)
@@ -274,7 +271,7 @@ void ModelRenderer::SetYawTraceContext(
     m_pImpl->bYawTraceEnabled = true;
     m_pImpl->yawTraceSnapshotTick = snapshotTick;
     m_pImpl->yawTraceEntity = entity;
-    m_pImpl->yawTraceChampion = champion;
+    m_pImpl->yawTraceSubject = subject;
     m_pImpl->yawTraceCommandSeq = commandSeq;
     m_pImpl->yawTraceExpectedYaw = expectedYaw;
     m_pImpl->yawTraceExpectedForward =
@@ -287,7 +284,7 @@ void ModelRenderer::ClearYawTraceContext()
     m_pImpl->bYawTraceHasPrevWorldYaw = false;
     m_pImpl->yawTraceSnapshotTick = 0;
     m_pImpl->yawTraceEntity = 0;
-    m_pImpl->yawTraceChampion = 0;
+    m_pImpl->yawTraceSubject = 0;
     m_pImpl->yawTraceCommandSeq = 0;
     m_pImpl->yawTraceExpectedYaw = 0.f;
     m_pImpl->yawTracePrevWorldYaw = 0.f;

@@ -3,13 +3,15 @@
 #include "WintersAPI.h"
 #include "WintersTypes.h"
 #include "WintersMath.h"
-#include "GameContext.h"
 #include "World.h"
 #include "Entity.h"
 #include "RHI/IRHIDevice.h"
-#include "Manager/UI/ChampionHUDState.h"
+#include "Manager/UI/ActorHUDAssets.h"
+#include "Manager/UI/ActorHUDState.h"
 #include "Manager/UI/Font_Manager.h"
+#include "Manager/UI/StatusPanelState.h"
 #include "Manager/UI/UIAtlasManifest.h"
+#include "Manager/UI/WorldHealthBarState.h"
 #include "Renderer/UIRenderer.h"
 
 #pragma push_macro("new")
@@ -24,7 +26,7 @@
 
 NS_BEGIN(Engine)
 
-class CChampionHudPanel;
+class CActorHudPanel;
 class CLuaUIHost;
 
 enum class eCursorMode : uint8_t
@@ -72,7 +74,25 @@ public:
     bool_t  Get_ShowHealthBars() const { return m_bShowHealthBars; }
     void    Set_CursorMode(eCursorMode mode) { m_CursorMode = mode; }
     eCursorMode Get_CursorMode() const { return m_CursorMode; }
-    void    Set_PlayerChampion(eChampion champ);
+    void    RegisterActorHUDAssets(const ActorHUDAssetDesc* pAssets, u32_t iAssetCount);
+    void    ClearActorHUDAssets();
+    void    RegisterStatusPanelSpellIconAssets(const UIIconAssetDesc* pAssets, u32_t iAssetCount);
+    void    ClearStatusPanelSpellIconAssets();
+    void    SetStatusPanelDefaultSpellIds(const u16_t* pSpellIds, u32_t iSpellCount);
+    void    RegisterInGameShopItems(const UIShopItemAssetDesc* pItems, u32_t iItemCount);
+    void    ClearInGameShopItems();
+    void    SetActorHUDState(const ActorHUDState* pState);
+    void    ClearActorHUDState();
+    void    SetStatusPanelState(const StatusPanelMatchScore* pScore,
+        const StatusPanelActorRow* pBlueRows, u32_t iBlueCount,
+        const StatusPanelActorRow* pRedRows, u32_t iRedCount);
+    void    ClearStatusPanelState();
+    void    SetWorldHealthBars(const UIWorldHealthBarDesc* pBars, u32_t iBarCount, u8_t iLocalTeam);
+    void    ClearWorldHealthBars();
+    void    SetMatchContextHUDScoreStats(
+        u16_t iBlueKills, u16_t iRedKills,
+        u16_t iLocalKills, u16_t iLocalDeaths, u16_t iLocalAssists);
+    void    Set_PlayerActorContent(u8_t iActorContentId);
     void    Set_AttackMode(bool_t b);
     void    Set_EnemyHoverCursor(bool_t b);
     void    Set_PingWheel(bool_t bVisible,
@@ -80,8 +100,8 @@ public:
         f32_t fMouseX, f32_t fMouseY);
     void    Push_MapPing(const Vec3& vWorldPos, u8_t iDirection);
     bool_t  Get_AttackMode() const { return m_bAttackMode; }
-    void    Set_ShowChampionHUD(bool_t b) { m_bShowChampionHUD = b; }
-    bool_t  Get_ShowChampionHUD() const { return m_bShowChampionHUD; }
+    void    Set_ShowActorHUD(bool_t b) { m_bShowActorHUD = b; }
+    bool_t  Get_ShowActorHUD() const { return m_bShowActorHUD; }
     void    Set_ShowMouseCursor(bool_t b) { m_bShowMouseCursor = b; }
     bool_t  Get_ShowMouseCursor() const { return m_bShowMouseCursor; }
     void    Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
@@ -90,12 +110,12 @@ public:
         const Vec4& vColor, f32_t fLifetime);
     void    Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
         f32_t fLifetime);
-    void Push_KillFeedBanner(eChampion eSourceChampion, eChampion eTargetChampion,
+    void Push_KillFeedBanner(u8_t iSourceActorContentId, u8_t iTargetActorContentId,
         u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage);
-    void RecordGameContextChampionKill(u8_t iSourceTeam, u8_t iTargetTeam,
+    void RecordMatchContextActorKill(u8_t iSourceTeam, u8_t iTargetTeam,
         bool_t bLocalSource, bool_t bLocalTarget);
-    void RecordGameContextMinionKill();
-    void SetGameContextServerTimeMs(u64_t iServerTimeMs);
+    void RecordMatchContextUnitKill();
+    void SetMatchContextServerTimeMs(u64_t iServerTimeMs);
 
     //인게임 아이템 상점
     void SetInGameShopOpen(bool_t b);
@@ -137,8 +157,8 @@ private:
     };
     struct KillFeedBanner
     {
-        eChampion eSourceChampion = eChampion::NONE;
-        eChampion eTargetChampion = eChampion::NONE;
+        u8_t iSourceActorContentId = 0;
+        u8_t iTargetActorContentId = 0;
         u8_t iObjectKind = 0;
         bool_t bSourceAlly = false;
         f32_t fAge = 0.f;
@@ -148,8 +168,28 @@ private:
 
     struct KillFeedPortraitCache
     {
-        eChampion eChampionID = eChampion::NONE;
+        u8_t iActorContentId = 0;
         void* pSRV = nullptr;
+    };
+
+    struct ActorHudAssetDef
+    {
+        u8_t iActorContentId = 255u;
+        std::wstring strPortrait;
+        std::wstring strPassive;
+        std::array<std::wstring, 4> SkillIcons{};
+        std::wstring strPassiveBar;
+        bool_t bUsesPassiveResource = false;
+
+        const wchar_t* PortraitPath() const { return strPortrait.empty() ? nullptr : strPortrait.c_str(); }
+        const wchar_t* PassivePath() const { return strPassive.empty() ? nullptr : strPassive.c_str(); }
+        const wchar_t* SkillIconPath(u32_t iIndex) const
+        {
+            return (iIndex < SkillIcons.size() && !SkillIcons[iIndex].empty())
+                ? SkillIcons[iIndex].c_str()
+                : nullptr;
+        }
+        const wchar_t* PassiveBarPath() const { return strPassiveBar.empty() ? nullptr : strPassiveBar.c_str(); }
     };
 
     enum class ePingWheelDirection : uint8_t
@@ -169,44 +209,16 @@ private:
         f32_t fLifetime = 3.f;
     };
 
-    struct GameContextHUDState
+    struct MatchContextHUDState
     {
         u16_t iBlueKills = 0;
         u16_t iRedKills = 0;
         u16_t iLocalKills = 0;
         u16_t iLocalDeaths = 0;
         u16_t iLocalAssists = 0;
-        u16_t iLocalMinionKills = 0;
+        u16_t iLocalUnitKills = 0;
         u64_t iServerTimeMs = 0;
         bool_t bHasServerTime = false;
-    };
-
-    struct StatusPanelMatchScore
-    {
-        u16_t iBlueDragons = 0;
-        u16_t iBlueBarons = 0;
-        u16_t iBlueDestroyedTurrets = 0;
-        u16_t iBlueDestroyedInhibitors = 0;
-        u16_t iRedDragons = 0;
-        u16_t iRedBarons = 0;
-        u16_t iRedDestroyedTurrets = 0;
-        u16_t iRedDestroyedInhibitors = 0;
-    };
-
-    struct StatusPanelChampionRow
-    {
-        EntityID Entity = NULL_ENTITY;
-        eChampion Champion = eChampion::END;
-        u8_t iTeam = 0;
-        u8_t iLevel = 1;
-        u16_t iKills = 0;
-        u16_t iDeaths = 0;
-        u16_t iAssists = 0;
-        std::array<u16_t, 2> SummonerSpellIds{};
-        std::array<f32_t, 2> SummonerCooldowns{};
-        std::array<f32_t, 2> SummonerCooldownDurations{};
-        // Status rows render inventory item icons here. Cooldowns are only for summoner spells.
-        std::array<u16_t, 6> InventoryItemIds{};
     };
 
     struct StatusPanelSpellIconCache
@@ -215,34 +227,41 @@ private:
         void* pSRV = nullptr;
     };
 
+    struct StatusPanelIconAssetDef
+    {
+        u16_t iContentId = 0u;
+        std::wstring strIconPath;
+
+        const wchar_t* IconPath() const { return strIconPath.empty() ? nullptr : strIconPath.c_str(); }
+    };
+
     void    DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
     void    DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP);
     void    DrawHealthBarBarcodeOverlay(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
-    void    DrawMinionHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
-    void    DrawMinionHealthBarsRHI(const DirectX::XMMATRIX& mVP);
-    void    DrawTurretHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
-    void    DrawTurretHealthBarsRHI(const DirectX::XMMATRIX& mVP);
+    void    DrawUnitHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
+    void    DrawUnitHealthBarsRHI(const DirectX::XMMATRIX& mVP);
+    void    DrawStructureHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
+    void    DrawStructureHealthBarsRHI(const DirectX::XMMATRIX& mVP);
     void    DrawMouseCursor(ImDrawList* pDraw);
     void    DrawMouseCursorRHI();
     void    DrawPingWheel(ImDrawList* pDraw);
     void    DrawMapPings(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP, f32_t fDeltaTime);
     void*   ResolvePingSRV(ePingWheelDirection eDirection) const;
-    void    BuildChampionHUDState(ChampionHUDState& State);
-    void    DrawChampionHUDRHI(const ChampionHUDState& State);
-    void    DrawChampionHUDOverlay(ImDrawList* pDraw, const ChampionHUDState& State);
+    void    DrawActorHUDRHI(const ActorHUDState& State);
+    void    DrawActorHUDOverlay(ImDrawList* pDraw, const ActorHUDState& State);
     void    DrawDamageFloaters(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP, f32_t fDeltaTime);
-    void    DrawGameContextHUD(ImDrawList* pDraw);
+    void    DrawMatchContextHUD(ImDrawList* pDraw);
     void    DrawKillFeedBanners(ImDrawList* pDraw, f32_t fDeltaTime);
     void    DrawKillFeedCircleImage(ImDrawList* pDraw, const ImVec2& vCenter,
         f32_t fRadius, void* pSRV, ImU32 iTintColor, ImU32 iBorderColor);
-    void*   FindOrLoadKillFeedPortrait(eChampion eChampionID);
-    void    ResetGameContextHUDStats();
+    void*   FindOrLoadKillFeedPortrait(u8_t iActorContentId);
+    void    ResetMatchContextHUDStats();
     void    LoadPingWheelAssets();
     ePingWheelDirection ResolvePingWheelDirection() const;
     void    DrawHUDStatusFlash(ImDrawList* pDraw, const ImVec2& root, f32_t hudW, f32_t hudH);
     void    UpdateHUDStatusTimers(EntityID localEntity, f32_t hp, bool_t bStunned, f32_t dt);
-    void UpdateChampionHealthBarTrails(f32_t dt);
-    f32_t ResolveChampionHealthTrailRatio(EntityID entity, f32_t currentRatio) const;
+    void UpdateCharacterHealthBarTrails(f32_t dt);
+    f32_t ResolveCharacterHealthTrailRatio(EntityID entity, f32_t currentRatio) const;
     void    ApplyCursorMode();
 
     //인게임 상점
@@ -250,41 +269,60 @@ private:
     {
         u16_t iItemId = 0;
         u16_t iPrice = 0;
-        const char* pName = nullptr;
+        std::string strName;
         std::wstring strIconPath;
+        std::vector<std::string> StatLines;
         void* pSRV = nullptr;
     };
 
     void LoadInGameShopAssets();
+    void LoadInGameShopItemTextures();
+    void ReleaseInGameShopItemTextures();
     void DrawInGameShop(ImDrawList* pDraw);
     void DrawStatusPanel(ImDrawList* pDraw);
     void BuildStatusPanelRows(
-        std::vector<StatusPanelChampionRow>& BlueRows,
-        std::vector<StatusPanelChampionRow>& RedRows,
+        std::vector<StatusPanelActorRow>& BlueRows,
+        std::vector<StatusPanelActorRow>& RedRows,
         StatusPanelMatchScore& Score) const;
     void DrawStatusPanelObjectiveScores(ImDrawList* pDraw, const ImVec2& Root,
         f32_t fScaleX, f32_t fScaleY, const StatusPanelMatchScore& Score);
     void DrawStatusPanelRows(ImDrawList* pDraw, const ImVec2& Root,
         f32_t fScaleX, f32_t fScaleY,
-        const std::vector<StatusPanelChampionRow>& Rows, bool_t bBlueSide);
-    void DrawStatusPanelChampionRow(ImDrawList* pDraw, const ImVec2& Root,
+        const std::vector<StatusPanelActorRow>& Rows, bool_t bBlueSide);
+    void DrawStatusPanelActorRow(ImDrawList* pDraw, const ImVec2& Root,
         f32_t fScaleX, f32_t fScaleY,
-        const StatusPanelChampionRow& Row, f32_t fRowTop, bool_t bBlueSide);
+        const StatusPanelActorRow& Row, f32_t fRowTop, bool_t bBlueSide);
     void* FindOrLoadStatusPanelSummonerSpellIcon(u16_t iSpellId);
+    const wchar_t* FindStatusPanelSpellIconPath(u16_t iSpellId) const;
+    void ReleaseStatusPanelSpellIconCache();
     const InGameShopItemView* FindInGameShopItem(u16_t iItemId) const;
-    bool_t TryApplyPredictedInGamePurchase(u16_t iItemId);
     bool_t TryBuyInGameItem(u16_t iItemId);
-    void LoadChampionHUDAssets();
-    void LoadChampionHUDAssetsForChampion(eChampion eChampionID);
-    void ApplyChampionHUDSkillIconOverrides(const ChampionHUDState& State);
-    void ReleaseChampionHUDAssets();
+    void LoadActorHUDAssets();
+    void LoadActorHUDAssetsForActor(u8_t iActorContentId);
+    void ApplyActorHUDSkillIconOverrides(const ActorHUDState& State);
+    void ReleaseActorHUDAssets();
+    const ActorHudAssetDef* FindActorHudAssets(u8_t iActorContentId) const;
+    const ActorHudAssetDef* ResolveActorHudAssets(u8_t iActorContentId) const;
+    bool_t ShouldUseActorHUDPassiveResource(u8_t iActorContentId) const;
     ImFont* FindUIFont(const char* pTag) const;
 
     std::vector<InGameShopItemView> m_InGameShopItems;
+    std::vector<ActorHudAssetDef> m_ActorHudAssets;
+    ActorHUDState m_ActorHUDState{};
+    bool_t m_bHasActorHUDState = false;
     std::array<u16_t, 6> m_InGameInventorySlots{};
     void* m_pSRV_InGameShopReference = nullptr;
     void* m_pSRV_StatusPanel = nullptr;
+    std::vector<StatusPanelIconAssetDef> m_StatusPanelSpellIconAssets;
     std::vector<StatusPanelSpellIconCache> m_StatusPanelSpellIconCache;
+    std::vector<StatusPanelActorRow> m_StatusPanelBlueRows;
+    std::vector<StatusPanelActorRow> m_StatusPanelRedRows;
+    StatusPanelMatchScore m_StatusPanelScore{};
+    bool_t m_bHasStatusPanelState = false;
+    std::vector<UIWorldHealthBarDesc> m_WorldHealthBars;
+    u8_t m_iWorldHealthBarLocalTeam = 255u;
+    bool_t m_bHasWorldHealthBarState = false;
+    std::array<u16_t, 2> m_StatusPanelDefaultSpellIds{};
     CUIAtlasManifest m_InGameShopAtlasManifest;
     bool_t m_bInGameShopOpen = false;
     bool_t m_bStatusPanelOpen = false;
@@ -314,27 +352,27 @@ private:
     std::unique_ptr<CFont_Manager> m_pFontManager;
     bool_t                  m_bInitialized = false;
 
-    // Champion-attached HP bar resources.
+    // Character-attached HP bar resources.
     void* m_pSRV_HPBarGreen = nullptr;
     void* m_pSRV_HPBarRed = nullptr;
-    void* m_pSRV_MinionBlueHPBar = nullptr;
-    void* m_pSRV_MinionRedHPBar = nullptr;
-    void* m_pSRV_TurretBlueHPBar = nullptr;
-    void* m_pSRV_TurretRedHPBar = nullptr;
-    void* m_pSRV_ChampionHUDBase = nullptr;
+    void* m_pSRV_UnitBlueHPBar = nullptr;
+    void* m_pSRV_UnitRedHPBar = nullptr;
+    void* m_pSRV_StructureBlueHPBar = nullptr;
+    void* m_pSRV_StructureRedHPBar = nullptr;
+    void* m_pSRV_ActorHUDBase = nullptr;
     void* m_pSRV_HUDHit = nullptr;
     void* m_pSRV_HUDStun = nullptr;
     CUIAtlasManifest m_HudAtlasManifest;
-    std::unique_ptr<CChampionHudPanel> m_pChampionHudPanel;
+    std::unique_ptr<CActorHudPanel> m_pActorHudPanel;
     std::unique_ptr<CLuaUIHost> m_pLuaUIHost;
     bool_t m_bUseLuaUI = true;
-    eChampion m_eLoadedChampionHudAssets = eChampion::END;
-    std::array<eChampion, 4> m_eLoadedSkillIconChampions{
-        eChampion::END, eChampion::END, eChampion::END, eChampion::END };
-    void* m_pSRV_ChampionPortrait = nullptr;
-    void* m_pSRV_ChampionPassiveIcon = nullptr;
-    void* m_pSRV_ChampionPassiveBar = nullptr;
-    std::array<void*, 4> m_pSRV_ChampionSkillIcons{};
+    u8_t m_iLoadedActorHudContentId = 255u;
+    std::array<u8_t, 4> m_iLoadedSkillIconContentIds{
+        255u, 255u, 255u, 255u };
+    void* m_pSRV_ActorPortrait = nullptr;
+    void* m_pSRV_ActorPassiveIcon = nullptr;
+    void* m_pSRV_ActorPassiveBar = nullptr;
+    std::array<void*, 4> m_pSRV_ActorSkillIcons{};
     void* m_pSRV_SkillRankPip = nullptr;
     void* m_pSRV_SkillUpgrade = nullptr;
     std::array<f32_t, 4> m_fSkillLearnFlashTimers{};
@@ -365,11 +403,11 @@ private:
     ePingWheelDirection       m_ePingWheelDirection = ePingWheelDirection::None;
 
     void* m_pSRV_AbilityAtlas = nullptr;
-    eChampion                 m_PlayerChampion = eChampion::END;
+    u8_t                      m_iPlayerActorContentId = 255u;
     f32_t                     m_fHUDWidth = 861.f;
     f32_t                     m_fHUDHeight = 167.f;
-    bool_t                    m_bShowChampionHUD = true;
-    bool_t                    m_bShowChampionHUDReference = true;
+    bool_t                    m_bShowActorHUD = true;
+    bool_t                    m_bShowActorHUDReference = true;
     f32_t                     m_fHUDReferenceAlpha = 0.10f;
     bool_t                    m_bShowHUDStatusFlash = true;
     f32_t                     m_fHUDHitFlashDuration = 0.5f;
@@ -386,7 +424,7 @@ private:
     f32_t   m_fHPBarHeight = 20.f;
     f32_t   m_fHPBarYOffset = 2.75f;    // 월드 좌표 머리 위 높이 (m)
 
-    struct ChampionHealthBarTrailState
+    struct CharacterHealthBarTrailState
     {
         f32_t fLastRatio = 1.f;
         f32_t fTrailRatio = 1.f;
@@ -394,28 +432,28 @@ private:
         bool_t bInitialized = false;
     };
 
-    std::unordered_map<EntityID, ChampionHealthBarTrailState> m_ChampionHealthBarTrails;
+    std::unordered_map<EntityID, CharacterHealthBarTrailState> m_CharacterHealthBarTrails;
     f32_t m_fHealthBarTrailHoldSec = 0.04f;
     f32_t m_fHealthBarTrailShrinkSpeed = 3.75f;
 
-    f32_t   m_fMinionHPBarWidth = 43.088f;
-    f32_t   m_fMinionHPBarHeight = 3.f;
-    f32_t   m_fMinionHPBarYOffset = 1.189f;
+    f32_t   m_fUnitHPBarWidth = 43.088f;
+    f32_t   m_fUnitHPBarHeight = 3.f;
+    f32_t   m_fUnitHPBarYOffset = 1.189f;
 
-    f32_t   m_fTurretHPBarWidth = 125.5f;
-    f32_t   m_fTurretHPBarHeight = 14.f;
-    f32_t   m_fTurretHPBarYOffset = 4.75f;
-    f32_t   m_fTurretHPBarScreenOffsetX = 0.f;
-    f32_t   m_fTurretHPBarScreenOffsetY = 0.f;
+    f32_t   m_fStructureHPBarWidth = 125.5f;
+    f32_t   m_fStructureHPBarHeight = 14.f;
+    f32_t   m_fStructureHPBarYOffset = 4.75f;
+    f32_t   m_fStructureHPBarScreenOffsetX = 0.f;
+    f32_t   m_fStructureHPBarScreenOffsetY = 0.f;
     std::vector<DamageFloater> m_DamageFloaters;
     std::vector<WorldTextFloater> m_WorldTextFloaters;
     std::vector<KillFeedBanner> m_KillFeedBanners;
     std::vector<KillFeedPortraitCache> m_KillFeedPortraits;
     std::vector<MapPingMarker> m_MapPingMarkers;
-    GameContextHUDState m_GameContextHUD{};
-    bool_t  m_bShowGameContextHUD = true;
-    f32_t   m_fGameContextHUDWidth = 382.f;
-    f32_t   m_fGameContextHUDHeight = 34.f;
+    MatchContextHUDState m_MatchContextHUD{};
+    bool_t  m_bShowMatchContextHUD = true;
+    f32_t   m_fMatchContextHUDWidth = 382.f;
+    f32_t   m_fMatchContextHUDHeight = 34.f;
     bool_t  m_bShowDamageFloaters = true;
     f32_t   m_fDamageFloaterLife = 1.15f;
 

@@ -19,7 +19,7 @@ struct SpatialGridDesc
     i32_t halfExtentZ = 32;
 };
 
-inline SpatialGridDesc LoLSpatialGridDesc()
+inline SpatialGridDesc DefaultSpatialGridDesc()
 {
     return SpatialGridDesc{
         { 0.f, 0.f, 0.f },

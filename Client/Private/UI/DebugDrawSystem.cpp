@@ -3,7 +3,7 @@
 #include "ECS/World.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/CoreComponents.h"  // ColliderComponent (vOffset / vHalfExtents)
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "Manager/Structure_Manager.h"
 #include "Manager/Jungle_Manager.h"

@@ -26,7 +26,7 @@ bool CScene_MainMenu::OnEnter()
 	m_bPlayRequested = false;
 	m_bLogoutRequested = false;
 	m_ImageUI.Initialize(
-		L"Client/Bin/Resource/Texture/UI/MainMenu1.png",
+		L"Texture/UI/MainMenu1.png",
 		1545,
 		859);
 

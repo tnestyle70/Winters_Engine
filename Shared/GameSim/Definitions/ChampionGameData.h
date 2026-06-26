@@ -1,9 +1,8 @@
 #pragma once
 
-#include "GameContext.h"
+#include "LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/ChampionStatsDef.h"
 #include "SkillTypes.h"
-#include "SummonerSpellGameData.h"
 #include "WintersTypes.h"
 
 inline constexpr u32_t kChampionGameDataSchemaVersion = 1;
@@ -13,9 +12,6 @@ inline constexpr u8_t kChampionGameDataSkillStageMax = 2;
 struct ChampionGameDataSkillStage
 {
     f32_t lockDurationSec = 0.6f;
-    f32_t animPlaySpeed = 1.f;
-    f32_t castFrame = 0.f;
-    f32_t recoveryFrame = 0.f;
 };
 
 struct ChampionGameDataSkill
@@ -35,8 +31,6 @@ struct ChampionGameDataSkill
     ChampionGameDataSkillStage stages[kChampionGameDataSkillStageMax] = {};
 };
 
-using ChampionGameDataSummonerSpell = SummonerSpellGameData;
-
 struct ChampionGameDataPassiveDash
 {
     bool_t bValid = false;
@@ -52,8 +46,6 @@ struct ChampionGameData
     u32_t dataVersion = 1;
     u32_t authoringHash = 0;
     ChampionStatsDef stats{};
-    f32_t visualYawOffset = 0.f;
     ChampionGameDataSkill skills[kChampionGameDataSkillSlotCount] = {};
-    SummonerSpellGameData summonerSpells[kSummonerSpellGameDataSlotCount] = {};
     ChampionGameDataPassiveDash passiveDash{};
 };

@@ -1,9 +1,10 @@
 #include "UI/CombatDebugPanel.h"
 #include "Scene/Scene_InGame.h"
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "GameInstance.h"
-#include "GameContext.h"
+#include "GamePlay/LoLMatchContextRuntime.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 
 #pragma push_macro("new")
 #undef new
@@ -29,7 +30,7 @@ namespace UI
 		pScene->SetShowCombatDebug(bOpen);
 
 		using namespace Engine;
-		const eChampion champ = CGameInstance::Get()->Get_GameContext().SelectedChampion;
+		const eChampion champ = Client::CLoLMatchContextRuntime::Instance().Context().SelectedChampion;
 		const char* pChampName = (champ == eChampion::IRELIA) ? "Irelia" :
 			(champ == eChampion::YASUO) ? "Yasuo" : "None";
 

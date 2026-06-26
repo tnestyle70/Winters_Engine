@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ECS/Entity.h"
-#include "GameContext.h"
+#include "LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/SkillAtomData.h"
 #include "WintersTypes.h"
 
@@ -52,6 +52,15 @@ namespace GameplayDefinitionQuery
         eChampion fallbackChampion,
         u8_t slot,
         eSkillEffectParamId param,
+        f32_t fallbackValue = 0.f);
+
+    f32_t ResolveSummonPolicyParam(
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        eSummonPolicyParamId param,
         f32_t fallbackValue = 0.f);
 
     u64_t ResolveSkillActionLockTicks(

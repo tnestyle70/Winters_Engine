@@ -25,10 +25,6 @@ namespace ChampionGameDataDB
 
     bool_t IsSkillTwoStage(eChampion champion, u8_t slot);
     f32_t ResolveSkillStageWindowSec(eChampion champion, u8_t slot);
-    f32_t ResolveVisualYawOffset(eChampion champion);
-
-    f32_t ResolveSummonerSpellRange(u16_t spellId);
-    f32_t ResolveSummonerSpellCooldown(u16_t spellId);
 
     const ChampionGameDataPassiveDash* FindPassiveDash(eChampion champion);
     f32_t ResolvePassiveDashDistance(eChampion champion);

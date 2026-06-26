@@ -29,7 +29,7 @@ struct FxMeshComponent
     f32_t fWorldYawSpinSpeed = 0.f;
 
     // 경로 — 정적 리터럴만 허용 (FxBillboardComponent 와 동일 패턴)
-    const char* modelPath = nullptr;   // SolutionDir 기준 상대 (예: "Client/Bin/Resource/.../e_blade.fbx")
+    const char* modelPath = nullptr;   // SolutionDir 기준 상대 (예: ".../e_blade.fbx")
     const wchar_t* texturePath = nullptr;
     const wchar_t* erodeTexturePath = nullptr;
     std::shared_ptr<const std::string> modelPathOwner = {};

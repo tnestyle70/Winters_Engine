@@ -131,10 +131,10 @@ bool_t GameplayQuery::TryFindHoverTarget(CWorld& world, EntityID player,
         }
     );
 
-    world.ForEach<WardComponent, TransformComponent>(
-        [&](EntityID entity, WardComponent& ward, TransformComponent& tf)
+    world.ForEach<VisionSensorComponent, TransformComponent>(
+        [&](EntityID entity, VisionSensorComponent& ward, TransformComponent& tf)
         {
-            TestCylinder(entity, tf.GetPosition(), 0.45f, 1.8f, ward.ownerTeam);
+            TestCylinder(entity, tf.GetPosition(), 0.45f, 1.8f, static_cast<eTeam>(ward.ownerTeam));
         }
     );
 

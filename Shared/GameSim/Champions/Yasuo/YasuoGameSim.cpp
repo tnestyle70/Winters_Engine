@@ -4,14 +4,16 @@
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
+#include "Shared/GameSim/Systems/Move/DashArrival.h"
 
 #include <algorithm>
 #include <cmath>
@@ -21,35 +23,15 @@
 
 namespace
 {
-    constexpr f32_t kYasuoQStackWindowSec = 6.f;
-    constexpr f32_t kYasuoEActiveWindowSec = 0.5f;
     constexpr f32_t kYasuoQHitDelaySec = 0.25f;
-    constexpr f32_t kYasuoQSpeed = 25.f;
-    constexpr f32_t kYasuoQLifetimeSec = 0.5f;
-    constexpr f32_t kYasuoQRadius = 0.8f;
-    constexpr f32_t kYasuoQDamage = 60.f;
-    constexpr f32_t kYasuoQTornadoSpeed = 18.f;
-    constexpr f32_t kYasuoQTornadoLifetimeSec = 1.5f;
-    constexpr f32_t kYasuoQTornadoRadius = 2.25f;
-    constexpr f32_t kYasuoQTornadoDamage = 100.f;
-    constexpr f32_t kYasuoEDamage = 80.f;
-    constexpr f32_t kYasuoEDashDurationSec = 0.25f;
-    constexpr f32_t kYasuoEDashThroughDistance = 0.75f;
-    constexpr f32_t kYasuoEDashMaxDistance = 5.5f;
-    constexpr f32_t kYasuoEQRadius = 2.5f;
-    constexpr f32_t kYasuoEQDamage = 70.f;
-    constexpr f32_t kYasuoAirborneDurationSec = 1.25f;
     constexpr f32_t kYasuoAirborneLift = 2.1f;
-    constexpr f32_t kYasuoRHoldAirborneSec = 1.0f;
-    constexpr f32_t kYasuoRLandingDistance = 1.1f;
-    constexpr f32_t kYasuoRDamage = 200.f;
 
     struct YasuoDashComponent
     {
         Vec3 start{};
         Vec3 end{};
         f32_t elapsedSec = 0.f;
-        f32_t durationSec = kYasuoEDashDurationSec;
+        f32_t durationSec = 0.f;
     };
 
     struct YasuoAirborneComponent
@@ -57,7 +39,7 @@ namespace
         EntityID sourceEntity = NULL_ENTITY;
         f32_t baseY = 0.f;
         f32_t elapsedSec = 0.f;
-        f32_t durationSec = kYasuoAirborneDurationSec;
+        f32_t durationSec = 0.f;
         f32_t lift = kYasuoAirborneLift;
     };
 
@@ -67,6 +49,44 @@ namespace
             world.AddComponent<YasuoStateComponent>(caster, YasuoStateComponent{});
 
         return world.GetComponent<YasuoStateComponent>(caster);
+    }
+
+    f32_t ResolveYasuoSkillEffectParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue = 0.f)
+    {
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::YASUO,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveYasuoSkillEffectParam(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue = 0.f)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+        {
+            return fallbackValue;
+        }
+
+        return ResolveYasuoSkillEffectParam(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            slot,
+            param,
+            fallbackValue);
     }
 
     Vec3 ResolveCommandDirection(const GameplayHookContext& ctx)
@@ -218,7 +238,13 @@ namespace
             durationSec);
     }
 
-    bool_t StartDashThroughTarget(CWorld& world, EntityID caster, EntityID target)
+    bool_t StartDashThroughTarget(
+        CWorld& world,
+        EntityID caster,
+        EntityID target,
+        f32_t dashThroughDistance,
+        f32_t dashMaxDistance,
+        f32_t dashDurationSec)
     {
         if (caster == NULL_ENTITY ||
             target == NULL_ENTITY ||
@@ -238,7 +264,7 @@ namespace
 
         const f32_t dist = std::sqrt(distSq);
         const Vec3 dir{ delta.x / dist, 0.f, delta.z / dist };
-        const f32_t dashDistance = std::min(dist + kYasuoEDashThroughDistance, kYasuoEDashMaxDistance);
+        const f32_t dashDistance = std::min(dist + dashThroughDistance, dashMaxDistance);
         const Vec3 dashEnd{
             casterPos.x + dir.x * dashDistance,
             casterPos.y,
@@ -248,7 +274,7 @@ namespace
         YasuoDashComponent dash{};
         dash.start = casterPos;
         dash.end = dashEnd;
-        dash.durationSec = kYasuoEDashDurationSec;
+        dash.durationSec = dashDurationSec;
         if (world.HasComponent<YasuoDashComponent>(caster))
             world.GetComponent<YasuoDashComponent>(caster) = dash;
         else
@@ -264,7 +290,12 @@ namespace
         return true;
     }
 
-    bool_t PlaceCasterForUltimate(CWorld& world, const TickContext& tc, EntityID caster, EntityID target)
+    bool_t PlaceCasterForUltimate(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target,
+        f32_t landingDistance)
     {
         if (caster == NULL_ENTITY ||
             target == NULL_ENTITY ||
@@ -281,9 +312,9 @@ namespace
         const Vec3 dir = WintersMath::NormalizeXZ(delta);
 
         Vec3 landPos{
-            targetPos.x - dir.x * kYasuoRLandingDistance,
+            targetPos.x - dir.x * landingDistance,
             casterPos.y,
-            targetPos.z - dir.z * kYasuoRLandingDistance
+            targetPos.z - dir.z * landingDistance
         };
         if (tc.pWalkable)
         {
@@ -357,6 +388,28 @@ namespace
         YasuoStateComponent& state = EnsureYasuoState(world, ctx.casterEntity);
         const u8_t stage = YasuoGameSim::ResolveQVariantStage(world, ctx.casterEntity);
         const Vec3 direction = ResolveCommandDirection(ctx);
+        const f32_t qSpeed = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::Speed);
+        const f32_t qLifetimeSec = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::EffectDurationSec);
+        const f32_t qRadius = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::Radius);
+        const f32_t qDamage = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::BaseDamage);
+        const f32_t qStackWindowSec = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::StackWindowSec);
+        const f32_t tornadoSpeed = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoSpeed);
+        const f32_t tornadoLifetimeSec = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoDurationSec);
+        const f32_t tornadoRadius = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoRadius);
+        const f32_t tornadoDamage = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoDamage);
+        const f32_t dashAreaRadius = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::DashAreaRadius);
+        const f32_t dashAreaDamage = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::DashAreaDamage);
 
         switch (stage)
         {
@@ -366,8 +419,8 @@ namespace
                 ctx.casterEntity,
                 ctx.casterTeam,
                 ResolveCasterPosition(world, ctx.casterEntity),
-                kYasuoEQRadius,
-                kYasuoEQDamage,
+                dashAreaRadius,
+                dashAreaDamage,
                 static_cast<u16_t>((static_cast<u32_t>(eChampion::YASUO) << 8) | 1u),
                 ctx.skillRank);
             break;
@@ -379,10 +432,10 @@ namespace
                 ctx.casterTeam,
                 direction,
                 eProjectileKind::Tornado,
-                kYasuoQTornadoSpeed,
-                kYasuoQTornadoSpeed * kYasuoQTornadoLifetimeSec,
-                kYasuoQTornadoRadius,
-                kYasuoQTornadoDamage,
+                tornadoSpeed,
+                tornadoSpeed * tornadoLifetimeSec,
+                tornadoRadius,
+                tornadoDamage,
                 ctx.skillRank);
             state.qStackCount = 0;
             state.qStackTimer = 0.f;
@@ -397,15 +450,15 @@ namespace
                 ctx.casterTeam,
                 direction,
                 eProjectileKind::Wind,
-                kYasuoQSpeed,
-                kYasuoQSpeed * kYasuoQLifetimeSec,
-                kYasuoQRadius,
-                kYasuoQDamage,
+                qSpeed,
+                qSpeed * qLifetimeSec,
+                qRadius,
+                qDamage,
                 ctx.skillRank);
             state.qStackCount = std::min<u8_t>(
                 2u,
                 static_cast<u8_t>(state.qStackCount + 1u));
-            state.qStackTimer = kYasuoQStackWindowSec;
+            state.qStackTimer = qStackWindowSec;
             break;
         }
 
@@ -422,37 +475,59 @@ namespace
 
     void OnE(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld || !ctx.pCommand)
+        if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx)
             return;
 
         CWorld& world = *ctx.pWorld;
         const EntityID target = ctx.pCommand->targetEntity;
         YasuoStateComponent& state = EnsureYasuoState(world, ctx.casterEntity);
+        const f32_t eActiveWindowSec = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::E, eSkillEffectParamId::EffectDurationSec);
+        const f32_t eDashThroughDistance = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::E, eSkillEffectParamId::Gap);
+        const f32_t eDashMaxDistance = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::E, eSkillEffectParamId::DashDistance);
+        const f32_t eDashDurationSec = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::E, eSkillEffectParamId::DashDurationSec);
+        const f32_t eDamage = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::E, eSkillEffectParamId::BaseDamage);
         state.bEActive = true;
-        state.eActiveTimer = kYasuoEActiveWindowSec;
+        state.eActiveTimer = eActiveWindowSec;
 
-        const bool_t bDashed = StartDashThroughTarget(world, ctx.casterEntity, target);
+        const bool_t bDashed = StartDashThroughTarget(
+            world,
+            ctx.casterEntity,
+            target,
+            eDashThroughDistance,
+            eDashMaxDistance,
+            eDashDurationSec);
         EnqueueTargetDamage(
             world,
             ctx.casterEntity,
             target,
             ctx.casterTeam,
-            kYasuoEDamage,
+            eDamage,
             static_cast<u16_t>((static_cast<u32_t>(eChampion::YASUO) << 8) | 3u),
             ctx.skillRank);
 
         std::cout << "[YasuoSim] E active caster=" << ctx.casterEntity
             << " target=" << target
             << " dashed=" << (bDashed ? 1 : 0)
-            << " window=" << kYasuoEActiveWindowSec << "\n";
+            << " window=" << eActiveWindowSec << "\n";
     }
 
     void OnR(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld)
+        if (!ctx.pWorld || !ctx.pTickCtx)
             return;
 
         CWorld& world = *ctx.pWorld;
+        const f32_t holdAirborneSec = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::R, eSkillEffectParamId::AirborneDurationSec);
+        const f32_t landingDistance = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::R, eSkillEffectParamId::Gap);
+        const f32_t rDamage = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::R, eSkillEffectParamId::BaseDamage);
         EntityID target = ctx.pCommand ? ctx.pCommand->targetEntity : NULL_ENTITY;
         if (!IsAirborne(world, target))
             target = YasuoGameSim::FindAirborneTarget(world, ctx.casterEntity, ctx.casterTeam, 14.f);
@@ -470,15 +545,20 @@ namespace
             ctx.casterEntity,
             target,
             eSkillSlot::R,
-            kYasuoRHoldAirborneSec);
+            holdAirborneSec);
         const bool_t bPlaced =
-            PlaceCasterForUltimate(world, *ctx.pTickCtx, ctx.casterEntity, target);
+            PlaceCasterForUltimate(
+                world,
+                *ctx.pTickCtx,
+                ctx.casterEntity,
+                target,
+                landingDistance);
         EnqueueTargetDamage(
             world,
             ctx.casterEntity,
             target,
             ctx.casterTeam,
-            kYasuoRDamage,
+            rDamage,
             static_cast<u16_t>((static_cast<u32_t>(eChampion::YASUO) << 8) | 4u),
             ctx.skillRank);
 
@@ -538,16 +618,22 @@ namespace YasuoGameSim
 
     void ApplyTornadoAirborne(CWorld& world, const TickContext& tc, EntityID source, EntityID target)
     {
+        const f32_t airborneDurationSec = ResolveYasuoSkillEffectParam(
+            world,
+            tc,
+            source,
+            eSkillSlot::Q,
+            eSkillEffectParamId::AirborneDurationSec);
         ApplyAirborne(
             world,
             tc,
             source,
             target,
             eSkillSlot::Q,
-            kYasuoAirborneDurationSec);
+            airborneDurationSec);
         std::cout << "[YasuoSim] airborne target=" << target
             << " source=" << source
-            << " duration=" << kYasuoAirborneDurationSec << "\n";
+            << " duration=" << airborneDurationSec << "\n";
     }
 
     void RegisterHooks()
@@ -613,7 +699,12 @@ namespace YasuoGameSim
                 }));
 
         for (EntityID entity : finishedDashes)
+        {
+            if (world.HasComponent<YasuoDashComponent>(entity))
+                SnapDashArrivalToWalkable(world, tc, entity,
+                    world.GetComponent<YasuoDashComponent>(entity).start);
             world.RemoveComponent<YasuoDashComponent>(entity);
+        }
 
         std::vector<EntityID> finishedAirborne;
         world.ForEach<YasuoAirborneComponent, TransformComponent>(

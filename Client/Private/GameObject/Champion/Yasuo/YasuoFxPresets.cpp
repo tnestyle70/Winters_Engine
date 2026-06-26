@@ -20,20 +20,20 @@ namespace
     constexpr const char* kCueRLandImpact = "Yasuo.R.LandImpact";
     constexpr const char* kCueRSwordGlow = "Yasuo.R.SwordGlow";
 
-    constexpr const wchar_t* kPathQWind = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_q_wind.png";
-    constexpr const wchar_t* kPathQBuildUp = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_q_build_up.png";
-    constexpr const wchar_t* kPathTornadoMid = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_base_e_tonado_blend.png";
-    constexpr const wchar_t* kPathTornadoGroundMis = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_q_wind.png";
-    constexpr const wchar_t* kPathWDust = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_w_windwall_dust.png";
-    constexpr const wchar_t* kPathEAfterImg = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_base_e_afterimage.png";
-    constexpr const wchar_t* kPathEQInnerWind = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_base_e_inner_wind.png";
-    constexpr const wchar_t* kPathEQGroundMis = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_q_wind.png";
-    constexpr const wchar_t* kPathRSwordGlow = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_r_sword_glow.png";
-    constexpr const wchar_t* kPathRLandDistort = L"Client/Bin/Resource/Texture/FX/Yasuo/color_yasuo_r_land_distort.png";
+    constexpr const wchar_t* kPathQWind = L"Texture/FX/Yasuo/color_yasuo_q_wind.png";
+    constexpr const wchar_t* kPathQBuildUp = L"Texture/FX/Yasuo/color_yasuo_q_build_up.png";
+    constexpr const wchar_t* kPathTornadoMid = L"Texture/FX/Yasuo/color_yasuo_base_e_tonado_blend.png";
+    constexpr const wchar_t* kPathTornadoGroundMis = L"Texture/FX/Yasuo/color_yasuo_q_wind.png";
+    constexpr const wchar_t* kPathWDust = L"Texture/FX/Yasuo/color_yasuo_w_windwall_dust.png";
+    constexpr const wchar_t* kPathEAfterImg = L"Texture/FX/Yasuo/color_yasuo_base_e_afterimage.png";
+    constexpr const wchar_t* kPathEQInnerWind = L"Texture/FX/Yasuo/color_yasuo_base_e_inner_wind.png";
+    constexpr const wchar_t* kPathEQGroundMis = L"Texture/FX/Yasuo/color_yasuo_q_wind.png";
+    constexpr const wchar_t* kPathRSwordGlow = L"Texture/FX/Yasuo/color_yasuo_r_sword_glow.png";
+    constexpr const wchar_t* kPathRLandDistort = L"Texture/FX/Yasuo/color_yasuo_r_land_distort.png";
 
-    constexpr const char* kPathTornadoFbx = "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_base_q_tornado_blade_cas.fbx";
-    constexpr const char* kPathWWallFbx = "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_w_windwall_mesh.fbx";
-    constexpr const char* kPathRSwordFbx = "Client/Bin/Resource/Texture/FX/Yasuo/fbx/yasuo_base_r_sword_wind2.fbx";
+    constexpr const char* kPathTornadoFbx = "Texture/FX/Yasuo/fbx/yasuo_base_q_tornado_blade_cas.fbx";
+    constexpr const char* kPathWWallFbx = "Texture/FX/Yasuo/fbx/yasuo_w_windwall_mesh.fbx";
+    constexpr const char* kPathRSwordFbx = "Texture/FX/Yasuo/fbx/yasuo_base_r_sword_wind2.fbx";
 
     bool_t HasCue(const char* pszCueName)
     {

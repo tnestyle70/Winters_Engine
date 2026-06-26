@@ -1,7 +1,7 @@
 ﻿#include "GameObject/Champion/Yasuo/Yasuo_Skills.h"
 
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "GameObject/Champion/Yasuo/PendingHitSystem.h"
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"

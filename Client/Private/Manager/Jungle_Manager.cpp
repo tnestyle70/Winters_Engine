@@ -1,7 +1,8 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #include "Manager/Jungle_Manager.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 #include "ECS/Components/TransformComponent.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
@@ -17,18 +18,6 @@
 
 namespace //?대젃寃?const char*濡??ㅼ젙??寃껋쿂???몃━?? RED Engine??CName Hashing ?꾨? ?⑥꽌 String ?ㅻ쾭?ㅻ뱶 ?놁븷湲?
 {
-    constexpr const char* PATH_BARON  = "Client/Bin/Resource/Texture/Object/Jungle/Baron/baron_textured.wmesh";
-    constexpr const char* PATH_DRAGON = "Client/Bin/Resource/Texture/Object/Jungle/Dragon/air/dragon_air_textured.wmesh";
-    constexpr const char* PATH_BLUE   = "Client/Bin/Resource/Texture/Object/Jungle/Blue/blue_textured.wmesh";
-    constexpr const char* PATH_RED    = "Client/Bin/Resource/Texture/Object/Jungle/Red/red_textured.wmesh";
-    constexpr const char* PATH_KRUG   = "Client/Bin/Resource/Texture/Object/Jungle/Krug/krug_textured.wmesh";
-    constexpr const char* PATH_GROMP  = "Client/Bin/Resource/Texture/Object/Jungle/Gromp/gromp_textured.wmesh";
-    constexpr const char* PATH_WOLF   = "Client/Bin/Resource/Texture/Object/Jungle/Wolf/wolf_textured.wmesh";
-    constexpr const char* PATH_RAZORBEAK = "Client/Bin/Resource/Texture/Object/Jungle/Razorbeak/razorbeak_textured.wmesh";
-    constexpr const char* PATH_RAZORBEAK_MINI = "Client/Bin/Resource/Texture/Object/Jungle/RazorbeakMini/razorbeakmini_textured.wmesh";
-    constexpr const char* PATH_WOLF_MINI = "Client/Bin/Resource/Texture/Object/Jungle/WolfMini/wolfmini_textured.wmesh";
-    constexpr const char* PATH_KRUG_MINI = "Client/Bin/Resource/Texture/Object/Jungle/KrugMini/krugmini_textured.wmesh";
-
     constexpr f32_t kJungleBaseAnimUpdateInterval = 1.f / 8.f;
     constexpr f32_t kJungleHighPriorityAnimUpdateInterval = 1.f / 20.f;
     constexpr uint64_t kJungleAnimUpdateBudget = 6u;
@@ -498,25 +487,6 @@ void CJungle_Manager::Apply_NetworkAnimation(
     }
 }
 
-const char* CJungle_Manager::ResolveModelPath(eJungleSub sub)
-{
-    switch (sub)
-    {
-    case eJungleSub::Baron:    return PATH_BARON;
-    case eJungleSub::Dragon:   return PATH_DRAGON;
-    case eJungleSub::BlueBuff: return PATH_BLUE;
-    case eJungleSub::RedBuff:  return PATH_RED;
-    case eJungleSub::Krug:     return PATH_KRUG;
-    case eJungleSub::Gromp:    return PATH_GROMP;
-    case eJungleSub::Wolf:     return PATH_WOLF;
-    case eJungleSub::Razorbeak:     return PATH_RAZORBEAK;
-    case eJungleSub::RazorbeakMini: return PATH_RAZORBEAK_MINI;
-    case eJungleSub::WolfMini:      return PATH_WOLF_MINI;
-    case eJungleSub::KrugMini:      return PATH_KRUG_MINI;
-    default: return nullptr;
-    }
-}
-
 void CJungle_Manager::Make_AutoName(eJungleSub sub, char* pOutBuf, size_t capacity)
 {
     const char* s = "Jungle";
@@ -541,11 +511,13 @@ void CJungle_Manager::Make_AutoName(eJungleSub sub, char* pOutBuf, size_t capaci
 EntityID CJungle_Manager::Spawn_FromEntry(const Winters::Map::JungleEntry& entry)
 {
     if (!m_pWorld) return NULL_ENTITY;
-    const char* pPath = ResolveModelPath(static_cast<eJungleSub>(entry.subKind));
-    if (!pPath) return NULL_ENTITY;
+    const ClientData::JungleVisualDefinition* pVisual =
+        ClientData::FindJungleVisualDefinition(entry.subKind);
+    if (!pVisual || !pVisual->mesh.resourceRelativePath || !pVisual->shader.runtimePath)
+        return NULL_ENTITY;
 
     auto pRenderer = std::unique_ptr<ModelRenderer>(new ModelRenderer());
-    if (!pRenderer->Initialize(pPath, L"Shaders/Mesh3D.hlsl"))
+    if (!pRenderer->Initialize(pVisual->mesh.resourceRelativePath, pVisual->shader.runtimePath))
         return NULL_ENTITY;
 
     const char* pDefaultAnim = Resolve_DefaultAnimationName(static_cast<eJungleSub>(entry.subKind));
@@ -554,12 +526,11 @@ EntityID CJungle_Manager::Spawn_FromEntry(const Winters::Map::JungleEntry& entry
     else if (pRenderer->GetAnimationCount() > 0)
         pRenderer->PlayAnimation(0);
 
-    if (static_cast<eJungleSub>(entry.subKind) == eJungleSub::Baron)
+    for (u8_t i = 0u; i < pVisual->textureOverrideCount; ++i)
     {
-        pRenderer->LoadMeshTexture(0,
-            L"Client/Bin/Resource/Texture/Object/Jungle/Baron/sru_baron_tx_cm.png");
-        pRenderer->LoadMeshTexture(1,
-            L"Client/Bin/Resource/Texture/Object/Jungle/Baron/sru_baron_tx_cm.png");
+        const ClientData::VisualTextureOverrideDef& overrideDef = pVisual->textureOverrides[i];
+        if (overrideDef.resourceRelativePath)
+            pRenderer->LoadMeshTexture(overrideDef.meshIndex, overrideDef.resourceRelativePath);
     }
 
     EntityID id = m_pWorld->CreateEntity();
@@ -589,7 +560,7 @@ EntityID CJungle_Manager::Spawn_FromEntry(const Winters::Map::JungleEntry& entry
     const f32_t colliderRadius = Resolve_ColliderRadius(static_cast<eJungleSub>(entry.subKind));
 
     SpatialAgentComponent spatial{};
-    spatial.kind = eSpatialKind::JungleMob;
+    spatial.kind = eSpatialKind::NeutralUnit;
     spatial.team = static_cast<u8_t>(eTeam::Neutral);
     spatial.radius = colliderRadius;
     m_pWorld->AddComponent<SpatialAgentComponent>(id, spatial);

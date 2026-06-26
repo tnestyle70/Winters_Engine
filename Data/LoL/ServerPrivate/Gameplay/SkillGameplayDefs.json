@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "buildHash": 131395754,
+  "buildHash": 2493520265,
   "skills": [
     {
       "key": "skill.annie.basic_attack",
@@ -189,45 +189,57 @@
           {
             "id": "stunDurationSec",
             "value": 1.25
-          },
+          }
+        ]
+      },
+      "summonPolicy": {
+        "params": [
           {
-            "id": "summonAttackCooldownSec",
+            "id": "attackCooldownSec",
             "value": 1.0
           },
           {
-            "id": "summonAttackDamagePerRank",
+            "id": "attackDamagePerRank",
             "value": 15.0
           },
           {
-            "id": "summonAttackRange",
+            "id": "attackRange",
             "value": 2.2
           },
           {
-            "id": "summonBaseAttackDamage",
+            "id": "baseAttackDamage",
             "value": 40.0
           },
           {
-            "id": "summonBaseHp",
+            "id": "baseHp",
             "value": 1000.0
           },
           {
-            "id": "summonDurationSec",
+            "id": "durationSec",
             "value": 45.0
           },
           {
-            "id": "summonHpPerRank",
+            "id": "hpPerRank",
             "value": 250.0
           },
           {
-            "id": "summonMoveSpeed",
+            "id": "lane",
+            "value": 255.0
+          },
+          {
+            "id": "moveSpeed",
             "value": 5.2
           },
           {
-            "id": "summonRadius",
+            "id": "radius",
             "value": 0.9
           },
           {
-            "id": "summonSightRange",
+            "id": "roleType",
+            "value": 4.0
+          },
+          {
+            "id": "sightRange",
             "value": 14.0
           }
         ]
@@ -1173,6 +1185,10 @@
           {
             "id": "dashDurationSec",
             "value": 0.25
+          },
+          {
+            "id": "gap",
+            "value": 1.35
           }
         ]
       }
@@ -1665,27 +1681,31 @@
         "replicatedCueId": 0,
         "params": [
           {
-            "id": "effectDurationSec",
-            "value": 12.0
-          },
-          {
             "id": "halfAngleCos",
             "value": 0.8660254
           },
           {
             "id": "range",
             "value": 12.0
+          }
+        ]
+      },
+      "summonPolicy": {
+        "params": [
+          {
+            "id": "durationSec",
+            "value": 12.0
           },
           {
-            "id": "speed",
+            "id": "moveSpeed",
             "value": 3.5
           },
           {
-            "id": "summonRadius",
+            "id": "radius",
             "value": 0.45
           },
           {
-            "id": "summonSightRange",
+            "id": "sightRange",
             "value": 10.0
           }
         ]
@@ -2122,7 +2142,16 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "dashDurationSec",
+            "value": 0.18
+          },
+          {
+            "id": "gap",
+            "value": 0.25
+          }
+        ]
       }
     },
     {
@@ -2993,7 +3022,28 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 80.0
+          },
+          {
+            "id": "dashDistance",
+            "value": 5.5
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.25
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 0.5
+          },
+          {
+            "id": "gap",
+            "value": 0.75
+          }
+        ]
       }
     },
     {
@@ -3027,7 +3077,56 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "airborneDurationSec",
+            "value": 1.25
+          },
+          {
+            "id": "baseDamage",
+            "value": 60.0
+          },
+          {
+            "id": "dashAreaDamage",
+            "value": 70.0
+          },
+          {
+            "id": "dashAreaRadius",
+            "value": 2.5
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 0.5
+          },
+          {
+            "id": "radius",
+            "value": 0.8
+          },
+          {
+            "id": "speed",
+            "value": 25.0
+          },
+          {
+            "id": "stackWindowSec",
+            "value": 6.0
+          },
+          {
+            "id": "tornadoDamage",
+            "value": 100.0
+          },
+          {
+            "id": "tornadoDurationSec",
+            "value": 1.5
+          },
+          {
+            "id": "tornadoRadius",
+            "value": 2.25
+          },
+          {
+            "id": "tornadoSpeed",
+            "value": 18.0
+          }
+        ]
       }
     },
     {
@@ -3061,7 +3160,20 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "airborneDurationSec",
+            "value": 1.0
+          },
+          {
+            "id": "baseDamage",
+            "value": 200.0
+          },
+          {
+            "id": "gap",
+            "value": 1.1
+          }
+        ]
       }
     },
     {

@@ -30,7 +30,7 @@ bool CScene_Login::OnEnter()
 	m_bOfflineLoginRequested = false;
 	m_bLoginInFlight = false;
 	m_ImageUI.Initialize(
-		L"Client/Bin/Resource/Texture/UI/Login1.png",
+		L"Texture/UI/Login1.png",
 		2301,
 		1289);
 

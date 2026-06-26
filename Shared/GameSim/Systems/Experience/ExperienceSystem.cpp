@@ -1,7 +1,7 @@
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
 
 #include "ECS/Components/CoreComponents.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"

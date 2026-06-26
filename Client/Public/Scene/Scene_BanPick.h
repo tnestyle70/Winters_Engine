@@ -1,6 +1,6 @@
 #pragma once
 #include "IScene.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Resource/Texture.h"
 #include "UI/ImageScenePresenter.h"
 #include <memory>
@@ -29,12 +29,12 @@ private:
 	void HandleServerChampionSelectInput();
 	void HandleLocalChampionSelectInput();
 	void RenderChampionGridAndRosterOverlay();
-	void RenderChampionSelectSlots(const GameContext& context, u8_t selectedSlotId);
+	void RenderChampionSelectSlots(const MatchContext& context, u8_t selectedSlotId);
 	void BuildChampionCells();
 	void StartMatchLoadingScene();
 
 	eChampion ResolveClickedChampion(f32_t fSourceX, f32_t fSourceY) const;
-	u8_t ResolveClickedChampionSlot(f32_t fSourceX, f32_t fSourceY, const GameContext& context) const;
+	u8_t ResolveClickedChampionSlot(f32_t fSourceX, f32_t fSourceY, const MatchContext& context) const;
 	Engine::CTexture* FindChampionTexture(eChampion champion) const;
 	bool_t IsReadyButtonClicked() const;
 	bool_t IsLocalPlayerChampionPicked() const;

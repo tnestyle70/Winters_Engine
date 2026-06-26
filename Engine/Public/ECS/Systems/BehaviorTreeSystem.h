@@ -30,7 +30,7 @@ public:
         return std::unique_ptr<CBehaviorTreeSystem>(new CBehaviorTreeSystem());
     }
 
-    // Phase 8 follows TurretProjectile(7). Same phase means parallel in Scheduler.
+    // Phase 8 follows StructureProjectile(7). Same phase means parallel in Scheduler.
     u32_t GetPhase() const override { return 8; }
     const char* GetName() const override { return "BehaviorTreeSystem"; }
     void Execute(CWorld& world, f32_t fTimeDelta) override;

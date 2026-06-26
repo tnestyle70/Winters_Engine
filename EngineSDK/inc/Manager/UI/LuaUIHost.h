@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Manager/UI/ChampionHUDState.h"
+#include "Manager/UI/ActorHUDState.h"
 #include "WintersTypes.h"
 #include "WintersMath.h"
 
@@ -31,7 +31,7 @@ namespace Engine
 
         void ReloadScripts();
         void SetActiveScreen(const char* pScreenID);
-        void SetChampionHUDState(const ChampionHUDState& State);
+        void SetActorHUDState(const ActorHUDState& State);
         void SetBuyItemCallback(void(*pfn)(void*, u16_t), void* pUser);
         void SetLevelSkillCallback(void(*pfn)(void*, u8_t), void* pUser);
 
@@ -80,7 +80,7 @@ namespace Engine
         std::unordered_map<std::string, void*> m_ImageSRVs{};
         std::unique_ptr<CUIAtlasManifest> m_pShopAtlasManifest;
 
-        ChampionHUDState m_HudState{};
+        ActorHUDState m_HudState{};
         std::string m_strActiveScreen = "InGame";
         bool_t m_bInGameShopOpen = false;
 

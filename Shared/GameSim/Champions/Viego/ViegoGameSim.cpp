@@ -13,6 +13,7 @@
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/ViegoSimComponent.h"
+#include "Shared/GameSim/Definitions/ChampionGameplayDef.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
@@ -20,9 +21,10 @@
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
+#include "Shared/GameSim/Systems/Move/DashArrival.h"
 
 #include <algorithm>
 #include <cmath>
@@ -32,35 +34,12 @@
 
 namespace
 {
-    constexpr f32_t kViegoQRange = 5.5f;
-    constexpr f32_t kViegoQRadius = 0.9f;
-    constexpr f32_t kViegoQDamage = 65.f;
-
-    constexpr f32_t kViegoWDashRange = 4.f;
-    constexpr f32_t kViegoDashDurationSec = 0.26f;
-    constexpr f32_t kViegoWDamage = 55.f;
-    constexpr f32_t kViegoWStunDurationSec = 0.75f;
-
-    constexpr f32_t kViegoEMistRadius = 6.0f;
-    constexpr f32_t kViegoEMistTickSec = 0.1f;
-    constexpr f32_t kViegoEMistRefreshSec = 0.25f;
-
-    constexpr f32_t kViegoRRange = 6.0f;
-    constexpr f32_t kViegoRRadius = 2.0f;
-    constexpr f32_t kViegoRDamage = 150.f;
-    constexpr f32_t kViegoRDashDurationSec = 0.18f;
-    constexpr f32_t kViegoRSlowDurationSec = 1.0f;
-    constexpr f32_t kViegoRSlowMoveSpeedMul = 0.60f;
-
-    constexpr f32_t kViegoSoulLifetimeSec = 5.f;
-    constexpr f32_t kViegoSoulRadius = 0.85f;
-
     struct ViegoDashComponent
     {
         Vec3 start{};
         Vec3 end{};
         f32_t elapsedSec = 0.f;
-        f32_t durationSec = kViegoRDashDurationSec;
+        f32_t durationSec = 0.f;
     };
 
     ViegoSimComponent& EnsureViegoState(CWorld& world, EntityID caster)
@@ -127,7 +106,7 @@ namespace
     f32_t ResolveViegoSkillRange(
         const GameplayHookContext& ctx,
         eSkillSlot slot,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -146,7 +125,7 @@ namespace
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -421,17 +400,15 @@ namespace
 
         const Vec3 origin = ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 dir = ResolveDirection(ctx);
-        const f32_t range = ResolveViegoSkillRange(ctx, eSkillSlot::Q, kViegoQRange);
+        const f32_t range = ResolveViegoSkillRange(ctx, eSkillSlot::Q);
         const f32_t radius = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::Radius,
-            kViegoQRadius);
+            eSkillEffectParamId::Radius);
         const f32_t damage = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::BaseDamage,
-            kViegoQDamage);
+            eSkillEffectParamId::BaseDamage);
         const Vec3 end{ origin.x + dir.x * range, origin.y, origin.z + dir.z * range };
         RotateToward(*ctx.pWorld, ctx.casterEntity, dir);
         EnqueueLineDamage(
@@ -465,27 +442,23 @@ namespace
 
         const Vec3& vOrigin =
             ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
-        const f32_t dashRange = ResolveViegoSkillRange(ctx, eSkillSlot::W, kViegoWDashRange);
+        const f32_t dashRange = ResolveViegoSkillRange(ctx, eSkillSlot::W);
         const f32_t dashDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::DashDurationSec,
-            kViegoDashDurationSec);
+            eSkillEffectParamId::DashDurationSec);
         const f32_t radius = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::Radius,
-            0.75f);
+            eSkillEffectParamId::Radius);
         const f32_t damage = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::BaseDamage,
-            kViegoWDamage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t stunDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::StunDurationSec,
-            kViegoWStunDurationSec);
+            eSkillEffectParamId::StunDurationSec);
 
         const Vec3 vEnd
         {
@@ -530,8 +503,7 @@ namespace
         const f32_t mistRadius = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::Radius,
-            kViegoEMistRadius);
+            eSkillEffectParamId::Radius);
         const f32_t mistDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::E,
@@ -540,13 +512,11 @@ namespace
         const f32_t tickIntervalSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::TickIntervalSec,
-            kViegoEMistTickSec);
+            eSkillEffectParamId::TickIntervalSec);
         const f32_t refreshDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::E,
-            eSkillEffectParamId::RefreshDurationSec,
-            kViegoEMistRefreshSec);
+            eSkillEffectParamId::RefreshDurationSec);
 
         AreaAuraComponent aura{};
         aura.owner = ctx.casterEntity;
@@ -591,32 +561,27 @@ namespace
 
         const Vec3 origin = ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 dir = ResolveDirection(ctx);
-        const f32_t range = ResolveViegoSkillRange(ctx, eSkillSlot::R, kViegoRRange);
+        const f32_t range = ResolveViegoSkillRange(ctx, eSkillSlot::R);
         const f32_t radius = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::Radius,
-            kViegoRRadius);
+            eSkillEffectParamId::Radius);
         const f32_t damage = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::BaseDamage,
-            kViegoRDamage);
+            eSkillEffectParamId::BaseDamage);
         const f32_t dashDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::DashDurationSec,
-            kViegoRDashDurationSec);
+            eSkillEffectParamId::DashDurationSec);
         const f32_t slowDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::SlowDurationSec,
-            kViegoRSlowDurationSec);
+            eSkillEffectParamId::SlowDurationSec);
         const f32_t slowMoveSpeedMul = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::MoveSpeedMul,
-            kViegoRSlowMoveSpeedMul);
+            eSkillEffectParamId::MoveSpeedMul);
         const Vec3 end{ origin.x + dir.x * range, origin.y, origin.z + dir.z * range };
         RotateToward(*ctx.pWorld, ctx.casterEntity, dir);
         StartDash(*ctx.pWorld, ctx.casterEntity, end, dashDurationSec);
@@ -680,13 +645,18 @@ namespace ViegoGameSim
         if (eligibleTeam == eTeam::TEAM_END)
             return;
 
+        const ChampionGameplayDef* championDef =
+            GameplayDefinitionQuery::FindChampion(world, NULL_ENTITY, tc, eChampion::VIEGO);
+        if (!championDef || !championDef->passiveSoul.bValid)
+            return;
+
         const EntityID soulEntity = world.CreateEntity();
 
         ViegoSoulComponent soul{};
         soul.deadChampion = deadChampion;
         soul.champion = dead.id;
         soul.eligibleTeam = eligibleTeam;
-        soul.fRemainingSec = kViegoSoulLifetimeSec;
+        soul.fRemainingSec = championDef->passiveSoul.lifetimeSec;
         world.AddComponent<ViegoSoulComponent>(soulEntity, soul);
 
         ChampionComponent soulChampion{};
@@ -705,9 +675,9 @@ namespace ViegoGameSim
         world.AddComponent<TransformComponent>(soulEntity, tf);
 
         SpatialAgentComponent spatial{};
-        spatial.kind = eSpatialKind::Champion;
+        spatial.kind = eSpatialKind::Character;
         spatial.team = static_cast<u8_t>(dead.team);
-        spatial.radius = kViegoSoulRadius;
+        spatial.radius = championDef->passiveSoul.radius;
         world.AddComponent<SpatialAgentComponent>(soulEntity, spatial);
 
         world.AddComponent<TargetableTag>(soulEntity);
@@ -792,7 +762,12 @@ namespace ViegoGameSim
                 }));
 
         for (EntityID entity : finishedDashes)
+        {
+            if (world.HasComponent<ViegoDashComponent>(entity))
+                SnapDashArrivalToWalkable(world, tc, entity,
+                    world.GetComponent<ViegoDashComponent>(entity).start);
             world.RemoveComponent<ViegoDashComponent>(entity);
+        }
 
         world.ForEach<ViegoSimComponent>(
             std::function<void(EntityID, ViegoSimComponent&)>(

@@ -378,7 +378,7 @@ void CEngineApp::Render()
     {
         WINTERS_PROFILE_SCOPE("Render::BeginFrame");
         // 기본 클리어 색. WINTERS_CLEAR_RGB="r,g,b" 환경변수로 오버라이드 가능
-        // (예: EldenRing 쇼케이스의 하늘색 배경). 미설정 시 기존 어두운 남색.
+        // (예: large-character 쇼케이스의 하늘색 배경). 미설정 시 기존 어두운 남색.
         static f32_t s_clear[3] = { 0.08f, 0.08f, 0.12f };
         static bool s_clearInit = false;
         if (!s_clearInit)

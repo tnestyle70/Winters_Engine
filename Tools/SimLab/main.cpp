@@ -6,7 +6,7 @@
 #include "ECS/World.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 
 #include "Shared/GameSim/Core/Determinism/DeterministicRng.h"
 #include "Shared/GameSim/Core/Determinism/DeterministicTime.h"
@@ -234,7 +234,7 @@ namespace
             world.AddComponent<MasterYiSimComponent>(entity, MasterYiSimComponent{});
 
         SpatialAgentComponent spatial{};
-        spatial.kind = eSpatialKind::Champion;
+        spatial.kind = eSpatialKind::Character;
         spatial.team = team;
         spatial.radius = statsDef.spatialRadius;
         world.AddComponent<SpatialAgentComponent>(entity, spatial);

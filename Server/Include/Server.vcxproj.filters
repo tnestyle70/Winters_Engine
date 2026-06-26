@@ -103,7 +103,7 @@
     <Filter Include="02. Game\00. GameRoom\07. Spawn">
       <UniqueIdentifier>{1be64d7a-92f5-4c38-a0d1-7e35b9c4f862}</UniqueIdentifier>
     </Filter>
-    <Filter Include="02. Game\00. GameRoom\08. MinionAI">
+    <Filter Include="02. Game\00. GameRoom\08. UnitAI">
       <UniqueIdentifier>{4d92f0b6-8c17-4e5a-b3d8-26f1a09e7c54}</UniqueIdentifier>
     </Filter>
     <Filter Include="02. Game\00. GameRoom\09. Projectiles">
@@ -345,8 +345,8 @@
     <ClCompile Include="..\Private\Game\GameRoomSpawn.cpp">
       <Filter>02. Game\00. GameRoom\07. Spawn</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\Game\GameRoomMinionAI.cpp">
-      <Filter>02. Game\00. GameRoom\08. MinionAI</Filter>
+    <ClCompile Include="..\Private\Game\GameRoomUnitAI.cpp">
+      <Filter>02. Game\00. GameRoom\08. UnitAI</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Game\GameRoomProjectiles.cpp">
       <Filter>02. Game\00. GameRoom\09. Projectiles</Filter>

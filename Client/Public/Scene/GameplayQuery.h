@@ -2,7 +2,7 @@
 
 #include "Defines.h"
 #include "ECS/Entity.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "GameObject/ChampionDef.h"
 #include "WintersMath.h"
 

@@ -13,7 +13,7 @@
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
@@ -44,28 +44,28 @@ namespace
         if (entity != NULL_ENTITY && world.HasComponent<JungleComponent>(entity))
             return WintersMath::kPi;
 
-        return ChampionGameDataDB::ResolveVisualYawOffset(stat.championId);
+        return GetDefaultChampionVisualYawOffset(stat.championId);
     }
 
-    f32_t ResolveVisualYawFromDirection(const Vec3& direction, f32_t visualYawOffset)
+    f32_t ResolveVisualYawFromDirection(const Vec3& direction, f32_t modelYawOffset)
     {
         return WintersMath::NormalizeRadians(
-            WintersMath::YawFromDirectionXZ(direction, visualYawOffset));
+            WintersMath::YawFromDirectionXZ(direction, modelYawOffset));
     }
 
     f32_t ResolveVisualYawNear(
         const Vec3& direction,
         f32_t referenceYaw,
-        f32_t visualYawOffset)
+        f32_t modelYawOffset)
     {
         return MakeChampionVisualYawNear(
-            ResolveVisualYawFromDirection(direction, visualYawOffset),
+            ResolveVisualYawFromDirection(direction, modelYawOffset),
             referenceYaw);
     }
 
-    Vec3 GameplayForwardFromVisualYaw(f32_t yaw, f32_t visualYawOffset)
+    Vec3 GameplayForwardFromVisualYaw(f32_t yaw, f32_t modelYawOffset)
     {
-        const f32_t gameplayYaw = yaw - visualYawOffset;
+        const f32_t gameplayYaw = yaw - modelYawOffset;
         return Vec3{ std::sinf(gameplayYaw), 0.f, std::cosf(gameplayYaw) };
     }
 
@@ -153,7 +153,7 @@ namespace
 
     bool_t IsMoveBlockingKind(eSpatialKind kind)
     {
-        return kind == eSpatialKind::JungleMob;
+        return kind == eSpatialKind::NeutralUnit;
     }
 
     f32_t ResolveAgentRadius(CWorld& world, EntityID entity)
@@ -579,10 +579,10 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
             bMoveYawOpposed,
             bFacingLocked);
         const Vec3 rot = transform.GetRotation();
-        const f32_t visualYawOffset =
+        const f32_t modelYawOffset =
             ResolveEntityVisualYawOffset(world, entity, stat);
         const f32_t resolvedYaw =
-            ResolveVisualYawNear(yawDirection, rot.y, visualYawOffset);
+            ResolveVisualYawNear(yawDirection, rot.y, modelYawOffset);
         transform.SetRotation({
             rot.x,
             resolvedYaw,
@@ -591,16 +591,16 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
         static u32_t s_moveSystemYawTraceCount = 0;
         const f32_t yawDelta = NormalizeChampionVisualYaw(resolvedYaw - rot.y);
         const f32_t moveYaw =
-            ResolveVisualYawFromDirection(dir, visualYawOffset);
+            ResolveVisualYawFromDirection(dir, modelYawOffset);
         const f32_t intentYaw =
             (traceFacingDirection.x != 0.f || traceFacingDirection.z != 0.f)
-                ? ResolveVisualYawFromDirection(traceFacingDirection, visualYawOffset)
+                ? ResolveVisualYawFromDirection(traceFacingDirection, modelYawOffset)
                 : moveYaw;
         const Vec3 activeDirection =
             WintersMath::DirectionXZ(pos, activeTarget, Vec3{});
         const f32_t activeYaw =
             (activeDirection.x != 0.f || activeDirection.z != 0.f)
-                ? ResolveVisualYawFromDirection(activeDirection, visualYawOffset)
+                ? ResolveVisualYawFromDirection(activeDirection, modelYawOffset)
                 : moveYaw;
         const f32_t appliedVsMove =
             NormalizeChampionVisualYaw(resolvedYaw - moveYaw);
@@ -610,8 +610,8 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
             NormalizeChampionVisualYaw(resolvedYaw - activeYaw);
         const f32_t intentVsMoveDot =
             traceFacingDirection.x * dir.x + traceFacingDirection.z * dir.z;
-        const Vec3 previousForward = GameplayForwardFromVisualYaw(rot.y, visualYawOffset);
-        const Vec3 appliedForward = GameplayForwardFromVisualYaw(resolvedYaw, visualYawOffset);
+        const Vec3 previousForward = GameplayForwardFromVisualYaw(rot.y, modelYawOffset);
+        const Vec3 appliedForward = GameplayForwardFromVisualYaw(resolvedYaw, modelYawOffset);
         const f32_t prevVsAppliedDot =
             previousForward.x * appliedForward.x + previousForward.z * appliedForward.z;
         const bool_t bHalfTurn = IsYawHalfTurn(yawDelta);

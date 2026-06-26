@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "source": "Data/Gameplay/ChampionGameData/champions.json",
-  "buildHash": 131395754,
+  "buildHash": 2493520265,
   "championCount": 17,
   "skillCount": 85,
   "summonerSpellCount": 1,

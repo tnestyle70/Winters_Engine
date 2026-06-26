@@ -11,19 +11,19 @@
 namespace
 {
     constexpr const char* kPathQSpearFbx =
-        "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_q_mis_spear.fbx";
+        "Texture/FX/Kalista/fbx/kalista_base_q_mis_spear.fbx";
     constexpr const char* kPathESpearFbx =
-        "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_e_spear_hold.fbx";
+        "Texture/FX/Kalista/fbx/kalista_base_e_spear_hold.fbx";
     constexpr const wchar_t* kPathQSpearTex =
-        L"Client/Bin/Resource/Texture/FX/Kalista/kalista_base_q_mis_glow_color.png";
+        L"Texture/FX/Kalista/kalista_base_q_mis_glow_color.png";
     constexpr const wchar_t* kPathESpearTex =
-        L"Client/Bin/Resource/Texture/FX/Kalista/kalista_base_e_spear_glow.png";
+        L"Texture/FX/Kalista/kalista_base_e_spear_glow.png";
     constexpr const wchar_t* kPathERendWispAtlasTex =
-        L"Client/Bin/Resource/Texture/Character/Kalista/particles/kalista_base_q_precast_wisps.png";
+        L"Texture/Character/Kalista/particles/kalista_base_q_precast_wisps.png";
     constexpr const wchar_t* kPathWSentinelAvatarTex =
-        L"Client/Bin/Resource/Texture/Character/Kalista/particles/kalista_base_w_avatar.png";
+        L"Texture/Character/Kalista/particles/kalista_base_w_avatar.png";
     constexpr const wchar_t* kPathWSentinelViewConeTex =
-        L"Client/Bin/Resource/Texture/Character/Kalista/particles/kalista_base_w_viewcone.png";
+        L"Texture/Character/Kalista/particles/kalista_base_w_viewcone.png";
 }
 
 EntityID KalistaFx::SpawnQSpear(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,

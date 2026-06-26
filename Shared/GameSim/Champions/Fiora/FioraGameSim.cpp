@@ -9,9 +9,10 @@
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
+#include "Shared/GameSim/Systems/Move/DashArrival.h"
 
 #include <algorithm>
 #include <cmath>
@@ -21,22 +22,11 @@
 
 namespace
 {
-    constexpr f32_t kFioraQDistance = 3.0f;
-    constexpr f32_t kFioraQRange = 4.0f;
-    constexpr f32_t kFioraQRadius = 1.0f;
-    constexpr f32_t kFioraQDamage = 70.f;
-    constexpr f32_t kFioraWRange = 6.0f;
-    constexpr f32_t kFioraWRadius = 0.8f;
-    constexpr f32_t kFioraWSlowDurationSec = 1.5f;
-    constexpr f32_t kFioraWSlowMoveSpeedMul = 0.50f;
-    constexpr f32_t kFioraRDamage = 80.f;
-    constexpr f32_t kFioraQDashDurationSec = 0.25f;
-
     f32_t ResolveFioraSkillEffectParam(
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -58,7 +48,7 @@ namespace
         Vec3 start{};
         Vec3 end{};
         f32_t elapsedSec = 0.f;
-        f32_t durationSec = kFioraQDashDurationSec;
+        f32_t durationSec = 0.f;
     };
 
     FioraSimComponent& EnsureFioraState(CWorld& world, EntityID caster)
@@ -157,28 +147,23 @@ namespace
         const f32_t qDashDistance = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::DashDistance,
-            kFioraQDistance);
+            eSkillEffectParamId::DashDistance);
         const f32_t qDashDurationSec = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::DashDurationSec,
-            kFioraQDashDurationSec);
+            eSkillEffectParamId::DashDurationSec);
         const f32_t qRange = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::Range,
-            kFioraQRange);
+            eSkillEffectParamId::Range);
         const f32_t qRadius = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::Radius,
-            kFioraQRadius);
+            eSkillEffectParamId::Radius);
         const f32_t qDamage = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::BaseDamage,
-            kFioraQDamage);
+            eSkillEffectParamId::BaseDamage);
 
         const Vec3 destination{
             origin.x + direction.x * qDashDistance,
@@ -246,23 +231,19 @@ namespace
         const f32_t wRange = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::Range,
-            kFioraWRange);
+            eSkillEffectParamId::Range);
         const f32_t wRadius = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::Radius,
-            kFioraWRadius);
+            eSkillEffectParamId::Radius);
         const f32_t wSlowDurationSec = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::SlowDurationSec,
-            kFioraWSlowDurationSec);
+            eSkillEffectParamId::SlowDurationSec);
         const f32_t wSlowMoveSpeedMul = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::MoveSpeedMul,
-            kFioraWSlowMoveSpeedMul);
+            eSkillEffectParamId::MoveSpeedMul);
         const EntityID hitTarget = FindEnemyInCone(
             world,
             ctx.casterEntity,
@@ -317,8 +298,7 @@ namespace
         const f32_t rDamage = ResolveFioraSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::BaseDamage,
-            kFioraRDamage);
+            eSkillEffectParamId::BaseDamage);
 
         EnqueuePhysicalDamage(
             world,
@@ -398,7 +378,12 @@ namespace FioraGameSim
                 }));
 
         for (EntityID entity : finishedDashes)
+        {
+            if (world.HasComponent<FioraDashComponent>(entity))
+                SnapDashArrivalToWalkable(world, tc, entity,
+                    world.GetComponent<FioraDashComponent>(entity).start);
             world.RemoveComponent<FioraDashComponent>(entity);
+        }
 
         world.ForEach<FioraSimComponent>(
             std::function<void(EntityID, FioraSimComponent&)>(

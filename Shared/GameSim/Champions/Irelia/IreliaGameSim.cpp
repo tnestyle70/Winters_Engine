@@ -13,8 +13,9 @@
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Systems/Move/DashArrival.h"
 
 #include <cmath>
 #include <functional>
@@ -22,29 +23,9 @@
 
 namespace
 {
-    constexpr f32_t kIreliaRLength = 5.f;
-    constexpr f32_t kIreliaRRange = 8.f;
-    constexpr f32_t kIreliaRWidth = 7.5f;
-    constexpr f32_t kIreliaRSpeed = 15.f;
-    constexpr f32_t kIreliaRDamage = 250.f;
-    constexpr f32_t kIreliaRDisarmSec = 1.5f;
-    constexpr f32_t kIreliaRWallSlowSec = 0.5f;
-    constexpr f32_t kIreliaRWallSlowMul = 0.5f;
-    constexpr f32_t kIreliaRWallDurationSec = 2.5f;
     constexpr u8_t kIreliaREffectStageHit = 2u;
     constexpr u8_t kIreliaREffectStageWall = 3u;
     constexpr u8_t kIreliaREffectStageWallMark = 4u;
-    constexpr f32_t kIreliaQDashDurationSec = 0.25f;
-    constexpr f32_t kIreliaQBaseDamage = 45.f;
-    constexpr f32_t kIreliaQDamagePerRank = 25.f;
-    constexpr f32_t kIreliaWRange = 6.0f;
-    constexpr f32_t kIreliaWHalfWidth = 2.2f;
-    constexpr f32_t kIreliaWBaseDamage = 30.f;
-    constexpr f32_t kIreliaWDamagePerRank = 40.f;
-    constexpr f32_t kIreliaEBeamRadius = 1.5f;
-    constexpr f32_t kIreliaEStunSec = 0.75f;
-    constexpr f32_t kIreliaEBaseDamage = 70.f;
-    constexpr f32_t kIreliaEDamagePerRank = 30.f;
 
     f32_t ResolveIreliaSkillEffectParam(
         CWorld& world,
@@ -52,7 +33,7 @@ namespace
         EntityID caster,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         return GameplayDefinitionQuery::ResolveSkillEffectParam(
             world,
@@ -68,7 +49,7 @@ namespace
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -145,7 +126,7 @@ namespace
         {
             const f32_t fYaw =
                 world.GetComponent<TransformComponent>(caster).GetRotation().y -
-                ChampionGameDataDB::ResolveVisualYawOffset(eChampion::IRELIA);
+                GetDefaultChampionVisualYawOffset(eChampion::IRELIA);
             return Vec3{ std::sinf(fYaw), 0.f, std::cosf(fYaw) };
         }
 
@@ -306,23 +287,23 @@ namespace
         const eTeam casterTeam = world.GetComponent<ChampionComponent>(caster).team;
 
         const f32_t rRange = ResolveIreliaSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Range, kIreliaRRange);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Range);
         const f32_t rSpeed = ResolveIreliaSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Speed, kIreliaRSpeed);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Speed);
         const f32_t rLength = ResolveIreliaSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::RectLength, kIreliaRLength);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::RectLength);
         const f32_t rWidth = ResolveIreliaSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::RectWidth, kIreliaRWidth);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::RectWidth);
         const f32_t rDamage = ResolveIreliaSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::BaseDamage, kIreliaRDamage);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::BaseDamage);
         const f32_t rDisarmSec = ResolveIreliaSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::DisarmDurationSec, kIreliaRDisarmSec);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::DisarmDurationSec);
         const f32_t rWallSlowSec = ResolveIreliaSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::SlowDurationSec, kIreliaRWallSlowSec);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::SlowDurationSec);
         const f32_t rWallSlowMul = ResolveIreliaSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::MoveSpeedMul, kIreliaRWallSlowMul);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::MoveSpeedMul);
         const f32_t rWallDurationSec = ResolveIreliaSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::EffectDurationSec, kIreliaRWallDurationSec);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::EffectDurationSec);
 
         if (state.bRWaveActive)
         {
@@ -459,6 +440,9 @@ namespace
 
     void OnQ(GameplayHookContext& ctx)
     {
+        if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx)
+            return;
+
         CWorld& world = *ctx.pWorld;
         const GameCommand& cmd = *ctx.pCommand;
 
@@ -472,23 +456,25 @@ namespace
         auto& casterTf = world.GetComponent<TransformComponent>(ctx.casterEntity);
         const Vec3 casterPos = casterTf.GetPosition();
         const Vec3 targetPos = world.GetComponent<TransformComponent>(cmd.targetEntity).GetPosition();
-        const Vec3 endPos = IreliaGameSim::ResolveQDashEndPos(casterPos, targetPos);
+        const f32_t dashStopGap = ResolveIreliaSkillEffectParam(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::Gap);
+        const Vec3 endPos = IreliaGameSim::ResolveQDashEndPos(casterPos, targetPos, dashStopGap);
 
         IreliaSimComponent& state = GetIreliaState(world, ctx.casterEntity);
         state.dashStartPos = casterPos;
         state.dashEndPos = endPos;
         state.dashElapsedSec = 0.f;
         state.dashDurationSec = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::DashDurationSec, kIreliaQDashDurationSec);
+            ctx, eSkillSlot::Q, eSkillEffectParamId::DashDurationSec);
         state.dashTarget = cmd.targetEntity;
         state.bDashActive = true;
 
         ClearMove(world, ctx.casterEntity);
 
         const f32_t qBaseDamage = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::BaseDamage, kIreliaQBaseDamage);
+            ctx, eSkillSlot::Q, eSkillEffectParamId::BaseDamage);
         const f32_t qDamagePerRank = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::DamagePerRank, kIreliaQDamagePerRank);
+            ctx, eSkillSlot::Q, eSkillEffectParamId::DamagePerRank);
 
         EnqueuePhysicalDamage(
             world,
@@ -511,7 +497,7 @@ namespace
         std::cout << "[IreliaSim] W " << (bStage2 ? "release" : "hold")
             << " caster=" << ctx.casterEntity << "\n";
 
-        if (!bStage2 || !ctx.pWorld || !ctx.pCommand ||
+        if (!bStage2 || !ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx ||
             !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
         {
             return;
@@ -522,13 +508,13 @@ namespace
             world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 forward = ResolveRForward(world, ctx.casterEntity, ctx.pCommand);
         const f32_t wBaseDamage = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::W, eSkillEffectParamId::BaseDamage, kIreliaWBaseDamage);
+            ctx, eSkillSlot::W, eSkillEffectParamId::BaseDamage);
         const f32_t wDamagePerRank = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::W, eSkillEffectParamId::DamagePerRank, kIreliaWDamagePerRank);
+            ctx, eSkillSlot::W, eSkillEffectParamId::DamagePerRank);
         const f32_t wRange = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::W, eSkillEffectParamId::Range, kIreliaWRange);
+            ctx, eSkillSlot::W, eSkillEffectParamId::Range);
         const f32_t wHalfWidth = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::W, eSkillEffectParamId::HalfWidth, kIreliaWHalfWidth);
+            ctx, eSkillSlot::W, eSkillEffectParamId::HalfWidth);
         const f32_t damage =
             wBaseDamage + wDamagePerRank * static_cast<f32_t>(ctx.skillRank);
 
@@ -612,13 +598,13 @@ namespace
         const f32_t dz = b.z - a.z;
         const f32_t segLenSq = dx * dx + dz * dz + 0.000001f;
         const f32_t beamRadius = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::E, eSkillEffectParamId::Radius, kIreliaEBeamRadius);
+            ctx, eSkillSlot::E, eSkillEffectParamId::Radius);
         const f32_t stunSec = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::E, eSkillEffectParamId::StunDurationSec, kIreliaEStunSec);
+            ctx, eSkillSlot::E, eSkillEffectParamId::StunDurationSec);
         const f32_t eBaseDamage = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::E, eSkillEffectParamId::BaseDamage, kIreliaEBaseDamage);
+            ctx, eSkillSlot::E, eSkillEffectParamId::BaseDamage);
         const f32_t eDamagePerRank = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::E, eSkillEffectParamId::DamagePerRank, kIreliaEDamagePerRank);
+            ctx, eSkillSlot::E, eSkillEffectParamId::DamagePerRank);
 
         world.ForEach<ChampionComponent, TransformComponent>(
             std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
@@ -698,8 +684,14 @@ namespace IreliaGameSim
                     {
                         ClearMove(world, entity);
 
-                        const f32_t duration =
-                            state.dashDurationSec > 0.01f ? state.dashDurationSec : kIreliaQDashDurationSec;
+                        const f32_t duration = state.dashDurationSec > 0.01f
+                            ? state.dashDurationSec
+                            : ResolveIreliaSkillEffectParam(
+                                world,
+                                tc,
+                                entity,
+                                eSkillSlot::Q,
+                                eSkillEffectParamId::DashDurationSec);
                         state.dashElapsedSec += tc.fDt;
 
                         f32_t t = state.dashElapsedSec / duration;
@@ -741,6 +733,7 @@ namespace IreliaGameSim
 
                         if (t >= 1.f || bDashBlocked)
                         {
+                            SnapDashArrivalToWalkable(world, tc, entity, state.dashStartPos);
                             state.bDashActive = false;
                             state.dashElapsedSec = 0.f;
                             state.dashDurationSec = 0.f;

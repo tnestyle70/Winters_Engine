@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 

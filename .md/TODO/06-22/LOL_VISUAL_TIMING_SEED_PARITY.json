@@ -1,10 +1,10 @@
 ﻿{
-    "generatedAtUtc":  "2026-06-24T01:09:16.9378508Z",
-    "root":  "C:\\Users\\user\\Desktop\\Winters",
-    "source":  "C:\\Users\\user\\Desktop\\Winters\\Data\\Gameplay\\ChampionGameData\\champions.json",
-    "output":  "C:\\Users\\user\\Desktop\\Winters\\Data\\LoL\\ClientPublic\\Visual\\Champion\\ChampionVisualTimingSeed.json",
+    "generatedAtUtc":  "2026-06-24T13:20:07.3060580Z",
+    "root":  "C:\\Users\\tnest\\Desktop\\Winters",
+    "source":  "C:\\Users\\tnest\\Desktop\\Winters\\Data\\LoL\\ClientPublic\\Visual\\ChampionVisualDefs.json",
+    "output":  "C:\\Users\\tnest\\Desktop\\Winters\\Data\\LoL\\ClientPublic\\Visual\\Champion\\ChampionVisualTimingSeed.json",
     "championCount":  17,
-    "skillStageCount":  94,
+    "skillStageCount":  95,
     "mismatchCount":  0,
     "mismatches":  [
 

@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "sourceDocument": ".md/plan/collab-pipeline/07_DATA_DRIVEN_FULL_CUTOVER_CODEX_REQUIREMENTS.md",
+  "loopRule": "Measure -> choose earliest unfinished phase -> implement one reversible slice -> verify full pipeline -> write status report -> repeat.",
+  "phaseOrder": [
+    "P3",
+    "P4",
+    "P5",
+    "P6",
+    "P7",
+    "P8"
+  ],
+  "goals": [
+    {
+      "key": "P3SkillEffectHardcode",
+      "phase": "P3",
+      "name": "Champion skill gameplay/balance literals are removed",
+      "auditPath": "phaseGoalCounts.p3SkillEffectHardcode",
+      "targetMax": 0,
+      "nextFocus": "Convert remaining champion skill gameplay literals to generated ServerPrivate gameplay atoms, then delete fallback constants only after readers are data-backed."
+    },
+    {
+      "key": "P4VisualAuthorityLeak",
+      "phase": "P4",
+      "name": "Gameplay authority no longer reads visual timing/yaw fields",
+      "auditPath": "phaseGoalCounts.p4VisualAuthorityLeak",
+      "targetMax": 0,
+      "nextFocus": "Split action timing from visual timing. Server/GameSim keeps action lock/window facts, ClientPublic owns animation/cast/recovery/yaw presentation facts."
+    },
+    {
+      "key": "P5AiPolicyHardcode",
+      "phase": "P5",
+      "name": "Bot AI tactics and skill-rank policy are data-owned",
+      "auditPath": "phaseGoalCounts.p5AiPolicyHardcode",
+      "targetMax": 0,
+      "nextFocus": "Move ChampionAIPolicy profile, combo, and bot skill-rank constants to ServerPrivate AI definition data."
+    },
+    {
+      "key": "P6ObjectWaveHardcode",
+      "phase": "P6",
+      "name": "Minion, wave, jungle, structure, and placement game values are data-owned",
+      "auditPath": "phaseGoalCounts.p6ObjectWaveHardcode",
+      "targetMax": 0,
+      "nextFocus": "Move object combat, wave timing, jungle, structure, turret, and placement fallback values into ServerPrivate object/map data."
+    },
+    {
+      "key": "P7NetworkIdentityLegacy",
+      "phase": "P7",
+      "name": "Network identity uses stable DefinitionKey boundaries",
+      "auditPath": "phaseGoalCounts.p7NetworkIdentityLegacy",
+      "targetMax": 0,
+      "nextFocus": "Add stable DefinitionKey paths for command/snapshot boundaries and remove dense pack-local champion id assumptions from network contracts."
+    },
+    {
+      "key": "P8LegacyValueOwner",
+      "phase": "P8",
+      "name": "Legacy value owner paths have no runtime readers",
+      "auditPath": "phaseGoalCounts.p8LegacyValueOwner",
+      "targetMax": 0,
+      "nextFocus": "After reader count reaches zero, delete ChampionGameDataDB value ownership, ChampionStatsRegistry defaults, ChampionRuntimeDefaults defaults, SkillTable, ChampionTable, and remaining fallback tables."
+    }
+  ],
+  "fullVerificationCommand": "powershell -ExecutionPolicy Bypass -File Tools/LoLData/Verify-LoLDataDrivenPipeline.ps1",
+  "completionDefinition": "All goals have currentCount <= targetMax and the full verification command passes."
+}

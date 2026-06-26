@@ -31,18 +31,18 @@ namespace
             cd.runAnimKey = "run_base";
             cd.basicAttackKey = "attack_01";
             cd.basicAttackRange = 1.5f;
-            cd.fbxPath = "Client/Bin/Resource/Texture/Character/Irelia/irelia_fixed.wmesh";
+            cd.fbxPath = "Texture/Character/Irelia/irelia_fixed.wmesh";
             cd.shaderPath = L"Shaders/Mesh3D.hlsl";
             cd.defaultTexturePath =
-                L"Client/Bin/Resource/Texture/Character/Irelia/irelia_base_tx_cm.png";
+                L"Texture/Character/Irelia/irelia_base_tx_cm.png";
             cd.texturePath[0] =
-                L"Client/Bin/Resource/Texture/Character/Irelia/irelia_base_blades_tx_cm.png";
+                L"Texture/Character/Irelia/irelia_base_blades_tx_cm.png";
             cd.texturePath[1] =
-                L"Client/Bin/Resource/Texture/Character/Irelia/irelia_base_tx_cm.png";
+                L"Texture/Character/Irelia/irelia_base_tx_cm.png";
             cd.texturePath[2] =
-                L"Client/Bin/Resource/Texture/Character/Irelia/irelia_base_tx_cm.png";
+                L"Texture/Character/Irelia/irelia_base_tx_cm.png";
             cd.texturePath[3] =
-                L"Client/Bin/Resource/Texture/Character/Irelia/irelia_base_blades_tx_cm.png";
+                L"Texture/Character/Irelia/irelia_base_blades_tx_cm.png";
             cd.spawnPosition = { 24.f, 1.f, -6.f };
             cd.spawnScale = 0.01f;
             cd.displayName = "Irelia";
@@ -60,8 +60,8 @@ namespace
                 s.lockDurationSec = 1.f;
                 s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 6.f;
-                s.recoveryFrame = 14.f;
+                s.visualCastFrame = 6.f;
+                s.visualRecoveryFrame = 14.f;
                 CSkillRegistry::Instance().Add(eChampion::IRELIA, 0, s);
             }
 
@@ -77,10 +77,10 @@ namespace
                 s.lockDurationSec = 0.5f;
                 s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 8.f;
-                s.recoveryFrame = 18.f;
-                s.animPlaySpeed = 1.f;
-                s.stage2PlaySpeed = 1.f;
+                s.visualCastFrame = 8.f;
+                s.visualRecoveryFrame = 18.f;
+                s.visualPlaySpeed = 1.f;
+                s.stage2VisualPlaySpeed = 1.f;
                 s.endTransitionIdleAnim = "spell1_to_idle";
                 s.endTransitionRunAnim = "spell1_into_runbase";
                 s.endTransitionDuration = 0.05f;
@@ -106,12 +106,12 @@ namespace
                 s.stage2LockSec = 0.4f;
                 s.stage2Rotate = eRotateMode::TowardsCursor;
                 s.stageWindowSec = 4.f;
-                s.castFrame = 0.f;
-                s.recoveryFrame = 7.f;
-                s.stage2CastFrame = 6.f;
-                s.stage2RecoveryFrame = 14.f;
-                s.animPlaySpeed = 1.f;
-                s.stage2PlaySpeed = 1.f;
+                s.visualCastFrame = 0.f;
+                s.visualRecoveryFrame = 7.f;
+                s.stage2VisualCastFrame = 6.f;
+                s.stage2VisualRecoveryFrame = 14.f;
+                s.visualPlaySpeed = 1.f;
+                s.stage2VisualPlaySpeed = 1.f;
                 s.endTransitionRunAnim = "spell2_to_run";
                 s.endTransitionDuration = 0.10f;
                 s.onCastAcceptedHookId = kIrelia_W_OnCastAccepted;
@@ -136,12 +136,12 @@ namespace
                 s.stage2LockSec = 0.45f;
                 s.stage2Rotate = eRotateMode::TowardsCursor;
                 s.stageWindowSec = 3.5f;
-                s.castFrame = 8.f;
-                s.recoveryFrame = 18.f;
-                s.stage2CastFrame = 5.f;
-                s.stage2RecoveryFrame = 13.f;
-                s.animPlaySpeed = 1.f;
-                s.stage2PlaySpeed = 1.05f;
+                s.visualCastFrame = 8.f;
+                s.visualRecoveryFrame = 18.f;
+                s.stage2VisualCastFrame = 5.f;
+                s.stage2VisualRecoveryFrame = 13.f;
+                s.visualPlaySpeed = 1.f;
+                s.stage2VisualPlaySpeed = 1.05f;
                 s.endTransitionIdleAnim = "spell3_to_idle";
                 s.endTransitionRunAnim = "spell3_run";
                 s.endTransitionDuration = 0.05f;
@@ -161,10 +161,10 @@ namespace
                 s.lockDurationSec = 0.65f;
                 s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 7.f;
-                s.recoveryFrame = 30.f;
-                s.animPlaySpeed = 1.00f;
-                s.stage2PlaySpeed = 1.f;
+                s.visualCastFrame = 7.f;
+                s.visualRecoveryFrame = 30.f;
+                s.visualPlaySpeed = 1.00f;
+                s.stage2VisualPlaySpeed = 1.f;
                 s.endTransitionIdleAnim = "spell4_idle";
                 s.endTransitionRunAnim = "spell4_to_run";
                 s.endTransitionDuration = 0.5f;

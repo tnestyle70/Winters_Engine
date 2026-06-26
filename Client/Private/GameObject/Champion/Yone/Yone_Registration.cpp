@@ -1,4 +1,4 @@
-﻿#include "GameObject/Champion/Yone/Yone_Registration.h"
+#include "GameObject/Champion/Yone/Yone_Registration.h"
 #include "GameObject/Champion/Yone/Yone_Skills.h"
 #include "GameObject/ChampionDef.h"
 #include "GameObject/SkillDef.h"
@@ -29,17 +29,17 @@ namespace
             cd.runAnimKey = "run1";
             cd.basicAttackKey = "attack1";
             cd.basicAttackRange = 1.5f;
-            cd.fbxPath = "Client/Bin/Resource/Texture/Character/Yone/yone.fbx";
+            cd.fbxPath = "Texture/Character/Yone/yone.fbx";
             cd.shaderPath = L"Shaders/Mesh3D.hlsl";
-            cd.defaultTexturePath = L"Client/Bin/Resource/Texture/Character/Yone/yone_base_tx_cm.png";
-            cd.texturePath[0] = L"Client/Bin/Resource/Texture/Character/Yone/yone_base_tx_cm.png";
-            cd.texturePath[1] = L"Client/Bin/Resource/Texture/Character/Yone/yone_base_swords_tx_cm.png";
-            cd.texturePath[2] = L"Client/Bin/Resource/Texture/Character/Yone/yone_base_swords_tx_cm.png";
-            cd.texturePath[3] = L"Client/Bin/Resource/Texture/Character/Yone/yone_base_props_tx_cm.png";
-            cd.texturePath[4] = L"Client/Bin/Resource/Texture/Character/Yone/yone_base_tx_cm.png";
-            cd.texturePath[5] = L"Client/Bin/Resource/Texture/Character/Yone/yone_base_tx_cm.png";
-            cd.texturePath[6] = L"Client/Bin/Resource/Texture/Character/Yone/yone_base_tx_cm.png";
-            cd.texturePath[7] = L"Client/Bin/Resource/Texture/Character/Yone/yone_base_tx_cm.png";
+            cd.defaultTexturePath = L"Texture/Character/Yone/yone_base_tx_cm.png";
+            cd.texturePath[0] = L"Texture/Character/Yone/yone_base_tx_cm.png";
+            cd.texturePath[1] = L"Texture/Character/Yone/yone_base_swords_tx_cm.png";
+            cd.texturePath[2] = L"Texture/Character/Yone/yone_base_swords_tx_cm.png";
+            cd.texturePath[3] = L"Texture/Character/Yone/yone_base_props_tx_cm.png";
+            cd.texturePath[4] = L"Texture/Character/Yone/yone_base_tx_cm.png";
+            cd.texturePath[5] = L"Texture/Character/Yone/yone_base_tx_cm.png";
+            cd.texturePath[6] = L"Texture/Character/Yone/yone_base_tx_cm.png";
+            cd.texturePath[7] = L"Texture/Character/Yone/yone_base_tx_cm.png";
             cd.spawnPosition = { 45.f, 1.f, 0.f };
             cd.spawnScale = 0.01f;
             cd.displayName = "Yone";
@@ -53,11 +53,11 @@ namespace
                 s.animKey = "attack1";
                 s.lockDurationSec = 0.9f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 5.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 0.85f;
+                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 0.85f;
                 s.endTransitionIdleAnim = "attack1_toidle1";
                 s.endTransitionRunAnim = "attack1_towalk1";
                 s.endTransitionDuration = 0.18f;
-                s.castFrameHookId = kYon_BA_Cast;
+                s.castHookId = kYon_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 0, s);
             }
             {
@@ -68,10 +68,10 @@ namespace
                 s.animKey = "spell1_a1";
                 s.lockDurationSec = 0.9f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 4.f; s.recoveryFrame = 10.f; s.animPlaySpeed = 0.85f;
+                s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 0.85f;
                 s.endTransitionRunAnim = "spell1a_towalk1";
                 s.endTransitionDuration = 0.16f;
-                s.castFrameHookId = kYon_Q_Cast;
+                s.castHookId = kYon_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 1, s);
             }
             {
@@ -82,8 +82,8 @@ namespace
                 s.animKey = "spell2";
                 s.lockDurationSec = 0.65f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 5.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kYon_W_Cast;
+                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kYon_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 2, s);
             }
             {
@@ -96,11 +96,11 @@ namespace
                 s.stage2TargetMode = eTargetMode::Direction;
                 s.stage2AnimKey = "spell3_out";
                 s.stage2LockSec = 0.50f;
-                s.stage2PlaySpeed = 1.f;
+                s.stage2VisualPlaySpeed = 1.f;
                 s.lockDurationSec = 0.75f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 6.f; s.recoveryFrame = 14.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kYon_E_Cast;
+                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kYon_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 3, s);
             }
             {
@@ -111,8 +111,8 @@ namespace
                 s.animKey = "spell4_in";
                 s.lockDurationSec = 1.2f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 12.f; s.recoveryFrame = 24.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kYon_R_Cast;
+                s.visualCastFrame = 12.f; s.visualRecoveryFrame = 24.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kYon_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 4, s);
             }
 

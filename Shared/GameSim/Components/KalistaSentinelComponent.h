@@ -1,10 +1,10 @@
 #pragma once
 
-#include "GameContext.h"
+#include "../Definitions/LoLMatchContext.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
 #include "ECS/Entity.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 
 #include <type_traits>
 
@@ -19,6 +19,7 @@ struct KalistaSentinelComponent
     f32_t lifetimeSec = 12.f;
     f32_t patrolSpeed = 3.5f;
     f32_t sightRange = 10.f;
+    f32_t radius = 0.45f;
     f32_t halfAngleCos = 0.8660254f;
 };
 

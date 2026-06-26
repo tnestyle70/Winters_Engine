@@ -1,8 +1,8 @@
 #pragma once
 
 #include "ECS/Entity.h"
-#include "ECS/Components/GameplayComponents.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 
 #include <functional>
 #include <unordered_map>
@@ -33,12 +33,12 @@ struct InGameRosterSpawnResult
 class CInGameRosterSpawner final
 {
 public:
-    static void EnsureLocalRosterFallback(GameContext& context);
+    static void EnsureLocalRosterFallback(MatchContext& context);
     static eChampion ResolvePracticeBotChampion();
-    static bool_t IsLocalRosterSlot(const GameContext& context, const GameRosterSlot& slot);
+    static bool_t IsLocalRosterSlot(const MatchContext& context, const GameRosterSlot& slot);
     static InGameRosterSpawnResult SpawnFromContext(
         InGameRosterSpawnDesc& desc,
-        const GameContext& context);
+        const MatchContext& context);
 
 private:
     static EntityID SpawnSlot(InGameRosterSpawnDesc& desc, const GameRosterSlot& slot);

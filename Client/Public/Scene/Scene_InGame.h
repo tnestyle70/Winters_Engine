@@ -16,15 +16,15 @@
 
 #include "ECS/World.h"
 #include "ECS/Components/TransformComponent.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "GameObject/SkillDef.h"
 #include "GameObject/SkillVisualData.h"
 #include "GameObject/ChampionDef.h"
 #include "Manager/Navigation/NavGrid.h"
 #include "ECS/Systems/NavigationSystem.h"
 #include "ECS/Systems/VisionSystem.h"
-#include "ECS/BushVolumeIndex.h"
-#include "GameContext.h"
+#include "ECS/ConcealmentVolumeIndex.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Network/Client/EventApplier.h"
 #include "Shared/GameSim/Definitions/SkillAtomData.h"
 
@@ -273,7 +273,7 @@ private:
     std::unique_ptr<Engine::CNormalPass> m_pNormalPass;
     std::unique_ptr<Engine::CSSAOPass> m_pSSAOPass;
     std::unique_ptr<CFogOfWarRenderer> m_pFogOfWarRenderer;
-    CBushVolumeIndex m_BushIndex;
+    CConcealmentVolumeIndex m_ConcealmentIndex;
     Engine::CVisionSystem* m_pVisionSystem = nullptr;
     const char* m_pPendingEndAnim = nullptr;
     f32_t       m_fEndTransitionTimer = 0.f;
@@ -431,6 +431,11 @@ private:
     void BindPlayerToECSChampion(EntityID entity);
     void SyncPlayerEntityTransformFromECS();
     void SyncPlayerEntityTransformToECS();
+    void SyncActorHUDStateToEngineUI();
+    void SyncStatusPanelStateToEngineUI();
+    void SyncWorldHealthBarsToEngineUI();
+    void SyncAIResourceStateToEngine();
+    void SyncNavigationControlStateToEngine();
     void CaptureNetworkActorInterpolationStarts();
     void BeginNetworkActorInterpolationForSnapshot(u64_t serverTick);
     void ApplyNetworkActorInterpolation(f32_t dt);

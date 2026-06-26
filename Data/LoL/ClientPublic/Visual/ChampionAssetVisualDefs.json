@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "models": [
+    {
+      "key": "champion.model.garen",
+      "champion": "GAREN",
+      "displayName": "Garen",
+      "animPrefix": "",
+      "idleAnimation": "garen_2013_idle1",
+      "runAnimation": "garen_2013_run",
+      "basicAttackAnimation": "garen_2013_attack_01",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Garen/garen.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Garen/garen_base_tx_cm.png",
+      "textureSlots": [
+        "",
+        "Texture/Character/Garen/garen_base_tx_cm.png"
+      ],
+      "spawnPosition": [
+        33.0,
+        1.0,
+        -6.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.kalista",
+      "champion": "KALISTA",
+      "displayName": "Kalista",
+      "animPrefix": "kalista_",
+      "idleAnimation": "idle1",
+      "runAnimation": "run",
+      "basicAttackAnimation": "attack1",
+      "basicAttackRange": 5.5,
+      "mesh": "Texture/Character/Kalista/kalista.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Kalista/kalista_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Kalista/kalista_base_tx_cm.png",
+        "Texture/Character/Kalista/kalista_base_tx_cm.png",
+        "Texture/Character/Kalista/kalistaaltar_base_tx_cm.png"
+      ],
+      "spawnPosition": [
+        30.0,
+        1.0,
+        -6.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.riven",
+      "champion": "RIVEN",
+      "displayName": "Riven",
+      "animPrefix": "riven_",
+      "idleAnimation": "idle1",
+      "runAnimation": "run",
+      "basicAttackAnimation": "attack1",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Riven/riven.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Riven/riven_base_tx_cm.png",
+      "textureSlots": [],
+      "spawnPosition": [
+        24.0,
+        1.0,
+        0.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.sylas",
+      "champion": "SYLAS",
+      "displayName": "Sylas",
+      "animPrefix": "",
+      "idleAnimation": "skinned_mesh_sylas_idle",
+      "runAnimation": "skinned_mesh_sylas_run",
+      "basicAttackAnimation": "skinned_mesh_sylas_attack_01",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Sylas/sylas.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Sylas/sylas_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Sylas/sylas_base_tx_cm.png",
+        "Texture/Character/Sylas/sylas_base_tx_cm.png",
+        "Texture/Character/Sylas/sylas_base_shackles_tx_cm.png",
+        "Texture/Character/Sylas/sylas_base_shackles_tx_cm.png",
+        "Texture/Character/Sylas/sylas_base_shackles_tx_cm.png",
+        "Texture/Character/Sylas/sylas_base_shackles_tx_cm.png"
+      ],
+      "spawnPosition": [
+        -27.0,
+        1.0,
+        6.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.viego",
+      "champion": "VIEGO",
+      "displayName": "Viego",
+      "animPrefix": "viego_",
+      "idleAnimation": "idle1",
+      "runAnimation": "run",
+      "basicAttackAnimation": "attack1",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Viego/viego_fixed.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Viego/viego_base_body_tx_cm.png",
+      "textureSlots": [
+        "",
+        "",
+        "",
+        "Texture/Character/Viego/viego_base_crown_sword_tx_cm.png",
+        "Texture/Character/Viego/viego_base_crown_sword_tx_cm.png",
+        "Texture/Character/Viego/viego_base_wraith_tx_cm.png"
+      ],
+      "spawnPosition": [
+        -30.0,
+        1.0,
+        6.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.yasuo",
+      "champion": "YASUO",
+      "displayName": "Yasuo",
+      "animPrefix": "yasuo_",
+      "idleAnimation": "idle1",
+      "runAnimation": "run1",
+      "basicAttackAnimation": "attack1",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Yasuo/yasuo_fixed.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Yasuo/yasuo_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Yasuo/yasuo_base_tx_cm.png",
+        "Texture/Character/Yasuo/yasuo_base_tx_cm.png",
+        "Texture/Character/Yasuo/yasuo_base_tx_cm.png",
+        "Texture/Character/Yasuo/yasuo_base_tx_cm.png"
+      ],
+      "spawnPosition": [
+        27.0,
+        1.0,
+        -6.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.zed",
+      "champion": "ZED",
+      "displayName": "Zed",
+      "animPrefix": "",
+      "idleAnimation": "zed_idle1",
+      "runAnimation": "zed_run",
+      "basicAttackAnimation": "zed_attack1",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Zed/zed.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Zed/zed_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Zed/zed_base_tx_cm.png",
+        "Texture/Character/Zed/zed_base_tx_cm.png"
+      ],
+      "spawnPosition": [
+        36.0,
+        1.0,
+        -6.0
+      ],
+      "spawnScale": 0.01
+    }
+  ],
+  "ui": [
+    {
+      "key": "champion.ui.annie",
+      "champion": "ANNIE",
+      "loadscreen": "Texture/Character/Annie/annieloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/annie_square.png"
+    },
+    {
+      "key": "champion.ui.ashe",
+      "champion": "ASHE",
+      "loadscreen": "Texture/Character/Ashe/asheloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/ashe_square.png"
+    },
+    {
+      "key": "champion.ui.ezreal",
+      "champion": "EZREAL",
+      "loadscreen": "Texture/Character/Ezreal/ezrealloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/ezreal_square_0.png"
+    },
+    {
+      "key": "champion.ui.fiora",
+      "champion": "FIORA",
+      "loadscreen": "Texture/Character/Fiora/fioraloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/fiora_square.png"
+    },
+    {
+      "key": "champion.ui.garen",
+      "champion": "GAREN",
+      "loadscreen": "Texture/Character/Garen/garenloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/garen_square.png"
+    },
+    {
+      "key": "champion.ui.irelia",
+      "champion": "IRELIA",
+      "loadscreen": "Texture/Character/Irelia/irelialoadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/irelia_square_0.png"
+    },
+    {
+      "key": "champion.ui.jax",
+      "champion": "JAX",
+      "loadscreen": "Texture/Character/Jax/jaxloadscreen_0.dds",
+      "portrait": "Texture/UI/Champion/Portraits/jax_square_0.png"
+    },
+    {
+      "key": "champion.ui.kalista",
+      "champion": "KALISTA",
+      "loadscreen": "Texture/Character/Kalista/kalistaloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/kalista_square_0.png"
+    },
+    {
+      "key": "champion.ui.kindred",
+      "champion": "KINDRED",
+      "loadscreen": "Texture/Character/Kindred/kindredloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/kindred_square.png"
+    },
+    {
+      "key": "champion.ui.leesin",
+      "champion": "LEESIN",
+      "loadscreen": "Texture/Character/LeeSin/leesinloadscreen_0.dds",
+      "portrait": "Texture/UI/Champion/Portraits/leesin_square_0.png"
+    },
+    {
+      "key": "champion.ui.masteryi",
+      "champion": "MASTERYI",
+      "loadscreen": "Texture/Character/MasterYi/masteryiloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/masteryi_square_0.png"
+    },
+    {
+      "key": "champion.ui.riven",
+      "champion": "RIVEN",
+      "loadscreen": "Texture/Character/Riven/rivenloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/riven_square.png"
+    },
+    {
+      "key": "champion.ui.sylas",
+      "champion": "SYLAS",
+      "loadscreen": "Texture/Character/Sylas/sylasloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/sylas_square.png"
+    },
+    {
+      "key": "champion.ui.viego",
+      "champion": "VIEGO",
+      "loadscreen": "Texture/Character/Viego/viegoloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/viego_square.png"
+    },
+    {
+      "key": "champion.ui.yasuo",
+      "champion": "YASUO",
+      "loadscreen": "Texture/Character/Yasuo/yasuoloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/yasuo_square.png"
+    },
+    {
+      "key": "champion.ui.yone",
+      "champion": "YONE",
+      "loadscreen": "Texture/Character/Yone/yoneloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/yone_square.png"
+    },
+    {
+      "key": "champion.ui.zed",
+      "champion": "ZED",
+      "loadscreen": "Texture/Character/Zed/zedloadscreen.dds",
+      "portrait": "Texture/UI/Champion/Portraits/zed_square_0.png"
+    }
+  ]
+}

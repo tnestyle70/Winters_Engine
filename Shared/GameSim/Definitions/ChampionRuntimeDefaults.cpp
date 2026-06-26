@@ -38,7 +38,9 @@ f32_t GetDefaultChampionSkillCooldown(eChampion champion, u8_t slot)
 
 f32_t GetDefaultChampionVisualYawOffset(eChampion champion)
 {
-    return ChampionGameDataDB::ResolveVisualYawOffset(champion);
+    return (champion == eChampion::NONE || champion == eChampion::END)
+        ? 0.f
+        : WintersMath::kPi;
 }
 
 f32_t NormalizeChampionVisualYaw(f32_t yaw)

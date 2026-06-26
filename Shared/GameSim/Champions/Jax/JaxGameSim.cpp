@@ -16,9 +16,10 @@
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
+#include "Shared/GameSim/Systems/Move/DashArrival.h"
 
 #include <algorithm>
 #include <cmath>
@@ -28,16 +29,11 @@
 
 namespace
 {
-    constexpr f32_t kJaxQGap = 1.0f;
-    constexpr f32_t kJaxQDashDurationSec = 0.22f;
-    constexpr f32_t kJaxQDamage = 70.f;
-    constexpr f32_t kJaxEStunDurationSec = 1.0f;
-
     f32_t ResolveJaxSkillEffectParam(
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -60,7 +56,7 @@ namespace
         EntityID caster,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         return GameplayDefinitionQuery::ResolveSkillEffectParam(
             world,
@@ -77,7 +73,7 @@ namespace
         Vec3 start{};
         Vec3 end{};
         f32_t elapsedSec = 0.f;
-        f32_t durationSec = kJaxQDashDurationSec;
+        f32_t durationSec = 0.f;
     };
 
     JaxSimComponent& EnsureJaxState(CWorld& world, EntityID caster)
@@ -251,8 +247,7 @@ namespace
                 tc,
                 caster,
                 eSkillSlot::E,
-                eSkillEffectParamId::StunDurationSec,
-                kJaxEStunDurationSec);
+                eSkillEffectParamId::StunDurationSec);
             EnqueueCircleDamage(
                 world,
                 tc,
@@ -318,18 +313,15 @@ namespace
         const f32_t qGap = ResolveJaxSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::Gap,
-            kJaxQGap);
+            eSkillEffectParamId::Gap);
         const f32_t qDashDurationSec = ResolveJaxSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::DashDurationSec,
-            kJaxQDashDurationSec);
+            eSkillEffectParamId::DashDurationSec);
         const f32_t qDamage = ResolveJaxSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::BaseDamage,
-            kJaxQDamage);
+            eSkillEffectParamId::BaseDamage);
 
         StartTargetDash(
             *ctx.pWorld,
@@ -488,7 +480,12 @@ namespace JaxGameSim
                 }));
 
         for (EntityID entity : finishedDashes)
+        {
+            if (world.HasComponent<JaxDashComponent>(entity))
+                SnapDashArrivalToWalkable(world, tc, entity,
+                    world.GetComponent<JaxDashComponent>(entity).start);
             world.RemoveComponent<JaxDashComponent>(entity);
+        }
 
         world.ForEach<JaxSimComponent>(
             std::function<void(EntityID, JaxSimComponent&)>(

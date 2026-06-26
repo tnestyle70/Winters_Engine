@@ -1,4 +1,4 @@
-﻿#include "GameObject/Champion/Zed/Zed_Skills.h"
+#include "GameObject/Champion/Zed/Zed_Skills.h"
 
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
@@ -62,7 +62,7 @@ namespace
                     continue;
 
                 SkillDef s = *legacy;
-                s.castFrameHookId = ResolveZedCastHook(slot);
+                s.castHookId = ResolveZedCastHook(slot);
                 CSkillRegistry::Instance().Add(eChampion::ZED, slot, s);
             }
 

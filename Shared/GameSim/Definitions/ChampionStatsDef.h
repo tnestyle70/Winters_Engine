@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameContext.h"
+#include "LoLMatchContext.h"
 #include "WintersTypes.h"
 
 struct ChampionStatsDef

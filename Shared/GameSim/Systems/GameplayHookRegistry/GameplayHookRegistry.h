@@ -2,9 +2,9 @@
 
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 
 struct GameplayHookContext
 {

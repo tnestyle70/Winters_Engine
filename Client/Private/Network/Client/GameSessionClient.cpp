@@ -268,7 +268,7 @@ void CGameSessionClient::Disconnect()
 		m_pNetwork->Disconnect();
 
 	m_pNetwork.reset();
-	m_lobbyContext = GameContext{};
+	m_lobbyContext = MatchContext{};
 	m_bServerLoading = false;
 	m_bHasLobbyState = false;
 	m_bGameStarting = false;
@@ -294,7 +294,7 @@ bool CGameSessionClient::IsConnected() const
 	return m_pNetwork && m_pNetwork->IsConnected();
 }
 
-void CGameSessionClient::CopyLobbyToGameContext(GameContext& outContext) const
+void CGameSessionClient::CopyLobbyToMatchContext(MatchContext& outContext) const
 {
 	outContext = m_lobbyContext;
 }
@@ -428,7 +428,7 @@ void CGameSessionClient::OnLobbyState(const u8_t* payload, u32_t len)
 
 	const u32_t mySessionId = m_lobbyContext.MySessionId;
 	const u32_t myNetId = m_lobbyContext.MyNetId;
-	m_lobbyContext = GameContext{};
+	m_lobbyContext = MatchContext{};
 	m_lobbyContext.bUseNetworkRoster = true;
 	m_lobbyContext.MySessionId = mySessionId;
 	m_lobbyContext.MyNetId = myNetId;

@@ -196,6 +196,8 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\GamePlay\ChampionCatalog.cpp" />
     <ClCompile Include="..\Private\GamePlay\ChampionModuleBootstrap.cpp" />
     <ClCompile Include="..\Private\GamePlay\ChampionRegistry.cpp" />
+    <ClCompile Include="..\Private\GamePlay\LoLMatchContextRuntime.cpp" />
+    <ClCompile Include="..\Private\GamePlay\LoLUIContentRegistry.cpp" />
     <ClCompile Include="..\Private\GamePlay\CommandQueueComponent.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -210,6 +212,8 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\GamePlay\SkillRegistry.cpp" />
     <ClCompile Include="..\Private\GamePlay\VisualHookRegistry.cpp" />
     <ClCompile Include="..\Private\GamePlay\Systems\Damage.cpp" />
+    <ClCompile Include="..\Private\GamePlay\System\LocalUnitAISystem.cpp" />
+    <ClCompile Include="..\Private\GamePlay\System\LocalStatusEffectSystem.cpp" />
     <ClCompile Include="..\Private\GamePlay\System\SkillDispatchSystem.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -366,12 +370,16 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\GamePlay\ChampionCatalog.h" />
     <ClInclude Include="..\Public\GamePlay\ChampionModuleBootstrap.h" />
     <ClInclude Include="..\Public\GamePlay\ChampionRegistry.h" />
+    <ClInclude Include="..\Public\GamePlay\LoLMatchContextRuntime.h" />
+    <ClInclude Include="..\Public\GamePlay\LoLUIContentRegistry.h" />
     <ClInclude Include="..\Public\GamePlay\CommandQueueComponent.h" />
     <ClInclude Include="..\Public\GamePlay\InputSystem.h" />
     <ClInclude Include="..\Public\GamePlay\SkillHookContext.h" />
     <ClInclude Include="..\Public\GamePlay\SkillHookRegistry.h" />
     <ClInclude Include="..\Public\GamePlay\SkillRegistry.h" />
     <ClInclude Include="..\Public\GamePlay\Systems\Damage.h" />
+    <ClInclude Include="..\Public\GamePlay\Systems\LocalUnitAISystem.h" />
+    <ClInclude Include="..\Public\GamePlay\Systems\LocalStatusEffectSystem.h" />
     <ClInclude Include="..\Public\GamePlay\Systems\SkillDispatchSystem.h" />
     <ClInclude Include="..\Public\GamePlay\VisualHookRegistry.h" />
     <ClInclude Include="..\Public\Manager\AmbientProp_Manager.h" />

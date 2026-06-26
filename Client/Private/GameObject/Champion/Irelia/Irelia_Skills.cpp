@@ -1,7 +1,7 @@
-﻿#include "GameObject/Champion/Irelia/Irelia_Skills.h"
+#include "GameObject/Champion/Irelia/Irelia_Skills.h"
 
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "GameObject/Champion/Irelia/IreliaBladeSystem.h"
 #include "GameObject/Champion/Irelia/IreliaFxPresets.h"
@@ -464,8 +464,8 @@ namespace Irelia
             FxMeshComponent beam{};
             beam.vWorldPos = { mid.x, mid.y, mid.z };
             beam.vRotation = { 0.f, beamYaw + t.beamYawOffset, 0.f };
-            beam.modelPath = "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx";
-            beam.texturePath = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_beam_mult.png";
+            beam.modelPath = "Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx";
+            beam.texturePath = L"Texture/FX/Irelia/irelia_base_e_beam_mult.png";
             const f32_t fxScale = t.beamMeshBaseScale;
             beam.vScale = {
                 fxScale * t.beamGirth,
@@ -511,7 +511,8 @@ namespace Irelia
             ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 pTarget =
             ctx.pWorld->GetComponent<TransformComponent>(target).GetPosition();
-        const Vec3 pEnd = IreliaGameSim::ResolveQDashEndPos(pStart, pTarget);
+        constexpr f32_t kQDashStopGap = 1.35f;
+        const Vec3 pEnd = IreliaGameSim::ResolveQDashEndPos(pStart, pTarget, kQDashStopGap);
 
         const f32_t duration = ctx.getLocalDashDuration ? ctx.getLocalDashDuration() : 0.3f;
         ctx.startPointDash(pStart, pEnd, duration, target);

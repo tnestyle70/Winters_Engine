@@ -1,6 +1,6 @@
 #include "Shared/GameSim/Systems/Recall/RecallSystem.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Components/AttackChaseComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"

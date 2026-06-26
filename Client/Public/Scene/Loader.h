@@ -1,6 +1,6 @@
 #pragma once
 #include "Defines.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include <atomic>
 #include <functional>
 #include <memory>
@@ -69,7 +69,7 @@ private:
 	std::atomic<f32_t> m_fProgress{ 0.f };
 
 	std::unique_ptr<CJobCounter> m_pCounter{};
-	GameContext m_LoadContext{};
+	MatchContext m_LoadContext{};
 
 	bool_t m_bMainThreadLoad = false;
 	std::vector<LoadStep> m_LoadSteps{};

@@ -1,7 +1,8 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #include "Manager/Structure_Manager.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 #include "ECS/Components/TransformComponent.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/VisionComponents.h"
@@ -12,12 +13,22 @@
 
 namespace
 {
-    constexpr const char* PATH_NEXUS_BLUE  = "Client/Bin/Resource/Texture/Object/Nexus/nexus_textured.wmesh";
-    constexpr const char* PATH_NEXUS_RED   = "Client/Bin/Resource/Texture/Object/Nexus/nexus_red_textured.wmesh";
-    constexpr const char* PATH_INHIB_BLUE  = "Client/Bin/Resource/Texture/Object/Inhibitor/inhibitor_textured.wmesh";
-    constexpr const char* PATH_INHIB_RED   = "Client/Bin/Resource/Texture/Object/Inhibitor/inhibitor_red_textured.wmesh";
-    constexpr const char* PATH_TURRET_BLUE = "Client/Bin/Resource/Texture/Object/Turret/turret_textured.wmesh";
-    constexpr const char* PATH_TURRET_RED  = "Client/Bin/Resource/Texture/Object/Turret/turret_red_textured.wmesh";
+    VisibilityMask BuildStructureVisibilityMask(
+        const StructureComponent& structure,
+        const ClientData::StructureVisualDefinition* pVisual)
+    {
+        VisibilityMask mask = MakeAllVisibleMask();
+        if (!pVisual)
+            return mask;
+
+        const bool_t bDestroyed = structure.hp <= 0.f;
+        for (u8_t i = 0u; i < pVisual->submeshStateCount; ++i)
+        {
+            const ClientData::StructureVisualSubmeshStateDef& state = pVisual->submeshStates[i];
+            SetSubmeshVisible(mask, state.submeshIndex, state.bVisibleWhenDestroyed == bDestroyed);
+        }
+        return mask;
+    }
 }
 
 HRESULT CStructure_Manager::Initialize(CWorld* pWorld)
@@ -124,13 +135,22 @@ void CStructure_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorl
             rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
             rc.pRenderer->UpdateCamera(matViewProj, vCameraWorld);
             rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
-            const bool_t bBlueNexus =
-                structure.team == eTeam::Blue &&
+            // 넥서스는 양 팀 모두 컬링 없이 항상 렌더한다.
+            // (이전엔 Blue 넥서스만 우회해 Red 넥서스가 프러스텀 경계에서 비대칭 컬링/pop-in.)
+            const bool_t bNexus =
                 structure.kind == static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus);
-            if (bBlueNexus)
-                rc.pRenderer->Render();
+            if (bNexus)
+            {
+                const auto kind = static_cast<Winters::Map::eObjectKind>(structure.kind);
+                const ClientData::StructureVisualDefinition* pVisual =
+                    ClientData::FindStructureVisualDefinition(kind, structure.team);
+                const VisibilityMask mask = BuildStructureVisibilityMask(structure, pVisual);
+                rc.pRenderer->RenderWithVisibility(mask);
+            }
             else
+            {
                 rc.pRenderer->RenderFrustumCulled(matViewProj);
+            }
         });
 
     WINTERS_PROFILE_COUNT("Structure::Candidates", candidateCount);
@@ -168,12 +188,20 @@ u32_t CStructure_Manager::AppendRenderSnapshotMeshes(
             ++visibleCount;
             rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
 
-            const bool_t bBlueNexus =
-                structure.team == eTeam::Blue &&
+            const bool_t bNexus =
                 structure.kind == static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus);
-            appendedCount += bBlueNexus
-                ? rc.pRenderer->AppendRenderSnapshotMeshes(snapshot)
-                : rc.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(snapshot, matViewProj);
+            if (bNexus)
+            {
+                const auto kind = static_cast<Winters::Map::eObjectKind>(structure.kind);
+                const ClientData::StructureVisualDefinition* pVisual =
+                    ClientData::FindStructureVisualDefinition(kind, structure.team);
+                const VisibilityMask mask = BuildStructureVisibilityMask(structure, pVisual);
+                appendedCount += rc.pRenderer->AppendRenderSnapshotMeshes(snapshot, mask);
+            }
+            else
+            {
+                appendedCount += rc.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(snapshot, matViewProj);
+            }
         });
 
     WINTERS_PROFILE_COUNT("Structure::RHISnapshotCandidates", candidateCount);
@@ -320,18 +348,6 @@ EntityID CStructure_Manager::Find_NetworkBindCandidate(
     return best;
 }
 
-const char* CStructure_Manager::ResolveModelPath(Winters::Map::eObjectKind kind, eTeam team)
-{
-    const bool_t bBlue = (team == eTeam::Blue);
-    switch (kind)
-    {
-    case Winters::Map::eObjectKind::Structure_Nexus:     return bBlue ? PATH_NEXUS_BLUE  : PATH_NEXUS_RED;
-    case Winters::Map::eObjectKind::Structure_Inhibitor: return bBlue ? PATH_INHIB_BLUE  : PATH_INHIB_RED;
-    case Winters::Map::eObjectKind::Structure_Turret:    return bBlue ? PATH_TURRET_BLUE : PATH_TURRET_RED;
-    default: return nullptr;
-    }
-}
-
 void CStructure_Manager::Make_AutoName(Winters::Map::eObjectKind kind, eTeam team,
     Winters::Map::eTurretTier tier, Winters::Map::eLane lane,
     char* pOutBuf, size_t capacity)
@@ -378,12 +394,15 @@ void CStructure_Manager::Make_AutoName(Winters::Map::eObjectKind kind, eTeam tea
 EntityID CStructure_Manager::Spawn_FromEntry(const Winters::Map::StructureEntry& entry)
 {
     if (!m_pWorld) return NULL_ENTITY;
-    const char* pPath = ResolveModelPath(static_cast<Winters::Map::eObjectKind>(entry.subKind),
-        static_cast<eTeam>(entry.team));
-    if (!pPath) return NULL_ENTITY;
+    const auto kind = static_cast<Winters::Map::eObjectKind>(entry.subKind);
+    const auto team = static_cast<eTeam>(entry.team);
+    const ClientData::StructureVisualDefinition* pVisual =
+        ClientData::FindStructureVisualDefinition(kind, team);
+    if (!pVisual || !pVisual->mesh.resourceRelativePath || !pVisual->shader.runtimePath)
+        return NULL_ENTITY;
 
     auto pRenderer = std::unique_ptr<ModelRenderer>(new ModelRenderer());
-    if (!pRenderer->Initialize(pPath, L"Shaders/Mesh3D.hlsl"))
+    if (!pRenderer->Initialize(pVisual->mesh.resourceRelativePath, pVisual->shader.runtimePath))
         return NULL_ENTITY;
 
 
@@ -451,11 +470,11 @@ EntityID CStructure_Manager::Spawn_FromEntry(const Winters::Map::StructureEntry&
     spatial.team = static_cast<u8_t>(sc.team);
     spatial.radius = 1.5f;
     if (sc.kind == static_cast<uint32_t>(Winters::Map::eObjectKind::Structure_Turret))
-        spatial.kind = eSpatialKind::Turret;
+        spatial.kind = eSpatialKind::Structure;
     else if (sc.kind == static_cast<uint32_t>(Winters::Map::eObjectKind::Structure_Nexus))
-        spatial.kind = eSpatialKind::Nexus;
+        spatial.kind = eSpatialKind::Core;
     else if (sc.kind == static_cast<uint32_t>(Winters::Map::eObjectKind::Structure_Inhibitor))
-        spatial.kind = eSpatialKind::Inhibitor;
+        spatial.kind = eSpatialKind::Objective;
     m_pWorld->AddComponent<SpatialAgentComponent>(id, spatial);
 
     ColliderComponent collider{};

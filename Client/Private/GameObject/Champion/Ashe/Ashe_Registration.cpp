@@ -1,4 +1,4 @@
-﻿#include "GamePlay/ChampionRegistry.h"
+#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -28,10 +28,10 @@ namespace
             cd.runAnimKey = "run";
             cd.basicAttackKey = "attack1";
             cd.basicAttackRange = 6.0f;
-            cd.fbxPath = "Client/Bin/Resource/Texture/Character/Ashe/ashe.fbx";
+            cd.fbxPath = "Texture/Character/Ashe/ashe.fbx";
             cd.shaderPath = L"Shaders/Mesh3D.hlsl";
             const wchar_t* asheBaseTexture =
-                L"Client/Bin/Resource/Texture/Character/Ashe/ashe_base_2011_tx_cm.png";
+                L"Texture/Character/Ashe/ashe_base_2011_tx_cm.png";
             cd.defaultTexturePath = asheBaseTexture;
             for (u32_t i = 0; i < kChampionTextureSlotMax; ++i)
                 cd.texturePath[i] = asheBaseTexture;
@@ -48,8 +48,8 @@ namespace
                 s.animKey = "attack1";
                 s.lockDurationSec = 0.7f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 5.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAsh_BA_Cast;
+                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAsh_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 0, s);
             }
             {
@@ -60,8 +60,8 @@ namespace
                 s.animKey = "spell1";
                 s.lockDurationSec = 0.5f; s.bOneShot = true;
                 s.rotate = eRotateMode::None;
-                s.castFrame = 1.f; s.recoveryFrame = 8.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAsh_Q_Cast;
+                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 8.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAsh_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 1, s);
             }
             {
@@ -72,8 +72,8 @@ namespace
                 s.animKey = "spell2";
                 s.lockDurationSec = 0.6f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 4.f; s.recoveryFrame = 10.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAsh_W_Cast;
+                s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAsh_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 2, s);
             }
             {
@@ -84,8 +84,8 @@ namespace
                 s.animKey = "spell3";
                 s.lockDurationSec = 0.5f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 1.f; s.recoveryFrame = 10.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAsh_E_Cast;
+                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAsh_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 3, s);
             }
             {
@@ -96,8 +96,8 @@ namespace
                 s.animKey = "channel";
                 s.lockDurationSec = 1.0f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 12.f; s.recoveryFrame = 22.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kAsh_R_Cast;
+                s.visualCastFrame = 12.f; s.visualRecoveryFrame = 22.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kAsh_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 4, s);
             }
 

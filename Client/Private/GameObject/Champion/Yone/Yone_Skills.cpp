@@ -5,7 +5,7 @@
 #include "GamePlay/Systems/Damage.h"
 
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/MeshGroupVisibilityComponent.h"
 #include "ECS/Components/TransformComponent.h"
 

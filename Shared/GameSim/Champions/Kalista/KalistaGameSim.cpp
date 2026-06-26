@@ -7,7 +7,7 @@
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
@@ -22,21 +22,12 @@
 
 namespace
 {
-    constexpr f32_t kKalistaESlowDurationSec = 2.0f;
-    constexpr f32_t kKalistaESlowMoveSpeedMul = 0.55f;
-    constexpr f32_t kKalistaWSentinelRange = 12.0f;
-    constexpr f32_t kKalistaWSentinelLifetimeSec = 12.0f;
-    constexpr f32_t kKalistaWSentinelSpeed = 3.5f;
-    constexpr f32_t kKalistaWSentinelSightRange = 10.0f;
-    constexpr f32_t kKalistaWSentinelRadius = 0.45f;
-    constexpr f32_t kKalistaWSentinelHalfAngleCos = 0.8660254f;
-
     f32_t ResolveKalistaESkillEffectParam(
         CWorld& world,
         EntityID caster,
         const TickContext& tc,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         return GameplayDefinitionQuery::ResolveSkillEffectParam(
             world,
@@ -53,9 +44,26 @@ namespace
         EntityID caster,
         const TickContext& tc,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::KALISTA,
+            static_cast<u8_t>(eSkillSlot::W),
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveKalistaWSummonPolicyParam(
+        CWorld& world,
+        EntityID caster,
+        const TickContext& tc,
+        eSummonPolicyParamId param,
+        f32_t fallbackValue = 0.f)
+    {
+        return GameplayDefinitionQuery::ResolveSummonPolicyParam(
             world,
             caster,
             tc,
@@ -121,14 +129,12 @@ namespace
             world,
             caster,
             tc,
-            eSkillEffectParamId::SlowDurationSec,
-            kKalistaESlowDurationSec);
+            eSkillEffectParamId::SlowDurationSec);
         const f32_t slowMoveSpeedMul = ResolveKalistaESkillEffectParam(
             world,
             caster,
             tc,
-            eSkillEffectParamId::MoveSpeedMul,
-            kKalistaESlowMoveSpeedMul);
+            eSkillEffectParamId::MoveSpeedMul);
 
         GameplayStatus::ApplySlow(
             world,
@@ -206,38 +212,32 @@ namespace
                 world,
                 ctx.casterEntity,
                 tc,
-                eSkillEffectParamId::Range,
-                kKalistaWSentinelRange);
-        const f32_t lifetimeSec = ResolveKalistaWSkillEffectParam(
+                eSkillEffectParamId::Range);
+        const f32_t lifetimeSec = ResolveKalistaWSummonPolicyParam(
             world,
             ctx.casterEntity,
             tc,
-            eSkillEffectParamId::EffectDurationSec,
-            kKalistaWSentinelLifetimeSec);
-        const f32_t speed = ResolveKalistaWSkillEffectParam(
+            eSummonPolicyParamId::DurationSec);
+        const f32_t speed = ResolveKalistaWSummonPolicyParam(
             world,
             ctx.casterEntity,
             tc,
-            eSkillEffectParamId::Speed,
-            kKalistaWSentinelSpeed);
-        const f32_t sightRange = ResolveKalistaWSkillEffectParam(
+            eSummonPolicyParamId::MoveSpeed);
+        const f32_t sightRange = ResolveKalistaWSummonPolicyParam(
             world,
             ctx.casterEntity,
             tc,
-            eSkillEffectParamId::SummonSightRange,
-            kKalistaWSentinelSightRange);
-        const f32_t radius = ResolveKalistaWSkillEffectParam(
+            eSummonPolicyParamId::SightRange);
+        const f32_t radius = ResolveKalistaWSummonPolicyParam(
             world,
             ctx.casterEntity,
             tc,
-            eSkillEffectParamId::SummonRadius,
-            kKalistaWSentinelRadius);
+            eSummonPolicyParamId::Radius);
         const f32_t halfAngleCos = ResolveKalistaWSkillEffectParam(
             world,
             ctx.casterEntity,
             tc,
-            eSkillEffectParamId::HalfAngleCos,
-            kKalistaWSentinelHalfAngleCos);
+            eSkillEffectParamId::HalfAngleCos);
 
         Vec3 end{
             origin.x + forward.x * patrolRange,
@@ -262,6 +262,7 @@ namespace
         state.lifetimeSec = lifetimeSec;
         state.patrolSpeed = speed;
         state.sightRange = sightRange;
+        state.radius = radius;
         state.halfAngleCos = halfAngleCos;
         world.AddComponent<KalistaSentinelComponent>(sentinel, state);
 
@@ -271,7 +272,7 @@ namespace
         world.AddComponent<TransformComponent>(sentinel, transform);
 
         SpatialAgentComponent spatial{};
-        spatial.kind = eSpatialKind::Ward;
+        spatial.kind = eSpatialKind::Sensor;
         spatial.team = static_cast<u8_t>(ctx.casterTeam);
         spatial.radius = radius;
         world.AddComponent<SpatialAgentComponent>(sentinel, spatial);
@@ -361,7 +362,7 @@ namespace KalistaGameSim
                         if (tc.pWalkable->TryClampMoveSegmentXZ(
                             transform.GetPosition(),
                             pos,
-                            kKalistaWSentinelRadius,
+                            state.radius,
                             clamped))
                         {
                             pos = clamped;

@@ -13,7 +13,7 @@
 
 class CWorld;
 class CSpatialIndex;
-class CBushVolumeIndex;
+class CConcealmentVolumeIndex;
 struct VisibilityComponent;
 
 NS_BEGIN(Engine)
@@ -53,7 +53,7 @@ public:
     ~CVisionSystem() override = default;
 
     static std::unique_ptr<CVisionSystem> Create(CSpatialIndex* pIndex,
-        CBushVolumeIndex* pBushIndex);
+        CConcealmentVolumeIndex* pConcealmentIndex);
 
     u32_t GetPhase() const override { return 5; }
     const char* GetName() const override { return "VisionSystem"; }
@@ -62,6 +62,8 @@ public:
     void ForceRebuildNextFrame() { m_bForceRebuild = true; }
     void SetFowProjection(const FowProjection& Projection);
     const FowProjection& GetFowProjection() const { return m_FowProjection; }
+    void SetFowLocalTeam(u8_t iTeam);
+    void ClearFowLocalTeam();
 
     const u8_t* GetFowTextureData() const { return m_vecFowTexture.data(); }
     u32_t GetFowTextureDim() const { return FOW_TEX_DIM; }
@@ -74,7 +76,7 @@ private:
     CVisionSystem() = default;
 
     void TickVisibility(CWorld& world);
-    void UpdateBushOccupancy(CWorld& world);
+    void UpdateConcealmentOccupancy(CWorld& world);
     void UpdateFowTexture(CWorld& world);
     bool IsTargetVisible(CWorld& world, EntityID source, EntityID target,
         f32_t sightRange) const;
@@ -84,17 +86,19 @@ private:
         f32_t sightRangeSq) const;
 
     CSpatialIndex* m_pIndex = nullptr;
-    CBushVolumeIndex* m_pBushIndex = nullptr;
+    CConcealmentVolumeIndex* m_pConcealmentIndex = nullptr;
 
     f32_t m_fAccumDt = 0.f;
     bool_t m_bForceRebuild = true;
     bool_t m_bFowTextureDirty = false;
+    u8_t m_iFowLocalTeam = 255u;
+    bool_t m_bHasFowLocalTeam = false;
     FowProjection m_FowProjection{};
 
     std::vector<u8_t> m_vecFowTexture{};
     std::vector<VisRecord> m_vecDebugRecords{};
     std::vector<EntityID> m_vecVisibilityCandidates{};
-    std::vector<i64_t> m_vecMinionVisionCells{};
+    std::vector<i64_t> m_vecUnitVisionCells{};
 
     static constexpr f32_t TICK_INTERVAL = 0.1f;
 };

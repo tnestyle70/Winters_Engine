@@ -1,119 +1,87 @@
 #include "GameObject/ChampionDef.h"
 #include "GamePlay/ChampionRegistry.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 
-static const ChampionDef s_ChampionTable[] =
+namespace
 {
-    { eChampion::YASUO,   "yasuo_",   "idle1", "run1", "attack1", 1.5f,
-      "Client/Bin/Resource/Texture/Character/Yasuo/yasuo_fixed.wmesh",
-      L"Shaders/Mesh3D.hlsl",
-      L"Client/Bin/Resource/Texture/Character/Yasuo/yasuo_base_tx_cm.png",
-      {
-          L"Client/Bin/Resource/Texture/Character/Yasuo/yasuo_base_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Yasuo/yasuo_base_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Yasuo/yasuo_base_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Yasuo/yasuo_base_tx_cm.png"
-      },
-      { 27.f, 1.f, -6.f },
-      0.01f,
-      "Yasuo" },
+    inline constexpr u32_t kMaxCachedChampionDefs = 32u;
 
+    ChampionDef MakeChampionDef(const ClientData::ChampionModelVisualDefinition& visual)
+    {
+        ChampionDef def{};
+        def.id = visual.champion;
+        def.animPrefix = visual.animPrefix;
+        def.idleAnimKey = visual.idleAnimation;
+        def.runAnimKey = visual.runAnimation;
+        def.basicAttackKey = visual.basicAttackAnimation;
+        def.basicAttackRange = visual.basicAttackRange;
+        def.fbxPath = visual.mesh.resourceRelativePath;
+        def.shaderPath = visual.shader.runtimePath;
+        def.defaultTexturePath = visual.defaultTexture.resourceRelativePath;
 
-    { eChampion::KALISTA, "kalista_", "idle1", "run", "attack1", 5.5f,
-      "Client/Bin/Resource/Texture/Character/Kalista/kalista.wmesh",
-      L"Shaders/Mesh3D.hlsl",
-      L"Client/Bin/Resource/Texture/Character/Kalista/kalista_base_tx_cm.png",
-      {
-          L"Client/Bin/Resource/Texture/Character/Kalista/kalista_base_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Kalista/kalista_base_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Kalista/kalistaaltar_base_tx_cm.png"
-      },
-      { 30.f, 1.f, -6.f },
-      0.01f,
-      "Kalista" },
+        for (u32_t i = 0u;
+            i < kChampionTextureSlotMax && i < ClientData::kChampionModelTextureSlotCount;
+            ++i)
+        {
+            def.texturePath[i] = visual.textureSlots[i].resourceRelativePath;
+        }
 
+        def.spawnPosition = {
+            visual.spawnPositionX,
+            visual.spawnPositionY,
+            visual.spawnPositionZ
+        };
+        def.spawnScale = visual.spawnScale;
+        def.displayName = visual.displayName;
+        return def;
+    }
 
-      { eChampion::SYLAS, "", "skinned_mesh_sylas_idle", "skinned_mesh_sylas_run", "skinned_mesh_sylas_attack_01", 1.5f,
-      "Client/Bin/Resource/Texture/Character/Sylas/sylas.wmesh",
-      L"Shaders/Mesh3D.hlsl",
-      L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_tx_cm.png",
-      {
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Sylas/sylas_base_shackles_tx_cm.png"
-      },
-      { -27.f, 1.f, 6.f },
-      0.01f,
-      "Sylas" },
+    const ChampionDef* GetCachedChampionDefs(u32_t& outCount)
+    {
+        static ChampionDef s_defs[kMaxCachedChampionDefs]{};
+        static u32_t s_count = 0u;
+        static bool_t s_bBuilt = false;
 
+        if (!s_bBuilt)
+        {
+            const ClientData::ChampionModelVisualPack& pack =
+                ClientData::GetChampionModelVisualPack();
+            s_count = pack.modelCount < kMaxCachedChampionDefs
+                ? pack.modelCount
+                : kMaxCachedChampionDefs;
 
-    { eChampion::VIEGO, "viego_", "idle1", "run", "attack1", 1.5f,
-      "Client/Bin/Resource/Texture/Character/Viego/viego_fixed.wmesh",
-      L"Shaders/Mesh3D.hlsl",
-      L"Client/Bin/Resource/Texture/Character/Viego/viego_base_body_tx_cm.png",
-      {
-          nullptr,
-          nullptr,
-          nullptr,
-          L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Viego/viego_base_wraith_tx_cm.png"
-      },
-      { -30.f, 1.f, 6.f },
-      0.01f,
-      "Viego" },
+            for (u32_t i = 0u; i < s_count; ++i)
+                s_defs[i] = MakeChampionDef(pack.models[i]);
 
+            s_bBuilt = true;
+        }
 
-    { eChampion::GAREN,   "", "garen_2013_idle1", "garen_2013_run", "garen_2013_attack_01", 1.5f,
-      "Client/Bin/Resource/Texture/Character/Garen/garen.wmesh",
-      L"Shaders/Mesh3D.hlsl",
-      L"Client/Bin/Resource/Texture/Character/Garen/garen_base_tx_cm.png",
-      {
-          nullptr,
-          L"Client/Bin/Resource/Texture/Character/Garen/garen_base_tx_cm.png"
-      },
-      { 33.f, 1.f, -6.f },
-      0.01f,
-      "Garen" },
-
-
-    { eChampion::ZED, "", "zed_idle1", "zed_run", "zed_attack1", 1.5f,
-      "Client/Bin/Resource/Texture/Character/Zed/zed.wmesh",
-      L"Shaders/Mesh3D.hlsl",
-      L"Client/Bin/Resource/Texture/Character/Zed/zed_base_tx_cm.png",
-      {
-          L"Client/Bin/Resource/Texture/Character/Zed/zed_base_tx_cm.png",
-          L"Client/Bin/Resource/Texture/Character/Zed/zed_base_tx_cm.png"
-      },
-      { 36.f, 1.f, -6.f },
-      0.01f,
-      "Zed" },
-
-
-    { eChampion::RIVEN, "riven_", "idle1", "run", "attack1", 1.5f,
-      "Client/Bin/Resource/Texture/Character/Riven/riven.wmesh",
-      L"Shaders/Mesh3D.hlsl",
-      L"Client/Bin/Resource/Texture/Character/Riven/riven_base_tx_cm.png",
-      {},
-      { 24.f, 1.f, 0.f },
-      0.01f,
-      "Riven" },
-};
+        outCount = s_count;
+        return s_defs;
+    }
+}
 
 const ChampionDef* FindChampionDef(eChampion champ)
 {
-    for (const auto& c : s_ChampionTable)
+    u32_t count = 0u;
+    const ChampionDef* pDefs = GetCachedChampionDefs(count);
+    for (u32_t i = 0u; i < count; ++i)
     {
-        if (c.id == champ)
-            return &c;
+        if (pDefs[i].id == champ)
+            return &pDefs[i];
     }
     return nullptr;
 }
 
 const char* GetChampionDisplayName(eChampion champ)
 {
+    if (const ClientData::ChampionModelVisualDefinition* pVisual =
+        ClientData::FindChampionModelVisualDefinition(champ))
+    {
+        if (pVisual->displayName)
+            return pVisual->displayName;
+    }
+
     switch (champ)
     {
     case eChampion::IRELIA: return "Irelia";
@@ -139,9 +107,11 @@ const char* GetChampionDisplayName(eChampion champ)
 
 void RegisterAllLegacy()
 {
-    for (const auto& cd : s_ChampionTable)
+    u32_t count = 0u;
+    const ChampionDef* pDefs = GetCachedChampionDefs(count);
+    for (u32_t i = 0u; i < count; ++i)
     {
-        ChampionDef copy = cd;
+        ChampionDef copy = pDefs[i];
         if (!copy.displayName)
             copy.displayName = GetChampionDisplayName(copy.id);
         CChampionRegistry::Instance().Add(copy.id, copy);

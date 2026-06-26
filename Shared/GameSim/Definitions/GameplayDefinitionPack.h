@@ -14,7 +14,7 @@ struct GameplayDefinitionPack
     std::size_t championCount = 0u;
     const SkillGameplayDef* skills = nullptr;
     std::size_t skillCount = 0u;
-    const SummonerSpellGameplayDef* summonerSpells = nullptr;
+    const SummonerSpellGameplayDef* summonerSpellDefs = nullptr;
     std::size_t summonerSpellCount = 0u;
 
     const ChampionGameplayDef* FindChampion(ChampionDefId id) const;

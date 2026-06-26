@@ -1,6 +1,6 @@
 #include "Game/SnapshotBuilder.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
 #include "ECS/World.h"
@@ -376,11 +376,11 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             entityKind = Shared::Schema::EntityKind::Nexus;
         }
 
-        if (world.HasComponent<WardComponent>(entity))
+        if (world.HasComponent<VisionSensorComponent>(entity))
         {
-            const auto& ward = world.GetComponent<WardComponent>(entity);
-            team = static_cast<u8_t>(ward.ownerTeam);
-            subtype = ward.bControlWard ? 1u : 0u;
+            const auto& ward = world.GetComponent<VisionSensorComponent>(entity);
+            team = ward.ownerTeam;
+            subtype = ward.bControlSensor ? 1u : 0u;
             entityKind = Shared::Schema::EntityKind::Ward;
             if (maxHp <= 0.f)
                 maxHp = 1.f;
@@ -396,9 +396,9 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 maxHp = jungle.maxHp;
         }
 
-        if (world.HasComponent<TurretProjectileComponent>(entity))
+        if (world.HasComponent<StructureProjectileComponent>(entity))
         {
-            const auto& projectile = world.GetComponent<TurretProjectileComponent>(entity);
+            const auto& projectile = world.GetComponent<StructureProjectileComponent>(entity);
             entityKind = Shared::Schema::EntityKind::Projectile;
             projectileOwnerNet = entityMap.ToNet(projectile.sourceEntity);
             projectileTargetNet = entityMap.ToNet(projectile.targetEntity);

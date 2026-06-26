@@ -74,13 +74,13 @@
 #include "Shared/Schemas/Generated/cpp/LobbyState_generated.h"
 
 #include "ECS/Components/CoreComponents.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
 #include "ECS/SpatialIndex.h"
 #include "ECS/Systems/SpatialHashSystem.h"
-#include "ECS/Systems/TurretAISystem.h"
+#include "Shared/GameSim/Systems/Turret/TurretAISystem.h"
 #include "Manager/Navigation/MapSurfaceSampler.h"
 #include "Manager/Navigation/MapWalkableBaker.h"
 #include "Manager/Navigation/NavGrid.h"
@@ -347,10 +347,10 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
 
 void CGameRoom::InitializeServerSimSystems()
 {
-    m_world.Initialize_Spatial(LoLSpatialGridDesc());
+    m_world.Initialize_Spatial(DefaultSpatialGridDesc());
     EnsureMatchScoreEntity(m_world);
     m_pSpatialSystem = Engine::CSpatialHashSystem::Create();
-    m_pTurretAI = Engine::CTurretAISystem::Create();
+    m_pTurretAI = GameplayTurret::CTurretAISystem::Create();
 
     RegisterDefaultChampionSkillScalingTables();
 

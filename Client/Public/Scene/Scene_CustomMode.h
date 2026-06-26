@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "IScene.h"
 #include "Replay/ReplayLibrary.h"
 #include "UI/ImageScenePresenter.h"
@@ -38,14 +38,14 @@ private:
 	bool_t JoinSlot(u8_t slotId);
 	bool_t RemoveBotAndCompactTeam(u32_t beginSlot, u32_t endSlot, u8_t slotId);
 	bool_t SendBotRemoval(u8_t slotId);
-	bool_t CompactLocalBotRemoval(GameContext& context, u32_t beginSlot, u32_t endSlot, u8_t slotId);
+	bool_t CompactLocalBotRemoval(MatchContext& context, u32_t beginSlot, u32_t endSlot, u8_t slotId);
 	void SetBotLane(u8_t slotId, u8_t lane);
 	bool_t SetBotChampion(u8_t slotId, eChampion champion);
 	void RenderReplayPanel();
 	void OpenReplay(const wstring_t& path);
 	void RenderRosterOverlay();
 	void RenderBotChampionButton(u8_t slotId, f32_t width, f32_t height);
-	void RenderTeamRoster(const GameContext& context, u32_t beginSlot, u32_t endSlot,
+	void RenderTeamRoster(const MatchContext& context, u32_t beginSlot, u32_t endSlot,
 		const ImageSourceRect& rect);
 
 	CImageScenePresenter m_ImageUI{};

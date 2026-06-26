@@ -1,0 +1,310 @@
+{
+  "schemaVersion": 1,
+  "structures": [
+    {
+      "key": "structure.inhibitor.blue",
+      "kind": "Structure_Inhibitor",
+      "team": "Blue",
+      "mesh": "Texture/Object/Inhibitor/inhibitor_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "visibilityStates": []
+    },
+    {
+      "key": "structure.inhibitor.red",
+      "kind": "Structure_Inhibitor",
+      "team": "Red",
+      "mesh": "Texture/Object/Inhibitor/inhibitor_red_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "visibilityStates": []
+    },
+    {
+      "key": "structure.nexus.blue",
+      "kind": "Structure_Nexus",
+      "team": "Blue",
+      "mesh": "Texture/Object/Nexus/nexus_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "visibilityStates": [
+        {
+          "name": "Destroyed",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Alive",
+          "submeshIndex": 1,
+          "visibleWhenDestroyed": false
+        }
+      ]
+    },
+    {
+      "key": "structure.nexus.red",
+      "kind": "Structure_Nexus",
+      "team": "Red",
+      "mesh": "Texture/Object/Nexus/nexus_red_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "visibilityStates": [
+        {
+          "name": "Destroyed",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Alive",
+          "submeshIndex": 1,
+          "visibleWhenDestroyed": false
+        }
+      ]
+    },
+    {
+      "key": "structure.turret.blue",
+      "kind": "Structure_Turret",
+      "team": "Blue",
+      "mesh": "Texture/Object/Turret/turret_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "visibilityStates": []
+    },
+    {
+      "key": "structure.turret.red",
+      "kind": "Structure_Turret",
+      "team": "Red",
+      "mesh": "Texture/Object/Turret/turret_red_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "visibilityStates": []
+    }
+  ],
+  "jungles": [
+    {
+      "key": "jungle.baron",
+      "subKind": 0,
+      "mesh": "Texture/Object/Jungle/Baron/baron_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": [
+        {
+          "meshIndex": 0,
+          "texture": "Texture/Object/Jungle/Baron/sru_baron_tx_cm.png"
+        },
+        {
+          "meshIndex": 1,
+          "texture": "Texture/Object/Jungle/Baron/sru_baron_tx_cm.png"
+        }
+      ]
+    },
+    {
+      "key": "jungle.dragon",
+      "subKind": 1,
+      "mesh": "Texture/Object/Jungle/Dragon/air/dragon_air_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    },
+    {
+      "key": "jungle.blue",
+      "subKind": 2,
+      "mesh": "Texture/Object/Jungle/Blue/blue_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    },
+    {
+      "key": "jungle.red",
+      "subKind": 3,
+      "mesh": "Texture/Object/Jungle/Red/red_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    },
+    {
+      "key": "jungle.krug",
+      "subKind": 4,
+      "mesh": "Texture/Object/Jungle/Krug/krug_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    },
+    {
+      "key": "jungle.gromp",
+      "subKind": 5,
+      "mesh": "Texture/Object/Jungle/Gromp/gromp_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    },
+    {
+      "key": "jungle.wolf",
+      "subKind": 6,
+      "mesh": "Texture/Object/Jungle/Wolf/wolf_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    },
+    {
+      "key": "jungle.razorbeak",
+      "subKind": 7,
+      "mesh": "Texture/Object/Jungle/Razorbeak/razorbeak_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    },
+    {
+      "key": "jungle.razorbeak_mini",
+      "subKind": 8,
+      "mesh": "Texture/Object/Jungle/RazorbeakMini/razorbeakmini_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    },
+    {
+      "key": "jungle.wolf_mini",
+      "subKind": 9,
+      "mesh": "Texture/Object/Jungle/WolfMini/wolfmini_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    },
+    {
+      "key": "jungle.krug_mini",
+      "subKind": 10,
+      "mesh": "Texture/Object/Jungle/KrugMini/krugmini_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureOverrides": []
+    }
+  ],
+  "minions": [
+    {
+      "key": "minion.blue.melee",
+      "type": 0,
+      "team": 0,
+      "mesh": "Texture/Object/Minion_Order/Melee/order_melee_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": ""
+    },
+    {
+      "key": "minion.blue.ranged",
+      "type": 1,
+      "team": 0,
+      "mesh": "Texture/Object/Minion_Order/Ranged/order_ranged_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": ""
+    },
+    {
+      "key": "minion.blue.siege",
+      "type": 2,
+      "team": 0,
+      "mesh": "Texture/Object/Minion_Order/Siege/order_siege_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": ""
+    },
+    {
+      "key": "minion.blue.super",
+      "type": 3,
+      "team": 0,
+      "mesh": "Texture/Object/Minion_Order/Super/order_super_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": ""
+    },
+    {
+      "key": "minion.blue.tibbers",
+      "type": 4,
+      "team": 0,
+      "mesh": "Texture/Character/Annie/tibber.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": "Texture/Character/Annie/tibber_base.png"
+    },
+    {
+      "key": "minion.red.melee",
+      "type": 0,
+      "team": 1,
+      "mesh": "Texture/Object/Minion_Chaos/melee/chaos_melee_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": ""
+    },
+    {
+      "key": "minion.red.ranged",
+      "type": 1,
+      "team": 1,
+      "mesh": "Texture/Object/Minion_Chaos/ranged/chaos_ranged_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": ""
+    },
+    {
+      "key": "minion.red.siege",
+      "type": 2,
+      "team": 1,
+      "mesh": "Texture/Object/Minion_Chaos/siege/chaos_siege_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": ""
+    },
+    {
+      "key": "minion.red.super",
+      "type": 3,
+      "team": 1,
+      "mesh": "Texture/Object/Minion_Chaos/super/chaos_super_textured.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": ""
+    },
+    {
+      "key": "minion.red.tibbers",
+      "type": 4,
+      "team": 1,
+      "mesh": "Texture/Character/Annie/tibber.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "textureAllMeshes": "Texture/Character/Annie/tibber_base.png"
+    }
+  ],
+  "ambientProps": {
+    "placement": "Texture/MAP/Map11_Rebuild/cooked/map11_ambient_props.wamb",
+    "props": [
+      {
+        "key": "ambient.sru_bird",
+        "kind": 0,
+        "mesh": "Texture/MAP/Map11_Rebuild/cooked/ambient/sru_bird/sru_bird.wmesh",
+        "shader": "Shaders/Mesh3D.hlsl",
+        "idleAnimation": "sru_bird_idle_tree1"
+      },
+      {
+        "key": "ambient.sru_duck",
+        "kind": 1,
+        "mesh": "Texture/MAP/Map11_Rebuild/cooked/ambient/sru_duck/sru_duck.wmesh",
+        "shader": "Shaders/Mesh3D.hlsl",
+        "idleAnimation": "sru_duck_idle1"
+      }
+    ]
+  },
+  "mapRuntime": {
+    "baseMapMesh": "Texture/MAP/output/sr_base_flip.wmesh",
+    "baseMapSurface": "Texture/MAP/output/sr_base_flip.wmesh",
+    "fullLayerMapMesh": "Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh",
+    "fullLayerMapSurface": "Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh",
+    "brushVolumeCsv": "Texture/MAP/Map11_Rebuild/manifest/map11_brush_volumes.csv",
+    "brushVolumeBinary": "Texture/MAP/Map11_Rebuild/cooked/map11_brush_volumes.wbrush",
+    "attackRangeTexture": "Texture/UI/UI_AttackRange.png"
+  },
+  "fxMeshPreloads": [
+    {
+      "key": "fx.irelia.e_beam",
+      "mesh": "Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx",
+      "texture": "Texture/FX/Irelia/irelia_base_e_beam_mult.png"
+    },
+    {
+      "key": "fx.irelia.e_blade",
+      "mesh": "Texture/FX/Irelia/fbx/irelia_base_e_blade.fbx",
+      "texture": "Texture/FX/Irelia/irelia_base_blades_passive_4_texture.png"
+    },
+    {
+      "key": "fx.kalista.e_spear_hold",
+      "mesh": "Texture/FX/Kalista/fbx/kalista_base_e_spear_hold.fbx",
+      "texture": "Texture/FX/Kalista/kalista_base_e_spear_glow.png"
+    },
+    {
+      "key": "fx.kalista.q_spear",
+      "mesh": "Texture/FX/Kalista/fbx/kalista_base_q_mis_spear.fbx",
+      "texture": "Texture/FX/Kalista/kalista_base_q_mis_glow_color.png"
+    },
+    {
+      "key": "fx.yasuo.q_tornado_blade",
+      "mesh": "Texture/FX/Yasuo/fbx/yasuo_base_q_tornado_blade_cas.fbx",
+      "texture": "Texture/FX/Yasuo/color_yasuo_base_e_tonado_blend.png"
+    },
+    {
+      "key": "fx.yasuo.r_sword_wind",
+      "mesh": "Texture/FX/Yasuo/fbx/yasuo_base_r_sword_wind2.fbx",
+      "texture": "Texture/FX/Yasuo/color_yasuo_r_sword_glow.png"
+    },
+    {
+      "key": "fx.yasuo.w_windwall",
+      "mesh": "Texture/FX/Yasuo/fbx/yasuo_w_windwall_mesh.fbx",
+      "texture": "Texture/FX/Yasuo/color_yasuo_w_windwall_dust.png"
+    }
+  ]
+}

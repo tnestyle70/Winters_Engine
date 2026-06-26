@@ -782,8 +782,8 @@ void CGameRoom::SanitizeServerMoversOnNavGrid()
         std::function<void(EntityID, SpatialAgentComponent&, TransformComponent&)>(
             [&](EntityID entity, SpatialAgentComponent& agent, TransformComponent& transform)
             {
-                if (agent.kind != eSpatialKind::Champion &&
-                    agent.kind != eSpatialKind::Minion)
+                if (agent.kind != eSpatialKind::Character &&
+                    agent.kind != eSpatialKind::Unit)
                 {
                     return;
                 }

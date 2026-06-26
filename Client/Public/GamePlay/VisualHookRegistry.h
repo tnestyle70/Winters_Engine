@@ -1,5 +1,5 @@
 #pragma once
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
 #include <functional>
 #include <unordered_map>

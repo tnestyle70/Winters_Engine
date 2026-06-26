@@ -1,4 +1,4 @@
-﻿#include "GameObject/Champion/Garen/Garen_Skills.h"
+#include "GameObject/Champion/Garen/Garen_Skills.h"
 
 #include "GameObject/SkillDef.h"
 #include "GamePlay/SkillHookRegistry.h"
@@ -51,7 +51,7 @@ namespace
                     continue;
 
                 SkillDef s = *legacy;
-                s.castFrameHookId = ResolveGarenCastHook(slot);
+                s.castHookId = ResolveGarenCastHook(slot);
                 CSkillRegistry::Instance().Add(eChampion::GAREN, slot, s);
             }
 

@@ -4,7 +4,7 @@
 #include "GameObject/ChampionVisualData.h"
 #include "GameObject/SkillDef.h"
 #include "GameObject/SkillVisualData.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/ChampionGameData.h"
 #include "Shared/GameSim/Definitions/SkillAtomData.h"
 

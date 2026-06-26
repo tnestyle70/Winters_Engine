@@ -32,7 +32,7 @@ public:
 	void	UpdateTransform(const Mat4& matWorld);
 	void	SetYawTraceContext(u64_t snapshotTick,
 		u32_t entity,
-		u32_t champion,
+		u32_t subject,
 		u32_t commandSeq,
 		f32_t expectedYaw,
 		const Vec3& expectedForward);

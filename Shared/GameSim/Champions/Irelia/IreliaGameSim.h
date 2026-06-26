@@ -8,15 +8,13 @@ struct TickContext;
 
 namespace IreliaGameSim
 {
-	inline constexpr f32_t kQDashStopGap = 1.35f;
-
-	inline Vec3 ResolveQDashEndPos(const Vec3& casterPos, const Vec3& targetPos)
+	inline Vec3 ResolveQDashEndPos(const Vec3& casterPos, const Vec3& targetPos, f32_t dashStopGap)
 	{
 		const Vec3 dir = WintersMath::DirectionXZ(casterPos, targetPos, Vec3{});
 		return Vec3{
-			targetPos.x - dir.x * kQDashStopGap,
+			targetPos.x - dir.x * dashStopGap,
 			casterPos.y,
-			targetPos.z - dir.z * kQDashStopGap
+			targetPos.z - dir.z * dashStopGap
 		};
 	}
 

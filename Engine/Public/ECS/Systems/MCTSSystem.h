@@ -23,7 +23,7 @@ public:
         return p;
     }
 
-    // Phase 10 keeps MCTS separate from BT(8) and YoneSoul(9).
+    // Phase 10 keeps MCTS separate from BT(8) and custom gameplay pass(9).
     u32_t GetPhase() const override { return 10; }
     const char* GetName() const override { return "MCTSSystem"; }
     void Execute(CWorld& world, f32_t fTimeDelta) override;

@@ -13,7 +13,7 @@ struct SkillProjectileComponent;
 class CServerProjectileAuthority final
 {
 public:
-    inline static constexpr u16_t kTurretProjectileKind = 100u;
+    inline static constexpr u16_t kStructureProjectileKind = 100u;
     inline static constexpr f32_t kMinionRangedProjectileTargetHeight = 0.85f;
 
     static bool_t IsMinionRangedProjectileKind(eProjectileKind kind);

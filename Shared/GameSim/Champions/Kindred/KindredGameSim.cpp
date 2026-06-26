@@ -9,7 +9,7 @@
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 
@@ -19,28 +19,13 @@
 
 namespace
 {
-    constexpr f32_t kKindredWDurationSec = 4.0f;
-    constexpr f32_t kKindredWRadius = 4.0f;
-    constexpr f32_t kKindredWTickSec = 0.60f;
-    constexpr f32_t kKindredWDamage = 35.f;
-    constexpr f32_t kKindredEMarkDurationSec = 4.0f;
-    constexpr f32_t kKindredESlowDurationSec = 1.0f;
-    constexpr f32_t kKindredESlowMoveSpeedMul = 0.65f;
-    constexpr f32_t kKindredEPounceBonusDamage = 80.f;
-    constexpr f32_t kKindredRDurationSec = 4.0f;
-    constexpr f32_t kKindredRRadius = 6.0f;
-    constexpr f32_t kKindredRMinHealth = 1.0f;
-    constexpr f32_t kKindredRHealByRank[3] = { 250.f, 325.f, 400.f };
-    constexpr f32_t kKindredRHealBaseAmount = 250.f;
-    constexpr f32_t kKindredRHealAmountPerRank = 75.f;
-
     f32_t ResolveKindredSkillEffectParam(
         CWorld& world,
         const TickContext& tc,
         EntityID caster,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         return GameplayDefinitionQuery::ResolveSkillEffectParam(
             world,
@@ -56,7 +41,7 @@ namespace
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -94,15 +79,13 @@ namespace
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::HealBaseAmount,
-            kKindredRHealBaseAmount);
+            eSkillEffectParamId::HealBaseAmount);
         const f32_t amountPerRank = ResolveKindredSkillEffectParam(
             world,
             tc,
             caster,
             eSkillSlot::R,
-            eSkillEffectParamId::HealAmountPerRank,
-            kKindredRHealAmountPerRank);
+            eSkillEffectParamId::HealAmountPerRank);
         return baseAmount + amountPerRank * static_cast<f32_t>(clampedRank - 1u);
     }
 
@@ -148,9 +131,9 @@ namespace
         const KindredSimComponent& state)
     {
         const f32_t radius = ResolveKindredSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Radius, kKindredRRadius);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Radius);
         const f32_t minHealth = ResolveKindredSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::MinHealthAmount, kKindredRMinHealth);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::MinHealthAmount);
         const f32_t radiusSq = radius * radius;
 
         world.ForEach<ChampionComponent, TransformComponent>(
@@ -200,7 +183,7 @@ namespace
             return;
 
         const f32_t radius = ResolveKindredSkillEffectParam(
-            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Radius, kKindredRRadius);
+            world, tc, caster, eSkillSlot::R, eSkillEffectParamId::Radius);
         const f32_t radiusSq = radius * radius;
         world.ForEach<ChampionComponent, TransformComponent>(
             std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
@@ -314,9 +297,9 @@ namespace
         EntityID target)
     {
         const f32_t slowDurationSec = ResolveKindredSkillEffectParam(
-            world, tc, caster, eSkillSlot::E, eSkillEffectParamId::SlowDurationSec, kKindredESlowDurationSec);
+            world, tc, caster, eSkillSlot::E, eSkillEffectParamId::SlowDurationSec);
         const f32_t slowMoveSpeedMul = ResolveKindredSkillEffectParam(
-            world, tc, caster, eSkillSlot::E, eSkillEffectParamId::MoveSpeedMul, kKindredESlowMoveSpeedMul);
+            world, tc, caster, eSkillSlot::E, eSkillEffectParamId::MoveSpeedMul);
         GameplayStatus::ApplySlow(
             world,
             tc,
@@ -401,9 +384,9 @@ namespace
 
         KindredSimComponent& state = EnsureKindredState(*ctx.pWorld, ctx.casterEntity);
         state.fWRemainingSec = ResolveKindredSkillEffectParam(
-            ctx, eSkillSlot::W, eSkillEffectParamId::EffectDurationSec, kKindredWDurationSec);
+            ctx, eSkillSlot::W, eSkillEffectParamId::EffectDurationSec);
         state.fWTickAccumulatorSec = ResolveKindredSkillEffectParam(
-            ctx, eSkillSlot::W, eSkillEffectParamId::TickIntervalSec, kKindredWTickSec);
+            ctx, eSkillSlot::W, eSkillEffectParamId::TickIntervalSec);
         state.vWCenter = center;
 
         std::cout << "[KindredSim] W wolf frenzy caster="
@@ -420,7 +403,7 @@ namespace
         state.markedTarget = ctx.pCommand->targetEntity;
         state.mountingDreadHitCount = 0;
         state.fEMarkRemainingSec = ResolveKindredSkillEffectParam(
-            ctx, eSkillSlot::E, eSkillEffectParamId::MarkDurationSec, kKindredEMarkDurationSec);
+            ctx, eSkillSlot::E, eSkillEffectParamId::MarkDurationSec);
         ApplyMountingDreadSlow(
             *ctx.pWorld,
             *ctx.pTickCtx,
@@ -443,7 +426,7 @@ namespace
 
         KindredSimComponent& state = EnsureKindredState(*ctx.pWorld, ctx.casterEntity);
         state.fRRemainingSec = ResolveKindredSkillEffectParam(
-            ctx, eSkillSlot::R, eSkillEffectParamId::EffectDurationSec, kKindredRDurationSec);
+            ctx, eSkillSlot::R, eSkillEffectParamId::EffectDurationSec);
         state.fRHealAmount = ResolveKindredRHealAmount(
             *ctx.pWorld, *ctx.pTickCtx, ctx.casterEntity, ctx.skillRank);
         state.vRCenter = center;
@@ -502,18 +485,18 @@ namespace KindredGameSim
 
                     const f32_t tickIntervalSec = ResolveKindredSkillEffectParam(
                         world, tc, entity, eSkillSlot::W,
-                        eSkillEffectParamId::TickIntervalSec, kKindredWTickSec);
+                        eSkillEffectParamId::TickIntervalSec);
                     state.fWTickAccumulatorSec += tickIntervalSec;
                     const f32_t wolfRadius = ResolveKindredSkillEffectParam(
                         world, tc, entity, eSkillSlot::W,
-                        eSkillEffectParamId::Radius, kKindredWRadius);
+                        eSkillEffectParamId::Radius);
                     const EntityID target =
                         FindWolfTarget(world, entity, champion.team, state.vWCenter, wolfRadius);
                     if (target != NULL_ENTITY)
                     {
                         const f32_t wDamage = ResolveKindredSkillEffectParam(
                             world, tc, entity, eSkillSlot::W,
-                            eSkillEffectParamId::BaseDamage, kKindredWDamage);
+                            eSkillEffectParamId::BaseDamage);
                         EnqueuePhysicalDamage(
                             world,
                             entity,
@@ -526,9 +509,14 @@ namespace KindredGameSim
                 }));
     }
 
-    f32_t GetUltimateDurationSec()
+    f32_t ResolveUltimateDurationSec(CWorld& world, const TickContext& tc, EntityID caster)
     {
-        return kKindredRDurationSec;
+        return ResolveKindredSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::EffectDurationSec);
     }
 
     f32_t ConsumeBasicAttackDamage(
@@ -561,7 +549,7 @@ namespace KindredGameSim
 
         const f32_t pounceBonusDamage = ResolveKindredSkillEffectParam(
             world, tc, caster, eSkillSlot::E,
-            eSkillEffectParamId::BaseDamage, kKindredEPounceBonusDamage);
+            eSkillEffectParamId::BaseDamage);
 
         std::cout << "[KindredSim] E wolf pounce caster="
             << caster << " target=" << target << "\n";

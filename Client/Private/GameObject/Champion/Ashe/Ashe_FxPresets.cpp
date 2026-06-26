@@ -8,38 +8,38 @@
 namespace
 {
     constexpr const wchar_t* kPathArrowGlowTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_ba_glow.png";
+        L"Texture/Character/Ashe/particles/ashe_base_ba_glow.png";
     constexpr const wchar_t* kPathArrowTrailTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_ba_mist_trail.png";
+        L"Texture/Character/Ashe/particles/ashe_base_ba_mist_trail.png";
     constexpr const wchar_t* kPathFrostHitTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_ba_color-rampdownfrost.png";
+        L"Texture/Character/Ashe/particles/ashe_base_ba_color-rampdownfrost.png";
     constexpr const wchar_t* kPathQBuffTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_q_buf.png";
+        L"Texture/Character/Ashe/particles/ashe_base_q_buf.png";
     constexpr const wchar_t* kPathQReadyTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_q_ready_brightsparks.png";
+        L"Texture/Character/Ashe/particles/ashe_base_q_ready_brightsparks.png";
     constexpr const wchar_t* kPathQDiffuseTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_q_buff_diffuse.png";
+        L"Texture/Character/Ashe/particles/ashe_base_q_buff_diffuse.png";
     constexpr const wchar_t* kPathWArrowTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_aa_arrowtext.png";
+        L"Texture/Character/Ashe/particles/ashe_base_aa_arrowtext.png";
     constexpr const wchar_t* kPathWMuzzleTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_q_bow_sparks.png";
+        L"Texture/Character/Ashe/particles/ashe_base_q_bow_sparks.png";
     constexpr const wchar_t* kPathEHawkTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_e_textureowl.png";
+        L"Texture/Character/Ashe/particles/ashe_base_e_textureowl.png";
     constexpr const wchar_t* kPathRChargeTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_q_ready_brightsparks_star.png";
+        L"Texture/Character/Ashe/particles/ashe_base_q_ready_brightsparks_star.png";
     constexpr const wchar_t* kPathRArrowTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_q_mis_star.png";
+        L"Texture/Character/Ashe/particles/ashe_base_q_mis_star.png";
     constexpr const wchar_t* kPathRStunTex =
-        L"Client/Bin/Resource/Texture/Character/Ashe/particles/ashe_base_ba_ashe_teal_sparkle.png";
+        L"Texture/Character/Ashe/particles/ashe_base_ba_ashe_teal_sparkle.png";
 
     constexpr const char* kFbxBAArrow =
-        "Client/Bin/Resource/Texture/Character/Ashe/particles/fbx/ashe_base_aa_arrow.fbx";
+        "Texture/Character/Ashe/particles/fbx/ashe_base_aa_arrow.fbx";
     constexpr const char* kFbxQBuffSphere =
-        "Client/Bin/Resource/Texture/Character/Ashe/particles/fbx/ashe_base_q_buf_attack_sphere.fbx";
+        "Texture/Character/Ashe/particles/fbx/ashe_base_q_buf_attack_sphere.fbx";
     constexpr const char* kFbxWVolleySwirl =
-        "Client/Bin/Resource/Texture/Character/Ashe/particles/fbx/ashe_base_w_swirlmesh03.fbx";
+        "Texture/Character/Ashe/particles/fbx/ashe_base_w_swirlmesh03.fbx";
     constexpr const char* kFbxRArrow =
-        "Client/Bin/Resource/Texture/Character/Ashe/particles/fbx/ashe_base_r_arrow.fbx";
+        "Texture/Character/Ashe/particles/fbx/ashe_base_r_arrow.fbx";
 
     constexpr f32_t kArrowMeshYawOffset = -1.57079632679f;
     const Vec3 kBAArrowMeshScale{ 0.021f, 0.021f, 0.021f };

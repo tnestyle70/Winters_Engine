@@ -1,5 +1,6 @@
 #include "GameRoomSmokeRoster.h"
 
+#include "GameRoomInternal.h"
 #include "Game/LobbyAuthority.h"
 
 #include <Windows.h>
@@ -91,5 +92,5 @@ void EnsureRedSylasSmokeRoster(LobbySlotState* pSlots, u32_t slotCount)
     dummy.champion = eChampion::SYLAS;
     dummy.botDifficulty = 0;
 
-    WintersOutputAIDebugStringA("[Smoke] red Sylas dummy enabled slot=5 pos=(36,1,-6)\n");
+    OutputServerAITrace("[Smoke] red Sylas dummy enabled slot=5 pos=(36,1,-6)\n");
 }

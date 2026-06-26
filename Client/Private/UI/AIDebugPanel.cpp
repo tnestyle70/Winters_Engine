@@ -1,7 +1,7 @@
 #include "Network/Client/ClientNetwork.h"
 #include "UI/AIDebugPanel.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
 #include "Network/Client/CommandSerializer.h"
@@ -209,7 +209,7 @@ namespace
 		case eChampionAIAction::FollowWave:
 			return kChampionAIActionBitFollowWave;
 		case eChampionAIAction::AttackMinion:
-			return kChampionAIActionBitAttackMinion;
+			return kChampionAIActionBitAttackUnit;
 		case eChampionAIAction::AttackChampion:
 			return kChampionAIActionBitAttackChampion;
 		case eChampionAIAction::AttackStructure:

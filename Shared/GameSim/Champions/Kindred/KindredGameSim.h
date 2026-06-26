@@ -2,7 +2,7 @@
 
 #include "WintersTypes.h"
 #include "ECS/Entity.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 
 class CWorld;
 struct TickContext;
@@ -11,7 +11,7 @@ namespace KindredGameSim
 {
 	void RegisterHooks();
 	void Tick(CWorld& world, const TickContext& tc);
-	f32_t GetUltimateDurationSec();
+	f32_t ResolveUltimateDurationSec(CWorld& world, const TickContext& tc, EntityID caster);
 	f32_t ConsumeBasicAttackDamage(
 		CWorld& world,
 		const TickContext& tc,

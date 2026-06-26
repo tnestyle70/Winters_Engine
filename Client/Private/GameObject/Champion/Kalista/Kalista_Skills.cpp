@@ -5,7 +5,7 @@
 #include "GameObject/Champion/Kalista/Kalista_Tuning.h"
 
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Renderer/ModelRenderer.h"
 #include "Resource/Animation.h"

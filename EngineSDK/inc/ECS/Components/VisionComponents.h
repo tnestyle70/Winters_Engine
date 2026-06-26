@@ -4,14 +4,13 @@
 #include "WintersMath.h"
 #include "WintersTypes.h"
 #include "ECS/Entity.h"
-#include "ECS/Components/GameplayComponents.h"
 
 struct VisionSourceComponent
 {
     f32_t  sightRange = 12.f;
     bool_t bTrueSight = false;
     bool_t bFlying = false;
-    f32_t  sightRangeInBush = 0.f;
+    f32_t  sightRangeInConcealment = 0.f;
 };
 
 struct VisionConeComponent
@@ -23,22 +22,22 @@ struct VisionConeComponent
 struct VisibilityComponent
 {
     u8_t teamVisibilityMask = 0;
-    bool_t bInBush = false;
-    EntityID bushId = NULL_ENTITY;
+    bool_t bInConcealment = false;
+    EntityID concealmentId = NULL_ENTITY;
 };
 
-struct BushVolumeComponent
+struct ConcealmentVolumeComponent
 {
     Vec3 center{};
     f32_t radius = 4.f;
-    u32_t bushId = 0;
+    u32_t volumeId = 0;
 };
 
-struct WardComponent
+struct VisionSensorComponent
 {
     f32_t remainingDuration = 90.f;
-    eTeam ownerTeam = eTeam::Blue;
-    bool_t bControlWard = false;
+    u8_t ownerTeam = 0u;
+    bool_t bControlSensor = false;
 };
 
 struct LocalPlayerVisionTag {};

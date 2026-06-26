@@ -1,6 +1,6 @@
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAISystem.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
@@ -282,8 +282,8 @@ namespace
         f32_t bestScore = (std::numeric_limits<f32_t>::max)();
         const f32_t maxRangeSq = maxRange > 0.f ? maxRange * maxRange : 49.f;
 
-        world.ForEach<LeeSinWardOwnerComponent, WardComponent, TransformComponent>(
-            [&](EntityID entity, LeeSinWardOwnerComponent& wardOwner, WardComponent&, TransformComponent& transform)
+        world.ForEach<LeeSinWardOwnerComponent, VisionSensorComponent, TransformComponent>(
+            [&](EntityID entity, LeeSinWardOwnerComponent& wardOwner, VisionSensorComponent&, TransformComponent& transform)
             {
                 if (wardOwner.owner != owner)
                     return;
@@ -1754,7 +1754,7 @@ namespace
         case eChampionAIAction::FollowWave:
             return kChampionAIActionBitFollowWave;
         case eChampionAIAction::AttackMinion:
-            return kChampionAIActionBitAttackMinion;
+            return kChampionAIActionBitAttackUnit;
         case eChampionAIAction::AttackChampion:
             return kChampionAIActionBitAttackChampion;
         case eChampionAIAction::AttackStructure:
@@ -1786,7 +1786,7 @@ namespace
             kChampionAIActionBitRetreat;
 
         if (ctx.enemyMinion != NULL_ENTITY)
-            mask |= kChampionAIActionBitAttackMinion;
+            mask |= kChampionAIActionBitAttackUnit;
         if (CanAttackChampion(ai, ctx))
             mask |= kChampionAIActionBitAttackChampion;
         if (ctx.enemyStructure != NULL_ENTITY &&

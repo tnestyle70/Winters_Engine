@@ -263,6 +263,8 @@ S-4. 전환 : 소비 경로(reader)만 pack/query로 바꾼다. 이 단계에서
 S-5. 검증 : §6 게이트(freshness, audit, parity, build, SimLab same-seed/seed+1, git diff) 통과.
 S-6. 삭제 : 해당 legacy 경로 reader count == 0 확인 후에만 삭제. (보통 Phase 말미 P8에서 일괄)
 S-7. 보고 : §7 리포트 1건 작성(`.md/TODO/<날짜>/`).
+S-8. 목표 점수판 갱신 : `Tools/LoLData/Get-LoLDataDrivenGoalStatus.ps1`로 북극성 요구사항별 달성률을 기록한다.
+S-9. 다음 slice 선택 : 미달 goal 중 P3 -> P4 -> P5 -> P6 -> P7 -> P8 순서로 가장 이른 phase를 먼저 고른다. 같은 phase 안에서는 `remaining`이 큰 항목을 우선한다.
 ```
 
 핵심: **S-4 까지는 SimLab same-seed 해시가 변하면 안 된다.** 변했다면 값이 byte-identical이 아니거나 동작이 바뀐 것이므로 중단하고 원인 분석.
@@ -272,6 +274,10 @@ S-7. 보고 : §7 리포트 1건 작성(`.md/TODO/<날짜>/`).
 ## 6. 검증 게이트 (모든 slice 공통)
 
 실행: `powershell -ExecutionPolicy Bypass -File Tools/LoLData/Verify-LoLDataDrivenPipeline.ps1`
+
+목표 상태만 확인: `powershell -ExecutionPolicy Bypass -File Tools/LoLData/Get-LoLDataDrivenGoalStatus.ps1`
+
+목표 루프 실행: `powershell -ExecutionPolicy Bypass -File Tools/LoLData/Run-LoLDataDrivenGoalLoop.ps1`
 
 ```text
 G0 Freshness : Build-LoLDefinitionPack.py --check (generated가 source와 일치)

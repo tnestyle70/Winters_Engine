@@ -1,6 +1,6 @@
 ﻿#include "GameObject/Champion/Yasuo/YasuoProjectileSystem.h"
 #include "GameObject/FX/WindWallSystem.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
 #include "ProfilerAPI.h"

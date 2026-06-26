@@ -4,7 +4,6 @@
 #include "Renderer/UIRenderer.h"
 #include "Manager/UI/Font_Manager.h"
 #include "Manager/UI/UIAtlasManifest.h"
-#include "../../../../Shared/GameSim/Definitions/ItemDef.h"
 #include "RHI/IRHIDevice.h"
 #include "RHI/RHITypes.h"
 #include "WintersPaths.h"
@@ -85,7 +84,7 @@ namespace Engine
         m_pShopAtlasManifest = std::make_unique<CUIAtlasManifest>();
         const bool_t bShopAtlasLoaded =
             m_pShopAtlasManifest->LoadFromJson(L"Resource/UI/itemshop_atlas_manifest.json") ||
-            m_pShopAtlasManifest->LoadFromJson(L"Client/Bin/Resource/UI/itemshop_atlas_manifest.json");
+            m_pShopAtlasManifest->LoadFromJson(L"UI/itemshop_atlas_manifest.json");
         if (bShopAtlasLoaded)
         {
             m_pShopAtlasManifest->ForEachTexture(
@@ -117,9 +116,9 @@ namespace Engine
         if (m_pLua)
         {
             if (!m_pLua->LoadFile(L"Resource/UI/Lua/itemshop_catalog.lua"))
-                m_pLua->LoadFile(L"Client/Bin/Resource/UI/Lua/itemshop_catalog.lua");
+                m_pLua->LoadFile(L"UI/Lua/itemshop_catalog.lua");
             if (!m_pLua->LoadFile(L"Resource/UI/Lua/ui_boot.lua"))
-                m_pLua->LoadFile(L"Client/Bin/Resource/UI/Lua/ui_boot.lua");
+                m_pLua->LoadFile(L"UI/Lua/ui_boot.lua");
         }
     }
 
@@ -128,7 +127,7 @@ namespace Engine
         m_strActiveScreen = (pScreenID && pScreenID[0] != '\0') ? pScreenID : "InGame";
     }
 
-    void CLuaUIHost::SetChampionHUDState(const ChampionHUDState& State)
+    void CLuaUIHost::SetActorHUDState(const ActorHUDState& State)
     {
         m_HudState = State;
     }
@@ -361,7 +360,7 @@ namespace Engine
     {
         CLuaUIHost* pHost = GetHost(pState);
         const u16_t ItemId = static_cast<u16_t>(luaL_checkinteger(pState, 1));
-        if (pHost && pHost->m_pfnBuyItem && CItemRegistry::Instance().Find(ItemId))
+        if (pHost && pHost->m_pfnBuyItem)
             pHost->m_pfnBuyItem(pHost->m_pBuyItemUser, ItemId);
         return 0;
     }

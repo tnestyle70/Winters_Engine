@@ -4,14 +4,14 @@
 
 namespace
 {
-    constexpr u16_t kTurretProjectileKind = 100;
+    constexpr u16_t kStructureProjectileKind = 100;
 
     constexpr const wchar_t* kGenericProjectileTexture =
-        L"Client/Bin/Resource/Texture/FX/Kalista/common_glowring_blue.png";
+        L"Texture/FX/Kalista/common_glowring_blue.png";
     constexpr const wchar_t* kGenericProjectileHitTexture =
-        L"Client/Bin/Resource/Texture/FX/Kalista/common_fire-sphere32.png";
+        L"Texture/FX/Kalista/common_fire-sphere32.png";
     constexpr const wchar_t* kEzrealQHitTexture =
-        L"Client/Bin/Resource/Texture/Character/Ezreal/particles/ezreal_base_q_hit_spark.png";
+        L"Texture/Character/Ezreal/particles/ezreal_base_q_hit_spark.png";
 
     constexpr ProjectileVisualDesc kGenericProjectileVisual{
         nullptr, nullptr, nullptr,
@@ -69,7 +69,7 @@ namespace
         true, true
     };
 
-    constexpr ProjectileVisualDesc kTurretProjectileVisual{
+    constexpr ProjectileVisualDesc kStructureProjectileVisual{
         "Turret.Projectile.Red", "Turret.Projectile.Hit.Red", nullptr,
         nullptr, nullptr,
         0.8f, 0.8f, 1.4f, 1.4f,
@@ -95,8 +95,8 @@ namespace ProjectileVisualCatalog
 {
     const ProjectileVisualDesc& Resolve(u16_t kind)
     {
-        if (IsTurretProjectileKind(kind))
-            return kTurretProjectileVisual;
+        if (IsStructureProjectileKind(kind))
+            return kStructureProjectileVisual;
 
         switch (static_cast<eProjectileKind>(kind))
         {
@@ -125,8 +125,8 @@ namespace ProjectileVisualCatalog
         }
     }
 
-    bool_t IsTurretProjectileKind(u16_t kind)
+    bool_t IsStructureProjectileKind(u16_t kind)
     {
-        return kind == kTurretProjectileKind;
+        return kind == kStructureProjectileKind;
     }
 }

@@ -37,11 +37,25 @@ function Write-JsonFile {
     Set-Content -Path $Path -Value $json -Encoding UTF8
 }
 
-$sourcePath = Resolve-RepoPath "Data\Gameplay\ChampionGameData\champions.json"
+$sourcePath = Resolve-RepoPath "Data\LoL\ClientPublic\Visual\ChampionVisualDefs.json"
 $outputPathResolved = Resolve-RepoPath $OutputPath
 $reportPathResolved = Resolve-RepoPath $ReportPath
 
 $source = Get-Content -Raw -Encoding UTF8 -Path $sourcePath | ConvertFrom-Json
+
+function Resolve-SkillSlot {
+    param([string]$Key)
+
+    $name = ($Key -split "\.")[-1]
+    switch ($name) {
+        "basic_attack" { return 0 }
+        "q" { return 1 }
+        "w" { return 2 }
+        "e" { return 3 }
+        "r" { return 4 }
+        default { throw "unknown skill key: $Key" }
+    }
+}
 
 $championVisualRows = New-Object System.Collections.Generic.List[object]
 $stageCount = 0
@@ -52,7 +66,7 @@ foreach ($champion in $source.champions) {
     $skillStageRows = New-Object System.Collections.Generic.List[object]
 
     foreach ($skill in $champion.skills) {
-        $slot = [int]$skill.slot
+        $slot = Resolve-SkillSlot ([string]$skill.key)
         $stageNumber = 1
 
         foreach ($stage in $skill.stages) {
@@ -61,14 +75,14 @@ foreach ($champion in $source.champions) {
             $row = [ordered]@{
                 slot = $slot
                 stage = $stageNumber
-                playbackSpeed = [double]$stage.animPlaySpeed
+                playbackSpeed = [double]$stage.animationPlaybackSpeed
                 castFrame = [double]$stage.castFrame
                 recoveryFrame = [double]$stage.recoveryFrame
             }
 
             $skillStageRows.Add($row)
 
-            if ($row.playbackSpeed -ne [double]$stage.animPlaySpeed -or
+            if ($row.playbackSpeed -ne [double]$stage.animationPlaybackSpeed -or
                 $row.castFrame -ne [double]$stage.castFrame -or
                 $row.recoveryFrame -ne [double]$stage.recoveryFrame) {
                 ++$mismatchCount
@@ -85,16 +99,15 @@ foreach ($champion in $source.champions) {
     }
 
     $championVisualRows.Add([ordered]@{
-        champion = [string]$champion.champion
-        dataVersion = [int]$champion.dataVersion
-        modelYawOffset = [double]$champion.visualYawOffset
+        champion = [string]$champion.key
+        modelYawOffset = [double]$champion.modelYawOffsetRadians
         skillStages = $skillStageRows
     })
 }
 
 $seed = [ordered]@{
     schemaVersion = 1
-    source = "Data/Gameplay/ChampionGameData/champions.json"
+    source = "Data/LoL/ClientPublic/Visual/ChampionVisualDefs.json"
     sourceSchemaVersion = [int]$source.schemaVersion
     champions = $championVisualRows
 }

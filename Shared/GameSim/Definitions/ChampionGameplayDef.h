@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameContext.h"
+#include "LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/DefinitionIds.h"
 #include "WintersTypes.h"
 
@@ -38,6 +38,13 @@ struct PassiveDashGameplayDef
     f32_t inputGraceSec = 0.f;
 };
 
+struct PassiveSoulGameplayDef
+{
+    bool_t bValid = false;
+    f32_t lifetimeSec = 0.f;
+    f32_t radius = 0.f;
+};
+
 struct ChampionGameplayDef
 {
     DefinitionKey key = kInvalidDefinitionKey;
@@ -48,4 +55,5 @@ struct ChampionGameplayDef
     ChampionStatBlock stats{};
     SkillDefId skillLoadout[kChampionSkillSlotCount] = {};
     PassiveDashGameplayDef passiveDash{};
+    PassiveSoulGameplayDef passiveSoul{};
 };

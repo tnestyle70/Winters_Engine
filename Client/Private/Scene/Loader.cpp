@@ -1,15 +1,16 @@
-﻿#include "Scene/Loader.h"
+#include "Scene/Loader.h"
 #include "GameInstance.h"
 #include "ECS/Systems/EntityBlueprint.h"
 #include "ECS/World.h"
 #include "ECS/Components/TransformComponent.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 
 #include "Core/JobCounter.h"
 #include "Core/JobSystem.h"
 #include "GameObject/ChampionDef.h"
 #include "GameObject/FX/FxCuePlayer.h"
 #include "GamePlay/ChampionCatalog.h"
+#include "GamePlay/LoLMatchContextRuntime.h"
 #include "Scene/InGameRosterSpawner.h"
 #include "Scene/LobbyRosterHelpers.h"
 
@@ -22,7 +23,7 @@ NS_BEGIN(Client)
 namespace
 {
     constexpr const char* kSummonersRiftMapModelPath =
-        "Client/Bin/Resource/Texture/MAP/output/sr_base_flip.wmesh";
+        "Texture/MAP/output/sr_base_flip.wmesh";
 
     bool_t IsLoadableChampion(eChampion eChampionId)
     {
@@ -45,7 +46,7 @@ std::unique_ptr<CLoader> CLoader::Create(eSceneID eNextSceneID, SceneFactory pFa
     auto pInstance = std::unique_ptr<CLoader>(new CLoader());
     pInstance->m_eNextSceneID = eNextSceneID;
     pInstance->m_pFactory = std::move(pFactory);
-    pInstance->m_LoadContext = CGameInstance::Get()->Get_GameContext();
+    pInstance->m_LoadContext = Client::CLoLMatchContextRuntime::Instance().Context();
 
     if (eNextSceneID == eSceneID::InGame)
     {

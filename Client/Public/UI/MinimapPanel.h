@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
 
@@ -37,9 +38,9 @@ namespace UI
 
     struct MinimapProjection
     {
-        Vec2 vWorldAtUv00{ 96.59f, 157.20f };
-        Vec2 vWorldAtUv10{ 199.28f, 0.04f };
-        Vec2 vWorldAtUv01{ 10.51f, 0.98f };
+        Vec2 vWorldAtUv00{ 104.50f, 181.02f };
+        Vec2 vWorldAtUv10{ 285.52f, 0.00f };
+        Vec2 vWorldAtUv01{ -76.52f, 0.00f };
     };
 
     struct MinimapFrameState

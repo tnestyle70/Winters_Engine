@@ -5,7 +5,7 @@
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "WintersMath.h"
@@ -16,17 +16,11 @@
 
 namespace
 {
-    constexpr f32_t kRivenQStackWindowSec = 4.0f;
-    constexpr f32_t kRivenQ3Radius = 2.25f;
-    constexpr f32_t kRivenQ3AirborneDurationSec = 0.75f;
-    constexpr f32_t kRivenWRadius = 2.5f;
-    constexpr f32_t kRivenWStunDurationSec = 0.75f;
-
     f32_t ResolveRivenSkillEffectParam(
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -90,18 +84,15 @@ namespace
         const f32_t q3Radius = ResolveRivenSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::Radius,
-            kRivenQ3Radius);
+            eSkillEffectParamId::Radius);
         const f32_t q3AirborneDurationSec = ResolveRivenSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::AirborneDurationSec,
-            kRivenQ3AirborneDurationSec);
+            eSkillEffectParamId::AirborneDurationSec);
         const f32_t qStackWindowSec = ResolveRivenSkillEffectParam(
             ctx,
             eSkillSlot::Q,
-            eSkillEffectParamId::StackWindowSec,
-            kRivenQStackWindowSec);
+            eSkillEffectParamId::StackWindowSec);
 
         if (nextStack >= 3u)
         {
@@ -144,13 +135,11 @@ namespace
         const f32_t wRadius = ResolveRivenSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::Radius,
-            kRivenWRadius);
+            eSkillEffectParamId::Radius);
         const f32_t wStunDurationSec = ResolveRivenSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::StunDurationSec,
-            kRivenWStunDurationSec);
+            eSkillEffectParamId::StunDurationSec);
         ForEachEnemyChampionInRadius(
             world,
             ctx.casterEntity,

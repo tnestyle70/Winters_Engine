@@ -18,8 +18,8 @@
 
 namespace
 {
-    constexpr const char* kPathBladeModel = "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_blade.fbx";
-    constexpr const wchar_t* kPathBladeTexture = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_blades_passive_4_texture.png";
+    constexpr const char* kPathBladeModel = "Texture/FX/Irelia/fbx/irelia_base_e_blade.fbx";
+    constexpr const wchar_t* kPathBladeTexture = L"Texture/FX/Irelia/irelia_base_blades_passive_4_texture.png";
 
     void MarkFxPendingDelete(CWorld& world, EntityID fxID)
     {

@@ -134,6 +134,8 @@
     <ClCompile Include="..\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp" />
     <ClCompile Include="..\Systems\Stat\StatSystem.cpp" />
     <ClCompile Include="..\Systems\StatusEffect\StatusEffectSystem.cpp" />
+    <ClCompile Include="..\Systems\Turret\TurretAISystem.cpp" />
+    <ClCompile Include="..\Systems\Turret\StructureProjectileSystem.cpp" />
     <ClCompile Include="..\Systems\WaypointPatrol\WaypointPatrolSystem.cpp" />
   </ItemGroup>
   <Target Name="FlatcCodegen" BeforeTargets="ClCompile">

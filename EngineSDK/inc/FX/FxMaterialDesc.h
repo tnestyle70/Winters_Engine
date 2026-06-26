@@ -7,12 +7,12 @@
 enum class eFxMaterialStyleMode : u32_t
 {
 	LegacyTint = 0,
-	LOLBrushRim = 1,
+	BrushRim = 1,
 	ToonCell = 2,
 	Gradient = 3,
-	LOLMagicSurface = 4,
-	EldenSmoke = 16,
-	EldenTrail = 17,
+	MagicSurface = 4,
+	VolumetricSmoke = 16,
+	MotionTrail = 17,
 };
 
 struct FxMaterialDesc

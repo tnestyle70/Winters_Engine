@@ -1,4 +1,4 @@
-﻿#include "GamePlay/ChampionRegistry.h"
+#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -28,17 +28,17 @@ namespace
             cd.runAnimKey = "run";
             cd.basicAttackKey = "attack1";
             cd.basicAttackRange = 1.5f;
-            cd.fbxPath = "Client/Bin/Resource/Texture/Character/Viego/viego_fixed.fbx";
+            cd.fbxPath = "Texture/Character/Viego/viego_fixed.fbx";
             cd.shaderPath = L"Shaders/Mesh3D.hlsl";
 
             cd.defaultTexturePath =
-                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_body_tx_cm.png";
+                L"Texture/Character/Viego/viego_base_body_tx_cm.png";
             cd.texturePath[3] =
-                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png";
+                L"Texture/Character/Viego/viego_base_crown_sword_tx_cm.png";
             cd.texturePath[4] =
-                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_crown_sword_tx_cm.png";
+                L"Texture/Character/Viego/viego_base_crown_sword_tx_cm.png";
             cd.texturePath[5] =
-                L"Client/Bin/Resource/Texture/Character/Viego/viego_base_wraith_tx_cm.png";
+                L"Texture/Character/Viego/viego_base_wraith_tx_cm.png";
             cd.spawnPosition = { -30.f, 1.f, 6.f };
             cd.spawnScale = 0.01f;
             cd.displayName = "Viego";
@@ -53,8 +53,8 @@ namespace
                 s.animKey = "attack1";
                 s.lockDurationSec = 0.75f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 6.f; s.recoveryFrame = 14.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kViego_BA_Cast;
+                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kViego_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::VIEGO, 0, s);
             }
             {
@@ -65,8 +65,8 @@ namespace
                 s.animKey = "spell1";
                 s.lockDurationSec = 0.6f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 5.f; s.recoveryFrame = 11.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kViego_Q_Cast;
+                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 11.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kViego_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::VIEGO, 1, s);
             }
             {
@@ -83,11 +83,11 @@ namespace
                 s.stage2LockSec = 0.30f;
                 s.stage2Rotate = eRotateMode::TowardsCursor;
                 s.stageWindowSec = 4.0f;
-                s.castFrame = 0.f; s.recoveryFrame = 7.f;
-                s.stage2CastFrame = 4.f; s.stage2RecoveryFrame = 10.f;
-                s.animPlaySpeed = 1.f;
-                s.stage2PlaySpeed = 1.f;
-                s.castFrameHookId = kViego_W_Cast;
+                s.visualCastFrame = 0.f; s.visualRecoveryFrame = 7.f;
+                s.stage2VisualCastFrame = 4.f; s.stage2VisualRecoveryFrame = 10.f;
+                s.visualPlaySpeed = 1.f;
+                s.stage2VisualPlaySpeed = 1.f;
+                s.castHookId = kViego_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::VIEGO, 2, s);
             }
             {
@@ -98,8 +98,8 @@ namespace
                 s.animKey = "spell3";
                 s.lockDurationSec = 0.75f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 4.f; s.recoveryFrame = 14.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kViego_E_Cast;
+                s.visualCastFrame = 4.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kViego_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::VIEGO, 3, s);
             }
             {
@@ -110,8 +110,8 @@ namespace
                 s.animKey = "spell4";
                 s.lockDurationSec = 0.8f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsCursor;
-                s.castFrame = 10.f; s.recoveryFrame = 18.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kViego_R_Cast;
+                s.visualCastFrame = 10.f; s.visualRecoveryFrame = 18.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kViego_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::VIEGO, 4, s);
             }
 

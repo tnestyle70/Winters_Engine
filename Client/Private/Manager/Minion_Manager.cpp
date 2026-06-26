@@ -1,14 +1,15 @@
 ﻿#define _CRT_SECURE_NO_WARNINGS
 #include "Manager/Minion_Manager.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 #include "Map/MapDataFormats.h"
 #include "ECS/Components/TransformComponent.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/VisionComponents.h"
 #include "ECS/Components/NavAgentComponent.h"
-#include "ECS/Components/MinionPerformanceComponents.h"
+#include "ECS/Components/NavigationThrottleComponent.h"
 #include "ECS/SpatialIndex.h"
 #include "ProfilerAPI.h"
 #include "Scene/RenderVisibilityFilter.h"
@@ -30,10 +31,6 @@ namespace
 {
     static constexpr bool_t kMinionDebugOutput = false;
     static constexpr f32_t kMinionAvoidancePadding = 0.05f;
-    static constexpr const char* kTibbersModelPath =
-        "Client/Bin/Resource/Texture/Character/Annie/tibber.wmesh";
-    static constexpr const wchar_t* kTibbersTexturePath =
-        L"Client/Bin/Resource/Texture/Character/Annie/tibber_base.png";
     static constexpr f32_t kTibbersVisualScale = 0.01f;
     static constexpr f32_t kMinionBaseAnimUpdateInterval = 1.f / 8.f;
     static constexpr f32_t kMinionHighPriorityAnimUpdateInterval = 1.f / 16.f;
@@ -115,9 +112,9 @@ namespace
 
     bool_t IsMinionMoveBlockingKind(eSpatialKind kind)
     {
-        return kind == eSpatialKind::Champion ||
-            kind == eSpatialKind::Minion ||
-            kind == eSpatialKind::JungleMob;
+        return kind == eSpatialKind::Character ||
+            kind == eSpatialKind::Unit ||
+            kind == eSpatialKind::NeutralUnit;
     }
 
     f32_t ResolveAgentRadius(CWorld* pWorld, EntityID entity)
@@ -241,9 +238,9 @@ namespace
             {
                 s_vecSpatialCandidates.clear();
                 constexpr u32_t kMoveBlockerMask =
-                    SpatialMask(eSpatialKind::Champion) |
-                    SpatialMask(eSpatialKind::Minion) |
-                    SpatialMask(eSpatialKind::JungleMob);
+                    SpatialMask(eSpatialKind::Character) |
+                    SpatialMask(eSpatialKind::Unit) |
+                    SpatialMask(eSpatialKind::NeutralUnit);
                 pSpatial->QueryRadius(
                     pos,
                     radius + step + kMinionAvoidancePadding,
@@ -473,7 +470,7 @@ void CMinion_Manager::Tick(f32_t fDeltaTime)
                     return;
                 }
                 // Phase 5-A ?꾩냽: AI 媛 ?寃?援먯쟾 以묒씠硫??⑥씠?ъ씤???대룞 以묐떒.
-                //  CMinionAISystem ??ms.current = Attack ?쇰줈 ?ㅼ젙 ??Manager ???ш린??return.
+                //  CUnitAISystem ??ms.current = Attack ?쇰줈 ?ㅼ젙 ??Manager ???ш린??return.
                 //  ?寃잛쓣 ?껋쑝硫?AI 媛 ms.current = Idle 濡??섎룎由щ?濡??먮룞 蹂듦?.
                 if (ms.current == MinionStateComponent::Attack ||
                     ms.current == MinionStateComponent::Chase ||
@@ -990,7 +987,7 @@ bool_t CMinion_Manager::Ensure_NetworkVisual(EntityID entity, eMinionType eType,
     if (!m_pWorld->HasComponent<SpatialAgentComponent>(entity))
     {
         SpatialAgentComponent spatial{};
-        spatial.kind = eSpatialKind::Minion;
+        spatial.kind = eSpatialKind::Unit;
         spatial.team = static_cast<u8_t>(simTeam);
         spatial.radius = 0.5f;
         m_pWorld->AddComponent<SpatialAgentComponent>(entity, spatial);
@@ -1127,8 +1124,12 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
         OutputMinionDebug(m);
         return NULL_ENTITY;
     }
-    if (eType == eMinionType::Tibbers)
-        pRenderer->LoadTextureForAllMeshes(kTibbersTexturePath);
+    const ClientData::MinionVisualDefinition* pVisual =
+        ClientData::FindMinionVisualDefinition(
+            static_cast<u32_t>(eType),
+            static_cast<u32_t>(eTeamParam));
+    if (pVisual && pVisual->textureAllMeshes.resourceRelativePath)
+        pRenderer->LoadTextureForAllMeshes(pVisual->textureAllMeshes.resourceRelativePath);
 
     // ?좊땲硫붿씠??媛쒖닔 濡쒓렇 + 泥??좊땲 ?먮룞 ?ъ깮 (猷⑦봽)
     const uint32_t animCnt = pRenderer->GetAnimationCount();
@@ -1190,7 +1191,7 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     mc.maxHp = hp.fMaximum;
 
     SpatialAgentComponent spatial{};
-    spatial.kind = eSpatialKind::Minion;
+    spatial.kind = eSpatialKind::Unit;
     spatial.team = static_cast<u8_t>(ms.team);
     spatial.radius = 0.5f;
     m_pWorld->AddComponent<SpatialAgentComponent>(id, spatial);
@@ -1215,7 +1216,7 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     agent.bPathDirty = true;
     m_pWorld->AddComponent<NavAgentComponent>(id, agent);
     // Nav repath throttle state.
-    m_pWorld->AddComponent<MinionNavThrottleComponent>(id);
+    m_pWorld->AddComponent<NavRepathThrottleComponent>(id);
 
     auto& rc = m_pWorld->AddComponent<RenderComponent>(id);
     rc.pRenderer = pRenderer.get();
@@ -1275,8 +1276,12 @@ std::unique_ptr<ModelRenderer> CMinion_Manager::AcquireNetworkRenderer(
     if (!pRenderer->Initialize(pPath, L"Shaders/Mesh3D.hlsl"))
         return nullptr;
 
-    if (eType == eMinionType::Tibbers)
-        pRenderer->LoadTextureForAllMeshes(kTibbersTexturePath);
+    const ClientData::MinionVisualDefinition* pVisual =
+        ClientData::FindMinionVisualDefinition(
+            static_cast<u32_t>(eType),
+            static_cast<u32_t>(eTeam));
+    if (pVisual && pVisual->textureAllMeshes.resourceRelativePath)
+        pRenderer->LoadTextureForAllMeshes(pVisual->textureAllMeshes.resourceRelativePath);
 
     return pRenderer;
 }
@@ -1375,22 +1380,11 @@ void CMinion_Manager::GetWayPoints(eMinionTeam eTeamParam, eMinionWay eWay,
 
 const char* CMinion_Manager::ResolveModelPath(eMinionType eType, eMinionTeam eTeamParam)
 {
-    static const char* paths[2][5] = {
-        { "Client/Bin/Resource/Texture/Object/Minion_Order/Melee/order_melee_textured.wmesh",
-          "Client/Bin/Resource/Texture/Object/Minion_Order/Ranged/order_ranged_textured.wmesh",
-          "Client/Bin/Resource/Texture/Object/Minion_Order/Siege/order_siege_textured.wmesh",
-          "Client/Bin/Resource/Texture/Object/Minion_Order/Super/order_super_textured.wmesh",
-          kTibbersModelPath },
-        { "Client/Bin/Resource/Texture/Object/Minion_Chaos/melee/chaos_melee_textured.wmesh",
-          "Client/Bin/Resource/Texture/Object/Minion_Chaos/ranged/chaos_ranged_textured.wmesh",
-          "Client/Bin/Resource/Texture/Object/Minion_Chaos/siege/chaos_siege_textured.wmesh",
-          "Client/Bin/Resource/Texture/Object/Minion_Chaos/super/chaos_super_textured.wmesh",
-          kTibbersModelPath },
-    };
-    uint32_t ti = (eTeamParam == eMinionTeam::Blue) ? 0 : 1;
-    uint32_t mi = static_cast<uint32_t>(eType);
-    if (mi >= 5) return nullptr;
-    return paths[ti][mi];
+    const ClientData::MinionVisualDefinition* pVisual =
+        ClientData::FindMinionVisualDefinition(
+            static_cast<u32_t>(eType),
+            static_cast<u32_t>(eTeamParam));
+    return pVisual ? pVisual->mesh.resourceRelativePath : nullptr;
 }
 
 void CMinion_Manager::QueueNetworkVisual(EntityID entity,

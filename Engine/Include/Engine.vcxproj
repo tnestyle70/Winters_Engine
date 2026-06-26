@@ -287,7 +287,7 @@
     <ClCompile Include="..\Private\AssetFormat\Mesh\WMeshLoader.cpp" />
     <ClCompile Include="..\Private\AssetFormat\Mesh\WMeshWriter.cpp" />
     <ClCompile Include="..\Private\AI\BehaviorTree.cpp" />
-    <ClCompile Include="..\Private\AI\BTNodes_Champion.cpp" />
+    <ClCompile Include="..\Private\AI\BTNodes_CombatAgent.cpp" />
     <ClCompile Include="..\Private\AI\MCTSPlanner.cpp" />
     <ClCompile Include="..\Private\AI\RLBridge.cpp" />
     <ClCompile Include="..\Private\Core\JobSystem.cpp" />
@@ -302,7 +302,7 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\Private\ECS\CommandBuffer.cpp" />
-    <ClCompile Include="..\Private\ECS\BushVolumeIndex.cpp" />
+    <ClCompile Include="..\Private\ECS\ConcealmentVolumeIndex.cpp" />
     <ClCompile Include="..\Private\ECS\SpatialIndex.cpp" />
     <ClCompile Include="..\Private\ECS\Components\TransformComponent.cpp" />
     <ClCompile Include="..\Private\ECS\SystemScheduler.cpp" />
@@ -311,14 +311,11 @@
     <ClCompile Include="..\Private\ECS\Systems\EntityBlueprint.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\EntityBlueprintRegistry.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\MCTSSystem.cpp" />
-    <ClCompile Include="..\Private\ECS\Systems\MinionAISystem.cpp" />
-    <ClCompile Include="..\Private\ECS\Systems\MinionPerformanceSystem.cpp" />
+    <ClCompile Include="..\Private\ECS\Systems\NavigationThrottleSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\NavigationSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\SpatialHashSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\StatusEffectSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\TransformSystem.cpp" />
-    <ClCompile Include="..\Private\ECS\Systems\TurretAISystem.cpp" />
-    <ClCompile Include="..\Private\ECS\Systems\TurretProjectileSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\VisionSystem.cpp" />
     <ClCompile Include="..\Private\FX\DeterministicRandom.cpp" />
     <ClCompile Include="..\Private\FX\Exec\FxExecPlan.cpp" />
@@ -340,7 +337,7 @@
     <ClCompile Include="..\Private\Manager\Navigation\NavGrid.cpp" />
     <ClCompile Include="..\Private\Manager\Navigation\Pathfinder.cpp" />
     <ClCompile Include="..\Private\Manager\Profiler\ProfilerOverlay.cpp" />
-    <ClCompile Include="..\Private\Manager\UI\ChampionHUDPanel.cpp" />
+    <ClCompile Include="..\Private\Manager\UI\ActorHUDPanel.cpp" />
     <ClCompile Include="..\Private\Manager\UI\Font_Manager.cpp" />
     <ClCompile Include="..\Private\Manager\UI\LuaUIHost.cpp" />
     <ClCompile Include="..\Private\Manager\UI\UIAtlasManifest.cpp" />
@@ -391,9 +388,12 @@
   </ItemGroup>
   <!-- 헤더 파일 (내부) -->
   <ItemGroup>
-    <ClInclude Include="..\Private\Manager\UI\ChampionHUDPanel.h" />
+    <ClInclude Include="..\Private\Manager\UI\ActorHUDPanel.h" />
     <ClInclude Include="..\Private\RHI\DX12\DX12Device.h" />
-    <ClInclude Include="..\Public\Manager\UI\ChampionHUDState.h" />
+    <ClInclude Include="..\Public\Manager\UI\ActorHUDAssets.h" />
+    <ClInclude Include="..\Public\Manager\UI\ActorHUDState.h" />
+    <ClInclude Include="..\Public\Manager\UI\StatusPanelState.h" />
+    <ClInclude Include="..\Public\Manager\UI\WorldHealthBarState.h" />
     <ClInclude Include="..\Public\AssetFormat\Anim\WAnimFormat.h" />
     <ClInclude Include="..\Public\AssetFormat\Anim\WAnimLoader.h" />
     <ClInclude Include="..\Public\AssetFormat\Anim\WAnimWriter.h" />
@@ -412,7 +412,7 @@
     <ClInclude Include="..\Public\AssetFormat\Mesh\WMeshWriter.h" />
     <ClInclude Include="..\Public\AI\Blackboard.h" />
     <ClInclude Include="..\Public\AI\BehaviorTree.h" />
-    <ClInclude Include="..\Public\AI\BTNodes_Champion.h" />
+    <ClInclude Include="..\Public\AI\BTNodes_CombatAgent.h" />
     <ClInclude Include="..\Public\AI\MCTSPlanner.h" />
     <ClInclude Include="..\Public\AI\RLBridge.h" />
     <ClInclude Include="..\Public\Core\CInput.h" />
@@ -425,15 +425,16 @@
     <ClInclude Include="..\Public\Core\Profiler\ProfilerStableView.h" />
     <ClInclude Include="..\Public\Core\Profiler\ProfilerTypes.h" />
     <ClInclude Include="..\Public\Core\Timer_Manager.h" />
+    <ClInclude Include="..\Public\ECS\Components\AIControlComponents.h" />
     <ClInclude Include="..\Public\ECS\Components\CoreComponents.h" />
     <ClInclude Include="..\Public\ECS\Components\FxInstanceComponent.h" />
-    <ClInclude Include="..\Public\ECS\Components\GameplayComponents.h" />
     <ClInclude Include="..\Public\ECS\Components\MeshGroupVisibilityComponent.h" />
-    <ClInclude Include="..\Public\ECS\Components\MinionPerformanceComponents.h" />
+    <ClInclude Include="..\Public\ECS\Components\NavigationThrottleComponent.h" />
+    <ClInclude Include="..\Public\ECS\Components\NavigationControlComponent.h" />
     <ClInclude Include="..\Public\ECS\Components\RenderComponent.h" />
     <ClInclude Include="..\Public\ECS\Components\SpatialAgentComponent.h" />
     <ClInclude Include="..\Public\ECS\Components\VisionComponents.h" />
-    <ClInclude Include="..\Public\ECS\BushVolumeIndex.h" />
+    <ClInclude Include="..\Public\ECS\ConcealmentVolumeIndex.h" />
     <ClInclude Include="..\Public\ECS\SpatialIndex.h" />
     <ClInclude Include="..\Public\Core\CTimer.h" />
     <ClInclude Include="..\Public\Core\JobCounter.h" />
@@ -446,14 +447,11 @@
     <ClInclude Include="..\Public\ECS\Systems\EntityBlueprint.h" />
     <ClInclude Include="..\Public\ECS\Systems\EntityBlueprintRegistry.h" />
     <ClInclude Include="..\Public\ECS\Systems\MCTSSystem.h" />
-    <ClInclude Include="..\Public\ECS\Systems\MinionAISystem.h" />
-    <ClInclude Include="..\Public\ECS\Systems\MinionPerformanceSystem.h" />
+    <ClInclude Include="..\Public\ECS\Systems\NavigationThrottleSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\NavigationSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\SpatialHashSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\StatusEffectSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\TransformSystem.h" />
-    <ClInclude Include="..\Public\ECS\Systems\TurretAISystem.h" />
-    <ClInclude Include="..\Public\ECS\Systems\TurretProjectileSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\VisionSystem.h" />
     <ClInclude Include="..\Public\Editor\ImGuiLayer.h" />
     <ClInclude Include="..\Public\Cinematic\CSequenceAsset.h" />
@@ -562,7 +560,6 @@
   </ItemGroup>
   <!-- 헤더 파일 (공개 API) -->
   <ItemGroup>
-    <ClInclude Include="GameContext.h" />
     <ClInclude Include="GameInstance.h" />
     <ClInclude Include="IScene.h" />
     <ClInclude Include="ProfilerAPI.h" />

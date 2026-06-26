@@ -1,7 +1,7 @@
 ﻿#include "GameObject/Champion/Riven/Riven_Skills.h"
 
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "GameObject/Champion/Riven/RivenFxPresets.h"
 #include "GamePlay/VisualHookRegistry.h"
 

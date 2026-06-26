@@ -105,8 +105,10 @@ $stageCount = 0
 $animPlaySpeedCount = 0
 $castFrameCount = 0
 $recoveryFrameCount = 0
+$visualYawOffsetCount = 0
 
 foreach ($champion in $championJson.champions) {
+    if ($null -ne $champion.visualYawOffset) { ++$visualYawOffsetCount }
     foreach ($skill in $champion.skills) {
         foreach ($stage in $skill.stages) {
             ++$stageCount
@@ -116,6 +118,7 @@ foreach ($champion in $championJson.champions) {
         }
     }
 }
+$summonerSpellCount = if ($null -ne $championJson.summonerSpells) { @($championJson.summonerSpells).Count } else { 0 }
 
 $skillRegistrationFiles = Invoke-RgFiles `
     -Pattern "SkillDef s|FindSkillDef|CSkillRegistry::Instance\(\)\.Add" `
@@ -179,15 +182,27 @@ $skillEffectQueryLines = Invoke-RgLines `
     -Pattern "ResolveSkillEffectParam|eSkillEffectParamId::" `
     -Paths @("Shared\GameSim\Champions")
 
+$aiPolicyHardcodeLines = Invoke-RgLines `
+    -Pattern "ChampionAIPolicy|AssignDefaultBotSkillRanks|TryExecute[A-Za-z]+ChampionCombat|BotSkill|SkillRank|combo|Combo" `
+    -Paths @("Shared\GameSim\Systems\ChampionAI", "Server")
+
+$networkIdentityLegacyLines = Invoke-RgLines `
+    -Pattern "\bchampionId\b|ChampionId|ownerChampionDefId|eChampion" `
+    -Paths @("Shared\Schemas", "Shared\GameSim\Systems\ReplicatedEventSerializer", "Client\Private\Network", "Client\Private\Scene", "Server\Private")
+
+$legacyValueOwnerLines = Invoke-RgLines `
+    -Pattern "ChampionGameDataDB|ChampionStatsRegistry|ChampionRuntimeDefaults|SkillTable|ChampionTable|ResolveMinionCombatDef|ServerMinionTuning" `
+    -Paths @("Client", "Shared", "Server")
+
 $report = [ordered]@{
     generatedAtUtc = (Get-Date).ToUniversalTime().ToString("o")
     root = (Resolve-Path $Root).Path
     championGameData = [ordered]@{
         path = $championJsonPath
         championCount = @($championJson.champions).Count
-        summonerSpellCount = @($championJson.summonerSpells).Count
+        summonerSpellCount = $summonerSpellCount
         skillStageCount = $stageCount
-        visualYawOffsetCount = @($championJson.champions).Count
+        visualYawOffsetCount = $visualYawOffsetCount
         animPlaySpeedCount = $animPlaySpeedCount
         castFrameCount = $castFrameCount
         recoveryFrameCount = $recoveryFrameCount
@@ -222,6 +237,22 @@ $report = [ordered]@{
         sharedGameSimAuthoritative = @($visualSharedLines).Count
         serverAuthoritative = @($visualServerLines).Count
         suspiciousAuthoritative = @($visualGameplayDataLines).Count + @($visualSharedLines).Count + @($visualServerLines).Count
+    }
+    phaseGoalCounts = [ordered]@{
+        p3SkillEffectHardcode = @($skillEffectHardcodeLines).Count
+        p4VisualAuthorityLeak = @($visualGameplayDataLines).Count + @($visualSharedLines).Count + @($visualServerLines).Count
+        p5AiPolicyHardcode = @($aiPolicyHardcodeLines).Count
+        p6ObjectWaveHardcode = @($serverObjectLines).Count
+        p7NetworkIdentityLegacy = @($networkIdentityLegacyLines).Count
+        p8LegacyValueOwner = @($legacyValueOwnerLines).Count
+    }
+    phaseGoalBreakdown = [ordered]@{
+        p3SkillEffectHardcode = Convert-RgLineBreakdown -Lines $skillEffectHardcodeLines
+        p4VisualAuthorityLeak = Convert-RgLineBreakdown -Lines @($visualGameplayDataLines + $visualSharedLines + $visualServerLines)
+        p5AiPolicyHardcode = Convert-RgLineBreakdown -Lines $aiPolicyHardcodeLines
+        p6ObjectWaveHardcode = Convert-RgLineBreakdown -Lines $serverObjectLines
+        p7NetworkIdentityLegacy = Convert-RgLineBreakdown -Lines $networkIdentityLegacyLines
+        p8LegacyValueOwner = Convert-RgLineBreakdown -Lines $legacyValueOwnerLines
     }
 }
 

@@ -352,9 +352,100 @@ void CGameInstance::UI_Set_ShowHealthBars(bool_t b)
 	if (m_pUI_Manager) m_pUI_Manager->Set_ShowHealthBars(b);
 }
 
-void CGameInstance::UI_Set_PlayerChampion(eChampion champ)
+void CGameInstance::UI_Register_ActorHUDAssets(const ActorHUDAssetDesc* pAssets, u32_t iAssetCount)
 {
-	if (m_pUI_Manager) m_pUI_Manager->Set_PlayerChampion(champ);
+	if (m_pUI_Manager)
+		m_pUI_Manager->RegisterActorHUDAssets(pAssets, iAssetCount);
+}
+
+void CGameInstance::UI_Clear_ActorHUDAssets()
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->ClearActorHUDAssets();
+}
+
+void CGameInstance::UI_Register_StatusPanelSpellIconAssets(const UIIconAssetDesc* pAssets, u32_t iAssetCount)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->RegisterStatusPanelSpellIconAssets(pAssets, iAssetCount);
+}
+
+void CGameInstance::UI_Clear_StatusPanelSpellIconAssets()
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->ClearStatusPanelSpellIconAssets();
+}
+
+void CGameInstance::UI_Set_StatusPanelDefaultSpellIds(const u16_t* pSpellIds, u32_t iSpellCount)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->SetStatusPanelDefaultSpellIds(pSpellIds, iSpellCount);
+}
+
+void CGameInstance::UI_Register_InGameShopItems(const UIShopItemAssetDesc* pItems, u32_t iItemCount)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->RegisterInGameShopItems(pItems, iItemCount);
+}
+
+void CGameInstance::UI_Clear_InGameShopItems()
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->ClearInGameShopItems();
+}
+
+void CGameInstance::UI_Set_ActorHUDState(const ActorHUDState* pState)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->SetActorHUDState(pState);
+}
+
+void CGameInstance::UI_Clear_ActorHUDState()
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->ClearActorHUDState();
+}
+
+void CGameInstance::UI_Set_StatusPanelState(const StatusPanelMatchScore* pScore,
+	const StatusPanelActorRow* pBlueRows, u32_t iBlueCount,
+	const StatusPanelActorRow* pRedRows, u32_t iRedCount)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->SetStatusPanelState(pScore, pBlueRows, iBlueCount, pRedRows, iRedCount);
+}
+
+void CGameInstance::UI_Clear_StatusPanelState()
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->ClearStatusPanelState();
+}
+
+void CGameInstance::UI_Set_WorldHealthBars(
+	const UIWorldHealthBarDesc* pBars, u32_t iBarCount, u8_t iLocalTeam)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->SetWorldHealthBars(pBars, iBarCount, iLocalTeam);
+}
+
+void CGameInstance::UI_Clear_WorldHealthBars()
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->ClearWorldHealthBars();
+}
+
+void CGameInstance::UI_Set_MatchContextHUDScoreStats(
+	u16_t iBlueKills, u16_t iRedKills,
+	u16_t iLocalKills, u16_t iLocalDeaths, u16_t iLocalAssists)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->SetMatchContextHUDScoreStats(
+			iBlueKills, iRedKills,
+			iLocalKills, iLocalDeaths, iLocalAssists);
+}
+
+void CGameInstance::UI_Set_PlayerActorContent(u8_t iActorContentId)
+{
+	if (m_pUI_Manager) m_pUI_Manager->Set_PlayerActorContent(iActorContentId);
 }
 
 void CGameInstance::UI_Set_EnemyHoverCursor(bool_t bEnemyHover)
@@ -416,40 +507,40 @@ void CGameInstance::UI_Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
 		m_pUI_Manager->Push_GoldText(vWorldPos, iGoldAmount, fLifetime);
 }
 
-void CGameInstance::UI_Push_KillFeedBanner(eChampion eSourceChampion,
-	eChampion eTargetChampion, u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage)
+void CGameInstance::UI_Push_KillFeedBanner(u8_t iSourceActorId,
+	u8_t iTargetActorId, u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage)
 {
 	if (m_pUI_Manager)
 		m_pUI_Manager->Push_KillFeedBanner(
-			eSourceChampion,
-			eTargetChampion,
+			iSourceActorId,
+			iTargetActorId,
 			iObjectKind,
 			bSourceAlly,
 			pMessage
 		);
 }
 
-void CGameInstance::UI_RecordGameContextChampionKill(u8_t iSourceTeam, u8_t iTargetTeam,
+void CGameInstance::UI_RecordMatchContextActorKill(u8_t iSourceTeam, u8_t iTargetTeam,
 	bool_t bLocalSource, bool_t bLocalTarget)
 {
 	if (m_pUI_Manager)
-		m_pUI_Manager->RecordGameContextChampionKill(
+		m_pUI_Manager->RecordMatchContextActorKill(
 			iSourceTeam,
 			iTargetTeam,
 			bLocalSource,
 			bLocalTarget);
 }
 
-void CGameInstance::UI_RecordGameContextMinionKill()
+void CGameInstance::UI_RecordMatchContextUnitKill()
 {
 	if (m_pUI_Manager)
-		m_pUI_Manager->RecordGameContextMinionKill();
+		m_pUI_Manager->RecordMatchContextUnitKill();
 }
 
-void CGameInstance::UI_SetGameContextServerTimeMs(u64_t iServerTimeMs)
+void CGameInstance::UI_SetMatchContextServerTimeMs(u64_t iServerTimeMs)
 {
 	if (m_pUI_Manager)
-		m_pUI_Manager->SetGameContextServerTimeMs(iServerTimeMs);
+		m_pUI_Manager->SetMatchContextServerTimeMs(iServerTimeMs);
 }
 
 HRESULT CGameInstance::Add_Blueprint(uint32_t ISceneID, const std::wstring& strKey, CEntityBlueprint blueprint)

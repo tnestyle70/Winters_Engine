@@ -9,7 +9,7 @@
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "WintersMath.h"
@@ -21,20 +21,11 @@
 
 namespace
 {
-    constexpr f32_t kAsheWRange = 12.0f;
-    constexpr f32_t kAsheWSpeed = 24.0f;
-    constexpr f32_t kAsheWDamage = 45.0f;
-    constexpr f32_t kAsheRRange = 200.0f;
-    constexpr f32_t kAsheRSpeed = 20.0f;
-    constexpr f32_t kAsheRDamage = 250.0f;
-    constexpr f32_t kAsheWMoveSpeedMul = 0.85f;
-    constexpr f32_t kAsheRStunDurationSec = 1.5f;
-
     f32_t ResolveAsheSkillEffectParam(
         const GameplayHookContext& ctx,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         if (!ctx.pWorld || !ctx.pTickCtx)
         {
@@ -57,7 +48,7 @@ namespace
         EntityID caster,
         eSkillSlot slot,
         eSkillEffectParamId param,
-        f32_t fallbackValue)
+        f32_t fallbackValue = 0.f)
     {
         return GameplayDefinitionQuery::ResolveSkillEffectParam(
             world,
@@ -168,23 +159,19 @@ namespace
         const f32_t moveSpeedMul = ResolveAsheSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::MoveSpeedMul,
-            kAsheWMoveSpeedMul);
+            eSkillEffectParamId::MoveSpeedMul);
         const f32_t projectileSpeed = ResolveAsheSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::Speed,
-            kAsheWSpeed);
+            eSkillEffectParamId::Speed);
         const f32_t projectileRange = ResolveAsheSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::Range,
-            kAsheWRange);
+            eSkillEffectParamId::Range);
         const f32_t projectileDamage = ResolveAsheSkillEffectParam(
             ctx,
             eSkillSlot::W,
-            eSkillEffectParamId::BaseDamage,
-            kAsheWDamage);
+            eSkillEffectParamId::BaseDamage);
 
         const StatusEffectApplyDesc slow = GameplayStatus::MakeSlowDesc(
             ctx.casterEntity,
@@ -231,23 +218,19 @@ namespace
         const f32_t stunDurationSec = ResolveAsheSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::StunDurationSec,
-            kAsheRStunDurationSec);
+            eSkillEffectParamId::StunDurationSec);
         const f32_t projectileSpeed = ResolveAsheSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::Speed,
-            kAsheRSpeed);
+            eSkillEffectParamId::Speed);
         const f32_t projectileRange = ResolveAsheSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::Range,
-            kAsheRRange);
+            eSkillEffectParamId::Range);
         const f32_t projectileDamage = ResolveAsheSkillEffectParam(
             ctx,
             eSkillSlot::R,
-            eSkillEffectParamId::BaseDamage,
-            kAsheRDamage);
+            eSkillEffectParamId::BaseDamage);
 
         const StatusEffectApplyDesc stun = GameplayStatus::MakeStunDesc(
             ctx.casterEntity,
@@ -290,8 +273,7 @@ namespace AsheGameSim
             tc,
             caster,
             eSkillSlot::W,
-            eSkillEffectParamId::MoveSpeedMul,
-            kAsheWMoveSpeedMul);
+            eSkillEffectParamId::MoveSpeedMul);
         GameplayStatus::ApplySlow(
             world,
             tc,

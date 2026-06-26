@@ -3,23 +3,7 @@
 #include "ECS/World.h"
 #include "ECS/Components/CoreComponents.h"
 #include "Core/CInput.h"
-#include "../../../../Shared/GameSim/Components/StatComponent.h"
 #include <cmath>
-
-namespace
-{
-	f32_t ResolveAIAttackRange(CWorld& world, EntityID entity, const AIStateComponent& ai)
-	{
-		if (world.HasComponent<StatComponent>(entity))
-		{
-			const auto& stat = world.GetComponent<StatComponent>(entity);
-			if (stat.attackRange > 0.f)
-				return stat.attackRange;
-		}
-
-		return ai.attackRange;
-	}
-}
 
 void CPlayerSystem::DescribeAccess(CSystemAccessBuilder& builder) const
 {
@@ -51,7 +35,6 @@ void CAISystem::DescribeAccess(CSystemAccessBuilder& builder) const
 {
 	builder.Write<AIStateComponent>()
 		.Read<TransformComponent>()
-		.Read<StatComponent>()
 		.Write<VelocityComponent>();
 }
 
@@ -72,8 +55,7 @@ void CAISystem::Execute(CWorld& world, float dt)
 				float fDx = target.m_LocalPosition.x - tf.m_LocalPosition.x;
 				float fDz = target.m_LocalPosition.z - tf.m_LocalPosition.z;
 				float fDist = sqrtf(fDx * fDx + fDz * fDz);
-				const f32_t attackRange = ResolveAIAttackRange(world, entity, ai);
-				if (fDist <= attackRange)
+				if (fDist <= ai.attackRange)
 				{
 					ai.current = AIStateComponent::State::Attack;
 					vel.fSpeed = 0.f;

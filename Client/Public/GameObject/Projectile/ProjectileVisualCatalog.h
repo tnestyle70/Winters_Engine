@@ -20,5 +20,5 @@ struct ProjectileVisualDesc
 namespace ProjectileVisualCatalog
 {
     const ProjectileVisualDesc& Resolve(u16_t kind);
-    bool_t IsTurretProjectileKind(u16_t kind);
+    bool_t IsStructureProjectileKind(u16_t kind);
 }

@@ -1,4 +1,4 @@
-﻿#include "GamePlay/ChampionRegistry.h"
+#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -28,15 +28,15 @@ namespace
             cd.runAnimKey = "jax_run2";
             cd.basicAttackKey = "attack_1";
             cd.basicAttackRange = 1.5f;
-            cd.fbxPath = "Client/Bin/Resource/Texture/Character/Jax/jax.fbx";
+            cd.fbxPath = "Texture/Character/Jax/jax.fbx";
             cd.shaderPath = L"Shaders/Mesh3D.hlsl";
 
             const wchar_t* jaxBodyTexture =
-                L"Client/Bin/Resource/Texture/Character/Jax/jax_base_body_tx_cm.png";
+                L"Texture/Character/Jax/jax_base_body_tx_cm.png";
             const wchar_t* jaxFishTexture =
-                L"Client/Bin/Resource/Texture/Character/Jax/jax_base_fish_tx_cm.png";
+                L"Texture/Character/Jax/jax_base_fish_tx_cm.png";
             const wchar_t* jaxWeaponTexture =
-                L"Client/Bin/Resource/Texture/Character/Jax/jax_base_weapon_tx_cm.png";
+                L"Texture/Character/Jax/jax_base_weapon_tx_cm.png";
 
             cd.defaultTexturePath = jaxBodyTexture;
             cd.texturePath[0] = jaxBodyTexture;
@@ -60,8 +60,8 @@ namespace
                 s.animKey = "attack_1";
                 s.lockDurationSec = 1.0f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 6.f; s.recoveryFrame = 14.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kJax_BA_Cast;
+                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kJax_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 0, s);
             }
             {
@@ -72,8 +72,8 @@ namespace
                 s.animKey = "spell1";
                 s.lockDurationSec = 0.6f; s.bOneShot = true;
                 s.rotate = eRotateMode::TowardsTarget;
-                s.castFrame = 6.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kJax_Q_Cast;
+                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kJax_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 1, s);
             }
             {
@@ -84,8 +84,8 @@ namespace
                 s.animKey = "spell2_v03";
                 s.lockDurationSec = 0.5f; s.bOneShot = true;
                 s.rotate = eRotateMode::None;
-                s.castFrame = 1.f; s.recoveryFrame = 8.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kJax_W_Cast;
+                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 8.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kJax_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 2, s);
             }
             {
@@ -102,9 +102,9 @@ namespace
                 s.stage2LockSec = 0.7f;
                 s.stage2Rotate = eRotateMode::None;
                 s.stageWindowSec = 2.0f;
-                s.castFrame = 1.f; s.recoveryFrame = 48.f; s.animPlaySpeed = 1.f;
-                s.stage2CastFrame = 6.f; s.stage2RecoveryFrame = 14.f; s.stage2PlaySpeed = 1.f;
-                s.castFrameHookId = kJax_E_Cast;
+                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 48.f; s.visualPlaySpeed = 1.f;
+                s.stage2VisualCastFrame = 6.f; s.stage2VisualRecoveryFrame = 14.f; s.stage2VisualPlaySpeed = 1.f;
+                s.castHookId = kJax_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 3, s);
             }
             {
@@ -115,8 +115,8 @@ namespace
                 s.animKey = "spell4_idle";
                 s.lockDurationSec = 0.6f; s.bOneShot = true;
                 s.rotate = eRotateMode::None;
-                s.castFrame = 4.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 1.f;
-                s.castFrameHookId = kJax_R_Cast;
+                s.visualCastFrame = 4.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.castHookId = kJax_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 4, s);
             }
 

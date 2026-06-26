@@ -8,15 +8,15 @@
 enum class eSpatialKind : u32_t
 {
     None = 0,
-    Champion = 1u << 0,
-    Minion = 1u << 1,
-    Turret = 1u << 2,
-    JungleMob = 1u << 3,
-    Inhibitor = 1u << 4,
-    Nexus = 1u << 5,
-    Ward = 1u << 6,
+    Character = 1u << 0,
+    Unit = 1u << 1,
+    Structure = 1u << 2,
+    NeutralUnit = 1u << 3,
+    Objective = 1u << 4,
+    Core = 1u << 5,
+    Sensor = 1u << 6,
     Projectile = 1u << 7,
-    Bush = 1u << 8,
+    VisionVolume = 1u << 8,
     All = 0xFFFFFFFFu
 };
 

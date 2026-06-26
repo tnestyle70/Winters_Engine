@@ -1,4 +1,4 @@
-﻿#include "GamePlay/ChampionRegistry.h"
+#include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
@@ -31,10 +31,10 @@ namespace
 			cd.runAnimKey = "run";
 			cd.basicAttackKey = "attack1";
 			cd.basicAttackRange = 5.5f;
-			cd.fbxPath = "Client/Bin/Resource/Texture/Character/Ezreal/ezreal.fbx";
+			cd.fbxPath = "Texture/Character/Ezreal/ezreal.fbx";
 			cd.shaderPath = L"Shaders/Mesh3D.hlsl";
 			const wchar_t* ezrealBaseTexture =
-				L"Client/Bin/Resource/Texture/Character/Ezreal/ezreal_base_tx_cm.png";
+				L"Texture/Character/Ezreal/ezreal_base_tx_cm.png";
 			cd.defaultTexturePath = ezrealBaseTexture;
 			for (u32_t i = 0; i < kChampionTextureSlotMax; ++i)
 				cd.texturePath[i] = ezrealBaseTexture;
@@ -51,8 +51,8 @@ namespace
 				s.animKey = "attack1";
 				s.lockDurationSec = 0.65f; s.bOneShot = true;
 				s.rotate = eRotateMode::TowardsTarget;
-				s.castFrame = 6.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 1.f;
-				s.castFrameHookId = kEz_BA_Cast;
+				s.visualCastFrame = 6.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+				s.castHookId = kEz_BA_Cast;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 0, s);
 			}
 			{
@@ -62,8 +62,8 @@ namespace
 				s.cooldownSec = kEzrealDebugSkillCooldownSec; s.rangeMax = 11.f;
 				s.animKey = "spell1"; s.lockDurationSec = 0.5f; s.bOneShot = true;
 				s.rotate = eRotateMode::TowardsCursor;
-				s.castFrame = 4.f; s.recoveryFrame = 10.f; s.animPlaySpeed = 1.f;
-				s.castFrameHookId = kEz_Q_Cast;
+				s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+				s.castHookId = kEz_Q_Cast;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 1, s);
 			}
 			{
@@ -73,8 +73,8 @@ namespace
 				s.cooldownSec = kEzrealDebugSkillCooldownSec; s.rangeMax = 10.f;
 				s.animKey = "spell2"; s.lockDurationSec = 0.5f; s.bOneShot = true;
 				s.rotate = eRotateMode::TowardsCursor;
-				s.castFrame = 4.f; s.recoveryFrame = 10.f; s.animPlaySpeed = 1.f;
-				s.castFrameHookId = kEz_W_Cast;
+				s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+				s.castHookId = kEz_W_Cast;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 2, s);
 			}
 			{
@@ -84,7 +84,7 @@ namespace
 				s.cooldownSec = kEzrealDebugSkillCooldownSec; s.rangeMax = 4.75f;
 				s.animKey = "spell3_generic"; s.lockDurationSec = 0.6f; s.bOneShot = true;
 				s.rotate = eRotateMode::TowardsCursor;
-				s.castFrame = 1.f; s.recoveryFrame = 12.f; s.animPlaySpeed = 1.f;
+				s.visualCastFrame = 1.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
 				s.onCastAcceptedHookId = kEz_E_OnAccept;
 				s.keySwapHookId = kEz_E_KeySwap;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 3, s);
@@ -96,8 +96,8 @@ namespace
 				s.cooldownSec = kEzrealDebugSkillCooldownSec; s.rangeMax = 200.f;
 				s.animKey = "spell4"; s.lockDurationSec = 1.0f; s.bOneShot = true;
 				s.rotate = eRotateMode::TowardsCursor;
-				s.castFrame = 16.f; s.recoveryFrame = 24.f; s.animPlaySpeed = 1.f;
-				s.castFrameHookId = kEz_R_Cast;
+				s.visualCastFrame = 16.f; s.visualRecoveryFrame = 24.f; s.visualPlaySpeed = 1.f;
+				s.castHookId = kEz_R_Cast;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 4, s);
 			}
 

@@ -83,7 +83,6 @@ private:
         bool_t bDead = false;
     };
 
-    static const char* ResolveModelPath(eJungleSub sub);
     void  Apply_NetworkAnimation(EntityID entity, ModelRenderer& renderer, f32_t dt);
     void  Make_AutoName(eJungleSub sub, char* pOutBuf, size_t capacity);
     EntityID Spawn_FromEntry(const Winters::Map::JungleEntry& entry);

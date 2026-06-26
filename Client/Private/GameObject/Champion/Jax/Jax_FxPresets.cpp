@@ -18,33 +18,33 @@ namespace
     constexpr const char* kCueRThirdHit = "Jax.R.ThirdHit";
 
     constexpr const wchar_t* kPathBaHitFlashTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_ba_hit_flash.png";
+        L"Texture/Character/Jax/particles/jax_base_ba_hit_flash.png";
     constexpr const wchar_t* kPathBaBoltsTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_ba_bolts_tar.png";
+        L"Texture/Character/Jax/particles/jax_base_ba_bolts_tar.png";
     constexpr const wchar_t* kPathQTrailTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_q_smoketrail.png";
+        L"Texture/Character/Jax/particles/jax_base_q_smoketrail.png";
     constexpr const wchar_t* kPathQBallTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_q_ball.png";
+        L"Texture/Character/Jax/particles/jax_base_q_ball.png";
     constexpr const wchar_t* kPathWGlowTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_w_mis_01_ribbon.png";
+        L"Texture/Character/Jax/particles/jax_base_w_mis_01_ribbon.png";
     constexpr const wchar_t* kPathWSparkTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_ba_sparks.png";
+        L"Texture/Character/Jax/particles/jax_base_ba_sparks.png";
     constexpr const wchar_t* kPathEGroundTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_ground.png";
+        L"Texture/Character/Jax/particles/jax_base_e_ground.png";
     constexpr const wchar_t* kPathEFlameTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_dome_flames.png";
+        L"Texture/Character/Jax/particles/jax_base_e_dome_flames.png";
     constexpr const wchar_t* kPathESparkTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_spark.png";
+        L"Texture/Character/Jax/particles/jax_base_e_spark.png";
     constexpr const wchar_t* kPathEWaveTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_e_wave06.png";
+        L"Texture/Character/Jax/particles/jax_base_e_wave06.png";
     constexpr const wchar_t* kPathRAuraTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_r_buf_glow.png";
+        L"Texture/Character/Jax/particles/jax_base_r_buf_glow.png";
     constexpr const wchar_t* kPathRBuffOuterTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_r_buf_outer.png";
+        L"Texture/Character/Jax/particles/jax_base_r_buf_outer.png";
     constexpr const wchar_t* kPathRAOETex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_r_wave02_01.png";
+        L"Texture/Character/Jax/particles/jax_base_r_wave02_01.png";
     constexpr const wchar_t* kPathRFlashTex =
-        L"Client/Bin/Resource/Texture/Character/Jax/particles/jax_base_r_bigglow02.png";
+        L"Texture/Character/Jax/particles/jax_base_r_bigglow02.png";
 
     Vec3 ResolveEntityWorldPos(CWorld& world, EntityID entity)
     {

@@ -89,16 +89,16 @@ namespace
     };
 
     constexpr const wchar_t* kPathQTrail =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_q_dark_trail.png";
+        L"Texture/FX/Irelia/irelia_base_q_dark_trail.png";
     constexpr const wchar_t* kPathQMark =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_q_mark_pulse_erode.png";
+        L"Texture/FX/Irelia/irelia_base_q_mark_pulse_erode.png";
     constexpr const wchar_t* kPathWSpin =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_w_bladeimages_spin_02.png";
+        L"Texture/FX/Irelia/irelia_base_w_bladeimages_spin_02.png";
     constexpr const wchar_t* kPathWBlade =
-        L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_w_blade_erode.png";
-    constexpr const wchar_t* kPathRPulse = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_r_pulse_mesh_tex.png";
-    constexpr const char* kPathEBeamFbx = "Client/Bin/Resource/Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx";
-    constexpr const wchar_t* kPathEBeamTex = L"Client/Bin/Resource/Texture/FX/Irelia/irelia_base_e_beam_mult.png";
+        L"Texture/FX/Irelia/irelia_base_w_blade_erode.png";
+    constexpr const wchar_t* kPathRPulse = L"Texture/FX/Irelia/irelia_base_r_pulse_mesh_tex.png";
+    constexpr const char* kPathEBeamFbx = "Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx";
+    constexpr const wchar_t* kPathEBeamTex = L"Texture/FX/Irelia/irelia_base_e_beam_mult.png";
 
     Vec4 CurrentColor()
     {

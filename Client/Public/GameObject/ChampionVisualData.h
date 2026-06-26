@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "GameObject/VisualEventData.h"
 #include "WintersTypes.h"
 

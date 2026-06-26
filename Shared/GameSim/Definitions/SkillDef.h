@@ -3,7 +3,7 @@
 #include "SkillCommand.h"
 #include "SkillTypes.h"
 #include "WintersTypes.h"
-#include "GameContext.h"
+#include "LoLMatchContext.h"
 
 #include <cstdint>
 
@@ -32,13 +32,13 @@ struct SkillDef
     eRotateMode stage2Rotate = eRotateMode::None;
     f32_t       stageWindowSec = 0.f;
 
-    f32_t castFrame = 0.f;
-    f32_t recoveryFrame = 0.f;
-    f32_t stage2CastFrame = 0.f;
-    f32_t stage2RecoveryFrame = 0.f;
+    f32_t visualCastFrame = 0.f;
+    f32_t visualRecoveryFrame = 0.f;
+    f32_t stage2VisualCastFrame = 0.f;
+    f32_t stage2VisualRecoveryFrame = 0.f;
 
-    f32_t animPlaySpeed = 1.f;
-    f32_t stage2PlaySpeed = 1.f;
+    f32_t visualPlaySpeed = 1.f;
+    f32_t stage2VisualPlaySpeed = 1.f;
 
     const char* endTransitionIdleAnim = nullptr;
     const char* endTransitionRunAnim = nullptr;
@@ -46,7 +46,7 @@ struct SkillDef
 
     uint32_t keySwapHookId = 0;
     uint32_t onCastAcceptedHookId = 0;
-    uint32_t castFrameHookId = 0;
+    uint32_t castHookId = 0;
     uint32_t recoveryHookId = 0;
 
     uint16_t skillId = 0;

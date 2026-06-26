@@ -1,4 +1,4 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
 
 #include "Network/Client/ClientNetwork.h"
 #include "Network/Client/CommandSerializer.h"
@@ -22,18 +22,21 @@
 #include "Core/CInput.h"
 #include "WintersPaths.h"
 #include "GameInstance.h"
+#include "GamePlay/LoLMatchContextRuntime.h"
+#include "Manager/UI/ActorHUDState.h"
+#include "Manager/UI/StatusPanelState.h"
+#include "Manager/UI/WorldHealthBarState.h"
 #include "ECS/Components/CoreComponents.h"   // ColliderComponent
-#include "ECS/Systems/MinionAISystem.h"
 #include "ECS/Systems/SpatialHashSystem.h"
 #include "ECS/Systems/BehaviorTreeSystem.h"
 #include "ECS/Systems/MCTSSystem.h"
-#include "ECS/Systems/TurretAISystem.h"
-#include "ECS/Systems/TurretProjectileSystem.h"
-#include "ECS/Systems/MinionPerformanceSystem.h"
+#include "ECS/Systems/NavigationThrottleSystem.h"
 #include "ECS/Systems/YoneSoulSpawnSystem.h"
 #include "ECS/Systems/VisionSystem.h"
-#include "ECS/BushVolumeIndex.h"
+#include "ECS/ConcealmentVolumeIndex.h"
+#include "ECS/Components/AIControlComponents.h"
 #include "ECS/Components/NavAgentComponent.h"
+#include "ECS/Components/NavigationControlComponent.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/VisionComponents.h"
@@ -70,7 +73,15 @@
 #include "GameObject/Champion/Kalista/Kalista_Skills.h"
 #include "GameObject/Champion/Kalista/Kalista_Tuning.h"
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
+#include "Shared/GameSim/Components/ChampionScore.h"
+#include "Shared/GameSim/Components/FormOverrideComponent.h"
+#include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/MatchScore.h"
+#include "Shared/GameSim/Components/RuneComponent.h"
+#include "Shared/GameSim/Components/SkillRankComponent.h"
+#include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
@@ -81,7 +92,7 @@
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
 #include "GameObject/SkillDefVisualDataAdapter.h"
-#include "GameContext.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -109,7 +120,7 @@
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
 #include "ECS/Systems/StatusEffectSystem.h"
-#include "ECS/Components/GameplayComponents.h"   // Stun/Slow/Disarm
+#include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "Renderer/FxStaticMeshRenderer.h"
@@ -151,7 +162,21 @@ namespace
         return champion != eChampion::END && champion != eChampion::NONE;
     }
 
-    eChampion ResolveLocalRosterChampion(const GameContext& context)
+    constexpr u8_t kLoLUiSkillSlotR = 4u;
+
+    u8_t ToLoLUIContentId(eChampion champion)
+    {
+        return static_cast<u8_t>(champion);
+    }
+
+    u8_t ToLoLUITeamId(eTeam team)
+    {
+        return (team == eTeam::TEAM_END)
+            ? 255u
+            : static_cast<u8_t>(team);
+    }
+
+    eChampion ResolveLocalRosterChampion(const MatchContext& context)
     {
         if (context.bUseNetworkRoster)
         {
@@ -194,7 +219,7 @@ eChampion CScene_InGame::GetPlayerChampionId() const
         return m_World.GetComponent<ChampionComponent>(m_PlayerEntity).id;
     }
 
-    return ResolveLocalRosterChampion(CGameInstance::Get()->Get_GameContext());
+    return ResolveLocalRosterChampion(Client::CLoLMatchContextRuntime::Instance().Context());
 }
 
 bool CScene_InGame::HasPlayerTransform() const
@@ -289,6 +314,420 @@ void CScene_InGame::SyncPlayerEntityTransformToECS()
     tf.SetScale(m_PlayerEntityTransformCache.GetScale());
 }
 
+void CScene_InGame::SyncActorHUDStateToEngineUI()
+{
+    Engine::ActorHUDState State{};
+    State.iActorContentId = ToLoLUIContentId(GetPlayerChampionId());
+    State.SkillIconContentIds.fill(State.iActorContentId);
+
+    if (m_PlayerEntity == NULL_ENTITY ||
+        !m_World.HasComponent<ChampionComponent>(m_PlayerEntity))
+    {
+        CGameInstance::Get()->UI_Set_ActorHUDState(&State);
+        return;
+    }
+
+    const EntityID Entity = m_PlayerEntity;
+    const ChampionComponent& Champion = m_World.GetComponent<ChampionComponent>(Entity);
+
+    State.LocalEntity = Entity;
+    State.iActorContentId = ToLoLUIContentId(Champion.id);
+    State.SkillIconContentIds.fill(State.iActorContentId);
+    State.Hp = Champion.hp;
+    State.MaxHp = Champion.maxHp;
+    State.Mp = Champion.mana;
+    State.MaxMp = Champion.maxMana;
+    State.Shield = Champion.shield;
+    State.Level = Champion.level;
+    State.PassiveValue = Champion.mana;
+    State.PassiveMax = (Champion.maxMana > 0.f) ? Champion.maxMana : 100.f;
+    State.PassiveShield = Champion.shield;
+    State.PassiveShieldMax = State.PassiveMax;
+
+    if (m_World.HasComponent<FormOverrideComponent>(Entity))
+    {
+        const FormOverrideComponent& Form = m_World.GetComponent<FormOverrideComponent>(Entity);
+        const u8_t iFormContentId = ToLoLUIContentId(Form.skillChampion);
+        if (Form.bActive && iFormContentId != 0u && iFormContentId != 255u)
+        {
+            for (u32_t Index = 0; Index < State.SkillIconContentIds.size(); ++Index)
+            {
+                const u8_t Slot = static_cast<u8_t>(Index + 1u);
+                if ((Form.skillSlotMask & static_cast<u8_t>(1u << Slot)) != 0u)
+                    State.SkillIconContentIds[Index] = iFormContentId;
+            }
+        }
+    }
+
+    if (m_World.HasComponent<SpellbookOverrideComponent>(Entity))
+    {
+        const SpellbookOverrideComponent& Spellbook =
+            m_World.GetComponent<SpellbookOverrideComponent>(Entity);
+        const u8_t iSpellbookContentId = ToLoLUIContentId(Spellbook.sourceChampion);
+        if (Spellbook.bActive &&
+            Spellbook.localSlot == kLoLUiSkillSlotR &&
+            iSpellbookContentId != 0u &&
+            iSpellbookContentId != 255u)
+        {
+            State.SkillIconContentIds[3] = iSpellbookContentId;
+        }
+    }
+
+    for (u32_t Index = 0; Index < State.Cooldowns.size(); ++Index)
+    {
+        State.Cooldowns[Index] = Champion.cooldowns[Index];
+        State.MaxCooldowns[Index] = 0.f;
+    }
+
+    if (m_World.HasComponent<SkillStateComponent>(Entity))
+    {
+        const SkillStateComponent& SkillState = m_World.GetComponent<SkillStateComponent>(Entity);
+        for (u32_t Index = 0; Index < State.Cooldowns.size(); ++Index)
+        {
+            const SkillSlotRuntime& Slot = SkillState.slots[Index + 1u];
+            State.Cooldowns[Index] = Slot.cooldownRemaining;
+            State.MaxCooldowns[Index] = Slot.cooldownDuration;
+            if (State.Cooldowns[Index] <= 0.f)
+                State.MaxCooldowns[Index] = 0.f;
+            else if (State.MaxCooldowns[Index] < State.Cooldowns[Index])
+                State.MaxCooldowns[Index] = State.Cooldowns[Index];
+        }
+    }
+
+    if (m_World.HasComponent<HealthComponent>(Entity))
+    {
+        const HealthComponent& Health = m_World.GetComponent<HealthComponent>(Entity);
+        State.Hp = Health.fCurrent;
+        State.MaxHp = Health.fMaximum;
+    }
+
+    if (m_World.HasComponent<ExperienceComponent>(Entity))
+    {
+        const ExperienceComponent& Experience = m_World.GetComponent<ExperienceComponent>(Entity);
+        State.XpCurrent = Experience.current;
+        State.XpRequired = Experience.requiredForNextLevel;
+        State.XpRatio = (Experience.requiredForNextLevel > 0.f)
+            ? (Experience.current / Experience.requiredForNextLevel)
+            : 0.f;
+        if (Experience.level > 0)
+            State.Level = Experience.level;
+    }
+
+    if (m_World.HasComponent<SkillRankComponent>(Entity))
+    {
+        const SkillRankComponent& Ranks = m_World.GetComponent<SkillRankComponent>(Entity);
+        const u32_t Count = std::min<u32_t>(
+            static_cast<u32_t>(State.SkillRanks.size()),
+            SkillRankComponent::kSlotCount);
+        for (u32_t Index = 0; Index < Count; ++Index)
+            State.SkillRanks[Index] = Ranks.ranks[Index];
+        State.SkillPoints = Ranks.pointsAvailable;
+    }
+
+    if (m_World.HasComponent<RuneRuntimeComponent>(Entity))
+    {
+        State.LethalTempoStacks =
+            m_World.GetComponent<RuneRuntimeComponent>(Entity).iLethalTempoStacks;
+        State.LethalTempoMaxStacks = static_cast<u8_t>(RuneTuning::kLethalTempoMaxStacks);
+    }
+
+    if (m_World.HasComponent<GoldComponent>(Entity))
+        State.Gold = m_World.GetComponent<GoldComponent>(Entity).amount;
+
+    if (m_World.HasComponent<InventoryComponent>(Entity))
+    {
+        const InventoryComponent& Inventory = m_World.GetComponent<InventoryComponent>(Entity);
+        State.InventoryItemIds.fill(0);
+        const u32_t Count = std::min<u32_t>(
+            static_cast<u32_t>(State.InventoryItemIds.size()),
+            std::min<u32_t>(Inventory.count, InventoryComponent::kMaxSlots));
+        for (u32_t Index = 0; Index < Count; ++Index)
+            State.InventoryItemIds[Index] = Inventory.itemIds[Index];
+    }
+
+    if (m_World.HasComponent<StatComponent>(Entity))
+    {
+        const StatComponent& Stat = m_World.GetComponent<StatComponent>(Entity);
+        State.Ad = Stat.ad;
+        State.Ap = Stat.ap;
+        State.Armor = Stat.armor;
+        State.Mr = Stat.mr;
+        State.AttackSpeed = Stat.attackSpeed;
+        State.AttackRange = Stat.attackRange;
+        State.MoveSpeed = Stat.moveSpeed;
+        State.CritChance = Stat.critChance;
+        State.AbilityHaste = Stat.abilityHaste;
+        if (Stat.level > 0)
+            State.Level = Stat.level;
+        if (Stat.hpMax > 0.f)
+            State.MaxHp = Stat.hpMax;
+        if (Stat.manaMax > 0.f)
+            State.MaxMp = Stat.manaMax;
+    }
+
+    State.bStunned = m_World.HasComponent<StunComponent>(Entity);
+    CGameInstance::Get()->UI_Set_ActorHUDState(&State);
+}
+
+void CScene_InGame::SyncStatusPanelStateToEngineUI()
+{
+    Engine::StatusPanelMatchScore Score{};
+    u16_t iBlueKills = 0u;
+    u16_t iRedKills = 0u;
+    bool_t bScoreFound = false;
+
+    m_World.ForEach<MatchScoreComponent>(
+        [&](EntityID, MatchScoreComponent& MatchScore)
+        {
+            if (bScoreFound)
+                return;
+
+            bScoreFound = true;
+            Score.iBlueDragons = MatchScore.Blue.iDragons;
+            Score.iBlueBarons = MatchScore.Blue.iBarons;
+            Score.iBlueDestroyedStructures = MatchScore.Blue.iDestroyedTurrets;
+            Score.iRedDragons = MatchScore.Red.iDragons;
+            Score.iRedBarons = MatchScore.Red.iBarons;
+            Score.iRedDestroyedStructures = MatchScore.Red.iDestroyedTurrets;
+            iBlueKills = MatchScore.Blue.iTotalKills;
+            iRedKills = MatchScore.Red.iTotalKills;
+        });
+
+    std::vector<Engine::StatusPanelActorRow> BlueRows;
+    std::vector<Engine::StatusPanelActorRow> RedRows;
+
+    m_World.ForEach<ChampionComponent>(
+        [&](EntityID Entity, ChampionComponent& Champion)
+        {
+            Engine::StatusPanelActorRow Row{};
+            Row.Entity = Entity;
+            Row.iActorContentId = ToLoLUIContentId(Champion.id);
+            Row.iTeam = static_cast<u8_t>(Champion.team);
+            Row.iLevel = Champion.level;
+            Row.SummonerSpellIds[0] = ChampionScoreComponent::kSummonerSpellFlash;
+            Row.SummonerSpellIds[1] = ChampionScoreComponent::kSummonerSpellIgnite;
+
+            if (m_World.HasComponent<ChampionScoreComponent>(Entity))
+            {
+                const ChampionScoreComponent& ScoreComponent =
+                    m_World.GetComponent<ChampionScoreComponent>(Entity);
+                Row.iKills = ScoreComponent.iKills;
+                Row.iDeaths = ScoreComponent.iDeaths;
+                Row.iAssists = ScoreComponent.iAssists;
+                for (u32_t Index = 0; Index < Row.SummonerSpellIds.size(); ++Index)
+                    Row.SummonerSpellIds[Index] = ScoreComponent.iSummonerSpellIds[Index];
+            }
+
+            if (m_World.HasComponent<SummonerSpellStateComponent>(Entity))
+            {
+                const SummonerSpellStateComponent& SpellState =
+                    m_World.GetComponent<SummonerSpellStateComponent>(Entity);
+                for (u32_t Index = 0; Index < Row.SummonerCooldowns.size(); ++Index)
+                {
+                    Row.SummonerCooldowns[Index] = SpellState.cooldownRemaining[Index];
+                    Row.SummonerCooldownDurations[Index] = SpellState.cooldownDuration[Index];
+                }
+            }
+
+            if (m_World.HasComponent<InventoryComponent>(Entity))
+            {
+                const InventoryComponent& Inventory = m_World.GetComponent<InventoryComponent>(Entity);
+                const u32_t Count = std::min<u32_t>(
+                    static_cast<u32_t>(Row.InventoryItemIds.size()),
+                    std::min<u32_t>(Inventory.count, InventoryComponent::kMaxSlots));
+                for (u32_t Index = 0; Index < Count; ++Index)
+                    Row.InventoryItemIds[Index] = Inventory.itemIds[Index];
+            }
+
+            if (Champion.team == eTeam::Red)
+                RedRows.push_back(Row);
+            else if (Champion.team == eTeam::Blue)
+                BlueRows.push_back(Row);
+        });
+
+    auto SortRows = [](std::vector<Engine::StatusPanelActorRow>& Rows)
+    {
+        std::sort(
+            Rows.begin(),
+            Rows.end(),
+            [](const Engine::StatusPanelActorRow& A, const Engine::StatusPanelActorRow& B)
+            {
+                if (A.iTeam != B.iTeam)
+                    return A.iTeam < B.iTeam;
+                return A.Entity < B.Entity;
+            });
+    };
+
+    SortRows(BlueRows);
+    SortRows(RedRows);
+
+    CGameInstance::Get()->UI_Set_StatusPanelState(
+        &Score,
+        BlueRows.empty() ? nullptr : BlueRows.data(),
+        static_cast<u32_t>(BlueRows.size()),
+        RedRows.empty() ? nullptr : RedRows.data(),
+        static_cast<u32_t>(RedRows.size()));
+
+    bool_t bLocalScoreFound = false;
+    u16_t iLocalKills = 0u;
+    u16_t iLocalDeaths = 0u;
+    u16_t iLocalAssists = 0u;
+    if (m_PlayerEntity != NULL_ENTITY &&
+        m_World.HasComponent<ChampionScoreComponent>(m_PlayerEntity))
+    {
+        const ChampionScoreComponent& LocalScore =
+            m_World.GetComponent<ChampionScoreComponent>(m_PlayerEntity);
+        iLocalKills = LocalScore.iKills;
+        iLocalDeaths = LocalScore.iDeaths;
+        iLocalAssists = LocalScore.iAssists;
+        bLocalScoreFound = true;
+    }
+
+    if (bScoreFound || bLocalScoreFound)
+    {
+        CGameInstance::Get()->UI_Set_MatchContextHUDScoreStats(
+            iBlueKills,
+            iRedKills,
+            iLocalKills,
+            iLocalDeaths,
+            iLocalAssists);
+    }
+}
+
+void CScene_InGame::SyncWorldHealthBarsToEngineUI()
+{
+    std::vector<Engine::UIWorldHealthBarDesc> Bars;
+    Bars.reserve(128u);
+
+    auto ApplyHealthOverride = [this](
+        EntityID Entity,
+        f32_t& fCurrent,
+        f32_t& fMaximum,
+        bool_t& bDead)
+    {
+        if (!m_World.HasComponent<HealthComponent>(Entity))
+            return;
+
+        const HealthComponent& Health = m_World.GetComponent<HealthComponent>(Entity);
+        fCurrent = Health.fCurrent;
+        if (Health.fMaximum > 0.f)
+            fMaximum = Health.fMaximum;
+        bDead = Health.bIsDead || fCurrent <= 0.f;
+    };
+
+    m_World.ForEach<ChampionComponent, TransformComponent>(
+        [&](EntityID Entity, ChampionComponent& Champion, TransformComponent& Transform)
+        {
+            Engine::UIWorldHealthBarDesc Bar{};
+            Bar.Entity = Entity;
+            Bar.Kind = Engine::UIWorldHealthBarKind::Character;
+            Bar.vWorldPos = Transform.GetPosition();
+            Bar.fCurrent = Champion.hp;
+            Bar.fMaximum = Champion.maxHp;
+            Bar.fManaCurrent = Champion.mana;
+            Bar.fManaMaximum = Champion.maxMana;
+            Bar.iTeam = ToLoLUITeamId(Champion.team);
+            Bar.bDead = Bar.fCurrent <= 0.f;
+            ApplyHealthOverride(Entity, Bar.fCurrent, Bar.fMaximum, Bar.bDead);
+            Bars.push_back(Bar);
+        });
+
+    m_World.ForEach<MinionComponent, TransformComponent>(
+        [&](EntityID Entity, MinionComponent& Minion, TransformComponent& Transform)
+        {
+            Engine::UIWorldHealthBarDesc Bar{};
+            Bar.Entity = Entity;
+            Bar.Kind = Engine::UIWorldHealthBarKind::Unit;
+            Bar.vWorldPos = Transform.GetPosition();
+            Bar.fCurrent = Minion.hp;
+            Bar.fMaximum = Minion.maxHp;
+            Bar.iTeam = ToLoLUITeamId(Minion.team);
+            Bar.bDead = Bar.fCurrent <= 0.f;
+            ApplyHealthOverride(Entity, Bar.fCurrent, Bar.fMaximum, Bar.bDead);
+            Bars.push_back(Bar);
+        });
+
+    m_World.ForEach<TurretComponent, TransformComponent>(
+        [&](EntityID Entity, TurretComponent& Turret, TransformComponent& Transform)
+        {
+            Engine::UIWorldHealthBarDesc Bar{};
+            Bar.Entity = Entity;
+            Bar.Kind = Engine::UIWorldHealthBarKind::Structure;
+            Bar.vWorldPos = Transform.GetPosition();
+            Bar.fCurrent = Turret.hp;
+            Bar.fMaximum = Turret.maxHp;
+            Bar.iTeam = ToLoLUITeamId(Turret.team);
+            Bar.bDead = Bar.fCurrent <= 0.f;
+            ApplyHealthOverride(Entity, Bar.fCurrent, Bar.fMaximum, Bar.bDead);
+            Bars.push_back(Bar);
+        });
+
+    u8_t iLocalTeam = ToLoLUITeamId(m_PlayerTeam);
+    if (m_PlayerEntity != NULL_ENTITY &&
+        m_World.HasComponent<ChampionComponent>(m_PlayerEntity))
+    {
+        iLocalTeam = ToLoLUITeamId(m_World.GetComponent<ChampionComponent>(m_PlayerEntity).team);
+    }
+
+    CGameInstance::Get()->UI_Set_WorldHealthBars(
+        Bars.empty() ? nullptr : Bars.data(),
+        static_cast<u32_t>(Bars.size()),
+        iLocalTeam);
+}
+
+void CScene_InGame::SyncAIResourceStateToEngine()
+{
+    m_World.ForEach<ChampionComponent>(
+        [&](EntityID Entity, ChampionComponent& Champion)
+        {
+            AIResourceStateComponent& Resource =
+                m_World.HasComponent<AIResourceStateComponent>(Entity)
+                    ? m_World.GetComponent<AIResourceStateComponent>(Entity)
+                    : m_World.AddComponent<AIResourceStateComponent>(Entity);
+
+            Resource.fMana = Champion.mana;
+            Resource.fMaxMana = Champion.maxMana;
+            for (u32_t i = 0; i < 4; ++i)
+                Resource.fCooldowns[i] = Champion.cooldowns[i];
+        });
+}
+
+void CScene_InGame::SyncNavigationControlStateToEngine()
+{
+    m_World.ForEach<NavAgentComponent>(
+        [&](EntityID Entity, NavAgentComponent&)
+        {
+            NavigationControlComponent& Control =
+                m_World.HasComponent<NavigationControlComponent>(Entity)
+                    ? m_World.GetComponent<NavigationControlComponent>(Entity)
+                    : m_World.AddComponent<NavigationControlComponent>(Entity);
+
+            Control = NavigationControlComponent{};
+
+            const bool_t bHasMinionState =
+                m_World.HasComponent<MinionStateComponent>(Entity);
+            Control.bUseReverseFacing =
+                bHasMinionState || m_World.HasComponent<MinionComponent>(Entity);
+
+            if (bHasMinionState)
+            {
+                const MinionStateComponent& State =
+                    m_World.GetComponent<MinionStateComponent>(Entity);
+                const bool_t bChasing =
+                    State.current == MinionStateComponent::Chase;
+                Control.bChaseFallbackEnabled = bChasing;
+                Control.bThrottleRepath = bChasing;
+            }
+
+            Control.bMovementBlocked = m_World.HasComponent<StunComponent>(Entity);
+            if (m_World.HasComponent<SlowComponent>(Entity))
+            {
+                Control.fMoveSpeedMul =
+                    m_World.GetComponent<SlowComponent>(Entity).fMoveSpeedMul;
+            }
+        });
+}
+
 Vec3 CScene_InGame::GetPlayerForward() const
 {
     const f32_t yaw =
@@ -328,6 +767,23 @@ void CScene_InGame::OnUpdate(f32_t dt)
     {
         WINTERS_PROFILE_SCOPE("SyncECS");
         SyncPlayerEntityTransformFromECS();
+    }
+    SyncAIResourceStateToEngine();
+    SyncNavigationControlStateToEngine();
+    if (m_pVisionSystem)
+    {
+        u8_t iFowLocalTeam = ToLoLUITeamId(m_PlayerTeam);
+        if (m_PlayerEntity != NULL_ENTITY &&
+            m_World.HasComponent<ChampionComponent>(m_PlayerEntity))
+        {
+            iFowLocalTeam = ToLoLUITeamId(
+                m_World.GetComponent<ChampionComponent>(m_PlayerEntity).team);
+        }
+
+        if (iFowLocalTeam == 255u)
+            m_pVisionSystem->ClearFowLocalTeam();
+        else
+            m_pVisionSystem->SetFowLocalTeam(iFowLocalTeam);
     }
     {
         WINTERS_PROFILE_SCOPE("Scheduler");
@@ -440,7 +896,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
                 "[SmokeSkill] castFrame observed champ=%u slot=%u hook=0x%08X\n",
                 static_cast<u32_t>(GetPlayerChampionId()),
                 static_cast<u32_t>(m_ActiveSkill.slot),
-                m_ActiveSkill.legacyHookBridge.castFrameHookId);
+                m_ActiveSkill.legacyHookBridge.castHookId);
             s_bSmokeSkillCastObserved = true;
         }
     }
@@ -490,12 +946,12 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
             const bool bCastHit =
                 !m_ActiveSkill.bCastFrameFired
-                && d.castFrame > 0.f
-                && pAnim->HasFramePassed(d.castFrame, m_ActiveSkill.prevFrame);
+                && d.visualCastFrame > 0.f
+                && pAnim->HasFramePassed(d.visualCastFrame, m_ActiveSkill.prevFrame);
             const bool bRecoveryHit =
                 !m_ActiveSkill.bRecoveryFrameFired
-                && d.recoveryFrame > 0.f
-                && pAnim->HasFramePassed(d.recoveryFrame, m_ActiveSkill.prevFrame);
+                && d.visualRecoveryFrame > 0.f
+                && pAnim->HasFramePassed(d.visualRecoveryFrame, m_ActiveSkill.prevFrame);
 
             if (m_bLogFrameEvents)
             {
@@ -548,10 +1004,10 @@ void CScene_InGame::OnUpdate(f32_t dt)
                 gameCtx.pCommand = &gameCommand;
                 gameCtx.pTickCtx = &tickCtx;
                 bool gameplayHandled = false;
-                if (d.castFrameHookId != 0)
+                if (d.castHookId != 0)
                 {
                     gameplayHandled = CGameplayHookRegistry::Instance().Dispatch(
-                        d.castFrameHookId, gameCtx
+                        d.castHookId, gameCtx
                     );
                 }
                 //Client Visual FX/Sound
@@ -563,13 +1019,13 @@ void CScene_InGame::OnUpdate(f32_t dt)
                 visualCtx.skillStage = m_ActiveSkill.stage;
                 visualCtx.pFxMeshRenderer = m_pFxMeshRenderer.get();
                 bool visualHandled = false;
-                if (d.castFrameHookId != 0)
+                if (d.castHookId != 0)
                     visualHandled = CVisualHookRegistry::Instance().Dispatch(
-                        d.castFrameHookId, visualCtx);
+                        d.castHookId, visualCtx);
 
                 // Legacy local skill hook path for offline/practice visuals.
                 bool castHandled = false;
-                if (d.castFrameHookId != 0)
+                if (d.castHookId != 0)
                 {
                     SkillHookContext ctx{};
                     ctx.pWorld = &m_World;
@@ -594,13 +1050,13 @@ void CScene_InGame::OnUpdate(f32_t dt)
                                 m_pPlayerRenderer->PlayAnimationByName(idle, true);
                         };
                     castHandled = CSkillHookRegistry::Instance().Dispatch(
-                        d.castFrameHookId, ctx);
+                        d.castHookId, ctx);
                 }
                 Winters::DevSmoke::Log(
                     "[SmokeSkill] castFrame champ=%u slot=%u hook=0x%08X gameplay=%u visual=%u legacy=%u\n",
                     static_cast<u32_t>(champ),
                     static_cast<u32_t>(d.slot),
-                    d.castFrameHookId,
+                    d.castHookId,
                     gameplayHandled ? 1u : 0u,
                     visualHandled ? 1u : 0u,
                     castHandled ? 1u : 0u);
@@ -650,7 +1106,7 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
             }
 
-            if (d.recoveryFrame > 0.f && curF >= d.recoveryFrame)
+            if (d.visualRecoveryFrame > 0.f && curF >= d.visualRecoveryFrame)
                 ClearActiveSkillRuntime();
             else
                 m_ActiveSkill.prevFrame = curF;
@@ -743,6 +1199,10 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
     const bool_t bAttackHold = !bPlayerDead && CInput::Get().IsKeyDown('A');
     SetShowAttackRange(bAttackHold);
+
+    SyncActorHUDStateToEngineUI();
+    SyncStatusPanelStateToEngineUI();
+    SyncWorldHealthBarsToEngineUI();
 
     const EntityID hoveredEntity = GetHoveredEntity();
     CGameInstance::Get()->UI_Set_AttackMode(bAttackHold);

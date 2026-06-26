@@ -1,6 +1,7 @@
 #include "Network/Client/EventApplier.h"
 #include "Network/Client/NetworkEventTrace.h"
 #include "GameInstance.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 
 #pragma push_macro("min")
 #pragma push_macro("max")
@@ -13,7 +14,7 @@
 
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/RenderComponent.h"
 #include "GameObject/ChampionDef.h"
 #include "GameObject/FX/FxBillboardComponent.h"
@@ -45,14 +46,14 @@
 namespace
 {
     constexpr const wchar_t* kTurretTopBeamTexture =
-        L"Client/Bin/Resource/Texture/Object/Turret/particles/TurretTopBeam.png";
-    constexpr const wchar_t* kEffectTexture = L"Client/Bin/Resource/Texture/FX/Kalista/common_global_indicator_ring_bright.png";
-    constexpr const wchar_t* kDamageTexture = L"Client/Bin/Resource/Texture/FX/Kalista/common_color-hit-physical.png";
+        L"Texture/Object/Turret/particles/TurretTopBeam.png";
+    constexpr const wchar_t* kEffectTexture = L"Texture/FX/Kalista/common_global_indicator_ring_bright.png";
+    constexpr const wchar_t* kDamageTexture = L"Texture/FX/Kalista/common_color-hit-physical.png";
 
     // Kill, destroy, and objective event presentation.
-    constexpr u8_t kKillFeedObjectChampion = 1;
-    constexpr u8_t kKillFeedObjectTurret = 2;
-    constexpr u8_t kKillFeedObjectInhibitor = 3;
+    constexpr u8_t kKillFeedObjectActor = 1;
+    constexpr u8_t kKillFeedObjectStructure = 2;
+    constexpr u8_t kKillFeedObjectObjective = 3;
     constexpr u8_t kKillFeedObjectDragon = 4;
     constexpr u8_t kKillFeedObjectBaron = 5;
 
@@ -82,7 +83,7 @@ namespace
 
     const char* ResolveKillFeedMessage(u8_t objectKind, bool_t bSourceAlly, bool_t bTargetAlly)
     {
-        if (objectKind == kKillFeedObjectChampion)
+        if (objectKind == kKillFeedObjectActor)
         {
             if (bSourceAlly)
                 return "적을 처치했습니다";
@@ -90,13 +91,13 @@ namespace
                 return "아군이 당했습니다";
             return "적을 처치했습니다";
         }
-        if (objectKind == kKillFeedObjectTurret)
+        if (objectKind == kKillFeedObjectStructure)
         {
             if (bSourceAlly)
                 return "포탑을 파괴했습니다";
             return "적이 포탑을 파괴했습니다";
         }
-        if (objectKind == kKillFeedObjectInhibitor)
+        if (objectKind == kKillFeedObjectObjective)
         {
             if (bSourceAlly)
                 return "억제기를 파괴했습니다";
@@ -254,17 +255,23 @@ namespace
         u8_t stage,
         const SkillDef* pDef)
     {
+        const u8_t stageIndex = stage > 0u ? static_cast<u8_t>(stage - 1u) : 0u;
         f32_t playSpeed = 1.f;
-        if (ChampionGameDataDB::FindSkill(champion, slot))
+        if (const ClientData::ChampionVisualDefinition* pVisual =
+            ClientData::FindChampionVisualDefinition(champion))
         {
-            playSpeed =
-                ChampionGameDataDB::ResolveSkillTiming(champion, slot, stage).animPlaySpeed;
+            if (slot < ClientData::kVisualSkillSlotCount &&
+                stageIndex < pVisual->skills[slot].stageCount &&
+                stageIndex < ClientData::kVisualSkillStageCount)
+            {
+                playSpeed = pVisual->skills[slot].stages[stageIndex].animationPlaybackSpeed;
+            }
         }
         else if (pDef)
         {
-            playSpeed = (stage >= 2u && pDef->stage2PlaySpeed > 0.01f)
-                ? pDef->stage2PlaySpeed
-                : pDef->animPlaySpeed;
+            playSpeed = (stage >= 2u && pDef->stage2VisualPlaySpeed > 0.01f)
+                ? pDef->stage2VisualPlaySpeed
+                : pDef->visualPlaySpeed;
         }
 
         return (std::isfinite(playSpeed) && playSpeed > 0.01f) ? playSpeed : 1.f;
@@ -461,14 +468,14 @@ namespace
         if (ownerEntity != NULL_ENTITY && world.HasComponent<TransformComponent>(ownerEntity))
         {
             const Vec3 ownerPos = world.GetComponent<TransformComponent>(ownerEntity).GetPosition();
-            pos = { ownerPos.x, ownerPos.y + 2.5f, ownerPos.z };
+            pos = { ownerPos.x, ownerPos.y + 4.0f, ownerPos.z };
             attachTo = ownerEntity;
         }
 
         FxBillboardComponent fx{};
         fx.vWorldPos = pos;
         fx.attachTo = attachTo;
-        fx.vAttachOffset = { 0.f, 2.5f, 0.f };
+        fx.vAttachOffset = { 0.f, 4.0f, 0.f };
         fx.texturePath = kTurretTopBeamTexture;
         fx.fWidth = 1.8f;
         fx.fHeight = 1.8f;
@@ -588,10 +595,10 @@ void CEventApplier::ApplyProjectileSpawn(
         return;
 
     const EntityID ownerEntity = ResolveLiveEntity(world, entityMap, ev->ownerNet());
-    const bool_t bTurretProjectile = ProjectileVisualCatalog::IsTurretProjectileKind(ev->kind());
+    const bool_t bStructureProjectile = ProjectileVisualCatalog::IsStructureProjectileKind(ev->kind());
 
     const Vec3 pos{ ev->startX(), ev->startY(), ev->startZ() };
-    if (bTurretProjectile)
+    if (bStructureProjectile)
         SpawnTurretTopBeam(world, ownerEntity, pos);
     const Vec3 dir = WintersMath::Normalize3D(Vec3{ ev->dirX(), ev->dirY(), ev->dirZ() });
     const Vec3 velocity{
@@ -625,7 +632,7 @@ void CEventApplier::ApplyProjectileSpawn(
             spawnedCueEntities.begin(),
             spawnedCueEntities.end());
 
-        if (bTurretProjectile && bPlayedProjectileWfxCue)
+        if (bStructureProjectile && bPlayedProjectileWfxCue)
         {
             bool_t bSpawnedMesh = false;
             for (EntityID spawned : spawnedCueEntities)
@@ -650,7 +657,7 @@ void CEventApplier::ApplyProjectileSpawn(
     }
 
     const bool_t bShouldSpawnGenericProjectile =
-        !bTurretProjectile &&
+        !bStructureProjectile &&
         visual.bUseGenericSpawnFallback &&
         visual.pszFallbackSpawnTexture != nullptr &&
         (!visual.pszSpawnCue || !bPlayedProjectileWfxCue);
@@ -1007,7 +1014,7 @@ void CEventApplier::ApplyDamage(
     {
         const EntityID localEntity = FindLocalPlayerEntity(world);
         if (source != NULL_ENTITY && source == localEntity)
-            CGameInstance::Get()->UI_RecordGameContextMinionKill();
+            CGameInstance::Get()->UI_RecordMatchContextUnitKill();
     }
 
     if (!IsMinionEntity(world, source) && !IsMinionEntity(world, target))
@@ -1048,7 +1055,7 @@ void CEventApplier::ApplyKillFeed(
     const bool_t bSourceAlly = sourceTeam == localTeam;
     const bool_t bTargetAlly = targetTeam == localTeam;
 
-    if (objectKind == kKillFeedObjectChampion)
+    if (objectKind == kKillFeedObjectActor)
     {
         const EntityID localEntity = FindLocalPlayerEntity(world);
         const NetEntityId localNet = localEntity != NULL_ENTITY
@@ -1059,7 +1066,7 @@ void CEventApplier::ApplyKillFeed(
         const bool_t bLocalTarget =
             localNet != NULL_NET_ENTITY && ev->targetNet() == localNet;
 
-        CGameInstance::Get()->UI_RecordGameContextChampionKill(
+        CGameInstance::Get()->UI_RecordMatchContextActorKill(
             ev->sourceTeam(),
             ev->targetTeam(),
             bLocalSource,
@@ -1072,8 +1079,8 @@ void CEventApplier::ApplyKillFeed(
         return;
 
     CGameInstance::Get()->UI_Push_KillFeedBanner(
-        static_cast<eChampion>(ev->sourceChampion()),
-        static_cast<eChampion>(ev->targetChampion()),
+        ev->sourceChampion(),
+        ev->targetChampion(),
         objectKind,
         bSourceAlly,
         pMessage);

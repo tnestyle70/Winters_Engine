@@ -74,16 +74,16 @@ const SkillGameplayDef* GameplayDefinitionPack::FindSkill(DefinitionKey key) con
 
 const SummonerSpellGameplayDef* GameplayDefinitionPack::FindSummonerSpell(SummonerSpellDefId id) const
 {
-    return FindDense(summonerSpells, summonerSpellCount, id);
+    return FindDense(summonerSpellDefs, summonerSpellCount, id);
 }
 
 const SummonerSpellGameplayDef* GameplayDefinitionPack::FindSummonerSpellByLegacyId(u16_t legacySpellId) const
 {
     for (std::size_t index = 0u; index < summonerSpellCount; ++index)
     {
-        if (summonerSpells[index].legacySpellId == legacySpellId)
+        if (summonerSpellDefs[index].legacySpellId == legacySpellId)
         {
-            return &summonerSpells[index];
+            return &summonerSpellDefs[index];
         }
     }
 

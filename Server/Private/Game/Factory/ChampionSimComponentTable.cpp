@@ -1,6 +1,6 @@
 #include "Server/Private/Game/Factory/ChampionSimComponentTable.h"
 
-#include "ECS/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/World.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/AsheSimComponent.h"

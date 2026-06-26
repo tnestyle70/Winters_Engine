@@ -6,21 +6,21 @@
 namespace
 {
     constexpr const wchar_t* kPathBaHitSparkTex =
-        L"Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_hit_spark_yellow.png";
+        L"Texture/Character/Fiora/particles/fiora_base_e_hit_spark_yellow.png";
     constexpr const wchar_t* kPathQSlashTex =
-        L"Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_q_slash.png";
+        L"Texture/Character/Fiora/particles/fiora_base_q_slash.png";
     constexpr const wchar_t* kPathQGlowTex =
-        L"Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_q_swordglow.png";
+        L"Texture/Character/Fiora/particles/fiora_base_q_swordglow.png";
     constexpr const wchar_t* kPathWParryTex =
-        L"Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_w_block_glow.png";
+        L"Texture/Character/Fiora/particles/fiora_base_w_block_glow.png";
     constexpr const wchar_t* kPathWFlashTex =
-        L"Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_w_block_flash.png";
+        L"Texture/Character/Fiora/particles/fiora_base_w_block_flash.png";
     constexpr const wchar_t* kPathEBuffTex =
-        L"Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_buff_mult_yellow.png";
+        L"Texture/Character/Fiora/particles/fiora_base_e_buff_mult_yellow.png";
     constexpr const wchar_t* kPathRMarkTex =
-        L"Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_r_crest_glow.png";
+        L"Texture/Character/Fiora/particles/fiora_base_r_crest_glow.png";
     constexpr const wchar_t* kPathRHealTex =
-        L"Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_r_healzone.png";
+        L"Texture/Character/Fiora/particles/fiora_base_r_healzone.png";
 }
 
 namespace Fiora::Fx

@@ -97,15 +97,9 @@ namespace SkillDefAdapters
 
         ChampionGameDataSkillStage& stage1 = data.stages[0];
         stage1.lockDurationSec = def.lockDurationSec;
-        stage1.animPlaySpeed = def.animPlaySpeed;
-        stage1.castFrame = def.castFrame;
-        stage1.recoveryFrame = def.recoveryFrame;
 
         ChampionGameDataSkillStage& stage2 = data.stages[1];
         stage2.lockDurationSec = def.stage2LockSec;
-        stage2.animPlaySpeed = def.stage2PlaySpeed;
-        stage2.castFrame = def.stage2CastFrame;
-        stage2.recoveryFrame = def.stage2RecoveryFrame;
 
         return data;
     }

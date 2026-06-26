@@ -83,7 +83,7 @@ private:
     f32_t m_PendingBushWidth = 8.f;
     f32_t m_PendingBushHeight = 4.f;
     char  m_szPendingBushAsset[128] =
-        "Client/Bin/Resource/Texture/MAP/output/textures/assets/maps/kitpieces/srx/textures/sru_brush.png";
+        "Texture/MAP/output/textures/assets/maps/kitpieces/srx/textures/sru_brush.png";
 
     // 마우스 좌클릭 에지 감지 (GetAsyncKeyState 직접 사용)
     unique_ptr<Engine::CNavGrid> m_pEditorNavGrid;

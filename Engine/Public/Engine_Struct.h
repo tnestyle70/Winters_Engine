@@ -23,7 +23,7 @@ namespace Engine
 		u32_t iBoneIndices[4]; //blendindices
 		f32_t fBoneWeights[4]; //blendweight
 	};
-	//본 행렬 상수 버퍼(32kb, dx11 64kb 제한 이내 ) - EldenRing 캐릭터(257~512본) 지원
+	//본 행렬 상수 버퍼(32kb, dx11 64kb 제한 이내 ) - large-character 캐릭터(257~512본) 지원
 	struct CBBoneMatrices
 	{
 		DirectX::XMFLOAT4X4 bones[512];

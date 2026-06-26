@@ -18,7 +18,7 @@ public:
 	
 	CEntityBlueprint() = default;
 
-	//Entity는 Transform + Champion + SKillState를 갖는다.
+	//Entity는 Transform + Actor + SkillState를 갖는다.
 	CEntityBlueprint& Add(Installer fn)
 	{
 		m_vecInstallers.push_back(std::move(fn));

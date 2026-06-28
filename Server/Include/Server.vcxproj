@@ -105,6 +105,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
   <ItemGroup>
     <ClCompile Include="..\Private\Data\Generated\LoLGameplayDefinitions.generated.cpp" />
     <ClCompile Include="..\Private\Game\Factory\ChampionSimComponentTable.cpp" />
+    <ClCompile Include="..\Private\Game\Factory\ServerChampionEntityFactory.cpp" />
     <ClCompile Include="..\Private\Game\CommandIngress.cpp" />
     <ClCompile Include="..\Private\Game\GameRoom.cpp" />
     <ClCompile Include="..\Private\Game\GameRoomChampionAI.cpp" />
@@ -146,6 +147,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Private\Game\GameRoomInternal.h" />
     <ClInclude Include="..\Private\Game\GameRoomSmokeRoster.h" />
     <ClInclude Include="..\Private\Game\Factory\ChampionSimComponentTable.h" />
+    <ClInclude Include="..\Private\Game\Factory\ServerChampionEntityFactory.h" />
     <ClInclude Include="..\Public\Game\ReplayRecorder.h" />
     <ClInclude Include="..\Public\Game\ServerAICommandProducer.h" />
     <ClInclude Include="..\Public\Game\ServerEntry.h" />

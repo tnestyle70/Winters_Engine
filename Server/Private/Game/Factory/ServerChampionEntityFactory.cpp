@@ -5,6 +5,7 @@
 #include "Server/Private/Game/GameRoomSmokeRoster.h"
 #include "Server/Private/Game/Factory/ChampionSimComponentTable.h"
 #include "Server/Private/Data/LoLGameplayDefinitionPack.h"
+#include "Shared/GameSim/Spawn/ChampionGameplayAssembly.h"
 
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
@@ -27,45 +28,6 @@
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/World.h"
 
-#include <algorithm>
-
-namespace
-{
-    void AssignDefaultBotSkillRanks(SkillRankComponent& ranks, u8_t championLevel)
-    {
-        ranks = SkillRankComponent{};
-        CSkillRankSystem::SyncPointsForLevel(ranks, championLevel);
-
-        static constexpr u8_t kLevelOrder[] =
-        {
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::R),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::R),
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::R),
-        };
-
-        const u8_t count = std::min<u8_t>(
-            championLevel,
-            static_cast<u8_t>(sizeof(kLevelOrder) / sizeof(kLevelOrder[0])));
-        for (u8_t i = 0; i < count && ranks.pointsAvailable > 0u; ++i)
-            CSkillRankSystem::TryLevelSkill(ranks, kLevelOrder[i]);
-    }
-}
-
 VisibilityComponent BuildServerVisibleToAll()
 {
     VisibilityComponent visibility{};
@@ -78,102 +40,36 @@ VisibilityComponent BuildServerVisibleToAll()
 EntityID ServerEntityFactory::BuildChampionEntity(
     CWorld& world, const LobbySlotState& slot, const Vec3& spawnPos)
 {
-    const EntityHandle entityHandle = world.CreateEntityHandle();
-    const EntityID entity = entityHandle.GetIndex();
-
-    TransformComponent transform{};
-    transform.SetPosition(spawnPos);
-    world.AddComponent<TransformComponent>(entity, transform);
-
     const SpawnObjectDefinitionPack& objectDefs = ServerData::GetLoLSpawnObjectDefinitionPack();
-    const SpawnLoadoutPolicyDef& spawnPolicy = objectDefs.spawnLoadout;
     const GameplayDefinitionPack& definitions = ServerData::GetLoLGameplayDefinitionPack();
     const ChampionGameplayDef* championDef = definitions.FindChampion(slot.champion);
 
-    StatComponent stat{};
+    ChampionAssemblyContext ctx{};
+    ctx.champion = slot.champion;
+    ctx.team = slot.team;
+    ctx.spawnPos = spawnPos;
+    ctx.bAssignBotSkillRanks = slot.bBot && !slot.bDummy;
+    ctx.loadout = objectDefs.spawnLoadout;
+    ctx.pDef = championDef;
+    // smoke/dummy 고정 HP override(else 분기는 defaultMaxHp 반환). 0.f를 넘기면 normal=0(override 없음),
+    // smoke/dummy=고정값 -> 기존 ResolveServerChampionMaxHpForSlot(slot, stat.hpMax)와 byte-identical.
+    ctx.maxHpOverride = ResolveServerChampionMaxHpForSlot(slot, 0.f);
+
     f32_t spatialRadius = 0.75f;
     f32_t sightRange = 19.f;
     if (championDef)
     {
-        ChampionDefinitionComponent identity{};
-        identity.championDefId = championDef->id;
-        world.AddComponent<ChampionDefinitionComponent>(entity, identity);
-
-        SkillLoadoutComponent loadout{};
-        for (u8_t skillSlot = 0u; skillSlot < kChampionSkillSlotCount; ++skillSlot)
-            loadout.skills[skillSlot] = championDef->skillLoadout[skillSlot];
-        world.AddComponent<SkillLoadoutComponent>(entity, loadout);
-
-        stat = CStatSystem::BuildBaseStats(
-            championDef->stats,
-            championDef->legacyChampion,
-            spawnPolicy.startLevel);
         spatialRadius = championDef->stats.spatialRadius;
         sightRange = championDef->stats.sightRange;
     }
     else
     {
-        const ChampionStatsDef legacyStats =
-            CChampionStatsRegistry::Instance().Resolve(slot.champion);
-        stat = CStatSystem::BuildBaseStats(legacyStats, spawnPolicy.startLevel);
-        spatialRadius = legacyStats.spatialRadius;
-        sightRange = legacyStats.sightRange;
+        ctx.fallbackStats = CChampionStatsRegistry::Instance().Resolve(slot.champion);
+        spatialRadius = ctx.fallbackStats.spatialRadius;
+        sightRange = ctx.fallbackStats.sightRange;
     }
-    stat.hpMax = ResolveServerChampionMaxHpForSlot(slot, stat.hpMax);
-    world.AddComponent<StatComponent>(entity, stat);
 
-    HealthComponent health{};
-    health.fCurrent = stat.hpMax;
-    health.fMaximum = stat.hpMax;
-    health.bIsDead = false;
-    world.AddComponent<HealthComponent>(entity, health);
-
-    RespawnComponent respawn{};
-    respawn.spawnPos = spawnPos;
-    respawn.respawnDelay = spawnPolicy.respawnDelaySec;
-    world.AddComponent<RespawnComponent>(entity, respawn);
-
-    SkillStateComponent skillState{};
-    world.AddComponent<SkillStateComponent>(entity, skillState);
-
-    CExperienceSystem::InitializeChampionExperience(world, entity, stat.level);
-
-    SkillRankComponent skillRank{};
-    if (slot.bBot && !slot.bDummy)
-        AssignDefaultBotSkillRanks(skillRank, stat.level);
-    else
-        CSkillRankSystem::SyncPointsForLevel(skillRank, stat.level);
-    world.AddComponent<SkillRankComponent>(entity, skillRank);
-
-    GoldComponent gold{};
-    gold.amount = spawnPolicy.startGold;
-    world.AddComponent<GoldComponent>(entity, gold);
-
-    InventoryComponent inventory{};
-    world.AddComponent<InventoryComponent>(entity, inventory);
-
-    RuneLoadoutComponent runeLoadout{};
-    runeLoadout.eRunes[0] = spawnPolicy.startRune;
-    runeLoadout.iCount = spawnPolicy.startRuneCount;
-    world.AddComponent<RuneLoadoutComponent>(entity, runeLoadout);
-    world.AddComponent<RuneRuntimeComponent>(entity, RuneRuntimeComponent{});
-
-    ChampionScoreComponent score{};
-    world.AddComponent<ChampionScoreComponent>(entity, score);
-
-    SummonerSpellStateComponent summonerSpellState{};
-    world.AddComponent<SummonerSpellStateComponent>(entity, summonerSpellState);
-
-    ChampionComponent champion{};
-    champion.id = slot.champion;
-    champion.team = static_cast<eTeam>(slot.team);
-    champion.hp = health.fCurrent;
-    champion.maxHp = health.fMaximum;
-    champion.mana = stat.manaMax;
-    champion.maxMana = stat.manaMax;
-    champion.moveSpeed = stat.moveSpeed;
-    champion.level = stat.level;
-    world.AddComponent<ChampionComponent>(entity, champion);
+    const EntityID entity = ChampionGameplayAssembly::Build(world, ctx);
 
     AttachChampionSimComponents(world, entity, slot.champion);
 

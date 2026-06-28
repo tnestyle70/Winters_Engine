@@ -102,6 +102,7 @@
     <ClCompile Include="..\Definitions\GameplayDefinitionQuery.cpp" />
     <ClCompile Include="..\Definitions\MapSpawnPoints.cpp" />
     <ClCompile Include="..\Definitions\SpawnObjectDefinitionPack.cpp" />
+    <ClCompile Include="..\Spawn\ChampionGameplayAssembly.cpp" />
     <ClCompile Include="..\Generated\ChampionGameData.generated.cpp" />
     <ClCompile Include="..\Registries\ChampionGameData\ChampionGameDataDB.cpp" />
     <ClCompile Include="..\Registries\ChampionStats\ChampionStatsRegistry.cpp" />

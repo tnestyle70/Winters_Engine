@@ -1,5 +1,7 @@
 # 포트폴리오 MASTER 설계 — 2400++ (승자 3인 해부 통합)
 
+> **기술 상태 동기화 (2026-07-11)**: JobSystem은 Client에서 active ThreadOnly이고 과거 Main-push owner race 경로는 수정됐다. 다만 전용 1만/nested stress와 JobSystem 단독 before/after 성능 수치는 없다. Fiber는 dormant FiberShell 골격만 있고 FiberFull/Server 통합/6주 mastery는 미착수다. 근거는 [상태 감사](../plan/2026-07-11_JOB_SYSTEM_CHASE_LEV_FIBER_STATE_AUDIT.md).
+>
 > 형식 결정: **Notion** (사용자 확정 — "하이라이트 영상이 바로 보이는" 접근성이 결정 근거)
 > 원칙: 승자 3인의 장점 전부 + 단점의 반대 실행. 상세 내용은 사용자가 작성 중 — 이 문서는 양식·배치·본질.
 
@@ -65,12 +67,12 @@
 - **[해결 구조]** 5단 파이프라인 + GameCommandWire/GameCommand 분리 + 봇도 커맨드 생산자 + Lag Compensation + 예측 보호(12스냅샷 한도)
 - **[결과 수치 — 확보됨]** 17.8ms→9ms(프로파일러 계측) / 300틱 결정성 해시 무회귀 / FBX 27종 FAIL 0 / 60MB→1.2MB
 - **[결과 수치 — 추가 계측하면 김태호식 표 완성]** FOW 스냅샷 필터 Before/After (엔티티 수·바이트/틱), 커맨드 코얼레싱 전후 패킷 수
-- **[한계 및 개선점 (정직)]** JobSystem: Chase-Lev race 미해결로 비활성 / UDP 미이관(TCP) / 에디터 원자적 저장 부재 — 각각 "다음 단계"로 서술
+- **[한계 및 개선점 (정직)]** JobSystem: Client ThreadOnly 활성 + 과거 owner-race 경로 수정, 전용 stress/formal validation·FiberFull은 미완료 / UDP 미이관(TCP) / 에디터 원자적 저장 부재 — 각각 완료와 검증 부채를 분리해 서술
 - **[예상 역질문 준비]** "서버 권위인데 반응성은?"(예측 보호 trade-off), "30Hz 근거는?", "FlatBuffers 선택 이유는?(protobuf 대비)"
 
 ### ⚠️ FAULT 금지 슬롯 (기재 보류 — 구현·계측 후에만)
-- **Fiber** (커널 전환 오버헤드, 너티독 GDC 서사): 6주 마스터리 미착수 → 구현+전후 수치 확보 전 기재 금지
-- **JobSystem/Chase-Lev/Work-Stealing**: 구현은 존재하나 race로 비활성 → "구현했고 켜져 있다"로 읽히는 서술 금지. 넣으려면 (a) race 수정+활성화+계측 or (b) 한계 섹션에 정직 기재 중 택1
+- **Fiber** (wait continuation, 너티독 GDC 서사): per-job FiberShell 골격은 있으나 runtime 기본 OFF, FiberFull과 6주 mastery 미착수 → 완성/성능 서사는 전후 수치와 yield/resume 검증 전 기재 금지
+- **JobSystem/Chase-Lev/Work-Stealing**: Client active ThreadOnly와 historical owner-race 수정은 코드·profile 근거로 기재 가능. 다만 “전체 lock-free 정합성 증명”, “10K stress 완료”, “JobSystem 덕분의 X ms 개선”은 아직 증거가 없어 금지
 - 이 둘을 넣고 싶은 욕구 = 완벽주의 바닥 신호가 아니라 **정당한 천장 작업 후보** — 단, 제출을 막지 않는 선에서 (제출 후 v2 업데이트로)
 
 ## 4. 프로젝트 카드 배치 (헤더 블록 규격 통일)
@@ -88,7 +90,7 @@
 2. Notion 페이지 개설 → 구조 §2대로 생성 → 이력서_MASTER.md 내용 이식
 3. 영상: video/ 스크립트 (서버 cmd+자막 규격 이미 반영됨)
 4. **v1 공개 → 제출 개시** (완벽 대기 금지)
-5. v2 천장 작업: FOW Before/After 계측 표, JobSystem race 수정 후 수치, 기술 글 2편
+5. v2 천장 작업: FOW Before/After 계측 표, JobSystem 전용 stress/단독 Before-After 수치, 기술 글 2편
 
 ## 6. CONFIRM_NEEDED (이 설계에서 새로 생긴 것)
 

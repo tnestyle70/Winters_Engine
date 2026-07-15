@@ -7,6 +7,13 @@ table Hello {
     serverTimeMs:ulong;
     championId:ubyte;
     team:ubyte;
+    // 서버 바이너리가 컴파일된 생성 게임 데이터의 빌드 해시.
+    // 클라가 자기 해시와 비교해 데이터 버전 drift를 접속 시점에 검출한다 (0 = 미지원/구버전).
+    dataBuildHash:uint;
+    // M6: 서버 활성 게임플레이 정의 팩(manifest.uBuildHash)의 빌드 해시 (0 = 미지원/구버전).
+    gameplayPackHash:uint;
+    // M6: 런타임 정의 리로드 revision. 0 = 오버레이 없음(코드젠 팩), 성공 리로드마다 +1.
+    gameplayPackRevision:uint;
 }
 
 root_type Hello;

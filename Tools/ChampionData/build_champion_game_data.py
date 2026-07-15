@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -42,9 +43,12 @@ def fail(message: str) -> None:
 
 
 def as_float(value: object, path: str) -> float:
-    if not isinstance(value, (int, float)):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
         fail(f"{path} must be a number")
-    return float(value)
+    result = float(value)
+    if not math.isfinite(result):
+        fail(f"{path} must be finite")
+    return result
 
 
 def as_int(value: object, path: str) -> int:
@@ -339,6 +343,9 @@ def emit_cpp(data: dict, build_hash: int) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
+    parser.add_argument(
+        "--check", action="store_true",
+        help="fail if generated files are stale relative to champions.json")
     args = parser.parse_args()
 
     root = args.root.resolve()
@@ -352,9 +359,21 @@ def main() -> int:
     data = normalize_root(raw)
     build_hash = compute_hash(data)
 
+    header_text = emit_header()
+    cpp_text = emit_cpp(data, build_hash)
+
+    if args.check:
+        header_path = out_dir / "ChampionGameData.generated.h"
+        cpp_path = out_dir / "ChampionGameData.generated.cpp"
+        for path, expected in ((header_path, header_text), (cpp_path, cpp_text)):
+            if not path.exists() or path.read_text(encoding="utf-8") != expected:
+                fail(f"stale generated file (rerun build_champion_game_data.py): {path}")
+        print(f"Check passed: generated files match champions.json (hash 0x{build_hash:08X})")
+        return 0
+
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "ChampionGameData.generated.h").write_text(emit_header(), encoding="utf-8", newline="\n")
-    (out_dir / "ChampionGameData.generated.cpp").write_text(emit_cpp(data, build_hash), encoding="utf-8", newline="\n")
+    (out_dir / "ChampionGameData.generated.h").write_text(header_text, encoding="utf-8", newline="\n")
+    (out_dir / "ChampionGameData.generated.cpp").write_text(cpp_text, encoding="utf-8", newline="\n")
 
     print(f"Generated ChampionGameData.generated.* from {source}")
     print(f"Champion count: {len(data['champions'])}")

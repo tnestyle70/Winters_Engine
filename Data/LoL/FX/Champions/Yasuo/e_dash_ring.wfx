@@ -1,0 +1,38 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Yasuo.E.DashRing",
+  "emitters": [
+    {
+      "name": "e_target_reuse_radial_wipe",
+      "render_type": "ShockwaveRing",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_base_e_dash_ring.png",
+      "lifetime": 10.0,
+      "fade_in": 0.01,
+      "fade_out": 0.15,
+      "width": 2.30,
+      "height": 2.30,
+      "start_radius": 1.15,
+      "end_radius": 1.15,
+      "color": [1.0, 1.0, 1.0, 0.80],
+      "attach_offset": [0.0, 0.10, 0.0],
+      "atlas_cols": 2,
+      "atlas_rows": 2,
+      "atlas_frame_count": 4,
+      "atlas_fps": 0.0,
+      "atlas_loop": false,
+      "alpha_clip": 0.0,
+      "style_mode": 5,
+      "billboard": false,
+      "depth_write": false,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.15,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ECS/Entity.h"
-#include "ECS/ISystem.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
+#include "Shared/GameSim/Core/Ecs/ISystem.h"
 #include "WintersTypes.h"
 
 #include <memory>

@@ -4,6 +4,7 @@
 #include "GameRoomInternal.h"
 
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 
@@ -17,6 +18,8 @@
 namespace
 {
     constexpr f32_t kChampionAISafeAnchorBehindTurret = 3.f;
+    constexpr u8_t kChampionAIMidLane =
+        static_cast<u8_t>(Winters::Map::eLane::Mid);
 }
 
 void CGameRoom::Phase_ServerBotAI(TickContext& tc)
@@ -24,7 +27,11 @@ void CGameRoom::Phase_ServerBotAI(TickContext& tc)
     if (!IsInGamePhase())
         return;
 
-    CServerAICommandProducer::Execute(m_world, tc, m_pendingExecCommands);
+    CServerAICommandProducer::Execute(
+        m_world,
+        tc,
+        m_pendingExecCommands,
+        m_pShadowPolicy.get());
 }
 
 Vec3 CGameRoom::ResolveChampionAILaneGoal(eTeam team, u8_t lane) const
@@ -51,7 +58,9 @@ Vec3 CGameRoom::ResolveChampionAISafeAnchor(eTeam team, u8_t lane)
 {
     Vec3 best = GetGameSimLaneGatherPosition(lane, TeamByte(team));
     bool_t bFound = false;
+    u32_t bestTier = std::numeric_limits<u32_t>::max();
     f32_t bestScore = std::numeric_limits<f32_t>::max();
+    EntityID bestEntity = std::numeric_limits<EntityID>::max();
     const u8_t waypointLane = CServerMinionWaveRuntime::ResolveWaypointLane(team, lane);
     const u32_t waypointCount = GetServerMinionWaypointCount(team, waypointLane);
 
@@ -85,23 +94,30 @@ Vec3 CGameRoom::ResolveChampionAISafeAnchor(eTeam team, u8_t lane)
             return WintersMath::DistanceSqXZ(pos, best);
         };
 
-    m_world.ForEach<StructureComponent, TransformComponent>(
-        [&](EntityID, StructureComponent& structure, TransformComponent& transform)
+    m_world.ForEach<StructureComponent, TransformComponent, HealthComponent>(
+        [&](EntityID entity, StructureComponent& structure, TransformComponent& transform,
+            HealthComponent& health)
         {
             if (structure.team != team)
                 return;
             if (structure.kind != kStructureKindTurret)
                 return;
-            if (structure.tier != static_cast<u32_t>(Winters::Map::eTurretTier::Outer))
-                return;
             if (structure.lane != lane)
+                return;
+            if (health.bIsDead || health.fCurrent <= 0.f)
                 return;
 
             const Vec3 towerPos = transform.GetPosition();
             const f32_t score = scoreLaneDistance(towerPos);
-            if (score < bestScore)
+            const bool_t bBetter =
+                structure.tier < bestTier ||
+                (structure.tier == bestTier && score < bestScore) ||
+                (structure.tier == bestTier && score == bestScore && entity < bestEntity);
+            if (bBetter)
             {
+                bestTier = structure.tier;
                 bestScore = score;
+                bestEntity = entity;
                 best = towerPos;
                 bFound = true;
             }
@@ -144,9 +160,15 @@ void CGameRoom::RefreshChampionAIGoals()
     m_world.ForEach<ChampionAIComponent>(
         [this](EntityID, ChampionAIComponent& ai)
         {
+            if (!ai.bMidDefenseActive)
+                ai.activeLane = ai.lane;
+
             ai.safeAnchor = ResolveChampionAISafeAnchor(ai.team, ai.lane);
             ai.retreatGoal = ai.safeAnchor;
             ai.laneGoal = ResolveChampionAILaneGoal(ai.team, ai.lane);
+            ai.midDefenseAnchor = ResolveChampionAISafeAnchor(
+                ai.team,
+                kChampionAIMidLane);
             const u8_t waypointLane =
                 CServerMinionWaveRuntime::ResolveWaypointLane(ai.team, ai.lane);
             char msg[256]{};

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "buildHash": 2493520265,
+  "buildHash": 276254117,
   "skills": [
     {
       "key": "skill.annie.basic_attack",
@@ -47,10 +47,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 40.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -98,14 +98,14 @@
       "ownerChampionDefId": 1,
       "slot": 1,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 60.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.25
@@ -145,14 +145,14 @@
       "ownerChampionDefId": 1,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 100.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.0
@@ -252,14 +252,14 @@
       "ownerChampionDefId": 1,
       "slot": 2,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 70.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.0
@@ -331,7 +331,16 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "radius",
+            "value": 0.35
+          },
+          {
+            "id": "speed",
+            "value": 18.0
+          }
+        ]
       }
     },
     {
@@ -348,7 +357,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 25.0
@@ -379,10 +388,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -399,7 +408,24 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 20.0
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 4.0
+          },
+          {
+            "id": "maxStacks",
+            "value": 4.0
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 1.5
+          }
+        ]
       }
     },
     {
@@ -409,14 +435,14 @@
       "ownerChampionDefId": 2,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 100.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 200.0
@@ -448,7 +474,7 @@
           },
           {
             "id": "stunDurationSec",
-            "value": 1.5
+            "value": 2.0
           }
         ]
       }
@@ -460,14 +486,14 @@
       "ownerChampionDefId": 2,
       "slot": 2,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 75.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 9.0
@@ -491,11 +517,15 @@
           },
           {
             "id": "moveSpeedMul",
-            "value": 0.85
+            "value": 0.5
           },
           {
             "id": "range",
             "value": 12.0
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 1.5
           },
           {
             "id": "speed",
@@ -535,7 +565,24 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "bonusAttackSpeed",
+            "value": 0.1
+          },
+          {
+            "id": "maxStacks",
+            "value": 5.0
+          },
+          {
+            "id": "speed",
+            "value": 20.0
+          },
+          {
+            "id": "stackWindowSec",
+            "value": 6.0
+          }
+        ]
       }
     },
     {
@@ -545,14 +592,14 @@
       "ownerChampionDefId": 3,
       "slot": 3,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 70.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.75
@@ -561,7 +608,7 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
+          0.25,
           0.6
         ]
       },
@@ -569,7 +616,44 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "apRatio",
+            "value": 0.75
+          },
+          {
+            "id": "baseDamage",
+            "value": 80.0
+          },
+          {
+            "id": "bonusAdRatio",
+            "value": 0.6
+          },
+          {
+            "id": "castTimeSec",
+            "value": 0.25
+          },
+          {
+            "id": "cooldownReductionPerRank",
+            "value": 3.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 50.0
+          },
+          {
+            "id": "halfWidth",
+            "value": 0.5
+          },
+          {
+            "id": "radius",
+            "value": 7.5
+          },
+          {
+            "id": "speed",
+            "value": 20.0
+          }
+        ]
       }
     },
     {
@@ -579,23 +663,23 @@
       "ownerChampionDefId": 3,
       "slot": 1,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 28.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
-        "maximum": 11.0
+        "maximum": 12.0
       },
       "stage": {
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
+          0.25,
           0.6
         ]
       },
@@ -603,7 +687,48 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "apRatio",
+            "value": 0.4
+          },
+          {
+            "id": "baseDamage",
+            "value": 20.0
+          },
+          {
+            "id": "castTimeSec",
+            "value": 0.25
+          },
+          {
+            "id": "cooldownReductionPerRank",
+            "value": 0.25
+          },
+          {
+            "id": "cooldownRefundSec",
+            "value": 1.5
+          },
+          {
+            "id": "damagePerRank",
+            "value": 25.0
+          },
+          {
+            "id": "halfWidth",
+            "value": 0.6
+          },
+          {
+            "id": "manaCostPerRank",
+            "value": 3.0
+          },
+          {
+            "id": "speed",
+            "value": 20.0
+          },
+          {
+            "id": "totalAdRatio",
+            "value": 1.3
+          }
+        ]
       }
     },
     {
@@ -613,17 +738,17 @@
       "ownerChampionDefId": 3,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 100.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
-        "maximum": 200.0
+        "maximum": 250.0
       },
       "stage": {
         "count": 1,
@@ -637,7 +762,48 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "apRatio",
+            "value": 1.1
+          },
+          {
+            "id": "baseDamage",
+            "value": 350.0
+          },
+          {
+            "id": "bonusAdRatio",
+            "value": 1.0
+          },
+          {
+            "id": "castTimeSec",
+            "value": 1.0
+          },
+          {
+            "id": "cooldownReductionPerRank",
+            "value": 15.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 200.0
+          },
+          {
+            "id": "halfWidth",
+            "value": 1.6
+          },
+          {
+            "id": "nonEpicBaseDamage",
+            "value": 150.0
+          },
+          {
+            "id": "nonEpicDamagePerRank",
+            "value": 75.0
+          },
+          {
+            "id": "speed",
+            "value": 20.0
+          }
+        ]
       }
     },
     {
@@ -647,23 +813,23 @@
       "ownerChampionDefId": 3,
       "slot": 2,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
-        "maximum": 10.0
+        "maximum": 12.0
       },
       "stage": {
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
+          0.25,
           0.6
         ]
       },
@@ -671,7 +837,44 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "apRatio",
+            "value": 0.9
+          },
+          {
+            "id": "baseDamage",
+            "value": 80.0
+          },
+          {
+            "id": "bonusAdRatio",
+            "value": 1.0
+          },
+          {
+            "id": "castTimeSec",
+            "value": 0.25
+          },
+          {
+            "id": "damagePerRank",
+            "value": 55.0
+          },
+          {
+            "id": "halfWidth",
+            "value": 0.8
+          },
+          {
+            "id": "manaRestoreFlat",
+            "value": 60.0
+          },
+          {
+            "id": "markDurationSec",
+            "value": 4.0
+          },
+          {
+            "id": "speed",
+            "value": 17.0
+          }
+        ]
       }
     },
     {
@@ -719,10 +922,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 40.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -739,7 +942,20 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 30.0
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 5.0
+          },
+          {
+            "id": "maxStacks",
+            "value": 2.0
+          }
+        ]
       }
     },
     {
@@ -753,10 +969,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 20.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.0
@@ -804,14 +1020,14 @@
       "ownerChampionDefId": 4,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 100.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 5.0
@@ -847,10 +1063,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -935,7 +1151,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 1.65
@@ -969,7 +1185,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -996,14 +1212,14 @@
       "ownerChampionDefId": 5,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.0
@@ -1020,7 +1236,20 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 150.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 150.0
+          },
+          {
+            "id": "missingHealthDamageRatio",
+            "value": 0.25
+          }
+        ]
       }
     },
     {
@@ -1037,7 +1266,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -1102,10 +1331,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 9.0
@@ -1153,10 +1382,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 20.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.0
@@ -1204,10 +1433,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 100.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 12.0
@@ -1275,10 +1504,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 70.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -1357,13 +1586,13 @@
       "slot": 3,
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -1382,6 +1611,14 @@
         "replicatedCueId": 0,
         "params": [
           {
+            "id": "baseDamage",
+            "value": 60.0
+          },
+          {
+            "id": "radius",
+            "value": 2.2
+          },
+          {
             "id": "stunDurationSec",
             "value": 1.0
           }
@@ -1399,10 +1636,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 65.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 7.0
@@ -1446,10 +1683,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 100.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -1466,7 +1703,20 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 70.0
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 8.0
+          },
+          {
+            "id": "maxStacks",
+            "value": 3.0
+          }
+        ]
       }
     },
     {
@@ -1480,10 +1730,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 30.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -1500,7 +1750,16 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 45.0
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 5.0
+          }
+        ]
       }
     },
     {
@@ -1545,13 +1804,13 @@
       "slot": 3,
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 30.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 12.0
@@ -1576,6 +1835,10 @@
           {
             "id": "slowDurationSec",
             "value": 2.0
+          },
+          {
+            "id": "stunDurationSec",
+            "value": 1.0
           }
         ]
       }
@@ -1587,17 +1850,17 @@
       "ownerChampionDefId": 8,
       "slot": 1,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
-        "maximum": 11.0
+        "maximum": 16.5
       },
       "stage": {
         "count": 1,
@@ -1611,7 +1874,20 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 70.0
+          },
+          {
+            "id": "radius",
+            "value": 0.6
+          },
+          {
+            "id": "speed",
+            "value": 27.0
+          }
+        ]
       }
     },
     {
@@ -1621,31 +1897,48 @@
       "ownerChampionDefId": 8,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 100.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
       },
       "stage": {
-        "count": 1,
-        "windowSeconds": 0.0,
+        "count": 2,
+        "windowSeconds": 4.0,
         "lockSeconds": [
           0.5,
-          0.6
+          0.45
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "airborneDurationSec",
+            "value": 1.0
+          },
+          {
+            "id": "dashDurationSec",
+            "value": 0.45
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 4.0
+          },
+          {
+            "id": "radius",
+            "value": 2.5
+          }
+        ]
       }
     },
     {
@@ -1662,7 +1955,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 12.0
@@ -1756,10 +2049,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 70.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 5.5
@@ -1786,6 +2079,10 @@
             "value": 4.0
           },
           {
+            "id": "maxStacks",
+            "value": 3.0
+          },
+          {
             "id": "moveSpeedMul",
             "value": 0.65
           },
@@ -1807,10 +2104,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 35.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 5.5
@@ -1837,14 +2134,14 @@
       "ownerChampionDefId": 9,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 100.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.0
@@ -1896,10 +2193,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 40.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 8.0
@@ -1981,10 +2278,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.0
@@ -2028,10 +2325,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 11.0
@@ -2075,14 +2372,14 @@
       "ownerChampionDefId": 10,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 3.0
@@ -2122,10 +2419,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 7.0
@@ -2150,6 +2447,14 @@
           {
             "id": "gap",
             "value": 0.25
+          },
+          {
+            "id": "shieldBaseAmount",
+            "value": 80.0
+          },
+          {
+            "id": "shieldDurationSec",
+            "value": 3.0
           }
         ]
       }
@@ -2202,7 +2507,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -2233,10 +2538,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.0
@@ -2264,13 +2569,13 @@
       "slot": 4,
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 100.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -2287,7 +2592,20 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "bonusAttackSpeed",
+            "value": 0.25
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 7.0
+          },
+          {
+            "id": "moveSpeedMul",
+            "value": 1.35
+          }
+        ]
       }
     },
     {
@@ -2301,10 +2619,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -2372,7 +2690,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -2389,7 +2707,16 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "shieldBaseAmount",
+            "value": 70.0
+          },
+          {
+            "id": "shieldDurationSec",
+            "value": 3.0
+          }
+        ]
       }
     },
     {
@@ -2399,14 +2726,14 @@
       "ownerChampionDefId": 12,
       "slot": 1,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.5
@@ -2446,21 +2773,21 @@
       "ownerChampionDefId": 12,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
       },
       "stage": {
-        "count": 1,
-        "windowSeconds": 0.0,
+        "count": 2,
+        "windowSeconds": 15.0,
         "lockSeconds": [
           0.8,
           0.6
@@ -2470,7 +2797,32 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "baseDamage",
+            "value": 100.0
+          },
+          {
+            "id": "bonusAd",
+            "value": 20.0
+          },
+          {
+            "id": "damagePerRank",
+            "value": 50.0
+          },
+          {
+            "id": "effectDurationSec",
+            "value": 15.0
+          },
+          {
+            "id": "halfAngleCos",
+            "value": 0.70710678
+          },
+          {
+            "id": "range",
+            "value": 10.5
+          }
+        ]
       }
     },
     {
@@ -2481,13 +2833,13 @@
       "slot": 2,
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 0.0
@@ -2557,14 +2909,14 @@
       "ownerChampionDefId": 13,
       "slot": 3,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 65.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.0
@@ -2607,8 +2959,16 @@
             "value": 0.85
           },
           {
+            "id": "moveSpeedMul",
+            "value": 0.6
+          },
+          {
             "id": "radius",
             "value": 0.55
+          },
+          {
+            "id": "slowDurationSec",
+            "value": 1.0
           },
           {
             "id": "speed",
@@ -2632,10 +2992,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 55.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.0
@@ -2666,10 +3026,10 @@
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 75.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 10.0
@@ -2686,7 +3046,16 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "effectDurationSec",
+            "value": 45.0
+          },
+          {
+            "id": "range",
+            "value": 10.0
+          }
+        ]
       }
     },
     {
@@ -2700,10 +3069,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 65.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 5.0
@@ -2771,7 +3140,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.0
@@ -2822,7 +3191,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 5.5
@@ -2858,14 +3227,14 @@
       "ownerChampionDefId": 14,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.0
@@ -2913,14 +3282,14 @@
       "ownerChampionDefId": 14,
       "slot": 2,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.0
@@ -3005,7 +3374,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.75
@@ -3042,6 +3411,10 @@
           {
             "id": "gap",
             "value": 0.75
+          },
+          {
+            "id": "markDurationSec",
+            "value": 10.0
           }
         ]
       }
@@ -3053,14 +3426,14 @@
       "ownerChampionDefId": 15,
       "slot": 1,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 5.0
@@ -3143,7 +3516,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 14.0
@@ -3183,14 +3556,14 @@
       "ownerChampionDefId": 15,
       "slot": 2,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.0
@@ -3207,7 +3580,28 @@
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "effectDurationSec",
+            "value": 4.0
+          },
+          {
+            "id": "formationDelaySec",
+            "value": 0.25
+          },
+          {
+            "id": "rectLength",
+            "value": 1.6
+          },
+          {
+            "id": "rectLengthPerRank",
+            "value": 0.35
+          },
+          {
+            "id": "rectWidth",
+            "value": 0.5
+          }
+        ]
       }
     },
     {
@@ -3258,7 +3652,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.0
@@ -3305,7 +3699,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 4.75
@@ -3341,14 +3735,14 @@
       "ownerChampionDefId": 16,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 10.0
@@ -3383,6 +3777,10 @@
             "value": 0.16
           },
           {
+            "id": "gap",
+            "value": 0.75
+          },
+          {
             "id": "radius",
             "value": 1.7
           }
@@ -3403,7 +3801,7 @@
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.0
@@ -3477,10 +3875,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 50.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 2.5
@@ -3532,10 +3930,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 75.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 9.0
@@ -3579,14 +3977,14 @@
       "ownerChampionDefId": 17,
       "slot": 4,
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "mana": 0.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.25
@@ -3638,10 +4036,10 @@
         "resolvePolicy": "Contextual"
       },
       "cost": {
-        "mana": 0.0
+        "mana": 40.0
       },
       "cooldown": {
-        "seconds": 1.0
+        "seconds": 3.0
       },
       "range": {
         "maximum": 6.5

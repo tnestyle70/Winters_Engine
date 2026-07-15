@@ -61,7 +61,43 @@
       "team": "Blue",
       "mesh": "Texture/Object/Turret/turret_textured.wmesh",
       "shader": "Shaders/Mesh3D.hlsl",
-      "visibilityStates": []
+      "visibilityStates": [
+        {
+          "name": "Stage1",
+          "submeshIndex": 1,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Stage2",
+          "submeshIndex": 2,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Stage3Stump",
+          "submeshIndex": 3,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Rubble",
+          "submeshIndex": 4,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Broken1",
+          "submeshIndex": 5,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Broken2",
+          "submeshIndex": 6,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Broken3",
+          "submeshIndex": 7,
+          "visibleWhenDestroyed": true
+        }
+      ]
     },
     {
       "key": "structure.turret.red",
@@ -69,7 +105,43 @@
       "team": "Red",
       "mesh": "Texture/Object/Turret/turret_red_textured.wmesh",
       "shader": "Shaders/Mesh3D.hlsl",
-      "visibilityStates": []
+      "visibilityStates": [
+        {
+          "name": "Stage1",
+          "submeshIndex": 1,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Stage2",
+          "submeshIndex": 2,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Stage3Stump",
+          "submeshIndex": 3,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Rubble",
+          "submeshIndex": 4,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Broken1",
+          "submeshIndex": 5,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Broken2",
+          "submeshIndex": 6,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Broken3",
+          "submeshIndex": 7,
+          "visibleWhenDestroyed": true
+        }
+      ]
     }
   ],
   "jungles": [
@@ -86,6 +158,10 @@
         {
           "meshIndex": 1,
           "texture": "Texture/Object/Jungle/Baron/sru_baron_tx_cm.png"
+        },
+        {
+          "meshIndex": 2,
+          "texture": "Texture/Object/Jungle/Baron/baron_base_tx_cm.png"
         }
       ]
     },
@@ -94,6 +170,7 @@
       "subKind": 1,
       "mesh": "Texture/Object/Jungle/Dragon/air/dragon_air_textured.wmesh",
       "shader": "Shaders/Mesh3D.hlsl",
+      "visualScaleMultiplier": 1.5,
       "textureOverrides": []
     },
     {
@@ -258,6 +335,13 @@
         "mesh": "Texture/MAP/Map11_Rebuild/cooked/ambient/sru_duck/sru_duck.wmesh",
         "shader": "Shaders/Mesh3D.hlsl",
         "idleAnimation": "sru_duck_idle1"
+      },
+      {
+        "key": "ambient.chemtech_firefly",
+        "kind": 2,
+        "mesh": "Texture/MAP/Map11_Rebuild/cooked/ambient/chemtech_firefly_animated/chemtech_firefly_animated.wmesh",
+        "shader": "Shaders/Mesh3D.hlsl",
+        "idleAnimation": "firefly_fairy_idle"
       }
     ]
   },
@@ -290,16 +374,6 @@
       "key": "fx.kalista.q_spear",
       "mesh": "Texture/FX/Kalista/fbx/kalista_base_q_mis_spear.fbx",
       "texture": "Texture/FX/Kalista/kalista_base_q_mis_glow_color.png"
-    },
-    {
-      "key": "fx.yasuo.q_tornado_blade",
-      "mesh": "Texture/FX/Yasuo/fbx/yasuo_base_q_tornado_blade_cas.fbx",
-      "texture": "Texture/FX/Yasuo/color_yasuo_base_e_tonado_blend.png"
-    },
-    {
-      "key": "fx.yasuo.r_sword_wind",
-      "mesh": "Texture/FX/Yasuo/fbx/yasuo_base_r_sword_wind2.fbx",
-      "texture": "Texture/FX/Yasuo/color_yasuo_r_sword_glow.png"
     },
     {
       "key": "fx.yasuo.w_windwall",

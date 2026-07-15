@@ -9,12 +9,13 @@
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Systems/Move/DashArrival.h"
 
@@ -23,6 +24,8 @@
 #include <functional>
 #include <iostream>
 #include <vector>
+
+#include "Shared/GameSim/Core/Checkpoint/KeyframeComponentRegistry.h"
 
 namespace
 {
@@ -41,7 +44,24 @@ namespace
         f32_t delaySec = 0.f;
         f32_t durationSec = 0.f;
         eYoneDashKind kind = eYoneDashKind::SoulOut;
+        bool_t bUltimateImpactPending = false;
+        f32_t impactHalfWidth = 0.f;
+        f32_t impactDamage = 0.f;
+        f32_t impactAirborneDurationSec = 0.f;
+        f32_t impactGatherBehindDistance = 0.f;
+        Vec3 impactDirection{ 0.f, 0.f, 1.f };
+        u8_t impactRank = 1u;
     };
+
+    // Chrono Break: 익명 네임스페이스 컴포넌트는 소유 TU에서 자기등록한다.
+    const bool_t s_bYoneDashKeyframeRegistered = []()
+    {
+        SimCheckpoint::KeyframeComponentRegistry::Get()
+            .Register<YoneDashComponent>("YoneDashComponent");
+        return true;
+    }();
+
+    constexpr f32_t kYoneUltimateAirborneArcHeight = 2.1f;
 
     YoneSimComponent& EnsureYoneState(CWorld& world, EntityID caster)
     {
@@ -168,10 +188,61 @@ namespace
         ClearMove(world, entity);
     }
 
+    Vec3 ResolveNavSafeEnd(
+        const TickContext& tc,
+        const Vec3& start,
+        const Vec3& desiredEnd)
+    {
+        if (!tc.pWalkable)
+            return desiredEnd;
+
+        Vec3 guardedEnd = desiredEnd;
+        if (!tc.pWalkable->TryClampMoveSegmentXZ(
+                start,
+                desiredEnd,
+                0.5f,
+                guardedEnd))
+        {
+            return start;
+        }
+
+        return guardedEnd;
+    }
+
     void StartYoneEAction(CWorld& world, EntityID entity,
         const TickContext& tc, u8_t stage)
     {
-        StartActionState(world, entity, eActionStateId::SkillE, tc.tickIndex, stage);
+        bool_t bHasQueuedMove = false;
+        u32_t queuedMoveSequence = 0u;
+        Vec3 queuedMoveTarget{};
+        Vec3 queuedMoveDirection{};
+        if (world.HasComponent<ActionStateComponent>(entity))
+        {
+            const auto& previous = world.GetComponent<ActionStateComponent>(entity);
+            bHasQueuedMove = previous.bHasQueuedMove;
+            queuedMoveSequence = previous.queuedMoveSequence;
+            queuedMoveTarget = previous.queuedMoveTarget;
+            queuedMoveDirection = previous.queuedMoveDirection;
+        }
+
+        auto& action =
+            StartActionState(world, entity, eActionStateId::SkillE, tc.tickIndex, stage);
+        action.commandSequence = 0u;
+        action.sourceChampion = eChampion::YONE;
+        action.sourceSlot = static_cast<u8_t>(eSkillSlot::E);
+        action.movePolicy = eSkillActionMovePolicy::ForcedMotion;
+        action.lockEndTick = tc.tickIndex +
+            GameplayDefinitionQuery::ResolveSkillActionLockTicks(
+                world,
+                entity,
+                tc,
+                eChampion::YONE,
+                static_cast<u8_t>(eSkillSlot::E),
+                stage);
+        action.bHasQueuedMove = bHasQueuedMove;
+        action.queuedMoveSequence = queuedMoveSequence;
+        action.queuedMoveTarget = queuedMoveTarget;
+        action.queuedMoveDirection = queuedMoveDirection;
     }
 
     void EmitYoneEVisualEvent(CWorld& world, EntityID caster, const TickContext& tc, u8_t stage)
@@ -245,84 +316,122 @@ namespace
         }
     }
 
-    void EnqueueLineDamage(CWorld& world, EntityID caster, eTeam casterTeam,
-        const Vec3& start, const Vec3& end, f32_t radius, f32_t damage,
-        u16_t skillId, u8_t rank)
+    void EnqueueDamageForTargets(
+        CWorld& world,
+        EntityID caster,
+        eTeam casterTeam,
+        const std::vector<EntityID>& targets,
+        f32_t damage,
+        u16_t skillId,
+        u8_t rank)
     {
-        const f32_t radiusSq = radius * radius;
-
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (entity == caster || champion.team == casterTeam)
-                        return;
-                    if (WintersMath::DistanceSqPointToSegmentXZ(transform.GetPosition(), start, end) > radiusSq)
-                        return;
-
-                    DamageRequest request{};
-                    request.source = caster;
-                    request.target = entity;
-                    request.sourceTeam = casterTeam;
-                    request.type = eDamageType::Physical;
-                    request.flatAmount = damage;
-                    request.skillId = skillId;
-                    request.rank = rank;
-                    request.flags = DamageFlag_OnHit;
-                    EnqueueDamageRequest(world, request);
-                }));
-
-        world.ForEach<MinionComponent, TransformComponent>(
-            std::function<void(EntityID, MinionComponent&, TransformComponent&)>(
-                [&](EntityID entity, MinionComponent& minion, TransformComponent& transform)
-                {
-                    if (minion.team == casterTeam)
-                        return;
-                    if (WintersMath::DistanceSqPointToSegmentXZ(transform.GetPosition(), start, end) > radiusSq)
-                        return;
-
-                    DamageRequest request{};
-                    request.source = caster;
-                    request.target = entity;
-                    request.sourceTeam = casterTeam;
-                    request.type = eDamageType::Physical;
-                    request.flatAmount = damage;
-                    request.skillId = skillId;
-                    request.rank = rank;
-                    request.flags = DamageFlag_OnHit;
-                    EnqueueDamageRequest(world, request);
-                }));
+        for (EntityID target : targets)
+        {
+            DamageRequest request{};
+            request.source = caster;
+            request.target = target;
+            request.sourceTeam = casterTeam;
+            request.type = eDamageType::Physical;
+            request.flatAmount = damage;
+            request.skillId = skillId;
+            request.rank = rank;
+            request.flags = DamageFlag_OnHit;
+            EnqueueDamageRequest(world, request);
+        }
     }
 
-    void ApplyLineAirborne(
+    void EnqueueLineDamage(
         CWorld& world,
-        const TickContext& tc,
         EntityID caster,
         eTeam casterTeam,
         const Vec3& start,
         const Vec3& end,
-        f32_t radius,
-        f32_t airborneDurationSec)
+        f32_t halfWidth,
+        f32_t damage,
+        u16_t skillId,
+        u8_t rank)
     {
-        const f32_t radiusSq = radius * radius;
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID target, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (target == caster || champion.team == casterTeam)
-                        return;
-                    if (WintersMath::DistanceSqPointToSegmentXZ(transform.GetPosition(), start, end) > radiusSq)
-                        return;
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInSegment(
+                world,
+                caster,
+                start,
+                end,
+                halfWidth);
+        EnqueueDamageForTargets(
+            world,
+            caster,
+            casterTeam,
+            targets,
+            damage,
+            skillId,
+            rank);
+    }
 
-                    GameplayStatus::ApplyAirborne(
-                        world,
-                        tc,
-                        target,
-                        caster,
-                        eChampion::YONE,
-                        eSkillSlot::R,
-                        airborneDurationSec);
-                }));
+    Vec3 ResolveYoneUltimateGatherPoint(
+        const TickContext& tc,
+        const YoneDashComponent& dash)
+    {
+        Vec3 rawDirection{
+            dash.end.x - dash.start.x,
+            0.f,
+            dash.end.z - dash.start.z
+        };
+        if (rawDirection.x * rawDirection.x + rawDirection.z * rawDirection.z <= 0.0001f)
+            rawDirection = dash.impactDirection;
+        const Vec3 direction = WintersMath::NormalizeXZ(rawDirection);
+        const Vec3 desiredGatherPoint{
+            dash.end.x - direction.x * dash.impactGatherBehindDistance,
+            dash.end.y,
+            dash.end.z - direction.z * dash.impactGatherBehindDistance
+        };
+        return ResolveNavSafeEnd(tc, dash.end, desiredGatherPoint);
+    }
+
+    void ApplyYoneUltimateImpact(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        YoneDashComponent& dash)
+    {
+        if (!dash.bUltimateImpactPending)
+            return;
+
+        dash.bUltimateImpactPending = false;
+        if (caster == NULL_ENTITY || !world.IsAlive(caster))
+            return;
+
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInSegment(
+                world,
+                caster,
+                dash.start,
+                dash.end,
+                dash.impactHalfWidth);
+        const eTeam casterTeam = GameplayStateQuery::ResolveEntityTeam(world, caster);
+        EnqueueDamageForTargets(
+            world,
+            caster,
+            casterTeam,
+            targets,
+            dash.impactDamage,
+            static_cast<u16_t>((static_cast<u32_t>(eChampion::YONE) << 8) | 4u),
+            dash.impactRank);
+
+        const Vec3 gatherPoint = ResolveYoneUltimateGatherPoint(tc, dash);
+        for (EntityID target : targets)
+        {
+            GameplayStatus::ApplyAirborne(
+                world,
+                tc,
+                target,
+                caster,
+                eChampion::YONE,
+                eSkillSlot::R,
+                dash.impactAirborneDurationSec,
+                kYoneUltimateAirborneArcHeight,
+                &gatherPoint);
+        }
     }
 
     void OnQ(GameplayHookContext& ctx)
@@ -476,30 +585,31 @@ namespace
             ctx,
             eSkillSlot::R,
             eSkillEffectParamId::AirborneDurationSec);
-        const Vec3 end{ origin.x + direction.x * range, origin.y, origin.z + direction.z * range };
+        const f32_t gatherBehindDistance = ResolveYoneSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::Gap,
+            0.75f);
+        const Vec3 desiredEnd{
+            origin.x + direction.x * range,
+            origin.y,
+            origin.z + direction.z * range
+        };
+        const Vec3 end = ResolveNavSafeEnd(*ctx.pTickCtx, origin, desiredEnd);
         RotateToward(world, ctx.casterEntity, direction);
         StartDash(world, ctx.casterEntity, end, dashDurationSec,
             eYoneDashKind::Ultimate, dashDelaySec);
-
-        EnqueueLineDamage(
-            world,
-            ctx.casterEntity,
-            ctx.casterTeam,
-            origin,
-            end,
-            radius,
-            damage,
-            static_cast<u16_t>((static_cast<u32_t>(eChampion::YONE) << 8) | 4u),
-            ctx.skillRank);
-        ApplyLineAirborne(
-            world,
-            *ctx.pTickCtx,
-            ctx.casterEntity,
-            ctx.casterTeam,
-            origin,
-            end,
-            radius,
-            airborneDurationSec);
+        if (world.HasComponent<YoneDashComponent>(ctx.casterEntity))
+        {
+            auto& dash = world.GetComponent<YoneDashComponent>(ctx.casterEntity);
+            dash.bUltimateImpactPending = true;
+            dash.impactHalfWidth = radius;
+            dash.impactDamage = damage;
+            dash.impactAirborneDurationSec = airborneDurationSec;
+            dash.impactGatherBehindDistance = gatherBehindDistance;
+            dash.impactDirection = direction;
+            dash.impactRank = ctx.skillRank;
+        }
 
         std::cout << "[YoneSim] R accepted caster=" << ctx.casterEntity << "\n";
     }
@@ -507,6 +617,14 @@ namespace
 
 namespace YoneGameSim
 {
+    void CancelRuntime(CWorld& world, EntityID caster)
+    {
+        if (world.HasComponent<YoneDashComponent>(caster))
+            world.RemoveComponent<YoneDashComponent>(caster);
+        if (world.HasComponent<YoneSimComponent>(caster))
+            world.RemoveComponent<YoneSimComponent>(caster);
+    }
+
     u8_t ResolveEStage(CWorld& world, EntityID caster)
     {
         if (world.HasComponent<YoneSimComponent>(caster) &&
@@ -544,6 +662,13 @@ namespace YoneGameSim
             std::function<void(EntityID, YoneDashComponent&, TransformComponent&)>(
                 [&](EntityID entity, YoneDashComponent& dash, TransformComponent& transform)
                 {
+                    if (!GameplayStateQuery::CanMove(world, entity) ||
+                        world.HasComponent<ForcedMotionComponent>(entity))
+                    {
+                        finishedDashes.push_back(entity);
+                        return;
+                    }
+
                     ClearMove(world, entity);
 
                     if (dash.delaySec > 0.f)
@@ -555,6 +680,8 @@ namespace YoneGameSim
                         dash.start = transform.GetPosition();
                         dash.elapsedSec = 0.f;
                     }
+
+                    ApplyYoneUltimateImpact(world, tc, entity, dash);
 
                     dash.elapsedSec += tc.fDt;
                     f32_t t = dash.durationSec > 0.01f
@@ -594,6 +721,22 @@ namespace YoneGameSim
 
         for (EntityID entity : finishedDashes)
         {
+            if (world.HasComponent<ForcedMotionComponent>(entity))
+            {
+                if (world.HasComponent<YoneDashComponent>(entity))
+                {
+                    const auto dash = world.GetComponent<YoneDashComponent>(entity);
+                    if (dash.kind == eYoneDashKind::SoulReturn &&
+                        world.HasComponent<YoneSimComponent>(entity))
+                    {
+                        auto& state = world.GetComponent<YoneSimComponent>(entity);
+                        state.bReturning = false;
+                        state.soulTimerSec = 0.f;
+                    }
+                }
+                world.RemoveComponent<YoneDashComponent>(entity);
+                continue;
+            }
             if (world.HasComponent<YoneDashComponent>(entity))
             {
                 const auto dash = world.GetComponent<YoneDashComponent>(entity);
@@ -602,7 +745,22 @@ namespace YoneGameSim
                     world.HasComponent<TransformComponent>(entity))
                 {
                     auto& state = world.GetComponent<YoneSimComponent>(entity);
-                    world.GetComponent<TransformComponent>(entity).SetPosition(state.anchorPosition);
+                    auto& transform = world.GetComponent<TransformComponent>(entity);
+                    const bool_t bAnchorCorrection =
+                        WintersMath::DistanceSqXZ(
+                            transform.GetPosition(),
+                            state.anchorPosition) > 0.0001f;
+                    transform.SetPosition(state.anchorPosition);
+                    if (bAnchorCorrection)
+                    {
+                        PositionDiscontinuityComponent& discontinuity =
+                            world.HasComponent<PositionDiscontinuityComponent>(entity)
+                                ? world.GetComponent<PositionDiscontinuityComponent>(entity)
+                                : world.AddComponent<PositionDiscontinuityComponent>(
+                                    entity,
+                                    PositionDiscontinuityComponent{});
+                        discontinuity.uTick = tc.tickIndex;
+                    }
                     state.bSoulUnboundActive = false;
                     state.bReturning = false;
                     state.soulTimerSec = 0.f;
@@ -622,6 +780,11 @@ namespace YoneGameSim
                 {
                     if (!state.bSoulUnboundActive || state.bReturning)
                         return;
+                    if (world.HasComponent<ForcedMotionComponent>(entity) ||
+                        !GameplayStateQuery::CanMove(world, entity))
+                    {
+                        return;
+                    }
 
                     state.soulTimerSec = std::max(0.f, state.soulTimerSec - tc.fDt);
                     if (state.soulTimerSec <= 0.f)

@@ -1,3 +1,3 @@
 #pragma once
 
-#include "ECS/Components/CoreComponents.h"
+#include "Shared/GameSim/Core/Ecs/CoreComponents.h"

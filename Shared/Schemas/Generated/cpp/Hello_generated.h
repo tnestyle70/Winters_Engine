@@ -27,7 +27,10 @@ struct Hello FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_SERVERTICK = 8,
     VT_SERVERTIMEMS = 10,
     VT_CHAMPIONID = 12,
-    VT_TEAM = 14
+    VT_TEAM = 14,
+    VT_DATABUILDHASH = 16,
+    VT_GAMEPLAYPACKHASH = 18,
+    VT_GAMEPLAYPACKREVISION = 20
   };
   uint32_t sessionId() const {
     return GetField<uint32_t>(VT_SESSIONID, 0);
@@ -47,6 +50,15 @@ struct Hello FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint8_t team() const {
     return GetField<uint8_t>(VT_TEAM, 0);
   }
+  uint32_t dataBuildHash() const {
+    return GetField<uint32_t>(VT_DATABUILDHASH, 0);
+  }
+  uint32_t gameplayPackHash() const {
+    return GetField<uint32_t>(VT_GAMEPLAYPACKHASH, 0);
+  }
+  uint32_t gameplayPackRevision() const {
+    return GetField<uint32_t>(VT_GAMEPLAYPACKREVISION, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -56,6 +68,9 @@ struct Hello FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint64_t>(verifier, VT_SERVERTIMEMS, 8) &&
            VerifyField<uint8_t>(verifier, VT_CHAMPIONID, 1) &&
            VerifyField<uint8_t>(verifier, VT_TEAM, 1) &&
+           VerifyField<uint32_t>(verifier, VT_DATABUILDHASH, 4) &&
+           VerifyField<uint32_t>(verifier, VT_GAMEPLAYPACKHASH, 4) &&
+           VerifyField<uint32_t>(verifier, VT_GAMEPLAYPACKREVISION, 4) &&
            verifier.EndTable();
   }
 };
@@ -82,6 +97,15 @@ struct HelloBuilder {
   void add_team(uint8_t team) {
     fbb_.AddElement<uint8_t>(Hello::VT_TEAM, team, 0);
   }
+  void add_dataBuildHash(uint32_t dataBuildHash) {
+    fbb_.AddElement<uint32_t>(Hello::VT_DATABUILDHASH, dataBuildHash, 0);
+  }
+  void add_gameplayPackHash(uint32_t gameplayPackHash) {
+    fbb_.AddElement<uint32_t>(Hello::VT_GAMEPLAYPACKHASH, gameplayPackHash, 0);
+  }
+  void add_gameplayPackRevision(uint32_t gameplayPackRevision) {
+    fbb_.AddElement<uint32_t>(Hello::VT_GAMEPLAYPACKREVISION, gameplayPackRevision, 0);
+  }
   explicit HelloBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -100,10 +124,16 @@ inline ::flatbuffers::Offset<Hello> CreateHello(
     uint64_t serverTick = 0,
     uint64_t serverTimeMs = 0,
     uint8_t championId = 0,
-    uint8_t team = 0) {
+    uint8_t team = 0,
+    uint32_t dataBuildHash = 0,
+    uint32_t gameplayPackHash = 0,
+    uint32_t gameplayPackRevision = 0) {
   HelloBuilder builder_(_fbb);
   builder_.add_serverTimeMs(serverTimeMs);
   builder_.add_serverTick(serverTick);
+  builder_.add_gameplayPackRevision(gameplayPackRevision);
+  builder_.add_gameplayPackHash(gameplayPackHash);
+  builder_.add_dataBuildHash(dataBuildHash);
   builder_.add_yourNetId(yourNetId);
   builder_.add_sessionId(sessionId);
   builder_.add_team(team);

@@ -1,7 +1,8 @@
 #pragma once
 #include "WintersMath.h"
 #include "WintersTypes.h"
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
+#include <cstddef>
 #include <deque>
 #include <type_traits>
 
@@ -162,13 +163,25 @@ struct TurretAIComponent
     f32_t projectileSpeed = 18.f;
     f32_t aggroLockTimer = 0.f;
     bool_t bActive = true;
+    u8_t reservedTail[3]{};
 };
+
+static_assert(sizeof(TurretAIComponent) == 36u);
 
 struct StructureProjectileComponent
 {
     EntityID sourceEntity = NULL_ENTITY;
     EntityID targetEntity = NULL_ENTITY;
+    EntityHandle sourceHandle = NULL_ENTITY_HANDLE;
+    EntityHandle targetHandle = NULL_ENTITY_HANDLE;
+    u32_t uProjectileNetAtSpawn = 0u;
+    u32_t uSourceNetAtSpawn = 0u;
+    u32_t uTargetNetAtSpawn = 0u;
+    u16_t uContactOrdinal = 0u;
     Vec3 currentPos{};
+    Vec3 direction{ 0.f, 0.f, 1.f };
+    f32_t maxDistance = 48.f;
+    f32_t traveledDistance = 0.f;
     f32_t speed = 18.f;
     f32_t damage = 150.f;
     f32_t hitRadius = 0.35f;
@@ -181,9 +194,13 @@ struct TowerAggroNotifyComponent
     f32_t priorityDuration = 2.0f;
 };
 
-struct JungleMonsterTag {};
-struct NexusTag {};
-struct InhibitorTag {};
+struct JungleMonsterTag { u8_t reserved = 0u; };
+struct NexusTag { u8_t reserved = 0u; };
+struct InhibitorTag { u8_t reserved = 0u; };
+
+static_assert(sizeof(JungleMonsterTag) == 1u);
+static_assert(sizeof(NexusTag) == 1u);
+static_assert(sizeof(InhibitorTag) == 1u);
 
 // ─────────────────────────────────────────────────────────────
 // 맵 오브젝트 일반 메타 — 에디터 Inspector / Save·Load 재사용
@@ -209,8 +226,10 @@ struct ServerIdComponent
 struct YasuoStateComponent
 {
     uint8_t qStackCount = 0;
+    u8_t reservedQStackAlignment[3]{};
     f32_t qStackTimer = 0.f;
     bool bEActive = false;
+    u8_t reservedEActiveAlignment[3]{};
     f32_t eActiveTimer = 0.f;
 
     f32_t fPassiveFlow = 100.f;
@@ -220,19 +239,30 @@ struct YasuoStateComponent
     f32_t fPassiveShieldTimer = 0.f;
 };
 
+static_assert(sizeof(YasuoStateComponent) == 36u);
+static_assert(offsetof(YasuoStateComponent, qStackTimer) == 4u);
+static_assert(offsetof(YasuoStateComponent, eActiveTimer) == 12u);
+
 //RivenStateComponent - ECS
 struct RivenStateComponent
 {
     //Q 
     uint8_t qStackCount = 0;
+    u8_t reservedQTimerAlignment[3]{};
     f32_t qStackTimer = 0.f;
     //R - Blade of the Exile
     bool bUlted = false;
+    bool bWindSlashAvailable = false;
+    u8_t reservedUltTimerAlignment[2]{};
     f32_t fUltTimer = 0.f;
     //E 
     f32_t fShieldRemaining = 0.f;
     f32_t fShieldTimer = 0.f;
 };
+
+static_assert(sizeof(RivenStateComponent) == 24u);
+static_assert(offsetof(RivenStateComponent, qStackTimer) == 4u);
+static_assert(offsetof(RivenStateComponent, fUltTimer) == 12u);
 
 struct SkillSlotRuntime {
     f32_t   cooldownRemaining = 0.f;
@@ -248,12 +278,16 @@ struct SkillStateComponent {
 struct StructureComponent
 {
     eTeam    team = eTeam::Blue;
+    u8_t     reservedKindAlignment[3]{};
     uint32_t kind = 0;   // Winters::Map::eObjectKind cast
     uint32_t tier = 0;   // Winters::Map::eTurretTier cast
     uint32_t lane = 0;   // Winters::Map::eLane cast
     f32_t    hp = 3000.f;
     f32_t    maxHp = 3000.f;
 };
+
+static_assert(sizeof(StructureComponent) == 24u);
+static_assert(offsetof(StructureComponent, kind) == 4u);
 
 // 정글 몹 (이름에서 중복 C 제거)
 struct JungleComponent
@@ -276,6 +310,7 @@ struct MinionStateComponent
     };
     State       current = LaneMove;
     State       visualState = Idle;
+    u8_t        reservedAttackTargetAlignment[2]{};
     EntityID    attackTargetId = NULL_ENTITY;
     f32_t       attackCooldown = 0.f;
     f32_t       attackDamage = 10.f;
@@ -288,6 +323,7 @@ struct MinionStateComponent
     f32_t       attackTimer = 0.f;
     bool_t      bHitFired = false;
     bool_t      bAttackAnimRequested = false;
+    u8_t        reservedDeathTimerAlignment[2]{};
     f32_t       deathTimer = 0.f;
     f32_t       targetScanCooldown = 0.f;
     f32_t       targetScanInterval = 0.2f;
@@ -310,6 +346,10 @@ struct MinionStateComponent
     uint8_t     type = 0;   // eMinionType cast (Melee/Ranged/Siege/Super)
     uint8_t     lane = 0;   // eMinionWay cast (Top/Mid/Bot)
 };
+
+static_assert(sizeof(MinionStateComponent) == 876u);
+static_assert(offsetof(MinionStateComponent, attackTargetId) == 4u);
+static_assert(offsetof(MinionStateComponent, deathTimer) == 48u);
 // CommandQueue — 모든 자율 유닛의 Layer 1 (Intent) 출력.
 //  - 플레이어 입력과 AI 판단이 동일한 큐에 커맨드 push.
 //  - 클라 전용: 서버는 자체 큐 사용, 본 컴포넌트는 네트워크 직렬화 X
@@ -341,10 +381,72 @@ struct CommandQueueComponent
     bool_t bActive = false;
 };
 //공격 가능 여부 - 포탑 Outer -> Nexus 순으로 진행
-struct TargetableTag {};
+struct TargetableTag { u8_t reserved = 0u; };
 
 // Practice/smoke targets remain player-targetable but are ignored by lane AI.
-struct PracticeDummyTag {};
+struct PracticeDummyTag { u8_t reserved = 0u; };
+
+static_assert(sizeof(TargetableTag) == 1u);
+static_assert(sizeof(PracticeDummyTag) == 1u);
+
+struct PracticeSpawnedTag
+{
+    EntityID ownerEntity = NULL_ENTITY;
+};
+
+struct PracticePlayerComponent
+{
+    u32_t optionFlags = 0u;
+    u32_t revision = 0u;
+};
+
+struct PracticeSkillEffectOverrideEntry
+{
+    u8_t slot = 0u;
+    u8_t paramId = 0u;
+    f32_t value = 0.f;
+};
+
+struct PracticeSkillEffectOverrideComponent
+{
+    static constexpr u8_t kMaxEntries = 32u;
+    PracticeSkillEffectOverrideEntry entries[kMaxEntries]{};
+    u8_t count = 0u;
+    u32_t revision = 0u;
+};
+
+// Practice-only champion stat overlay.
+// Base fields apply to definition input; EffectiveAttackSpeed applies after runtime modifiers.
+struct PracticeChampionStatOverrideEntry
+{
+    u8_t statId = 0u;   // eChampionStatOverrideId
+    f32_t value = 0.f;
+};
+
+struct PracticeChampionStatOverrideComponent
+{
+    static constexpr u8_t kMaxEntries = 32u;
+    PracticeChampionStatOverrideEntry entries[kMaxEntries]{};
+    u8_t count = 0u;
+    u32_t revision = 0u;
+};
+
+// Practice 전용 아이템 수치 오버레이 (보유 챔피언 단위).
+// 전역 ItemRegistry는 불변으로 두고, 이 엔티티의 스탯 합산/구매 가격에만 적용한다.
+struct PracticeItemStatOverrideEntry
+{
+    u16_t itemId = 0u;
+    u8_t fieldId = 0u;  // eItemStatOverrideField
+    f32_t value = 0.f;
+};
+
+struct PracticeItemStatOverrideComponent
+{
+    static constexpr u8_t kMaxEntries = 32u;
+    PracticeItemStatOverrideEntry entries[kMaxEntries]{};
+    u8_t count = 0u;
+    u32_t revision = 0u;
+};
 
 //Phase T- 8 상태 이상 컴포넌트 - CStatusEffectSystem 이 매프레임 Tick 
 struct StunComponent
@@ -366,6 +468,7 @@ enum class eStatusEffectId : uint16_t
     JaxCounterStrike = 8,
     ZedDeathMark = 9,
     GenericAirborne = 10,
+    KalistaOathswornRitual = 11,
 };
 
 enum class eStatusStackPolicy : uint8_t
@@ -404,8 +507,10 @@ struct StatusEffectInstance
 {
     eStatusEffectId effectId = eStatusEffectId::None;
     eStatusStackPolicy stackPolicy = eStatusStackPolicy::RefreshDuration;
+    u8_t reservedSourceAlignment = 0u;
     EntityID sourceEntity = NULL_ENTITY;
     u16_t stackGroup = 0;
+    u16_t reservedStateFlagsAlignment = 0u;
     u32_t stateFlags = 0u;
     f32_t fRemainingSec = 0.f;
     f32_t fMoveSpeedMul = 1.f;
@@ -415,12 +520,42 @@ struct StatusEffectComponent
 {
     StatusEffectInstance active[kMaxStatusEffectInstances]{};
     u8_t count = 0;
+    u8_t reservedTail[3]{};
 };
+
+static_assert(sizeof(StatusEffectInstance) == 24u);
+static_assert(offsetof(StatusEffectInstance, sourceEntity) == 4u);
+static_assert(offsetof(StatusEffectInstance, stateFlags) == 12u);
+static_assert(sizeof(StatusEffectComponent) == 388u);
+static_assert(offsetof(StatusEffectComponent, count) == 384u);
 
 struct GameplayStateComponent
 {
     u32_t stateFlags = 0u;
     f32_t fMoveSpeedMul = 1.f;
+};
+
+enum class eForcedMotionKind : uint8_t
+{
+    None = 0,
+    AirborneArc,
+    GatherAirborneArc,
+};
+
+struct ForcedMotionComponent
+{
+    eForcedMotionKind kind = eForcedMotionKind::None;
+    EntityID sourceEntity = NULL_ENTITY;
+    Vec3 start{};
+    Vec3 end{};
+    f32_t fElapsedSec = 0.f;
+    f32_t fDurationSec = 0.f;
+    f32_t fArcHeight = 0.f;
+};
+
+struct PositionDiscontinuityComponent
+{
+    u64_t uTick = 0u;
 };
 
 //둔화 상태 이상

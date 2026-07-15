@@ -4,6 +4,7 @@
 
 #include "Game/ServerMinionFlowField.h"
 #include "Game/ServerMinionTuning.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -11,10 +12,12 @@
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
@@ -209,13 +212,6 @@ namespace
         return true;
     }
 
-    constexpr u8_t kServerMinionRoleRanged = 1u;
-    constexpr f32_t kServerMinionRangedProjectileSpeed = 14.f;
-    constexpr f32_t kServerMinionRangedProjectileHitRadius = 0.45f;
-    constexpr f32_t kServerMinionRangedProjectileStartForwardOffset = 0.45f;
-    constexpr f32_t kServerMinionRangedProjectileStartHeight = 0.85f;
-    constexpr f32_t kServerMinionRangedProjectileMaxDistancePadding = 2.f;
-
     const char* ServerMinionDebugStateName(MinionStateComponent::State state)
     {
         switch (state)
@@ -360,24 +356,15 @@ namespace
     {
         if (world.HasComponent<PracticeDummyTag>(candidate))
             return false;
+        if (world.HasComponent<ViegoSoulComponent>(candidate))
+            return false;
         if (candidate == self || !IsAliveHealth(world, candidate))
             return false;
         if (!world.HasComponent<TransformComponent>(candidate))
             return false;
-        // lane 0xff = any-lane attacker (Tibbers ???�환??: lane ?�터�?건너?�다.
+        // lane is a preference, not a permanent exclusion boundary. Permanent
+        // lane rejection makes nearby waves ignore one another at intersections.
         const bool_t bAnyLane = myLane == 0xffu;
-        if (!bAnyLane &&
-            world.HasComponent<MinionComponent>(candidate) &&
-            world.GetComponent<MinionComponent>(candidate).laneType != myLane)
-        {
-            return false;
-        }
-        if (!bAnyLane &&
-            world.HasComponent<MinionStateComponent>(candidate) &&
-            world.GetComponent<MinionStateComponent>(candidate).lane != myLane)
-        {
-            return false;
-        }
         if (world.HasComponent<StructureComponent>(candidate) &&
             !world.HasComponent<TargetableTag>(candidate))
         {
@@ -437,7 +424,7 @@ namespace
 
     bool_t IsServerRangedMinion(const MinionStateComponent& state)
     {
-        return state.type == kServerMinionRoleRanged;
+        return state.type == ServerMinionTuning::kRangedRoleType;
     }
 
     eProjectileKind ResolveServerMinionRangedProjectileKind(eTeam team)
@@ -445,6 +432,70 @@ namespace
         return team == eTeam::Red
             ? eProjectileKind::MinionRangedBasicRed
             : eProjectileKind::MinionRangedBasicBlue;
+    }
+
+    void ApplyServerMinionAttackImpact(
+        CWorld& world,
+        EntityID entity,
+        MinionStateComponent& state,
+        const MinionComponent& minion,
+        const TransformComponent& transform,
+        EntityID target,
+        f32_t effectiveAttackRange)
+    {
+        const Vec3 pos = transform.GetPosition();
+        const Vec3 targetPos =
+            world.GetComponent<TransformComponent>(target).GetPosition();
+        eTeam sourceTeam = minion.team;
+        (void)TryResolveCombatTeam(world, entity, sourceTeam);
+
+        if (IsServerRangedMinion(state))
+        {
+            const MinionWaveRangedProjectileDef& rangedDef =
+                ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionWave.rangedProjectile;
+            const Vec3 projectileDir = NormalizeXZOrForward(
+                Vec3{ targetPos.x - pos.x, 0.f, targetPos.z - pos.z },
+                sourceTeam);
+            const Vec3 projectileStart{
+                pos.x + projectileDir.x * rangedDef.forwardOffset,
+                pos.y + rangedDef.spawnHeight,
+                pos.z + projectileDir.z * rangedDef.forwardOffset
+            };
+
+            SkillProjectileComponent projectile{};
+            projectile.sourceEntity = entity;
+            projectile.targetEntity = target;
+            projectile.sourceHandle = world.GetEntityHandle(entity);
+            projectile.targetHandle = world.GetEntityHandle(target);
+            projectile.sourceTeam = sourceTeam;
+            projectile.kind = ResolveServerMinionRangedProjectileKind(sourceTeam);
+            projectile.skillId = static_cast<u16_t>(projectile.kind);
+            projectile.currentPos = projectileStart;
+            projectile.direction = projectileDir;
+            projectile.speed = rangedDef.speed;
+            projectile.maxDistance =
+                effectiveAttackRange + rangedDef.maxDistancePadding;
+            projectile.hitRadius = rangedDef.hitRadius;
+            projectile.damage = state.attackDamage;
+
+            const EntityID projectileEntity = world.CreateEntity();
+            world.AddComponent<SkillProjectileComponent>(projectileEntity, projectile);
+
+            TransformComponent projectileTransform{};
+            projectileTransform.SetPosition(projectileStart);
+            world.AddComponent<TransformComponent>(projectileEntity, projectileTransform);
+        }
+        else
+        {
+            DamageRequest request{};
+            request.source = entity;
+            request.target = target;
+            request.sourceTeam = sourceTeam;
+            request.type = eDamageType::Physical;
+            request.flatAmount = state.attackDamage;
+            request.flags = DamageFlag_OnHit;
+            EnqueueDamageRequest(world, request);
+        }
     }
 
     EntityID FindClosestEnemyCombatTarget(
@@ -478,9 +529,21 @@ namespace
                 return;
             }
 
-            if (priority < bestPriority || (priority == bestPriority && distSq < bestDistSq))
+            i32_t resolvedPriority = priority;
+            if (myLane != 0xffu &&
+                world.HasComponent<MinionStateComponent>(entity) &&
+                world.GetComponent<MinionStateComponent>(entity).lane != myLane)
             {
-                bestPriority = priority;
+                ++resolvedPriority;
+            }
+
+            if (resolvedPriority < bestPriority ||
+                (resolvedPriority == bestPriority && distSq < bestDistSq) ||
+                (resolvedPriority == bestPriority &&
+                    std::fabs(distSq - bestDistSq) <= 0.0001f &&
+                    (best == NULL_ENTITY || entity < best)))
+            {
+                bestPriority = resolvedPriority;
                 bestDistSq = distSq;
                 best = entity;
             }
@@ -580,8 +643,11 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
             {
                 if (state.current != MinionStateComponent::Dead)
                 {
+                    GameplayStatus::ClearStatusEffects(m_world, entity);
                     state.current = MinionStateComponent::Dead;
-                    state.deathTimer = 1.2f;
+                    // 시체 타이머 단일화: 1.2f -> minionWave.corpseDeathTimerSec(1.5, 공용 경로와 동일).
+                    state.deathTimer = ServerData::GetActiveLoLSpawnObjectDefinitionPack()
+                        .minionWave.corpseDeathTimerSec;
                     StartReplicatedAction(m_world, entity, eActionStateId::DeathStart, tc);
                     SetReplicatedPose(m_world, entity, ePoseStateId::Dead, tc);
                 }
@@ -614,7 +680,53 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
                 state.targetScanCooldown = 0.f;
         }
 
+        const bool_t bCanMove = GameplayStateQuery::CanMove(m_world, entity);
+        const bool_t bCanAttack = GameplayStateQuery::CanAttack(m_world, entity);
+        const bool_t bForcedMotion =
+            m_world.HasComponent<ForcedMotionComponent>(entity);
+
+        if (!bCanAttack && state.attackTimer > 0.f)
+        {
+            state.attackTimer = 0.f;
+            state.bHitFired = true;
+            state.current = MinionStateComponent::Idle;
+        }
+
+        if (bForcedMotion || (!bCanMove && !bCanAttack))
+        {
+            state.current = MinionStateComponent::Idle;
+            SetReplicatedPose(m_world, entity, ePoseStateId::Idle, tc);
+            continue;
+        }
+
         const Vec3 pos = transform.GetPosition();
+        AnnieTibbersComponent* pTibbersCommand =
+            m_world.HasComponent<AnnieTibbersComponent>(entity)
+            ? &m_world.GetComponent<AnnieTibbersComponent>(entity)
+            : nullptr;
+        if (pTibbersCommand && pTibbersCommand->commandTarget != NULL_ENTITY)
+        {
+            if (IsAliveHealth(m_world, pTibbersCommand->commandTarget) &&
+                GameplayStateQuery::CanBeTargetedBy(
+                    m_world,
+                    entity,
+                    pTibbersCommand->commandTarget))
+            {
+                state.attackTargetId = pTibbersCommand->commandTarget;
+            }
+            else
+            {
+                pTibbersCommand->commandTarget = NULL_ENTITY;
+            }
+        }
+        const bool_t bExplicitTibbersMove =
+            pTibbersCommand &&
+            pTibbersCommand->commandTarget == NULL_ENTITY &&
+            pTibbersCommand->bHasCommandPosition;
+        if (bExplicitTibbersMove)
+            state.attackTargetId = NULL_ENTITY;
+
+        const bool_t bAttackInProgress = state.attackTimer > 0.f;
         EntityID target = NULL_ENTITY;
         if (state.attackTargetId != NULL_ENTITY)
         {
@@ -633,13 +745,25 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
             {
                 target = state.attackTargetId;
             }
-            else
+            else if (!bAttackInProgress)
             {
                 state.attackTargetId = NULL_ENTITY;
+                state.targetScanCooldown = 0.f;
             }
         }
 
-        if (target == NULL_ENTITY && state.targetScanCooldown <= 0.f)
+        if (pTibbersCommand &&
+            pTibbersCommand->commandTarget != NULL_ENTITY &&
+            target == NULL_ENTITY &&
+            !bAttackInProgress)
+        {
+            pTibbersCommand->commandTarget = NULL_ENTITY;
+        }
+
+        if (!bAttackInProgress &&
+            target == NULL_ENTITY &&
+            !bExplicitTibbersMove &&
+            state.targetScanCooldown <= 0.f)
         {
             target = FindClosestEnemyCombatTarget(
                 m_world, entity, minion.team, state.lane, pos, state.sightRange);
@@ -650,6 +774,70 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
             state.targetScanCooldown = scanInterval;
         }
 
+        if (state.attackTimer > 0.f)
+        {
+            state.current = MinionStateComponent::Attack;
+            const f32_t previousAttackTimer = state.attackTimer;
+            state.attackTimer = (std::max)(0.f, state.attackTimer - tc.fDt);
+
+            if (target != NULL_ENTITY &&
+                m_world.HasComponent<TransformComponent>(target))
+            {
+                const Vec3 targetPos =
+                    m_world.GetComponent<TransformComponent>(target).GetPosition();
+                FaceServerMinionTowardTarget(transform, pos, targetPos);
+            }
+
+            const f32_t impactThreshold = state.attackRecovery;
+            if (!state.bHitFired &&
+                previousAttackTimer > impactThreshold &&
+                state.attackTimer <= impactThreshold)
+            {
+                bool_t bImpactValid =
+                    target != NULL_ENTITY &&
+                    IsAliveHealth(m_world, target) &&
+                    m_world.HasComponent<TransformComponent>(target);
+                if (bImpactValid)
+                {
+                    const Vec3 targetPos =
+                        m_world.GetComponent<TransformComponent>(target).GetPosition();
+                    const f32_t effectiveAttackRange =
+                        ResolveServerMinionAttackRange(m_world, entity, target, state);
+                    const f32_t impactRange =
+                        effectiveAttackRange + ServerMinionTuning::kAttackExitRangePadding;
+                    bImpactValid =
+                        WintersMath::DistanceSqXZ(pos, targetPos) <= impactRange * impactRange &&
+                        (GameplayStateQuery::IsAttackSegmentGateExemptTarget(m_world, target) ||
+                            SegmentWalkableXZ(
+                                pos,
+                                targetPos,
+                                ResolveAgentRadius(m_world, entity)));
+
+                    if (bImpactValid)
+                    {
+                        ApplyServerMinionAttackImpact(
+                            m_world,
+                            entity,
+                            state,
+                            minion,
+                            transform,
+                            target,
+                            effectiveAttackRange);
+                    }
+                }
+
+                state.bHitFired = true;
+                if (!bImpactValid)
+                {
+                    state.attackTargetId = NULL_ENTITY;
+                    state.targetScanCooldown = 0.f;
+                }
+            }
+
+            SetReplicatedPose(m_world, entity, ePoseStateId::Idle, tc);
+            continue;
+        }
+
         bool_t bMoved = false;
         if (target != NULL_ENTITY && m_world.HasComponent<TransformComponent>(target))
         {
@@ -658,65 +846,34 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
             const f32_t effectiveAttackRange =
                 ResolveServerMinionAttackRange(m_world, entity, target, state);
             const f32_t rangeSq = effectiveAttackRange * effectiveAttackRange;
+            const f32_t exitAttackRange =
+                effectiveAttackRange + ServerMinionTuning::kAttackExitRangePadding;
+            const bool_t bInAttackRange = distSq <= rangeSq;
+            const bool_t bInExitRange = distSq <= exitAttackRange * exitAttackRange;
+            const bool_t bHoldAttackRange =
+                state.current == MinionStateComponent::Attack &&
+                state.attackCooldown > 0.f &&
+                bInExitRange;
+            const bool_t bHasClearAttackSegment =
+                !bInExitRange ||
+                GameplayStateQuery::IsAttackSegmentGateExemptTarget(m_world, target) ||
+                SegmentWalkableXZ(
+                    pos,
+                    targetPos,
+                    ResolveAgentRadius(m_world, entity));
             state.attackTargetId = target;
 
-            if (distSq <= rangeSq)
+            if (bCanAttack &&
+                (bInAttackRange || bHoldAttackRange) &&
+                bHasClearAttackSegment)
             {
                 state.current = MinionStateComponent::Attack;
                 FaceServerMinionTowardTarget(transform, pos, targetPos);
-                if (state.attackCooldown <= 0.f)
+                if (bCanAttack && state.attackCooldown <= 0.f)
                 {
-                    eTeam sourceTeam = minion.team;
-                    (void)TryResolveCombatTeam(m_world, entity, sourceTeam);
-
-                    if (IsServerRangedMinion(state))
-                    {
-                        const Vec3 projectileDir = NormalizeXZOrForward(
-                            Vec3{ targetPos.x - pos.x, 0.f, targetPos.z - pos.z },
-                            sourceTeam);
-                        const Vec3 projectileStart{
-                            pos.x + projectileDir.x * kServerMinionRangedProjectileStartForwardOffset,
-                            pos.y + kServerMinionRangedProjectileStartHeight,
-                            pos.z + projectileDir.z * kServerMinionRangedProjectileStartForwardOffset
-                        };
-
-                        SkillProjectileComponent projectile{};
-                        projectile.sourceEntity = entity;
-                        projectile.targetEntity = target;
-                        projectile.sourceTeam = sourceTeam;
-                        projectile.kind = ResolveServerMinionRangedProjectileKind(sourceTeam);
-                        projectile.skillId = static_cast<u16_t>(projectile.kind);
-                        projectile.currentPos = projectileStart;
-                        projectile.direction = projectileDir;
-                        projectile.speed = kServerMinionRangedProjectileSpeed;
-                        projectile.maxDistance =
-                            effectiveAttackRange + kServerMinionRangedProjectileMaxDistancePadding;
-                        projectile.hitRadius = kServerMinionRangedProjectileHitRadius;
-                        projectile.damage = state.attackDamage;
-
-                        const EntityID projectileEntity = m_world.CreateEntity();
-                        m_world.AddComponent<SkillProjectileComponent>(projectileEntity, projectile);
-
-                        TransformComponent projectileTransform{};
-                        projectileTransform.SetPosition(projectileStart);
-                        m_world.AddComponent<TransformComponent>(
-                            projectileEntity,
-                            projectileTransform);
-                    }
-                    else
-                    {
-                        DamageRequest request{};
-                        request.source = entity;
-                        request.target = target;
-                        request.sourceTeam = sourceTeam;
-                        request.type = eDamageType::Physical;
-                        request.flatAmount = state.attackDamage;
-                        request.flags = DamageFlag_OnHit;
-                        EnqueueDamageRequest(m_world, request);
-                    }
-
+                    state.attackTimer = state.attackWindup + state.attackRecovery;
                     state.attackCooldown = state.attackCooldownMax;
-                    state.bHitFired = true;
+                    state.bHitFired = false;
                     StartReplicatedAction(m_world, entity, eActionStateId::BasicAttack, tc);
 
                     static u32_t s_minionAttackLogCount = 0;
@@ -744,56 +901,99 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
                         ++s_minionAttackLogCount;
                     }
                 }
+                SetReplicatedPose(m_world, entity, ePoseStateId::Idle, tc);
+            }
+            else if (!bCanAttack && bInExitRange)
+            {
+                state.current = MinionStateComponent::Idle;
             }
             else
             {
+                const f32_t chaseStopRange = bInAttackRange
+                    ? 0.f
+                    : effectiveAttackRange;
                 (void)TryMoveServerMinionToward(
                     entity,
                     state,
                     transform,
                     targetPos,
-                    effectiveAttackRange,
+                    chaseStopRange,
                     tc,
                     PathBuildBudget,
                     bMoved,
                     MinionStateComponent::Chase);
             }
         }
-        else if (m_world.HasComponent<AnnieTibbersComponent>(entity))
+        else if (pTibbersCommand)
         {
             state.attackTargetId = NULL_ENTITY;
-            const auto& tibbers = m_world.GetComponent<AnnieTibbersComponent>(entity);
-            const bool_t bOwnerValid =
-                tibbers.owner != NULL_ENTITY &&
-                m_world.IsAlive(tibbers.owner) &&
-                m_world.HasComponent<TransformComponent>(tibbers.owner);
-            if (bOwnerValid)
+            auto& tibbers = *pTibbersCommand;
+            if (bExplicitTibbersMove)
             {
-                const Vec3 ownerPos =
-                    m_world.GetComponent<TransformComponent>(tibbers.owner).GetPosition();
-                constexpr f32_t kTibbersFollowDistance = 2.5f;
-                if (WintersMath::DistanceSqXZ(pos, ownerPos) >
-                    kTibbersFollowDistance * kTibbersFollowDistance)
+                constexpr f32_t kTibbersCommandArriveDistance = 0.65f;
+                if (WintersMath::DistanceSqXZ(pos, tibbers.commandPosition) >
+                    kTibbersCommandArriveDistance * kTibbersCommandArriveDistance)
                 {
-                    (void)TryMoveServerMinionToward(
+                    const bool_t bCommandProgressed = TryMoveServerMinionToward(
                         entity,
                         state,
                         transform,
-                        ownerPos,
-                        kTibbersFollowDistance,
+                        tibbers.commandPosition,
+                        kTibbersCommandArriveDistance,
                         tc,
                         PathBuildBudget,
                         bMoved,
                         MinionStateComponent::Chase);
+                    if (!bCommandProgressed &&
+                        bCanMove &&
+                        !bForcedMotion &&
+                        state.BlockedMoveFrames >=
+                            ServerMinionTuning::kBlockedFramesBeforeRepath * 2u)
+                    {
+                        tibbers.bHasCommandPosition = false;
+                        state.current = MinionStateComponent::Idle;
+                    }
                 }
                 else
                 {
+                    tibbers.bHasCommandPosition = false;
                     state.current = MinionStateComponent::Idle;
                 }
             }
             else
             {
-                state.current = MinionStateComponent::Idle;
+                const bool_t bOwnerValid =
+                    tibbers.owner != NULL_ENTITY &&
+                    m_world.IsAlive(tibbers.owner) &&
+                    m_world.HasComponent<TransformComponent>(tibbers.owner);
+                if (bOwnerValid)
+                {
+                    const Vec3 ownerPos =
+                        m_world.GetComponent<TransformComponent>(tibbers.owner).GetPosition();
+                    constexpr f32_t kTibbersFollowDistance = 2.5f;
+                    if (WintersMath::DistanceSqXZ(pos, ownerPos) >
+                        kTibbersFollowDistance * kTibbersFollowDistance)
+                    {
+                        (void)TryMoveServerMinionToward(
+                            entity,
+                            state,
+                            transform,
+                            ownerPos,
+                            kTibbersFollowDistance,
+                            tc,
+                            PathBuildBudget,
+                            bMoved,
+                            MinionStateComponent::Chase);
+                    }
+                    else
+                    {
+                        state.current = MinionStateComponent::Idle;
+                    }
+                }
+                else
+                {
+                    state.current = MinionStateComponent::Idle;
+                }
             }
         }
         else
@@ -873,20 +1073,28 @@ void CGameRoom::Phase_ServerMinionDepenetration(TickContext& tc)
         }
 
         MinionStateComponent& state = m_world.GetComponent<MinionStateComponent>(entity);
-        if (state.current == MinionStateComponent::Dead)
+        if (!GameplayStateQuery::CanMove(m_world, entity) ||
+            m_world.HasComponent<ForcedMotionComponent>(entity))
+        {
+            continue;
+        }
+        if (state.current != MinionStateComponent::LaneMove &&
+            state.current != MinionStateComponent::Chase)
             continue;
 
         TransformComponent& transform = m_world.GetComponent<TransformComponent>(entity);
         const Vec3 vPos = transform.GetPosition();
-        const f32_t fStep = (std::max)(0.08f, state.moveSpeed * tc.fDt);
+        const f32_t fStep = (std::max)(
+            0.08f,
+            state.moveSpeed *
+                GameplayStateQuery::GetMoveSpeedMultiplier(m_world, entity) *
+                tc.fDt);
 
         Vec3 vResolved{};
         if (!TryResolveMinionDepenetrationStep(entity, vPos, fStep, tc, vResolved))
             continue;
 
-        const Vec3 vActualMove{ vResolved.x - vPos.x, 0.f, vResolved.z - vPos.z };
         transform.SetPosition(vResolved);
-        FaceServerMinionTowardDirection(transform, vActualMove);
 
         if (state.BlockedMoveFrames > 0u)
             state.BlockedMoveFrames = 0u;
@@ -1092,6 +1300,12 @@ bool_t CGameRoom::TryMoveServerMinionToward(
     bool_t& outMoved,
     MinionStateComponent::State moveState)
 {
+    if (!GameplayStateQuery::CanMove(m_world, entity) ||
+        m_world.HasComponent<ForcedMotionComponent>(entity))
+    {
+        return false;
+    }
+
     state.PathRebuildCooldown = (std::max)(0.f, state.PathRebuildCooldown - tc.fDt);
 
     const Vec3 vPos = transform.GetPosition();
@@ -1192,7 +1406,10 @@ bool_t CGameRoom::TryMoveServerMinionToward(
         return false;
 
     const Vec3 vDir = NormalizeXZOrForward(vToGoal, state.team);
-    const f32_t fStep = state.moveSpeed * tc.fDt;
+    const f32_t fStep =
+        state.moveSpeed *
+        GameplayStateQuery::GetMoveSpeedMultiplier(m_world, entity) *
+        tc.fDt;
 
     Vec3 vNext{};
     if (!TryResolveMinionMoveStep(entity, vPos, vDir, fStep, tc, vNext))
@@ -1244,6 +1461,12 @@ bool_t CGameRoom::TryMoveServerMinionByFlowFields(
     TickContext& tc,
     bool_t& outMoved)
 {
+    if (!GameplayStateQuery::CanMove(m_world, entity) ||
+        m_world.HasComponent<ForcedMotionComponent>(entity))
+    {
+        return false;
+    }
+
     state.PathRebuildCooldown = (std::max)(0.f, state.PathRebuildCooldown - tc.fDt);
 
     if (state.PathCount > 0u && state.PathIndex < state.PathCount)
@@ -1266,7 +1489,10 @@ bool_t CGameRoom::TryMoveServerMinionByFlowFields(
     if (fLenSq <= 0.0001f)
         return false;
 
-    const f32_t fStep = state.moveSpeed * tc.fDt;
+    const f32_t fStep =
+        state.moveSpeed *
+        GameplayStateQuery::GetMoveSpeedMultiplier(m_world, entity) *
+        tc.fDt;
     Vec3 vNext{};
     if (!TryResolveMinionMoveStep(entity, vPos, vDir, fStep, tc, vNext))
     {

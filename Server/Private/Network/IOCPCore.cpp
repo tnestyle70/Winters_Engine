@@ -257,12 +257,15 @@ void CIOCPCore::WorkerLoop(u32_t workerId)
                 if (BindIOCP(session->GetSocket(), session->GetSessionId()))
                 {
                     std::cout << "[IOCP] Accept sid=" << session->GetSessionId() << "\n";
-                    session->PostInitialRecv();
-
                     if (g_pRoom)
                     {
                         const EntityID controlled = g_pRoom->OnSessionJoin(session->GetSessionId());
                         session->SetControlledEntity(controlled);
+                    }
+                    if (!session->PostInitialRecv())
+                    {
+                        CSession_Manager::Get()->OnDisconnect(
+                            session->GetSessionId());
                     }
                 }
                 else

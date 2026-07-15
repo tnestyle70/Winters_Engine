@@ -1,5 +1,7 @@
 #include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 
+#include "Shared/GameSim/Definitions/EconomyGameplayDef.h"
+
 namespace
 {
     RewardDef MakeMinionReward(
@@ -24,15 +26,41 @@ namespace
         return reward;
     }
 
-    RewardDef MakeChampionReward()
+    RewardDef MakeChampionReward(
+        f32_t killerGold,
+        f32_t assistGold,
+        f32_t firstBloodBonusGold,
+        f32_t victimNextLevelXPFactor,
+        f32_t shareRadius)
     {
         RewardDef reward{};
         reward.sourceKind = eRewardSourceKind::Champion;
+        reward.experience.shareRadius = shareRadius;
+        reward.experience.victimNextLevelXPFactor = victimNextLevelXPFactor;
+        reward.gold.killerGold = killerGold;
+        reward.gold.assistGold = assistGold;
+        reward.gold.firstBloodBonusGold = firstBloodBonusGold;
+        return reward;
+    }
+
+    RewardDef MakeTurretReward(f32_t killerGold)
+    {
+        // 봇 가치판단(ChampionAIValuation::GetTurretGoldValue)이 이 레지스트리를
+        // 조회하므로 실보상과 갈라지지 않는다.
+        RewardDef reward{};
+        reward.sourceKind = eRewardSourceKind::Turret;
+        reward.gold.killerGold = killerGold;
+        return reward;
+    }
+
+    RewardDef MakeJungleReward(u8_t subKind, f32_t gold, f32_t xp)
+    {
+        RewardDef reward{};
+        reward.sourceKind = eRewardSourceKind::Jungle;
+        reward.subKind = subKind;
+        reward.experience.nearbyXP = xp;
         reward.experience.shareRadius = 20.f;
-        reward.experience.victimNextLevelXPFactor = 0.50f;
-        reward.gold.killerGold = 300.f;
-        reward.gold.assistGold = 150.f;
-        reward.gold.firstBloodBonusGold = 100.f;
+        reward.gold.killerGold = gold;
         return reward;
     }
 }
@@ -79,11 +107,48 @@ void CRewardRegistry::LoadDefaultSummonersRift()
     curve.requiredForNextLevel[18] = 0.f;
     SetExperienceCurve(curve);
 
-    AddReward(MakeChampionReward());
+    AddReward(MakeChampionReward(300.f, 150.f, 100.f, 0.50f, 20.f));
     AddReward(MakeMinionReward(eMinionRewardKind::Melee, 61.75f, 80.60f, 21.f));
     AddReward(MakeMinionReward(eMinionRewardKind::Ranged, 30.40f, 39.68f, 14.f));
     AddReward(MakeMinionReward(eMinionRewardKind::Siege, 95.f, 124.f, 60.f, 90.f, 3.f, 90.f));
     AddReward(MakeMinionReward(eMinionRewardKind::Super, 95.f, 124.f, 60.f, 90.f, 3.f, 90.f));
+    AddReward(MakeTurretReward(250.f));
+    AddReward(MakeJungleReward(kJungleRewardSubBaron, 300.f, 600.f));
+    AddReward(MakeJungleReward(kJungleRewardSubEpic, 150.f, 250.f));
+    AddReward(MakeJungleReward(kJungleRewardSubSmall, 35.f, 75.f));
+}
+
+void CRewardRegistry::LoadFromEconomyDef(const EconomyGameplayDef& economy)
+{
+    Reset();
+
+    ChampionExperienceCurveDef curve{};
+    for (u8_t level = 0; level <= ChampionExperienceCurveDef::kMaxChampionLevel; ++level)
+        curve.requiredForNextLevel[level] = economy.xpRequiredForNextLevel[level];
+    SetExperienceCurve(curve);
+
+    AddReward(MakeChampionReward(
+        economy.championKill.killerGold,
+        economy.championKill.assistGold,
+        economy.championKill.firstBloodBonusGold,
+        economy.championKill.victimNextLevelXPFactor,
+        economy.championKill.shareRadius));
+    AddReward(MakeMinionReward(eMinionRewardKind::Melee,
+        economy.melee.soloXP, economy.melee.sharedXP, economy.melee.gold,
+        economy.melee.maxGold, economy.melee.growthAmount, economy.melee.growthIntervalSec));
+    AddReward(MakeMinionReward(eMinionRewardKind::Ranged,
+        economy.ranged.soloXP, economy.ranged.sharedXP, economy.ranged.gold,
+        economy.ranged.maxGold, economy.ranged.growthAmount, economy.ranged.growthIntervalSec));
+    AddReward(MakeMinionReward(eMinionRewardKind::Siege,
+        economy.siege.soloXP, economy.siege.sharedXP, economy.siege.gold,
+        economy.siege.maxGold, economy.siege.growthAmount, economy.siege.growthIntervalSec));
+    AddReward(MakeMinionReward(eMinionRewardKind::Super,
+        economy.super.soloXP, economy.super.sharedXP, economy.super.gold,
+        economy.super.maxGold, economy.super.growthAmount, economy.super.growthIntervalSec));
+    AddReward(MakeTurretReward(economy.turretGold));
+    AddReward(MakeJungleReward(kJungleRewardSubBaron, economy.jungle.baronGold, economy.jungle.baronXP));
+    AddReward(MakeJungleReward(kJungleRewardSubEpic, economy.jungle.epicGold, economy.jungle.epicXP));
+    AddReward(MakeJungleReward(kJungleRewardSubSmall, economy.jungle.smallCampGold, economy.jungle.smallCampXP));
 }
 
 void CRewardRegistry::SetExperienceCurve(const ChampionExperienceCurveDef& curve)

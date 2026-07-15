@@ -1,16 +1,18 @@
 #include "Shared/GameSim/Systems/AttackChase/AttackChaseSystem.h"
 
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Components/AttackChaseComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
@@ -71,6 +73,21 @@ namespace
             .cooldownRemaining <= 0.f;
     }
 
+    bool_t CanChaseTarget(CWorld& world, EntityID entity,
+        const AttackChaseComponent& chase)
+    {
+        if (GameplayStateQuery::CanBeTargetedBy(world, entity, chase.target))
+            return true;
+
+        if (chase.commandKind != static_cast<u8_t>(eCommandKind::BasicAttack) ||
+            !world.HasComponent<ViegoSoulComponent>(chase.target))
+        {
+            return false;
+        }
+
+        return world.GetComponent<ViegoSoulComponent>(chase.target).eligibleViego == entity;
+    }
+
     void ClearMoveTarget(CWorld& world, EntityID entity)
     {
         if (world.HasComponent<MoveTargetComponent>(entity))
@@ -81,6 +98,8 @@ namespace
     {
         moveTarget.pathCount = 0;
         moveTarget.pathIndex = 0;
+        moveTarget.blockedMoveTicks = 0;
+        moveTarget.bestMoveDistance = -1.f;
     }
 
     bool_t HasActiveMoveTarget(CWorld& world, EntityID entity)
@@ -248,12 +267,13 @@ void CAttackChaseSystem::Execute(CWorld& world, const TickContext& tc,
         const bool_t bCanExecute = bSkillChase
             ? GameplayStateQuery::CanCast(world, entity)
             : GameplayStateQuery::CanAttack(world, entity);
+        const bool_t bCanTarget = CanChaseTarget(world, entity, chase);
 
         if (!chase.bActive ||
             !IsAliveForAttackChase(world, entity) ||
             !IsAliveForAttackChase(world, chase.target) ||
             !bCanExecute ||
-            !GameplayStateQuery::CanBeTargetedBy(world, entity, chase.target) ||
+            !bCanTarget ||
             !world.HasComponent<TransformComponent>(entity) ||
             !world.HasComponent<TransformComponent>(chase.target))
         {
@@ -270,7 +290,7 @@ void CAttackChaseSystem::Execute(CWorld& world, const TickContext& tc,
                     chase.sequenceNum,
                     chase.bActive ? 1u : 0u,
                     bCanExecute ? 1u : 0u,
-                    GameplayStateQuery::CanBeTargetedBy(world, entity, chase.target) ? 1u : 0u,
+                    bCanTarget ? 1u : 0u,
                     world.HasComponent<TransformComponent>(entity) ? 1u : 0u,
                     world.HasComponent<TransformComponent>(chase.target) ? 1u : 0u);
                 WintersOutputAIDebugStringA(msg);
@@ -291,8 +311,17 @@ void CAttackChaseSystem::Execute(CWorld& world, const TickContext& tc,
             : ResolveAttackRange(world, entity) +
                 GameplayStateQuery::ResolveGameplayRadius(world, entity) +
                 GameplayStateQuery::ResolveGameplayRadius(world, chase.target);
+        const bool_t bInRange =
+            WintersMath::DistanceSqXZ(selfPos, targetPos) <= effectiveRange * effectiveRange;
+        const bool_t bHasClearSegment =
+            !tc.pWalkable ||
+            GameplayStateQuery::IsAttackSegmentGateExemptTarget(world, chase.target) ||
+            tc.pWalkable->SegmentWalkableXZ(
+                selfPos,
+                targetPos,
+                GameplayStateQuery::ResolveGameplayRadius(world, entity));
 
-        if (WintersMath::DistanceSqXZ(selfPos, targetPos) <= effectiveRange * effectiveRange)
+        if (bInRange && bHasClearSegment)
         {
             ClearMoveTarget(world, entity);
             if (bSkillChase)
@@ -340,7 +369,10 @@ void CAttackChaseSystem::Execute(CWorld& world, const TickContext& tc,
         chase.repathTimer -= tc.fDt;
         if (chase.repathTimer <= 0.f || !HasActiveMoveTarget(world, entity))
         {
-            SetChaseMoveTarget(world, tc, entity, selfPos, targetPos, effectiveRange);
+            const f32_t moveStopRange = bInRange && !bHasClearSegment
+                ? 0.f
+                : effectiveRange;
+            SetChaseMoveTarget(world, tc, entity, selfPos, targetPos, moveStopRange);
             chase.repathTimer = kAttackChaseRepathIntervalSec;
         }
     }

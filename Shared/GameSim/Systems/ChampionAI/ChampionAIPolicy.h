@@ -3,7 +3,10 @@
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
+#include "Shared/GameSim/Systems/ChampionAI/ChampionAIResearchTypes.h"
 #include "WintersTypes.h"
+
+#include <cstddef>
 
 struct ChampionAISkillRule
 {
@@ -61,3 +64,52 @@ struct ChampionAIProfile
 
 const ChampionAIProfile& GetChampionAIProfile(eChampion champion);
 const ChampionAIComboPlan& GetChampionAIComboPlan(eChampion champion);
+
+inline constexpr u16_t kChampionAIShadowPolicySchemaVersionV1 = 1u;
+inline constexpr u16_t kChampionAIShadowFeatureCountV1 = 67u;
+inline constexpr u16_t kChampionAIShadowCandidateCountV1 = 4u;
+inline constexpr u16_t kChampionAIShadowInvalidFeatureIndexV1 = 0xFFFFu;
+inline constexpr u64_t kChampionAIShadowFeatureOrderSha256PrefixV1 =
+    0x9208820578DF2314ull;
+
+enum class eChampionAIShadowStatusV1 : u8_t
+{
+    Disabled = 0u,
+    Evaluated,
+    InvalidArtifact,
+    InvalidTrace,
+    InsufficientLegalCandidates,
+};
+
+struct ChampionAIShadowPolicyArtifactV1
+{
+    u64_t policyRevision = 0u;
+    u64_t sourcePolicyRevision = 0u;
+    u64_t featureOrderSha256Prefix = 0u;
+    u64_t binarySha256Prefix = 0u;
+    f32_t normalizationMean[kChampionAIShadowFeatureCountV1]{};
+    f32_t normalizationInverseScale[kChampionAIShadowFeatureCountV1]{};
+    f32_t weights[kChampionAIShadowFeatureCountV1]{};
+};
+
+struct ChampionAIShadowDecisionV1
+{
+    eChampionAIShadowStatusV1 status = eChampionAIShadowStatusV1::Disabled;
+    u8_t activeCandidateKind = 0u;
+    u8_t shadowCandidateKind = 0u;
+    bool_t bDisagreed = false;
+    u32_t legalCandidateMask = 0u;
+    f32_t logits[kChampionAIShadowCandidateCountV1]{};
+    f32_t selectedMargin = 0.f;
+    u16_t topFeatureIndex = kChampionAIShadowInvalidFeatureIndexV1;
+    f32_t topFeatureContribution = 0.f;
+};
+
+bool_t DecodeChampionAIShadowPolicyArtifactV1(
+    const u8_t* bytes,
+    size_t byteCount,
+    ChampionAIShadowPolicyArtifactV1& outArtifact);
+
+ChampionAIShadowDecisionV1 EvaluateChampionAIShadowPolicyV1(
+    const ChampionAIShadowPolicyArtifactV1* artifact,
+    const AiDecisionTraceV1& trace);

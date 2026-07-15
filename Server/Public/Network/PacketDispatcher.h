@@ -15,11 +15,13 @@ public:
     static CPacketDispatcher& Instance();
 
     void DrainFrames(u32_t sessionId, CFrameParser& parser);
+    void DispatchFrame(u32_t sessionId, const ParsedFrameOwned& frame);
     void DispatchCommandBatch(u32_t sessionId, const ParsedFrameOwned& frame);
     void DispatchLobbyCommand(u32_t sessionId, const ParsedFrameOwned& frame);
     void DispatchHello(u32_t sessionId, const ParsedFrameOwned& frame);
 
     void RegisterRoom(u32_t roomId, CGameRoom* pRoom);
+    void UnregisterRoom(u32_t roomId, CGameRoom* pExpectedRoom);
     void RouteSession(u32_t sessionId, u32_t roomId);
     void UnrouteSession(u32_t sessionId);
 

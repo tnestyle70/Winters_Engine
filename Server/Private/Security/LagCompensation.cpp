@@ -42,24 +42,29 @@ void CLagCompensation::RecordHistory(CWorld& world, u64_t tickIndex)
     }
 }
 
-bool_t CLagCompensation::TryGetHistoricalState(EntityID entity, u64_t rewindTicks,
+bool_t CLagCompensation::TryGetHistoricalStateAtTick(
+    EntityHandle hEntity,
+    u64_t uExpectedTick,
     LagCompensatedEntityState& outState) const
 {
-    if (rewindTicks > kMaxRewindTicks)
+    if (!hEntity.IsValid() || uExpectedTick > m_latestTick)
         return false;
 
-    auto it = m_history.find(entity);
+    const auto it = m_history.find(hEntity.GetIndex());
     if (it == m_history.end())
         return false;
 
-    const u64_t targetTick = m_latestTick > rewindTicks ? m_latestTick - rewindTicks : 0;
     for (auto rit = it->second.rbegin(); rit != it->second.rend(); ++rit)
     {
-        if (rit->tickIndex <= targetTick)
+        if (rit->generation != hEntity.GetGeneration())
+            continue;
+        if (rit->tickIndex == uExpectedTick)
         {
             outState = rit->state;
             return true;
         }
+        if (rit->tickIndex < uExpectedTick)
+            break;
     }
 
     return false;

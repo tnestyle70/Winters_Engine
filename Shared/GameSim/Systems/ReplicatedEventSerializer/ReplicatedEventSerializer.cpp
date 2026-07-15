@@ -37,6 +37,7 @@ namespace SharedSim
         EntityIdMap& entityMap,
         const ReplicatedEventComponent& event,
         u64_t serverTick,
+        u32_t uEventOrdinal,
         SerializedReplicatedEvent& out)
     {
         Reset(out);
@@ -64,7 +65,15 @@ namespace SharedSim
                 fbb,
                 Shared::Schema::EventKind::Damage,
                 serverTick,
-                damage), out);
+                damage,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                uEventOrdinal), out);
         }
         case eReplicatedEventKind::SkillCast:
         {
@@ -88,12 +97,20 @@ namespace SharedSim
                 0,
                 0,
                 0,
-                skillCast), out);
+                skillCast,
+                0,
+                0,
+                0,
+                uEventOrdinal), out);
         }
         case eReplicatedEventKind::EffectTrigger:
         {
-            const NetEntityId sourceNet = entityMap.ToNet(event.sourceEntity);
-            const NetEntityId targetNet = entityMap.ToNet(event.targetEntity);
+            const NetEntityId sourceNet = event.sourceNetOverride != NULL_NET_ENTITY
+                ? event.sourceNetOverride
+                : entityMap.ToNet(event.sourceEntity);
+            const NetEntityId targetNet = event.targetNetOverride != NULL_NET_ENTITY
+                ? event.targetNetOverride
+                : entityMap.ToNet(event.targetEntity);
             if (sourceNet == NULL_NET_ENTITY && targetNet == NULL_NET_ENTITY)
                 return false;
 
@@ -124,12 +141,15 @@ namespace SharedSim
                 0,
                 0,
                 0,
-                effect), out);
+                effect,
+                0,
+                uEventOrdinal), out);
         }
         case eReplicatedEventKind::ProjectileSpawn:
         {
-            NetEntityId projectileNet = NULL_NET_ENTITY;
-            if (event.projectileEntity != NULL_ENTITY &&
+            NetEntityId projectileNet = event.projectileNetOverride;
+            if (projectileNet == NULL_NET_ENTITY &&
+                event.projectileEntity != NULL_ENTITY &&
                 world.IsAlive(event.projectileEntity))
             {
                 projectileNet = entityMap.IssueNew(event.projectileEntity);
@@ -139,7 +159,9 @@ namespace SharedSim
             const auto projectile = Shared::Schema::CreateProjectileSpawnEvent(
                 fbb,
                 projectileNet,
-                entityMap.ToNet(event.sourceEntity),
+                event.sourceNetOverride != NULL_NET_ENTITY
+                    ? event.sourceNetOverride
+                    : entityMap.ToNet(event.sourceEntity),
                 event.projectileKind,
                 event.position.x,
                 event.position.y,
@@ -148,7 +170,10 @@ namespace SharedSim
                 event.direction.y,
                 event.direction.z,
                 event.speed,
-                event.maxDistance);
+                event.maxDistance,
+                event.targetNetOverride != NULL_NET_ENTITY
+                    ? event.targetNetOverride
+                    : entityMap.ToNet(event.targetEntity));
 
             return Finish(fbb, Shared::Schema::CreateEventPacket(
                 fbb,
@@ -156,7 +181,13 @@ namespace SharedSim
                 serverTick,
                 0,
                 0,
-                projectile), out);
+                projectile,
+                0,
+                0,
+                0,
+                0,
+                0,
+                uEventOrdinal), out);
         }
         case eReplicatedEventKind::KillFeed:
         {
@@ -185,24 +216,34 @@ namespace SharedSim
                 0,
                 0,
                 0,
-                killFeed), out);
+                killFeed,
+                uEventOrdinal), out);
         }
         case eReplicatedEventKind::ProjectileHit:
         {
             const NetEntityId projectileNet =
-                entityMap.ToNet(event.projectileEntity);
+                event.projectileNetOverride != NULL_NET_ENTITY
+                    ? event.projectileNetOverride
+                    : entityMap.ToNet(event.projectileEntity);
 
             flatbuffers::FlatBufferBuilder fbb(160);
             const auto projectileHit = Shared::Schema::CreateProjectileHitEvent(
                 fbb,
                 projectileNet,
-                entityMap.ToNet(event.sourceEntity),
-                entityMap.ToNet(event.targetEntity),
+                event.sourceNetOverride != NULL_NET_ENTITY
+                    ? event.sourceNetOverride
+                    : entityMap.ToNet(event.sourceEntity),
+                event.targetNetOverride != NULL_NET_ENTITY
+                    ? event.targetNetOverride
+                    : entityMap.ToNet(event.targetEntity),
                 event.projectileKind,
                 event.position.x,
                 event.position.y,
                 event.position.z,
-                event.bDestroyed);
+                event.bDestroyed,
+                static_cast<Shared::Schema::ProjectileContactReason>(
+                    static_cast<u8_t>(event.eContactReason)),
+                event.uContactOrdinal);
 
             const bool_t ok = Finish(fbb, Shared::Schema::CreateEventPacket(
                 fbb,
@@ -211,7 +252,12 @@ namespace SharedSim
                 0,
                 0,
                 0,
-                projectileHit), out);
+                projectileHit,
+                0,
+                0,
+                0,
+                0,
+                uEventOrdinal), out);
 
             if (ok && event.bDestroyed && projectileNet != NULL_NET_ENTITY)
             {
@@ -244,7 +290,12 @@ namespace SharedSim
             action.actionId,
             action.stage,
             action.sequence,
-            action.startTick);
+            action.startTick,
+            static_cast<u8_t>(action.sourceChampion),
+            action.sourceSlot,
+            static_cast<u8_t>(action.movePolicy),
+            action.lockEndTick,
+            action.commandSequence);
 
         return Finish(fbb, Shared::Schema::CreateEventPacket(
             fbb,

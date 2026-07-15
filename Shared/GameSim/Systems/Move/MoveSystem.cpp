@@ -12,20 +12,24 @@
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/SpellbookFormOverride/SpellbookFormOverrideSystem.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/SpatialAgentComponent.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <vector>
 
 namespace
 {
     constexpr f32_t kAvoidancePadding = 0.05f;
+    constexpr f32_t kMoveProgressEpsilon = 0.05f;
     constexpr f32_t kPathWaypointArriveRadius = 0.12f;
     constexpr f32_t kYawHalfTurnTolerance = 0.35f;
     constexpr u8_t kUnknownSpatialTeam = 0xffu;
@@ -44,7 +48,12 @@ namespace
         if (entity != NULL_ENTITY && world.HasComponent<JungleComponent>(entity))
             return WintersMath::kPi;
 
-        return GetDefaultChampionVisualYawOffset(stat.championId);
+        const eChampion visualChampion =
+            CSpellbookFormOverrideSystem::ResolveVisualChampion(
+                world,
+                entity,
+                stat.championId);
+        return GetDefaultChampionVisualYawOffset(visualChampion);
     }
 
     f32_t ResolveVisualYawFromDirection(const Vec3& direction, f32_t modelYawOffset)
@@ -83,7 +92,15 @@ namespace
         moveTarget.bHasTarget = false;
         moveTarget.pathCount = 0;
         moveTarget.pathIndex = 0;
+        moveTarget.blockedMoveTicks = 0;
+        moveTarget.bestMoveDistance = -1.f;
         ClearMoveFacingOverride(moveTarget);
+    }
+
+    void RecordBlockedMoveTick(MoveTargetComponent& moveTarget)
+    {
+        if (moveTarget.blockedMoveTicks < (std::numeric_limits<u16_t>::max)())
+            ++moveTarget.blockedMoveTicks;
     }
 
     bool_t IsMoveYawCandidateOpposedToFacingIntent(
@@ -155,6 +172,12 @@ namespace
     {
         return kind == eSpatialKind::NeutralUnit;
     }
+
+    // 매 틱 이동 클램프 반경은 서버 path 그리드 팽창 반경
+    // (ServerMinionTuning::kPathAgentRadius = 0.5f)을 넘지 않아야 한다 —
+    // 계획은 0.5 로 통과하고 보행은 0.75 로 막히는 구조물 주변 죽은 링이
+    // 챔피언 끼임의 원인. 챔피언 반경 0.75 는 전투/타게팅 전용으로 유지.
+    constexpr f32_t kNavClearanceRadius = 0.5f;
 
     f32_t ResolveAgentRadius(CWorld& world, EntityID entity)
     {
@@ -260,7 +283,8 @@ namespace
             0.f,
             0.610865f, -0.610865f,
             1.22173f, -1.22173f,
-            1.570796f, -1.570796f
+            1.570796f, -1.570796f,
+            WintersMath::kPi
         };
 
         for (const f32_t angle : kAngles)
@@ -291,31 +315,10 @@ namespace
         const ActionStateComponent& action,
         const TickContext& tc)
     {
-        const auto currentAction = static_cast<eActionStateId>(action.actionId);
-        if (!IsReplicatedGameplayAction(currentAction))
-            return false;
-
         if (tc.tickIndex < action.startTick)
             return false;
-
-        const u8_t slot = SkillSlotFromActionId(currentAction);
-        const u8_t stage = action.stage == 0u ? 1u : action.stage;
-        if (stat.championId == eChampion::JAX &&
-            currentAction == eActionStateId::SkillE &&
-            slot == static_cast<u8_t>(eSkillSlot::E) &&
-            stage == 1u)
-        {
-            return false;
-        }
-
-        const u64_t lockTicks = GameplayDefinitionQuery::ResolveSkillActionLockTicks(
-            world,
-            entity,
-            tc,
-            stat.championId,
-            slot,
-            stage);
-        return (tc.tickIndex - action.startTick) < lockTicks;
+        return action.movePolicy != eSkillActionMovePolicy::Allow &&
+            tc.tickIndex < action.lockEndTick;
     }
 
     bool_t IsActionStateLocked(
@@ -344,6 +347,77 @@ namespace
         }
 
         return IsActionStateLocked(world, entity, stat, *pAction, tc);
+    }
+
+    bool_t TryReleaseQueuedActionMove(
+        CWorld& world,
+        EntityID entity,
+        MoveTargetComponent& moveTarget,
+        const TickContext& tc)
+    {
+        if (!GameplayStateQuery::CanMove(world, entity))
+            return false;
+
+        if (!world.HasComponent<ActionStateComponent>(entity) ||
+            !world.HasComponent<TransformComponent>(entity))
+        {
+            return false;
+        }
+
+        auto& action = world.GetComponent<ActionStateComponent>(entity);
+        if (!action.bHasQueuedMove ||
+            (action.movePolicy != eSkillActionMovePolicy::Allow &&
+                tc.tickIndex < action.lockEndTick))
+        {
+            return false;
+        }
+
+        const Vec3 pos =
+            world.GetComponent<TransformComponent>(entity).GetLocalPosition();
+        Vec3 target = action.queuedMoveTarget;
+        target.y = pos.y;
+        Vec3 resolvedTarget = target;
+
+        ClearMoveRuntimeTarget(moveTarget);
+        if (tc.pWalkable)
+        {
+            u16_t waypointCount = 0u;
+            if (!tc.pWalkable->TryBuildMovePath(
+                pos,
+                target,
+                moveTarget.pathWaypoints,
+                kMovePathMaxWaypoints,
+                waypointCount,
+                resolvedTarget))
+            {
+                action.bHasQueuedMove = false;
+                return false;
+            }
+            moveTarget.pathCount = waypointCount;
+        }
+
+        moveTarget.target = resolvedTarget;
+        moveTarget.pathIndex = 0u;
+        moveTarget.arriveRadius = MoveTargetComponent{}.arriveRadius;
+        moveTarget.facingTarget = action.queuedMoveTarget;
+        moveTarget.facingDirection = WintersMath::NormalizeXZ(
+            action.queuedMoveDirection,
+            WintersMath::DirectionXZ(pos, action.queuedMoveTarget, Vec3{}),
+            0.0001f);
+        moveTarget.facingSequenceNum = action.queuedMoveSequence;
+        moveTarget.facingLockTicks = kMoveFacingIntentLockTicks;
+        moveTarget.bHasFacingTarget =
+            moveTarget.facingDirection.x != 0.f ||
+            moveTarget.facingDirection.z != 0.f;
+        moveTarget.bHasTarget =
+            WintersMath::DistanceSqXZ(pos, resolvedTarget) >
+            moveTarget.arriveRadius * moveTarget.arriveRadius;
+
+        action.bHasQueuedMove = false;
+        action.queuedMoveSequence = 0u;
+        action.queuedMoveTarget = {};
+        action.queuedMoveDirection = {};
+        return moveTarget.bHasTarget;
     }
 
     const ActionStateComponent* FindActionState(CWorld& world, EntityID entity)
@@ -378,8 +452,11 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
     for (EntityID entity : entities)
     {
         auto& moveTarget = world.GetComponent<MoveTargetComponent>(entity);
+        TryReleaseQueuedActionMove(world, entity, moveTarget, tc);
         if (!moveTarget.bHasTarget)
         {
+            moveTarget.blockedMoveTicks = 0;
+            moveTarget.bestMoveDistance = -1.f;
             ClearMoveFacingOverride(moveTarget);
             if (world.HasComponent<StatComponent>(entity) &&
                 world.HasComponent<PoseStateComponent>(entity))
@@ -472,6 +549,8 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
                 }
 
                 ++moveTarget.pathIndex;
+                moveTarget.blockedMoveTicks = 0;
+                moveTarget.bestMoveDistance = -1.f;
             }
 
             if (moveTarget.pathIndex >= moveTarget.pathCount)
@@ -495,6 +574,8 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
             if (moveTarget.pathCount > 0 && moveTarget.pathIndex + 1u < moveTarget.pathCount)
             {
                 ++moveTarget.pathIndex;
+                moveTarget.blockedMoveTicks = 0;
+                moveTarget.bestMoveDistance = -1.f;
                 continue;
             }
             else
@@ -507,9 +588,13 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
             continue;
         }
 
+        if (moveTarget.bestMoveDistance < 0.f)
+            moveTarget.bestMoveDistance = dist;
+
         const f32_t advance = (std::min)(step, dist);
         const f32_t invDist = 1.f / dist;
-        const f32_t radius = ResolveAgentRadius(world, entity);
+        const f32_t radius =
+            (std::min)(ResolveAgentRadius(world, entity), kNavClearanceRadius);
         const u8_t selfTeam = world.HasComponent<SpatialAgentComponent>(entity)
             ? world.GetComponent<SpatialAgentComponent>(entity).team
             : kUnknownSpatialTeam;
@@ -531,7 +616,22 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
 
         const f32_t dirLenSq = dir.x * dir.x + dir.z * dir.z;
         if (dirLenSq <= 0.0001f)
+        {
+            RecordBlockedMoveTick(moveTarget);
+            if (moveTarget.blockedMoveTicks == 1u)
+            {
+                char msg[224]{};
+                sprintf_s(msg,
+                    "[MoveSystem][Stuck] tick=%llu entity=%u reason=avoidance-dead-end pos=(%.3f,%.3f,%.3f)\n",
+                    static_cast<unsigned long long>(tc.tickIndex),
+                    static_cast<u32_t>(entity),
+                    pos.x,
+                    pos.y,
+                    pos.z);
+                WintersOutputAIDebugStringA(msg);
+            }
             continue;
+        }
 
         const Vec3 next{
             pos.x + dir.x * advance,
@@ -561,6 +661,23 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
                 resolvedNext.y = surfaceY;
         }
 
+        if (WintersMath::DistanceSqXZ(pos, resolvedNext) <= 0.00000001f)
+        {
+            RecordBlockedMoveTick(moveTarget);
+            continue;
+        }
+
+        const f32_t nextDistance = std::sqrt(
+            WintersMath::DistanceSqXZ(resolvedNext, activeTarget));
+        if (nextDistance + kMoveProgressEpsilon <= moveTarget.bestMoveDistance)
+        {
+            moveTarget.bestMoveDistance = nextDistance;
+            moveTarget.blockedMoveTicks = 0;
+        }
+        else
+        {
+            RecordBlockedMoveTick(moveTarget);
+        }
         transform.SetPosition(resolvedNext);
 
         const bool_t bHadFacingIntent = moveTarget.bHasFacingTarget;
@@ -675,10 +792,36 @@ void CMoveSystem::Execute(CWorld& world, const TickContext& tc)
 
         if (bSegmentClamped)
         {
-            ClearMoveRuntimeTarget(moveTarget);
-            if (!IsActionStateLocked(world, entity, stat, pAction, tc))
-                SetMovePose(world, entity, ePoseStateId::Idle, tc);
-            continue;
+            // 스치는 클램프가 이동 전체를 취소하면 AI 가 동일 Move 를 재발행하는
+            // 정지 루프가 된다. 남은 웨이포인트가 있으면 다음 지점으로 스킵해
+            // carve 가장자리를 따라 미끄러지고, 마지막 구간에서만 종료한다.
+            const bool_t bHasRemainingPath =
+                moveTarget.pathCount > 0 &&
+                moveTarget.pathIndex + 1u < moveTarget.pathCount;
+            if (!bHasRemainingPath)
+            {
+                ClearMoveRuntimeTarget(moveTarget);
+                if (!IsActionStateLocked(world, entity, stat, pAction, tc))
+                    SetMovePose(world, entity, ePoseStateId::Idle, tc);
+                continue;
+            }
+
+            ++moveTarget.pathIndex;
+            RecordBlockedMoveTick(moveTarget);
+            if (moveTarget.blockedMoveTicks == 1u)
+            {
+                char msg[224]{};
+                sprintf_s(msg,
+                    "[MoveSystem][Stuck] tick=%llu entity=%u reason=segment-clamped pathIndex=%u/%u pos=(%.3f,%.3f,%.3f)\n",
+                    static_cast<unsigned long long>(tc.tickIndex),
+                    static_cast<u32_t>(entity),
+                    static_cast<u32_t>(moveTarget.pathIndex),
+                    static_cast<u32_t>(moveTarget.pathCount),
+                    resolvedNext.x,
+                    resolvedNext.y,
+                    resolvedNext.z);
+                WintersOutputAIDebugStringA(msg);
+            }
         }
 
         if (!IsActionStateLocked(world, entity, stat, pAction, tc))

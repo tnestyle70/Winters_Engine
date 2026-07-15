@@ -137,8 +137,32 @@ func (rcv *ProjectileHitEvent) MutateBDestroyed(n bool) bool {
 	return rcv._tab.MutateBoolSlot(18, n)
 }
 
+func (rcv *ProjectileHitEvent) ContactReason() ProjectileContactReason {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return ProjectileContactReason(rcv._tab.GetByte(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *ProjectileHitEvent) MutateContactReason(n ProjectileContactReason) bool {
+	return rcv._tab.MutateByteSlot(20, byte(n))
+}
+
+func (rcv *ProjectileHitEvent) ContactOrdinal() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ProjectileHitEvent) MutateContactOrdinal(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(22, n)
+}
+
 func ProjectileHitEventStart(builder *flatbuffers.Builder) {
-	builder.StartObject(8)
+	builder.StartObject(10)
 }
 func ProjectileHitEventAddNetId(builder *flatbuffers.Builder, netId uint32) {
 	builder.PrependUint32Slot(0, netId, 0)
@@ -163,6 +187,12 @@ func ProjectileHitEventAddPosZ(builder *flatbuffers.Builder, posZ float32) {
 }
 func ProjectileHitEventAddBDestroyed(builder *flatbuffers.Builder, bDestroyed bool) {
 	builder.PrependBoolSlot(7, bDestroyed, false)
+}
+func ProjectileHitEventAddContactReason(builder *flatbuffers.Builder, contactReason ProjectileContactReason) {
+	builder.PrependByteSlot(8, byte(contactReason), 0)
+}
+func ProjectileHitEventAddContactOrdinal(builder *flatbuffers.Builder, contactOrdinal uint16) {
+	builder.PrependUint16Slot(9, contactOrdinal, 0)
 }
 func ProjectileHitEventEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

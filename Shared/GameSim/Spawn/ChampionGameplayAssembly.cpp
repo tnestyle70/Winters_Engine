@@ -9,6 +9,7 @@
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/KalistaBondComponent.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Components/RuneComponent.h"
 #include "Shared/GameSim/Components/SkillLoadoutComponent.h"
@@ -123,6 +124,14 @@ EntityID ChampionGameplayAssembly::Build(CWorld& world, const ChampionAssemblyCo
     world.AddComponent<GoldComponent>(entity, gold);
 
     InventoryComponent inventory{};
+    if (ctx.champion == eChampion::KALISTA)
+    {
+        // 칼리스타 서약(Oathsworn) 아이템은 스폰 시 고정 슬롯에 시딩된다 —
+        // KalistaBondSystem 이 이 슬롯을 서약 활성 조건으로 읽는다.
+        inventory.itemIds[kKalistaOathswornInventorySlot] =
+            kKalistaOathswornItemId;
+        inventory.count = InventoryComponent::kMaxSlots;
+    }
     world.AddComponent<InventoryComponent>(entity, inventory);
 
     RuneLoadoutComponent runeLoadout{};

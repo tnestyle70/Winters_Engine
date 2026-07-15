@@ -3,9 +3,7 @@
 #include "Game/ReplicationEmitter.h"
 #include "Game/ReplayRecorder.h"
 #include "Game/SnapshotBuilder.h"
-#include "Network/Session.h"
-#include "Network/Session_Manager.h"
-#include "Shared/Network/PacketEnvelope.h"
+#include "Network/ServerSessionHub.h"
 
 #include <Windows.h>
 
@@ -20,9 +18,9 @@ void CGameRoom::FinalizeReplayRecorder()
     if (m_bReplayFinalized || !m_pReplayRecorder)
         return;
 
-    m_bReplayFinalized = true;
     if (m_pReplayRecorder->IsEmpty())
     {
+        m_bReplayFinalized = true;
         const char* msg = "[Replay] skip save: no records\n";
         OutputDebugStringA(msg);
         std::cout << msg;
@@ -33,6 +31,7 @@ void CGameRoom::FinalizeReplayRecorder()
     const wstring_t path = m_pReplayRecorder->MakeDefaultPath();
     if (m_pReplayRecorder->SaveToFile(path, error))
     {
+        m_bReplayFinalized = true;
         std::wstringstream ss;
         ss << L"[Replay] saved " << path
             << L" records=" << m_pReplayRecorder->GetRecordCount()
@@ -61,8 +60,7 @@ void CGameRoom::BroadcastEventPayload(const u8_t* payload, u32_t payloadSize, u3
 
     for (u32_t sid : m_sessionIds)
     {
-        auto pSession = CSession_Manager::Get()->Find(sid);
-        if (!pSession)
+        if (!CServerSessionHub::Instance().IsSessionActive(sid))
             continue;
         if (IsInGamePhase() &&
             !m_sessionBinding.HasBinding(sid))
@@ -70,8 +68,12 @@ void CGameRoom::BroadcastEventPayload(const u8_t* payload, u32_t payloadSize, u3
             continue;
         }
 
-        auto packet = WrapEnvelope(ePacketType::Event, sequence, payload, payloadSize);
-        pSession->Send(std::move(packet));
+        CServerSessionHub::Instance().SendFrame(
+            sid,
+            ePacketType::Event,
+            sequence,
+            payload,
+            payloadSize);
     }
 }
 
@@ -111,6 +113,7 @@ void CGameRoom::Phase_BroadcastEvents(TickContext& tc)
             m_entityMap,
             entity,
             tc.tickIndex,
+            static_cast<u32_t>(entity),
             serialized))
         {
             broadcastSerialized(serialized);
@@ -123,12 +126,22 @@ void CGameRoom::Phase_BroadcastEvents(TickContext& tc)
 
 void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
 {
-    if (m_pReplayRecorder && !m_bReplayFinalized && m_pSnapBuilder)
+    if (m_pReplayRecorder && !m_bReplayFinalized && m_pSnapBuilder &&
+        CReplayRecorder::ShouldRecordSnapshot(
+            tc.tickIndex,
+            m_toolRevision,
+            m_lastReplaySnapshotTick,
+            m_lastReplayToolRevision))
     {
         const auto replaySnapshot = m_pSnapBuilder->Build(
             m_world, m_entityMap, tc.tickIndex,
             ResolveServerGameTimeMs(tc.tickIndex),
-            m_rng.GetState(), 0u, NULL_NET_ENTITY);
+            m_rng.GetState(), 0u, NULL_NET_ENTITY,
+            m_timelineEpoch,
+            m_timelineBranchId,
+            m_toolRevision,
+            m_bSimPaused,
+            m_simSpeedMul.load(std::memory_order_relaxed));
 
         if (replaySnapshot.size() > 0)
         {
@@ -136,13 +149,14 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
                 tc.tickIndex,
                 replaySnapshot.data(),
                 static_cast<u32_t>(replaySnapshot.size()));
+            m_lastReplaySnapshotTick = tc.tickIndex;
+            m_lastReplayToolRevision = m_toolRevision;
         }
     }
 
     for (u32_t sid : m_sessionIds)
     {
-        auto pSession = CSession_Manager::Get()->Find(sid);
-        if (!pSession)
+        if (!CServerSessionHub::Instance().IsSessionActive(sid))
             continue;
 
         EntityID controlledEntity = NULL_ENTITY;
@@ -160,13 +174,18 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
             ResolveServerGameTimeMs(tc.tickIndex),
             m_rng.GetState(),
             lastSimCommandSeq,
-            m_entityMap.ToNet(controlledEntity));
+            m_entityMap.ToNet(controlledEntity),
+            m_timelineEpoch,
+            m_timelineBranchId,
+            m_toolRevision,
+            m_bSimPaused,
+            m_simSpeedMul.load(std::memory_order_relaxed));
 
-        auto packet = WrapEnvelope(
+        CServerSessionHub::Instance().SendFrame(
+            sid,
             ePacketType::Snapshot,
             static_cast<u32_t>(tc.tickIndex),
             snapshot.data(),
             static_cast<u32_t>(snapshot.size()));
-        pSession->Send(std::move(packet));
     }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
+#include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
 
@@ -31,11 +32,13 @@ struct CombatActionComponent
 {
     eCombatActionKind eKind = eCombatActionKind::None;
     eCombatActionMovePolicy eMovePolicy = eCombatActionMovePolicy::None;
+    eChampion eSourceChampion = eChampion::NONE;
     u8_t uSlot = 0;
     u8_t uStage = 1;
     u16_t uFlags = 0;
     EntityID entityTarget = NULL_ENTITY;
     u32_t uSequenceNum = 0;
+    u32_t uOwnerActionSequence = 0;
     u64_t uStartTick = 0;
     u64_t uImpactTick = 0;
     u64_t uEndTick = 0;

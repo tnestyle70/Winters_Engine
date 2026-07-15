@@ -1,6 +1,8 @@
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Components/AttackChaseComponent.h"
+#include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/KalistaPassiveDashComponent.h"
 #include "Shared/GameSim/Components/LeeSinSimComponent.h"
@@ -16,6 +18,7 @@
 #include "Shared/GameSim/Components/CombatActionComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/KalistaBondComponent.h"
 #include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
@@ -23,14 +26,22 @@
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Champions/Annie/AnnieGameSim.h"
 #include "Shared/GameSim/Champions/Ashe/AsheGameSim.h"
 #include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
+#include "Shared/GameSim/Champions/Garen/GarenGameSim.h"
 #include "Shared/GameSim/Champions/Jax/JaxGameSim.h"
+#include "Shared/GameSim/Champions/Kalista/KalistaGameSim.h"
 #include "Shared/GameSim/Champions/Kindred/KindredGameSim.h"
+#include "Shared/GameSim/Champions/LeeSin/LeeSinGameSim.h"
+#include "Shared/GameSim/Champions/Riven/RivenGameSim.h"
 #include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
+#include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
 #include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
 #include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
+#include "Shared/GameSim/Champions/Zed/ZedGameSim.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionPack.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/WardDefinitions.h"
@@ -47,9 +58,9 @@
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/SpatialAgentComponent.h"
-#include "ECS/Components/TransformComponent.h"
-#include "ECS/Components/VisionComponents.h"
+#include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/VisionComponents.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
@@ -81,6 +92,45 @@ namespace
         if (world.HasComponent<StructureComponent>(entity))
             return world.GetComponent<StructureComponent>(entity).team;
         return eTeam::Neutral;
+    }
+
+    bool_t IsViegoPossessionConsumePending(CWorld& world, EntityID entity)
+    {
+        return entity != NULL_ENTITY &&
+            world.HasComponent<ViegoSimComponent>(entity) &&
+            world.GetComponent<ViegoSimComponent>(entity).bPossessionPending;
+    }
+
+    bool_t IsCommandBlockedByAuthoritativeAction(
+        CWorld& world,
+        const TickContext& tc,
+        const GameCommand& cmd)
+    {
+        if (!world.HasComponent<ActionStateComponent>(cmd.issuerEntity))
+            return false;
+
+        const auto& action = world.GetComponent<ActionStateComponent>(cmd.issuerEntity);
+        if (tc.tickIndex >= action.lockEndTick ||
+            (action.movePolicy != eSkillActionMovePolicy::StationaryChannel &&
+                action.movePolicy != eSkillActionMovePolicy::ForcedMotion))
+        {
+            return false;
+        }
+
+        if (cmd.kind == eCommandKind::Move ||
+            cmd.kind == eCommandKind::LevelSkill ||
+            cmd.kind == eCommandKind::RecallCancel ||
+            cmd.kind == eCommandKind::AIDebugControl ||
+            cmd.kind == eCommandKind::CompanionCommand)
+        {
+            return false;
+        }
+
+        const bool_t bSameSkillStageRelease =
+            cmd.kind == eCommandKind::CastSkill &&
+            cmd.itemId == 2u &&
+            cmd.slot == action.sourceSlot;
+        return !bSameSkillStageRelease;
     }
 
     eChampion ResolveChampion(CWorld& world, EntityID entity);
@@ -135,6 +185,8 @@ namespace
     {
         moveTarget.pathCount = 0;
         moveTarget.pathIndex = 0;
+        moveTarget.blockedMoveTicks = 0;
+        moveTarget.bestMoveDistance = -1.f;
         ClearMoveFacingOverride(moveTarget);
     }
 
@@ -493,11 +545,65 @@ namespace
         EntityID entity,
         eActionStateId actionId,
         const TickContext& tc,
+        eChampion sourceChampion,
+        u8_t sourceSlot,
+        u32_t commandSequence,
         u8_t skillStage = 1)
     {
         const u8_t sanitizedStage =
             (skillStage == 0u) ? 1u : static_cast<u8_t>(skillStage & 0x0fu);
-        StartActionState(world, entity, actionId, tc.tickIndex, sanitizedStage);
+
+        bool_t bHadQueuedMove = false;
+        u32_t queuedMoveSequence = 0u;
+        Vec3 queuedMoveTarget{};
+        Vec3 queuedMoveDirection{};
+        if (world.HasComponent<ActionStateComponent>(entity))
+        {
+            const auto& previous = world.GetComponent<ActionStateComponent>(entity);
+            bHadQueuedMove = previous.bHasQueuedMove;
+            queuedMoveSequence = previous.queuedMoveSequence;
+            queuedMoveTarget = previous.queuedMoveTarget;
+            queuedMoveDirection = previous.queuedMoveDirection;
+        }
+
+        auto& action =
+            StartActionState(world, entity, actionId, tc.tickIndex, sanitizedStage);
+        action.commandSequence = commandSequence;
+        action.sourceChampion = sourceChampion;
+        action.sourceSlot = sourceSlot;
+
+        u64_t lockTicks = 0u;
+        if (actionId == eActionStateId::ViegoConsumeSoul)
+        {
+            action.movePolicy = eSkillActionMovePolicy::StationaryChannel;
+            lockTicks = static_cast<u64_t>(std::ceil(
+                0.72 * static_cast<f64_t>(DeterministicTime::kTicksPerSecond)));
+        }
+        else if (IsReplicatedGameplayAction(actionId) &&
+            actionId != eActionStateId::BasicAttack)
+        {
+            action.movePolicy = GameplayDefinitionQuery::ResolveSkillActionMovePolicy(
+                sourceChampion,
+                sourceSlot,
+                sanitizedStage);
+            lockTicks = GameplayDefinitionQuery::ResolveSkillActionLockTicks(
+                world,
+                entity,
+                tc,
+                sourceChampion,
+                sourceSlot,
+                sanitizedStage);
+        }
+        else
+        {
+            action.movePolicy = eSkillActionMovePolicy::Allow;
+        }
+
+        action.lockEndTick = tc.tickIndex + lockTicks;
+        action.bHasQueuedMove = bHadQueuedMove;
+        action.queuedMoveSequence = queuedMoveSequence;
+        action.queuedMoveTarget = queuedMoveTarget;
+        action.queuedMoveDirection = queuedMoveDirection;
     }
 
     eActionStateId SkillSlotToActionStateId(u8_t slot)
@@ -599,6 +705,11 @@ namespace
         if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
             return std::max(0.f, cooldown);
 
+        // DEV TUNING OVERRIDE (2026-07-15): 전 챔피언 스킬 쿨다운(Q/W/E/R, 플레이어+봇)
+        // 을 일괄 3초로 강제. BA 조기반환 뒤 + 해스트/CDR 계산 앞이라 정확히 3.0s.
+        // 되돌리기 = 이 return 한 줄 삭제.
+        return 3.0f;
+
         if (world.HasComponent<StatComponent>(entity))
         {
             const auto& stat = world.GetComponent<StatComponent>(entity);
@@ -634,11 +745,12 @@ namespace
             return 1.f;
 
         const auto& stat = world.GetComponent<StatComponent>(entity);
-        const f32_t baseAttackSpeed = stat.baseAttackSpeed > 0.001f
+        const f32_t baseAttackSpeed =
+            std::isfinite(stat.baseAttackSpeed) && stat.baseAttackSpeed > 0.001f
             ? stat.baseAttackSpeed
             : stat.attackSpeedRatio;
-
         if (!std::isfinite(stat.attackSpeed) ||
+            stat.attackSpeed <= 0.001f ||
             !std::isfinite(baseAttackSpeed) ||
             baseAttackSpeed <= 0.001f)
         {
@@ -677,24 +789,27 @@ namespace
 
     bool_t HasActiveBasicAttackAction(CWorld& world, EntityID entity)
     {
-        return entity != NULL_ENTITY &&
-            world.HasComponent<CombatActionComponent>(entity) &&
-            world.GetComponent<CombatActionComponent>(entity).eKind ==
-                eCombatActionKind::BasicAttack;
-    }
-
-    bool_t IsMoveBlockingSkillAction(eActionStateId actionId)
-    {
-        switch (actionId)
+        if (entity == NULL_ENTITY ||
+            !world.HasComponent<CombatActionComponent>(entity))
         {
-        case eActionStateId::SkillQ:
-        case eActionStateId::SkillW:
-        case eActionStateId::SkillE:
-        case eActionStateId::SkillR:
-            return true;
-        default:
             return false;
         }
+
+        const auto& combat =
+            world.GetComponent<CombatActionComponent>(entity);
+        if (combat.eKind != eCombatActionKind::BasicAttack)
+            return false;
+
+        if (combat.uOwnerActionSequence != 0u &&
+            (!world.HasComponent<ActionStateComponent>(entity) ||
+                world.GetComponent<ActionStateComponent>(entity).sequence !=
+                    combat.uOwnerActionSequence))
+        {
+            world.RemoveComponent<CombatActionComponent>(entity);
+            return false;
+        }
+
+        return true;
     }
 
     bool_t IsMoveLockedBySkillAction(CWorld& world, const TickContext& tc, EntityID entity)
@@ -706,23 +821,11 @@ namespace
         }
 
         const auto& action = world.GetComponent<ActionStateComponent>(entity);
-        const auto actionId = static_cast<eActionStateId>(action.actionId);
-        if (!IsMoveBlockingSkillAction(actionId))
+        if (action.movePolicy == eSkillActionMovePolicy::Allow)
             return false;
         if (tc.tickIndex < action.startTick)
             return false;
-
-        const eChampion champion = ResolveChampion(world, entity);
-        const u8_t slot = SkillSlotFromActionId(actionId);
-        const u8_t stage = action.stage == 0u ? 1u : action.stage;
-        const u64_t lockTicks = GameplayDefinitionQuery::ResolveSkillActionLockTicks(
-            world,
-            entity,
-            tc,
-            champion,
-            slot,
-            stage);
-        return (tc.tickIndex - action.startTick) < lockTicks;
+        return tc.tickIndex < action.lockEndTick;
     }
 
     bool_t ConsumeMoveForCombatAction(CWorld& world, const TickContext& tc, const GameCommand& cmd)
@@ -783,7 +886,13 @@ namespace
         if (entity != NULL_ENTITY && world.HasComponent<JungleComponent>(entity))
             return WintersMath::kPi;
 
-        return GetDefaultChampionVisualYawOffset(ResolveChampion(world, entity));
+        const eChampion baseChampion = ResolveChampion(world, entity);
+        const eChampion visualChampion =
+            CSpellbookFormOverrideSystem::ResolveVisualChampion(
+                world,
+                entity,
+                baseChampion);
+        return GetDefaultChampionVisualYawOffset(visualChampion);
     }
 
     f32_t ResolveVisualYawFromDirection(const Vec3& direction, f32_t modelYawOffset)
@@ -1101,7 +1210,8 @@ namespace
         const GameCommand& cmd,
         u32_t hookId,
         eChampion champion,
-        u8_t rank)
+        u8_t rank,
+        f32_t fPaidManaCost)
     {
         if (hookId == 0 || !CGameplayHookRegistry::Instance().Has(hookId))
             return false;
@@ -1117,6 +1227,7 @@ namespace
         ctx.casterTeam = ResolveTeam(world, cmd.issuerEntity);
         ctx.casterChampion = champion;
         ctx.skillRank = rank;
+        ctx.fPaidManaCost = fPaidManaCost;
         ctx.pDef = &def;
         ctx.pCommand = &cmd;
         ctx.pTickCtx = &tc;
@@ -1135,6 +1246,20 @@ namespace
             !world.HasComponent<HealthComponent>(cmd.targetEntity))
         {
             return;
+        }
+
+        // P1: 팩/훅 데이터가 없어 범용 폴백 데미지가 나가면 데이터 누락이
+        // "밸런스가 이상함"으로만 보인다 — 폴백 사용을 가시화.
+        static u32_t s_fallbackSkillDamageLogCount = 0;
+        if (s_fallbackSkillDamageLogCount < 16u)
+        {
+            char msg[128]{};
+            sprintf_s(msg,
+                "[Command] fallback skill damage champ=%u slot=%u (no pack/hook data)\n",
+                static_cast<u32_t>(champion),
+                static_cast<u32_t>(cmd.slot));
+            WintersOutputAIDebugStringA(msg);
+            ++s_fallbackSkillDamageLogCount;
         }
 
         const eTeam sourceTeam = ResolveTeam(world, cmd.issuerEntity);
@@ -1332,8 +1457,7 @@ namespace
 
     bool_t IsServerProjectileSkill(eChampion champion, u8_t slot)
     {
-        return (champion == eChampion::EZREAL ||
-            champion == eChampion::LEESIN) &&
+        return champion == eChampion::LEESIN &&
             slot == static_cast<u8_t>(eSkillSlot::Q);
     }
 
@@ -1342,7 +1466,7 @@ namespace
     {
         GameCommand resolved = cmd;
 
-        if ((champion != eChampion::EZREAL && champion != eChampion::LEESIN) ||
+        if (champion != eChampion::LEESIN ||
             cmd.slot != static_cast<u8_t>(eSkillSlot::Q))
         {
             return resolved;
@@ -1389,22 +1513,19 @@ namespace
 
         SkillProjectileComponent projectile{};
         projectile.sourceEntity = cmd.issuerEntity;
+        projectile.sourceHandle = world.GetEntityHandle(cmd.issuerEntity);
         projectile.sourceTeam = ResolveTeam(world, cmd.issuerEntity);
-        projectile.kind = champion == eChampion::LEESIN
-            ? eProjectileKind::LeeSinQ
-            : eProjectileKind::MysticShot;
+        projectile.kind = eProjectileKind::LeeSinQ;
         projectile.skillId = static_cast<u16_t>(
             (static_cast<u32_t>(champion) << 8) | cmd.slot);
         projectile.rank = rank;
         projectile.currentPos = origin;
         projectile.direction = ResolveProjectileDirection(
             world, cmd.issuerEntity, NULL_ENTITY, cmd.direction);
-        projectile.speed = champion == eChampion::LEESIN ? 24.f : 30.f;
+        projectile.speed = 24.f;
         projectile.maxDistance = range;
-        projectile.hitRadius = champion == eChampion::LEESIN ? 0.55f : 0.65f;
-        projectile.damage = champion == eChampion::LEESIN
-            ? 55.f + static_cast<f32_t>(rank - 1u) * 25.f
-            : 70.f + static_cast<f32_t>(rank - 1u) * 25.f;
+        projectile.hitRadius = 0.55f;
+        projectile.damage = 55.f + static_cast<f32_t>(rank - 1u) * 25.f;
 
         const EntityID projectileEntity = world.CreateEntity();
         world.AddComponent<SkillProjectileComponent>(projectileEntity, projectile);
@@ -1430,60 +1551,6 @@ namespace
         }
 
         return projectileEntity;
-    }
-
-    void ApplyServerOwnedImmediateSkill(CWorld& world, const TickContext& tc, GameCommand& cmd,
-        eChampion champion)
-    {
-        if (champion != eChampion::EZREAL ||
-            cmd.slot != static_cast<u8_t>(eSkillSlot::E))
-        {
-            return;
-        }
-
-        if (!world.HasComponent<TransformComponent>(cmd.issuerEntity))
-            return;
-
-        const Vec3 direction = ResolveProjectileDirection(
-            world, cmd.issuerEntity, NULL_ENTITY, cmd.direction);
-        f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
-            world,
-            cmd.issuerEntity,
-            tc,
-            champion,
-            cmd.slot);
-        if (range <= 0.f)
-            range = 4.75f;
-
-        auto& transform = world.GetComponent<TransformComponent>(cmd.issuerEntity);
-        const Vec3 origin = transform.GetPosition();
-        Vec3 dest{
-            origin.x + direction.x * range,
-            origin.y,
-            origin.z + direction.z * range
-        };
-        if (tc.pWalkable)
-        {
-            Vec3 guardedDest = dest;
-            if (tc.pWalkable->TryClampMoveSegmentXZ(origin, dest, GameplayStateQuery::ResolveGameplayRadius(world, cmd.issuerEntity), guardedDest))
-            {
-                f32_t surfaceY = 0.f;
-                if (tc.pWalkable->TrySampleHeight(guardedDest.x, guardedDest.z, surfaceY))
-                    guardedDest.y = surfaceY;
-                dest = guardedDest;
-            }
-            else
-            {
-                dest = origin;
-            }
-        }
-
-        transform.SetPosition(dest);
-        transform.m_bLocalDirty = true;
-        transform.m_bWorldDirty = true;
-
-        cmd.direction = direction;
-        cmd.groundPos = dest;
     }
 
     void LogBasicAttackReject(const char* reason, const GameCommand& cmd)
@@ -1543,24 +1610,30 @@ namespace
         ++s_castLogCount;
     }
     //Viego Getting Soul Component
-    bool_t TryHandleViegoSoulBasicAttack(CWorld& world, const TickContext& tc,
+    CommandExecutionResult TryHandleViegoSoulBasicAttack(CWorld& world, const TickContext& tc,
         const GameCommand& cmd)
     {
         if (!world.HasComponent<ViegoSoulComponent>(cmd.targetEntity))
-            return false;
+            return CommandExecutionResult::Unknown(cmd.sequenceNum);
 
         const auto& soul = world.GetComponent<ViegoSoulComponent>(cmd.targetEntity);
         if (!world.HasComponent<ChampionComponent>(cmd.issuerEntity))
         {
             OutputCommandDebug("[ViegoSoul] reject consume soul\n");
-            return true;
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::MissingComponent);
         }
 
         const auto& issuerChampion = world.GetComponent<ChampionComponent>(cmd.issuerEntity);
-        if (issuerChampion.id != eChampion::VIEGO || issuerChampion.team != soul.eligibleTeam)
+        if (issuerChampion.id != eChampion::VIEGO ||
+            issuerChampion.team != soul.eligibleTeam ||
+            soul.eligibleViego != cmd.issuerEntity)
         {
             OutputCommandDebug("[ViegoSoul] reject consume soul\n");
-            return true;
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::ChampionRuleBlocked);
         }
 
         constexpr f32_t kConsumeRange = 2.25f;
@@ -1568,17 +1641,19 @@ namespace
         const f32_t effectiveRange =
             kConsumeRange + GameplayStateQuery::ResolveGameplayRadius(world, cmd.issuerEntity) +
             GameplayStateQuery::ResolveGameplayRadius(world, cmd.targetEntity);
-        //Argument�?entity�?받기 ?�문??winters math�?�??�!! -> ?�로 빼야 ?�는 걸까?
+        //Argument�?entity�?받기 ?�문??winters math�?�??�!! -> ?�로 빼야 ?�는 걸까?
         if (DistanceSqXZ(world, cmd.issuerEntity, cmd.targetEntity) >
             effectiveRange * effectiveRange)
         {
             StartAttackChase(world, tc, cmd, effectiveRange);
-            return true;
+            return CommandExecutionResult::Accepted(cmd.sequenceNum);
         }
 
         ClearAttackChase(world, cmd.issuerEntity);
         ClearMoveTarget(world, cmd.issuerEntity);
         ClearCombatAction(world, cmd.issuerEntity);
+
+        ViegoGameSim::ClearPossession(world, cmd.issuerEntity);
 
         auto& viego = world.HasComponent<ViegoSimComponent>(cmd.issuerEntity)
             ? world.GetComponent<ViegoSimComponent>(cmd.issuerEntity)
@@ -1587,19 +1662,34 @@ namespace
         viego.bPossessionPending = true;
         viego.pendingPossessionChampion = soul.champion;
         viego.pendingPossessedTarget = soul.deadChampion;
+        for (u8_t slot = 0; slot < SkillRankComponent::kSlotCount; ++slot)
+            viego.pendingSkillRanks[slot] = soul.skillRanks[slot];
+        viego.bPendingHasSkillRanks = soul.bHasSkillRanks;
         viego.possessionApplyDelaySec = 0.72f;
         viego.possessionApplyTimerSec = viego.possessionApplyDelaySec;
         viego.possessedTarget = NULL_ENTITY;
-        viego.possessionDurationSec = 5.f;
-        viego.possessionTimerSec = 0.f;
 
         if (world.HasComponent<FormOverrideComponent>(cmd.issuerEntity))
             world.RemoveComponent<FormOverrideComponent>(cmd.issuerEntity);
 
-        StartCommandActionState(world, cmd.issuerEntity, eActionStateId::ViegoConsumeSoul, tc);
+        StartCommandActionState(
+            world,
+            cmd.issuerEntity,
+            eActionStateId::ViegoConsumeSoul,
+            tc,
+            eChampion::VIEGO,
+            static_cast<u8_t>(eSkillSlot::BasicAttack),
+            cmd.sequenceNum);
 
+        if (tc.pEntityMap && world.HasComponent<NetEntityIdComponent>(cmd.targetEntity))
+        {
+            const NetEntityId netId =
+                world.GetComponent<NetEntityIdComponent>(cmd.targetEntity).netId;
+            if (netId != NULL_NET_ENTITY)
+                tc.pEntityMap->Unbind(netId);
+        }
         world.DestroyEntity(cmd.targetEntity);
-        return true;
+        return CommandExecutionResult::Accepted(cmd.sequenceNum);
     }
 
     ChampionAITuningParam* ResolveChampionAITuningParamById(
@@ -1636,6 +1726,8 @@ namespace
             return &ai.tuning.diveScanRange;
         case eChampionAITuningId::DiveExtraBAWindow:
             return &ai.tuning.diveExtraBAWindow;
+        case eChampionAITuningId::SkillCastMinInterval:
+            return &ai.tuning.skillCastMinInterval;
         default:
             return nullptr;
         }
@@ -1653,7 +1745,120 @@ namespace
 
         pParam->fCurrent = std::clamp(value, pParam->fMin, pParam->fMax);
         pParam->bOverride = true;
-        ai.tuning.bOverrideProfile = true;
+    }
+
+    CommandExecutionResult FinalizeChampionAICommandTrace(
+        CWorld& world,
+        const GameCommand& cmd,
+        const CommandExecutionResult& result)
+    {
+        if (result.commandSequence != cmd.sequenceNum ||
+            (result.state != eCommandExecutionState::Accepted &&
+                result.state != eCommandExecutionState::Rejected) ||
+            cmd.issuerEntity == NULL_ENTITY ||
+            !world.IsAlive(cmd.issuerEntity) ||
+            !world.HasComponent<ChampionAIComponent>(cmd.issuerEntity))
+        {
+            return result;
+        }
+
+        auto& ai = world.GetComponent<ChampionAIComponent>(cmd.issuerEntity);
+        const u8_t executorState = static_cast<u8_t>(
+            result.state == eCommandExecutionState::Accepted
+                ? AiExecutorStateV1::Accepted
+                : AiExecutorStateV1::Rejected);
+        const u16_t executorReason = static_cast<u16_t>(result.reason);
+
+        ChampionAIDecisionTraceEntry* pLegacyTrace = nullptr;
+        const u8_t legacyTraceCount = (std::min)(
+            ai.debugDecisionTraceCount,
+            kChampionAIDebugTraceCapacity);
+        for (u8_t offset = 0u; offset < legacyTraceCount; ++offset)
+        {
+            const u8_t index = static_cast<u8_t>(
+                (ai.debugDecisionTraceHead +
+                    kChampionAIDebugTraceCapacity - 1u - offset) %
+                kChampionAIDebugTraceCapacity);
+            ChampionAIDecisionTraceEntry& trace = ai.debugDecisionTrace[index];
+            if (trace.commandSequence != cmd.sequenceNum ||
+                trace.executorState !=
+                    static_cast<u8_t>(AiExecutorStateV1::Submitted))
+            {
+                continue;
+            }
+
+            trace.executorState = executorState;
+            trace.executorReason = executorReason;
+            pLegacyTrace = &trace;
+            break;
+        }
+
+        // S020's fresh-cast cadence is a policy commitment, so it starts only
+        // after the authoritative executor accepts a stage-1 cast. Rejected
+        // mana/state/target commands must not consume the interval.
+        if (result.state == eCommandExecutionState::Accepted &&
+            cmd.kind == eCommandKind::CastSkill &&
+            cmd.itemId != 2u)
+        {
+            ai.fSkillCastCooldownTimer = ai.fSkillCastMinInterval;
+            if (pLegacyTrace)
+            {
+                pLegacyTrace->skillCastIntervalSec = ai.fSkillCastMinInterval;
+                pLegacyTrace->skillCastIntervalRemainingSec =
+                    ai.fSkillCastCooldownTimer;
+            }
+        }
+        else if (result.state == eCommandExecutionState::Rejected &&
+            cmd.kind == eCommandKind::CastSkill &&
+            pLegacyTrace)
+        {
+            pLegacyTrace->blockReason =
+                eChampionAIDecisionBlockReason::CommandRejected;
+            ai.debugLastBlockReason =
+                eChampionAIDecisionBlockReason::CommandRejected;
+            if (ai.comboTarget != NULL_ENTITY)
+                ai.comboStep = pLegacyTrace->comboStep;
+        }
+
+        if (!world.HasComponent<ChampionAIResearchDebugComponent>(
+            cmd.issuerEntity))
+        {
+            return result;
+        }
+
+        auto& researchState =
+            world.GetComponent<ChampionAIResearchDebugComponent>(
+                cmd.issuerEntity);
+        const u8_t researchTraceCount = (std::min)(
+            researchState.decisionTraceCount,
+            kChampionAIDebugTraceCapacity);
+        for (u8_t offset = 0u; offset < researchTraceCount; ++offset)
+        {
+            const u8_t index = static_cast<u8_t>(
+                (researchState.decisionTraceHead +
+                    kChampionAIDebugTraceCapacity - 1u - offset) %
+                kChampionAIDebugTraceCapacity);
+            AiDecisionTraceV1& trace = researchState.decisionTrace[index];
+            if (trace.commandSequence != cmd.sequenceNum ||
+                trace.executorState != static_cast<u8_t>(AiExecutorStateV1::Submitted))
+            {
+                continue;
+            }
+
+            trace.executorState = executorState;
+            trace.executorReason = executorReason;
+            break;
+        }
+
+        AiDecisionTraceV1& draft = researchState.decisionDraft;
+        if (draft.commandSequence == cmd.sequenceNum &&
+            draft.executorState == static_cast<u8_t>(AiExecutorStateV1::Submitted))
+        {
+            draft.executorState = executorState;
+            draft.executorReason = executorReason;
+        }
+
+        return result;
     }
 }
 
@@ -1662,25 +1867,77 @@ std::unique_ptr<CDefaultCommandExecutor> CDefaultCommandExecutor::Create()
     return std::unique_ptr<CDefaultCommandExecutor>(new CDefaultCommandExecutor());
 }
 
-void CDefaultCommandExecutor::ExecuteCommand(CWorld& world, const TickContext& tc,
+CommandExecutionResult CDefaultCommandExecutor::ExecuteCommand(CWorld& world, const TickContext& tc,
     const GameCommand& cmd)
 {
+    // Network callers must authorize this control-plane command at the
+    // product boundary (CGameRoom). It is intentionally independent of the
+    // controlled champion's alive state so a dead host can inspect/tune AI.
+    if (cmd.kind == eCommandKind::AIDebugControl)
+    {
+        HandleAIDebugControl(world, tc, cmd);
+        return CommandExecutionResult::Unknown(cmd.sequenceNum);
+    }
+
     if (cmd.issuerEntity == NULL_ENTITY || !world.IsAlive(cmd.issuerEntity))
-        return;
+    {
+        return FinalizeChampionAICommandTrace(
+            world,
+            cmd,
+            CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::InvalidIssuer));
+    }
 
     if (!IsAliveForCommand(world, cmd.issuerEntity))
-        return;
+    {
+        return FinalizeChampionAICommandTrace(
+            world,
+            cmd,
+            CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::IssuerNotAlive));
+    }
+
+    if (IsViegoPossessionConsumePending(world, cmd.issuerEntity) &&
+        cmd.kind != eCommandKind::Move &&
+        cmd.kind != eCommandKind::RecallCancel &&
+        cmd.kind != eCommandKind::AIDebugControl)
+    {
+        return FinalizeChampionAICommandTrace(
+            world,
+            cmd,
+            CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::PossessionPending));
+    }
+
+    if (IsCommandBlockedByAuthoritativeAction(world, tc, cmd))
+    {
+        if (YasuoGameSim::TryBufferQDuringE(world, tc, cmd))
+            return CommandExecutionResult::Accepted(cmd.sequenceNum);
+
+        return FinalizeChampionAICommandTrace(
+            world,
+            cmd,
+            CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::ActionBlocked));
+    }
+
+    CommandExecutionResult result =
+        CommandExecutionResult::Unknown(cmd.sequenceNum);
 
     switch (cmd.kind)
     {
     case eCommandKind::Move:
-        HandleMove(world, tc, cmd);
+        result = HandleMove(world, tc, cmd);
         break;
     case eCommandKind::CastSkill:
-        HandleCastSkill(world, tc, cmd);
+        result = HandleCastSkill(world, tc, cmd);
         break;
     case eCommandKind::BasicAttack:
-        HandleBasicAttack(world, tc, cmd);
+        result = HandleBasicAttack(world, tc, cmd);
         break;
     case eCommandKind::LevelSkill:
         HandleLevelSkill(world, tc, cmd);
@@ -1692,23 +1949,29 @@ void CDefaultCommandExecutor::ExecuteCommand(CWorld& world, const TickContext& t
         HandleUseItem(world, tc, cmd);
         break;
     case eCommandKind::Recall:
-        HandleRecall(world, tc, cmd);
+        result = HandleRecall(world, tc, cmd);
         break;
     case eCommandKind::RecallCancel:
-        HandleRecallCancel(world, tc, cmd);
-        break;
-    case eCommandKind::AIDebugControl:
-        HandleAIDebugControl(world, tc, cmd);
+        result = HandleRecallCancel(world, tc, cmd);
         break;
     case eCommandKind::Flash:
-        HandleFlash(world, tc, cmd);
+        result = HandleFlash(world, tc, cmd);
+        break;
+    case eCommandKind::CompanionCommand:
+        HandleCompanionCommand(world, tc, cmd);
+        break;
+    case eCommandKind::PracticeControl:
+        // Room authority owns practice validation and mutation. The common
+        // executor intentionally consumes no practice operation.
         break;
     default:
         break;
     }
+
+    return FinalizeChampionAICommandTrace(world, cmd, result);
 }
 
-void CDefaultCommandExecutor::HandleMove(CWorld& world, const TickContext& tc,
+CommandExecutionResult CDefaultCommandExecutor::HandleMove(CWorld& world, const TickContext& tc,
     const GameCommand& cmd)
 {
     if (!IsFiniteMoveTarget(cmd.groundPos))
@@ -1724,19 +1987,76 @@ void CDefaultCommandExecutor::HandleMove(CWorld& world, const TickContext& tc,
             OutputCommandDebug(msg);
             ++s_rejectLogCount;
         }
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::InvalidPayload);
+    }
+
+    if (cmd.itemId == kKalistaFateCallLaunchCommandMarker)
+    {
+        if (world.HasComponent<KalistaFateCallCarriedComponent>(cmd.issuerEntity))
+        {
+            const bool_t bLaunched = KalistaGameSim::TryLaunchCarriedAlly(
+                world,
+                tc,
+                cmd.issuerEntity,
+                cmd.groundPos);
+            return bLaunched
+                ? CommandExecutionResult::Accepted(cmd.sequenceNum, cmd.groundPos)
+                : CommandExecutionResult::Rejected(
+                    cmd.sequenceNum,
+                    eCommandExecutionReason::ChampionRuleBlocked);
+        }
+        // A delayed/duplicate launch choice must never become ordinary movement.
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::CarriedStateBlocked);
+    }
+
+    if (world.HasComponent<KalistaFateCallCarriedComponent>(cmd.issuerEntity))
+    {
+        // While carried, delayed ordinary Move packets are intentionally
+        // consumed. Only the explicit post-snapshot launch marker can throw.
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::CarriedStateBlocked);
     }
 
     if (!GameplayStateQuery::CanMove(world, cmd.issuerEntity))
-        return;
+    {
+        auto& action = world.HasComponent<ActionStateComponent>(cmd.issuerEntity)
+            ? world.GetComponent<ActionStateComponent>(cmd.issuerEntity)
+            : world.AddComponent<ActionStateComponent>(
+                cmd.issuerEntity,
+                ActionStateComponent{});
+        action.bHasQueuedMove = true;
+        action.queuedMoveSequence = cmd.sequenceNum;
+        action.queuedMoveTarget = cmd.groundPos;
+        action.queuedMoveDirection = cmd.direction;
+        if (!world.HasComponent<MoveTargetComponent>(cmd.issuerEntity))
+        {
+            world.AddComponent<MoveTargetComponent>(
+                cmd.issuerEntity,
+                MoveTargetComponent{});
+        }
+        ClearMoveTarget(world, cmd.issuerEntity);
+        return CommandExecutionResult::Accepted(cmd.sequenceNum, cmd.groundPos);
+    }
 
     if (TryConsumeKalistaPassiveDashMove(world, tc, cmd))
-        return;
+        return CommandExecutionResult::Accepted(cmd.sequenceNum, cmd.groundPos);
 
     if (IsMoveLockedBySkillAction(world, tc, cmd.issuerEntity))
     {
+        auto& action = world.GetComponent<ActionStateComponent>(cmd.issuerEntity);
+        action.bHasQueuedMove = true;
+        action.queuedMoveSequence = cmd.sequenceNum;
+        action.queuedMoveTarget = cmd.groundPos;
+        action.queuedMoveDirection = cmd.direction;
+        if (!world.HasComponent<MoveTargetComponent>(cmd.issuerEntity))
+            world.AddComponent<MoveTargetComponent>(cmd.issuerEntity, MoveTargetComponent{});
         ClearMoveTarget(world, cmd.issuerEntity);
-        return;
+        return CommandExecutionResult::Accepted(cmd.sequenceNum, cmd.groundPos);
     }
 
     CancelRecall(world, cmd.issuerEntity);
@@ -1744,7 +2064,7 @@ void CDefaultCommandExecutor::HandleMove(CWorld& world, const TickContext& tc,
     ClearAttackChase(world, cmd.issuerEntity);
 
     if (ConsumeMoveForCombatAction(world, tc, cmd))
-        return;
+        return CommandExecutionResult::Accepted(cmd.sequenceNum, cmd.groundPos);
 
     if (!world.HasComponent<MoveTargetComponent>(cmd.issuerEntity))
         world.AddComponent<MoveTargetComponent>(cmd.issuerEntity, MoveTargetComponent{});
@@ -1775,14 +2095,16 @@ void CDefaultCommandExecutor::HandleMove(CWorld& world, const TickContext& tc,
                 ++s_navRejectLogCount;
             }
             moveTarget.bHasTarget = false;
-            return;
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::NavigationBlocked);
         }
 
         if (WintersMath::DistanceSqXZ(pos, target) <= moveTarget.arriveRadius * moveTarget.arriveRadius)
         {
             moveTarget.bHasTarget = false;
             ClearMovePath(moveTarget);
-            return;
+            return CommandExecutionResult::Accepted(cmd.sequenceNum, target);
         }
 
         const Vec3 facingTarget = ResolveMoveFacingTarget(
@@ -1927,37 +2249,56 @@ void CDefaultCommandExecutor::HandleMove(CWorld& world, const TickContext& tc,
 
     moveTarget.target = target;
     moveTarget.bHasTarget = true;
+    return CommandExecutionResult::Accepted(cmd.sequenceNum, target);
 }
 
-void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& tc,
+CommandExecutionResult CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& tc,
     const GameCommand& cmd)
 {
+	if (!IsFiniteMoveTarget(cmd.groundPos) ||
+		!IsFiniteMoveTarget(cmd.direction))
+	{
+		LogCastSkill("reject", "invalid-cast-vector", cmd, ResolveChampion(world, cmd.issuerEntity), 0.f);
+		return CommandExecutionResult::Rejected(
+			cmd.sequenceNum,
+			eCommandExecutionReason::InvalidPayload);
+	}
     if (!world.HasComponent<SkillStateComponent>(cmd.issuerEntity))
     {
         LogCastSkill("reject", "no-skill-state", cmd, ResolveChampion(world, cmd.issuerEntity), 0.f);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::MissingComponent);
     }
     if (cmd.slot >= 5)
     {
         LogCastSkill("reject", "invalid-slot", cmd, ResolveChampion(world, cmd.issuerEntity), 0.f);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::InvalidPayload);
     }
     if (!GameplayStateQuery::CanCast(world, cmd.issuerEntity))
     {
         LogCastSkill("reject", "state-blocked", cmd, ResolveChampion(world, cmd.issuerEntity), 0.f);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::StateBlocked);
     }
     if (cmd.targetEntity != NULL_ENTITY &&
         !IsAliveForCommand(world, cmd.targetEntity))
     {
         LogCastSkill("reject", "dead-target", cmd, ResolveChampion(world, cmd.issuerEntity), 0.f);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::DeadTarget);
     }
     if (cmd.targetEntity != NULL_ENTITY &&
         !GameplayStateQuery::CanBeTargetedBy(world, cmd.issuerEntity, cmd.targetEntity))
     {
         LogCastSkill("reject", "untargetable", cmd, ResolveChampion(world, cmd.issuerEntity), 0.f);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::UntargetableTarget);
     }
 
     auto& skillState = world.GetComponent<SkillStateComponent>(cmd.issuerEntity);
@@ -1976,7 +2317,9 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
     if (!IsSkillLearned(world, cmd.issuerEntity, skillIdentity.localSlot))
     {
         LogCastSkill("reject", "unlearned", cmd, hookChampion, 0.f);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::UnlearnedSkill);
     }
 
     const bool_t bStage2 =
@@ -1989,12 +2332,35 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
             tc,
             hookChampion,
             hookSlot);
+    const bool_t bPendingStage1 =
+        !bRequestedStage2 &&
+        slot.currentStage == 1 &&
+        slot.stageWindow > 0.f &&
+        GameplayDefinitionQuery::IsSkillTwoStage(
+            world,
+            cmd.issuerEntity,
+            tc,
+            hookChampion,
+            hookSlot);
+    if (bPendingStage1)
+    {
+        LogCastSkill("reject", "stage1-pending", cmd, hookChampion, slot.stageWindow);
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::InvalidSkillStage);
+    }
     u8_t skillStage = bStage2 ? 2u : 1u;
     if (!bStage2 &&
         hookChampion == eChampion::YASUO &&
         hookSlot == static_cast<u8_t>(eSkillSlot::Q))
     {
         skillStage = YasuoGameSim::ResolveQVariantStage(world, cmd.issuerEntity);
+    }
+    if (!bStage2 &&
+        hookChampion == eChampion::RIVEN &&
+        hookSlot == static_cast<u8_t>(eSkillSlot::Q))
+    {
+        skillStage = RivenGameSim::ResolveQVariantStage(world, cmd.issuerEntity);
     }
     if (!bStage2 &&
         hookChampion == eChampion::YONE &&
@@ -2022,12 +2388,16 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         if (airborneTarget == NULL_ENTITY)
         {
             LogCastSkill("reject", "no-airborne", cmd, hookChampion, 0.f);
-            return;
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::ChampionRuleBlocked);
         }
         if (!GameplayStateQuery::CanBeTargetedBy(world, cmd.issuerEntity, airborneTarget))
         {
             LogCastSkill("reject", "untargetable", cmd, hookChampion, 0.f);
-            return;
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::UntargetableTarget);
         }
 
         effectiveCmd.targetEntity = airborneTarget;
@@ -2036,7 +2406,24 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
     if (bRequestedStage2 && !bStage2)
     {
         LogCastSkill("reject", "stage2-window", cmd, hookChampion, slot.stageWindow);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::InvalidSkillStage);
+    }
+
+    if (!bStage2 &&
+        hookChampion == eChampion::YASUO &&
+        hookSlot == static_cast<u8_t>(eSkillSlot::E) &&
+        !YasuoGameSim::CanCastSweepingBlade(
+            world,
+            tc,
+            cmd.issuerEntity,
+            effectiveCmd.targetEntity))
+    {
+        LogCastSkill("reject", "sweeping-blade-target-lockout", cmd, hookChampion, 0.f);
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::ChampionRuleBlocked);
     }
 
     const bool_t bSylasHijackCapture =
@@ -2049,13 +2436,168 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         !SylasGameSim::CanHijackUltimate(world, tc, cmd.issuerEntity, effectiveCmd.targetEntity))
     {
         LogCastSkill("reject", "no-hijack-target", cmd, hookChampion, 0.f);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::ChampionRuleBlocked);
+    }
+
+    if (!bStage2 &&
+        hookChampion == eChampion::ANNIE &&
+        hookSlot == static_cast<u8_t>(eSkillSlot::Q) &&
+        !AnnieGameSim::CanCastDisintegrate(
+            world,
+            tc,
+            cmd.issuerEntity,
+            effectiveCmd.targetEntity))
+    {
+        LogCastSkill("reject", "invalid-annie-q-target", cmd, hookChampion, 0.f);
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::ChampionRuleBlocked);
+    }
+
+    if (!bStage2 &&
+        hookChampion == eChampion::LEESIN &&
+        hookSlot == static_cast<u8_t>(eSkillSlot::W) &&
+        !LeeSinGameSim::CanCastSafeguard(
+            world,
+            tc,
+            cmd.issuerEntity,
+            effectiveCmd.targetEntity))
+    {
+        LogCastSkill("reject", "safeguard-target", cmd, hookChampion, 0.f);
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::ChampionRuleBlocked);
+    }
+
+    if (!bStage2 &&
+        hookChampion == eChampion::LEESIN &&
+        hookSlot == static_cast<u8_t>(eSkillSlot::R) &&
+        !LeeSinGameSim::CanCastDragonRage(
+            world,
+            tc,
+            cmd.issuerEntity,
+            effectiveCmd.targetEntity))
+    {
+        LogCastSkill("reject", "dragon-rage-target", cmd, hookChampion, 0.f);
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::ChampionRuleBlocked);
+    }
+
+    if (!bStage2 &&
+        hookChampion == eChampion::GAREN &&
+        hookSlot == static_cast<u8_t>(eSkillSlot::R) &&
+        !GarenGameSim::CanCastDemacianJustice(
+            world,
+            tc,
+            cmd.issuerEntity,
+            effectiveCmd.targetEntity))
+    {
+        LogCastSkill("reject", "demacian-justice-target", cmd, hookChampion, 0.f);
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::ChampionRuleBlocked);
+    }
+
+	if (!bStage2 &&
+		hookChampion == eChampion::FIORA &&
+		hookSlot == static_cast<u8_t>(eSkillSlot::R) &&
+		!FioraGameSim::CanCastGrandChallenge(
+			world,
+			tc,
+			cmd.issuerEntity,
+			effectiveCmd.targetEntity))
+	{
+		LogCastSkill("reject", "grand-challenge-target", cmd, hookChampion, 0.f);
+		return CommandExecutionResult::Rejected(
+			cmd.sequenceNum,
+			eCommandExecutionReason::ChampionRuleBlocked);
+	}
+
+	if (!bStage2 &&
+		hookChampion == eChampion::ZED &&
+		hookSlot == static_cast<u8_t>(eSkillSlot::R) &&
+		!ZedGameSim::CanCastDeathMark(
+			world,
+			tc,
+			cmd.issuerEntity,
+			effectiveCmd.targetEntity))
+	{
+		LogCastSkill("reject", "death-mark-target", cmd, hookChampion, 0.f);
+		return CommandExecutionResult::Rejected(
+			cmd.sequenceNum,
+			eCommandExecutionReason::ChampionRuleBlocked);
+	}
+
+	if (!bStage2 &&
+		hookChampion == eChampion::KINDRED &&
+		hookSlot == static_cast<u8_t>(eSkillSlot::R) &&
+		!KindredGameSim::CanCastLambsRespite(
+			world,
+			tc,
+			cmd.issuerEntity,
+			effectiveCmd.groundPos))
+	{
+		LogCastSkill("reject", "lambs-respite-ground", cmd, hookChampion, 0.f);
+		return CommandExecutionResult::Rejected(
+			cmd.sequenceNum,
+			eCommandExecutionReason::ChampionRuleBlocked);
+	}
+
+    if (hookChampion == eChampion::KALISTA &&
+        hookSlot == static_cast<u8_t>(eSkillSlot::R) &&
+        !KalistaGameSim::CanCastFateCall(
+            world,
+            tc,
+            cmd.issuerEntity,
+            skillStage))
+    {
+        LogCastSkill("reject", "fate-call-state", cmd, hookChampion, 0.f);
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::ChampionRuleBlocked);
+    }
+
+    if (hookChampion == eChampion::RIVEN &&
+        hookSlot == static_cast<u8_t>(eSkillSlot::R) &&
+        !RivenGameSim::CanCastBladeOfTheExile(
+            world,
+            cmd.issuerEntity,
+            skillStage))
+    {
+        LogCastSkill("reject", "blade-of-exile-state", cmd, hookChampion, 0.f);
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::ChampionRuleBlocked);
     }
 
     if (!bStage2 && slot.cooldownRemaining > 0.f)
     {
         LogCastSkill("reject", "cooldown", cmd, hookChampion, slot.cooldownRemaining);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::Cooldown);
+    }
+
+    const bool_t bUsesNativeSkillResource = hookChampion == champion;
+    const f32_t manaCost = !bStage2 && bUsesNativeSkillResource
+        ? GameplayDefinitionQuery::ResolveSkillManaCost(
+            world,
+            effectiveCmd.issuerEntity,
+            tc,
+            hookChampion,
+            hookSlot)
+        : 0.f;
+    if (manaCost > 0.f &&
+        (!world.HasComponent<ChampionComponent>(effectiveCmd.issuerEntity) ||
+            world.GetComponent<ChampionComponent>(effectiveCmd.issuerEntity).mana + 0.0001f < manaCost))
+    {
+        LogCastSkill("reject", "mana", cmd, hookChampion, manaCost);
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::InsufficientResource);
     }
 
     if (!bStage2 &&
@@ -2084,11 +2626,21 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
             GameCommand chaseCmd = effectiveCmd;
             chaseCmd.slot = hookSlot;
             StartAttackChase(world, tc, chaseCmd, effectiveRange);
-            return;
+            return CommandExecutionResult::Accepted(
+                cmd.sequenceNum,
+                effectiveCmd.groundPos);
         }
     }
 
     ClearAttackChase(world, cmd.issuerEntity);
+
+    if (manaCost > 0.f)
+    {
+        auto& championState =
+            world.GetComponent<ChampionComponent>(effectiveCmd.issuerEntity);
+        championState.mana = (std::max)(0.f, championState.mana - manaCost);
+    CancelRecall(world, cmd.issuerEntity);
+    }
 
     const f32_t cooldown = ResolveCastSkillCooldown(
         world,
@@ -2103,7 +2655,11 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
     }
     else if (!bSylasHijackCapture)
     {
-        slot.cooldownRemaining = cooldown;
+        const bool_t bRivenQRecastWindow =
+            hookChampion == eChampion::RIVEN &&
+            hookSlot == static_cast<u8_t>(eSkillSlot::Q) &&
+            skillStage < 3u;
+        slot.cooldownRemaining = bRivenQRecastWindow ? 0.f : cooldown;
         slot.cooldownDuration = cooldown;
         if (GameplayDefinitionQuery::IsSkillTwoStage(
             world,
@@ -2127,16 +2683,14 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         slot.cooldownDuration = 0.f;
     }
 
-    if (skillIdentity.bConsumeSpellbookOnAccept)
-    {
-        CSpellbookFormOverrideSystem::ConsumeSpellbookOverride(
-            world,
-            cmd.issuerEntity,
-            skillIdentity.localSlot);
-    }
-
     LogCastSkill("accept", bStage2 ? "stage2" : "ok", effectiveCmd, hookChampion, cooldown);
-    ClearMoveTarget(world, effectiveCmd.issuerEntity);
+    const eSkillActionMovePolicy actionMovePolicy =
+        GameplayDefinitionQuery::ResolveSkillActionMovePolicy(
+            hookChampion,
+            hookSlot,
+            skillStage);
+    if (actionMovePolicy != eSkillActionMovePolicy::Allow)
+        ClearMoveTarget(world, effectiveCmd.issuerEntity);
     if (champion == eChampion::SYLAS)
         SylasGameSim::ArmPassiveOnSkillCast(world, effectiveCmd.issuerEntity);
 
@@ -2147,6 +2701,9 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
             effectiveCmd.issuerEntity,
             SkillSlotToActionStateId(effectiveCmd.slot),
             tc,
+            hookChampion,
+            hookSlot,
+            effectiveCmd.sequenceNum,
             skillStage);
     }
 
@@ -2156,7 +2713,6 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
     GameCommand hookCmd = effectiveCmd;
     hookCmd.slot = hookSlot;
     GameCommand resolvedCmd = ResolveServerOwnedSkillCommand(world, hookCmd, hookChampion);
-    ApplyServerOwnedImmediateSkill(world, tc, resolvedCmd, hookChampion);
     const Vec3 facingDir = ResolveCastFacingDirection(world, resolvedCmd);
     if (facingDir.x != 0.f || facingDir.z != 0.f)
     {
@@ -2193,9 +2749,33 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
     const bool_t bGameplayHookHandled =
         !bServerProjectileSkill &&
         DispatchGameplayHookIfAvailable(
-            world, tc, resolvedCmd, primaryHookId, hookChampion, rank);
+            world,
+            tc,
+            resolvedCmd,
+            primaryHookId,
+            hookChampion,
+            rank,
+            manaCost);
     if (!bServerProjectileSkill && !bGameplayHookHandled)
         EnqueueFallbackSkillDamage(world, tc, resolvedCmd, hookChampion, rank);
+
+    const bool_t bTerminalSpellbookStage =
+        bStage2 ||
+        !GameplayDefinitionQuery::IsSkillTwoStage(
+            world,
+            cmd.issuerEntity,
+            tc,
+            hookChampion,
+            hookSlot);
+    if (skillIdentity.bConsumeSpellbookOnAccept &&
+        bTerminalSpellbookStage &&
+        (bServerProjectileSkill || bGameplayHookHandled))
+    {
+        CSpellbookFormOverrideSystem::ConsumeSpellbookOverride(
+            world,
+            cmd.issuerEntity,
+            skillIdentity.localSlot);
+    }
 
     ReplicatedEventComponent castEvent{};
     castEvent.kind = eReplicatedEventKind::SkillCast;
@@ -2291,43 +2871,59 @@ void CDefaultCommandExecutor::HandleCastSkill(CWorld& world, const TickContext& 
         projectileEvent.startTick = tc.tickIndex;
         EnqueueReplicatedEvent(world, projectileEvent);
     }
+
+    return CommandExecutionResult::Accepted(
+        cmd.sequenceNum,
+        resolvedCmd.groundPos);
 }
 
-void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext& tc,
+CommandExecutionResult CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext& tc,
     const GameCommand& cmd)
 {
     if (!GameplayStateQuery::CanAttack(world, cmd.issuerEntity))
     {
         LogBasicAttackReject("state-blocked", cmd);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::StateBlocked);
     }
 
     if (TryConsumeKalistaPassiveDashMove(world, tc, cmd))
-        return;
+        return CommandExecutionResult::Accepted(cmd.sequenceNum);
 
     if (cmd.targetEntity == NULL_ENTITY || !world.IsAlive(cmd.targetEntity))
     {
         LogBasicAttackReject("invalid-target", cmd);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::InvalidTarget);
     }
     //Viego Soul Gain
-    if (TryHandleViegoSoulBasicAttack(world, tc, cmd))
-        return;
+    const CommandExecutionResult viegoSoulResult =
+        TryHandleViegoSoulBasicAttack(world, tc, cmd);
+    if (viegoSoulResult.state != eCommandExecutionState::Unknown)
+        return viegoSoulResult;
 
     if (!world.HasComponent<HealthComponent>(cmd.targetEntity))
     {
         LogBasicAttackReject("target-has-no-health", cmd);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::MissingComponent);
     }
     if (!IsAliveForCommand(world, cmd.targetEntity))
     {
         LogBasicAttackReject("dead-target", cmd);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::DeadTarget);
     }
     if (!GameplayStateQuery::CanBeTargetedBy(world, cmd.issuerEntity, cmd.targetEntity))
     {
         LogBasicAttackReject("untargetable", cmd);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::UntargetableTarget);
     }
 
     const eTeam sourceTeam = ResolveTeam(world, cmd.issuerEntity);
@@ -2336,7 +2932,9 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     if (sourceTeam == targetTeam && sourceTeam != eTeam::Neutral)
     {
         LogBasicAttackReject("same-team", cmd);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::FriendlyTarget);
     }
 
     if (world.HasComponent<SkillStateComponent>(cmd.issuerEntity))
@@ -2345,18 +2943,32 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
         if (skillState.slots[0].cooldownRemaining > 0.f)
         {
             LogBasicAttackReject("cooldown", cmd);
-            return;
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::Cooldown);
         }
     }
 
-    f32_t range = 5.5f;
+    const eChampion baseChampion = ResolveChampion(world, cmd.issuerEntity);
+    const SkillOverrideResolveResult attackIdentity =
+        CSpellbookFormOverrideSystem::ResolveBasicAttack(
+            world,
+            cmd.issuerEntity,
+            baseChampion);
+    const eChampion champion = attackIdentity.hookChampion;
+
+    f32_t range = GameplayDefinitionQuery::ResolveAttackRange(
+        world,
+        cmd.issuerEntity,
+        tc,
+        champion);
+    if (range <= 0.f)
+        range = 5.5f;
     f32_t damage = 55.f;
 
     if (world.HasComponent<StatComponent>(cmd.issuerEntity))
     {
         const auto& stat = world.GetComponent<StatComponent>(cmd.issuerEntity);
-        if (stat.attackRange > 0.f)
-            range = stat.attackRange;
         if (stat.ad > 0.f)
             damage = stat.ad;
     }
@@ -2365,7 +2977,9 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
         !world.HasComponent<TransformComponent>(cmd.targetEntity))
     {
         LogBasicAttackReject("missing-transform", cmd);
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::MissingComponent);
     }
 
     const f32_t effectiveRange =
@@ -2377,10 +2991,25 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     if (DistanceSqXZ(world, cmd.issuerEntity, cmd.targetEntity) > rangeSq)
     {
         StartAttackChase(world, tc, cmd, effectiveRange);
-        return;
+        return CommandExecutionResult::Accepted(cmd.sequenceNum);
     }
 
-    const eChampion champion = ResolveChampion(world, cmd.issuerEntity);
+    if (tc.pWalkable && champion != eChampion::EZREAL &&
+        !GameplayStateQuery::IsAttackSegmentGateExemptTarget(world, cmd.targetEntity))
+    {
+        const Vec3 sourcePos =
+            world.GetComponent<TransformComponent>(cmd.issuerEntity).GetPosition();
+        const Vec3 targetPos =
+            world.GetComponent<TransformComponent>(cmd.targetEntity).GetPosition();
+        if (!tc.pWalkable->SegmentWalkableXZ(
+            sourcePos,
+            targetPos,
+            GameplayStateQuery::ResolveGameplayRadius(world, cmd.issuerEntity)))
+        {
+            StartAttackChase(world, tc, cmd, effectiveRange);
+            return CommandExecutionResult::Accepted(cmd.sequenceNum);
+        }
+    }
 
     ClearAttackChase(world, cmd.issuerEntity);
     ClearMoveTarget(world, cmd.issuerEntity);
@@ -2394,8 +3023,6 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     const bool_t bSylasPassiveAttack =
         champion == eChampion::SYLAS &&
         SylasGameSim::TryConsumePassiveBasicAttack(world, cmd.issuerEntity);
-    const f32_t attackSpeedScale =
-        ResolveBasicAttackAnimSpeedScale(world, cmd.issuerEntity);
     const ChampionBasicAttackTimingDefaults attackTiming =
         ChampionGameDataDB::ResolveBasicAttackTiming(champion);
 
@@ -2410,10 +3037,19 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
         attackActionDurationSec = wTiming.lockDurationSec;
     }
 
+    const f32_t attackSpeedScale =
+        ResolveBasicAttackAnimSpeedScale(world, cmd.issuerEntity);
+
     const u64_t actionTicks =
         ResolveScaledBasicAttackActionTicks(attackActionDurationSec, attackSpeedScale);
+    CancelRecall(world, cmd.issuerEntity);
+    // 윈드업 분리: 데미지는 윈드업(공속 스케일) 경과 시점에, 액션 종료는 전체 길이에.
+    const u64_t windupTicks = (std::min)(
+        actionTicks,
+        ResolveScaledBasicAttackActionTicks(attackTiming.fWindupSec, attackSpeedScale));
     action.eKind = eCombatActionKind::BasicAttack;
     action.eMovePolicy = ResolveBasicAttackMovePolicy(champion);
+    action.eSourceChampion = champion;
     action.uSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
     const u8_t attackActionStage = bSylasPassiveAttack ? 2u : 1u;
     action.uStage = attackActionStage;
@@ -2423,8 +3059,8 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
     action.entityTarget = cmd.targetEntity;
     action.uSequenceNum = cmd.sequenceNum;
     action.uStartTick = tc.tickIndex;
-    action.uImpactTick = tc.tickIndex + actionTicks;
-    action.uEndTick = action.uImpactTick;
+    action.uImpactTick = tc.tickIndex + windupTicks;
+    action.uEndTick = tc.tickIndex + actionTicks;
     action.bImpactIssued = false;
     action.bQueuedMove = false;
     action.vQueuedMoveTarget = {};
@@ -2458,7 +3094,18 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
         cmd.issuerEntity,
         attackActionId,
         tc,
+        champion,
+        static_cast<u8_t>(eSkillSlot::BasicAttack),
+        cmd.sequenceNum,
         attackActionStage);
+
+    if (world.HasComponent<ActionStateComponent>(cmd.issuerEntity) &&
+        world.HasComponent<CombatActionComponent>(cmd.issuerEntity))
+    {
+        world.GetComponent<CombatActionComponent>(cmd.issuerEntity)
+            .uOwnerActionSequence =
+            world.GetComponent<ActionStateComponent>(cmd.issuerEntity).sequence;
+    }
 
     ArmKalistaPassiveDashWindow(
         world,
@@ -2466,6 +3113,7 @@ void CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext
         tc,
         static_cast<u8_t>(eSkillSlot::BasicAttack),
         attackDirection);
+    return CommandExecutionResult::Accepted(cmd.sequenceNum);
 }
 
 void CDefaultCommandExecutor::HandleLevelSkill(CWorld& world, const TickContext& tc,
@@ -2479,26 +3127,38 @@ void CDefaultCommandExecutor::HandleLevelSkill(CWorld& world, const TickContext&
         return;
 
     auto& rank = world.GetComponent<SkillRankComponent>(cmd.issuerEntity);
+    SkillRankComponent* pProgressionRank = &rank;
+    if (cmd.slot >= static_cast<u8_t>(eSkillSlot::Q) &&
+        cmd.slot <= static_cast<u8_t>(eSkillSlot::E) &&
+        world.HasComponent<ViegoSimComponent>(cmd.issuerEntity))
+    {
+        auto& viego = world.GetComponent<ViegoSimComponent>(cmd.issuerEntity);
+        if (viego.bPossessionActive && viego.bHasOriginalSkillRanks)
+            pProgressionRank = &viego.originalSkillRanks;
+    }
+    auto& progressionRank = *pProgressionRank;
     const u8_t maxRank = (cmd.slot == 4)
         ? 3
         : ((cmd.slot >= 1 && cmd.slot <= 3) ? 5 : 0);
     if (maxRank == 0)
         return;
-    if (rank.pointsAvailable == 0)
+    if (progressionRank.pointsAvailable == 0)
         return;
-    if (rank.ranks[cmd.slot] >= maxRank)
+    if (progressionRank.ranks[cmd.slot] >= maxRank)
         return;
     const u8_t championLevel = world.HasComponent<ChampionComponent>(cmd.issuerEntity)
         ? world.GetComponent<ChampionComponent>(cmd.issuerEntity).level
         : 1;
     const u8_t requiredLevel = (cmd.slot == 4)
-        ? static_cast<u8_t>((rank.ranks[cmd.slot] == 0) ? 6 : ((rank.ranks[cmd.slot] == 1) ? 11 : 16))
-        : static_cast<u8_t>(1 + rank.ranks[cmd.slot] * 2);
+        ? static_cast<u8_t>((progressionRank.ranks[cmd.slot] == 0) ? 6 : ((progressionRank.ranks[cmd.slot] == 1) ? 11 : 16))
+        : static_cast<u8_t>(1 + progressionRank.ranks[cmd.slot] * 2);
     if (championLevel < requiredLevel)
         return;
 
-    ++rank.ranks[cmd.slot];
-    --rank.pointsAvailable;
+    ++progressionRank.ranks[cmd.slot];
+    --progressionRank.pointsAvailable;
+    if (pProgressionRank != &rank)
+        rank.pointsAvailable = progressionRank.pointsAvailable;
 }
 
 void CDefaultCommandExecutor::HandleBuyItem(CWorld& world, const TickContext& tc,
@@ -2522,13 +3182,44 @@ void CDefaultCommandExecutor::HandleBuyItem(CWorld& world, const TickContext& tc
     InventoryComponent& inventory = world.GetComponent<InventoryComponent>(cmd.issuerEntity);
     StatComponent& stat = world.GetComponent<StatComponent>(cmd.issuerEntity);
 
-    if (inventory.count >= InventoryComponent::kMaxSlots)
-        return;
-    if (gold.amount < pItem->price)
+    u8_t emptySlot = InventoryComponent::kMaxSlots;
+    for (u8_t slot = 0u; slot < InventoryComponent::kMaxSlots; ++slot)
+    {
+        if (inventory.itemIds[slot] == 0u)
+        {
+            emptySlot = slot;
+            break;
+        }
+    }
+
+    // Practice 아이템 오버라이드가 가격을 덮을 수 있다 (서버 권위 오버레이).
+    u32_t effectivePrice = pItem->price;
+    if (const auto* pOverrides =
+        world.TryGetComponent<PracticeItemStatOverrideComponent>(cmd.issuerEntity))
+    {
+        const u8_t overrideCount = (std::min)(
+            pOverrides->count, PracticeItemStatOverrideComponent::kMaxEntries);
+        for (u8_t index = 0u; index < overrideCount; ++index)
+        {
+            const auto& entry = pOverrides->entries[index];
+            if (entry.itemId == pItem->itemId &&
+                entry.fieldId == static_cast<u8_t>(eItemStatOverrideField::Price) &&
+                entry.value >= 0.f)
+            {
+                effectivePrice = static_cast<u32_t>(entry.value);
+                break;
+            }
+        }
+    }
+
+    if (emptySlot >= InventoryComponent::kMaxSlots || gold.amount < effectivePrice)
         return;
 
-    gold.amount -= pItem->price;
-    inventory.itemIds[inventory.count++] = pItem->itemId;
+    gold.amount -= effectivePrice;
+    inventory.itemIds[emptySlot] = pItem->itemId;
+    inventory.count = (std::max)(
+        inventory.count,
+        static_cast<u8_t>(emptySlot + 1u));
     stat.itemMaskHash ^= static_cast<u32_t>(pItem->itemId) * 16777619u;
     stat.bDirty = true;
 }
@@ -2536,6 +3227,34 @@ void CDefaultCommandExecutor::HandleBuyItem(CWorld& world, const TickContext& tc
 void CDefaultCommandExecutor::HandleUseItem(CWorld& world, const TickContext& tc,
     const GameCommand& cmd)
 {
+    if (cmd.itemId == kKalistaOathswornItemId)
+    {
+        if (!world.HasComponent<InventoryComponent>(cmd.issuerEntity))
+            return;
+        auto& inventory =
+            world.GetComponent<InventoryComponent>(cmd.issuerEntity);
+        if (inventory.itemIds[kKalistaOathswornInventorySlot] !=
+            kKalistaOathswornItemId)
+        {
+            return;
+        }
+
+        if (KalistaGameSim::TryBeginOathswornContract(
+            world,
+            tc,
+            cmd.issuerEntity,
+            cmd.targetEntity))
+        {
+            inventory.itemIds[kKalistaOathswornInventorySlot] = 0u;
+            while (inventory.count > 0u &&
+                inventory.itemIds[inventory.count - 1u] == 0u)
+            {
+                --inventory.count;
+            }
+        }
+        return;
+    }
+
     if (cmd.itemId != kTrinketWardItemId)
         return;
     if (!GameplayStateQuery::CanCast(world, cmd.issuerEntity))
@@ -2561,25 +3280,42 @@ void CDefaultCommandExecutor::HandleUseItem(CWorld& world, const TickContext& tc
     OutputCommandDebug(msg);
 #endif
 }
-void CDefaultCommandExecutor::HandleRecall(CWorld& world, const TickContext& tc,
+CommandExecutionResult CDefaultCommandExecutor::HandleRecall(CWorld& world, const TickContext& tc,
     const GameCommand& cmd)
 {
+    if (!GameplayStateQuery::CanCast(world, cmd.issuerEntity))
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::StateBlocked);
+    }
+
     if (!world.HasComponent<RespawnComponent>(cmd.issuerEntity) ||
         !world.HasComponent<TransformComponent>(cmd.issuerEntity))
-        return;
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::MissingComponent);
+    }
 
     if (world.HasComponent<HealthComponent>(cmd.issuerEntity))
     {
         const auto& health = world.GetComponent<HealthComponent>(cmd.issuerEntity);
         if (health.bIsDead || health.fCurrent <= 0.f)
-            return;
+        {
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::IssuerNotAlive);
+        }
     }
 
     ClearMoveTarget(world, cmd.issuerEntity);
     ClearAttackChase(world, cmd.issuerEntity);
 
     RecallComponent recall{};
-    recall.fDurationSec = kRecallDurationSec;
+    const EconomyGameplayDef* pEconomy =
+        tc.pDefinitions ? tc.pDefinitions->FindEconomy() : nullptr;
+    recall.fDurationSec = pEconomy ? pEconomy->recallDurationSec : kRecallDurationSec;
     recall.fRemainingSec = recall.fDurationSec;
     recall.bActive = true;
 
@@ -2592,26 +3328,50 @@ void CDefaultCommandExecutor::HandleRecall(CWorld& world, const TickContext& tc,
         world,
         cmd.issuerEntity,
         eActionStateId::Recall,
-        tc);
+        tc,
+        ResolveChampion(world, cmd.issuerEntity),
+        static_cast<u8_t>(eSkillSlot::BasicAttack),
+        cmd.sequenceNum);
+    return CommandExecutionResult::Accepted(cmd.sequenceNum);
 }
 
-void CDefaultCommandExecutor::HandleRecallCancel(CWorld& world,
+CommandExecutionResult CDefaultCommandExecutor::HandleRecallCancel(CWorld& world,
     const TickContext& tc, const GameCommand& cmd)
 {
     const bool_t bHadRecall = world.HasComponent<RecallComponent>(cmd.issuerEntity);
-    CancelRecall(world, cmd.issuerEntity);
+    if (!bHadRecall)
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::NoActiveRecall);
+    }
 
-    if (bHadRecall)
-        SetPoseState(world, cmd.issuerEntity, ePoseStateId::Idle, tc.tickIndex);
+    CancelRecall(world, cmd.issuerEntity);
+    SetPoseState(world, cmd.issuerEntity, ePoseStateId::Idle, tc.tickIndex);
+    return CommandExecutionResult::Accepted(cmd.sequenceNum);
 }
 
-void CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,
+CommandExecutionResult CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,
     const GameCommand& cmd)
 {
     if (!world.HasComponent<TransformComponent>(cmd.issuerEntity))
-        return;
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::MissingComponent);
+    }
     if (!GameplayStateQuery::CanMove(world, cmd.issuerEntity))
-        return;
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::StateBlocked);
+    }
+    if (!IsFiniteMoveTarget(cmd.groundPos))
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::InvalidPayload);
+    }
 
     auto& transform = world.GetComponent<TransformComponent>(cmd.issuerEntity);
     const Vec3 origin = transform.GetLocalPosition();
@@ -2622,7 +3382,11 @@ void CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,
     const f32_t dz = rawTarget.z - origin.z;
     const f32_t lenSq = dx * dx + dz * dz;
     if (lenSq <= 0.001f)
-        return;
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::InvalidPayload);
+    }
 
     u8_t flashSlot = 0u;
     bool_t bHasFlash = true;
@@ -2641,15 +3405,22 @@ void CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,
         }
     }
     if (!bHasFlash)
-        return;
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::MissingSummonerSpell);
+    }
 
-    auto& spells = world.HasComponent<SummonerSpellStateComponent>(cmd.issuerEntity)
-        ? world.GetComponent<SummonerSpellStateComponent>(cmd.issuerEntity)
-        : world.AddComponent<SummonerSpellStateComponent>(
-            cmd.issuerEntity,
-            SummonerSpellStateComponent{});
-    if (spells.cooldownRemaining[flashSlot] > 0.f)
-        return;
+    SummonerSpellStateComponent* pSpells =
+        world.HasComponent<SummonerSpellStateComponent>(cmd.issuerEntity)
+            ? &world.GetComponent<SummonerSpellStateComponent>(cmd.issuerEntity)
+            : nullptr;
+    if (pSpells && pSpells->cooldownRemaining[flashSlot] > 0.f)
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::Cooldown);
+    }
 
     const f32_t range =
         GameplayDefinitionQuery::ResolveSummonerSpellRange(
@@ -2660,7 +3431,11 @@ void CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,
             tc,
             ChampionScoreComponent::kSummonerSpellFlash);
     if (range <= 0.f || cooldown <= 0.f)
-        return;
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum,
+            eCommandExecutionReason::MissingComponent);
+    }
 
     const f32_t len = std::sqrt(lenSq);
     const f32_t useLen = std::min(len, range);
@@ -2672,10 +3447,20 @@ void CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,
     {
         Vec3 resolved{};
         if (!tc.pWalkable->TryResolveMoveTarget(origin, dest, resolved))
-            return;
+        {
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::NavigationBlocked);
+        }
         resolved.y = origin.y;
         dest = resolved;
     }
+
+    auto& spells = pSpells
+        ? *pSpells
+        : world.AddComponent<SummonerSpellStateComponent>(
+            cmd.issuerEntity,
+            SummonerSpellStateComponent{});
 
     ClearMoveTarget(world, cmd.issuerEntity);
     ClearAttackChase(world, cmd.issuerEntity);
@@ -2683,6 +3468,13 @@ void CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,
     CancelRecall(world, cmd.issuerEntity);
 
     transform.SetPosition(dest);
+    PositionDiscontinuityComponent& discontinuity =
+        world.HasComponent<PositionDiscontinuityComponent>(cmd.issuerEntity)
+            ? world.GetComponent<PositionDiscontinuityComponent>(cmd.issuerEntity)
+            : world.AddComponent<PositionDiscontinuityComponent>(
+                cmd.issuerEntity,
+                PositionDiscontinuityComponent{});
+    discontinuity.uTick = tc.tickIndex;
     spells.cooldownRemaining[flashSlot] = cooldown;
     spells.cooldownDuration[flashSlot] = cooldown;
 
@@ -2695,6 +3487,90 @@ void CDefaultCommandExecutor::HandleFlash(CWorld& world, const TickContext& tc,
     flashEvent.durationMs = 400u;
     flashEvent.startTick = tc.tickIndex;
     EnqueueReplicatedEvent(world, flashEvent);
+    return CommandExecutionResult::Accepted(cmd.sequenceNum, dest);
+}
+
+void CDefaultCommandExecutor::HandleCompanionCommand(
+    CWorld& world,
+    const TickContext& tc,
+    const GameCommand& cmd)
+{
+    if (!world.HasComponent<AnnieSimComponent>(cmd.issuerEntity))
+        return;
+
+    const EntityID tibbers =
+        world.GetComponent<AnnieSimComponent>(cmd.issuerEntity).tibbersEntity;
+    if (tibbers == NULL_ENTITY ||
+        !world.IsAlive(tibbers) ||
+        !world.HasComponent<AnnieTibbersComponent>(tibbers) ||
+        !world.HasComponent<TransformComponent>(tibbers))
+    {
+        return;
+    }
+
+    auto& companion = world.GetComponent<AnnieTibbersComponent>(tibbers);
+    if (companion.owner != cmd.issuerEntity)
+        return;
+
+    const auto mode = static_cast<eCompanionCommandMode>(cmd.itemId);
+    if (mode == eCompanionCommandMode::Attack)
+    {
+        if (cmd.targetEntity == NULL_ENTITY ||
+            !GameplayStateQuery::CanBeTargetedBy(
+                world,
+                tibbers,
+                cmd.targetEntity))
+        {
+            return;
+        }
+
+        const eTeam targetTeam =
+            GameplayStateQuery::ResolveEntityTeam(world, cmd.targetEntity);
+        if (targetTeam == companion.ownerTeam && targetTeam != eTeam::Neutral)
+            return;
+
+        companion.commandTarget = cmd.targetEntity;
+        companion.bHasCommandPosition = false;
+        if (world.HasComponent<MinionStateComponent>(tibbers))
+        {
+            auto& state = world.GetComponent<MinionStateComponent>(tibbers);
+            state.attackTargetId = cmd.targetEntity;
+            state.targetScanCooldown = 0.f;
+        }
+    }
+    else if (mode == eCompanionCommandMode::Move)
+    {
+        if (!IsFiniteMoveTarget(cmd.groundPos))
+            return;
+
+        const Vec3 current =
+            world.GetComponent<TransformComponent>(tibbers).GetPosition();
+        Vec3 resolved = cmd.groundPos;
+        if (tc.pWalkable &&
+            !tc.pWalkable->TryResolveMoveTarget(current, cmd.groundPos, resolved))
+        {
+            return;
+        }
+
+        companion.commandTarget = NULL_ENTITY;
+        companion.commandPosition = resolved;
+        companion.bHasCommandPosition = true;
+        if (world.HasComponent<MinionStateComponent>(tibbers))
+        {
+            auto& state = world.GetComponent<MinionStateComponent>(tibbers);
+            state.attackTargetId = NULL_ENTITY;
+            state.attackTimer = 0.f;
+            state.bHitFired = true;
+            state.targetScanCooldown = state.targetScanInterval;
+            state.current = MinionStateComponent::Idle;
+        }
+    }
+    else
+    {
+        return;
+    }
+
+    companion.commandSeq = cmd.sequenceNum;
 }
 
 void CDefaultCommandExecutor::HandleAIDebugControl(CWorld& world,
@@ -2758,13 +3634,12 @@ GameCommand BuildServerCommand(const GameCommandWire& wire,
     uint32_t sessionId, EntityID controlledEntity,
     const EntityIdMap& map)
 {
-    (void)sessionId;
-
     GameCommand cmd{};
     cmd.kind = wire.kind;
     cmd.issuerEntity = controlledEntity;
     cmd.issuedAtTick = 0;
     cmd.sequenceNum = wire.sequenceNum;
+    cmd.sourceSessionId = sessionId;
     cmd.slot = wire.slot;
     cmd.targetEntity = (wire.targetNet != NULL_NET_ENTITY)
         ? map.FromNet(wire.targetNet)
@@ -2772,5 +3647,8 @@ GameCommand BuildServerCommand(const GameCommandWire& wire,
     cmd.groundPos = wire.groundPos;
     cmd.direction = wire.direction;
     cmd.itemId = wire.itemId;
+    cmd.practiceOperation = wire.practiceOperation;
+    cmd.practiceValue = wire.practiceValue;
+    cmd.practiceFlags = wire.practiceFlags;
     return cmd;
 }

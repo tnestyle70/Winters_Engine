@@ -26,6 +26,7 @@ public:
         EntityIdMap& entityMap,
         EntityID eventEntity,
         u64_t serverTick,
+        u32_t uEventOrdinal,
         SharedSim::SerializedReplicatedEvent& outSerialized);
 
 private:

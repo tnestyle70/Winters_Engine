@@ -2,9 +2,15 @@
 
 #include "WintersTypes.h"
 #include "WintersMath.h"
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
+#include "Shared/GameSim/Systems/ChampionAI/ChampionAIInfluenceMap.h"
+#include "Shared/GameSim/Systems/ChampionAI/ChampionAIResearchTypes.h"
+
+#include <cstddef>
+
+struct ChampionAIShadowPolicyArtifactV1;
 
 enum class eChampionAIState : u8_t
 {
@@ -15,6 +21,7 @@ enum class eChampionAIState : u8_t
 	Retreat,
 	Recalling,
 	Dead,
+	GroupMidDefense,
 };
 
 enum class eChampionAIAction : u8_t
@@ -37,6 +44,7 @@ enum class eChampionAIIntent : u8_t
 	SiegeStructure,
 	Retreat,
 	Recall,
+	DefendMid,
 };
 
 enum class eChampionAIDebugControlMode : u8_t
@@ -73,6 +81,8 @@ enum class eChampionAIDecisionBlockReason : u8_t
 	StateBlocked,
 	InvalidPath,
 	CommandRejected,
+	PolicyCastInterval,
+	RuntimeSkillCooldown,
 };
 
 enum class eChampionAITuningId : u8_t
@@ -91,6 +101,7 @@ enum class eChampionAITuningId : u8_t
 	LowHpExecuteThreshold,
 	DiveScanRange,
 	DiveExtraBAWindow,
+	SkillCastMinInterval,
 	Count,
 };
 
@@ -104,6 +115,7 @@ struct ChampionAIDecisionTraceEntry
 	eChampionAIDecisionBlockReason blockReason = eChampionAIDecisionBlockReason::None;
 	u8_t commandKind = 0;
 	u8_t commandSlot = 0;
+	u8_t reservedTargetAlignment = 0u;
 	EntityID target = NULL_ENTITY;
 	Vec3 commandPos{ 0.f, 0.f, 0.f };
 	f32_t championScore = 0.f;
@@ -113,7 +125,33 @@ struct ChampionAIDecisionTraceEntry
 	f32_t enemyHpRatio = 1.f;
 	f32_t enemyDistance = 999.f;
 	f32_t turretDanger = 0.f;
+	f32_t retreatScore = 0.f;
+	f32_t skillCastIntervalSec = 5.f;
+	f32_t skillCastIntervalRemainingSec = 0.f;
+	u32_t legalCandidateMask = 0u;
+	u32_t illegalCandidateMask = 0u;
+	u32_t commandSequence = 0u;
+	u16_t executorReason = 0u;
+	u8_t executorState = static_cast<u8_t>(AiExecutorStateV1::Unknown);
+	u8_t comboStep = 0u;
+	u64_t shadowPolicyRevision = 0u;
+	u64_t shadowPolicySha256Prefix = 0u;
+	f32_t shadowLogits[kAiDecisionCandidateCapacityV1]{};
+	f32_t shadowSelectedMargin = 0.f;
+	f32_t shadowTopFeatureContribution = 0.f;
+	u32_t shadowLegalCandidateMask = 0u;
+	u16_t shadowTopFeatureIndex = 0xFFFFu;
+	u8_t shadowStatus = 0u;
+	u8_t shadowActiveCandidateKind = 0u;
+	u8_t shadowSelectedCandidateKind = 0u;
+	bool_t bShadowDisagreed = false;
+	u8_t reservedTail[6]{};
 };
+
+static_assert(sizeof(ChampionAIDecisionTraceEntry) == 144u);
+static_assert(offsetof(ChampionAIDecisionTraceEntry, target) == 16u);
+static_assert(offsetof(ChampionAIDecisionTraceEntry, shadowPolicyRevision) == 88u);
+static_assert(offsetof(ChampionAIDecisionTraceEntry, bShadowDisagreed) == 137u);
 
 struct ChampionAITuningParam
 {
@@ -122,11 +160,13 @@ struct ChampionAITuningParam
 	f32_t fMin = 0.f;
 	f32_t fMax = 1.f;
 	bool_t bOverride = false;
+	u8_t reservedTail[3]{};
 };
 
 struct ChampionAITuning
 {
 	bool_t bOverrideProfile = false;
+	u8_t reservedParamsAlignment[3]{};
 	ChampionAITuningParam championScanRange{ 9.f, 9.f, 1.f, 40.f, false };
 	ChampionAITuningParam minionScanRange{ 12.f, 12.f, 1.f, 40.f, false };
 	ChampionAITuningParam structureScanRange{ 18.f, 18.f, 1.f, 60.f, false };
@@ -141,6 +181,7 @@ struct ChampionAITuning
 	ChampionAITuningParam lowHpExecuteThreshold{ 0.10f, 0.10f, 0.01f, 0.50f, false };
 	ChampionAITuningParam diveScanRange{ 11.f, 11.f, 1.f, 40.f, false };
 	ChampionAITuningParam diveExtraBAWindow{ 1.80f, 1.80f, 0.f, 5.f, false };
+	ChampionAITuningParam skillCastMinInterval{ 5.f, 5.f, 0.f, 15.f, false };
 };
 
 inline constexpr u32_t kChampionAIActionBitMoveToSafeAnchor = 1u << 0;
@@ -165,6 +206,10 @@ inline constexpr u32_t kChampionAIAvailableSkillMask = 0xFu << kChampionAIAvaila
 inline constexpr u32_t kChampionAIDebugOverrideFlag = 1u << 30;
 inline constexpr u32_t kChampionAIDebugCanAttackChampionFlag = 1u << 0;
 inline constexpr u32_t kChampionAIDebugPostComboBAAllowedFlag = 1u << 1;
+inline constexpr u32_t kChampionAIDebugMidDefenseActiveFlag = 1u << 2;
+inline constexpr u32_t kChampionAIDebugBrainTypeShift = 3u;
+inline constexpr u32_t kChampionAIDebugBrainTypeMask =
+	0x3u << kChampionAIDebugBrainTypeShift;
 inline constexpr u16_t kChampionAIDebugClearOverrideItemId = 0xFFFFu;
 inline constexpr u16_t kChampionAIDebugTuneRuntimeItemId = 0xFFFEu;
 inline constexpr u16_t kChampionAIDebugResetTuningItemId = 0xFFFDu;
@@ -188,15 +233,18 @@ struct ChampionAIComponent
 	eTeam team = eTeam::Blue;
 	u8_t difficulty = 1;
 	u8_t lane = 1;
+	u8_t activeLane = 1;
 	eChampionAIBrainType brainType = eChampionAIBrainType::RuleBased;
 
 	eChampionAIState state = eChampionAIState::MoveToOuterTurret;
 	eChampionAIAction lastAction = eChampionAIAction::MoveToSafeAnchor;
 	eChampionAIIntent intent = eChampionAIIntent::FarmMinion;
+	u8_t reservedLaneGoalAlignment[3]{};
 
 	Vec3 laneGoal{ 0.f, 1.f, 0.f };
 	Vec3 safeAnchor{ 0.f, 1.f, 0.f };
 	Vec3 retreatGoal{ 0.f, 1.f, 0.f };
+	Vec3 midDefenseAnchor{ 0.f, 1.f, 0.f };
 
 	EntityID lockedChampion = NULL_ENTITY;
 	EntityID targetMinion = NULL_ENTITY;
@@ -205,9 +253,13 @@ struct ChampionAIComponent
 	EntityID comboTarget = NULL_ENTITY;
 	EntityID lowHpEnemyChampion = NULL_ENTITY;
 	EntityID diveTarget = NULL_ENTITY;
+	EntityID lastSeenEnemyChampion = NULL_ENTITY;
+	Vec3 lastSeenEnemyChampionPos{ 0.f, 0.f, 0.f };
+	u64_t lastSeenEnemyChampionTick = 0u;
 	eChampionAIDivePhase divePhase = eChampionAIDivePhase::None;
 	u8_t comboStep = 0;
 	u8_t diveExtraBACount = 0;
+	u8_t reservedDecisionTimerAlignment = 0u;
 
 	f32_t decisionTimer = 0.f;
 	f32_t decisionInterval = 0.20f;
@@ -221,7 +273,7 @@ struct ChampionAIComponent
 	ChampionAITuning tuning{};
 	f32_t retreatHpRatio = 0.10f;
 	f32_t reengageHpRatio = 0.25f;
-	f32_t fChampionScoreMargin = 0.10f;
+	f32_t fChampionScoreMargin = 0.05f;
 	f32_t fTurretDangerThreshold = 0.85f;
 	f32_t fPostComboBASelfHpMinRatio = 0.10f;
 	f32_t fPostComboBAEnemyHpMargin = 0.f;
@@ -231,6 +283,9 @@ struct ChampionAIComponent
 	f32_t fDiveScanRange = 11.f;
 	f32_t fDiveExtraBAWindow = 1.80f;
 	f32_t fDiveExtraBATimer = 0.f;
+	f32_t fSkillCastMinInterval = 3.f;
+	f32_t fSkillCastCooldownTimer = 0.f;
+	f32_t fRetreatDecisionScore = 0.f;
 	f32_t fChampionDecisionScore = 0.f;
 	f32_t fFarmDecisionScore = 0.f;
 	f32_t fStructureDecisionScore = 0.f;
@@ -246,12 +301,15 @@ struct ChampionAIComponent
 	f32_t fDecisionFlashRange = 0.f;
 	u8_t debugLastCommandKind = 0;
 	u8_t debugLastCommandSlot = 0;
+	u8_t reservedDebugTargetAlignment[2]{};
 	EntityID debugLastCommandTarget = NULL_ENTITY;
 	Vec3 debugLastCommandPos{};
 	eChampionAIDecisionBlockReason debugLastBlockReason = eChampionAIDecisionBlockReason::None;
+	u8_t reservedDebugTraceAlignment[3]{};
 	ChampionAIDecisionTraceEntry debugDecisionTrace[kChampionAIDebugTraceCapacity] = {};
 	u8_t debugDecisionTraceHead = 0u;
 	u8_t debugDecisionTraceCount = 0u;
+	u8_t reservedCommandSequenceAlignment[2]{};
 	u32_t nextCommandSequence = 1;
 
 	bool_t bWaveJoined = false;
@@ -259,6 +317,8 @@ struct ChampionAIComponent
 	bool_t bInsideEnemyTurretDanger = false;
 	bool_t bCanAttackChampion = false;
 	bool_t bPostComboBAAllowed = false;
+	bool_t bMidDefenseActive = false;
+	u8_t reservedDebugMaskAlignment[2]{};
 
 	u32_t debugAvailableActionMask = 0;
 	u32_t debugAvailableSkillMask = 0;
@@ -267,6 +327,32 @@ struct ChampionAIComponent
 	u8_t debugForcedSkillSlot = 0;
 	u8_t debugForcedDecisionCount = 0;
 	bool_t bDebugForceAction = false;
+	u8_t reservedTail[3]{};
+};
+
+static_assert(sizeof(ChampionAITuningParam) == 20u);
+static_assert(offsetof(ChampionAITuningParam, bOverride) == 16u);
+static_assert(sizeof(ChampionAITuning) == 304u);
+static_assert(offsetof(ChampionAIComponent, laneGoal) == 12u);
+static_assert(offsetof(ChampionAIComponent, decisionTimer) == 116u);
+static_assert(offsetof(ChampionAIComponent, debugLastCommandTarget) == 572u);
+static_assert(offsetof(ChampionAIComponent, nextCommandSequence) == 2900u);
+static_assert(sizeof(ChampionAIComponent) == 2928u);
+
+// Research capture is diagnostic evidence, not authoritative gameplay state.
+// Keep it outside ChampionAIComponent so checkpoint blobs do not retain a
+// 9x9 map and 16 raw wire records per bot. A rewind intentionally recreates
+// this transient component from the restored authoritative state.
+struct ChampionAIResearchDebugComponent
+{
+	AiInfluenceMapV1 influenceMap{};
+	AiDecisionTraceV1 decisionDraft{};
+	AiDecisionTraceV1 decisionTrace[kChampionAIDebugTraceCapacity] = {};
+	u8_t decisionTraceHead = 0u;
+	u8_t decisionTraceCount = 0u;
+	ChampionAIDecisionTraceEntry shadowDecision{};
+	bool_t bShadowDecisionPresent = false;
+	const ChampionAIShadowPolicyArtifactV1* pShadowPolicy = nullptr;
 };
 
 struct ChampionAIDebugComponent
@@ -275,6 +361,7 @@ struct ChampionAIDebugComponent
 	eChampionAIState state = eChampionAIState::MoveToOuterTurret;
 	eChampionAIAction action = eChampionAIAction::MoveToSafeAnchor;
 	eChampionAIIntent intent = eChampionAIIntent::FarmMinion;
+	eChampionAIBrainType brainType = eChampionAIBrainType::RuleBased;
 	u32_t netId = 0;
 	u32_t targetNetId = 0;
 	u32_t lowHpEnemyNetId = 0;
@@ -289,9 +376,11 @@ struct ChampionAIDebugComponent
 	bool_t bOverridePending = false;
 	bool_t bCanAttackChampion = false;
 	bool_t bPostComboBAAllowed = false;
+	bool_t bMidDefenseActive = false;
 	f32_t fChampionDecisionScore = 0.f;
 	f32_t fFarmDecisionScore = 0.f;
 	f32_t fStructureDecisionScore = 0.f;
+	f32_t fRetreatDecisionScore = 0.f;
 	f32_t fSelfHpRatio = 1.f;
 	f32_t fEnemyHpRatio = 1.f;
 	f32_t fEnemyDistance = 999.f;
@@ -315,6 +404,11 @@ struct ChampionAIDebugComponent
 	f32_t fDiveExtraBAWindow = 0.f;
 	f32_t fFlashRange = 0.f;
 	f32_t fPostComboBATimer = 0.f;
+	f32_t fSkillCastMinInterval = 5.f;
+	f32_t fSkillCastCooldownTimer = 0.f;
+	u32_t lastCommandSequence = 0u;
+	u16_t lastExecutorReason = 0u;
+	u8_t lastExecutorState = static_cast<u8_t>(AiExecutorStateV1::Unknown);
 	f32_t moveSpeed = 0.f;
 	Vec3 snapshotPos{ 0.f, 0.f, 0.f };
 	Vec3 lastCommandPos{ 0.f, 0.f, 0.f };

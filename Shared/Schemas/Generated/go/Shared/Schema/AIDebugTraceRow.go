@@ -269,8 +269,284 @@ func (rcv *AIDebugTraceRow) MutateTurretDanger(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(40, n)
 }
 
+func (rcv *AIDebugTraceRow) RetreatScore() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *AIDebugTraceRow) MutateRetreatScore(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(42, n)
+}
+
+func (rcv *AIDebugTraceRow) SkillCastIntervalSec() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *AIDebugTraceRow) MutateSkillCastIntervalSec(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(44, n)
+}
+
+func (rcv *AIDebugTraceRow) SkillCastIntervalRemainingSec() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *AIDebugTraceRow) MutateSkillCastIntervalRemainingSec(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(46, n)
+}
+
+func (rcv *AIDebugTraceRow) LegalCandidateMask() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateLegalCandidateMask(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(48, n)
+}
+
+func (rcv *AIDebugTraceRow) IllegalCandidateMask() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(50))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateIllegalCandidateMask(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(50, n)
+}
+
+func (rcv *AIDebugTraceRow) CommandSequence() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateCommandSequence(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(52, n)
+}
+
+func (rcv *AIDebugTraceRow) ExecutorReason() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateExecutorReason(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(54, n)
+}
+
+func (rcv *AIDebugTraceRow) ExecutorState() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(56))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateExecutorState(n byte) bool {
+	return rcv._tab.MutateByteSlot(56, n)
+}
+
+func (rcv *AIDebugTraceRow) ComboStep() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(58))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateComboStep(n byte) bool {
+	return rcv._tab.MutateByteSlot(58, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowPolicyRevision() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(60))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowPolicyRevision(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(60, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowPolicySha256Prefix() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(62))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowPolicySha256Prefix(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(62, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowLogitRetreat() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(64))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowLogitRetreat(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(64, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowLogitFight() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(66))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowLogitFight(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(66, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowLogitFarm() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(68))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowLogitFarm(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(68, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowLogitSiege() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(70))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowLogitSiege(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(70, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowSelectedMargin() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(72))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowSelectedMargin(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(72, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowTopFeatureContribution() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(74))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowTopFeatureContribution(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(74, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowLegalCandidateMask() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(76))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowLegalCandidateMask(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(76, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowTopFeatureIndex() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(78))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 65535
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowTopFeatureIndex(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(78, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowStatus() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(80))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowStatus(n byte) bool {
+	return rcv._tab.MutateByteSlot(80, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowActiveCandidateKind() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(82))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowActiveCandidateKind(n byte) bool {
+	return rcv._tab.MutateByteSlot(82, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowSelectedCandidateKind() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(84))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowSelectedCandidateKind(n byte) bool {
+	return rcv._tab.MutateByteSlot(84, n)
+}
+
+func (rcv *AIDebugTraceRow) ShadowDisagreed() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(86))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *AIDebugTraceRow) MutateShadowDisagreed(n bool) bool {
+	return rcv._tab.MutateBoolSlot(86, n)
+}
+
 func AIDebugTraceRowStart(builder *flatbuffers.Builder) {
-	builder.StartObject(19)
+	builder.StartObject(42)
 }
 func AIDebugTraceRowAddTick(builder *flatbuffers.Builder, tick uint64) {
 	builder.PrependUint64Slot(0, tick, 0)
@@ -328,6 +604,75 @@ func AIDebugTraceRowAddEnemyDistance(builder *flatbuffers.Builder, enemyDistance
 }
 func AIDebugTraceRowAddTurretDanger(builder *flatbuffers.Builder, turretDanger float32) {
 	builder.PrependFloat32Slot(18, turretDanger, 0.0)
+}
+func AIDebugTraceRowAddRetreatScore(builder *flatbuffers.Builder, retreatScore float32) {
+	builder.PrependFloat32Slot(19, retreatScore, 0.0)
+}
+func AIDebugTraceRowAddSkillCastIntervalSec(builder *flatbuffers.Builder, skillCastIntervalSec float32) {
+	builder.PrependFloat32Slot(20, skillCastIntervalSec, 0.0)
+}
+func AIDebugTraceRowAddSkillCastIntervalRemainingSec(builder *flatbuffers.Builder, skillCastIntervalRemainingSec float32) {
+	builder.PrependFloat32Slot(21, skillCastIntervalRemainingSec, 0.0)
+}
+func AIDebugTraceRowAddLegalCandidateMask(builder *flatbuffers.Builder, legalCandidateMask uint32) {
+	builder.PrependUint32Slot(22, legalCandidateMask, 0)
+}
+func AIDebugTraceRowAddIllegalCandidateMask(builder *flatbuffers.Builder, illegalCandidateMask uint32) {
+	builder.PrependUint32Slot(23, illegalCandidateMask, 0)
+}
+func AIDebugTraceRowAddCommandSequence(builder *flatbuffers.Builder, commandSequence uint32) {
+	builder.PrependUint32Slot(24, commandSequence, 0)
+}
+func AIDebugTraceRowAddExecutorReason(builder *flatbuffers.Builder, executorReason uint16) {
+	builder.PrependUint16Slot(25, executorReason, 0)
+}
+func AIDebugTraceRowAddExecutorState(builder *flatbuffers.Builder, executorState byte) {
+	builder.PrependByteSlot(26, executorState, 0)
+}
+func AIDebugTraceRowAddComboStep(builder *flatbuffers.Builder, comboStep byte) {
+	builder.PrependByteSlot(27, comboStep, 0)
+}
+func AIDebugTraceRowAddShadowPolicyRevision(builder *flatbuffers.Builder, shadowPolicyRevision uint64) {
+	builder.PrependUint64Slot(28, shadowPolicyRevision, 0)
+}
+func AIDebugTraceRowAddShadowPolicySha256Prefix(builder *flatbuffers.Builder, shadowPolicySha256Prefix uint64) {
+	builder.PrependUint64Slot(29, shadowPolicySha256Prefix, 0)
+}
+func AIDebugTraceRowAddShadowLogitRetreat(builder *flatbuffers.Builder, shadowLogitRetreat float32) {
+	builder.PrependFloat32Slot(30, shadowLogitRetreat, 0.0)
+}
+func AIDebugTraceRowAddShadowLogitFight(builder *flatbuffers.Builder, shadowLogitFight float32) {
+	builder.PrependFloat32Slot(31, shadowLogitFight, 0.0)
+}
+func AIDebugTraceRowAddShadowLogitFarm(builder *flatbuffers.Builder, shadowLogitFarm float32) {
+	builder.PrependFloat32Slot(32, shadowLogitFarm, 0.0)
+}
+func AIDebugTraceRowAddShadowLogitSiege(builder *flatbuffers.Builder, shadowLogitSiege float32) {
+	builder.PrependFloat32Slot(33, shadowLogitSiege, 0.0)
+}
+func AIDebugTraceRowAddShadowSelectedMargin(builder *flatbuffers.Builder, shadowSelectedMargin float32) {
+	builder.PrependFloat32Slot(34, shadowSelectedMargin, 0.0)
+}
+func AIDebugTraceRowAddShadowTopFeatureContribution(builder *flatbuffers.Builder, shadowTopFeatureContribution float32) {
+	builder.PrependFloat32Slot(35, shadowTopFeatureContribution, 0.0)
+}
+func AIDebugTraceRowAddShadowLegalCandidateMask(builder *flatbuffers.Builder, shadowLegalCandidateMask uint32) {
+	builder.PrependUint32Slot(36, shadowLegalCandidateMask, 0)
+}
+func AIDebugTraceRowAddShadowTopFeatureIndex(builder *flatbuffers.Builder, shadowTopFeatureIndex uint16) {
+	builder.PrependUint16Slot(37, shadowTopFeatureIndex, 65535)
+}
+func AIDebugTraceRowAddShadowStatus(builder *flatbuffers.Builder, shadowStatus byte) {
+	builder.PrependByteSlot(38, shadowStatus, 0)
+}
+func AIDebugTraceRowAddShadowActiveCandidateKind(builder *flatbuffers.Builder, shadowActiveCandidateKind byte) {
+	builder.PrependByteSlot(39, shadowActiveCandidateKind, 0)
+}
+func AIDebugTraceRowAddShadowSelectedCandidateKind(builder *flatbuffers.Builder, shadowSelectedCandidateKind byte) {
+	builder.PrependByteSlot(40, shadowSelectedCandidateKind, 0)
+}
+func AIDebugTraceRowAddShadowDisagreed(builder *flatbuffers.Builder, shadowDisagreed bool) {
+	builder.PrependBoolSlot(41, shadowDisagreed, false)
 }
 func AIDebugTraceRowEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

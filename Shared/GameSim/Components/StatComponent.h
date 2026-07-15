@@ -3,10 +3,13 @@
 #include "../Definitions/LoLMatchContext.h"
 #include "WintersTypes.h"
 
+#include <cstddef>
+
 struct StatComponent
 {
     eChampion championId = eChampion::NONE;
     u8_t level = 1;
+    u16_t reservedIdentityAlignment = 0u;
     u32_t buffMaskHash = 0;
     u32_t itemMaskHash = 0;
 
@@ -53,4 +56,10 @@ struct StatComponent
     f32_t abilityHaste = 0.f;
 
     bool_t bDirty = true;
+    u8_t reservedTail[3]{};
 };
+
+static_assert(sizeof(StatComponent) == 144u);
+static_assert(offsetof(StatComponent, buffMaskHash) == 4u);
+static_assert(offsetof(StatComponent, abilityHaste) == 136u);
+static_assert(offsetof(StatComponent, bDirty) == 140u);

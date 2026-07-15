@@ -8,6 +8,7 @@
 #include "WintersTypes.h"
 
 class CWorld;
+struct ILagCompensationQuery;
 struct SkillProjectileComponent;
 
 class CServerProjectileAuthority final
@@ -21,9 +22,31 @@ public:
     static EntityID FindSkillProjectileHitTarget(
         CWorld& world,
         const SkillProjectileComponent& projectile,
+        const ILagCompensationQuery* pLagCompensation,
+        u64_t uCurrentTick,
         const Vec3& start,
         const Vec3& end,
-        Vec3& outHitPos);
+        Vec3& outHitPos,
+        f32_t& outHitT);
+
+    static bool_t FindProjectileBarrierHit(
+        CWorld& world,
+        const SkillProjectileComponent& projectile,
+        const Vec3& start,
+        const Vec3& end,
+        Vec3& outHitPos,
+        f32_t& outHitT);
+
+    static bool_t FindTargetedProjectileHit(
+        CWorld& world,
+        const SkillProjectileComponent& projectile,
+        const ILagCompensationQuery* pLagCompensation,
+        u64_t uCurrentTick,
+        EntityID targetEntity,
+        const Vec3& start,
+        const Vec3& end,
+        Vec3& outHitPos,
+        f32_t& outHitT);
 
     static ReplicatedEventComponent BuildProjectileSpawnEvent(
         EntityID sourceEntity,
@@ -42,7 +65,13 @@ public:
         EntityID projectileEntity,
         u16_t projectileKind,
         const Vec3& position,
-        u64_t startTick);
+        u64_t startTick,
+        ProjectileContactReason eContactReason,
+        u16_t uContactOrdinal,
+        bool_t bDestroyed = true);
+
+    static u32_t QuantizeContactT(f32_t fContactT);
+    static f32_t DequantizeContactT(u32_t uContactT);
 
     static DamageRequest BuildTurretDamageRequest(
         EntityID sourceEntity,

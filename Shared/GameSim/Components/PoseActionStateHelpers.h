@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/PoseStateComponent.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
@@ -102,6 +102,15 @@ ActionStateComponent& StartActionState(
     ++action.sequence;
     action.actionId = static_cast<u16_t>(actionId);
     action.startTick = startTick;
+    action.lockEndTick = startTick;
+    action.commandSequence = 0u;
+    action.sourceChampion = eChampion::NONE;
+    action.sourceSlot = SkillSlotFromActionId(actionId);
     action.stage = stage == 0u ? 1u : stage;
+    action.movePolicy = eSkillActionMovePolicy::Allow;
+    action.bHasQueuedMove = false;
+    action.queuedMoveSequence = 0u;
+    action.queuedMoveTarget = {};
+    action.queuedMoveDirection = {};
     return action;
 }

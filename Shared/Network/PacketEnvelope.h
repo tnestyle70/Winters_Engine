@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shared/Network/PacketType.h"
 #include "WintersTypes.h"
 
 #include <cstdint>
@@ -9,20 +10,6 @@
 constexpr uint16_t kPacketMagic = 0x5742;       // 'WB' Winters Binary
 constexpr uint16_t kPacketVersion = 1;
 constexpr uint32_t kMaxPacketPayloadSize = 64u * 1024u;
-
-enum class ePacketType : uint16_t
-{
-    None = 0,
-    CommandBatch = 1,
-    Snapshot = 2,
-    Event = 3,
-    Hello = 10,
-    Heartbeat = 11,
-    Disconnect = 12,
-    LobbyCommand = 20,
-    LobbyState = 21,
-    GameStart = 22,
-};
 
 enum ePacketFlags : uint16_t
 {

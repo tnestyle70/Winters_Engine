@@ -151,8 +151,44 @@ func (rcv *CommandPacket) MutatePad(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(20, n)
 }
 
+func (rcv *CommandPacket) PracticeOperation() PracticeOperation {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return PracticeOperation(rcv._tab.GetUint16(o + rcv._tab.Pos))
+	}
+	return 0
+}
+
+func (rcv *CommandPacket) MutatePracticeOperation(n PracticeOperation) bool {
+	return rcv._tab.MutateUint16Slot(22, uint16(n))
+}
+
+func (rcv *CommandPacket) PracticeValue() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *CommandPacket) MutatePracticeValue(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(24, n)
+}
+
+func (rcv *CommandPacket) PracticeFlags() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *CommandPacket) MutatePracticeFlags(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(26, n)
+}
+
 func CommandPacketStart(builder *flatbuffers.Builder) {
-	builder.StartObject(9)
+	builder.StartObject(12)
 }
 func CommandPacketAddKind(builder *flatbuffers.Builder, kind CommandKind) {
 	builder.PrependByteSlot(0, byte(kind), 0)
@@ -180,6 +216,15 @@ func CommandPacketAddItemId(builder *flatbuffers.Builder, itemId uint16) {
 }
 func CommandPacketAddPad(builder *flatbuffers.Builder, pad uint16) {
 	builder.PrependUint16Slot(8, pad, 0)
+}
+func CommandPacketAddPracticeOperation(builder *flatbuffers.Builder, practiceOperation PracticeOperation) {
+	builder.PrependUint16Slot(9, uint16(practiceOperation), 0)
+}
+func CommandPacketAddPracticeValue(builder *flatbuffers.Builder, practiceValue float32) {
+	builder.PrependFloat32Slot(10, practiceValue, 0.0)
+}
+func CommandPacketAddPracticeFlags(builder *flatbuffers.Builder, practiceFlags uint32) {
+	builder.PrependUint32Slot(11, practiceFlags, 0)
 }
 func CommandPacketEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

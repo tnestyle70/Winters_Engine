@@ -1,7 +1,7 @@
 #include "Shared/GameSim/Champions/Zed/ZedGameSim.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -368,6 +368,7 @@ namespace
 
         SkillProjectileComponent projectile{};
         projectile.sourceEntity = caster;
+        projectile.sourceHandle = world.GetEntityHandle(caster);
         projectile.sourceTeam = sourceTeam;
         projectile.kind = eProjectileKind::ZedShuriken;
         projectile.skillId = MakeZedSkillId(static_cast<u8_t>(eSkillSlot::Q));
@@ -549,8 +550,6 @@ namespace
         SetZedShadowState(world, ctx.casterEntity, target, dir, shadowDurationSec);
 
         RotateToward(world, ctx.casterEntity, dir);
-        ClearMove(world, ctx.casterEntity);
-
         std::cout << "[ZedSim] W shadow caster="
             << ctx.casterEntity << " pos=(" << target.x << "," << target.z << ")\n";
     }
@@ -563,8 +562,6 @@ namespace
         CWorld& world = *ctx.pWorld;
         const Vec3 dir = ResolveDirectionFromCommand(world, ctx.pCommand, ctx.casterEntity);
         RotateToward(world, ctx.casterEntity, dir);
-        ClearMove(world, ctx.casterEntity);
-
         const eTeam sourceTeam = ResolveTeam(world, ctx.casterEntity);
         std::vector<EntityID> targets;
         targets.reserve(16);
@@ -644,11 +641,11 @@ namespace
 
         CWorld& world = *ctx.pWorld;
         const EntityID target = ctx.pCommand->targetEntity;
-        if (target == NULL_ENTITY ||
-            !world.HasComponent<ChampionComponent>(target) ||
-            !world.HasComponent<TransformComponent>(ctx.casterEntity) ||
-            !world.HasComponent<TransformComponent>(target) ||
-            !GameplayStateQuery::CanBeTargetedBy(world, ctx.casterEntity, target))
+        if (!ZedGameSim::CanCastDeathMark(
+            world,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            target))
         {
             std::cout << "[ZedSim] R rejected caster="
                 << ctx.casterEntity << " target=" << target << "\n";
@@ -708,6 +705,13 @@ namespace
             dir,
             behindPadding);
         world.GetComponent<TransformComponent>(ctx.casterEntity).SetPosition(landingPos);
+        PositionDiscontinuityComponent& discontinuity =
+            world.HasComponent<PositionDiscontinuityComponent>(ctx.casterEntity)
+                ? world.GetComponent<PositionDiscontinuityComponent>(ctx.casterEntity)
+                : world.AddComponent<PositionDiscontinuityComponent>(
+                    ctx.casterEntity,
+                    PositionDiscontinuityComponent{});
+        discontinuity.uTick = ctx.pTickCtx->tickIndex;
 
         const Vec3 faceDir = WintersMath::DirectionXZ(landingPos, targetPos, dir);
         if (faceDir.x != 0.f || faceDir.z != 0.f)
@@ -734,6 +738,58 @@ namespace
 
 namespace ZedGameSim
 {
+	bool_t CanCastDeathMark(
+		CWorld& world,
+		const TickContext& tc,
+		EntityID caster,
+		EntityID target)
+	{
+		if (caster == NULL_ENTITY ||
+			target == NULL_ENTITY ||
+			!world.IsAlive(caster) ||
+			!world.IsAlive(target) ||
+			!world.HasComponent<ChampionComponent>(caster) ||
+			!world.HasComponent<ChampionComponent>(target) ||
+			!world.HasComponent<HealthComponent>(target) ||
+			!world.HasComponent<TransformComponent>(caster) ||
+			!world.HasComponent<TransformComponent>(target) ||
+			!GameplayStateQuery::CanBeTargetedBy(world, caster, target) ||
+			!GameplayStateQuery::CanReceiveDamage(world, caster, target))
+		{
+			return false;
+		}
+
+		const auto& targetHealth = world.GetComponent<HealthComponent>(target);
+		if (targetHealth.bIsDead || targetHealth.fCurrent <= 0.f)
+			return false;
+
+		const auto& casterChampion = world.GetComponent<ChampionComponent>(caster);
+		const auto& targetChampion = world.GetComponent<ChampionComponent>(target);
+		if (casterChampion.team == targetChampion.team)
+			return false;
+
+		f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+			world,
+			caster,
+			tc,
+			eChampion::ZED,
+			static_cast<u8_t>(eSkillSlot::R));
+		if (range <= 0.f)
+			range = 6.25f;
+		range += GameplayStateQuery::ResolveGameplayRadius(world, caster);
+		range += GameplayStateQuery::ResolveGameplayRadius(world, target);
+
+		const Vec3 casterPosition =
+			world.GetComponent<TransformComponent>(caster).GetPosition();
+		const Vec3 targetPosition =
+			world.GetComponent<TransformComponent>(target).GetPosition();
+		if (WintersMath::DistanceSqXZ(casterPosition, targetPosition) > range * range)
+			return false;
+
+		return !tc.pWalkable ||
+			tc.pWalkable->SegmentWalkableXZ(casterPosition, targetPosition, 0.f);
+	}
+
     void RegisterHooks()
     {
         static bool_t s_bRegistered = false;
@@ -863,7 +919,6 @@ namespace ZedGameSim
 
     bool_t ApplyLivingShadowMove(CWorld& world, const TickContext& tc, GameCommand& cmd)
     {
-        (void)tc;
         if (cmd.issuerEntity == NULL_ENTITY ||
             !world.HasComponent<ZedSimComponent>(cmd.issuerEntity) ||
             !world.HasComponent<TransformComponent>(cmd.issuerEntity))
@@ -878,6 +933,13 @@ namespace ZedGameSim
         auto& transform = world.GetComponent<TransformComponent>(cmd.issuerEntity);
         const Vec3 previous = transform.GetPosition();
         transform.SetPosition(state.vShadowPosition);
+        PositionDiscontinuityComponent& discontinuity =
+            world.HasComponent<PositionDiscontinuityComponent>(cmd.issuerEntity)
+                ? world.GetComponent<PositionDiscontinuityComponent>(cmd.issuerEntity)
+                : world.AddComponent<PositionDiscontinuityComponent>(
+                    cmd.issuerEntity,
+                    PositionDiscontinuityComponent{});
+        discontinuity.uTick = tc.tickIndex;
         state.vShadowPosition = previous;
         RotateToward(world, cmd.issuerEntity, state.vShadowDirection);
         ClearMove(world, cmd.issuerEntity);

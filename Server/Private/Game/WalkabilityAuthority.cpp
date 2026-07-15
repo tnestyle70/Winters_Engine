@@ -407,6 +407,25 @@ bool_t CWalkabilityAuthority::TryClampMoveSegmentXZ(
         return true;
     }
 
+    // 풋프린트 오버랩 탈출: 중심 셀은 walkable 이지만 반경 풋프린트가 carve 에
+    // 겹친 시작점은 SegmentWalkable(from, *, radius) 가 전 방향 실패해 영구
+    // 웨지가 된다(대시 착지/플래시/강제이동 종료 진입). 반경 0 클램프로
+    // 셀 단위 보행을 허용해 겹침에서 걸어 나올 수 있게 한다.
+    // SegmentWalkable(from, from, radius) 는 길이 0 세그먼트로
+    // IsAreaWalkable(from, radius) 와 동치인 풋프린트 검사다.
+    if (radius > 0.f && !pBaseGrid->SegmentWalkable(from, from, radius))
+    {
+        Vec3 escaped = desired;
+        if (TryClampMoveSegmentXZ(pBaseGrid, pSurfaceSampler, from, desired, 0.f, escaped))
+        {
+            outPosition = escaped;
+            return true;
+        }
+
+        outPosition = from;
+        return false;
+    }
+
     f32_t low = 0.f;
     f32_t high = 1.f;
     for (u32_t i = 0; i < 12u; ++i)

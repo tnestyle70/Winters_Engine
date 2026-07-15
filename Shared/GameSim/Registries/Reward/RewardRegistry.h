@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <unordered_map>
 
+struct EconomyGameplayDef;
+
 class CRewardRegistry
 {
 public:
@@ -13,6 +15,7 @@ public:
 
     void Reset();
     void LoadDefaultSummonersRift();
+    void LoadFromEconomyDef(const EconomyGameplayDef& economy);
 
     void SetExperienceCurve(const ChampionExperienceCurveDef& curve);
     const ChampionExperienceCurveDef& GetExperienceCurve() const { return m_ExperienceCurve; }

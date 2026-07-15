@@ -1,5 +1,6 @@
 #include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
 
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -11,9 +12,10 @@
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/SpellbookFormOverride/SpellbookFormOverrideSystem.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
@@ -253,6 +255,7 @@ namespace
 
         SkillProjectileComponent projectile{};
         projectile.sourceEntity = ctx.casterEntity;
+        projectile.sourceHandle = ctx.pWorld->GetEntityHandle(ctx.casterEntity);
         projectile.sourceTeam = ctx.casterTeam;
         projectile.kind = eProjectileKind::SylasChain;
         projectile.skillId = static_cast<u16_t>(
@@ -379,6 +382,8 @@ namespace
         const eChampion stolenChampion = ResolveHijackSourceChampion(world, target);
         if (!IsValidChampion(stolenChampion) || stolenChampion == eChampion::SYLAS)
             return false;
+        if (!CSpellbookFormOverrideSystem::CanDispatchCapturedUltimate(stolenChampion))
+            return false;
 
         f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
             world,
@@ -419,7 +424,13 @@ namespace
         spellbook.sourceSlot = static_cast<u8_t>(eSkillSlot::R);
         spellbook.localSlot = static_cast<u8_t>(eSkillSlot::R);
         spellbook.sourceRank = ResolveHijackRank(world, caster, target);
-        spellbook.fRemainingSec = 45.f;
+        spellbook.fRemainingSec = ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::R,
+            eSkillEffectParamId::EffectDurationSec,
+            45.f);
         spellbook.bActive = true;
 
         world.AddComponent<SpellbookOverrideComponent>(caster, spellbook);
@@ -478,6 +489,12 @@ namespace SylasGameSim
                 [&](EntityID entity, SylasDashComponent& dash, TransformComponent& transform)
                 {
                     ClearMove(world, entity);
+
+                    if (!GameplayStateQuery::CanMove(world, entity))
+                    {
+                        finishedDashes.push_back(entity);
+                        return;
+                    }
 
                     dash.fElapsedSec += tc.fDt;
                     f32_t t = dash.fDurationSec > 0.01f
@@ -595,7 +612,22 @@ namespace SylasGameSim
             tc,
             source,
             eSkillSlot::E,
-            eSkillEffectParamId::AirborneDurationSec);
+            eSkillEffectParamId::AirborneDurationSec,
+            0.75f);
+        const f32_t slowDurationSec = ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            source,
+            eSkillSlot::E,
+            eSkillEffectParamId::SlowDurationSec,
+            1.5f);
+        const f32_t slowMoveSpeedMul = ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            source,
+            eSkillSlot::E,
+            eSkillEffectParamId::MoveSpeedMul,
+            0.6f);
 
         StartTargetDash(world, source, target, targetDashGap, targetDashDurationSec);
         GameplayStatus::ApplyAirborne(
@@ -605,6 +637,16 @@ namespace SylasGameSim
             source,
             eChampion::SYLAS,
             eSkillSlot::E,
-            airborneDurationSec);
+            airborneDurationSec,
+            2.1f);
+        GameplayStatus::ApplySlow(
+            world,
+            tc,
+            target,
+            source,
+            eChampion::SYLAS,
+            eSkillSlot::E,
+            slowDurationSec,
+            slowMoveSpeedMul);
     }
 }

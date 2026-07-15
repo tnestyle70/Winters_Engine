@@ -9,6 +9,7 @@
 #include "Network/Session.h"
 #include "Network/Session_Manager.h"
 #include "Server/Private/Data/LoLGameplayDefinitionPack.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
@@ -30,6 +31,8 @@
 #include "Shared/GameSim/Champions/Annie/AnnieGameSim.h"
 #include "Shared/GameSim/Champions/Ashe/AsheGameSim.h"
 #include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
+#include "Shared/GameSim/Champions/Ezreal/EzrealGameSim.h"
+#include "Shared/GameSim/Champions/Garen/GarenGameSim.h"
 #include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
 #include "Shared/GameSim/Champions/Jax/JaxGameSim.h"
 #include "Shared/GameSim/Champions/Kalista/KalistaGameSim.h"
@@ -52,10 +55,12 @@
 #include "Shared/GameSim/Components/ViegoSimComponent.h"
 #include "Shared/GameSim/Components/YoneSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
+#include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 #include "Shared/GameSim/Definitions/StageData.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
+#include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
 #include "Security/LagCompensation.h"
@@ -117,11 +122,86 @@ namespace
                 MatchScoreComponent{}
             );
     }
+
+    void ResetChampionAIForLifecycle(
+        ChampionAIComponent& ai,
+        eChampionAIState state,
+        eChampionAIAction action,
+        f32_t decisionDelay)
+    {
+        ai.activeLane = ai.lane;
+        ai.state = state;
+        ai.lastAction = action;
+        ai.intent = eChampionAIIntent::FarmMinion;
+        ai.retreatGoal = ai.safeAnchor;
+
+        ai.lockedChampion = NULL_ENTITY;
+        ai.targetMinion = NULL_ENTITY;
+        ai.targetStructure = NULL_ENTITY;
+        ai.alliedWave = NULL_ENTITY;
+        ai.comboTarget = NULL_ENTITY;
+        ai.lowHpEnemyChampion = NULL_ENTITY;
+        ai.diveTarget = NULL_ENTITY;
+        ai.lastSeenEnemyChampion = NULL_ENTITY;
+        ai.lastSeenEnemyChampionPos = {};
+        ai.lastSeenEnemyChampionTick = 0u;
+        ai.divePhase = eChampionAIDivePhase::None;
+        ai.comboStep = 0u;
+        ai.diveExtraBACount = 0u;
+
+        ai.decisionTimer = decisionDelay;
+        ai.intentHoldTimer = 0.f;
+        ai.fPostComboBATimer = 0.f;
+        ai.fDiveExtraBATimer = 0.f;
+        ai.fSkillCastCooldownTimer = 0.f;
+
+        ai.fRetreatDecisionScore = 0.f;
+        ai.fChampionDecisionScore = 0.f;
+        ai.fFarmDecisionScore = 0.f;
+        ai.fStructureDecisionScore = 0.f;
+        ai.fDecisionSelfHpRatio = 1.f;
+        ai.fDecisionEnemyHpRatio = 1.f;
+        ai.fDecisionEnemyDistance = 999.f;
+        ai.fDecisionAttackRange = 1.5f;
+        ai.fDecisionTurretDanger = 0.f;
+        ai.fDecisionLowHpEnemyRatio = 1.f;
+        ai.fDecisionLowHpEnemyDistance = 999.f;
+        ai.fDecisionChampionScanRange = 0.f;
+        ai.fDecisionDiveScanRange = 0.f;
+        ai.fDecisionFlashRange = 0.f;
+
+        ai.debugLastCommandKind = 0u;
+        ai.debugLastCommandSlot = 0u;
+        ai.debugLastCommandTarget = NULL_ENTITY;
+        ai.debugLastCommandPos = {};
+        ai.debugLastBlockReason = eChampionAIDecisionBlockReason::None;
+        for (ChampionAIDecisionTraceEntry& entry : ai.debugDecisionTrace)
+            entry = {};
+        ai.debugDecisionTraceHead = 0u;
+        ai.debugDecisionTraceCount = 0u;
+        ai.debugAvailableActionMask = 0u;
+        ai.debugAvailableSkillMask = 0u;
+        ai.debugControlMode = eChampionAIDebugControlMode::Observe;
+        ai.debugForcedAction = eChampionAIAction::FollowWave;
+        ai.debugForcedSkillSlot = 0u;
+        ai.debugForcedDecisionCount = 0u;
+        ai.bDebugForceAction = false;
+
+        ai.bWaveJoined = false;
+        ai.bStructureWaveTanking = false;
+        ai.bInsideEnemyTurretDanger = false;
+        ai.bCanAttackChampion = false;
+        ai.bPostComboBAAllowed = false;
+        ai.bMidDefenseActive = false;
+    }
 }
 
-std::unique_ptr<CGameRoom> CGameRoom::Create(u32_t roomId)
+std::unique_ptr<CGameRoom> CGameRoom::Create(
+    u32_t roomId,
+    std::shared_ptr<const ChampionAIShadowPolicyArtifactV1> shadowPolicy)
 {
-    auto room = std::unique_ptr<CGameRoom>(new CGameRoom(roomId));
+    auto room = std::unique_ptr<CGameRoom>(
+        new CGameRoom(roomId, std::move(shadowPolicy)));
     room->m_pExecutor = CDefaultCommandExecutor::Create();
     room->m_pSnapBuilder = CSnapshotBuilder::Create();
     room->m_pLagCompensation = std::make_unique<CLagCompensation>();
@@ -130,8 +210,11 @@ std::unique_ptr<CGameRoom> CGameRoom::Create(u32_t roomId)
     return room;
 }
 
-CGameRoom::CGameRoom(u32_t roomId)
+CGameRoom::CGameRoom(
+    u32_t roomId,
+    std::shared_ptr<const ChampionAIShadowPolicyArtifactV1> shadowPolicy)
     : m_roomId(roomId)
+    , m_pShadowPolicy(std::move(shadowPolicy))
 {
     InitializeLobbyAuthority();
 }
@@ -208,10 +291,12 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
         if (!respawn.bPending)
         {
             const SpawnLoadoutPolicyDef& spawnPolicy =
-                ServerData::GetLoLSpawnObjectDefinitionPack().spawnLoadout;
+                ServerData::GetActiveLoLSpawnObjectDefinitionPack().spawnLoadout;
             respawn.bPending = true;
             respawn.respawnDelay = spawnPolicy.respawnDelaySec;
             respawn.respawnTimer = spawnPolicy.respawnDelaySec;
+
+            GameplayStatus::ClearStatusEffects(m_world, entity);
 
             if (m_world.HasComponent<TargetableTag>(entity))
                 m_world.RemoveComponent<TargetableTag>(entity);
@@ -222,6 +307,8 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
                 moveTarget.bHasTarget = false;
                 moveTarget.pathCount = 0;
                 moveTarget.pathIndex = 0;
+                moveTarget.blockedMoveTicks = 0;
+                moveTarget.bestMoveDistance = -1.f;
             }
 
             if (m_world.HasComponent<SkillStateComponent>(entity))
@@ -237,17 +324,11 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
             if (m_world.HasComponent<ChampionAIComponent>(entity))
             {
                 auto& ai = m_world.GetComponent<ChampionAIComponent>(entity);
-                ai.state = eChampionAIState::Dead;
-                ai.lastAction = eChampionAIAction::Retreat;
-                ai.lockedChampion = NULL_ENTITY;
-                ai.targetMinion = NULL_ENTITY;
-                ai.targetStructure = NULL_ENTITY;
-                ai.alliedWave = NULL_ENTITY;
-                ai.comboTarget = NULL_ENTITY;
-                ai.comboStep = 0u;
-                ai.bWaveJoined = false;
-                ai.bStructureWaveTanking = false;
-                ai.bInsideEnemyTurretDanger = false;
+                ResetChampionAIForLifecycle(
+                    ai,
+                    eChampionAIState::Dead,
+                    eChampionAIAction::Retreat,
+                    0.f);
             }
 
             StartReplicatedAction(m_world, entity, eActionStateId::DeathStart, tc);
@@ -280,7 +361,15 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
         health.bIsDead = false;
         champion.hp = health.fCurrent;
         champion.maxHp = health.fMaximum;
+        champion.mana = champion.maxMana;
         transform.SetPosition(respawn.spawnPos);
+        PositionDiscontinuityComponent& discontinuity =
+            m_world.HasComponent<PositionDiscontinuityComponent>(entity)
+                ? m_world.GetComponent<PositionDiscontinuityComponent>(entity)
+                : m_world.AddComponent<PositionDiscontinuityComponent>(
+                    entity,
+                    PositionDiscontinuityComponent{});
+        discontinuity.uTick = tc.tickIndex;
 
         if (!m_world.HasComponent<TargetableTag>(entity))
             m_world.AddComponent<TargetableTag>(entity);
@@ -290,23 +379,18 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
             moveTarget.bHasTarget = false;
             moveTarget.pathCount = 0;
             moveTarget.pathIndex = 0;
+            moveTarget.blockedMoveTicks = 0;
+            moveTarget.bestMoveDistance = -1.f;
         }
 
         if (m_world.HasComponent<ChampionAIComponent>(entity))
         {
             auto& ai = m_world.GetComponent<ChampionAIComponent>(entity);
-            ai.state = eChampionAIState::MoveToOuterTurret;
-            ai.lastAction = eChampionAIAction::MoveToSafeAnchor;
-            ai.lockedChampion = NULL_ENTITY;
-            ai.targetMinion = NULL_ENTITY;
-            ai.targetStructure = NULL_ENTITY;
-            ai.alliedWave = NULL_ENTITY;
-            ai.comboTarget = NULL_ENTITY;
-            ai.comboStep = 0u;
-            ai.bWaveJoined = false;
-            ai.bStructureWaveTanking = false;
-            ai.bInsideEnemyTurretDanger = false;
-            ai.decisionTimer = 0.25f;
+            ResetChampionAIForLifecycle(
+                ai,
+                eChampionAIState::MoveToOuterTurret,
+                eChampionAIAction::MoveToSafeAnchor,
+                0.25f);
         }
 
         respawn.bPending = false;
@@ -354,9 +438,26 @@ void CGameRoom::InitializeServerSimSystems()
 
     RegisterDefaultChampionSkillScalingTables();
 
+    // 활성 정의 팩의 경제 값으로 보상/XP 레지스트리 재적재 (팩 미장착 시 ctor 기본값 유지).
+    if (const EconomyGameplayDef* pEconomy =
+        ServerData::GetActiveLoLGameplayDefinitionPack().FindEconomy())
+    {
+        CRewardRegistry::Instance().LoadFromEconomyDef(*pEconomy);
+    }
+
+    // 활성 정의 팩의 아이템 값으로 아이템 레지스트리 재적재 (팩 미장착 시 컴파일 기본 표 유지).
+    std::size_t itemDefCount = 0u;
+    if (const ItemDef* pItemDefs =
+        ServerData::GetActiveLoLGameplayDefinitionPack().FindItems(itemDefCount))
+    {
+        CItemRegistry::Instance().LoadFromItemDefs(pItemDefs, itemDefCount);
+    }
+
     AnnieGameSim::RegisterHooks();
     AsheGameSim::RegisterHooks();
     FioraGameSim::RegisterHooks();
+    EzrealGameSim::RegisterHooks();
+    GarenGameSim::RegisterHooks();
     IreliaGameSim::RegisterHooks();
     JaxGameSim::RegisterHooks();
     KalistaGameSim::RegisterHooks();
@@ -369,6 +470,60 @@ void CGameRoom::InitializeServerSimSystems()
     YoneGameSim::RegisterHooks();
     YasuoGameSim::RegisterHooks();
     ZedGameSim::RegisterHooks();
+}
+
+void CGameRoom::ResetMatchStateLocked()
+{
+    // 월드 통째 교체 — 파괴된 구조물/미니언/챔피언/이벤트 엔티티 전부 소멸.
+    // 스테이지/내비/웨이포인트/구조물 스폰은 SpawnServerGameplayObjects가 자기완결이라
+    // m_bGameplayObjectsSpawned 가드만 풀면 다음 매치 시작(bBeginLoading) 때 재구축된다.
+    m_world = CWorld{};
+    m_world.Initialize_Spatial(DefaultSpatialGridDesc());
+    EnsureMatchScoreEntity(m_world);
+
+    m_entityMap = EntityIdMap{};
+    m_rng = DeterministicRng{ 0xC0FFEEull };
+    m_tickIndex = 0;
+    m_visibleTickIndex.store(0, std::memory_order_relaxed);
+
+    m_pExecutor = CDefaultCommandExecutor::Create();
+    m_pSnapBuilder = CSnapshotBuilder::Create();
+    m_pLagCompensation = std::make_unique<CLagCompensation>();
+    m_pReplayRecorder = CReplayRecorder::Create(m_roomId, 30);
+    m_bReplayFinalized = false;
+    m_bGameEnded = false;
+
+    m_pSpatialSystem = Engine::CSpatialHashSystem::Create();
+    m_pTurretAI = GameplayTurret::CTurretAISystem::Create();
+
+    m_commandIngress.Clear();
+    m_pendingExecCommands.clear();
+    m_pendingReplayCommands.clear();
+    m_bPracticeModeEnabled = false;
+    m_PracticeSpawnedEntities.clear();
+    m_PendingPracticeControlChange = {};
+
+    m_bSimPaused = false;
+    m_simStepBudget = 0;
+    m_simSpeedMul.store(1.f, std::memory_order_relaxed);
+    m_timelineEpoch = 1;
+    m_timelineBranchId = 1;
+    m_lastReplaySnapshotTick = ~0ull;
+    m_lastReplayToolRevision = ~0ull;
+    m_keyframes.clear();
+    m_pendingRewindToTick = 0;
+
+    m_sessionBinding = CSessionBinding{};
+    m_lastBroadcastActionSeq.clear();
+    m_lastSimCommandSeqBySession.clear();
+
+    m_bGameplayObjectsSpawned = false;
+    m_serverMinionWaves.Clear();
+
+    // 로비를 SeatSelect부터 다시 — 다음 접속은 첫 게임과 동일 경로를 탄다.
+    InitializeLobbyAuthority();
+
+    OutputServerAITrace("[GameRoom] Match reset after game end; lobby back to SeatSelect\n");
 }
 
 u64_t CGameRoom::ResolveServerGameTimeMs(u64_t iServerTick)

@@ -1,6 +1,6 @@
 #include "Game/CommandIngress.h"
 
-#include "Network/Session.h"
+#include "Network/ServerSessionHub.h"
 #include "Security/LagCompensation.h"
 #include "Shared/Schemas/Generated/cpp/Command_generated.h"
 
@@ -9,12 +9,16 @@
 #include <cstdio>
 #include <mutex>
 
+static_assert(
+    static_cast<u16_t>(ePracticeOperation::Count) ==
+    static_cast<u16_t>(Shared::Schema::PracticeOperation::MAX) + 1u,
+    "ePracticeOperation and Command.fbs PracticeOperation must stay append-only and aligned.");
+
 void CCommandIngress::AcceptCommandBatch(
     u32_t sessionId,
     const Shared::Schema::CommandBatch* batch,
     u64_t acceptedTick,
-    u64_t recvTimeMs,
-    CSession& session)
+    u64_t recvTimeMs)
 {
     if (!batch || !batch->commands())
         return;
@@ -28,10 +32,13 @@ void CCommandIngress::AcceptCommandBatch(
 
         const u32_t seq = packet->sequenceNum();
         bool bSuspicious = false;
-        if (!session.TryAcceptSequence(seq, bSuspicious))
+        if (!CServerSessionHub::Instance().TryAcceptCommandSequence(
+            sessionId,
+            seq,
+            bSuspicious))
         {
             if (bSuspicious)
-                session.FlagSuspicious();
+                CServerSessionHub::Instance().FlagSuspicious(sessionId);
             continue;
         }
 
@@ -49,6 +56,10 @@ void CCommandIngress::AcceptCommandBatch(
             wire.direction = { pDir->x(), pDir->y(), pDir->z() };
 
         wire.itemId = packet->itemId();
+        wire.practiceOperation =
+            static_cast<ePracticeOperation>(packet->practiceOperation());
+        wire.practiceValue = packet->practiceValue();
+        wire.practiceFlags = packet->practiceFlags();
 
         EnqueueCommand(sessionId, wire, acceptedTick, recvTimeMs, clientTimestampMs);
     }

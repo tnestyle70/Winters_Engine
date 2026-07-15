@@ -1,11 +1,11 @@
 #include "Shared/GameSim/Systems/Turret/TurretAISystem.h"
 
-#include "ECS/Components/CoreComponents.h"
-#include "ECS/Components/SpatialAgentComponent.h"
-#include "ECS/Components/TransformComponent.h"
-#include "ECS/Components/VisionComponents.h"
-#include "ECS/SpatialIndex.h"
-#include "ECS/World.h"
+#include "Shared/GameSim/Core/Ecs/CoreComponents.h"
+#include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/VisionComponents.h"
+#include "Shared/GameSim/Core/Ecs/SpatialIndex.h"
+#include "Shared/GameSim/Core/World/World.h"
 #include "ProfilerAPI.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
 
@@ -104,7 +104,7 @@ namespace GameplayTurret
         for (EntityID id : vecRemove)
         {
             if (world.IsAlive(id) && world.HasComponent<TowerAggroNotifyComponent>(id))
-                world.RemoveComponent<TowerAggroNotifyComponent>(id);
+                world.DestroyEntity(id);
         }
     }
 
@@ -115,6 +115,14 @@ namespace GameplayTurret
                 [&](EntityID id, TurretAIComponent& ai, TurretComponent&, StructureComponent& structure)
                 {
                     bool_t bActive = true;
+
+                    // 파괴된 포탑은 재활성/재타겟 대상이 아니다.
+                    if (world.HasComponent<HealthComponent>(id))
+                    {
+                        const auto& selfHp = world.GetComponent<HealthComponent>(id);
+                        if (selfHp.bIsDead || selfHp.fCurrent <= 0.f)
+                            bActive = false;
+                    }
 
                     const u32_t lane = structure.lane;
                     const u32_t tier = structure.tier;
@@ -158,6 +166,14 @@ namespace GameplayTurret
                 {
                     if (!ai.bActive)
                         return;
+
+                    // 파괴된 포탑은 발사하지 않는다.
+                    if (world.HasComponent<HealthComponent>(id))
+                    {
+                        const auto& selfHp = world.GetComponent<HealthComponent>(id);
+                        if (selfHp.bIsDead || selfHp.fCurrent <= 0.f)
+                            return;
+                    }
 
                     if (ai.attackCooldown > 0.f)
                     {
@@ -313,6 +329,8 @@ namespace GameplayTurret
         StructureProjectileComponent pc{};
         pc.sourceEntity = turretEntity;
         pc.targetEntity = targetEntity;
+        pc.sourceHandle = world.GetEntityHandle(turretEntity);
+        pc.targetHandle = world.GetEntityHandle(targetEntity);
         pc.currentPos = xf.GetPosition();
         pc.speed = ai.projectileSpeed;
         pc.damage = ai.attackDamage;

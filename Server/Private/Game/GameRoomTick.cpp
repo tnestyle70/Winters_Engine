@@ -1,10 +1,13 @@
 #include "Game/GameRoom.h"
 
+#include "Network/ServerSessionHub.h"
 #include "Security/LagCompensation.h"
 #include "Server/Private/Data/LoLGameplayDefinitionPack.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 
 #include "Shared/GameSim/Champions/Annie/AnnieGameSim.h"
 #include "Shared/GameSim/Champions/Ashe/AsheGameSim.h"
+#include "Shared/GameSim/Champions/Ezreal/EzrealGameSim.h"
 #include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
 #include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
 #include "Shared/GameSim/Champions/Jax/JaxGameSim.h"
@@ -20,6 +23,12 @@
 #include "Shared/GameSim/Champions/Zed/ZedGameSim.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
 
+#include "GameRoomInternal.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/ReplicatedEventComponent.h"
+#include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+
 #include "Shared/GameSim/Systems/AreaAura/AreaAuraSystem.h"
 #include "Shared/GameSim/Systems/AttackChase/AttackChaseSystem.h"
 #include "Shared/GameSim/Systems/Buff/BuffSystem.h"
@@ -29,6 +38,7 @@
 #include "Shared/GameSim/Systems/JungleAI/JungleAISystem.h"
 #include "Shared/GameSim/Systems/Move/MoveSystem.h"
 #include "Shared/GameSim/Systems/Recall/RecallSystem.h"
+#include "Shared/GameSim/Systems/Gold/GoldIncomeSystem.h"
 #include "Shared/GameSim/Systems/Rune/RuneSystem.h"
 #include "Shared/GameSim/Systems/SkillCooldown/SkillCooldownSystem.h"
 #include "Shared/GameSim/Systems/SpellbookFormOverride/SpellbookFormOverrideSystem.h"
@@ -69,27 +79,50 @@ void CGameRoom::TickThread()
 {
 	using clock = std::chrono::steady_clock;
 	auto next = clock::now();
-	const auto period = std::chrono::microseconds(33333);
 
 	while (m_bRunning.load(std::memory_order_relaxed))
 	{
 		Tick();
+
+		f32_t speedMul = m_simSpeedMul.load(std::memory_order_relaxed);
+		if (speedMul < 0.1f) speedMul = 0.1f;
+		if (speedMul > 8.f) speedMul = 8.f;
+		const auto period = std::chrono::microseconds(
+			static_cast<long long>(33333.f / speedMul));
+
 		next += period;
+		const auto now = clock::now();
+		if (next < now)
+			next = now;
 		std::this_thread::sleep_until(next);
 	}
 }
 
 void CGameRoom::Tick()
 {
+	CServerSessionHub::Instance().DrainIngress(*this);
 	std::lock_guard stateLock(m_stateMutex);
 
 	if (!IsInGamePhase())
 		return;
 
+	if (m_pendingRewindToTick != 0)
+		PerformPendingRewind();
+
+	if (m_bSimPaused)
+	{
+		if (m_simStepBudget == 0)
+		{
+			TickPausedControlLane();
+			return;
+		}
+		--m_simStepBudget;
+	}
+
 	++m_tickIndex;
 	m_visibleTickIndex.store(m_tickIndex, std::memory_order_relaxed);
 
-	const GameplayDefinitionPack& definitions = ServerData::GetLoLGameplayDefinitionPack();
+	const GameplayDefinitionPack& definitions = ServerData::GetActiveLoLGameplayDefinitionPack();
 	TickContext tc{
 		m_tickIndex,
 		DeterministicTime::kFixedDt,
@@ -100,35 +133,136 @@ void CGameRoom::Tick()
 	tc.pLagCompensation = m_pLagCompensation.get();
 	tc.pDefinitions = &definitions;
 
+	GameplayStatus::TickStatusEffects(m_world, tc);
+	GameplayStatus::TickForcedMotions(m_world, tc);
+	if (CBuffSystem::PruneExpiredTickBuffs(m_world, tc))
+		CStatSystem::Execute(m_world, definitions);
 	Phase_DrainCommands(tc);
 	Phase_ServerBotAI(tc);
 	Phase_ExecuteCommands(tc);
 	Phase_SimulationSystems(tc);
 	if (m_pLagCompensation)
 		m_pLagCompensation->RecordHistory(m_world, tc.tickIndex);
+	Phase_CheckGameEnd(tc);
 	Phase_BroadcastEvents(tc);
 	Phase_BroadcastSnapshot(tc);
+	CaptureKeyframeIfDue(tc);
+
+	// 정상 종료(넥서스 파괴) 저장 보증 — 종료 이벤트가 이 틱의 브로드캐스트/기록에
+	// 포함된 뒤에 리플레이를 발행한다 (S030).
+	if (m_bGameEnded && !m_bReplayFinalized)
+		FinalizeReplayRecorder();
+}
+
+void CGameRoom::Phase_CheckGameEnd(TickContext& tc)
+{
+	(void)tc;
+	if (m_bGameEnded)
+		return;
+
+	u8_t losingTeam = 0xFFu;
+	m_world.ForEach<NexusTag>(
+		[&](EntityID entity, NexusTag&)
+		{
+			if (losingTeam != 0xFFu)
+				return;
+			if (!m_world.HasComponent<HealthComponent>(entity))
+				return;
+			const auto& health = m_world.GetComponent<HealthComponent>(entity);
+			if (health.fCurrent > 0.f && !health.bIsDead)
+				return;
+			if (m_world.HasComponent<StructureComponent>(entity))
+				losingTeam = static_cast<u8_t>(m_world.GetComponent<StructureComponent>(entity).team);
+		});
+
+	if (losingTeam == 0xFFu)
+		return;
+
+	m_bGameEnded = true;
+	const u8_t winningTeam = losingTeam == 0u ? 1u : 0u;
+
+	ReplicatedEventComponent event{};
+	event.kind = eReplicatedEventKind::EffectTrigger;
+	event.effectId = kGlobalGameEndEffect;
+	event.sourceNetOverride = 0xFFFFFFFEu; // 글로벌 이벤트 sentinel (엔티티 미참조)
+	event.flags = winningTeam;
+	EnqueueReplicatedEvent(m_world, event);
+
+	char msg[128]{};
+	sprintf_s(msg, "[GameRoom] GameEnd nexusTeam=%u winner=%u tick=%llu\n",
+		losingTeam, winningTeam, static_cast<unsigned long long>(m_tickIndex));
+	OutputServerAITrace(msg);
 }
 
 void CGameRoom::Phase_ExecuteCommands(TickContext& tc)
 {
 	for (const auto& cmd : m_pendingExecCommands)
+	{
+		bool_t bAccepted = false;
+		if (TryHandlePracticeControl(tc, cmd, bAccepted))
+		{
+			const bool_t bCommitDeferred =
+				m_PendingPracticeControlChange.eKind !=
+					PracticeControlChangeKind::None &&
+				m_PendingPracticeControlChange.uSessionId ==
+					cmd.sourceSessionId &&
+				m_PendingPracticeControlChange.tCommand.sequenceNum ==
+					cmd.sequenceNum;
+			if (!bCommitDeferred)
+			{
+				RecordPendingReplayCommand(
+					tc.tickIndex,
+					cmd,
+					bAccepted
+						? Winters::Replay::eReplayJournalOutcome::AcceptedToolCommand
+						: Winters::Replay::eReplayJournalOutcome::RejectedToolCommand);
+			}
+			continue;
+		}
+		if (TryHandleAIDebugControl(tc, cmd, bAccepted))
+		{
+			RecordPendingReplayCommand(
+				tc.tickIndex,
+				cmd,
+				bAccepted
+					? Winters::Replay::eReplayJournalOutcome::AcceptedToolCommand
+					: Winters::Replay::eReplayJournalOutcome::RejectedToolCommand);
+			continue;
+		}
+		RecordPendingReplayCommand(
+			tc.tickIndex,
+			cmd,
+			Winters::Replay::eReplayJournalOutcome::SubmittedPlayerInput);
 		m_pExecutor->ExecuteCommand(m_world, tc, cmd);
+	}
 	m_pendingExecCommands.clear();
+
+	if (m_PendingPracticeControlChange.eKind !=
+		PracticeControlChangeKind::None)
+	{
+		const GameCommand controlCommand =
+			m_PendingPracticeControlChange.tCommand;
+		const bool_t bCommitted = CommitPendingPracticeControlChange(tc);
+		RecordPendingReplayCommand(
+			tc.tickIndex,
+			controlCommand,
+			bCommitted
+				? Winters::Replay::eReplayJournalOutcome::AcceptedToolCommand
+				: Winters::Replay::eReplayJournalOutcome::RejectedToolCommand);
+	}
 }
 
 void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 {
 	const GameplayDefinitionPack& definitions =
-		tc.pDefinitions ? *tc.pDefinitions : ServerData::GetLoLGameplayDefinitionPack();
-	GameplayStatus::TickStatusEffects(m_world, tc);
+		tc.pDefinitions ? *tc.pDefinitions : ServerData::GetActiveLoLGameplayDefinitionPack();
 	CSpellbookFormOverrideSystem::Execute(m_world, tc);
 	CAreaAuraSystem::Execute(m_world, tc);
-	CRuneSystem::Execute(m_world, tc);
 	CStatSystem::Execute(m_world, definitions);
-	CBuffSystem::Execute(m_world, tc);
+	CBuffSystem::AdvanceDurationsAfterStat(m_world, tc);
 	CSkillCooldownSystem::Execute(m_world, tc);
 	CRecallSystem::Execute(m_world, tc);
+	CGoldIncomeSystem::Execute(m_world, tc);
 	CWaypointPatrolSystem::Execute(m_world, tc);
 	CCombatActionSystem::Execute(m_world, tc);
 	CMoveSystem::Execute(m_world, tc);
@@ -137,6 +271,7 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	Phase_ExecuteCommands(tc);
 	AnnieGameSim::Tick(m_world, tc);
 	AsheGameSim::Tick(m_world, tc);
+	EzrealGameSim::Tick(m_world, tc);
 	FioraGameSim::Tick(m_world, tc);
 	IreliaGameSim::Tick(m_world, tc);
 	JaxGameSim::Tick(m_world, tc);
@@ -149,7 +284,7 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	SylasGameSim::Tick(m_world, tc);
 	ViegoGameSim::Tick(m_world, tc);
 	YoneGameSim::Tick(m_world, tc);
-	YasuoGameSim::Tick(m_world, tc);
+	YasuoGameSim::Tick(m_world, tc, m_pExecutor.get());
 	ZedGameSim::Tick(m_world, tc);
 	Phase_ServerMinionWave(tc);
 	Phase_ServerUnitAI(tc);
@@ -158,6 +293,7 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	Phase_ServerProjectiles(tc);
 	CDamageQueueSystem::Execute(m_world, tc);
 	CStatSystem::Execute(m_world, definitions);
+	TickPracticeControls(tc);
 	CDeathSystem::Execute(m_world, tc);
 	Phase_ServerDeathAndRespawn(tc);
 }

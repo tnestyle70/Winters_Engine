@@ -3,7 +3,7 @@
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Core/World/World.h"
 
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 
 // dash 도착 시점에 1회 호출한다. transform의 현재 위치(=도착 위치)가 벽이면
 // fromBeforeDash(=dash 시작점, walkable 가정)를 기준으로 가장 가까운 walkable 셀로 스냅한다.

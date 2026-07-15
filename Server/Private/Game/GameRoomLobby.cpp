@@ -2,9 +2,9 @@
 
 #include "GameRoomInternal.h"
 #include "Network/PacketDispatcher.h"
-#include "Network/Session.h"
-#include "Network/Session_Manager.h"
-#include "Shared/Network/PacketEnvelope.h"
+#include "Network/ServerSessionHub.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
+#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/Schemas/Generated/cpp/Hello_generated.h"
 #include "Shared/Schemas/Generated/cpp/LobbyCommand_generated.h"
 #include "Shared/Schemas/Generated/cpp/LobbyState_generated.h"
@@ -72,6 +72,7 @@ EntityID CGameRoom::OnSessionJoin(u32_t sessionId)
     CPacketDispatcher::Instance().RouteSession(sessionId, m_roomId);
 
     if (m_pLobbyAuthority &&
+        !m_bGameEnded &&
         m_pLobbyAuthority->GetPhase() != eRoomPhase::SeatSelect &&
         m_pLobbyAuthority->GetPhase() != eRoomPhase::ChampionSelect)
     {
@@ -142,6 +143,18 @@ void CGameRoom::OnSessionLeave(u32_t sessionId)
         const LobbyAuthorityResult result =
             m_pLobbyAuthority->OnSessionLeave(sessionId);
         ApplyLobbyAuthorityResult(result);
+    }
+
+    // ESC/강제 종료 저장 보증 — 마지막 세션이 떠나면 룸 teardown을 기다리지 않고
+    // 리플레이를 즉시 발행한다 (S030, FinalizeReplayRecorder는 멱등).
+    if (m_sessionIds.empty())
+    {
+        FinalizeReplayRecorder();
+
+        // 게임종료 후 마지막 세션까지 떠나면 매치를 리셋해 SeatSelect로 되돌린다 —
+        // 재접속이 파괴된 월드로 워프되는 대신 첫 게임과 동일 경로를 타게 한다 (S035).
+        if (m_bGameEnded)
+            ResetMatchStateLocked();
     }
 
     char msg[128]{};
@@ -276,38 +289,40 @@ void CGameRoom::BroadcastLobbyStateLocked()
     fbb.Finish(state);
     auto buffer = fbb.Release();
 
-    const auto packet = WrapEnvelope(
-        ePacketType::LobbyState,
-        m_pLobbyAuthority->GetRevision(),
-        buffer.data(),
-        static_cast<u32_t>(buffer.size()));
-
     for (u32_t sid : m_sessionIds)
     {
-        if (auto pSession = CSession_Manager::Get()->Find(sid))
-            pSession->Send(std::vector<u8_t>(packet.begin(), packet.end()));
+        CServerSessionHub::Instance().SendFrame(
+            sid,
+            ePacketType::LobbyState,
+            m_pLobbyAuthority->GetRevision(),
+            buffer.data(),
+            static_cast<u32_t>(buffer.size()));
     }
 }
 
 void CGameRoom::BroadcastGameStartLocked()
 {
     const u32_t revision = m_pLobbyAuthority ? m_pLobbyAuthority->GetRevision() : 0u;
-    const auto packet = WrapEnvelope(ePacketType::GameStart, revision, nullptr, 0);
     for (u32_t sid : m_sessionIds)
     {
-        if (auto pSession = CSession_Manager::Get()->Find(sid))
-            pSession->Send(std::vector<u8_t>(packet.begin(), packet.end()));
+        CServerSessionHub::Instance().SendFrame(
+            sid,
+            ePacketType::GameStart,
+            revision,
+            nullptr,
+            0u);
     }
 }
 
 void CGameRoom::SendGameStartToSessionLocked(u32_t sessionId)
 {
-    auto pSession = CSession_Manager::Get()->Find(sessionId);
-    if (!pSession)
-        return;
-
     const u32_t revision = m_pLobbyAuthority ? m_pLobbyAuthority->GetRevision() : 0u;
-    pSession->Send(WrapEnvelope(ePacketType::GameStart, revision, nullptr, 0));
+    CServerSessionHub::Instance().SendFrame(
+        sessionId,
+        ePacketType::GameStart,
+        revision,
+        nullptr,
+        0u);
 }
 
 void CGameRoom::SendHelloToSessionLocked(
@@ -316,10 +331,6 @@ void CGameRoom::SendHelloToSessionLocked(
     eChampion champion,
     u8_t team)
 {
-    auto pSession = CSession_Manager::Get()->Find(sessionId);
-    if (!pSession)
-        return;
-
     flatbuffers::FlatBufferBuilder fbb(128);
     const auto hello = Shared::Schema::CreateHello(
         fbb,
@@ -328,17 +339,20 @@ void CGameRoom::SendHelloToSessionLocked(
         m_tickIndex,
         ResolveServerGameTimeMs(m_tickIndex),
         static_cast<u8_t>(champion),
-        team);
+        team,
+        ChampionGameDataDB::GetBuildHash(),
+        ServerData::GetActiveLoLGameplayDefinitionPack().manifest.uBuildHash,
+        ServerData::GetRuntimeGameplayDefinitionRevision());
     fbb.Finish(hello);
     auto helloBuffer = fbb.Release();
 
     const u32_t revision = m_pLobbyAuthority ? m_pLobbyAuthority->GetRevision() : 0u;
-    auto packet = WrapEnvelope(
+    CServerSessionHub::Instance().SendFrame(
+        sessionId,
         ePacketType::Hello,
         revision,
         helloBuffer.data(),
         static_cast<u32_t>(helloBuffer.size()));
-    pSession->Send(std::move(packet));
 }
 
 bool CGameRoom::TryAttachSessionToDisconnectedHumanSlot(

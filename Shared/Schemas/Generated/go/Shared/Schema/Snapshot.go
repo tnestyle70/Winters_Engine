@@ -229,8 +229,88 @@ func (rcv *Snapshot) MutateRedBarons(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(32, n)
 }
 
+func (rcv *Snapshot) TimelineEpoch() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateTimelineEpoch(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(34, n)
+}
+
+func (rcv *Snapshot) BranchId() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateBranchId(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(36, n)
+}
+
+func (rcv *Snapshot) ToolRevision() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateToolRevision(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(38, n)
+}
+
+func (rcv *Snapshot) SimPaused() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *Snapshot) MutateSimPaused(n bool) bool {
+	return rcv._tab.MutateBoolSlot(40, n)
+}
+
+func (rcv *Snapshot) SimSpeedMul() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(42))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 1.0
+}
+
+func (rcv *Snapshot) MutateSimSpeedMul(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(42, n)
+}
+
+func (rcv *Snapshot) GameplayStates(obj *GameplayStateSnapshot, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *Snapshot) GameplayStatesLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(44))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func SnapshotStart(builder *flatbuffers.Builder) {
-	builder.StartObject(15)
+	builder.StartObject(21)
 }
 func SnapshotAddServerTick(builder *flatbuffers.Builder, serverTick uint64) {
 	builder.PrependUint64Slot(0, serverTick, 0)
@@ -279,6 +359,27 @@ func SnapshotAddBlueBarons(builder *flatbuffers.Builder, blueBarons uint16) {
 }
 func SnapshotAddRedBarons(builder *flatbuffers.Builder, redBarons uint16) {
 	builder.PrependUint16Slot(14, redBarons, 0)
+}
+func SnapshotAddTimelineEpoch(builder *flatbuffers.Builder, timelineEpoch uint64) {
+	builder.PrependUint64Slot(15, timelineEpoch, 0)
+}
+func SnapshotAddBranchId(builder *flatbuffers.Builder, branchId uint64) {
+	builder.PrependUint64Slot(16, branchId, 0)
+}
+func SnapshotAddToolRevision(builder *flatbuffers.Builder, toolRevision uint64) {
+	builder.PrependUint64Slot(17, toolRevision, 0)
+}
+func SnapshotAddSimPaused(builder *flatbuffers.Builder, simPaused bool) {
+	builder.PrependBoolSlot(18, simPaused, false)
+}
+func SnapshotAddSimSpeedMul(builder *flatbuffers.Builder, simSpeedMul float32) {
+	builder.PrependFloat32Slot(19, simSpeedMul, 1.0)
+}
+func SnapshotAddGameplayStates(builder *flatbuffers.Builder, gameplayStates flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(20, flatbuffers.UOffsetT(gameplayStates), 0)
+}
+func SnapshotStartGameplayStatesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
 func SnapshotEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

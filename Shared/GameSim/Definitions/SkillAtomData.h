@@ -95,6 +95,22 @@ enum class eSkillEffectParamId : u8_t
     TornadoDamage,
     DashAreaRadius,
     DashAreaDamage,
+    BonusAd,
+    BonusAttackSpeed,
+    TotalAdRatio,
+    BonusAdRatio,
+    ApRatio,
+    NonEpicBaseDamage,
+    NonEpicDamagePerRank,
+    CooldownRefundSec,
+    ManaRestoreFlat,
+    CastTimeSec,
+    ManaCostPerRank,
+    CooldownReductionPerRank,
+    MaxStacks,
+    RectLengthPerRank,
+    FormationDelaySec,
+    DamagePerSpear,
 };
 
 enum class eSummonPolicyParamId : u8_t

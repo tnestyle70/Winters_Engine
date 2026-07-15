@@ -2,6 +2,7 @@
 
 #include "Game/GameRoom.h"
 #include "Network/PacketDispatcher.h"
+#include "Network/ServerSessionHub.h"
 
 #include <algorithm>
 #include <iostream>
@@ -19,10 +20,17 @@ std::shared_ptr<CSession> CSession_Manager::OnAccept(SOCKET clientSocket,
 {
     (void)addr;
 
-    const u32_t newSid = m_nextSessionId.fetch_add(1, std::memory_order_relaxed);
+    const u32_t newSid = CServerSessionHub::Instance().RegisterTcpSession();
+    if (newSid == 0u)
+    {
+        closesocket(clientSocket);
+        return nullptr;
+    }
+
     auto session = CSession::Create(clientSocket, newSid);
     if (!session)
     {
+        CServerSessionHub::Instance().OnTcpDisconnected(newSid);
         closesocket(clientSocket);
         return nullptr;
     }
@@ -50,6 +58,7 @@ void CSession_Manager::OnDisconnect(u32_t sessionId)
         m_closingSessions.push_back(session);
     }
 
+    CServerSessionHub::Instance().OnTcpDisconnected(sessionId);
     if (g_pRoom)
         g_pRoom->OnSessionLeave(sessionId);
     CPacketDispatcher::Instance().UnrouteSession(sessionId);
@@ -72,16 +81,16 @@ void CSession_Manager::OnIoDisconnect(u32_t sessionId)
 void CSession_Manager::OnRecvComplete(u32_t sessionId, const u8_t* bytes, u32_t len)
 {
     auto pSession = Find(sessionId);
-    if (pSession)
-        pSession->OnRecvComplete(bytes, len);
+    if (pSession && !pSession->OnRecvComplete(bytes, len))
+        OnDisconnect(sessionId);
     ReapClosingSessions();
 }
 
 void CSession_Manager::OnSendComplete(u32_t sessionId, u32_t bytes)
 {
     auto pSession = Find(sessionId);
-    if (pSession)
-        pSession->OnSendComplete(bytes);
+    if (pSession && !pSession->OnSendComplete(bytes))
+        OnDisconnect(sessionId);
     ReapClosingSessions();
 }
 

@@ -1,8 +1,9 @@
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
 
-#include "ECS/Components/CoreComponents.h"
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
+#include "Shared/GameSim/Core/Ecs/CoreComponents.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
@@ -17,6 +18,18 @@
 
 namespace
 {
+    // P1: 보상 정의 누락은 "킬이 아무것도 안 줌"으로만 나타난다 — 등록 누락을 가시화.
+    void LogRewardMiss(const char* pWhat)
+    {
+        static u32_t s_rewardMissLogCount = 0;
+        if (s_rewardMissLogCount >= 16u)
+            return;
+        char msg[112]{};
+        sprintf_s(msg, "[Data] reward miss %s -> no gold/xp granted\n", pWhat);
+        WintersOutputAIDebugStringA(msg);
+        ++s_rewardMissLogCount;
+    }
+
     constexpr f32_t kFallbackNearbyExperienceShareRadius = 20.f;
 
     eMinionRewardKind ResolveMinionRewardKind(u8_t roleType)
@@ -28,6 +41,16 @@ namespace
         if (roleType == 3)
             return eMinionRewardKind::Super;
         return eMinionRewardKind::Melee;
+    }
+
+    u8_t ResolveJungleRewardSubKind(u32_t victimSubKind)
+    {
+        // JungleComponent.subKind 규약(DamageQueueSystem 과 동일): 0=Baron, 1=Dragon, 2+=소형 캠프.
+        if (victimSubKind == 0u)
+            return kJungleRewardSubBaron;
+        if (victimSubKind == 1u)
+            return kJungleRewardSubEpic;
+        return kJungleRewardSubSmall;
     }
 
     u32_t RoundRewardGold(f32_t amount)
@@ -247,7 +270,48 @@ void CExperienceSystem::GrantKillRewards(CWorld& world, const TickContext& tc,
             eRewardSourceKind::Minion,
             static_cast<u8_t>(ResolveMinionRewardKind(minion.roleType)));
         if (!reward)
+        {
+            LogRewardMiss("minion");
             return;
+        }
+
+        const u32_t goldAmount = GrantGold(world, killer, reward->gold.killerGold);
+        (void)GameplayFeedback::EnqueueGoldRewardFeedback(world, tc, killer, victim, goldAmount);
+
+        const std::vector<EntityID> recipients = CollectNearbyExperienceRecipients(
+            world, rewardTeam, killer, victim, ResolveExperienceShareRadius(*reward));
+        GrantExperienceToRecipients(world, recipients, reward->experience.nearbyXP);
+
+        return;
+    }
+
+    if (world.HasComponent<TurretAIComponent>(victim))
+    {
+        const RewardDef* reward = CRewardRegistry::Instance().FindReward(eRewardSourceKind::Turret);
+        if (!reward)
+        {
+            LogRewardMiss("turret-kill");
+            return;
+        }
+
+        if (world.HasComponent<ChampionComponent>(killer))
+        {
+            const u32_t goldAmount = GrantGold(world, killer, reward->gold.killerGold);
+            (void)GameplayFeedback::EnqueueGoldRewardFeedback(world, tc, killer, victim, goldAmount);
+        }
+        return;
+    }
+
+    if (world.HasComponent<JungleComponent>(victim))
+    {
+        const auto& jungle = world.GetComponent<JungleComponent>(victim);
+        const RewardDef* reward = CRewardRegistry::Instance().FindReward(
+            eRewardSourceKind::Jungle, ResolveJungleRewardSubKind(jungle.subKind));
+        if (!reward)
+        {
+            LogRewardMiss("jungle");
+            return;
+        }
 
         const u32_t goldAmount = GrantGold(world, killer, reward->gold.killerGold);
         (void)GameplayFeedback::EnqueueGoldRewardFeedback(world, tc, killer, victim, goldAmount);
@@ -263,7 +327,10 @@ void CExperienceSystem::GrantKillRewards(CWorld& world, const TickContext& tc,
     {
         const RewardDef* reward = CRewardRegistry::Instance().FindReward(eRewardSourceKind::Champion);
         if (!reward)
+        {
+            LogRewardMiss("champion-kill");
             return;
+        }
 
         const u32_t goldAmount = GrantGold(world, killer, reward->gold.killerGold);
         (void)GameplayFeedback::EnqueueGoldRewardFeedback(world, tc, killer, victim, goldAmount);
@@ -279,7 +346,10 @@ f32_t CExperienceSystem::ResolveChampionKillExperience(CWorld& world, EntityID v
 {
     const RewardDef* reward = CRewardRegistry::Instance().FindReward(eRewardSourceKind::Champion);
     if (!reward)
+    {
+        LogRewardMiss("champion-kill-xp");
         return 0.f;
+    }
 
     u8_t victimLevel = 1;
     f32_t nextLevelXp = 0.f;

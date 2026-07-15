@@ -2,22 +2,86 @@
 
 #include "GameRoomInternal.h"
 #include "Game/LobbyAuthority.h"
+#include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 
 #include <Windows.h>
+#include <algorithm>
+#include <array>
 #include <cwchar>
+#include <cwctype>
 
 namespace
 {
     // Debug smoke roster keeps a red Sylas bot in this fixed slot.
     constexpr u8_t kSmokeRedSylasSlot = 5;
     constexpr f32_t kSmokeRedSylasMaxHp = 600.f;
+    constexpr std::array<eChampion, 17u> kAttackSpeedLabChampionPool =
+    {
+        eChampion::IRELIA,
+        eChampion::YASUO,
+        eChampion::KALISTA,
+        eChampion::SYLAS,
+        eChampion::VIEGO,
+        eChampion::ANNIE,
+        eChampion::ASHE,
+        eChampion::FIORA,
+        eChampion::GAREN,
+        eChampion::RIVEN,
+        eChampion::ZED,
+        eChampion::EZREAL,
+        eChampion::YONE,
+        eChampion::JAX,
+        eChampion::MASTERYI,
+        eChampion::KINDRED,
+        eChampion::LEESIN,
+    };
 
     bool_t HasServerFlag(const wchar_t* pFlag)
     {
         const wchar_t* pCommandLine = ::GetCommandLineW();
-        return pCommandLine != nullptr && pFlag != nullptr
-            && std::wcsstr(pCommandLine, pFlag) != nullptr;
+        if (!pCommandLine || !pFlag || *pFlag == L'\0')
+            return false;
+
+        const size_t flagLength = std::wcslen(pFlag);
+        const wchar_t* pMatch = pCommandLine;
+        while ((pMatch = std::wcsstr(pMatch, pFlag)) != nullptr)
+        {
+            const bool_t bLeftBoundary =
+                pMatch == pCommandLine || std::iswspace(*(pMatch - 1)) != 0;
+            const wchar_t right = pMatch[flagLength];
+            const bool_t bRightBoundary =
+                right == L'\0' || std::iswspace(right) != 0;
+            if (bLeftBoundary && bRightBoundary)
+                return true;
+            pMatch += flagLength;
+        }
+        return false;
     }
+
+    u8_t ResolveAttackSpeedLabBotLane(u8_t slotId)
+    {
+        switch (slotId % 5u)
+        {
+        case 1u:
+            return kGameSimLaneTop;
+        case 2u:
+            return kGameSimLaneMid;
+        case 3u:
+        case 4u:
+            return kGameSimLaneBot;
+        default:
+            return kGameSimLaneMid;
+        }
+    }
+}
+
+bool_t ShouldUseAttackSpeedLabRoster()
+{
+#if defined(_DEBUG)
+    return HasServerFlag(L"--attack-speed-lab");
+#else
+    return false;
+#endif
 }
 
 bool_t ShouldUseRedSylasSmokeRoster()
@@ -93,4 +157,73 @@ void EnsureRedSylasSmokeRoster(LobbySlotState* pSlots, u32_t slotCount)
     dummy.botDifficulty = 0;
 
     OutputServerAITrace("[Smoke] red Sylas dummy enabled slot=5 pos=(36,1,-6)\n");
+}
+
+bool_t EnsureAttackSpeedLabRoster(LobbySlotState* pSlots, u32_t slotCount)
+{
+    if (!pSlots || slotCount != kGameRosterSlotCount)
+        return false;
+
+    u32_t humanCount = 0u;
+    u32_t humanIndex = 0u;
+    for (u32_t i = 0u; i < slotCount; ++i)
+    {
+        if (!pSlots[i].bHuman)
+            continue;
+        ++humanCount;
+        humanIndex = i;
+    }
+    if (humanCount != 1u ||
+        pSlots[humanIndex].sessionId == 0u ||
+        pSlots[humanIndex].champion == eChampion::NONE ||
+        pSlots[humanIndex].champion == eChampion::END ||
+        std::find(
+            kAttackSpeedLabChampionPool.begin(),
+            kAttackSpeedLabChampionPool.end(),
+            pSlots[humanIndex].champion) ==
+                kAttackSpeedLabChampionPool.end())
+    {
+        return false;
+    }
+
+    std::array<LobbySlotState, kGameRosterSlotCount> nextSlots{};
+    size_t championPoolIndex = 0u;
+
+    for (u32_t i = 0u; i < slotCount; ++i)
+    {
+        LobbySlotState& slot = nextSlots[i];
+        slot.slotId = static_cast<u8_t>(i);
+        slot.team = i < 5u ? 0u : 1u;
+        slot.netId = NULL_NET_ENTITY;
+        slot.bReady = true;
+        if (i == humanIndex)
+        {
+            slot.bHuman = true;
+            slot.bBot = false;
+            slot.bDummy = false;
+            slot.sessionId = pSlots[humanIndex].sessionId;
+            slot.champion = pSlots[humanIndex].champion;
+            slot.botDifficulty = pSlots[humanIndex].botDifficulty;
+            slot.botLane = ResolveAttackSpeedLabBotLane(slot.slotId);
+            continue;
+        }
+
+        while (championPoolIndex < kAttackSpeedLabChampionPool.size() &&
+            kAttackSpeedLabChampionPool[championPoolIndex] ==
+                pSlots[humanIndex].champion)
+        {
+            ++championPoolIndex;
+        }
+        if (championPoolIndex >= kAttackSpeedLabChampionPool.size())
+            return false;
+
+        slot.bBot = true;
+        slot.champion = kAttackSpeedLabChampionPool[championPoolIndex++];
+        slot.botDifficulty = 2u;
+        slot.botLane = ResolveAttackSpeedLabBotLane(slot.slotId);
+    }
+
+    for (u32_t i = 0u; i < slotCount; ++i)
+        pSlots[i] = nextSlots[i];
+    return true;
 }

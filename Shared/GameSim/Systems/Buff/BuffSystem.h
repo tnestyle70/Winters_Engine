@@ -9,5 +9,10 @@ class CBuffSystem
 {
 public:
     static bool AddOrRefresh(BuffComponent& component, const BuffInstance& instance);
-    static void Execute(CWorld& world, const TickContext& tc);
+    static bool_t PruneExpiredTickBuffs(
+        CWorld& world,
+        const TickContext& tc);
+    static void AdvanceDurationsAfterStat(
+        CWorld& world,
+        const TickContext& tc);
 };

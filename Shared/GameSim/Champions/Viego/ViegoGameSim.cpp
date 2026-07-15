@@ -1,4 +1,8 @@
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
+#include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
+#include "Shared/GameSim/Champions/Jax/JaxGameSim.h"
+#include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
+#include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
 
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
@@ -6,23 +10,36 @@
 #include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
-#include "ECS/Components/SpatialAgentComponent.h"
+#include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
 
 #include "Shared/GameSim/Components/AreaAuraComponent.h"
+#include "Shared/GameSim/Components/AnnieSimComponent.h"
+#include "Shared/GameSim/Components/AsheSimComponent.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
+#include "Shared/GameSim/Components/FioraSimComponent.h"
+#include "Shared/GameSim/Components/IreliaSimComponent.h"
+#include "Shared/GameSim/Components/JaxSimComponent.h"
+#include "Shared/GameSim/Components/KalistaPassiveDashComponent.h"
+#include "Shared/GameSim/Components/KindredSimComponent.h"
+#include "Shared/GameSim/Components/LeeSinSimComponent.h"
+#include "Shared/GameSim/Components/MasterYiComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
+#include "Shared/GameSim/Components/SylasSimComponent.h"
 #include "Shared/GameSim/Components/ViegoSimComponent.h"
+#include "Shared/GameSim/Components/YoneSimComponent.h"
+#include "Shared/GameSim/Components/ZedSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionGameplayDef.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Systems/Move/DashArrival.h"
 
@@ -31,6 +48,8 @@
 #include <functional>
 #include <iostream>
 #include <vector>
+
+#include "Shared/GameSim/Core/Checkpoint/KeyframeComponentRegistry.h"
 
 namespace
 {
@@ -41,6 +60,14 @@ namespace
         f32_t elapsedSec = 0.f;
         f32_t durationSec = 0.f;
     };
+
+    // Chrono Break: 익명 네임스페이스 컴포넌트는 소유 TU에서 자기등록한다.
+    const bool_t s_bViegoDashKeyframeRegistered = []()
+    {
+        SimCheckpoint::KeyframeComponentRegistry::Get()
+            .Register<ViegoDashComponent>("ViegoDashComponent");
+        return true;
+    }();
 
     ViegoSimComponent& EnsureViegoState(CWorld& world, EntityID caster)
     {
@@ -55,15 +82,149 @@ namespace
         return champion != eChampion::NONE && champion != eChampion::END;
     }
 
+    void ClearPendingRanks(ViegoSimComponent& state)
+    {
+        for (u8_t slot = 0; slot < SkillRankComponent::kSlotCount; ++slot)
+            state.pendingSkillRanks[slot] = 0u;
+        state.bPendingHasSkillRanks = false;
+    }
+
+    void DestroyViegoSoul(CWorld& world, const TickContext& tc, EntityID soulEntity)
+    {
+        if (soulEntity == NULL_ENTITY || !world.IsAlive(soulEntity))
+            return;
+
+        if (tc.pEntityMap && world.HasComponent<NetEntityIdComponent>(soulEntity))
+        {
+            const NetEntityId netId =
+                world.GetComponent<NetEntityIdComponent>(soulEntity).netId;
+            if (netId != NULL_NET_ENTITY)
+                tc.pEntityMap->Unbind(netId);
+        }
+
+        world.DestroyEntity(soulEntity);
+    }
+
+    template <typename T>
+    void RemoveBorrowedComponent(CWorld& world, EntityID caster)
+    {
+        if (world.HasComponent<T>(caster))
+            world.RemoveComponent<T>(caster);
+    }
+
+    void ClearBorrowedChampionRuntime(
+        CWorld& world,
+        EntityID caster,
+        eChampion borrowedChampion)
+    {
+        switch (borrowedChampion)
+        {
+        case eChampion::ANNIE: RemoveBorrowedComponent<AnnieSimComponent>(world, caster); break;
+        case eChampion::ASHE: RemoveBorrowedComponent<AsheSimComponent>(world, caster); break;
+        case eChampion::FIORA: FioraGameSim::CancelRuntime(world, caster); break;
+        case eChampion::IRELIA: RemoveBorrowedComponent<IreliaSimComponent>(world, caster); break;
+        case eChampion::JAX: JaxGameSim::CancelRuntime(world, caster); break;
+        case eChampion::KALISTA:
+            RemoveBorrowedComponent<KalistaPassiveDashComponent>(world, caster);
+            break;
+        case eChampion::KINDRED: RemoveBorrowedComponent<KindredSimComponent>(world, caster); break;
+        case eChampion::LEESIN:
+            RemoveBorrowedComponent<LeeSinSimComponent>(world, caster);
+            RemoveBorrowedComponent<LeeSinDashComponent>(world, caster);
+            break;
+        case eChampion::MASTERYI: RemoveBorrowedComponent<MasterYiSimComponent>(world, caster); break;
+        case eChampion::RIVEN: RemoveBorrowedComponent<RivenStateComponent>(world, caster); break;
+        case eChampion::SYLAS:
+            RemoveBorrowedComponent<SylasSimComponent>(world, caster);
+            RemoveBorrowedComponent<SylasDashComponent>(world, caster);
+            break;
+        case eChampion::YASUO: YasuoGameSim::CancelRuntime(world, caster); break;
+        case eChampion::YONE: YoneGameSim::CancelRuntime(world, caster); break;
+        case eChampion::ZED:
+        {
+            RemoveBorrowedComponent<ZedSimComponent>(world, caster);
+            RemoveBorrowedComponent<ZedVanishComponent>(world, caster);
+            std::vector<EntityID> marks;
+            world.ForEach<ZedDeathMarkComponent>(
+                std::function<void(EntityID, ZedDeathMarkComponent&)>(
+                    [&](EntityID entity, ZedDeathMarkComponent& mark)
+                    {
+                        if (mark.entitySource == caster)
+                            marks.push_back(entity);
+                    }));
+            for (EntityID entity : marks)
+                world.RemoveComponent<ZedDeathMarkComponent>(entity);
+            break;
+        }
+        default: break;
+        }
+    }
+
+    void TickStoredSkillState(SkillStateComponent& skillState, f32_t dt)
+    {
+        for (u8_t slotIndex = static_cast<u8_t>(eSkillSlot::Q);
+            slotIndex <= static_cast<u8_t>(eSkillSlot::E);
+            ++slotIndex)
+        {
+            auto& slot = skillState.slots[slotIndex];
+            if (slot.cooldownRemaining > 0.f)
+            {
+                slot.cooldownRemaining = (std::max)(0.f, slot.cooldownRemaining - dt);
+                if (slot.cooldownRemaining <= 0.f)
+                    slot.cooldownDuration = 0.f;
+            }
+            else
+            {
+                slot.cooldownDuration = 0.f;
+            }
+
+            if (slot.currentStage == 1u && slot.stageWindow > 0.f)
+            {
+                slot.stageWindow = (std::max)(0.f, slot.stageWindow - dt);
+                if (slot.stageWindow <= 0.f)
+                    slot.currentStage = 0u;
+            }
+        }
+    }
+
     void ClearViegoPossession(CWorld& world, EntityID caster, ViegoSimComponent& state)
     {
+        ClearBorrowedChampionRuntime(world, caster, state.possessionChampion);
+
+        if (state.bHasOriginalSkillRanks &&
+            world.HasComponent<SkillRankComponent>(caster))
+        {
+            auto& ranks = world.GetComponent<SkillRankComponent>(caster);
+            for (u8_t slot = static_cast<u8_t>(eSkillSlot::Q);
+                slot <= static_cast<u8_t>(eSkillSlot::E);
+                ++slot)
+            {
+                ranks.ranks[slot] = state.originalSkillRanks.ranks[slot];
+            }
+        }
+
+        if (state.bHasOriginalSkillState &&
+            world.HasComponent<SkillStateComponent>(caster))
+        {
+            auto& skillState = world.GetComponent<SkillStateComponent>(caster);
+            for (u8_t slot = static_cast<u8_t>(eSkillSlot::Q);
+                slot <= static_cast<u8_t>(eSkillSlot::E);
+                ++slot)
+            {
+                skillState.slots[slot] = state.originalSkillState.slots[slot];
+            }
+        }
+
         state.bPossessionActive = false;
         state.bPossessionPending = false;
         state.pendingPossessionChampion = eChampion::END;
         state.pendingPossessedTarget = NULL_ENTITY;
+        ClearPendingRanks(state);
         state.possessionApplyTimerSec = 0.f;
         state.possessedTarget = NULL_ENTITY;
-        state.possessionTimerSec = 0.f;
+        state.possessionChampion = eChampion::END;
+        state.bHasOriginalSkillRanks = false;
+        state.bHasOriginalSkillState = false;
 
         if (world.HasComponent<FormOverrideComponent>(caster))
             world.RemoveComponent<FormOverrideComponent>(caster);
@@ -77,16 +238,55 @@ namespace
             return;
         }
 
-        const f32_t durationSec = state.possessionDurationSec > 0.f
-            ? state.possessionDurationSec
-            : 5.f;
+        if (!state.bPossessionActive)
+        {
+            if (world.HasComponent<SkillRankComponent>(caster))
+            {
+                state.originalSkillRanks = world.GetComponent<SkillRankComponent>(caster);
+                state.bHasOriginalSkillRanks = true;
+            }
+            if (world.HasComponent<SkillStateComponent>(caster))
+            {
+                state.originalSkillState = world.GetComponent<SkillStateComponent>(caster);
+                state.bHasOriginalSkillState = true;
+            }
+        }
+
+        if (world.HasComponent<SkillRankComponent>(caster))
+        {
+            auto& ranks = world.GetComponent<SkillRankComponent>(caster);
+            for (u8_t slot = static_cast<u8_t>(eSkillSlot::Q);
+                slot <= static_cast<u8_t>(eSkillSlot::E);
+                ++slot)
+            {
+                const u8_t stolenRank = state.bPendingHasSkillRanks
+                    ? state.pendingSkillRanks[slot]
+                    : 0u;
+                ranks.ranks[slot] = (std::max)(static_cast<u8_t>(1u), stolenRank);
+            }
+        }
+
+        if (world.HasComponent<SkillStateComponent>(caster))
+        {
+            auto& skillState = world.GetComponent<SkillStateComponent>(caster);
+            for (u8_t slot = static_cast<u8_t>(eSkillSlot::Q);
+                slot <= static_cast<u8_t>(eSkillSlot::E);
+                ++slot)
+            {
+                skillState.slots[slot] = SkillSlotRuntime{};
+            }
+        }
 
         FormOverrideComponent form{};
         form.baseChampion = eChampion::VIEGO;
         form.visualChampion = state.pendingPossessionChampion;
         form.skillChampion = state.pendingPossessionChampion;
-        form.skillSlotMask = FormOverrideComponent{}.skillSlotMask;
-        form.fRemainingSec = durationSec;
+        form.skillSlotMask = static_cast<u8_t>(
+            (1u << static_cast<u8_t>(eSkillSlot::BasicAttack)) |
+            (1u << static_cast<u8_t>(eSkillSlot::Q)) |
+            (1u << static_cast<u8_t>(eSkillSlot::W)) |
+            (1u << static_cast<u8_t>(eSkillSlot::E)));
+        form.fRemainingSec = -1.f;
         form.bActive = true;
 
         if (world.HasComponent<FormOverrideComponent>(caster))
@@ -97,9 +297,10 @@ namespace
         state.bPossessionActive = true;
         state.bPossessionPending = false;
         state.possessedTarget = state.pendingPossessedTarget;
-        state.possessionTimerSec = durationSec;
+        state.possessionChampion = state.pendingPossessionChampion;
         state.pendingPossessionChampion = eChampion::END;
         state.pendingPossessedTarget = NULL_ENTITY;
+        ClearPendingRanks(state);
         state.possessionApplyTimerSec = 0.f;
     }
 
@@ -228,49 +429,44 @@ namespace
         u8_t slot,
         u8_t rank)
     {
-        const f32_t radiusSq = radius * radius;
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (entity == source || champion.team == sourceTeam)
-                        return;
-                    if (WintersMath::DistanceSqPointToSegmentXZ(transform.GetPosition(), start, end) > radiusSq)
-                        return;
-
-                    EnqueuePhysicalDamage(world, source, entity, sourceTeam, amount, slot, rank);
-                }));
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInSegment(
+                world,
+                source,
+                start,
+                end,
+                radius);
+        for (EntityID target : targets)
+            EnqueuePhysicalDamage(world, source, target, sourceTeam, amount, slot, rank);
     }
 
     void ApplyLineStun(
         CWorld& world,
         const TickContext& tc,
         EntityID source,
-        eTeam sourceTeam,
         const Vec3& start,
         const Vec3& end,
         f32_t radius,
         f32_t stunDurationSec)
     {
-        const f32_t radiusSq = radius * radius;
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (entity == source || champion.team == sourceTeam)
-                        return;
-                    if (WintersMath::DistanceSqPointToSegmentXZ(transform.GetPosition(), start, end) > radiusSq)
-                        return;
-
-                    GameplayStatus::ApplyStun(
-                        world,
-                        tc,
-                        entity,
-                        source,
-                        eChampion::VIEGO,
-                        eSkillSlot::W,
-                        stunDurationSec);
-                }));
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInSegment(
+                world,
+                source,
+                start,
+                end,
+                radius);
+        for (EntityID target : targets)
+        {
+            GameplayStatus::ApplyStun(
+                world,
+                tc,
+                target,
+                source,
+                eChampion::VIEGO,
+                eSkillSlot::W,
+                stunDurationSec);
+        }
     }
 
     void EnqueueCircleDamage(
@@ -283,19 +479,12 @@ namespace
         u8_t slot,
         u8_t rank)
     {
-        const f32_t radiusSq = radius * radius;
-        std::vector<EntityID> targets;
-        targets.reserve(8);
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (entity == source || champion.team == sourceTeam)
-                        return;
-                    if (WintersMath::DistanceSqXZ(transform.GetPosition(), origin) <= radiusSq)
-                        targets.push_back(entity);
-                }));
-
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
+                world,
+                source,
+                origin,
+                radius);
         for (EntityID target : targets)
             EnqueuePhysicalDamage(world, source, target, sourceTeam, amount, slot, rank);
     }
@@ -304,32 +493,29 @@ namespace
         CWorld& world,
         const TickContext& tc,
         EntityID source,
-        eTeam sourceTeam,
         const Vec3& origin,
         f32_t radius,
         f32_t slowDurationSec,
         f32_t moveSpeedMul)
     {
-        const f32_t radiusSq = radius * radius;
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID target, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (target == source || champion.team == sourceTeam)
-                        return;
-                    if (WintersMath::DistanceSqXZ(transform.GetPosition(), origin) > radiusSq)
-                        return;
-
-                    GameplayStatus::ApplySlow(
-                        world,
-                        tc,
-                        target,
-                        source,
-                        eChampion::VIEGO,
-                        eSkillSlot::R,
-                        slowDurationSec,
-                        moveSpeedMul);
-                }));
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
+                world,
+                source,
+                origin,
+                radius);
+        for (EntityID target : targets)
+        {
+            GameplayStatus::ApplySlow(
+                world,
+                tc,
+                target,
+                source,
+                eChampion::VIEGO,
+                eSkillSlot::R,
+                slowDurationSec,
+                moveSpeedMul);
+        }
     }
 
     EntityID SpawnProjectile(
@@ -353,6 +539,7 @@ namespace
 
         SkillProjectileComponent projectile{};
         projectile.sourceEntity = caster;
+        projectile.sourceHandle = world.GetEntityHandle(caster);
         projectile.sourceTeam = casterTeam;
         projectile.kind = kind;
         projectile.skillId = static_cast<u16_t>((static_cast<u32_t>(eChampion::VIEGO) << 8) | slot);
@@ -409,7 +596,26 @@ namespace
             ctx,
             eSkillSlot::Q,
             eSkillEffectParamId::BaseDamage);
-        const Vec3 end{ origin.x + dir.x * range, origin.y, origin.z + dir.z * range };
+        Vec3 end{ origin.x + dir.x * range, origin.y, origin.z + dir.z * range };
+        if (ctx.pTickCtx->pWalkable)
+        {
+            Vec3 clampedEnd = end;
+            const f32_t casterRadius = GameplayStateQuery::ResolveGameplayRadius(
+                *ctx.pWorld,
+                ctx.casterEntity);
+            if (ctx.pTickCtx->pWalkable->TryClampMoveSegmentXZ(
+                origin,
+                end,
+                casterRadius,
+                clampedEnd))
+            {
+                end = clampedEnd;
+            }
+            else
+            {
+                end = origin;
+            }
+        }
         RotateToward(*ctx.pWorld, ctx.casterEntity, dir);
         EnqueueLineDamage(
             *ctx.pWorld,
@@ -460,12 +666,31 @@ namespace
             eSkillSlot::W,
             eSkillEffectParamId::StunDurationSec);
 
-        const Vec3 vEnd
+        Vec3 vEnd
         {
             vOrigin.x + vDir.x * dashRange,
             vOrigin.y,
             vOrigin.z + vDir.z * dashRange
         };
+        if (ctx.pTickCtx->pWalkable)
+        {
+            Vec3 clampedEnd = vEnd;
+            const f32_t casterRadius = GameplayStateQuery::ResolveGameplayRadius(
+                *ctx.pWorld,
+                ctx.casterEntity);
+            if (ctx.pTickCtx->pWalkable->TryClampMoveSegmentXZ(
+                vOrigin,
+                vEnd,
+                casterRadius,
+                clampedEnd))
+            {
+                vEnd = clampedEnd;
+            }
+            else
+            {
+                vEnd = vOrigin;
+            }
+        }
 
         StartDash(*ctx.pWorld, ctx.casterEntity, vEnd, dashDurationSec);
 
@@ -484,7 +709,6 @@ namespace
             *ctx.pWorld,
             *ctx.pTickCtx,
             ctx.casterEntity,
-            ctx.casterTeam,
             vOrigin,
             vEnd,
             radius,
@@ -598,7 +822,6 @@ namespace
             *ctx.pWorld,
             *ctx.pTickCtx,
             ctx.casterEntity,
-            ctx.casterTeam,
             end,
             radius,
             slowDurationSec,
@@ -610,8 +833,22 @@ namespace
 
 namespace ViegoGameSim
 {
+    void ClearPossession(CWorld& world, EntityID viegoEntity)
+    {
+        if (viegoEntity == NULL_ENTITY ||
+            !world.HasComponent<ViegoSimComponent>(viegoEntity))
+        {
+            return;
+        }
+
+        ClearViegoPossession(
+            world,
+            viegoEntity,
+            world.GetComponent<ViegoSimComponent>(viegoEntity));
+    }
+
     void TrySpawnSoulForKill(CWorld& world, const TickContext& tc,
-        EntityID, EntityID deadChampion)
+        EntityID killer, EntityID deadChampion)
     {
         if (deadChampion == NULL_ENTITY ||
             world.HasComponent<ViegoSoulComponent>(deadChampion) ||
@@ -619,31 +856,23 @@ namespace ViegoGameSim
             !world.HasComponent<TransformComponent>(deadChampion))
             return;
 
-        const auto& dead = world.GetComponent<ChampionComponent>(deadChampion);
-        eTeam eligibleTeam = eTeam::TEAM_END;
-
-        world.ForEach<ChampionComponent>(
-            std::function<void(EntityID, ChampionComponent&)>(
-                [&](EntityID entity, ChampionComponent& champion)
-                {
-                    if (eligibleTeam != eTeam::TEAM_END ||
-                        champion.id != eChampion::VIEGO ||
-                        champion.team == dead.team)
-                        return;
-
-                    if (world.HasComponent<HealthComponent>(entity))
-                    {
-                        const auto& hp = world.GetComponent<HealthComponent>(entity);
-                        if (hp.bIsDead || hp.fCurrent <= 0.f)
-                            return;
-                    }
-
-                    eligibleTeam = champion.team;
-                }
-            )
-        );
-        if (eligibleTeam == eTeam::TEAM_END)
+        if (killer == NULL_ENTITY ||
+            !world.HasComponent<ChampionComponent>(killer) ||
+            !world.HasComponent<HealthComponent>(killer))
+        {
             return;
+        }
+
+        const auto& dead = world.GetComponent<ChampionComponent>(deadChampion);
+        const auto& killerChampion = world.GetComponent<ChampionComponent>(killer);
+        const auto& killerHealth = world.GetComponent<HealthComponent>(killer);
+        if (killerChampion.id != eChampion::VIEGO ||
+            killerChampion.team == dead.team ||
+            killerHealth.bIsDead ||
+            killerHealth.fCurrent <= 0.f)
+        {
+            return;
+        }
 
         const ChampionGameplayDef* championDef =
             GameplayDefinitionQuery::FindChampion(world, NULL_ENTITY, tc, eChampion::VIEGO);
@@ -654,9 +883,17 @@ namespace ViegoGameSim
 
         ViegoSoulComponent soul{};
         soul.deadChampion = deadChampion;
+        soul.eligibleViego = killer;
         soul.champion = dead.id;
-        soul.eligibleTeam = eligibleTeam;
+        soul.eligibleTeam = killerChampion.team;
         soul.fRemainingSec = championDef->passiveSoul.lifetimeSec;
+        if (world.HasComponent<SkillRankComponent>(deadChampion))
+        {
+            const auto& ranks = world.GetComponent<SkillRankComponent>(deadChampion);
+            for (u8_t slot = 0; slot < SkillRankComponent::kSlotCount; ++slot)
+                soul.skillRanks[slot] = ranks.ranks[slot];
+            soul.bHasSkillRanks = true;
+        }
         world.AddComponent<ViegoSoulComponent>(soulEntity, soul);
 
         ChampionComponent soulChampion{};
@@ -715,7 +952,7 @@ namespace ViegoGameSim
             )
         );
         for (EntityID entity : expiredSouls)
-            world.DestroyEntity(entity);
+            DestroyViegoSoul(world, tc, entity);
 
 
         std::vector<EntityID> finishedDashes;
@@ -724,6 +961,12 @@ namespace ViegoGameSim
                 [&](EntityID entity, ViegoDashComponent& dash, TransformComponent& transform)
                 {
                     ClearMove(world, entity);
+
+                    if (!GameplayStateQuery::CanMove(world, entity))
+                    {
+                        finishedDashes.push_back(entity);
+                        return;
+                    }
 
                     dash.elapsedSec += tc.fDt;
                     f32_t t = dash.durationSec > 0.01f
@@ -773,6 +1016,16 @@ namespace ViegoGameSim
             std::function<void(EntityID, ViegoSimComponent&)>(
                 [&](EntityID entity, ViegoSimComponent& state)
                 {
+                    if (world.HasComponent<HealthComponent>(entity))
+                    {
+                        const auto& health = world.GetComponent<HealthComponent>(entity);
+                        if (health.bIsDead || health.fCurrent <= 0.f)
+                        {
+                            ClearViegoPossession(world, entity, state);
+                            return;
+                        }
+                    }
+
                     if (state.bMistActive)
                     {
                         state.mistTimerSec = std::max(0.f, state.mistTimerSec - tc.fDt);
@@ -788,13 +1041,14 @@ namespace ViegoGameSim
                             ApplyViegoPossession(world, entity, state);
                     }
 
-                    if (state.bPossessionActive)
+                    if (state.bPossessionActive &&
+                        !world.HasComponent<FormOverrideComponent>(entity))
                     {
-                        state.possessionTimerSec = std::max(0.f, state.possessionTimerSec - tc.fDt);
-                        if (state.possessionTimerSec <= 0.f)
-                        {
-                            ClearViegoPossession(world, entity, state);
-                        }
+                        ClearViegoPossession(world, entity, state);
+                    }
+                    else if (state.bPossessionActive && state.bHasOriginalSkillState)
+                    {
+                        TickStoredSkillState(state.originalSkillState, tc.fDt);
                     }
                 }));
     }

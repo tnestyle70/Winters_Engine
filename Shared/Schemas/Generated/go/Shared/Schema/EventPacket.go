@@ -169,8 +169,20 @@ func (rcv *EventPacket) KillFeed(obj *KillFeedEvent) *KillFeedEvent {
 	return nil
 }
 
+func (rcv *EventPacket) EventOrdinal() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EventPacket) MutateEventOrdinal(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(24, n)
+}
+
 func EventPacketStart(builder *flatbuffers.Builder) {
-	builder.StartObject(10)
+	builder.StartObject(11)
 }
 func EventPacketAddKind(builder *flatbuffers.Builder, kind EventKind) {
 	builder.PrependByteSlot(0, byte(kind), 0)
@@ -201,6 +213,9 @@ func EventPacketAddEffect(builder *flatbuffers.Builder, effect flatbuffers.UOffs
 }
 func EventPacketAddKillFeed(builder *flatbuffers.Builder, killFeed flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(killFeed), 0)
+}
+func EventPacketAddEventOrdinal(builder *flatbuffers.Builder, eventOrdinal uint32) {
+	builder.PrependUint32Slot(10, eventOrdinal, 0)
 }
 func EventPacketEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

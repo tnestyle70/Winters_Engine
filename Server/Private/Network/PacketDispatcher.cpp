@@ -1,7 +1,7 @@
 #include "Network/PacketDispatcher.h"
 
 #include "Game/GameRoom.h"
-#include "Network/Session.h"
+#include "Network/ServerSessionHub.h"
 #include "Network/Session_Manager.h"
 #include "Shared/Schemas/Generated/cpp/Command_generated.h"
 #include "Shared/Schemas/Generated/cpp/LobbyCommand_generated.h"
@@ -18,6 +18,29 @@ void CPacketDispatcher::RegisterRoom(u32_t roomId, CGameRoom* pRoom)
 {
     std::lock_guard lk(m_mutex);
     m_rooms[roomId] = pRoom;
+}
+
+void CPacketDispatcher::UnregisterRoom(
+    u32_t roomId,
+    CGameRoom* pExpectedRoom)
+{
+    std::lock_guard lk(m_mutex);
+    const auto roomIterator = m_rooms.find(roomId);
+    if (roomIterator == m_rooms.end() ||
+        roomIterator->second != pExpectedRoom)
+    {
+        return;
+    }
+
+    m_rooms.erase(roomIterator);
+    for (auto iterator = m_sessionToRoom.begin();
+        iterator != m_sessionToRoom.end();)
+    {
+        if (iterator->second == roomId)
+            iterator = m_sessionToRoom.erase(iterator);
+        else
+            ++iterator;
+    }
 }
 
 void CPacketDispatcher::RouteSession(u32_t sessionId, u32_t roomId)
@@ -47,24 +70,34 @@ void CPacketDispatcher::DrainFrames(u32_t sessionId, CFrameParser& parser)
             return;
         }
 
-        switch (frame.type)
-        {
-        case ePacketType::CommandBatch:
-            DispatchCommandBatch(sessionId, frame);
-            break;
-        case ePacketType::LobbyCommand:
-            DispatchLobbyCommand(sessionId, frame);
-            break;
-        case ePacketType::Hello:
-            DispatchHello(sessionId, frame);
-            break;
-        case ePacketType::Heartbeat:
-            break;
-        default:
-            if (auto pSession = CSession_Manager::Get()->Find(sessionId))
-                pSession->FlagSuspicious();
-            break;
-        }
+        DispatchFrame(sessionId, frame);
+    }
+}
+
+void CPacketDispatcher::DispatchFrame(
+    u32_t sessionId,
+    const ParsedFrameOwned& frame)
+{
+    if (!CServerSessionHub::Instance().IsIngressOpen() ||
+        !CServerSessionHub::Instance().IsSessionActive(sessionId))
+        return;
+
+    switch (frame.type)
+    {
+    case ePacketType::CommandBatch:
+        DispatchCommandBatch(sessionId, frame);
+        break;
+    case ePacketType::LobbyCommand:
+        DispatchLobbyCommand(sessionId, frame);
+        break;
+    case ePacketType::Hello:
+        DispatchHello(sessionId, frame);
+        break;
+    case ePacketType::Heartbeat:
+        break;
+    default:
+        CServerSessionHub::Instance().FlagSuspicious(sessionId);
+        break;
     }
 }
 
@@ -73,8 +106,7 @@ void CPacketDispatcher::DispatchCommandBatch(u32_t sessionId, const ParsedFrameO
     flatbuffers::Verifier verifier(frame.payload.data(), frame.payload.size());
     if (!Shared::Schema::VerifyCommandBatchBuffer(verifier))
     {
-        if (auto pSession = CSession_Manager::Get()->Find(sessionId))
-            pSession->FlagSuspicious();
+        CServerSessionHub::Instance().FlagSuspicious(sessionId);
         return;
     }
 
@@ -103,8 +135,7 @@ void CPacketDispatcher::DispatchLobbyCommand(u32_t sessionId, const ParsedFrameO
     flatbuffers::Verifier verifier(frame.payload.data(), frame.payload.size());
     if (!Shared::Schema::VerifyLobbyCommandBuffer(verifier))
     {
-        if (auto pSession = CSession_Manager::Get()->Find(sessionId))
-            pSession->FlagSuspicious();
+        CServerSessionHub::Instance().FlagSuspicious(sessionId);
         return;
     }
 

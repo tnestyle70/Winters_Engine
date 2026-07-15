@@ -12,6 +12,8 @@ namespace Shared::Schema
     struct LobbyCommand;
 }
 
+class CGameRoomIntegrationProbeAccess;
+
 enum class eRoomPhase : u8_t
 {
     SeatSelect,
@@ -82,8 +84,16 @@ public:
         eChampion& outChampion,
         u8_t& outTeam) const;
     void SetSlotNetId(u8_t slotId, NetEntityId netId);
+    LobbyAuthorityResult TransferInGameHumanControl(
+        u32_t sessionId,
+        NetEntityId targetNetId);
+    LobbyAuthorityResult ReplaceInGameControlledChampion(
+        u32_t sessionId,
+        eChampion champion,
+        NetEntityId newNetId);
 
 private:
+    friend class CGameRoomIntegrationProbeAccess;
     u8_t FindFirstEmptySlot(u32_t beginSlot, u32_t endSlot) const;
     void CompactTeamSlots(u32_t beginSlot, u32_t endSlot);
     void OnLobbyJoin(u32_t sessionId);

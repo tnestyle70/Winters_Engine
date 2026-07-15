@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
   "dataVersion": 1,
-  "buildHash": 2493520265,
+  "buildHash": 276254117,
   "spawnLoadout": {
     "startGold": 10000,
     "startLevel": 6,
     "startRune": "LethalTempo",
-    "startRuneCount": 1,
+    "startRuneCount": 0,
     "respawnDelaySec": 3.0
   },
   "championCollider": {
@@ -30,14 +30,16 @@
     }
   },
   "defaultJungleCamp": {
-    "maxHp": 1500.0,
+    "maxHp": 450.0,
     "radius": 1.0,
     "attackRange": 1.7,
-    "attackDamage": 45.0,
+    "attackDamage": 40.0,
     "attackCooldown": 1.4,
     "moveSpeed": 4.0,
     "baseArmor": 20.0,
-    "baseMr": 20.0
+    "baseMr": 20.0,
+    "aggroRange": 3.0,
+    "leashRange": 9.0
   },
   "jungleCamps": [
     {
@@ -49,7 +51,9 @@
       "attackCooldown": 1.2,
       "moveSpeed": 2.5,
       "baseArmor": 20.0,
-      "baseMr": 20.0
+      "baseMr": 20.0,
+      "aggroRange": 2.5,
+      "leashRange": 8.0
     },
     {
       "subKind": 1,
@@ -60,73 +64,126 @@
       "attackCooldown": 1.5,
       "moveSpeed": 4.0,
       "baseArmor": 20.0,
-      "baseMr": 20.0
+      "baseMr": 20.0,
+      "aggroRange": 2.5,
+      "leashRange": 8.0
     },
     {
       "subKind": 2,
-      "maxHp": 1500.0,
+      "maxHp": 2300.0,
       "radius": 1.2,
       "attackRange": 2.0,
       "attackDamage": 65.0,
       "attackCooldown": 1.4,
       "moveSpeed": 4.0,
       "baseArmor": 20.0,
-      "baseMr": 20.0
+      "baseMr": 20.0,
+      "aggroRange": 3.0,
+      "leashRange": 9.0
     },
     {
       "subKind": 3,
-      "maxHp": 1500.0,
+      "maxHp": 2300.0,
       "radius": 1.2,
       "attackRange": 2.0,
       "attackDamage": 65.0,
       "attackCooldown": 1.4,
       "moveSpeed": 4.0,
       "baseArmor": 20.0,
-      "baseMr": 20.0
+      "baseMr": 20.0,
+      "aggroRange": 3.0,
+      "leashRange": 9.0
+    },
+    {
+      "subKind": 4,
+      "maxHp": 450.0,
+      "radius": 1.0,
+      "attackRange": 1.6,
+      "attackDamage": 40.0,
+      "attackCooldown": 1.6,
+      "moveSpeed": 3.8,
+      "baseArmor": 20.0,
+      "baseMr": 20.0,
+      "aggroRange": 3.0,
+      "leashRange": 9.0
     },
     {
       "subKind": 5,
-      "maxHp": 1500.0,
+      "maxHp": 450.0,
       "radius": 1.2,
       "attackRange": 2.0,
-      "attackDamage": 60.0,
+      "attackDamage": 40.0,
       "attackCooldown": 1.4,
       "moveSpeed": 4.0,
       "baseArmor": 20.0,
-      "baseMr": 20.0
+      "baseMr": 20.0,
+      "aggroRange": 3.0,
+      "leashRange": 9.0
+    },
+    {
+      "subKind": 6,
+      "maxHp": 450.0,
+      "radius": 0.9,
+      "attackRange": 1.5,
+      "attackDamage": 40.0,
+      "attackCooldown": 1.3,
+      "moveSpeed": 4.6,
+      "baseArmor": 20.0,
+      "baseMr": 20.0,
+      "aggroRange": 3.0,
+      "leashRange": 9.0
+    },
+    {
+      "subKind": 7,
+      "maxHp": 450.0,
+      "radius": 0.8,
+      "attackRange": 1.5,
+      "attackDamage": 40.0,
+      "attackCooldown": 1.2,
+      "moveSpeed": 4.4,
+      "baseArmor": 20.0,
+      "baseMr": 20.0,
+      "aggroRange": 3.0,
+      "leashRange": 9.0
     },
     {
       "subKind": 8,
-      "maxHp": 1500.0,
+      "maxHp": 450.0,
       "radius": 0.7,
       "attackRange": 1.4,
-      "attackDamage": 25.0,
+      "attackDamage": 40.0,
       "attackCooldown": 1.25,
       "moveSpeed": 4.5,
       "baseArmor": 20.0,
-      "baseMr": 20.0
+      "baseMr": 20.0,
+      "aggroRange": 3.0,
+      "leashRange": 9.0
     },
     {
       "subKind": 9,
-      "maxHp": 1500.0,
+      "maxHp": 450.0,
       "radius": 0.7,
       "attackRange": 1.4,
-      "attackDamage": 25.0,
+      "attackDamage": 40.0,
       "attackCooldown": 1.25,
       "moveSpeed": 4.5,
       "baseArmor": 20.0,
-      "baseMr": 20.0
+      "baseMr": 20.0,
+      "aggroRange": 3.0,
+      "leashRange": 9.0
     },
     {
       "subKind": 10,
-      "maxHp": 1500.0,
+      "maxHp": 450.0,
       "radius": 0.7,
       "attackRange": 1.4,
-      "attackDamage": 25.0,
+      "attackDamage": 40.0,
       "attackCooldown": 1.25,
       "moveSpeed": 4.5,
       "baseArmor": 20.0,
-      "baseMr": 20.0
+      "baseMr": 20.0,
+      "aggroRange": 3.0,
+      "leashRange": 9.0
     }
   ],
   "defaultMinion": {
@@ -134,8 +191,8 @@
     "attackRange": 1.5,
     "sightRange": 12.0,
     "attackDamage": 40.0,
-    "attackCooldownMax": 1.0,
-    "maxHp": 450.0
+    "attackCooldownMax": 1.666667,
+    "maxHp": 225.0
   },
   "minions": [
     {
@@ -144,8 +201,8 @@
       "attackRange": 1.5,
       "sightRange": 12.0,
       "attackDamage": 40.0,
-      "attackCooldownMax": 1.0,
-      "maxHp": 450.0
+      "attackCooldownMax": 1.666667,
+      "maxHp": 225.0
     },
     {
       "roleType": 1,
@@ -153,8 +210,8 @@
       "attackRange": 8.0,
       "sightRange": 14.0,
       "attackDamage": 60.0,
-      "attackCooldownMax": 1.2,
-      "maxHp": 450.0
+      "attackCooldownMax": 2.0,
+      "maxHp": 225.0
     },
     {
       "roleType": 2,
@@ -162,8 +219,8 @@
       "attackRange": 10.0,
       "sightRange": 16.0,
       "attackDamage": 40.0,
-      "attackCooldownMax": 1.0,
-      "maxHp": 450.0
+      "attackCooldownMax": 1.666667,
+      "maxHp": 225.0
     },
     {
       "roleType": 3,
@@ -171,8 +228,8 @@
       "attackRange": 2.0,
       "sightRange": 14.0,
       "attackDamage": 100.0,
-      "attackCooldownMax": 1.0,
-      "maxHp": 1000.0
+      "attackCooldownMax": 1.666667,
+      "maxHp": 500.0
     },
     {
       "roleType": 4,
@@ -181,7 +238,23 @@
       "sightRange": 14.0,
       "attackDamage": 80.0,
       "attackCooldownMax": 1.0,
-      "maxHp": 1500.0
+      "maxHp": 750.0
     }
-  ]
+  ],
+  "minionWave": {
+    "waveIntervalTicks": 900,
+    "initialDelayTicks": 300,
+    "perMinionDelayTicks": 10,
+    "siegeWavePeriod": 3,
+    "timeGrowthPerMinute": 0.025,
+    "timeGrowthCapMinutes": 30,
+    "rangedProjectile": {
+      "speed": 14.0,
+      "hitRadius": 0.45,
+      "forwardOffset": 0.45,
+      "spawnHeight": 0.85,
+      "maxDistancePadding": 2.0
+    },
+    "corpseDeathTimerSec": 1.5
+  }
 }

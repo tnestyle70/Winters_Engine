@@ -2,7 +2,7 @@
 
 #include "WintersMath.h"
 #include "WintersTypes.h"
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
 
 #include <type_traits>
 

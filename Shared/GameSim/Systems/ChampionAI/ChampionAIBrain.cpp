@@ -12,7 +12,11 @@ namespace
 			ChampionAIComponent& ai,
 			const ChampionAIBrainInput& input) override
 		{
-			ai.intentHoldTimer = std::max(0.f, ai.intentHoldTimer - input.fDt);
+			if (input.fRetreatScore >= 0.65f)
+			{
+				ai.intentHoldTimer = ai.intentHoldDuration;
+				return eChampionAIIntent::Retreat;
+			}
 
 			if (input.bPostComboBAWindow && input.bCanAttackChampion)
 			{
@@ -22,22 +26,33 @@ namespace
 
 			if (ai.intentHoldTimer > 0.f)
 			{
-				if (ai.intent != eChampionAIIntent::AttackChampion ||
-					input.bCanAttackChampion)
-				{
+				if ((ai.intent == eChampionAIIntent::AttackChampion &&
+						input.bCanAttackChampion) ||
+					(ai.intent == eChampionAIIntent::SiegeStructure &&
+						input.bCanAttackStructure) ||
+					(ai.intent == eChampionAIIntent::Retreat &&
+						input.fRetreatScore >= 0.35f) ||
+					ai.intent == eChampionAIIntent::FarmMinion)
 					return ai.intent;
-				}
 			}
 
 			ai.intentHoldTimer = ai.intentHoldDuration;
 
-			if (!input.bCanAttackChampion)
-				return eChampionAIIntent::FarmMinion;
+			if (input.bCanAttackChampion &&
+				input.fChampionScore >=
+					input.fFarmScore + ai.fChampionScoreMargin &&
+				input.fChampionScore >= input.fStructureScore)
+			{
+				return eChampionAIIntent::AttackChampion;
+			}
 
-			return (input.fChampionScore >=
-					input.fFarmScore + ai.fChampionScoreMargin)
-				? eChampionAIIntent::AttackChampion
-				: eChampionAIIntent::FarmMinion;
+			if (input.bCanAttackStructure &&
+				input.fStructureScore > input.fFarmScore)
+			{
+				return eChampionAIIntent::SiegeStructure;
+			}
+
+			return eChampionAIIntent::FarmMinion;
 		}
 	};
 
@@ -51,7 +66,11 @@ namespace
 			ChampionAIComponent& ai,
 			const ChampionAIBrainInput& input) override
 		{
-			ai.intentHoldTimer = std::max(0.f, ai.intentHoldTimer - input.fDt);
+			if (input.fRetreatScore >= 0.65f)
+			{
+				ai.intentHoldTimer = ai.intentHoldDuration * kCommitScale;
+				return eChampionAIIntent::Retreat;
+			}
 
 			if (input.bPostComboBAWindow && input.bCanAttackChampion)
 			{
@@ -61,29 +80,46 @@ namespace
 
 			if (ai.intentHoldTimer > 0.f)
 			{
-				if (ai.intent != eChampionAIIntent::AttackChampion ||
-					input.bCanAttackChampion)
-				{
+				if ((ai.intent == eChampionAIIntent::AttackChampion &&
+						input.bCanAttackChampion) ||
+					(ai.intent == eChampionAIIntent::SiegeStructure &&
+						input.bCanAttackStructure) ||
+					(ai.intent == eChampionAIIntent::Retreat &&
+						input.fRetreatScore >= 0.30f) ||
+					(ai.intent == eChampionAIIntent::FarmMinion &&
+						!input.bCanAttackChampion &&
+						!input.bCanAttackStructure))
 					return ai.intent;
-				}
 			}
 
 			ai.intentHoldTimer = ai.intentHoldDuration * kCommitScale;
 
+			// 근소 열세까지는 교전 후보 유지 — 동률·미세 열세에서 무조건 파밍 금지.
 			const bool_t bHpAdvantage =
-				ai.fDecisionSelfHpRatio >= ai.fDecisionEnemyHpRatio;
-			if (!input.bCanAttackChampion || !bHpAdvantage)
-				return eChampionAIIntent::FarmMinion;
+				ai.fDecisionSelfHpRatio + kHpDisadvantageTolerance >=
+					ai.fDecisionEnemyHpRatio;
+			if (input.bCanAttackChampion && bHpAdvantage &&
+				input.fChampionScore >=
+					input.fFarmScore + ai.fChampionScoreMargin &&
+				input.fChampionScore >= input.fStructureScore)
+			{
+				return eChampionAIIntent::AttackChampion;
+			}
 
-			return (input.fChampionScore >=
-					input.fFarmScore + ai.fChampionScoreMargin)
-				? eChampionAIIntent::AttackChampion
-				: eChampionAIIntent::FarmMinion;
+			if (input.bCanAttackStructure &&
+				input.fStructureScore > input.fFarmScore)
+			{
+				return eChampionAIIntent::SiegeStructure;
+			}
+
+			return eChampionAIIntent::FarmMinion;
 		}
 
 	private:
 		// 사람처럼 결정을 더 오래 유지하는 배율
 		static constexpr f32_t kCommitScale = 1.5f;
+		// 체력 하드게이트 완화 폭 — 이 이상 열세면 신규 교전을 열지 않는다.
+		static constexpr f32_t kHpDisadvantageTolerance = 0.12f;
 	};
 
 	// 외부 판단 모듈(플래너/학습 정책) 연동 지점.

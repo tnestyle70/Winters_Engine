@@ -11,7 +11,38 @@ enum CommandKind : ubyte {
     Recall = 7,
     RecallCancel = 8,
     AIDebugControl = 9,
-    Flash = 10
+    Flash = 10,
+    CompanionCommand = 11,
+    PracticeControl = 12
+}
+
+enum PracticeOperation : ushort {
+    None = 0,
+    SetEnabled = 1,
+    SetOptions = 2,
+    RestoreHealthMana = 3,
+    ResetCooldowns = 4,
+    AddGold = 5,
+    SetLevel = 6,
+    Teleport = 7,
+    SpawnMinion = 8,
+    ClearPracticeSpawns = 9,
+    ApplySkillEffectOverride = 10,
+    ClearSkillEffectOverrides = 11,
+    SetSimulationPaused = 12,
+    StepSimulationTicks = 13,
+    SetSimulationTimeScale = 14,
+    RewindSimulationSeconds = 15,
+    SpawnChampion = 16,
+    ApplyChampionStatOverride = 17,
+    ClearChampionStatOverrides = 18,
+    ApplyItemStatOverride = 19,
+    ClearItemStatOverrides = 20,
+    TakeControlRosterChampion = 21,
+    ReplaceControlledChampion = 22,
+    ApplyStructureStatOverride = 23,
+    ClearStructureStatOverrides = 24,
+    ReloadGameplayDefinitions = 25
 }
 
 struct Vec3 {
@@ -30,6 +61,9 @@ table CommandPacket {
     direction:Vec3;
     itemId:ushort;
     pad:ushort;
+    practiceOperation:PracticeOperation;
+    practiceValue:float;
+    practiceFlags:uint;
 }
 
 table CommandBatch {

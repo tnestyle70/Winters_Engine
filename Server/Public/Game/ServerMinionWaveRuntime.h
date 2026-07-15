@@ -49,12 +49,31 @@ public:
 
 	static u8_t ResolveWaypointLane(eTeam team, u8_t lane);
 
-private:
 	struct PendingSpawn
 	{
 		u64_t dueTick = 0u;
 		SpawnRequest request{};
 	};
+
+	// Chrono Break: 틱 스케줄 상태만 왕복. waypoints/flowfield는 부트타임 파생 데이터라 제외.
+	struct WaveState
+	{
+		u64_t nextWaveTick = 0u;
+		u32_t waveIndex = 0u;
+		std::vector<PendingSpawn> pendingSpawns{};
+	};
+	WaveState CaptureWaveState() const
+	{
+		return WaveState{ m_nextWaveTick, m_waveIndex, m_pendingSpawns };
+	}
+	void RestoreWaveState(const WaveState& state)
+	{
+		m_nextWaveTick = state.nextWaveTick;
+		m_waveIndex = state.waveIndex;
+		m_pendingSpawns = state.pendingSpawns;
+	}
+
+private:
 
 	void EnqueueWave(u64_t tickIndex);
 	const std::vector<Vec3>& GetActiveWaypoints(eTeam team, u8_t lane) const;

@@ -3,6 +3,7 @@
 #include "Game/ServerMinionTuning.h"
 #include "Manager/Navigation/NavGrid.h"
 #include "Manager/Navigation/Pathfinder.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Definitions/StageData.h"
 
 #include <algorithm>
@@ -302,13 +303,15 @@ void CServerMinionWaveRuntime::ResetWaveSchedule()
 
 void CServerMinionWaveRuntime::ScheduleFirstWave(u64_t currentTick, const TraceCallback& trace)
 {
-	m_nextWaveTick = currentTick + ServerMinionTuning::kInitialWaveDelayTicks;
+	const u64_t initialDelayTicks =
+		ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionWave.initialDelayTicks;
+	m_nextWaveTick = currentTick + initialDelayTicks;
 
 	char msg[160]{};
 	sprintf_s(msg,
 		"[GameRoom] First minion wave scheduled tick=%llu delayTicks=%llu\n",
 		static_cast<unsigned long long>(m_nextWaveTick),
-		static_cast<unsigned long long>(ServerMinionTuning::kInitialWaveDelayTicks));
+		static_cast<unsigned long long>(initialDelayTicks));
 	Trace(trace, msg);
 }
 
@@ -319,7 +322,8 @@ void CServerMinionWaveRuntime::TickWave(
 	if (m_nextWaveTick != 0u && tickIndex >= m_nextWaveTick)
 	{
 		EnqueueWave(tickIndex);
-		m_nextWaveTick = tickIndex + ServerMinionTuning::kWaveIntervalTicks;
+		m_nextWaveTick = tickIndex +
+			ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionWave.waveIntervalTicks;
 	}
 
 	if (!spawn || m_pendingSpawns.empty())
@@ -402,6 +406,7 @@ void CServerMinionWaveRuntime::EnqueueWave(u64_t tickIndex)
 
 	static constexpr u8_t kRoleMelee = 0u;
 	static constexpr u8_t kRoleRanged = 1u;
+	static constexpr u8_t kRoleSiege = 2u;
 	static constexpr MinionSpawnSlot kSpawnSlots[] =
 	{
 		{ kRoleMelee, 3.6f, -0.9f },
@@ -411,7 +416,12 @@ void CServerMinionWaveRuntime::EnqueueWave(u64_t tickIndex)
 		{ kRoleRanged, 1.2f, 0.0f },
 		{ kRoleRanged, 2.4f, 0.9f },
 	};
+	// 매 siegeWavePeriod 웨이브마다 공성 미니언 1기 추가 (LoL 근사, minionWave 데이터).
+	static constexpr MinionSpawnSlot kSiegeSlot = { kRoleSiege, 7.2f, 0.0f };
 	static constexpr u8_t kLanes[] = { kLaneTop, kLaneMid, kLaneBot };
+
+	const MinionWaveDef& waveDef =
+		ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionWave;
 
 	bool_t bHasStageWaypoints = false;
 	for (u8_t lane : kLanes)
@@ -426,15 +436,21 @@ void CServerMinionWaveRuntime::EnqueueWave(u64_t tickIndex)
 		? static_cast<u32_t>(sizeof(kLanes) / sizeof(kLanes[0]))
 		: 1u;
 
-	constexpr u32_t kSlotCount =
+	constexpr u32_t kBaseSlotCount =
 		static_cast<u32_t>(sizeof(kSpawnSlots) / sizeof(kSpawnSlots[0]));
+	const u32_t siegeWavePeriod =
+		waveDef.siegeWavePeriod > 0u ? waveDef.siegeWavePeriod : 3u;
+	const bool_t bSiegeWave = (m_waveIndex % siegeWavePeriod) == (siegeWavePeriod - 1u);
+	const u32_t kSlotCount = bSiegeWave ? kBaseSlotCount + 1u : kBaseSlotCount;
 
 	for (u32_t laneIndex = 0u; laneIndex < laneCount; ++laneIndex)
 	{
 		const u8_t lane = bHasStageWaypoints ? kLanes[laneIndex] : kLaneMid;
 		for (u32_t slotIndex = 0u; slotIndex < kSlotCount; ++slotIndex)
 		{
-			const MinionSpawnSlot& slot = kSpawnSlots[slotIndex];
+			const MinionSpawnSlot& slot = slotIndex < kBaseSlotCount
+				? kSpawnSlots[slotIndex]
+				: kSiegeSlot;
 			Vec3 bluePos{
 				ServerMinionTuning::kWaveStartX + slot.forwardOffset,
 				1.f,
@@ -478,7 +494,7 @@ void CServerMinionWaveRuntime::EnqueueWave(u64_t tickIndex)
 			}
 
 			const u64_t dueTick = tickIndex +
-				static_cast<u64_t>(slotIndex) * ServerMinionTuning::kPerMinionSpawnDelayTicks;
+				static_cast<u64_t>(slotIndex) * waveDef.perMinionDelayTicks;
 			m_pendingSpawns.push_back(
 				PendingSpawn{ dueTick, SpawnRequest{ eTeam::Blue, slot.role, lane, bluePos } });
 			m_pendingSpawns.push_back(

@@ -21,6 +21,12 @@ enum class eMinionRewardKind : u8_t
     Super = 3,
 };
 
+// 정글 보상 subKind 규약 — JungleComponent.subKind(0=Baron, 1=Dragon, 2+=소형 캠프)와 정렬.
+// DamageQueueSystem kJungleSubBaron/kJungleSubDragon 과 동일한 번호를 쓴다.
+inline constexpr u8_t kJungleRewardSubBaron = 0u;
+inline constexpr u8_t kJungleRewardSubEpic = 1u;
+inline constexpr u8_t kJungleRewardSubSmall = 2u;
+
 struct GoldRewardDef
 {
     f32_t killerGold = 0.f;

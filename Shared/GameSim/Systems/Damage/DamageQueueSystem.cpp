@@ -12,11 +12,16 @@
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+#include "Shared/GameSim/Systems/Shield/ShieldSystem.h"
 // Viego Soul Spawn
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionPack.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
 
 namespace
@@ -25,6 +30,63 @@ namespace
     constexpr u32_t kJungleSubDragon = 1u;
 
     constexpr u64_t kAssistCreditWindowTicks = DeterministicTime::kTicksPerSecond * 10ull;
+
+    u64_t ResolveAssistCreditWindowTicks(const TickContext& tc)
+    {
+        if (const EconomyGameplayDef* pEconomy =
+            tc.pDefinitions ? tc.pDefinitions->FindEconomy() : nullptr)
+        {
+            return static_cast<u64_t>(
+                pEconomy->assistCreditWindowSec *
+                static_cast<f32_t>(DeterministicTime::kTicksPerSecond) + 0.5f);
+        }
+        return kAssistCreditWindowTicks;
+    }
+
+    bool_t IsYasuoPassiveShieldReady(CWorld& world, EntityID target)
+    {
+        if (target == NULL_ENTITY ||
+            !world.HasComponent<ChampionComponent>(target) ||
+            !world.HasComponent<YasuoStateComponent>(target))
+        {
+            return false;
+        }
+
+        const ChampionComponent& champion =
+            world.GetComponent<ChampionComponent>(target);
+        const YasuoStateComponent& state =
+            world.GetComponent<YasuoStateComponent>(target);
+        return champion.id == eChampion::YASUO &&
+            state.fPassiveShieldRemaining <= 0.f &&
+            state.fPassiveFlowMax > 0.f &&
+            state.fPassiveFlow >= state.fPassiveFlowMax;
+    }
+
+    void EnqueueYasuoPassiveShieldVisual(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID target)
+    {
+        ReplicatedEventComponent event{};
+        event.kind = eReplicatedEventKind::EffectTrigger;
+        event.effectId = MakeGameplayHookId(
+            eChampion::YASUO,
+            GameplayHookVariant::Passive_Trigger);
+        event.sourceEntity = target;
+        event.targetEntity = target;
+        event.sourceChampion = eChampion::YASUO;
+        event.slot = static_cast<u8_t>(eSkillSlot::W);
+        event.flags = static_cast<u16_t>(eSkillSlot::W);
+        event.rank = 1u;
+        event.startTick = tc.tickIndex;
+        event.durationMs = 3000u;
+        if (world.HasComponent<ChampionComponent>(target))
+        {
+            event.sourceTeam = static_cast<u8_t>(
+                world.GetComponent<ChampionComponent>(target).team);
+        }
+        EnqueueReplicatedEvent(world, event);
+    }
 
     ChampionScoreComponent& EnsureChampionScore(CWorld& world, EntityID entity)
     {
@@ -131,14 +193,30 @@ namespace
             ChampionScoreComponent& targetScore =
                 EnsureChampionScore(world, request.target);
 
+            // 퍼스트 블러드: 양 팀 통산 킬 0에서의 첫 챔피언 킬에만 지급.
+            const bool_t bFirstBlood =
+                matchScore.Blue.iTotalKills == 0u && matchScore.Red.iTotalKills == 0u;
+
             ++sourceScore.iKills;
             ++targetScore.iDeaths;
 
             if (pSourceTeamScore)
                 ++pSourceTeamScore->iTotalKills;
 
+            if (const RewardDef* pChampionReward =
+                CRewardRegistry::Instance().FindReward(eRewardSourceKind::Champion))
+            {
+                if (bFirstBlood)
+                {
+                    (void)CExperienceSystem::GrantGold(
+                        world, request.source,
+                        pChampionReward->gold.firstBloodBonusGold);
+                }
+            }
+
             if (world.HasComponent<ChampionAssistCreditComponent>(request.target))
             {
+                const u64_t assistWindowTicks = ResolveAssistCreditWindowTicks(tc);
                 ChampionAssistCreditComponent& credits =
                     world.GetComponent<ChampionAssistCreditComponent>(request.target);
 
@@ -158,9 +236,18 @@ namespace
                     const bool_t bSameTeam = assistChampion.team == sourceChampion.team;
                     const bool_t bRecent =
                         tc.tickIndex >= credit.iLastDamageTick &&
-                        tc.tickIndex - credit.iLastDamageTick <= kAssistCreditWindowTicks;
+                        tc.tickIndex - credit.iLastDamageTick <= assistWindowTicks;
                     if (bSameTeam && bRecent)
+                    {
                         ++EnsureChampionScore(world, credit.SourceEntity).iAssists;
+                        if (const RewardDef* pChampionReward =
+                            CRewardRegistry::Instance().FindReward(eRewardSourceKind::Champion))
+                        {
+                            (void)CExperienceSystem::GrantGold(
+                                world, credit.SourceEntity,
+                                pChampionReward->gold.assistGold);
+                        }
+                    }
 
                     credit = {};
                 }
@@ -220,8 +307,7 @@ namespace
     void TryEnqueueKillFeedEvent(CWorld& world, const TickContext& tc,
         const DamageRequest& request)
     {
-        if (request.source == NULL_ENTITY || request.target == NULL_ENTITY ||
-            !world.HasComponent<ChampionComponent>(request.source))
+        if (request.source == NULL_ENTITY || request.target == NULL_ENTITY)
             return;
 
         const eKillFeedObjectKind objectKind =
@@ -229,15 +315,33 @@ namespace
         if (objectKind == eKillFeedObjectKind::None)
             return;
 
-        const ChampionComponent& sourceChampion =
-            world.GetComponent<ChampionComponent>(request.source);
+        // 챔피언/정글 킬은 챔피언 막타만 공지한다.
+        // 구조물 파괴는 미니언 막타가 일상 경로이므로 킬러가 챔피언이 아니어도 발행한다
+        // (클라이언트 파괴 배너/연출이 이 이벤트 하나에 걸려 있다).
+        const bool_t bChampionSource =
+            world.HasComponent<ChampionComponent>(request.source);
+        const bool_t bStructureKill =
+            objectKind == eKillFeedObjectKind::Turret ||
+            objectKind == eKillFeedObjectKind::Inhibitor;
+        if (!bChampionSource && !bStructureKill)
+            return;
 
         ReplicatedEventComponent event{};
         event.kind = eReplicatedEventKind::KillFeed;
         event.sourceEntity = request.source;
         event.targetEntity = request.target;
-        event.sourceChampion = sourceChampion.id;
-        event.sourceTeam = static_cast<u8_t>(sourceChampion.team);
+        if (bChampionSource)
+        {
+            const ChampionComponent& sourceChampion =
+                world.GetComponent<ChampionComponent>(request.source);
+            event.sourceChampion = sourceChampion.id;
+            event.sourceTeam = static_cast<u8_t>(sourceChampion.team);
+        }
+        else
+        {
+            event.sourceTeam = static_cast<u8_t>(
+                GameplayStateQuery::ResolveEntityTeam(world, request.source));
+        }
         event.killFeedObjectKind = objectKind;
         event.startTick = tc.tickIndex;
 
@@ -307,6 +411,8 @@ namespace
 
 void CDamageQueueSystem::Execute(CWorld& world, const TickContext& tc)
 {
+    CShieldSystem::Execute(world, tc);
+
     const auto requests = DeterministicEntityIterator<DamageRequestComponent>::CollectSorted(world);
     for (EntityID entity : requests)
     {
@@ -314,7 +420,12 @@ void CDamageQueueSystem::Execute(CWorld& world, const TickContext& tc)
             continue;
 
         const DamageRequest request = world.GetComponent<DamageRequestComponent>(entity);
+        const bool_t bYasuoPassiveShieldReady =
+            IsYasuoPassiveShieldReady(world, request.target);
         const DamageResult result = ApplyDamageRequest(world, tc, request);
+        if (bYasuoPassiveShieldReady && result.bWasShielded)
+            EnqueueYasuoPassiveShieldVisual(world, tc, request.target);
+
         if (result.finalAmount > 0.f && request.target != NULL_ENTITY)
         {
             ReplicatedEventComponent event{};

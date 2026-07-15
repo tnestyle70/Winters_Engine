@@ -1,7 +1,7 @@
 #include "Shared/GameSim/Systems/Recall/RecallSystem.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Components/AttackChaseComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
@@ -10,6 +10,7 @@
 #include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 namespace
@@ -23,7 +24,7 @@ namespace
 		return health.bIsDead || health.fCurrent <= 0.f;
 	}
 
-	void RefillHealth(CWorld& world, EntityID entity)
+	void RefillResources(CWorld& world, EntityID entity)
 	{
 		if (!world.HasComponent<HealthComponent>(entity))
 			return;
@@ -37,6 +38,7 @@ namespace
 			auto& champion = world.GetComponent<ChampionComponent>(entity);
 			champion.hp = health.fCurrent;
 			champion.maxHp = health.fMaximum;
+			champion.mana = champion.maxMana;
 		}
 	}
 
@@ -84,13 +86,28 @@ void CRecallSystem::Execute(CWorld& world, const TickContext& tc)
 			continue;
 		}
 
+		if (!GameplayStateQuery::CanMove(world, entity) ||
+			!GameplayStateQuery::CanCast(world, entity))
+		{
+			SetIdlePose(world, entity, tc);
+			world.RemoveComponent<RecallComponent>(entity);
+			continue;
+		}
+
 		recall.fRemainingSec -= tc.fDt;
 		if (recall.fRemainingSec > 0.f)
 			continue;
 
 		const Vec3& vSpawnPos = world.GetComponent<RespawnComponent>(entity).spawnPos;
 		world.GetComponent<TransformComponent>(entity).SetPosition(vSpawnPos);
-		RefillHealth(world, entity);
+		PositionDiscontinuityComponent& discontinuity =
+			world.HasComponent<PositionDiscontinuityComponent>(entity)
+				? world.GetComponent<PositionDiscontinuityComponent>(entity)
+				: world.AddComponent<PositionDiscontinuityComponent>(
+					entity,
+					PositionDiscontinuityComponent{});
+		discontinuity.uTick = tc.tickIndex;
+		RefillResources(world, entity);
 		ClearMoveTarget(world, entity);
 		ClearAttackChase(world, entity);
 		SetIdlePose(world, entity, tc);

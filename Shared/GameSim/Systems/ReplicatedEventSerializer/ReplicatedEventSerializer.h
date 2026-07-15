@@ -26,6 +26,7 @@ namespace SharedSim
             EntityIdMap& entityMap,
             const ReplicatedEventComponent& event,
             u64_t serverTick,
+            u32_t uEventOrdinal,
             SerializedReplicatedEvent& out);
 
         static bool_t BuildActionStart(

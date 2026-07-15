@@ -1,14 +1,17 @@
 #include "Shared/GameSim/Systems/SkillCooldown/SkillCooldownSystem.h"
 
 #include "Shared/GameSim/Components/KalistaPassiveDashComponent.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
+#include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Systems/Move/DashArrival.h"
 #include "WintersMath.h"
@@ -73,6 +76,13 @@ namespace
             }
 
             auto& transform = world.GetComponent<TransformComponent>(entity);
+
+            if (!GameplayStateQuery::CanMove(world, entity) ||
+                world.HasComponent<ForcedMotionComponent>(entity))
+            {
+                world.RemoveComponent<KalistaPassiveDashComponent>(entity);
+                continue;
+            }
 
             if (dash.bPending && !dash.bActive && tc.tickIndex >= dash.triggerTick)
             {
@@ -202,6 +212,13 @@ void CSkillCooldownSystem::Execute(CWorld& world, const TickContext& tc)
                 {
                     slot.currentStage = 0;
                     slot.stageWindow = 0.f;
+                    if (world.HasComponent<SpellbookOverrideComponent>(entity))
+                    {
+                        const auto& spellbook =
+                            world.GetComponent<SpellbookOverrideComponent>(entity);
+                        if (spellbook.bActive && spellbook.localSlot == i)
+                            world.RemoveComponent<SpellbookOverrideComponent>(entity);
+                    }
                 }
             }
         }

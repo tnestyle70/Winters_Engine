@@ -2,6 +2,8 @@
 
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 
 namespace GameplayStatus
@@ -141,33 +143,87 @@ namespace GameplayStatus
             tc);
     }
 
-    inline void ApplyAirborne(
+    inline bool_t ApplyAirborne(
         CWorld& world,
         EntityID target,
         EntityID source,
         eChampion champion,
         eSkillSlot slot,
-        f32_t durationSec)
+        f32_t durationSec,
+        f32_t arcHeight = 2.1f,
+        const Vec3* landingPosition = nullptr)
     {
-        ApplyStatusEffect(
+        if (target == NULL_ENTITY ||
+            !world.IsAlive(target) ||
+            durationSec <= 0.f ||
+            !world.HasComponent<TransformComponent>(target))
+        {
+            return false;
+        }
+
+        Vec3 landing = world.GetComponent<TransformComponent>(target).GetPosition();
+        if (landingPosition)
+            landing = *landingPosition;
+        else if (world.HasComponent<ForcedMotionComponent>(target))
+            landing = world.GetComponent<ForcedMotionComponent>(target).end;
+
+        if (!TryApplyStatusEffect(
             world,
             target,
-            MakeAirborneDesc(source, champion, slot, durationSec));
+            MakeAirborneDesc(source, champion, slot, durationSec)))
+        {
+            return false;
+        }
+        return StartAirborneMotion(
+            world,
+            target,
+            source,
+            landing,
+            durationSec,
+            arcHeight,
+            landingPosition != nullptr);
     }
 
-    inline void ApplyAirborne(
+    inline bool_t ApplyAirborne(
         CWorld& world,
         const TickContext& tc,
         EntityID target,
         EntityID source,
         eChampion champion,
         eSkillSlot slot,
-        f32_t durationSec)
+        f32_t durationSec,
+        f32_t arcHeight = 2.1f,
+        const Vec3* landingPosition = nullptr)
     {
-        ApplyStatusEffect(
+        if (target == NULL_ENTITY ||
+            !world.IsAlive(target) ||
+            durationSec <= 0.f ||
+            !world.HasComponent<TransformComponent>(target))
+        {
+            return false;
+        }
+
+        Vec3 landing = world.GetComponent<TransformComponent>(target).GetPosition();
+        if (landingPosition)
+            landing = *landingPosition;
+        else if (world.HasComponent<ForcedMotionComponent>(target))
+            landing = world.GetComponent<ForcedMotionComponent>(target).end;
+
+        if (!TryApplyStatusEffect(
             world,
             target,
             MakeAirborneDesc(source, champion, slot, durationSec),
-            tc);
+            tc))
+        {
+            return false;
+        }
+        return StartAirborneMotion(
+            world,
+            target,
+            source,
+            landing,
+            durationSec,
+            arcHeight,
+            landingPosition != nullptr);
     }
 }

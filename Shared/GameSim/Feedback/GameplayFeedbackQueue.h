@@ -2,7 +2,7 @@
 
 #include "Shared/GameSim/Feedback/GameplayFeedback.h"
 
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"

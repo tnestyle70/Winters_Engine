@@ -66,7 +66,7 @@
         1.0,
         0.0
       ],
-      "spawnScale": 0.01
+      "spawnScale": 0.015
     },
     {
       "key": "champion.model.sylas",

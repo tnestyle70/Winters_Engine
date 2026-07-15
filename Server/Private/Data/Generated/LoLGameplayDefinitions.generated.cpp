@@ -2,7 +2,7 @@
 
 namespace
 {
-    inline constexpr u32_t kBuildHash = 0x94A01989u;
+    inline constexpr u32_t kBuildHash = 0x10774DA5u;
 
     ChampionGameplayDef MakeChampion_ANNIE()
     {
@@ -12,21 +12,21 @@ namespace
         def.legacyChampion = eChampion::ANNIE;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
-        def.stats.baseMana = 300.f;
-        def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseHp = 560.f;
+        def.stats.hpPerLevel = 102.f;
+        def.stats.baseMana = 418.f;
+        def.stats.manaPerLevel = 25.f;
+        def.stats.baseAd = 50.f;
+        def.stats.adPerLevel = 2.65f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
+        def.stats.baseArmor = 23.f;
         def.stats.armorPerLevel = 4.f;
         def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.mrPerLevel = 1.3f;
+        def.stats.baseAttackSpeed = 0.625f;
+        def.stats.attackSpeedRatio = 0.625f;
+        def.stats.attackSpeedPerLevel = 0.02f;
         def.stats.baseAttackRange = 6.25f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -48,21 +48,21 @@ namespace
         def.legacyChampion = eChampion::ASHE;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
-        def.stats.baseMana = 300.f;
-        def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 50.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseHp = 610.f;
+        def.stats.hpPerLevel = 101.f;
+        def.stats.baseMana = 280.f;
+        def.stats.manaPerLevel = 35.f;
+        def.stats.baseAd = 59.f;
+        def.stats.adPerLevel = 2.95f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
+        def.stats.baseArmor = 26.f;
+        def.stats.armorPerLevel = 4.6f;
         def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.58f;
-        def.stats.attackSpeedRatio = 0.58f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.mrPerLevel = 1.3f;
+        def.stats.baseAttackSpeed = 0.658f;
+        def.stats.attackSpeedRatio = 0.658f;
+        def.stats.attackSpeedPerLevel = 0.0333f;
         def.stats.baseAttackRange = 6.f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -85,19 +85,19 @@ namespace
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
         def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
-        def.stats.baseMana = 300.f;
-        def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.hpPerLevel = 102.f;
+        def.stats.baseMana = 375.f;
+        def.stats.manaPerLevel = 70.f;
+        def.stats.baseAd = 60.f;
+        def.stats.adPerLevel = 2.75f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
+        def.stats.baseArmor = 24.f;
+        def.stats.armorPerLevel = 4.7f;
         def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
+        def.stats.mrPerLevel = 1.3f;
+        def.stats.baseAttackSpeed = 0.625f;
+        def.stats.attackSpeedRatio = 0.625f;
         def.stats.attackSpeedPerLevel = 0.025f;
         def.stats.baseAttackRange = 5.5f;
         def.stats.baseMoveSpeed = 5.f;
@@ -120,21 +120,21 @@ namespace
         def.legacyChampion = eChampion::FIORA;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 620.f;
+        def.stats.hpPerLevel = 99.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 66.f;
+        def.stats.adPerLevel = 3.3f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.baseArmor = 33.f;
+        def.stats.armorPerLevel = 4.7f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.69f;
+        def.stats.attackSpeedRatio = 0.69f;
+        def.stats.attackSpeedPerLevel = 0.032f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -156,21 +156,21 @@ namespace
         def.legacyChampion = eChampion::GAREN;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 690.f;
+        def.stats.hpPerLevel = 98.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 69.f;
+        def.stats.adPerLevel = 4.5f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.baseArmor = 38.f;
+        def.stats.armorPerLevel = 4.2f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.625f;
+        def.stats.attackSpeedRatio = 0.625f;
+        def.stats.attackSpeedPerLevel = 0.034f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -192,20 +192,20 @@ namespace
         def.legacyChampion = eChampion::IRELIA;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
-        def.stats.baseMana = 300.f;
+        def.stats.baseHp = 590.f;
+        def.stats.hpPerLevel = 124.f;
+        def.stats.baseMana = 350.f;
         def.stats.manaPerLevel = 50.f;
         def.stats.baseAd = 65.f;
         def.stats.adPerLevel = 3.5f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.9f;
-        def.stats.attackSpeedRatio = 0.9f;
+        def.stats.baseArmor = 36.f;
+        def.stats.armorPerLevel = 4.7f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.656f;
+        def.stats.attackSpeedRatio = 0.656f;
         def.stats.attackSpeedPerLevel = 0.025f;
         def.stats.baseAttackRange = 2.1f;
         def.stats.baseMoveSpeed = 5.f;
@@ -228,21 +228,21 @@ namespace
         def.legacyChampion = eChampion::JAX;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 665.f;
+        def.stats.hpPerLevel = 103.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 68.f;
+        def.stats.adPerLevel = 3.375f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.baseArmor = 36.f;
+        def.stats.armorPerLevel = 4.6f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.638f;
+        def.stats.attackSpeedRatio = 0.638f;
+        def.stats.attackSpeedPerLevel = 0.034f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -264,21 +264,21 @@ namespace
         def.legacyChampion = eChampion::KALISTA;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 574.f;
+        def.stats.hpPerLevel = 114.f;
         def.stats.baseMana = 300.f;
-        def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.manaPerLevel = 45.f;
+        def.stats.baseAd = 61.f;
+        def.stats.adPerLevel = 3.25f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
+        def.stats.baseArmor = 24.f;
+        def.stats.armorPerLevel = 4.6f;
         def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.mrPerLevel = 1.3f;
+        def.stats.baseAttackSpeed = 0.694f;
+        def.stats.attackSpeedRatio = 0.694f;
+        def.stats.attackSpeedPerLevel = 0.045f;
         def.stats.baseAttackRange = 5.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -304,21 +304,21 @@ namespace
         def.legacyChampion = eChampion::KINDRED;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 610.f;
+        def.stats.hpPerLevel = 99.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 65.f;
+        def.stats.adPerLevel = 3.25f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
+        def.stats.baseArmor = 29.f;
+        def.stats.armorPerLevel = 4.7f;
         def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.mrPerLevel = 1.3f;
+        def.stats.baseAttackSpeed = 0.625f;
+        def.stats.attackSpeedRatio = 0.625f;
+        def.stats.attackSpeedPerLevel = 0.034f;
         def.stats.baseAttackRange = 5.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -340,21 +340,21 @@ namespace
         def.legacyChampion = eChampion::LEESIN;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 645.f;
+        def.stats.hpPerLevel = 108.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 66.f;
+        def.stats.adPerLevel = 3.7f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.baseArmor = 34.f;
+        def.stats.armorPerLevel = 4.7f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.651f;
+        def.stats.attackSpeedRatio = 0.651f;
+        def.stats.attackSpeedPerLevel = 0.03f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -376,20 +376,20 @@ namespace
         def.legacyChampion = eChampion::MASTERYI;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 669.f;
+        def.stats.hpPerLevel = 105.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 65.f;
+        def.stats.adPerLevel = 2.5f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
+        def.stats.baseArmor = 33.f;
+        def.stats.armorPerLevel = 4.7f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.679f;
+        def.stats.attackSpeedRatio = 0.679f;
         def.stats.attackSpeedPerLevel = 0.025f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
@@ -412,21 +412,21 @@ namespace
         def.legacyChampion = eChampion::RIVEN;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
+        def.stats.baseHp = 630.f;
         def.stats.hpPerLevel = 100.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 64.f;
+        def.stats.adPerLevel = 3.f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.baseArmor = 33.f;
+        def.stats.armorPerLevel = 4.4f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.625f;
+        def.stats.attackSpeedRatio = 0.625f;
+        def.stats.attackSpeedPerLevel = 0.034f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -449,20 +449,20 @@ namespace
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
         def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
-        def.stats.baseMana = 300.f;
-        def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.hpPerLevel = 115.f;
+        def.stats.baseMana = 400.f;
+        def.stats.manaPerLevel = 70.f;
+        def.stats.baseAd = 61.f;
+        def.stats.adPerLevel = 3.f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.baseArmor = 32.f;
+        def.stats.armorPerLevel = 4.7f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.645f;
+        def.stats.attackSpeedRatio = 0.645f;
+        def.stats.attackSpeedPerLevel = 0.034f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -484,20 +484,20 @@ namespace
         def.legacyChampion = eChampion::VIEGO;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 630.f;
+        def.stats.hpPerLevel = 109.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 57.f;
+        def.stats.adPerLevel = 3.f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
+        def.stats.baseArmor = 34.f;
+        def.stats.armorPerLevel = 4.6f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.658f;
+        def.stats.attackSpeedRatio = 0.658f;
         def.stats.attackSpeedPerLevel = 0.025f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
@@ -523,21 +523,21 @@ namespace
         def.legacyChampion = eChampion::YASUO;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 590.f;
+        def.stats.hpPerLevel = 110.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 60.f;
+        def.stats.adPerLevel = 3.f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
         def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.armorPerLevel = 4.6f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.697f;
+        def.stats.attackSpeedRatio = 0.697f;
+        def.stats.attackSpeedPerLevel = 0.033f;
         def.stats.baseAttackRange = 2.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -559,20 +559,20 @@ namespace
         def.legacyChampion = eChampion::YONE;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 620.f;
+        def.stats.hpPerLevel = 105.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 60.f;
+        def.stats.adPerLevel = 2.f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
+        def.stats.baseArmor = 33.f;
+        def.stats.armorPerLevel = 4.7f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.625f;
+        def.stats.attackSpeedRatio = 0.625f;
         def.stats.attackSpeedPerLevel = 0.025f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
@@ -595,21 +595,21 @@ namespace
         def.legacyChampion = eChampion::ZED;
         def.dataVersion = 1u;
         def.authoringHash = kBuildHash;
-        def.stats.baseHp = 600.f;
-        def.stats.hpPerLevel = 100.f;
+        def.stats.baseHp = 654.f;
+        def.stats.hpPerLevel = 99.f;
         def.stats.baseMana = 300.f;
         def.stats.manaPerLevel = 50.f;
-        def.stats.baseAd = 55.f;
-        def.stats.adPerLevel = 3.5f;
+        def.stats.baseAd = 63.f;
+        def.stats.adPerLevel = 3.4f;
         def.stats.baseAp = 0.f;
         def.stats.apPerLevel = 0.f;
-        def.stats.baseArmor = 30.f;
-        def.stats.armorPerLevel = 4.f;
-        def.stats.baseMr = 30.f;
-        def.stats.mrPerLevel = 1.25f;
-        def.stats.baseAttackSpeed = 0.6f;
-        def.stats.attackSpeedRatio = 0.6f;
-        def.stats.attackSpeedPerLevel = 0.025f;
+        def.stats.baseArmor = 32.f;
+        def.stats.armorPerLevel = 4.7f;
+        def.stats.baseMr = 32.f;
+        def.stats.mrPerLevel = 2.05f;
+        def.stats.baseAttackSpeed = 0.651f;
+        def.stats.attackSpeedRatio = 0.651f;
+        def.stats.attackSpeedPerLevel = 0.033f;
         def.stats.baseAttackRange = 1.5f;
         def.stats.baseMoveSpeed = 5.f;
         def.stats.navArriveRadius = 0.15f;
@@ -660,8 +660,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 40.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -697,9 +697,9 @@ namespace
         def.slot = 1u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 60.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.25f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -713,12 +713,12 @@ namespace
         def.effect.params[1].value = 35.f;
         def.effect.params[2].id = eSkillEffectParamId::StunDurationSec;
         def.effect.params[2].value = 1.25f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Unit;
         def.stage.lockDurationSec[0] = 0.5f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsTarget;
+        def.target.shape[1] = eTargetShape::Unit;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsTarget;
         return def;
     }
 
@@ -731,9 +731,9 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 100.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -777,12 +777,12 @@ namespace
         def.summonPolicy.params[10].value = 4.f;
         def.summonPolicy.params[11].id = eSummonPolicyParamId::SightRange;
         def.summonPolicy.params[11].value = 14.f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Ground;
         def.stage.lockDurationSec[0] = 1.2f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Ground;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -795,9 +795,9 @@ namespace
         def.slot = 2u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 70.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -815,12 +815,12 @@ namespace
         def.effect.params[3].value = 6.f;
         def.effect.params[4].id = eSkillEffectParamId::StunDurationSec;
         def.effect.params[4].value = 1.25f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.6f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -842,6 +842,11 @@ namespace
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
+        def.effect.paramCount = static_cast<u8_t>(2u);
+        def.effect.params[0].id = eSkillEffectParamId::Radius;
+        def.effect.params[0].value = 0.35f;
+        def.effect.params[1].id = eSkillEffectParamId::Speed;
+        def.effect.params[1].value = 18.f;
         def.target.shape[0] = eTargetShape::Unit;
         def.stage.lockDurationSec[0] = 0.7f;
         def.facing.mode[0] = eSkillFacingMode::TowardsTarget;
@@ -862,7 +867,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 25.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -888,14 +893,23 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
+        def.effect.paramCount = static_cast<u8_t>(4u);
+        def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[0].value = 20.f;
+        def.effect.params[1].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[1].value = 4.f;
+        def.effect.params[2].id = eSkillEffectParamId::MaxStacks;
+        def.effect.params[2].value = 4.f;
+        def.effect.params[3].id = eSkillEffectParamId::SlowDurationSec;
+        def.effect.params[3].value = 1.5f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.5f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -914,9 +928,9 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 100.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 200.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -931,13 +945,13 @@ namespace
         def.effect.params[2].id = eSkillEffectParamId::Speed;
         def.effect.params[2].value = 20.f;
         def.effect.params[3].id = eSkillEffectParamId::StunDurationSec;
-        def.effect.params[3].value = 1.5f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.params[3].value = 2.f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 1.f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -950,30 +964,32 @@ namespace
         def.slot = 2u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 75.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 9.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.effect.paramCount = static_cast<u8_t>(4u);
+        def.effect.paramCount = static_cast<u8_t>(5u);
         def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
         def.effect.params[0].value = 45.f;
         def.effect.params[1].id = eSkillEffectParamId::MoveSpeedMul;
-        def.effect.params[1].value = 0.85f;
+        def.effect.params[1].value = 0.5f;
         def.effect.params[2].id = eSkillEffectParamId::Range;
         def.effect.params[2].value = 12.f;
-        def.effect.params[3].id = eSkillEffectParamId::Speed;
-        def.effect.params[3].value = 24.f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.params[3].id = eSkillEffectParamId::SlowDurationSec;
+        def.effect.params[3].value = 1.5f;
+        def.effect.params[4].id = eSkillEffectParamId::Speed;
+        def.effect.params[4].value = 24.f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.6f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -995,6 +1011,15 @@ namespace
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
+        def.effect.paramCount = static_cast<u8_t>(4u);
+        def.effect.params[0].id = eSkillEffectParamId::BonusAttackSpeed;
+        def.effect.params[0].value = 0.1f;
+        def.effect.params[1].id = eSkillEffectParamId::MaxStacks;
+        def.effect.params[1].value = 5.f;
+        def.effect.params[2].id = eSkillEffectParamId::Speed;
+        def.effect.params[2].value = 20.f;
+        def.effect.params[3].id = eSkillEffectParamId::StackWindowSec;
+        def.effect.params[3].value = 6.f;
         def.target.shape[0] = eTargetShape::Unit;
         def.stage.lockDurationSec[0] = 0.65f;
         def.facing.mode[0] = eSkillFacingMode::TowardsTarget;
@@ -1013,21 +1038,40 @@ namespace
         def.slot = 3u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 70.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.75f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
-        def.stage.lockDurationSec[0] = 0.6f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(9u);
+        def.effect.params[0].id = eSkillEffectParamId::ApRatio;
+        def.effect.params[0].value = 0.75f;
+        def.effect.params[1].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[1].value = 80.f;
+        def.effect.params[2].id = eSkillEffectParamId::BonusAdRatio;
+        def.effect.params[2].value = 0.6f;
+        def.effect.params[3].id = eSkillEffectParamId::CastTimeSec;
+        def.effect.params[3].value = 0.25f;
+        def.effect.params[4].id = eSkillEffectParamId::CooldownReductionPerRank;
+        def.effect.params[4].value = 3.f;
+        def.effect.params[5].id = eSkillEffectParamId::DamagePerRank;
+        def.effect.params[5].value = 50.f;
+        def.effect.params[6].id = eSkillEffectParamId::HalfWidth;
+        def.effect.params[6].value = 0.5f;
+        def.effect.params[7].id = eSkillEffectParamId::Radius;
+        def.effect.params[7].value = 7.5f;
+        def.effect.params[8].id = eSkillEffectParamId::Speed;
+        def.effect.params[8].value = 20.f;
+        def.target.shape[0] = eTargetShape::Ground;
+        def.stage.lockDurationSec[0] = 0.25f;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Ground;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -1040,21 +1084,42 @@ namespace
         def.slot = 1u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
-        def.range.rangeMax = 11.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 28.f;
+        def.cooldown.cooldownSec = 3.f;
+        def.range.rangeMax = 12.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
-        def.stage.lockDurationSec[0] = 0.5f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(10u);
+        def.effect.params[0].id = eSkillEffectParamId::ApRatio;
+        def.effect.params[0].value = 0.4f;
+        def.effect.params[1].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[1].value = 20.f;
+        def.effect.params[2].id = eSkillEffectParamId::CastTimeSec;
+        def.effect.params[2].value = 0.25f;
+        def.effect.params[3].id = eSkillEffectParamId::CooldownReductionPerRank;
+        def.effect.params[3].value = 0.25f;
+        def.effect.params[4].id = eSkillEffectParamId::CooldownRefundSec;
+        def.effect.params[4].value = 1.5f;
+        def.effect.params[5].id = eSkillEffectParamId::DamagePerRank;
+        def.effect.params[5].value = 25.f;
+        def.effect.params[6].id = eSkillEffectParamId::HalfWidth;
+        def.effect.params[6].value = 0.6f;
+        def.effect.params[7].id = eSkillEffectParamId::ManaCostPerRank;
+        def.effect.params[7].value = 3.f;
+        def.effect.params[8].id = eSkillEffectParamId::Speed;
+        def.effect.params[8].value = 20.f;
+        def.effect.params[9].id = eSkillEffectParamId::TotalAdRatio;
+        def.effect.params[9].value = 1.3f;
+        def.target.shape[0] = eTargetShape::Direction;
+        def.stage.lockDurationSec[0] = 0.25f;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -1067,21 +1132,42 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
-        def.range.rangeMax = 200.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 100.f;
+        def.cooldown.cooldownSec = 3.f;
+        def.range.rangeMax = 250.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(10u);
+        def.effect.params[0].id = eSkillEffectParamId::ApRatio;
+        def.effect.params[0].value = 1.1f;
+        def.effect.params[1].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[1].value = 350.f;
+        def.effect.params[2].id = eSkillEffectParamId::BonusAdRatio;
+        def.effect.params[2].value = 1.f;
+        def.effect.params[3].id = eSkillEffectParamId::CastTimeSec;
+        def.effect.params[3].value = 1.f;
+        def.effect.params[4].id = eSkillEffectParamId::CooldownReductionPerRank;
+        def.effect.params[4].value = 15.f;
+        def.effect.params[5].id = eSkillEffectParamId::DamagePerRank;
+        def.effect.params[5].value = 200.f;
+        def.effect.params[6].id = eSkillEffectParamId::HalfWidth;
+        def.effect.params[6].value = 1.6f;
+        def.effect.params[7].id = eSkillEffectParamId::NonEpicBaseDamage;
+        def.effect.params[7].value = 150.f;
+        def.effect.params[8].id = eSkillEffectParamId::NonEpicDamagePerRank;
+        def.effect.params[8].value = 75.f;
+        def.effect.params[9].id = eSkillEffectParamId::Speed;
+        def.effect.params[9].value = 20.f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 1.f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -1094,21 +1180,40 @@ namespace
         def.slot = 2u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
-        def.range.rangeMax = 10.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
+        def.range.rangeMax = 12.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
-        def.stage.lockDurationSec[0] = 0.5f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(9u);
+        def.effect.params[0].id = eSkillEffectParamId::ApRatio;
+        def.effect.params[0].value = 0.9f;
+        def.effect.params[1].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[1].value = 80.f;
+        def.effect.params[2].id = eSkillEffectParamId::BonusAdRatio;
+        def.effect.params[2].value = 1.f;
+        def.effect.params[3].id = eSkillEffectParamId::CastTimeSec;
+        def.effect.params[3].value = 0.25f;
+        def.effect.params[4].id = eSkillEffectParamId::DamagePerRank;
+        def.effect.params[4].value = 55.f;
+        def.effect.params[5].id = eSkillEffectParamId::HalfWidth;
+        def.effect.params[5].value = 0.8f;
+        def.effect.params[6].id = eSkillEffectParamId::ManaRestoreFlat;
+        def.effect.params[6].value = 60.f;
+        def.effect.params[7].id = eSkillEffectParamId::MarkDurationSec;
+        def.effect.params[7].value = 4.f;
+        def.effect.params[8].id = eSkillEffectParamId::Speed;
+        def.effect.params[8].value = 17.f;
+        def.target.shape[0] = eTargetShape::Direction;
+        def.stage.lockDurationSec[0] = 0.25f;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -1149,14 +1254,21 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 40.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
+        def.effect.paramCount = static_cast<u8_t>(3u);
+        def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[0].value = 30.f;
+        def.effect.params[1].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[1].value = 5.f;
+        def.effect.params[2].id = eSkillEffectParamId::MaxStacks;
+        def.effect.params[2].value = 2.f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.4f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -1176,8 +1288,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 20.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1213,9 +1325,9 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 100.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 5.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1225,12 +1337,12 @@ namespace
         def.effect.paramCount = static_cast<u8_t>(1u);
         def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
         def.effect.params[0].value = 80.f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Unit;
         def.stage.lockDurationSec[0] = 2.f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsTarget;
+        def.target.shape[1] = eTargetShape::Unit;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsTarget;
         return def;
     }
 
@@ -1244,8 +1356,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1308,7 +1420,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 1.65f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1335,7 +1447,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1360,21 +1472,28 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(3u);
+        def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[0].value = 150.f;
+        def.effect.params[1].id = eSkillEffectParamId::DamagePerRank;
+        def.effect.params[1].value = 150.f;
+        def.effect.params[2].id = eSkillEffectParamId::MissingHealthDamageRatio;
+        def.effect.params[2].value = 0.25f;
+        def.target.shape[0] = eTargetShape::Unit;
         def.stage.lockDurationSec[0] = 1.5f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsTarget;
+        def.target.shape[1] = eTargetShape::Unit;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsTarget;
         return def;
     }
 
@@ -1389,7 +1508,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1442,8 +1561,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 9.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.5f;
@@ -1478,8 +1597,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 20.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1514,8 +1633,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 100.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 12.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1560,8 +1679,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 70.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 4.f;
@@ -1622,18 +1741,22 @@ namespace
         def.slot = 3u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 2.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.effect.paramCount = static_cast<u8_t>(1u);
-        def.effect.params[0].id = eSkillEffectParamId::StunDurationSec;
-        def.effect.params[0].value = 1.f;
+        def.effect.paramCount = static_cast<u8_t>(3u);
+        def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[0].value = 60.f;
+        def.effect.params[1].id = eSkillEffectParamId::Radius;
+        def.effect.params[1].value = 2.2f;
+        def.effect.params[2].id = eSkillEffectParamId::StunDurationSec;
+        def.effect.params[2].value = 1.f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 2.f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -1653,8 +1776,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 65.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 7.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1687,14 +1810,21 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 100.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
+        def.effect.paramCount = static_cast<u8_t>(3u);
+        def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[0].value = 70.f;
+        def.effect.params[1].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[1].value = 8.f;
+        def.effect.params[2].id = eSkillEffectParamId::MaxStacks;
+        def.effect.params[2].value = 3.f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.6f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -1714,14 +1844,19 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 30.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
+        def.effect.paramCount = static_cast<u8_t>(2u);
+        def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[0].value = 45.f;
+        def.effect.params[1].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[1].value = 5.f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.5f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -1767,20 +1902,22 @@ namespace
         def.slot = 3u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 30.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 12.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.effect.paramCount = static_cast<u8_t>(2u);
+        def.effect.paramCount = static_cast<u8_t>(3u);
         def.effect.params[0].id = eSkillEffectParamId::MoveSpeedMul;
         def.effect.params[0].value = 0.55f;
         def.effect.params[1].id = eSkillEffectParamId::SlowDurationSec;
         def.effect.params[1].value = 2.f;
+        def.effect.params[2].id = eSkillEffectParamId::StunDurationSec;
+        def.effect.params[2].value = 1.f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.4f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -1799,21 +1936,28 @@ namespace
         def.slot = 1u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
-        def.range.rangeMax = 11.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
+        def.range.rangeMax = 16.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(3u);
+        def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[0].value = 70.f;
+        def.effect.params[1].id = eSkillEffectParamId::Radius;
+        def.effect.params[1].value = 0.6f;
+        def.effect.params[2].id = eSkillEffectParamId::Speed;
+        def.effect.params[2].value = 27.f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.3f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -1826,21 +1970,30 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 100.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
-        def.stage.stageCount = 1u;
-        def.stage.stageWindowSec = 0.f;
+        def.stage.stageCount = 2u;
+        def.stage.stageWindowSec = 4.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(4u);
+        def.effect.params[0].id = eSkillEffectParamId::AirborneDurationSec;
+        def.effect.params[0].value = 1.f;
+        def.effect.params[1].id = eSkillEffectParamId::DashDurationSec;
+        def.effect.params[1].value = 0.45f;
+        def.effect.params[2].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[2].value = 4.f;
+        def.effect.params[3].id = eSkillEffectParamId::Radius;
+        def.effect.params[3].value = 2.5f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.5f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
-        def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
+        def.stage.lockDurationSec[1] = 0.45f;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -1855,7 +2008,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 12.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1923,23 +2076,25 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 70.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 5.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.effect.paramCount = static_cast<u8_t>(4u);
+        def.effect.paramCount = static_cast<u8_t>(5u);
         def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
         def.effect.params[0].value = 80.f;
         def.effect.params[1].id = eSkillEffectParamId::MarkDurationSec;
         def.effect.params[1].value = 4.f;
-        def.effect.params[2].id = eSkillEffectParamId::MoveSpeedMul;
-        def.effect.params[2].value = 0.65f;
-        def.effect.params[3].id = eSkillEffectParamId::SlowDurationSec;
-        def.effect.params[3].value = 1.f;
+        def.effect.params[2].id = eSkillEffectParamId::MaxStacks;
+        def.effect.params[2].value = 3.f;
+        def.effect.params[3].id = eSkillEffectParamId::MoveSpeedMul;
+        def.effect.params[3].value = 0.65f;
+        def.effect.params[4].id = eSkillEffectParamId::SlowDurationSec;
+        def.effect.params[4].value = 1.f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.6f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -1959,8 +2114,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 35.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 5.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -1985,9 +2140,9 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 100.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2005,12 +2160,12 @@ namespace
         def.effect.params[3].value = 1.f;
         def.effect.params[4].id = eSkillEffectParamId::Radius;
         def.effect.params[4].value = 6.f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Ground;
         def.stage.lockDurationSec[0] = 0.6f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Ground;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -2024,8 +2179,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 40.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 8.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2087,8 +2242,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.f;
@@ -2121,8 +2276,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 11.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.f;
@@ -2156,9 +2311,9 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 3.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2170,12 +2325,12 @@ namespace
         def.effect.params[0].value = 1.f;
         def.effect.params[1].id = eSkillEffectParamId::BaseDamage;
         def.effect.params[1].value = 150.f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Unit;
         def.stage.lockDurationSec[0] = 0.6f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsTarget;
+        def.target.shape[1] = eTargetShape::Unit;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsTarget;
         return def;
     }
 
@@ -2189,19 +2344,23 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 7.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.effect.paramCount = static_cast<u8_t>(2u);
+        def.effect.paramCount = static_cast<u8_t>(4u);
         def.effect.params[0].id = eSkillEffectParamId::DashDurationSec;
         def.effect.params[0].value = 0.18f;
         def.effect.params[1].id = eSkillEffectParamId::Gap;
         def.effect.params[1].value = 0.25f;
+        def.effect.params[2].id = eSkillEffectParamId::ShieldBaseAmount;
+        def.effect.params[2].value = 80.f;
+        def.effect.params[3].id = eSkillEffectParamId::ShieldDurationSec;
+        def.effect.params[3].value = 3.f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.6f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -2249,7 +2408,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2275,8 +2434,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2301,15 +2460,22 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 100.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
+        def.effect.paramCount = static_cast<u8_t>(3u);
+        def.effect.params[0].id = eSkillEffectParamId::BonusAttackSpeed;
+        def.effect.params[0].value = 0.25f;
+        def.effect.params[1].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[1].value = 7.f;
+        def.effect.params[2].id = eSkillEffectParamId::MoveSpeedMul;
+        def.effect.params[2].value = 1.35f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.6f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -2329,8 +2495,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2384,13 +2550,18 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
+        def.effect.paramCount = static_cast<u8_t>(2u);
+        def.effect.params[0].id = eSkillEffectParamId::ShieldBaseAmount;
+        def.effect.params[0].value = 70.f;
+        def.effect.params[1].id = eSkillEffectParamId::ShieldDurationSec;
+        def.effect.params[1].value = 3.f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.5f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -2409,9 +2580,9 @@ namespace
         def.slot = 1u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2425,12 +2596,12 @@ namespace
         def.effect.params[1].value = 2.25f;
         def.effect.params[2].id = eSkillEffectParamId::StackWindowSec;
         def.effect.params[2].value = 4.f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.45f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -2443,21 +2614,34 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
-        def.stage.stageCount = 1u;
-        def.stage.stageWindowSec = 0.f;
+        def.stage.stageCount = 2u;
+        def.stage.stageWindowSec = 15.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(6u);
+        def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
+        def.effect.params[0].value = 100.f;
+        def.effect.params[1].id = eSkillEffectParamId::BonusAd;
+        def.effect.params[1].value = 20.f;
+        def.effect.params[2].id = eSkillEffectParamId::DamagePerRank;
+        def.effect.params[2].value = 50.f;
+        def.effect.params[3].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[3].value = 15.f;
+        def.effect.params[4].id = eSkillEffectParamId::HalfAngleCos;
+        def.effect.params[4].value = 0.70710678f;
+        def.effect.params[5].id = eSkillEffectParamId::Range;
+        def.effect.params[5].value = 10.5f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.8f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -2470,9 +2654,9 @@ namespace
         def.slot = 2u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 0.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2529,16 +2713,16 @@ namespace
         def.slot = 3u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
+        def.cost.manaCost = 65.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 3.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.effect.paramCount = static_cast<u8_t>(9u);
+        def.effect.paramCount = static_cast<u8_t>(11u);
         def.effect.params[0].id = eSkillEffectParamId::AirborneDurationSec;
         def.effect.params[0].value = 0.75f;
         def.effect.params[1].id = eSkillEffectParamId::BaseDamage;
@@ -2551,18 +2735,22 @@ namespace
         def.effect.params[4].value = 0.16f;
         def.effect.params[5].id = eSkillEffectParamId::Gap;
         def.effect.params[5].value = 0.85f;
-        def.effect.params[6].id = eSkillEffectParamId::Radius;
-        def.effect.params[6].value = 0.55f;
-        def.effect.params[7].id = eSkillEffectParamId::Speed;
-        def.effect.params[7].value = 26.f;
-        def.effect.params[8].id = eSkillEffectParamId::TargetDashDurationSec;
-        def.effect.params[8].value = 0.22f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.params[6].id = eSkillEffectParamId::MoveSpeedMul;
+        def.effect.params[6].value = 0.6f;
+        def.effect.params[7].id = eSkillEffectParamId::Radius;
+        def.effect.params[7].value = 0.55f;
+        def.effect.params[8].id = eSkillEffectParamId::SlowDurationSec;
+        def.effect.params[8].value = 1.f;
+        def.effect.params[9].id = eSkillEffectParamId::Speed;
+        def.effect.params[9].value = 26.f;
+        def.effect.params[10].id = eSkillEffectParamId::TargetDashDurationSec;
+        def.effect.params[10].value = 0.22f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.35f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.5f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -2576,8 +2764,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 55.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2603,14 +2791,19 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Direct;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 75.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 10.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
+        def.effect.paramCount = static_cast<u8_t>(2u);
+        def.effect.params[0].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[0].value = 45.f;
+        def.effect.params[1].id = eSkillEffectParamId::Range;
+        def.effect.params[1].value = 10.f;
         def.target.shape[0] = eTargetShape::Unit;
         def.stage.lockDurationSec[0] = 0.8f;
         def.facing.mode[0] = eSkillFacingMode::TowardsTarget;
@@ -2630,8 +2823,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 65.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 5.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2685,7 +2878,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2721,7 +2914,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 5.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2751,9 +2944,9 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2771,12 +2964,12 @@ namespace
         def.effect.params[3].value = 2.f;
         def.effect.params[4].id = eSkillEffectParamId::SlowDurationSec;
         def.effect.params[4].value = 1.f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Ground;
         def.stage.lockDurationSec[0] = 0.8f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Ground;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -2789,9 +2982,9 @@ namespace
         def.slot = 2u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 4.f;
@@ -2807,12 +3000,12 @@ namespace
         def.effect.params[2].value = 0.75f;
         def.effect.params[3].id = eSkillEffectParamId::StunDurationSec;
         def.effect.params[3].value = 0.75f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.7f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.3f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -2854,14 +3047,14 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.75f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.effect.paramCount = static_cast<u8_t>(5u);
+        def.effect.paramCount = static_cast<u8_t>(6u);
         def.effect.params[0].id = eSkillEffectParamId::BaseDamage;
         def.effect.params[0].value = 80.f;
         def.effect.params[1].id = eSkillEffectParamId::DashDistance;
@@ -2872,6 +3065,8 @@ namespace
         def.effect.params[3].value = 0.5f;
         def.effect.params[4].id = eSkillEffectParamId::Gap;
         def.effect.params[4].value = 0.75f;
+        def.effect.params[5].id = eSkillEffectParamId::MarkDurationSec;
+        def.effect.params[5].value = 10.f;
         def.target.shape[0] = eTargetShape::Self;
         def.stage.lockDurationSec[0] = 0.4f;
         def.facing.mode[0] = eSkillFacingMode::None;
@@ -2890,9 +3085,9 @@ namespace
         def.slot = 1u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 5.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2924,12 +3119,12 @@ namespace
         def.effect.params[10].value = 2.25f;
         def.effect.params[11].id = eSkillEffectParamId::TornadoSpeed;
         def.effect.params[11].value = 18.f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.5f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -2944,7 +3139,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 14.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -2976,21 +3171,32 @@ namespace
         def.slot = 2u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.paramCount = static_cast<u8_t>(5u);
+        def.effect.params[0].id = eSkillEffectParamId::EffectDurationSec;
+        def.effect.params[0].value = 4.f;
+        def.effect.params[1].id = eSkillEffectParamId::FormationDelaySec;
+        def.effect.params[1].value = 0.25f;
+        def.effect.params[2].id = eSkillEffectParamId::RectLength;
+        def.effect.params[2].value = 1.6f;
+        def.effect.params[3].id = eSkillEffectParamId::RectLengthPerRank;
+        def.effect.params[3].value = 0.35f;
+        def.effect.params[4].id = eSkillEffectParamId::RectWidth;
+        def.effect.params[4].value = 0.5f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 0.25f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -3032,7 +3238,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 5.f;
@@ -3066,7 +3272,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 4.75f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3096,16 +3302,16 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 10.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
         def.effect.scalingTableId = 0u;
         def.effect.gameplayPolicyId = 0u;
         def.effect.replicatedCueId = 0u;
-        def.effect.paramCount = static_cast<u8_t>(5u);
+        def.effect.paramCount = static_cast<u8_t>(6u);
         def.effect.params[0].id = eSkillEffectParamId::AirborneDurationSec;
         def.effect.params[0].value = 0.75f;
         def.effect.params[1].id = eSkillEffectParamId::BaseDamage;
@@ -3114,14 +3320,16 @@ namespace
         def.effect.params[2].value = 0.5f;
         def.effect.params[3].id = eSkillEffectParamId::DashDurationSec;
         def.effect.params[3].value = 0.16f;
-        def.effect.params[4].id = eSkillEffectParamId::Radius;
-        def.effect.params[4].value = 1.7f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.effect.params[4].id = eSkillEffectParamId::Gap;
+        def.effect.params[4].value = 0.75f;
+        def.effect.params[5].id = eSkillEffectParamId::Radius;
+        def.effect.params[5].value = 1.7f;
+        def.target.shape[0] = eTargetShape::Direction;
         def.stage.lockDurationSec[0] = 1.2f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsCommandDirection;
+        def.target.shape[1] = eTargetShape::Direction;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsCommandDirection;
         return def;
     }
 
@@ -3136,7 +3344,7 @@ namespace
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3194,8 +3402,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 50.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 2.5f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3232,8 +3440,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 75.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 9.f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3267,9 +3475,9 @@ namespace
         def.slot = 4u;
         def.legacySkillId = 0u;
         def.target.bValid = true;
-        def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
+        def.target.resolvePolicy = eTargetResolvePolicy::Direct;
         def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.25f;
         def.stage.stageCount = 1u;
         def.stage.stageWindowSec = 0.f;
@@ -3287,12 +3495,12 @@ namespace
         def.effect.params[3].value = 0.3f;
         def.effect.params[4].id = eSkillEffectParamId::VanishDurationSec;
         def.effect.params[4].value = 0.75f;
-        def.target.shape[0] = eTargetShape::Self;
+        def.target.shape[0] = eTargetShape::Unit;
         def.stage.lockDurationSec[0] = 1.5f;
-        def.facing.mode[0] = eSkillFacingMode::None;
-        def.target.shape[1] = eTargetShape::Self;
+        def.facing.mode[0] = eSkillFacingMode::TowardsTarget;
+        def.target.shape[1] = eTargetShape::Unit;
         def.stage.lockDurationSec[1] = 0.6f;
-        def.facing.mode[1] = eSkillFacingMode::None;
+        def.facing.mode[1] = eSkillFacingMode::TowardsTarget;
         return def;
     }
 
@@ -3306,8 +3514,8 @@ namespace
         def.legacySkillId = 0u;
         def.target.bValid = true;
         def.target.resolvePolicy = eTargetResolvePolicy::Contextual;
-        def.cost.manaCost = 0.f;
-        def.cooldown.cooldownSec = 1.f;
+        def.cost.manaCost = 40.f;
+        def.cooldown.cooldownSec = 3.f;
         def.range.rangeMax = 6.5f;
         def.stage.stageCount = 2u;
         def.stage.stageWindowSec = 5.f;
@@ -3345,7 +3553,7 @@ namespace
         def.startGold = 10000u;
         def.startLevel = static_cast<u8_t>(6u);
         def.startRune = eRuneId::LethalTempo;
-        def.startRuneCount = static_cast<u8_t>(1u);
+        def.startRuneCount = static_cast<u8_t>(0u);
         def.respawnDelaySec = 3.f;
         return def;
     }
@@ -3379,14 +3587,16 @@ namespace
     JungleCampGameDef MakeDefaultJungleCamp()
     {
         JungleCampGameDef def{};
-        def.maxHp = 1500.f;
+        def.maxHp = 450.f;
         def.radius = 1.f;
         def.attackRange = 1.7f;
-        def.attackDamage = 45.f;
+        def.attackDamage = 40.f;
         def.attackCooldown = 1.4f;
         def.moveSpeed = 4.f;
         def.baseArmor = 20.f;
         def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
         return def;
     }
 
@@ -3401,6 +3611,8 @@ namespace
         def.moveSpeed = 2.5f;
         def.baseArmor = 20.f;
         def.baseMr = 20.f;
+        def.aggroRange = 2.5f;
+        def.leashRange = 8.f;
         return def;
     }
 
@@ -3415,13 +3627,15 @@ namespace
         def.moveSpeed = 4.f;
         def.baseArmor = 20.f;
         def.baseMr = 20.f;
+        def.aggroRange = 2.5f;
+        def.leashRange = 8.f;
         return def;
     }
 
     JungleCampGameDef MakeJungleCamp_2()
     {
         JungleCampGameDef def{};
-        def.maxHp = 1500.f;
+        def.maxHp = 2300.f;
         def.radius = 1.2f;
         def.attackRange = 2.f;
         def.attackDamage = 65.f;
@@ -3429,13 +3643,15 @@ namespace
         def.moveSpeed = 4.f;
         def.baseArmor = 20.f;
         def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
         return def;
     }
 
     JungleCampGameDef MakeJungleCamp_3()
     {
         JungleCampGameDef def{};
-        def.maxHp = 1500.f;
+        def.maxHp = 2300.f;
         def.radius = 1.2f;
         def.attackRange = 2.f;
         def.attackDamage = 65.f;
@@ -3443,62 +3659,120 @@ namespace
         def.moveSpeed = 4.f;
         def.baseArmor = 20.f;
         def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
+        return def;
+    }
+
+    JungleCampGameDef MakeJungleCamp_4()
+    {
+        JungleCampGameDef def{};
+        def.maxHp = 450.f;
+        def.radius = 1.f;
+        def.attackRange = 1.6f;
+        def.attackDamage = 40.f;
+        def.attackCooldown = 1.6f;
+        def.moveSpeed = 3.8f;
+        def.baseArmor = 20.f;
+        def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
         return def;
     }
 
     JungleCampGameDef MakeJungleCamp_5()
     {
         JungleCampGameDef def{};
-        def.maxHp = 1500.f;
+        def.maxHp = 450.f;
         def.radius = 1.2f;
         def.attackRange = 2.f;
-        def.attackDamage = 60.f;
+        def.attackDamage = 40.f;
         def.attackCooldown = 1.4f;
         def.moveSpeed = 4.f;
         def.baseArmor = 20.f;
         def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
+        return def;
+    }
+
+    JungleCampGameDef MakeJungleCamp_6()
+    {
+        JungleCampGameDef def{};
+        def.maxHp = 450.f;
+        def.radius = 0.9f;
+        def.attackRange = 1.5f;
+        def.attackDamage = 40.f;
+        def.attackCooldown = 1.3f;
+        def.moveSpeed = 4.6f;
+        def.baseArmor = 20.f;
+        def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
+        return def;
+    }
+
+    JungleCampGameDef MakeJungleCamp_7()
+    {
+        JungleCampGameDef def{};
+        def.maxHp = 450.f;
+        def.radius = 0.8f;
+        def.attackRange = 1.5f;
+        def.attackDamage = 40.f;
+        def.attackCooldown = 1.2f;
+        def.moveSpeed = 4.4f;
+        def.baseArmor = 20.f;
+        def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
         return def;
     }
 
     JungleCampGameDef MakeJungleCamp_8()
     {
         JungleCampGameDef def{};
-        def.maxHp = 1500.f;
+        def.maxHp = 450.f;
         def.radius = 0.7f;
         def.attackRange = 1.4f;
-        def.attackDamage = 25.f;
+        def.attackDamage = 40.f;
         def.attackCooldown = 1.25f;
         def.moveSpeed = 4.5f;
         def.baseArmor = 20.f;
         def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
         return def;
     }
 
     JungleCampGameDef MakeJungleCamp_9()
     {
         JungleCampGameDef def{};
-        def.maxHp = 1500.f;
+        def.maxHp = 450.f;
         def.radius = 0.7f;
         def.attackRange = 1.4f;
-        def.attackDamage = 25.f;
+        def.attackDamage = 40.f;
         def.attackCooldown = 1.25f;
         def.moveSpeed = 4.5f;
         def.baseArmor = 20.f;
         def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
         return def;
     }
 
     JungleCampGameDef MakeJungleCamp_10()
     {
         JungleCampGameDef def{};
-        def.maxHp = 1500.f;
+        def.maxHp = 450.f;
         def.radius = 0.7f;
         def.attackRange = 1.4f;
-        def.attackDamage = 25.f;
+        def.attackDamage = 40.f;
         def.attackCooldown = 1.25f;
         def.moveSpeed = 4.5f;
         def.baseArmor = 20.f;
         def.baseMr = 20.f;
+        def.aggroRange = 3.f;
+        def.leashRange = 9.f;
         return def;
     }
 
@@ -3509,8 +3783,8 @@ namespace
         def.attackRange = 1.5f;
         def.sightRange = 12.f;
         def.attackDamage = 40.f;
-        def.attackCooldownMax = 1.f;
-        def.maxHp = 450.f;
+        def.attackCooldownMax = 1.666667f;
+        def.maxHp = 225.f;
         return def;
     }
 
@@ -3521,8 +3795,8 @@ namespace
         def.attackRange = 1.5f;
         def.sightRange = 12.f;
         def.attackDamage = 40.f;
-        def.attackCooldownMax = 1.f;
-        def.maxHp = 450.f;
+        def.attackCooldownMax = 1.666667f;
+        def.maxHp = 225.f;
         return def;
     }
 
@@ -3533,8 +3807,8 @@ namespace
         def.attackRange = 8.f;
         def.sightRange = 14.f;
         def.attackDamage = 60.f;
-        def.attackCooldownMax = 1.2f;
-        def.maxHp = 450.f;
+        def.attackCooldownMax = 2.f;
+        def.maxHp = 225.f;
         return def;
     }
 
@@ -3545,8 +3819,8 @@ namespace
         def.attackRange = 10.f;
         def.sightRange = 16.f;
         def.attackDamage = 40.f;
-        def.attackCooldownMax = 1.f;
-        def.maxHp = 450.f;
+        def.attackCooldownMax = 1.666667f;
+        def.maxHp = 225.f;
         return def;
     }
 
@@ -3557,8 +3831,8 @@ namespace
         def.attackRange = 2.f;
         def.sightRange = 14.f;
         def.attackDamage = 100.f;
-        def.attackCooldownMax = 1.f;
-        def.maxHp = 1000.f;
+        def.attackCooldownMax = 1.666667f;
+        def.maxHp = 500.f;
         return def;
     }
 
@@ -3570,7 +3844,25 @@ namespace
         def.sightRange = 14.f;
         def.attackDamage = 80.f;
         def.attackCooldownMax = 1.f;
-        def.maxHp = 1500.f;
+        def.maxHp = 750.f;
+        return def;
+    }
+
+    MinionWaveDef MakeMinionWaveDef()
+    {
+        MinionWaveDef def{};
+        def.waveIntervalTicks = 900ull;
+        def.initialDelayTicks = 300ull;
+        def.perMinionDelayTicks = 10ull;
+        def.siegeWavePeriod = 3u;
+        def.timeGrowthCapMinutes = 30u;
+        def.timeGrowthPerMinute = 0.025f;
+        def.corpseDeathTimerSec = 1.5f;
+        def.rangedProjectile.speed = 14.f;
+        def.rangedProjectile.hitRadius = 0.45f;
+        def.rangedProjectile.forwardOffset = 0.45f;
+        def.rangedProjectile.spawnHeight = 0.85f;
+        def.rangedProjectile.maxDistancePadding = 2.f;
         return def;
     }
 
@@ -3580,7 +3872,10 @@ namespace
         { static_cast<u8_t>(1u), MakeJungleCamp_1() },
         { static_cast<u8_t>(2u), MakeJungleCamp_2() },
         { static_cast<u8_t>(3u), MakeJungleCamp_3() },
+        { static_cast<u8_t>(4u), MakeJungleCamp_4() },
         { static_cast<u8_t>(5u), MakeJungleCamp_5() },
+        { static_cast<u8_t>(6u), MakeJungleCamp_6() },
+        { static_cast<u8_t>(7u), MakeJungleCamp_7() },
         { static_cast<u8_t>(8u), MakeJungleCamp_8() },
         { static_cast<u8_t>(9u), MakeJungleCamp_9() },
         { static_cast<u8_t>(10u), MakeJungleCamp_10() },
@@ -3593,6 +3888,469 @@ namespace
         { static_cast<u8_t>(2u), MakeMinionCombat_2() },
         { static_cast<u8_t>(3u), MakeMinionCombat_3() },
         { static_cast<u8_t>(4u), MakeMinionCombat_4() },
+    };
+
+    EconomyGameplayDef MakeEconomyDef()
+    {
+        EconomyGameplayDef def{};
+        def.xpRequiredForNextLevel[1] = 280.f;
+        def.xpRequiredForNextLevel[2] = 380.f;
+        def.xpRequiredForNextLevel[3] = 480.f;
+        def.xpRequiredForNextLevel[4] = 580.f;
+        def.xpRequiredForNextLevel[5] = 680.f;
+        def.xpRequiredForNextLevel[6] = 780.f;
+        def.xpRequiredForNextLevel[7] = 880.f;
+        def.xpRequiredForNextLevel[8] = 980.f;
+        def.xpRequiredForNextLevel[9] = 1080.f;
+        def.xpRequiredForNextLevel[10] = 1180.f;
+        def.xpRequiredForNextLevel[11] = 1280.f;
+        def.xpRequiredForNextLevel[12] = 1380.f;
+        def.xpRequiredForNextLevel[13] = 1480.f;
+        def.xpRequiredForNextLevel[14] = 1580.f;
+        def.xpRequiredForNextLevel[15] = 1680.f;
+        def.xpRequiredForNextLevel[16] = 1780.f;
+        def.xpRequiredForNextLevel[17] = 1880.f;
+        def.championKill.killerGold = 300.f;
+        def.championKill.assistGold = 150.f;
+        def.championKill.firstBloodBonusGold = 100.f;
+        def.championKill.victimNextLevelXPFactor = 0.5f;
+        def.championKill.shareRadius = 20.f;
+        def.melee.soloXP = 61.75f;
+        def.melee.sharedXP = 80.6f;
+        def.melee.gold = 21.f;
+        def.melee.maxGold = 0.f;
+        def.melee.growthAmount = 0.f;
+        def.melee.growthIntervalSec = 0.f;
+        def.ranged.soloXP = 30.4f;
+        def.ranged.sharedXP = 39.68f;
+        def.ranged.gold = 14.f;
+        def.ranged.maxGold = 0.f;
+        def.ranged.growthAmount = 0.f;
+        def.ranged.growthIntervalSec = 0.f;
+        def.siege.soloXP = 95.f;
+        def.siege.sharedXP = 124.f;
+        def.siege.gold = 60.f;
+        def.siege.maxGold = 90.f;
+        def.siege.growthAmount = 3.f;
+        def.siege.growthIntervalSec = 90.f;
+        def.super.soloXP = 95.f;
+        def.super.sharedXP = 124.f;
+        def.super.gold = 60.f;
+        def.super.maxGold = 90.f;
+        def.super.growthAmount = 3.f;
+        def.super.growthIntervalSec = 90.f;
+        def.turretGold = 250.f;
+        def.jungle.smallCampGold = 35.f;
+        def.jungle.smallCampXP = 75.f;
+        def.jungle.epicGold = 150.f;
+        def.jungle.epicXP = 250.f;
+        def.jungle.baronGold = 300.f;
+        def.jungle.baronXP = 600.f;
+        def.passiveGoldStartTick = 3300ull;
+        def.passiveGoldIntervalTicks = 30ull;
+        def.passiveGoldPerGrant = 2u;
+        def.assistCreditWindowSec = 10.f;
+        def.recallDurationSec = 2.f;
+        def.bValid = true;
+        return def;
+    }
+
+    ItemDef MakeItem_1001()
+    {
+        ItemDef def{};
+        def.itemId = 1001u;
+        def.price = 300u;
+        def.stats.flatMoveSpeed = 25.f;
+        def.displayName = "Boots";
+        return def;
+    }
+
+    ItemDef MakeItem_1011()
+    {
+        ItemDef def{};
+        def.itemId = 1011u;
+        def.price = 900u;
+        def.stats.flatHealth = 350.f;
+        def.displayName = "Giant's Belt";
+        return def;
+    }
+
+    ItemDef MakeItem_1018()
+    {
+        ItemDef def{};
+        def.itemId = 1018u;
+        def.price = 600u;
+        def.stats.critChance = 0.15f;
+        def.displayName = "Cloak of Agility";
+        return def;
+    }
+
+    ItemDef MakeItem_1026()
+    {
+        ItemDef def{};
+        def.itemId = 1026u;
+        def.price = 850u;
+        def.stats.flatAp = 45.f;
+        def.displayName = "Blasting Wand";
+        return def;
+    }
+
+    ItemDef MakeItem_1027()
+    {
+        ItemDef def{};
+        def.itemId = 1027u;
+        def.price = 400u;
+        def.stats.flatMana = 300.f;
+        def.displayName = "Sapphire Crystal";
+        return def;
+    }
+
+    ItemDef MakeItem_1028()
+    {
+        ItemDef def{};
+        def.itemId = 1028u;
+        def.price = 400u;
+        def.stats.flatHealth = 150.f;
+        def.displayName = "Ruby Crystal";
+        return def;
+    }
+
+    ItemDef MakeItem_1029()
+    {
+        ItemDef def{};
+        def.itemId = 1029u;
+        def.price = 300u;
+        def.stats.flatArmor = 15.f;
+        def.displayName = "Cloth Armor";
+        return def;
+    }
+
+    ItemDef MakeItem_1031()
+    {
+        ItemDef def{};
+        def.itemId = 1031u;
+        def.price = 800u;
+        def.stats.flatArmor = 40.f;
+        def.displayName = "Chain Vest";
+        return def;
+    }
+
+    ItemDef MakeItem_1033()
+    {
+        ItemDef def{};
+        def.itemId = 1033u;
+        def.price = 400u;
+        def.stats.flatMr = 20.f;
+        def.displayName = "Null-Magic Mantle";
+        return def;
+    }
+
+    ItemDef MakeItem_1036()
+    {
+        ItemDef def{};
+        def.itemId = 1036u;
+        def.price = 350u;
+        def.stats.flatAd = 10.f;
+        def.displayName = "Long Sword";
+        return def;
+    }
+
+    ItemDef MakeItem_1037()
+    {
+        ItemDef def{};
+        def.itemId = 1037u;
+        def.price = 875u;
+        def.stats.flatAd = 25.f;
+        def.displayName = "Pickaxe";
+        return def;
+    }
+
+    ItemDef MakeItem_1038()
+    {
+        ItemDef def{};
+        def.itemId = 1038u;
+        def.price = 1300u;
+        def.stats.flatAd = 40.f;
+        def.displayName = "B. F. Sword";
+        return def;
+    }
+
+    ItemDef MakeItem_1042()
+    {
+        ItemDef def{};
+        def.itemId = 1042u;
+        def.price = 250u;
+        def.stats.bonusAttackSpeed = 0.1f;
+        def.displayName = "Dagger";
+        return def;
+    }
+
+    ItemDef MakeItem_1043()
+    {
+        ItemDef def{};
+        def.itemId = 1043u;
+        def.price = 700u;
+        def.stats.bonusAttackSpeed = 0.15f;
+        def.displayName = "Recurve Bow";
+        return def;
+    }
+
+    ItemDef MakeItem_1052()
+    {
+        ItemDef def{};
+        def.itemId = 1052u;
+        def.price = 400u;
+        def.stats.flatAp = 20.f;
+        def.displayName = "Amplifying Tome";
+        return def;
+    }
+
+    ItemDef MakeItem_1053()
+    {
+        ItemDef def{};
+        def.itemId = 1053u;
+        def.price = 900u;
+        def.stats.flatAd = 15.f;
+        def.stats.lifeSteal = 0.07f;
+        def.displayName = "Vampiric Scepter";
+        return def;
+    }
+
+    ItemDef MakeItem_1054()
+    {
+        ItemDef def{};
+        def.itemId = 1054u;
+        def.price = 450u;
+        def.stats.flatHealth = 110.f;
+        def.displayName = "Doran's Shield";
+        return def;
+    }
+
+    ItemDef MakeItem_1055()
+    {
+        ItemDef def{};
+        def.itemId = 1055u;
+        def.price = 450u;
+        def.stats.flatAd = 10.f;
+        def.stats.flatHealth = 80.f;
+        def.displayName = "Doran's Blade";
+        return def;
+    }
+
+    ItemDef MakeItem_1056()
+    {
+        ItemDef def{};
+        def.itemId = 1056u;
+        def.price = 400u;
+        def.stats.flatAp = 18.f;
+        def.stats.flatHealth = 90.f;
+        def.displayName = "Doran's Ring";
+        return def;
+    }
+
+    ItemDef MakeItem_1057()
+    {
+        ItemDef def{};
+        def.itemId = 1057u;
+        def.price = 900u;
+        def.stats.flatMr = 45.f;
+        def.displayName = "Negatron Cloak";
+        return def;
+    }
+
+    ItemDef MakeItem_1058()
+    {
+        ItemDef def{};
+        def.itemId = 1058u;
+        def.price = 1200u;
+        def.stats.flatAp = 65.f;
+        def.displayName = "Needlessly Large Rod";
+        return def;
+    }
+
+    ItemDef MakeItem_3006()
+    {
+        ItemDef def{};
+        def.itemId = 3006u;
+        def.price = 1100u;
+        def.stats.bonusAttackSpeed = 0.25f;
+        def.stats.flatMoveSpeed = 45.f;
+        def.displayName = "Berserker's Greaves";
+        return def;
+    }
+
+    ItemDef MakeItem_3020()
+    {
+        ItemDef def{};
+        def.itemId = 3020u;
+        def.price = 1100u;
+        def.stats.flatMoveSpeed = 45.f;
+        def.stats.flatMagicPen = 15.f;
+        def.displayName = "Sorcerer's Shoes";
+        return def;
+    }
+
+    ItemDef MakeItem_3031()
+    {
+        ItemDef def{};
+        def.itemId = 3031u;
+        def.price = 3450u;
+        def.stats.flatAd = 65.f;
+        def.stats.critChance = 0.25f;
+        def.displayName = "Infinity Edge";
+        return def;
+    }
+
+    ItemDef MakeItem_3047()
+    {
+        ItemDef def{};
+        def.itemId = 3047u;
+        def.price = 1200u;
+        def.stats.flatArmor = 25.f;
+        def.stats.flatMoveSpeed = 45.f;
+        def.displayName = "Plated Steelcaps";
+        return def;
+    }
+
+    ItemDef MakeItem_3065()
+    {
+        ItemDef def{};
+        def.itemId = 3065u;
+        def.price = 2700u;
+        def.stats.flatHealth = 450.f;
+        def.stats.flatMr = 50.f;
+        def.stats.abilityHaste = 10.f;
+        def.displayName = "Spirit Visage";
+        return def;
+    }
+
+    ItemDef MakeItem_3072()
+    {
+        ItemDef def{};
+        def.itemId = 3072u;
+        def.price = 3400u;
+        def.stats.flatAd = 80.f;
+        def.stats.lifeSteal = 0.15f;
+        def.displayName = "Bloodthirster";
+        return def;
+    }
+
+    ItemDef MakeItem_3078()
+    {
+        ItemDef def{};
+        def.itemId = 3078u;
+        def.price = 3333u;
+        def.stats.flatAd = 45.f;
+        def.stats.flatHealth = 300.f;
+        def.stats.bonusAttackSpeed = 0.3f;
+        def.stats.abilityHaste = 15.f;
+        def.displayName = "Trinity Force";
+        return def;
+    }
+
+    ItemDef MakeItem_3089()
+    {
+        ItemDef def{};
+        def.itemId = 3089u;
+        def.price = 3500u;
+        def.stats.flatAp = 130.f;
+        def.displayName = "Rabadon's Deathcap";
+        return def;
+    }
+
+    ItemDef MakeItem_3111()
+    {
+        ItemDef def{};
+        def.itemId = 3111u;
+        def.price = 1200u;
+        def.stats.flatMr = 20.f;
+        def.stats.flatMoveSpeed = 45.f;
+        def.displayName = "Mercury's Treads";
+        return def;
+    }
+
+    ItemDef MakeItem_3153()
+    {
+        ItemDef def{};
+        def.itemId = 3153u;
+        def.price = 3000u;
+        def.stats.flatAd = 40.f;
+        def.stats.bonusAttackSpeed = 0.25f;
+        def.stats.lifeSteal = 0.1f;
+        def.displayName = "Blade of the Ruined King";
+        return def;
+    }
+
+    ItemDef MakeItem_3157()
+    {
+        ItemDef def{};
+        def.itemId = 3157u;
+        def.price = 3250u;
+        def.stats.flatAp = 105.f;
+        def.stats.flatArmor = 50.f;
+        def.displayName = "Zhonya's Hourglass";
+        return def;
+    }
+
+    ItemDef MakeItem_3158()
+    {
+        ItemDef def{};
+        def.itemId = 3158u;
+        def.price = 950u;
+        def.stats.abilityHaste = 15.f;
+        def.stats.flatMoveSpeed = 45.f;
+        def.displayName = "Ionian Boots of Lucidity";
+        return def;
+    }
+
+    ItemDef MakeItem_3742()
+    {
+        ItemDef def{};
+        def.itemId = 3742u;
+        def.price = 2900u;
+        def.stats.flatHealth = 350.f;
+        def.stats.flatArmor = 45.f;
+        def.stats.flatMoveSpeed = 5.f;
+        def.displayName = "Dead Man's Plate";
+        return def;
+    }
+
+    const ItemDef kItemDefs[] =
+    {
+        MakeItem_1001(),
+        MakeItem_1011(),
+        MakeItem_1018(),
+        MakeItem_1026(),
+        MakeItem_1027(),
+        MakeItem_1028(),
+        MakeItem_1029(),
+        MakeItem_1031(),
+        MakeItem_1033(),
+        MakeItem_1036(),
+        MakeItem_1037(),
+        MakeItem_1038(),
+        MakeItem_1042(),
+        MakeItem_1043(),
+        MakeItem_1052(),
+        MakeItem_1053(),
+        MakeItem_1054(),
+        MakeItem_1055(),
+        MakeItem_1056(),
+        MakeItem_1057(),
+        MakeItem_1058(),
+        MakeItem_3006(),
+        MakeItem_3020(),
+        MakeItem_3031(),
+        MakeItem_3047(),
+        MakeItem_3065(),
+        MakeItem_3072(),
+        MakeItem_3078(),
+        MakeItem_3089(),
+        MakeItem_3111(),
+        MakeItem_3153(),
+        MakeItem_3157(),
+        MakeItem_3158(),
+        MakeItem_3742(),
     };
 
     const ChampionGameplayDef kChampions[] =
@@ -3715,6 +4473,7 @@ namespace ServerData
 {
     const GameplayDefinitionPack& GetLoLGameplayDefinitionPack()
     {
+        static const EconomyGameplayDef economyDef = MakeEconomyDef();
         static const GameplayDefinitionPack pack =
         {
             { 1u, 1u, kBuildHash, 0u, eDataPackVisibility::ServerPrivate },
@@ -3724,6 +4483,9 @@ namespace ServerData
             sizeof(kSkills) / sizeof(kSkills[0]),
             kSummonerSpells,
             sizeof(kSummonerSpells) / sizeof(kSummonerSpells[0]),
+            &economyDef,
+            kItemDefs,
+            sizeof(kItemDefs) / sizeof(kItemDefs[0]),
         };
         return pack;
     }
@@ -3742,6 +4504,7 @@ namespace ServerData
             MakeDefaultMinionCombat(),
             kMinions,
             sizeof(kMinions) / sizeof(kMinions[0]),
+            MakeMinionWaveDef(),
         };
         return pack;
     }

@@ -1,31 +1,37 @@
 #include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
 
+#include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
+#include "Shared/GameSim/Components/ProjectileBarrierComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/Determinism/DeterministicTime.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Systems/Move/DashArrival.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <functional>
 #include <iostream>
+#include <type_traits>
 #include <vector>
+
+#include "Shared/GameSim/Core/Checkpoint/KeyframeComponentRegistry.h"
 
 namespace
 {
-    constexpr f32_t kYasuoQHitDelaySec = 0.25f;
-    constexpr f32_t kYasuoAirborneLift = 2.1f;
-
     struct YasuoDashComponent
     {
         Vec3 start{};
@@ -34,14 +40,48 @@ namespace
         f32_t durationSec = 0.f;
     };
 
-    struct YasuoAirborneComponent
+    struct YasuoEqInputBufferComponent
     {
-        EntityID sourceEntity = NULL_ENTITY;
-        f32_t baseY = 0.f;
-        f32_t elapsedSec = 0.f;
-        f32_t durationSec = 0.f;
-        f32_t lift = kYasuoAirborneLift;
+        EntityHandle hCaster = NULL_ENTITY_HANDLE;
+        Vec3 vDirection{};
+        Vec3 vGroundPos{};
+        u64_t uIssuedAtTick = 0u;
+        u64_t uRewindTicks = 0u;
+        u32_t uCommandSequence = 0u;
+        u32_t uSourceSessionId = 0u;
+        u32_t uEActionSequence = 0u;
+        EntityID uTargetEntity = NULL_ENTITY;
+        u16_t uItemId = 0u;
+        bool_t bPending = false;
+        bool_t bExecuting = false;
+        u8_t reservedTail[4]{};
     };
+
+    struct YasuoSweepingBladeLockoutComponent
+    {
+        EntityHandle hSource = NULL_ENTITY_HANDLE;
+        EntityHandle hTarget = NULL_ENTITY_HANDLE;
+        u64_t uExpireTick = 0u;
+    };
+
+    static_assert(std::is_trivially_copyable_v<YasuoEqInputBufferComponent>);
+    static_assert(sizeof(YasuoEqInputBufferComponent) == 72u);
+    static_assert(std::is_trivially_copyable_v<YasuoSweepingBladeLockoutComponent>);
+
+    // Chrono Break: 익명 네임스페이스 컴포넌트는 소유 TU에서 자기등록한다.
+    const bool_t s_bYasuoDashKeyframeRegistered = []()
+    {
+        SimCheckpoint::KeyframeComponentRegistry::Get()
+            .Register<YasuoDashComponent>("YasuoDashComponent");
+        SimCheckpoint::KeyframeComponentRegistry::Get()
+            .Register<ProjectileBarrierComponent>("ProjectileBarrierComponent");
+        SimCheckpoint::KeyframeComponentRegistry::Get()
+            .Register<YasuoEqInputBufferComponent>("YasuoEqInputBufferComponent");
+        SimCheckpoint::KeyframeComponentRegistry::Get()
+            .Register<YasuoSweepingBladeLockoutComponent>(
+                "YasuoSweepingBladeLockoutComponent");
+        return true;
+    }();
 
     YasuoStateComponent& EnsureYasuoState(CWorld& world, EntityID caster)
     {
@@ -49,6 +89,56 @@ namespace
             world.AddComponent<YasuoStateComponent>(caster, YasuoStateComponent{});
 
         return world.GetComponent<YasuoStateComponent>(caster);
+    }
+
+    void ClearYasuoEqInputBuffer(CWorld& world, EntityID caster)
+    {
+        if (world.HasComponent<YasuoEqInputBufferComponent>(caster))
+            world.RemoveComponent<YasuoEqInputBufferComponent>(caster);
+    }
+
+    bool_t IsYasuoEAction(const ActionStateComponent& action)
+    {
+        return action.sourceChampion == eChampion::YASUO &&
+            action.sourceSlot == static_cast<u8_t>(eSkillSlot::E) &&
+            action.movePolicy == eSkillActionMovePolicy::ForcedMotion;
+    }
+
+    u64_t SecondsToTicksCeil(f32_t seconds)
+    {
+        if (!std::isfinite(seconds) || seconds <= 0.f)
+            return 0u;
+
+        return static_cast<u64_t>(std::ceil(
+            static_cast<f64_t>(seconds) *
+            static_cast<f64_t>(DeterministicTime::kTicksPerSecond)));
+    }
+
+    EntityID FindSweepingBladeLockoutRelation(
+        CWorld& world,
+        EntityID source,
+        EntityID target)
+    {
+        if (source == NULL_ENTITY || target == NULL_ENTITY)
+            return NULL_ENTITY;
+
+        const EntityHandle hSource = world.GetEntityHandle(source);
+        const EntityHandle hTarget = world.GetEntityHandle(target);
+        if (!hSource.IsValid() || !hTarget.IsValid())
+            return NULL_ENTITY;
+
+        const auto relations =
+            DeterministicEntityIterator<
+                YasuoSweepingBladeLockoutComponent>::CollectSorted(world);
+        for (EntityID relationEntity : relations)
+        {
+            const YasuoSweepingBladeLockoutComponent& lockout =
+                world.GetComponent<YasuoSweepingBladeLockoutComponent>(relationEntity);
+            if (lockout.hSource == hSource && lockout.hTarget == hTarget)
+                return relationEntity;
+        }
+
+        return NULL_ENTITY;
     }
 
     f32_t ResolveYasuoSkillEffectParam(
@@ -67,6 +157,51 @@ namespace
             static_cast<u8_t>(slot),
             param,
             fallbackValue);
+    }
+
+    void AttachSweepingBladeLockout(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID source,
+        EntityID target)
+    {
+        const EntityHandle hSource = world.GetEntityHandle(source);
+        const EntityHandle hTarget = world.GetEntityHandle(target);
+        if (!hSource.IsValid() || !hTarget.IsValid())
+            return;
+
+        const f32_t durationSec = ResolveYasuoSkillEffectParam(
+            world,
+            tc,
+            source,
+            eSkillSlot::E,
+            eSkillEffectParamId::MarkDurationSec,
+            10.f);
+        const u64_t durationTicks = (std::max)(
+            1ull,
+            SecondsToTicksCeil(durationSec));
+
+        const EntityID existing =
+            FindSweepingBladeLockoutRelation(world, source, target);
+        if (existing != NULL_ENTITY)
+        {
+            YasuoSweepingBladeLockoutComponent& lockout =
+                world.GetComponent<YasuoSweepingBladeLockoutComponent>(existing);
+            lockout.uExpireTick = tc.tickIndex + durationTicks;
+            return;
+        }
+
+        const EntityHandle hRelation = world.CreateEntityHandle();
+        if (!hRelation.IsValid())
+            return;
+
+        YasuoSweepingBladeLockoutComponent lockout{};
+        lockout.hSource = hSource;
+        lockout.hTarget = hTarget;
+        lockout.uExpireTick = tc.tickIndex + durationTicks;
+        world.AddComponent<YasuoSweepingBladeLockoutComponent>(
+            hRelation.GetIndex(),
+            lockout);
     }
 
     f32_t ResolveYasuoSkillEffectParam(
@@ -112,49 +247,25 @@ namespace
     void EnqueueAreaDamage(CWorld& world, EntityID caster, eTeam casterTeam,
         const Vec3& origin, f32_t radius, f32_t damage, u16_t skillId, u8_t rank)
     {
-        const f32_t radiusSq = radius * radius;
-
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID target, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (target == caster || champion.team == casterTeam)
-                        return;
-                    if (WintersMath::DistanceSqXZ(origin, transform.GetPosition()) > radiusSq)
-                        return;
-
-                    DamageRequest request{};
-                    request.source = caster;
-                    request.target = target;
-                    request.sourceTeam = casterTeam;
-                    request.type = eDamageType::Physical;
-                    request.flatAmount = damage;
-                    request.skillId = skillId;
-                    request.rank = rank;
-                    request.flags = DamageFlag_OnHit;
-                    EnqueueDamageRequest(world, request);
-                }));
-
-        world.ForEach<MinionComponent, TransformComponent>(
-            std::function<void(EntityID, MinionComponent&, TransformComponent&)>(
-                [&](EntityID target, MinionComponent& minion, TransformComponent& transform)
-                {
-                    if (minion.team == casterTeam)
-                        return;
-                    if (WintersMath::DistanceSqXZ(origin, transform.GetPosition()) > radiusSq)
-                        return;
-
-                    DamageRequest request{};
-                    request.source = caster;
-                    request.target = target;
-                    request.sourceTeam = casterTeam;
-                    request.type = eDamageType::Physical;
-                    request.flatAmount = damage;
-                    request.skillId = skillId;
-                    request.rank = rank;
-                    request.flags = DamageFlag_OnHit;
-                    EnqueueDamageRequest(world, request);
-                }));
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
+                world,
+                caster,
+                origin,
+                radius);
+        for (EntityID target : targets)
+        {
+            DamageRequest request{};
+            request.source = caster;
+            request.target = target;
+            request.sourceTeam = casterTeam;
+            request.type = eDamageType::Physical;
+            request.flatAmount = damage;
+            request.skillId = skillId;
+            request.rank = rank;
+            request.flags = DamageFlag_OnHit;
+            EnqueueDamageRequest(world, request);
+        }
     }
 
     void EnqueueTargetDamage(CWorld& world, EntityID caster, EntityID target,
@@ -180,62 +291,9 @@ namespace
         if (target == NULL_ENTITY || !world.IsAlive(target))
             return false;
 
-        if (world.HasComponent<YasuoAirborneComponent>(target))
-            return true;
-
         return world.HasComponent<GameplayStateComponent>(target) &&
             (world.GetComponent<GameplayStateComponent>(target).stateFlags &
                 kGameplayStateAirborneFlag) != 0u;
-    }
-
-    void ApplyAirborne(
-        CWorld& world,
-        const TickContext& tc,
-        EntityID source,
-        EntityID target,
-        eSkillSlot slot,
-        f32_t durationSec)
-    {
-        if (target == NULL_ENTITY ||
-            !world.IsAlive(target) ||
-            !world.HasComponent<TransformComponent>(target))
-        {
-            return;
-        }
-
-        auto& transform = world.GetComponent<TransformComponent>(target);
-        const Vec3 pos = transform.GetPosition();
-
-        if (world.HasComponent<YasuoAirborneComponent>(target))
-        {
-            auto& airborne = world.GetComponent<YasuoAirborneComponent>(target);
-            airborne.sourceEntity = source;
-            const f32_t remaining = airborne.durationSec - airborne.elapsedSec;
-            if (remaining < durationSec)
-                airborne.durationSec = airborne.elapsedSec + durationSec;
-            airborne.lift = kYasuoAirborneLift;
-        }
-        else
-        {
-            YasuoAirborneComponent airborne{};
-            airborne.sourceEntity = source;
-            airborne.baseY = pos.y;
-            airborne.durationSec = durationSec;
-            airborne.lift = kYasuoAirborneLift;
-            world.AddComponent<YasuoAirborneComponent>(target, airborne);
-        }
-
-        if (world.HasComponent<MoveTargetComponent>(target))
-            world.GetComponent<MoveTargetComponent>(target).bHasTarget = false;
-
-        GameplayStatus::ApplyAirborne(
-            world,
-            tc,
-            target,
-            source,
-            eChampion::YASUO,
-            slot,
-            durationSec);
     }
 
     bool_t StartDashThroughTarget(
@@ -326,6 +384,13 @@ namespace
         }
 
         casterTransform.SetPosition(landPos);
+        PositionDiscontinuityComponent& discontinuity =
+            world.HasComponent<PositionDiscontinuityComponent>(caster)
+                ? world.GetComponent<PositionDiscontinuityComponent>(caster)
+                : world.AddComponent<PositionDiscontinuityComponent>(
+                    caster,
+                    PositionDiscontinuityComponent{});
+        discontinuity.uTick = tc.tickIndex;
         const Vec3 rot = casterTransform.GetRotation();
         casterTransform.SetRotation(Vec3{
             rot.x,
@@ -356,8 +421,15 @@ namespace
 
         SkillProjectileComponent projectile{};
         projectile.sourceEntity = caster;
+        projectile.sourceHandle = world.GetEntityHandle(caster);
         projectile.sourceTeam = casterTeam;
         projectile.kind = kind;
+        if (kind == eProjectileKind::Wind ||
+            kind == eProjectileKind::Tornado)
+        {
+            projectile.unitHitPolicy = eProjectileUnitHitPolicy::Pierce;
+            projectile.maxUniqueHits = kMaxPiercingProjectileHits;
+        }
         projectile.skillId = static_cast<u16_t>(
             (static_cast<u32_t>(eChampion::YASUO) << 8) |
             static_cast<u32_t>(eSkillSlot::Q));
@@ -396,8 +468,6 @@ namespace
             ctx, eSkillSlot::Q, eSkillEffectParamId::Radius);
         const f32_t qDamage = ResolveYasuoSkillEffectParam(
             ctx, eSkillSlot::Q, eSkillEffectParamId::BaseDamage);
-        const f32_t qStackWindowSec = ResolveYasuoSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::StackWindowSec);
         const f32_t tornadoSpeed = ResolveYasuoSkillEffectParam(
             ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoSpeed);
         const f32_t tornadoLifetimeSec = ResolveYasuoSkillEffectParam(
@@ -414,16 +484,38 @@ namespace
         switch (stage)
         {
         case 4:
+        {
+            const Vec3 center = ResolveCasterPosition(world, ctx.casterEntity);
             EnqueueAreaDamage(
                 world,
                 ctx.casterEntity,
                 ctx.casterTeam,
-                ResolveCasterPosition(world, ctx.casterEntity),
+                center,
                 dashAreaRadius,
                 dashAreaDamage,
                 static_cast<u16_t>((static_cast<u32_t>(eChampion::YASUO) << 8) | 1u),
                 ctx.skillRank);
+            if (state.qStackCount >= 2u)
+            {
+                const std::vector<EntityID> targets =
+                    GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
+                        world,
+                        ctx.casterEntity,
+                        center,
+                        dashAreaRadius);
+                for (EntityID target : targets)
+                {
+                    YasuoGameSim::ApplyTornadoAirborne(
+                        world,
+                        *ctx.pTickCtx,
+                        ctx.casterEntity,
+                        target);
+                }
+                state.qStackCount = 0u;
+                state.qStackTimer = 0.f;
+            }
             break;
+        }
 
         case 3:
             SpawnYasuoSkillProjectile(
@@ -455,21 +547,58 @@ namespace
                 qRadius,
                 qDamage,
                 ctx.skillRank);
-            state.qStackCount = std::min<u8_t>(
-                2u,
-                static_cast<u8_t>(state.qStackCount + 1u));
-            state.qStackTimer = qStackWindowSec;
             break;
         }
 
         std::cout << "[YasuoSim] Q accepted caster=" << ctx.casterEntity
             << " stage=" << static_cast<u32_t>(stage)
-            << " stack=" << static_cast<u32_t>(state.qStackCount)
-            << " delay=" << kYasuoQHitDelaySec << "\n";
+            << " stack=" << static_cast<u32_t>(state.qStackCount) << "\n";
     }
 
     void OnW(GameplayHookContext& ctx)
     {
+        if (!ctx.pWorld || !ctx.pTickCtx ||
+            !ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
+        {
+            return;
+        }
+
+        CWorld& world = *ctx.pWorld;
+        const Vec3 direction = ResolveCommandDirection(ctx);
+        const Vec3 origin = ResolveCasterPosition(world, ctx.casterEntity);
+        const u8_t rank = ctx.skillRank > 0u ? ctx.skillRank : 1u;
+        const f32_t wHalfLength = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::W, eSkillEffectParamId::RectLength, 1.6f);
+        const f32_t wHalfLengthPerRank = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::W, eSkillEffectParamId::RectLengthPerRank, 0.35f);
+        const f32_t wHalfThickness = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::W, eSkillEffectParamId::RectWidth, 0.5f);
+        const f32_t wFormationDelaySec = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::W, eSkillEffectParamId::FormationDelaySec, 0.25f);
+        const f32_t wDurationSec = ResolveYasuoSkillEffectParam(
+            ctx, eSkillSlot::W, eSkillEffectParamId::EffectDurationSec, 4.f);
+
+        ProjectileBarrierComponent barrier{};
+        barrier.sourceEntity = ctx.casterEntity;
+        barrier.sourceTeam = ctx.casterTeam;
+        barrier.origin = origin;
+        barrier.previousCenter = origin;
+        barrier.center = origin;
+        barrier.direction = direction;
+        barrier.halfLength = wHalfLength +
+            wHalfLengthPerRank * static_cast<f32_t>(rank - 1u);
+        barrier.halfThickness = wHalfThickness;
+        barrier.spawnTick = ctx.pTickCtx->tickIndex;
+        barrier.formationEndTick = ctx.pTickCtx->tickIndex +
+            static_cast<u64_t>(
+                std::ceil(wFormationDelaySec / DeterministicTime::kFixedDt));
+        barrier.expireTick = ctx.pTickCtx->tickIndex +
+            static_cast<u64_t>(
+                std::ceil(wDurationSec / DeterministicTime::kFixedDt));
+
+        const EntityID barrierEntity = world.CreateEntity();
+        world.AddComponent<ProjectileBarrierComponent>(barrierEntity, barrier);
+
         std::cout << "[YasuoSim] W accepted caster=" << ctx.casterEntity << "\n";
     }
 
@@ -501,6 +630,11 @@ namespace
             eDashThroughDistance,
             eDashMaxDistance,
             eDashDurationSec);
+        AttachSweepingBladeLockout(
+            world,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            target);
         EnqueueTargetDamage(
             world,
             ctx.casterEntity,
@@ -539,11 +673,12 @@ namespace
             return;
         }
 
-        ApplyAirborne(
+        GameplayStatus::ApplyAirborne(
             world,
             *ctx.pTickCtx,
-            ctx.casterEntity,
             target,
+            ctx.casterEntity,
+            eChampion::YASUO,
             eSkillSlot::R,
             holdAirborneSec);
         const bool_t bPlaced =
@@ -570,8 +705,148 @@ namespace
 
 namespace YasuoGameSim
 {
+    bool_t CanCastSweepingBlade(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target)
+    {
+        if (caster == NULL_ENTITY ||
+            target == NULL_ENTITY ||
+            caster == target ||
+            !world.IsAlive(caster) ||
+            !world.IsAlive(target) ||
+            !world.HasComponent<TransformComponent>(caster) ||
+            !world.HasComponent<TransformComponent>(target) ||
+            !GameplayStateQuery::CanReceiveEnemyAbilityHit(
+                world,
+                caster,
+                target))
+        {
+            return false;
+        }
+
+        const f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            caster,
+            tc,
+            eChampion::YASUO,
+            static_cast<u8_t>(eSkillSlot::E));
+        if (range <= 0.f)
+            return false;
+
+        const f32_t effectiveRange =
+            range +
+            GameplayStateQuery::ResolveGameplayRadius(world, caster) +
+            GameplayStateQuery::ResolveGameplayRadius(world, target);
+        const Vec3 casterPosition =
+            world.GetComponent<TransformComponent>(caster).GetPosition();
+        const Vec3 targetPosition =
+            world.GetComponent<TransformComponent>(target).GetPosition();
+        const f32_t distanceSq =
+            WintersMath::DistanceSqXZ(casterPosition, targetPosition);
+        if (distanceSq <= 0.0001f ||
+            distanceSq >
+            effectiveRange * effectiveRange)
+        {
+            return false;
+        }
+
+        const EntityID relationEntity =
+            FindSweepingBladeLockoutRelation(world, caster, target);
+        if (relationEntity == NULL_ENTITY)
+            return true;
+
+        const YasuoSweepingBladeLockoutComponent& lockout =
+            world.GetComponent<YasuoSweepingBladeLockoutComponent>(relationEntity);
+        return tc.tickIndex >= lockout.uExpireTick;
+    }
+
+    bool_t TryBufferQDuringE(
+        CWorld& world,
+        const TickContext& tc,
+        const GameCommand& cmd)
+    {
+        if (cmd.kind != eCommandKind::CastSkill ||
+            cmd.slot != static_cast<u8_t>(eSkillSlot::Q) ||
+            cmd.itemId > 1u ||
+            cmd.issuerEntity == NULL_ENTITY ||
+            !world.IsAlive(cmd.issuerEntity) ||
+            !world.HasComponent<ChampionComponent>(cmd.issuerEntity) ||
+            world.GetComponent<ChampionComponent>(cmd.issuerEntity).id != eChampion::YASUO ||
+            !world.HasComponent<ActionStateComponent>(cmd.issuerEntity) ||
+            !world.HasComponent<YasuoStateComponent>(cmd.issuerEntity))
+        {
+            return false;
+        }
+
+        const ActionStateComponent& action =
+            world.GetComponent<ActionStateComponent>(cmd.issuerEntity);
+        if (!IsYasuoEAction(action) ||
+            tc.tickIndex >= action.lockEndTick ||
+            !world.GetComponent<YasuoStateComponent>(cmd.issuerEntity).bEActive)
+        {
+            return false;
+        }
+
+        YasuoEqInputBufferComponent& buffer =
+            world.HasComponent<YasuoEqInputBufferComponent>(cmd.issuerEntity)
+                ? world.GetComponent<YasuoEqInputBufferComponent>(cmd.issuerEntity)
+                : world.AddComponent<YasuoEqInputBufferComponent>(
+                    cmd.issuerEntity,
+                    YasuoEqInputBufferComponent{});
+        if (buffer.bPending || buffer.bExecuting)
+            return true;
+
+        buffer = {};
+        buffer.hCaster = world.GetEntityHandle(cmd.issuerEntity);
+        buffer.vDirection = cmd.direction;
+        buffer.vGroundPos = cmd.groundPos;
+        buffer.uIssuedAtTick = cmd.issuedAtTick;
+        buffer.uRewindTicks = cmd.rewindTicks;
+        buffer.uCommandSequence = cmd.sequenceNum;
+        buffer.uSourceSessionId = cmd.sourceSessionId;
+        buffer.uEActionSequence = action.sequence;
+        buffer.uTargetEntity = cmd.targetEntity;
+        buffer.uItemId = cmd.itemId;
+        buffer.bPending = true;
+        return true;
+    }
+
+    void CancelRuntime(CWorld& world, EntityID caster)
+    {
+        ClearYasuoEqInputBuffer(world, caster);
+
+        const EntityHandle hCaster = world.GetEntityHandle(caster);
+        if (hCaster.IsValid())
+        {
+            const auto relations =
+                DeterministicEntityIterator<
+                    YasuoSweepingBladeLockoutComponent>::CollectSorted(world);
+            for (EntityID relationEntity : relations)
+            {
+                const YasuoSweepingBladeLockoutComponent& lockout =
+                    world.GetComponent<YasuoSweepingBladeLockoutComponent>(relationEntity);
+                if (lockout.hSource == hCaster)
+                    world.DestroyEntity(relationEntity);
+            }
+        }
+
+        if (world.HasComponent<YasuoDashComponent>(caster))
+            world.RemoveComponent<YasuoDashComponent>(caster);
+
+        if (world.HasComponent<YasuoStateComponent>(caster))
+            world.RemoveComponent<YasuoStateComponent>(caster);
+    }
+
     u8_t ResolveQVariantStage(CWorld& world, EntityID caster)
     {
+        if (world.HasComponent<YasuoEqInputBufferComponent>(caster) &&
+            world.GetComponent<YasuoEqInputBufferComponent>(caster).bExecuting)
+        {
+            return 4;
+        }
+
         if (!world.HasComponent<YasuoStateComponent>(caster))
             return 1;
 
@@ -586,7 +861,32 @@ namespace YasuoGameSim
         return 1;
     }
 
-    EntityID FindAirborneTarget(CWorld& world, EntityID caster, eTeam casterTeam, f32_t radius)
+    void RegisterQHit(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eProjectileKind kind)
+    {
+        if (kind != eProjectileKind::Wind ||
+            caster == NULL_ENTITY ||
+            !world.IsAlive(caster))
+        {
+            return;
+        }
+
+        YasuoStateComponent& state = EnsureYasuoState(world, caster);
+        state.qStackCount = std::min<u8_t>(
+            2u,
+            static_cast<u8_t>(state.qStackCount + 1u));
+        state.qStackTimer = ResolveYasuoSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::Q,
+            eSkillEffectParamId::StackWindowSec);
+    }
+
+    EntityID FindAirborneTarget(CWorld& world, EntityID caster, eTeam /*casterTeam*/, f32_t radius)
     {
         if (caster == NULL_ENTITY || !world.HasComponent<TransformComponent>(caster))
             return NULL_ENTITY;
@@ -596,22 +896,32 @@ namespace YasuoGameSim
         EntityID best = NULL_ENTITY;
         f32_t bestDistSq = radiusSq;
 
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (entity == caster || champion.team == casterTeam)
-                        return;
-                    if (!IsAirborne(world, entity))
-                        return;
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
+                world,
+                caster,
+                origin,
+                radius);
+        for (EntityID entity : targets)
+        {
+            if (GameplayStateQuery::ResolveTargetKind(world, entity) !=
+                    GameplayStateQuery::eGameplayTargetKind::Champion ||
+                !IsAirborne(world, entity) ||
+                !world.HasComponent<TransformComponent>(entity))
+            {
+                continue;
+            }
 
-                    const f32_t distSq = WintersMath::DistanceSqXZ(origin, transform.GetPosition());
-                    if (distSq <= bestDistSq)
-                    {
-                        bestDistSq = distSq;
-                        best = entity;
-                    }
-                }));
+            const f32_t distSq = WintersMath::DistanceSqXZ(
+                origin,
+                world.GetComponent<TransformComponent>(entity).GetPosition());
+            if (distSq < bestDistSq ||
+                (distSq == bestDistSq && (best == NULL_ENTITY || entity < best)))
+            {
+                bestDistSq = distSq;
+                best = entity;
+            }
+        }
 
         return best;
     }
@@ -624,11 +934,12 @@ namespace YasuoGameSim
             source,
             eSkillSlot::Q,
             eSkillEffectParamId::AirborneDurationSec);
-        ApplyAirborne(
+        GameplayStatus::ApplyAirborne(
             world,
             tc,
-            source,
             target,
+            source,
+            eChampion::YASUO,
             eSkillSlot::Q,
             airborneDurationSec);
         std::cout << "[YasuoSim] airborne target=" << target
@@ -655,13 +966,82 @@ namespace YasuoGameSim
         std::cout << "[YasuoSim] hooks registered\n";
     }
 
-    void Tick(CWorld& world, const TickContext& tc)
+    void Tick(CWorld& world, const TickContext& tc, ICommandExecutor* pExecutor)
     {
+        const auto lockoutRelations =
+            DeterministicEntityIterator<
+                YasuoSweepingBladeLockoutComponent>::CollectSorted(world);
+        for (EntityID relationEntity : lockoutRelations)
+        {
+            if (!world.IsAlive(relationEntity) ||
+                !world.HasComponent<YasuoSweepingBladeLockoutComponent>(relationEntity))
+            {
+                continue;
+            }
+
+            const YasuoSweepingBladeLockoutComponent lockout =
+                world.GetComponent<YasuoSweepingBladeLockoutComponent>(relationEntity);
+            const bool_t bExpired = tc.tickIndex >= lockout.uExpireTick;
+            const bool_t bStaleEndpoint =
+                world.ResolveEntity(lockout.hSource) == NULL_ENTITY ||
+                world.ResolveEntity(lockout.hTarget) == NULL_ENTITY;
+            if (bExpired || bStaleEndpoint)
+                world.DestroyEntity(relationEntity);
+        }
+
+        std::vector<EntityID> expiredBarriers;
+        world.ForEach<ProjectileBarrierComponent>(
+            std::function<void(EntityID, ProjectileBarrierComponent&)>(
+                [&](EntityID entity, ProjectileBarrierComponent& barrier)
+                {
+                    if (tc.tickIndex >= barrier.expireTick)
+                    {
+                        expiredBarriers.push_back(entity);
+                        return;
+                    }
+
+                    f32_t forwardDistance = 0.f;
+                    if (tc.tickIndex < barrier.formationEndTick)
+                    {
+                        const u64_t formationTicks = (std::max)(
+                            1ull,
+                            barrier.formationEndTick - barrier.spawnTick);
+                        const f32_t t = static_cast<f32_t>(
+                            tc.tickIndex - barrier.spawnTick) /
+                            static_cast<f32_t>(formationTicks);
+                        forwardDistance = 4.f * (std::clamp)(t, 0.f, 1.f);
+                    }
+                    else
+                    {
+                        const u64_t driftTicks = (std::max)(
+                            1ull,
+                            barrier.expireTick - barrier.formationEndTick);
+                        const f32_t t = static_cast<f32_t>(
+                            tc.tickIndex - barrier.formationEndTick) /
+                            static_cast<f32_t>(driftTicks);
+                        forwardDistance = 4.f + 0.5f * (std::clamp)(t, 0.f, 1.f);
+                    }
+                    barrier.previousCenter = barrier.center;
+                    barrier.center = Vec3{
+                        barrier.origin.x + barrier.direction.x * forwardDistance,
+                        barrier.origin.y,
+                        barrier.origin.z + barrier.direction.z * forwardDistance };
+                }));
+        for (EntityID entity : expiredBarriers)
+            world.DestroyEntity(entity);
+
         std::vector<EntityID> finishedDashes;
         world.ForEach<YasuoDashComponent, TransformComponent>(
             std::function<void(EntityID, YasuoDashComponent&, TransformComponent&)>(
                 [&](EntityID entity, YasuoDashComponent& dash, TransformComponent& transform)
                 {
+                    if (!GameplayStateQuery::CanMove(world, entity) ||
+                        world.HasComponent<ForcedMotionComponent>(entity))
+                    {
+                        finishedDashes.push_back(entity);
+                        return;
+                    }
+
                     dash.elapsedSec += tc.fDt;
                     f32_t t = dash.durationSec > 0.01f
                         ? dash.elapsedSec / dash.durationSec
@@ -700,51 +1080,81 @@ namespace YasuoGameSim
 
         for (EntityID entity : finishedDashes)
         {
+            if (world.HasComponent<ForcedMotionComponent>(entity))
+            {
+                world.RemoveComponent<YasuoDashComponent>(entity);
+                continue;
+            }
             if (world.HasComponent<YasuoDashComponent>(entity))
                 SnapDashArrivalToWalkable(world, tc, entity,
                     world.GetComponent<YasuoDashComponent>(entity).start);
             world.RemoveComponent<YasuoDashComponent>(entity);
         }
 
-        std::vector<EntityID> finishedAirborne;
-        world.ForEach<YasuoAirborneComponent, TransformComponent>(
-            std::function<void(EntityID, YasuoAirborneComponent&, TransformComponent&)>(
-                [&](EntityID entity, YasuoAirborneComponent& airborne, TransformComponent& transform)
+        std::vector<EntityID> invalidEqBuffers;
+        std::vector<EntityID> readyEqBuffers;
+        world.ForEach<YasuoEqInputBufferComponent>(
+            std::function<void(EntityID, YasuoEqInputBufferComponent&)>(
+                [&](EntityID entity, YasuoEqInputBufferComponent& buffer)
                 {
-                    airborne.elapsedSec += tc.fDt;
-                    const f32_t duration = std::max(0.01f, airborne.durationSec);
-                    f32_t t = airborne.elapsedSec / duration;
-                    if (t >= 1.f)
+                    if (!buffer.bPending ||
+                        !buffer.hCaster.IsValid() ||
+                        !world.IsAlive(buffer.hCaster) ||
+                        buffer.hCaster.GetIndex() != entity ||
+                        !world.HasComponent<ChampionComponent>(entity) ||
+                        world.GetComponent<ChampionComponent>(entity).id != eChampion::YASUO ||
+                        !world.HasComponent<ActionStateComponent>(entity) ||
+                        !GameplayStateQuery::CanCast(world, entity))
                     {
-                        t = 1.f;
-                        finishedAirborne.push_back(entity);
+                        invalidEqBuffers.push_back(entity);
+                        return;
                     }
 
-                    const f32_t arc = std::sin(t * WintersMath::kPi);
-                    Vec3 pos = transform.GetPosition();
-                    pos.y = airborne.baseY + airborne.lift * arc;
-                    transform.SetPosition(pos);
+                    const ActionStateComponent& action =
+                        world.GetComponent<ActionStateComponent>(entity);
+                    if (!IsYasuoEAction(action) ||
+                        action.sequence != buffer.uEActionSequence)
+                    {
+                        invalidEqBuffers.push_back(entity);
+                        return;
+                    }
+                    if (tc.tickIndex < action.lockEndTick ||
+                        world.HasComponent<YasuoDashComponent>(entity) ||
+                        !pExecutor)
+                    {
+                        return;
+                    }
+                    readyEqBuffers.push_back(entity);
                 }));
 
-        for (EntityID entity : finishedAirborne)
+        for (EntityID entity : invalidEqBuffers)
+            ClearYasuoEqInputBuffer(world, entity);
+
+        std::sort(readyEqBuffers.begin(), readyEqBuffers.end());
+        for (EntityID entity : readyEqBuffers)
         {
-            EntityID airborneSource = NULL_ENTITY;
-            if (world.HasComponent<YasuoAirborneComponent>(entity) &&
-                world.HasComponent<TransformComponent>(entity))
-            {
-                const auto& airborne = world.GetComponent<YasuoAirborneComponent>(entity);
-                airborneSource = airborne.sourceEntity;
-                auto& transform = world.GetComponent<TransformComponent>(entity);
-                Vec3 pos = transform.GetPosition();
-                pos.y = airborne.baseY;
-                transform.SetPosition(pos);
-            }
-            world.RemoveComponent<YasuoAirborneComponent>(entity);
-            if (world.HasComponent<StunComponent>(entity) &&
-                world.GetComponent<StunComponent>(entity).sourceEntity == airborneSource)
-            {
-                world.RemoveComponent<StunComponent>(entity);
-            }
+            if (!world.HasComponent<YasuoEqInputBufferComponent>(entity))
+                continue;
+
+            YasuoEqInputBufferComponent& buffer =
+                world.GetComponent<YasuoEqInputBufferComponent>(entity);
+            buffer.bPending = false;
+            buffer.bExecuting = true;
+
+            GameCommand q{};
+            q.kind = eCommandKind::CastSkill;
+            q.issuerEntity = entity;
+            q.issuedAtTick = buffer.uIssuedAtTick;
+            q.sequenceNum = buffer.uCommandSequence;
+            q.rewindTicks = buffer.uRewindTicks;
+            q.slot = static_cast<u8_t>(eSkillSlot::Q);
+            q.targetEntity = buffer.uTargetEntity;
+            q.groundPos = buffer.vGroundPos;
+            q.direction = buffer.vDirection;
+            q.itemId = buffer.uItemId;
+            q.sourceSessionId = buffer.uSourceSessionId;
+            pExecutor->ExecuteCommand(world, tc, q);
+            ClearYasuoEqInputBuffer(world, entity);
         }
 
         world.ForEach<YasuoStateComponent>(
@@ -765,15 +1175,6 @@ namespace YasuoGameSim
                             state.bEActive = false;
                     }
 
-                    if (state.fPassiveShieldTimer > 0.f)
-                    {
-                        state.fPassiveShieldTimer = std::max(0.f, state.fPassiveShieldTimer - tc.fDt);
-                        if (state.fPassiveShieldTimer <= 0.f)
-                            state.fPassiveShieldRemaining = 0.f;
-                    }
-
-                    if (world.HasComponent<ChampionComponent>(entity))
-                        world.GetComponent<ChampionComponent>(entity).shield = state.fPassiveShieldRemaining;
                 }));
     }
 }

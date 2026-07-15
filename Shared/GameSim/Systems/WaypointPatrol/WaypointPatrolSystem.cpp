@@ -5,7 +5,7 @@
 #include "Shared/GameSim/Components/WaypointPatrolComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 namespace
@@ -53,6 +53,8 @@ namespace
     {
         moveTarget.pathCount = 0;
         moveTarget.pathIndex = 0;
+        moveTarget.blockedMoveTicks = 0;
+        moveTarget.bestMoveDistance = -1.f;
         moveTarget.facingTarget = {};
         moveTarget.facingDirection = {};
         moveTarget.facingSequenceNum = 0;

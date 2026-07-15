@@ -7,45 +7,51 @@ import "strconv"
 type CommandKind byte
 
 const (
-	CommandKindNone           CommandKind = 0
-	CommandKindMove           CommandKind = 1
-	CommandKindCastSkill      CommandKind = 2
-	CommandKindBasicAttack    CommandKind = 3
-	CommandKindLevelSkill     CommandKind = 4
-	CommandKindBuyItem        CommandKind = 5
-	CommandKindUseItem        CommandKind = 6
-	CommandKindRecall         CommandKind = 7
-	CommandKindRecallCancel   CommandKind = 8
-	CommandKindAIDebugControl CommandKind = 9
-	CommandKindFlash          CommandKind = 10
+	CommandKindNone             CommandKind = 0
+	CommandKindMove             CommandKind = 1
+	CommandKindCastSkill        CommandKind = 2
+	CommandKindBasicAttack      CommandKind = 3
+	CommandKindLevelSkill       CommandKind = 4
+	CommandKindBuyItem          CommandKind = 5
+	CommandKindUseItem          CommandKind = 6
+	CommandKindRecall           CommandKind = 7
+	CommandKindRecallCancel     CommandKind = 8
+	CommandKindAIDebugControl   CommandKind = 9
+	CommandKindFlash            CommandKind = 10
+	CommandKindCompanionCommand CommandKind = 11
+	CommandKindPracticeControl  CommandKind = 12
 )
 
 var EnumNamesCommandKind = map[CommandKind]string{
-	CommandKindNone:           "None",
-	CommandKindMove:           "Move",
-	CommandKindCastSkill:      "CastSkill",
-	CommandKindBasicAttack:    "BasicAttack",
-	CommandKindLevelSkill:     "LevelSkill",
-	CommandKindBuyItem:        "BuyItem",
-	CommandKindUseItem:        "UseItem",
-	CommandKindRecall:         "Recall",
-	CommandKindRecallCancel:   "RecallCancel",
-	CommandKindAIDebugControl: "AIDebugControl",
-	CommandKindFlash:          "Flash",
+	CommandKindNone:             "None",
+	CommandKindMove:             "Move",
+	CommandKindCastSkill:        "CastSkill",
+	CommandKindBasicAttack:      "BasicAttack",
+	CommandKindLevelSkill:       "LevelSkill",
+	CommandKindBuyItem:          "BuyItem",
+	CommandKindUseItem:          "UseItem",
+	CommandKindRecall:           "Recall",
+	CommandKindRecallCancel:     "RecallCancel",
+	CommandKindAIDebugControl:   "AIDebugControl",
+	CommandKindFlash:            "Flash",
+	CommandKindCompanionCommand: "CompanionCommand",
+	CommandKindPracticeControl:  "PracticeControl",
 }
 
 var EnumValuesCommandKind = map[string]CommandKind{
-	"None":           CommandKindNone,
-	"Move":           CommandKindMove,
-	"CastSkill":      CommandKindCastSkill,
-	"BasicAttack":    CommandKindBasicAttack,
-	"LevelSkill":     CommandKindLevelSkill,
-	"BuyItem":        CommandKindBuyItem,
-	"UseItem":        CommandKindUseItem,
-	"Recall":         CommandKindRecall,
-	"RecallCancel":   CommandKindRecallCancel,
-	"AIDebugControl": CommandKindAIDebugControl,
-	"Flash":          CommandKindFlash,
+	"None":             CommandKindNone,
+	"Move":             CommandKindMove,
+	"CastSkill":        CommandKindCastSkill,
+	"BasicAttack":      CommandKindBasicAttack,
+	"LevelSkill":       CommandKindLevelSkill,
+	"BuyItem":          CommandKindBuyItem,
+	"UseItem":          CommandKindUseItem,
+	"Recall":           CommandKindRecall,
+	"RecallCancel":     CommandKindRecallCancel,
+	"AIDebugControl":   CommandKindAIDebugControl,
+	"Flash":            CommandKindFlash,
+	"CompanionCommand": CommandKindCompanionCommand,
+	"PracticeControl":  CommandKindPracticeControl,
 }
 
 func (v CommandKind) String() string {

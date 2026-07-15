@@ -24,7 +24,9 @@ struct ChampionAIBrainInput
 {
 	f32_t fDt = 0.f;
 	bool_t bCanAttackChampion = false;
+	bool_t bCanAttackStructure = false;
 	bool_t bPostComboBAWindow = false;
+	f32_t fRetreatScore = 0.f;
 	f32_t fChampionScore = 0.f;
 	f32_t fFarmScore = 0.f;
 	f32_t fStructureScore = 0.f;

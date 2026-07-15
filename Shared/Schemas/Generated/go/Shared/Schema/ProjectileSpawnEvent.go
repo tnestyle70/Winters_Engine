@@ -173,8 +173,20 @@ func (rcv *ProjectileSpawnEvent) MutateMaxDist(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(24, n)
 }
 
+func (rcv *ProjectileSpawnEvent) TargetNet() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ProjectileSpawnEvent) MutateTargetNet(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(26, n)
+}
+
 func ProjectileSpawnEventStart(builder *flatbuffers.Builder) {
-	builder.StartObject(11)
+	builder.StartObject(12)
 }
 func ProjectileSpawnEventAddNetId(builder *flatbuffers.Builder, netId uint32) {
 	builder.PrependUint32Slot(0, netId, 0)
@@ -208,6 +220,9 @@ func ProjectileSpawnEventAddSpeed(builder *flatbuffers.Builder, speed float32) {
 }
 func ProjectileSpawnEventAddMaxDist(builder *flatbuffers.Builder, maxDist float32) {
 	builder.PrependFloat32Slot(10, maxDist, 0.0)
+}
+func ProjectileSpawnEventAddTargetNet(builder *flatbuffers.Builder, targetNet uint32) {
+	builder.PrependUint32Slot(11, targetNet, 0)
 }
 func ProjectileSpawnEventEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

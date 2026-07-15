@@ -1,5 +1,6 @@
 #include "Game/GameRoom.h"
 
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "GameRoomInternal.h"
 #include "GameRoomSmokeRoster.h"
 
@@ -14,6 +15,7 @@
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/KalistaBondComponent.h"
 #include "Shared/GameSim/Components/JungleAIComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
@@ -31,6 +33,7 @@
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Server/Private/Data/LoLGameplayDefinitionPack.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
@@ -51,6 +54,9 @@
 
 namespace
 {
+    constexpr u8_t kChampionAIMidLane =
+        static_cast<u8_t>(Winters::Map::eLane::Mid);
+
     constexpr int32_t kStageChampionSpawnWalkableSearchRadius = 16;
     constexpr f32_t kChampionAIInitialDecisionDelaySec = 0.35f;
 }
@@ -177,7 +183,7 @@ void CGameRoom::SpawnServerGameplayObjects()
         InitializeServerWalkableGrid(nullptr, nullptr);
     }
 
-    const SpawnObjectDefinitionPack& objectDefs = ServerData::GetLoLSpawnObjectDefinitionPack();
+    const SpawnObjectDefinitionPack& objectDefs = ServerData::GetActiveLoLSpawnObjectDefinitionPack();
     const auto fallbackStructures = CWorldBootstrap::BuildFallbackStructures(
         objectDefs,
         kStructureKindTurret,
@@ -219,7 +225,7 @@ EntityID CGameRoom::SpawnServerStructureFromStageEntry(
 {
     WorldBootstrapStructureSpawnRequest request{};
     if (!CWorldBootstrap::TryBuildStageStructureRequest(
-        ServerData::GetLoLSpawnObjectDefinitionPack(),
+        ServerData::GetActiveLoLSpawnObjectDefinitionPack(),
         entry,
         static_cast<u8_t>(entry.lane),
         kStructureKindTurret,
@@ -271,7 +277,7 @@ EntityID CGameRoom::SpawnServerJungleFromStageEntry(
 {
     WorldBootstrapJungleSpawnRequest request{};
     if (!CWorldBootstrap::TryBuildStageJungleRequest(
-        ServerData::GetLoLSpawnObjectDefinitionPack(),
+        ServerData::GetActiveLoLSpawnObjectDefinitionPack(),
         entry,
         request))
     {
@@ -325,7 +331,14 @@ EntityID CGameRoom::SpawnServerJungleFromStageEntry(
     m_world.AddComponent<StatComponent>(entity, stat);
 
     m_world.AddComponent<SkillStateComponent>(entity, SkillStateComponent{});
-    m_world.AddComponent<JungleAIComponent>(entity, JungleAIComponent{});
+
+    JungleAIComponent jungleAI{};
+    jungleAI.aggroRange = jungleDef.aggroRange;
+    jungleAI.leashRange = jungleDef.leashRange;
+    jungleAI.anchorX = request.position.x;
+    jungleAI.anchorZ = request.position.z;
+    jungleAI.bHasAnchor = true;
+    m_world.AddComponent<JungleAIComponent>(entity, jungleAI);
 
     SpatialAgentComponent spatial{};
     spatial.kind = eSpatialKind::NeutralUnit;
@@ -391,7 +404,7 @@ EntityID CGameRoom::SpawnServerStructure(eTeam team, u32_t kind, u32_t tier, u32
         turret.laneType = static_cast<u8_t>(lane);
         m_world.AddComponent<TurretComponent>(entity, turret);
 
-        const TurretAIGameDef& turretAI = ServerData::GetLoLSpawnObjectDefinitionPack().structure.turretAI;
+        const TurretAIGameDef& turretAI = ServerData::GetActiveLoLSpawnObjectDefinitionPack().structure.turretAI;
         TurretAIComponent ai{};
         ai.attackRange = turretAI.attackRange;
         ai.attackCooldownMax = turretAI.attackCooldownMax;
@@ -419,7 +432,7 @@ EntityID CGameRoom::SpawnServerStructure(eTeam team, u32_t kind, u32_t tier, u32
     m_world.AddComponent<SpatialAgentComponent>(entity, spatial);
 
     ColliderComponent collider{};
-    const TurretAIGameDef& structureDef = ServerData::GetLoLSpawnObjectDefinitionPack().structure.turretAI;
+    const TurretAIGameDef& structureDef = ServerData::GetActiveLoLSpawnObjectDefinitionPack().structure.turretAI;
     collider.vHalfExtents = { spatial.radius, structureDef.bodyHeight, spatial.radius };
     collider.vOffset = { 0.f, structureDef.bodyOffsetY, 0.f };
     collider.bIsTrigger = false;
@@ -460,12 +473,23 @@ EntityID CGameRoom::SpawnServerMinion(eTeam team, u8_t roleType, u8_t lane, cons
     state.team = team;
     state.type = roleType;
     state.lane = lane;
-    const MinionCombatDef combat = ServerData::GetLoLSpawnObjectDefinitionPack().ResolveMinion(roleType);
+    const SpawnObjectDefinitionPack& minionDefs = ServerData::GetActiveLoLSpawnObjectDefinitionPack();
+    const MinionCombatDef combat = minionDefs.ResolveMinion(roleType);
+    // 게임 시간 스케일링: +2.5%/분, 30분 상한 (LoL 근사, minionWave 데이터). tickIndex 파생이라 키프레임 안전.
+    const MinionWaveDef& waveDef = minionDefs.minionWave;
+    const u64_t rawMinutes = m_tickIndex / 1800ull;
+    const u64_t capMinutes = static_cast<u64_t>(waveDef.timeGrowthCapMinutes);
+    const u64_t elapsedMinutes = rawMinutes > capMinutes ? capMinutes : rawMinutes;
+    const f32_t timeGrowth = 1.f + waveDef.timeGrowthPerMinute * static_cast<f32_t>(elapsedMinutes);
     state.moveSpeed = combat.moveSpeed;
     state.attackRange = combat.attackRange;
     state.sightRange = combat.sightRange;
-    state.attackDamage = combat.attackDamage;
+    state.attackDamage = combat.attackDamage * timeGrowth;
     state.attackCooldownMax = combat.attackCooldownMax;
+    state.attackWindup = roleType == ServerMinionTuning::kRangedRoleType
+        ? ServerMinionTuning::kRangedAttackWindupSec
+        : ServerMinionTuning::kMeleeAttackWindupSec;
+    state.attackRecovery = ServerMinionTuning::kAttackRecoverySec;
     state.targetScanInterval = ServerMinionTuning::kTargetScanIntervalSec;
     const u32_t scanBucket =
         (static_cast<u32_t>(entity) * 1103515245u +
@@ -478,7 +502,7 @@ EntityID CGameRoom::SpawnServerMinion(eTeam team, u8_t roleType, u8_t lane, cons
             static_cast<f32_t>(ServerMinionTuning::kTargetScanStaggerBuckets));
     m_world.AddComponent<MinionStateComponent>(entity, state);
 
-    const f32_t maxHp = combat.maxHp;
+    const f32_t maxHp = combat.maxHp * timeGrowth;
     HealthComponent health{};
     health.fCurrent = maxHp;
     health.fMaximum = maxHp;
@@ -582,6 +606,63 @@ u8_t CGameRoom::ResolveServerStructureLane(
     return bestLane;
 }
 
+void CGameRoom::ConfigureChampionControlRole(
+    EntityID entity,
+    const LobbySlotState& slot)
+{
+    if (!m_world.IsAlive(entity))
+        return;
+
+    if (!slot.bBot || slot.bDummy)
+    {
+        if (m_world.HasComponent<ChampionAIComponent>(entity))
+            m_world.RemoveComponent<ChampionAIComponent>(entity);
+        if (m_world.HasComponent<ChampionAIResearchDebugComponent>(entity))
+            m_world.RemoveComponent<ChampionAIResearchDebugComponent>(entity);
+        return;
+    }
+
+    const Vec3 spawnPos = m_world.HasComponent<TransformComponent>(entity)
+        ? m_world.GetComponent<TransformComponent>(entity).GetPosition()
+        : GetSpawnPositionForLobbySlot(slot);
+    ChampionAIComponent ai{};
+    const ChampionAIProfile& profile = GetChampionAIProfile(slot.champion);
+    ai.champion = slot.champion;
+    ai.team = static_cast<eTeam>(slot.team);
+    ai.difficulty = slot.botDifficulty;
+    ai.lane = CServerAICommandProducer::ResolveInitialBotLane(
+        slot,
+        GetGameSimRosterLane(slot.slotId));
+    ai.activeLane = ai.lane;
+    ai.brainType = ai.difficulty >= 2u
+        ? eChampionAIBrainType::PlayerLike
+        : eChampionAIBrainType::RuleBased;
+    ai.decisionTimer = kChampionAIInitialDecisionDelaySec;
+    ai.retreatGoal = spawnPos;
+    ai.championScanRange = profile.championScanRange;
+    ai.minionScanRange = profile.minionScanRange;
+    ai.structureScanRange = profile.structureScanRange;
+    ai.leashRange = profile.leashRange;
+    ai.retreatHpRatio = profile.retreatHpRatio;
+    ai.reengageHpRatio = profile.reengageHpRatio;
+
+    const u8_t waypointLane = ResolveServerWaypointLane(ai.team, ai.lane);
+    const u32_t waypointCount = GetServerMinionWaypointCount(ai.team, waypointLane);
+    ai.laneGoal = waypointCount > 0u
+        ? GetServerMinionWaypoint(ai.team, waypointLane, waypointCount / 2u)
+        : GetGameSimLaneGatherPosition(ai.lane, slot.team);
+    ai.safeAnchor = ResolveChampionAISafeAnchor(ai.team, ai.lane);
+    ai.midDefenseAnchor = ResolveChampionAISafeAnchor(
+        ai.team,
+        kChampionAIMidLane);
+    ai.retreatGoal = ai.safeAnchor;
+
+    if (m_world.HasComponent<ChampionAIComponent>(entity))
+        m_world.GetComponent<ChampionAIComponent>(entity) = ai;
+    else
+        m_world.AddComponent<ChampionAIComponent>(entity, ai);
+}
+
 EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
 {
     const Vec3 spawnPos = GetSpawnPositionForLobbySlot(slot);
@@ -602,35 +683,7 @@ EntityID CGameRoom::SpawnChampionForLobbySlot(LobbySlotState& slot)
         m_world.AddComponent<WaypointPatrolComponent>(entity, patrol);
     }
 
-    if (slot.bBot && !slot.bDummy)
-    {
-        ChampionAIComponent ai{};
-        const ChampionAIProfile& profile = GetChampionAIProfile(slot.champion);
-        ai.champion = slot.champion;
-        ai.team = static_cast<eTeam>(slot.team);
-        ai.difficulty = slot.botDifficulty;
-        ai.lane = CServerAICommandProducer::ResolveInitialBotLane(
-            slot,
-            GetGameSimRosterLane(slot.slotId));
-        ai.decisionTimer = kChampionAIInitialDecisionDelaySec;
-        ai.retreatGoal = spawnPos;
-        ai.championScanRange = profile.championScanRange;
-        ai.minionScanRange = profile.minionScanRange;
-        ai.structureScanRange = profile.structureScanRange;
-        ai.leashRange = profile.leashRange;
-        ai.retreatHpRatio = profile.retreatHpRatio;
-        ai.reengageHpRatio = profile.reengageHpRatio;
-
-        const u8_t waypointLane = ResolveServerWaypointLane(ai.team, ai.lane);
-        const u32_t waypointCount = GetServerMinionWaypointCount(ai.team, waypointLane);
-        ai.laneGoal = waypointCount > 0u
-            ? GetServerMinionWaypoint(ai.team, waypointLane, waypointCount / 2u)
-            : GetGameSimLaneGatherPosition(ai.lane, slot.team);
-        ai.safeAnchor = ResolveChampionAISafeAnchor(ai.team, ai.lane);
-        ai.retreatGoal = ai.safeAnchor;
-
-        m_world.AddComponent<ChampionAIComponent>(entity, ai);
-    }
+    ConfigureChampionControlRole(entity, slot);
 
     SetPoseState(m_world, entity, ePoseStateId::Idle, 0, true);
 

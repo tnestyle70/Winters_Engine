@@ -17,7 +17,56 @@
       "world_yaw_spin_speed": 1.200,
       "color": [1.30, 0.90, 0.40, 0.52],
       "attach_offset": [0.00, 1.02, 0.00],
-      "depth_write": false
+      "depth_write": false,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.75,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
+    },
+    {
+      "name": "r_shield_main_bubble",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/LeeSin/particles/leesin_base_w_shield_1.png",
+      "lifetime": 8.00,
+      "fade_in": 0.10,
+      "fade_out": 0.75,
+      "width": 3.20,
+      "height": 3.20,
+      "color": [1.55, 0.82, 0.22, 0.42],
+      "attach_offset": [0.00, 1.14, 0.00],
+      "billboard": true,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.75,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
+    },
+    {
+      "name": "r_shield_outer_glow",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/LeeSin/particles/leesin_base_w_glow_outer.png",
+      "lifetime": 8.00,
+      "start_delay": 0.02,
+      "fade_in": 0.12,
+      "fade_out": 0.75,
+      "width": 3.45,
+      "height": 3.45,
+      "color": [1.65, 0.92, 0.30, 0.34],
+      "attach_offset": [0.00, 1.16, 0.00],
+      "billboard": true,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.75,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
     },
     {
       "name": "r_gold_body_glow",
@@ -32,10 +81,16 @@
       "height": 2.85,
       "color": [1.45, 1.05, 0.42, 0.74],
       "attach_offset": [0.00, 1.22, 0.00],
-      "billboard": true
+      "billboard": true,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.70,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
     },
     {
-      "name": "r_outer_violet_shell",
+      "name": "r_outer_amber_shell",
       "render_type": "Billboard",
       "blend_mode": "Additive",
       "depth_mode": "DepthTestWriteOff",
@@ -46,9 +101,15 @@
       "fade_out": 0.75,
       "width": 3.60,
       "height": 3.60,
-      "color": [1.08, 0.48, 1.12, 0.48],
+      "color": [1.35, 0.72, 0.24, 0.42],
       "attach_offset": [0.00, 1.18, 0.00],
-      "billboard": true
+      "billboard": true,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.75,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
     },
     {
       "name": "r_cast_halo",
@@ -63,7 +124,13 @@
       "height": 3.90,
       "color": [1.70, 1.20, 0.48, 0.78],
       "attach_offset": [0.00, 1.25, 0.00],
-      "billboard": true
+      "billboard": true,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.46,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
     },
     {
       "name": "r_ground_sparks",
@@ -79,7 +146,13 @@
       "height": 3.60,
       "color": [1.60, 0.78, 0.26, 0.82],
       "attach_offset": [0.00, 0.06, 0.00],
-      "billboard": false
+      "billboard": false,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.70,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
     },
     {
       "name": "r_vertical_spotlight",
@@ -95,7 +168,13 @@
       "height": 4.50,
       "color": [1.80, 1.18, 0.42, 0.58],
       "attach_offset": [0.00, 1.90, 0.00],
-      "billboard": true
+      "billboard": true,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.60,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
     }
   ]
 }

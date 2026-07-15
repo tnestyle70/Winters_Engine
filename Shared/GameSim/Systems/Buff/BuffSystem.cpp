@@ -1,5 +1,6 @@
 #include "Shared/GameSim/Systems/Buff/BuffSystem.h"
 
+#include "Shared/GameSim/Core/Determinism/DeterministicTime.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
@@ -23,39 +24,102 @@ bool CBuffSystem::AddOrRefresh(BuffComponent& component, const BuffInstance& ins
     return true;
 }
 
-void CBuffSystem::Execute(CWorld& world, const TickContext& tc)
+bool_t CBuffSystem::PruneExpiredTickBuffs(
+    CWorld& world,
+    const TickContext& tc)
 {
-    const auto entities = DeterministicEntityIterator<BuffComponent>::CollectSorted(world);
+    bool_t bAnyChanged = false;
+    const auto entities =
+        DeterministicEntityIterator<BuffComponent>::CollectSorted(world);
     for (EntityID entity : entities)
     {
         auto& component = world.GetComponent<BuffComponent>(entity);
-        bool_t changed = false;
-
-        u8_t write = 0;
-        for (u8_t read = 0; read < component.count && read < BuffComponent::kMaxBuffs; ++read)
+        bool_t bChanged = false;
+        u8_t uWrite = 0u;
+        for (u8_t uRead = 0u;
+            uRead < component.count && uRead < BuffComponent::kMaxBuffs;
+            ++uRead)
         {
-            BuffInstance buff = component.buffs[read];
-            if (buff.fDurationRemaining > 0.f)
-                buff.fDurationRemaining -= tc.fDt;
-
-            if (buff.fDurationRemaining > 0.f)
+            const BuffInstance buff = component.buffs[uRead];
+            if (buff.uExpireTick != 0u &&
+                tc.tickIndex >= buff.uExpireTick)
             {
-                component.buffs[write++] = buff;
+                bChanged = true;
+                continue;
+            }
+            component.buffs[uWrite++] = buff;
+        }
+
+        if (uWrite != component.count)
+        {
+            for (u8_t i = uWrite;
+                i < component.count && i < BuffComponent::kMaxBuffs;
+                ++i)
+            {
+                component.buffs[i] = {};
+            }
+            component.count = uWrite;
+        }
+
+        if (bChanged && world.HasComponent<StatComponent>(entity))
+            world.GetComponent<StatComponent>(entity).bDirty = true;
+        bAnyChanged = bAnyChanged || bChanged;
+    }
+    return bAnyChanged;
+}
+
+void CBuffSystem::AdvanceDurationsAfterStat(
+    CWorld& world,
+    const TickContext& tc)
+{
+    const auto entities =
+        DeterministicEntityIterator<BuffComponent>::CollectSorted(world);
+    for (EntityID entity : entities)
+    {
+        auto& component = world.GetComponent<BuffComponent>(entity);
+        bool_t bChanged = false;
+        u8_t uWrite = 0u;
+        for (u8_t uRead = 0u;
+            uRead < component.count && uRead < BuffComponent::kMaxBuffs;
+            ++uRead)
+        {
+            BuffInstance buff = component.buffs[uRead];
+            bool_t bKeep = true;
+            if (buff.uExpireTick != 0u)
+            {
+                const u64_t uRemainingTicks = buff.uExpireTick > tc.tickIndex
+                    ? buff.uExpireTick - tc.tickIndex
+                    : 0u;
+                buff.fDurationRemaining =
+                    static_cast<f32_t>(uRemainingTicks) *
+                    DeterministicTime::kFixedDt;
+                bKeep = uRemainingTicks != 0u;
             }
             else
             {
-                changed = true;
+                if (buff.fDurationRemaining > 0.f)
+                    buff.fDurationRemaining -= tc.fDt;
+                bKeep = buff.fDurationRemaining > 0.f;
             }
+
+            if (bKeep)
+                component.buffs[uWrite++] = buff;
+            else
+                bChanged = true;
         }
 
-        if (write != component.count)
+        if (uWrite != component.count)
         {
-            for (u8_t i = write; i < component.count && i < BuffComponent::kMaxBuffs; ++i)
+            for (u8_t i = uWrite;
+                i < component.count && i < BuffComponent::kMaxBuffs;
+                ++i)
+            {
                 component.buffs[i] = {};
-            component.count = write;
+            }
+            component.count = uWrite;
         }
 
-        if (changed && world.HasComponent<StatComponent>(entity))
+        if (bChanged && world.HasComponent<StatComponent>(entity))
             world.GetComponent<StatComponent>(entity).bDirty = true;
     }
 }

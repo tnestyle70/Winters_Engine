@@ -7,6 +7,7 @@
 
 #include <WinSock2.h>
 #include <atomic>
+#include <cstddef>
 #include <deque>
 #include <memory>
 #include <mutex>
@@ -20,20 +21,25 @@ public:
 
     bool PostInitialRecv();
     bool PostRecv();
-    void OnRecvComplete(const u8_t* bytes, u32_t len);
-    void OnSendComplete(u32_t bytes);
+    // False means the IOCP owner must perform the idempotent manager-level
+    // disconnect so Hub, GameRoom, and dispatcher ownership are retired too.
+    bool OnRecvComplete(const u8_t* bytes, u32_t len);
+    bool OnSendComplete(u32_t bytes);
     void OnDisconnect();
     bool Send(std::vector<u8_t> packet);
 
     u32_t GetSessionId() const { return m_sessionId; }
-    SOCKET GetSocket() const { return m_socket; }
+    SOCKET GetSocket() const
+    {
+        return m_socket.load(std::memory_order_acquire);
+    }
     EntityID GetControlledEntity() const { return m_controlledEntity; }
     void SetControlledEntity(EntityID entity) { m_controlledEntity = entity; }
 
     bool TryAcceptSequence(u32_t seq, bool& bSuspicious);
 
-    void FlagSuspicious() { ++m_suspicionCount; }
-    bool IsSuspicious() const { return m_suspicionCount > 5; }
+    void FlagSuspicious();
+    bool IsSuspicious() const;
 
     void AddPendingIo()
     {
@@ -55,14 +61,11 @@ public:
 
 private:
     CSession(SOCKET socket, u32_t sessionId);
+    bool PostFrontSendLocked();
 
-    SOCKET m_socket = INVALID_SOCKET;
+    std::atomic<SOCKET> m_socket{ INVALID_SOCKET };
     u32_t m_sessionId = 0;
     EntityID m_controlledEntity = NULL_ENTITY;
-
-    mutable std::mutex m_seqMutex;
-    u32_t m_lastProcessedSeq = 0;
-    u32_t m_suspicionCount = 0;
 
     std::atomic<u32_t> m_pendingIoCount{ 0 };
     std::atomic<bool> m_bClosing{ false };
@@ -74,5 +77,7 @@ private:
 
     std::mutex m_sendMutex;
     std::deque<std::vector<u8_t>> m_sendQueue;
+    size_t m_sendQueueBytes = 0;
+    size_t m_sendOffset = 0;
     bool m_bSendPending = false;
 };

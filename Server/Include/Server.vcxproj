@@ -104,6 +104,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Data\Generated\LoLGameplayDefinitions.generated.cpp" />
+    <ClCompile Include="..\Private\Data\RuntimeGameplayDefinitionOverlay.cpp" />
     <ClCompile Include="..\Private\Game\Factory\ChampionSimComponentTable.cpp" />
     <ClCompile Include="..\Private\Game\Factory\ServerChampionEntityFactory.cpp" />
     <ClCompile Include="..\Private\Game\CommandIngress.cpp" />
@@ -135,8 +136,11 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Network\FrameParser.cpp" />
     <ClCompile Include="..\Private\Network\IOCPCore.cpp" />
     <ClCompile Include="..\Private\Network\PacketDispatcher.cpp" />
+    <ClCompile Include="..\Private\Network\ServerSessionHub.cpp" />
     <ClCompile Include="..\Private\Network\Session.cpp" />
     <ClCompile Include="..\Private\Network\Session_Manager.cpp" />
+    <ClCompile Include="..\Private\Network\UdpIocpCore.cpp" />
+    <ClCompile Include="..\..\Shared\Network\UdpReliabilityChannel.cpp" />
     <ClCompile Include="..\Private\Security\LagCompensation.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -144,6 +148,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Game\GameRoom.h" />
     <ClInclude Include="..\Public\Game\LobbyAuthority.h" />
     <ClInclude Include="..\Public\Game\ReplicationEmitter.h" />
+    <ClInclude Include="..\Private\Data\RuntimeGameplayDefinitionOverlay.h" />
     <ClInclude Include="..\Private\Game\GameRoomInternal.h" />
     <ClInclude Include="..\Private\Game\GameRoomSmokeRoster.h" />
     <ClInclude Include="..\Private\Game\Factory\ChampionSimComponentTable.h" />
@@ -162,8 +167,10 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Network\FrameParser.h" />
     <ClInclude Include="..\Public\Network\IOCPCore.h" />
     <ClInclude Include="..\Public\Network\PacketDispatcher.h" />
+    <ClInclude Include="..\Public\Network\ServerSessionHub.h" />
     <ClInclude Include="..\Public\Network\Session.h" />
     <ClInclude Include="..\Public\Network\Session_Manager.h" />
+    <ClInclude Include="..\Public\Network\UdpIocpCore.h" />
     <ClInclude Include="..\Public\Security\LagCompensation.h" />
   </ItemGroup>
   <ItemGroup>

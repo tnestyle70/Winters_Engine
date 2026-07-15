@@ -101,8 +101,68 @@ func (rcv *ActionStartEvent) MutateStartTick(n uint64) bool {
 	return rcv._tab.MutateUint64Slot(12, n)
 }
 
+func (rcv *ActionStartEvent) SourceChampionId() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ActionStartEvent) MutateSourceChampionId(n byte) bool {
+	return rcv._tab.MutateByteSlot(14, n)
+}
+
+func (rcv *ActionStartEvent) SourceSlot() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ActionStartEvent) MutateSourceSlot(n byte) bool {
+	return rcv._tab.MutateByteSlot(16, n)
+}
+
+func (rcv *ActionStartEvent) MovePolicy() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ActionStartEvent) MutateMovePolicy(n byte) bool {
+	return rcv._tab.MutateByteSlot(18, n)
+}
+
+func (rcv *ActionStartEvent) LockEndTick() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ActionStartEvent) MutateLockEndTick(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(20, n)
+}
+
+func (rcv *ActionStartEvent) CommandSeq() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *ActionStartEvent) MutateCommandSeq(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(22, n)
+}
+
 func ActionStartEventStart(builder *flatbuffers.Builder) {
-	builder.StartObject(5)
+	builder.StartObject(10)
 }
 func ActionStartEventAddNetId(builder *flatbuffers.Builder, netId uint32) {
 	builder.PrependUint32Slot(0, netId, 0)
@@ -118,6 +178,21 @@ func ActionStartEventAddActionSeq(builder *flatbuffers.Builder, actionSeq uint32
 }
 func ActionStartEventAddStartTick(builder *flatbuffers.Builder, startTick uint64) {
 	builder.PrependUint64Slot(4, startTick, 0)
+}
+func ActionStartEventAddSourceChampionId(builder *flatbuffers.Builder, sourceChampionId byte) {
+	builder.PrependByteSlot(5, sourceChampionId, 0)
+}
+func ActionStartEventAddSourceSlot(builder *flatbuffers.Builder, sourceSlot byte) {
+	builder.PrependByteSlot(6, sourceSlot, 0)
+}
+func ActionStartEventAddMovePolicy(builder *flatbuffers.Builder, movePolicy byte) {
+	builder.PrependByteSlot(7, movePolicy, 0)
+}
+func ActionStartEventAddLockEndTick(builder *flatbuffers.Builder, lockEndTick uint64) {
+	builder.PrependUint64Slot(8, lockEndTick, 0)
+}
+func ActionStartEventAddCommandSeq(builder *flatbuffers.Builder, commandSeq uint32) {
+	builder.PrependUint32Slot(9, commandSeq, 0)
 }
 func ActionStartEventEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

@@ -1,303 +1,177 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
-from dataclasses import dataclass
+import sys
 from pathlib import Path
 
-import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[1]
 UI_TEXTURE_DIR = ROOT / "Client" / "Bin" / "Resource" / "Texture" / "UI"
 ITEM_ICON_DIR = UI_TEXTURE_DIR / "Items"
-OUTPUT_LUA = ROOT / "Client" / "Bin" / "Resource" / "UI" / "Lua" / "itemshop_catalog.lua"
 ITEM_DEF = ROOT / "Shared" / "GameSim" / "Definitions" / "ItemDef.h"
-EXTRA_CATALOG_ITEMS = {
-    3153: ("legendary", "Legendary", 452, 773),
-}
+REGISTRY_SOURCE = ROOT / "Client" / "Private" / "GamePlay" / "LoLUIContentRegistry.cpp"
+RUNTIME_CATALOG = ROOT / "Client" / "Bin" / "Resource" / "UI" / "Lua" / "itemshop_catalog.lua"
+ATLAS_MANIFEST = ROOT / "Client" / "Bin" / "Resource" / "UI" / "itemshop_atlas_manifest.json"
+
+EXPECTED_REFERENCE_SIZES = {(1165, 736), (1132, 729)}
+# 34-item SR-only catalog: starters -> boots -> components -> legendaries.
+# Verified purchasable on map 11 against Data Dragon 16.13.1 (2026-07-14).
+EXPECTED_CATALOG = (
+    (1055, "1055_marksman_t1_doransblade.png"),
+    (1056, "1056_mage_t1_doransring.png"),
+    (1054, "1054_tank_t1_doransshield.png"),
+    (1001, "1001_class_t1_bootsofspeed.png"),
+    (3006, "3006_class_t2_berserkersgreaves.png"),
+    (3020, "3020_class_t2_sorcerersshoes.png"),
+    (3047, "3047_class_t2_ninjatabi.png"),
+    (3111, "3111_class_t2_mercurystreads.png"),
+    (3158, "3158_class_t2_ionianbootsoflucidity.png"),
+    (1036, "1036_class_t1_longsword.png"),
+    (1042, "1042_base_t1_dagger.png"),
+    (1043, "1043_base_t2_recurvebow.png"),
+    (1052, "1052_mage_t2_amptome.png"),
+    (1053, "1053_fighter_t2_vampiricscepter.png"),
+    (1028, "1028_base_t1_rubycrystal.png"),
+    (1029, "1029_base_t1_clotharmor.png"),
+    (1031, "1031_base_t2_chainvest.png"),
+    (1033, "1033_base_t1_magicmantle.png"),
+    (1057, "1057_tank_t2_negatroncloak.png"),
+    (1011, "1011_class_t2_giantsbelt.png"),
+    (1018, "1018_base_t1_cloakagility.png"),
+    (1026, "1026_mage_t1_blastingwand.png"),
+    (1027, "1027_base_t1_saphirecrystal.png"),
+    (1037, "1037_class_t1_pickaxe.png"),
+    (1058, "1058_mage_t1_largerod.png"),
+    (1038, "1038_marksman_t1_bfsword.png"),
+    (3031, "3031_marksman_t3_infinityedge.png"),
+    (3072, "3072_fighter_t3_bloodthirster.png"),
+    (3078, "3078_fighter_t4_trinityforce.png"),
+    (3153, "3153_fighter_t3_bladeoftheruinedking.png"),
+    (3089, "3089_mage_t3_deathcap.png"),
+    (3157, "3157_mage_t3_zhonyashourglass.png"),
+    (3065, "3065_tank_t3_spiritvisage.png"),
+    (3742, "3742_tank_t3_deadmansplate.png"),
+)
 
 
-@dataclass(frozen=True)
-class Sample:
-    ref_size: tuple[int, int]
-    section: str
-    section_name: str
-    row: int
-    col: int
-    x: int
-    y: int
-    price: int
-    order: int
-    slot_order: int
+class ValidationError(RuntimeError):
+    pass
 
 
-@dataclass
-class Match:
-    sample: Sample
-    item_id: int
-    icon_name: str
-    score: float
-    margin: float
-
-
-def find_reference_by_size(size: tuple[int, int]) -> Path:
-    for path in UI_TEXTURE_DIR.glob("*.png"):
-        try:
-            with Image.open(path) as image:
-                if image.size == size:
-                    return path
-        except OSError:
-            continue
-    raise FileNotFoundError(f"reference image with size {size[0]}x{size[1]} was not found")
-
-
-def build_samples() -> list[Sample]:
-    samples: list[Sample] = []
-    order = 0
-    slot_order = 0
-    slot_orders: dict[tuple[str, int, int], int] = {}
-
-    def add_row(ref_size: tuple[int, int], section: str, section_name: str,
-                row: int, x0: int, y: int, prices: list[int]) -> None:
-        nonlocal order, slot_order
-        for col, price in enumerate(prices):
-            key = (section, row, col)
-            if key not in slot_orders:
-                slot_orders[key] = slot_order
-                slot_order += 1
-            samples.append(Sample(
-                ref_size, section, section_name, row, col,
-                x0 + col * 56, y, price, order, slot_orders[key]))
-            order += 1
-
-    ref1 = (1165, 736)
-    ref2 = (1132, 729)
-
-    add_row(ref1, "starter", "Starter", 0, 172, 201, [400, 450, 450, 450, 0, 0, 0])
-    add_row(ref1, "basic", "Basic", 0, 172, 315, [250, 250, 300, 350, 400, 400, 875, 1300])
-    add_row(ref1, "epic", "Epic", 0, 172, 430, [700, 775, 800, 800, 800, 800, 850, 900, 900, 1050])
-    add_row(ref1, "epic", "Epic", 1, 172, 506, [1100, 1100, 1150, 1200, 1200, 1300])
-    add_row(ref1, "legendary", "Legendary", 0, 172, 621, [2800, 2900, 2900, 2900, 2900, 3000, 3000, 3000, 3000, 3000])
-
-    add_row(ref2, "basic", "Basic", 0, 155, 151, [250, 250, 300, 350, 400, 400, 875, 1300])
-    add_row(ref2, "epic", "Epic", 0, 155, 266, [700, 775, 800, 800, 800, 800, 850, 900, 900, 1050])
-    add_row(ref2, "epic", "Epic", 1, 155, 342, [1100, 1100, 1150, 1200, 1200, 1300])
-    add_row(ref2, "legendary", "Legendary", 0, 155, 456, [2800, 2900, 2900, 2900, 2900, 3000, 3000, 3000, 3000, 3000])
-    add_row(ref2, "legendary", "Legendary", 1, 155, 532, [3100, 3100, 3100, 3100, 3200, 3200, 3200, 3200, 3300, 3300])
-    add_row(ref2, "legendary", "Legendary", 2, 155, 608, [3300, 3300, 3300, 3333, 3400])
-
-    return samples
-
-
-def feature(image: Image.Image) -> np.ndarray:
-    patch = image.convert("RGB").crop((3, 3, 37, 37)).resize((32, 32), Image.Resampling.LANCZOS)
-    arr = np.asarray(patch, dtype=np.float32).reshape(-1, 3)
-    mean = arr.mean(axis=0)
-    std = arr.std(axis=0) + 1e-5
-    return ((arr - mean) / std).reshape(-1)
-
-
-def load_icon_features() -> list[tuple[int, str, np.ndarray]]:
-    icons: list[tuple[int, str, np.ndarray]] = []
-    for path in sorted(ITEM_ICON_DIR.glob("*.png")):
-        match = re.match(r"(\d+)", path.name)
-        if not match:
-            continue
-        with Image.open(path) as image:
-            resized = image.convert("RGB").resize((40, 40), Image.Resampling.LANCZOS)
-            icons.append((int(match.group(1)), path.name, feature(resized)))
-    if not icons:
-        raise FileNotFoundError(f"no item icons found in {ITEM_ICON_DIR}")
-    return icons
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValidationError(message)
 
 
 def parse_registered_items() -> dict[int, tuple[int, str]]:
     text = ITEM_DEF.read_text(encoding="utf-8", errors="ignore")
-    registered: dict[int, tuple[int, str]] = {}
-    pattern = re.compile(r"\{\s*(\d+)\s*,\s*(\d+)\s*,\s*ItemStatModifier\{.*?\}\s*,\s*\"([^\"]+)\"\s*\}", re.DOTALL)
-    for item_id, price, name in pattern.findall(text):
-        registered[int(item_id)] = (int(price), name)
-    return registered
-
-
-def match_sample(sample: Sample, references: dict[tuple[int, int], Image.Image],
-                 icons: list[tuple[int, str, np.ndarray]],
-                 registered: dict[int, tuple[int, str]]) -> Match:
-    ref = references[sample.ref_size]
-    patch = ref.crop((sample.x, sample.y, sample.x + 40, sample.y + 40))
-    sample_feature = feature(patch)
-    scored = []
-    for item_id, icon_name, icon_feature in icons:
-        score = float(np.mean((sample_feature - icon_feature) ** 2))
-        reg = registered.get(item_id)
-        if reg and reg[0] != sample.price:
-            score += 0.35 + min(abs(reg[0] - sample.price) / 3000.0, 1.0) * 0.4
-        scored.append((score, item_id, icon_name))
-    scored.sort(key=lambda entry: entry[0])
-    best = scored[0]
-    second = scored[1] if len(scored) > 1 else (best[0], best[1], best[2])
-    return Match(sample, best[1], best[2], best[0], second[0] - best[0])
-
-
-def select_best_slot_matches(matches: list[Match]) -> list[Match]:
-    selected: dict[tuple[str, int, int], Match] = {}
-    for match in matches:
-        key = (match.sample.section, match.sample.row, match.sample.col)
-        current = selected.get(key)
-        if current is None or (match.score, -match.margin) < (current.score, -current.margin):
-            selected[key] = match
-    return sorted(selected.values(), key=lambda match: match.sample.slot_order)
-
-
-def lua_quote(text: str) -> str:
-    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
-
-
-def display_name_from_icon(icon_name: str) -> str:
-    stem = Path(icon_name).stem
-    stem = re.sub(r"^\d+_?", "", stem)
-    return stem.replace("_", " ").replace("-", " ").title()
-
-
-def logical_slot_position(sample: Sample) -> tuple[int, int]:
-    section_y = {
-        "starter": 201,
-        "basic": 315,
-        "epic": 430,
-        "legendary": 621,
+    pattern = re.compile(
+        r'\{\s*(\d+)\s*,\s*(\d+)\s*,\s*ItemStatModifier\{.*?\}\s*,\s*"([^"]+)"\s*\}',
+        re.DOTALL,
+    )
+    return {
+        int(item_id): (int(price), name)
+        for item_id, price, name in pattern.findall(text)
     }
-    return 172 + sample.col * 56, section_y[sample.section] + sample.row * 76
 
 
-def find_icon_name(icons: list[tuple[int, str, np.ndarray]], item_id: int) -> str | None:
-    for icon_item_id, icon_name, _ in icons:
-        if icon_item_id == item_id:
-            return icon_name
-    return None
+def parse_runtime_catalog_entries() -> list[tuple[int, str, str, str, str]]:
+    text = REGISTRY_SOURCE.read_text(encoding="utf-8")
+    begin = text.find("constexpr LoLShopCatalogEntry kLoLShopCatalog[]")
+    end = text.find("void RegisterLoLShopItems", begin)
+    require(begin >= 0 and end > begin, "kLoLShopCatalog source block was not found")
 
-
-def write_catalog(matches: list[Match],
-                  registered: dict[int, tuple[int, str]],
-                  icons: list[tuple[int, str, np.ndarray]]) -> None:
-    lines = [
-        "WintersItemShopCatalog = {",
-        "    columns = 10,",
-        "    sections = {",
-        "        { section = \"starter\", name = \"Starter\", y = 174 },",
-        "        { section = \"basic\", name = \"Basic\", y = 289 },",
-        "        { section = \"epic\", name = \"Epic\", y = 404 },",
-        "        { section = \"legendary\", name = \"Legendary\", y = 595 },",
-        "    },",
-        "    items = {",
+    pattern = re.compile(
+        r'\{\s*(\d+)\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*L"([^"]+)"\s*,\s*"([^"]+)"\s*\}'
+    )
+    return [
+        (int(item_id), asset_key, section, icon_path, sprite)
+        for item_id, asset_key, section, icon_path, sprite in pattern.findall(text[begin:end])
     ]
 
-    written_item_ids: set[int] = set()
 
-    for match in matches:
-        reg = registered.get(match.item_id)
-        price = reg[0] if reg else match.sample.price
-        name = reg[1] if reg else display_name_from_icon(match.icon_name)
-        purchasable = "true" if reg else "false"
-        needs_review = "true" if match.score > 0.95 or match.margin < 0.12 else "false"
-        icon_path = f"Resource/Texture/UI/Items/{match.icon_name}"
-        x, y = logical_slot_position(match.sample)
-
-        lines.append(
-            "        { "
-            f"id = {match.item_id}, "
-            f"price = {price}, "
-            f"section = {lua_quote(match.sample.section)}, "
-            f"sectionName = {lua_quote(match.sample.section_name)}, "
-            f"name = {lua_quote(name)}, "
-            f"icon = {lua_quote(icon_path)}, "
-            f"x = {x}, "
-            f"y = {y}, "
-            f"purchasable = {purchasable}, "
-            f"matchScore = {match.score:.4f}, "
-            f"needsReview = {needs_review} "
-            "},"
-        )
-        written_item_ids.add(match.item_id)
-
-    for item_id, (section, section_name, x, y) in EXTRA_CATALOG_ITEMS.items():
-        if item_id in written_item_ids:
+def find_reference_sizes() -> set[tuple[int, int]]:
+    sizes: set[tuple[int, int]] = set()
+    for path in UI_TEXTURE_DIR.glob("*.png"):
+        try:
+            with Image.open(path) as image:
+                if image.size in EXPECTED_REFERENCE_SIZES:
+                    sizes.add(image.size)
+        except OSError:
             continue
-
-        reg = registered.get(item_id)
-        icon_name = find_icon_name(icons, item_id)
-        if not reg or not icon_name:
-            continue
-
-        lines.append(
-            "        { "
-            f"id = {item_id}, "
-            f"price = {reg[0]}, "
-            f"section = {lua_quote(section)}, "
-            f"sectionName = {lua_quote(section_name)}, "
-            f"name = {lua_quote(reg[1])}, "
-            f"icon = {lua_quote(f'Resource/Texture/UI/Items/{icon_name}')}, "
-            f"x = {x}, "
-            f"y = {y}, "
-            "purchasable = true, "
-            "matchScore = 0.0000, "
-            "needsReview = false "
-            "},"
-        )
-
-    lines.extend([
-        "    },",
-        "}",
-        "",
-    ])
-    OUTPUT_LUA.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_LUA.write_text("\n".join(lines), encoding="utf-8")
+    return sizes
 
 
-def write_verify_images(matches: list[Match], references: dict[tuple[int, int], Image.Image]) -> None:
-    output_dir = OUTPUT_LUA.parent
-    grouped: dict[tuple[int, int], list[Match]] = {}
-    for match in matches:
-        grouped.setdefault(match.sample.ref_size, []).append(match)
+def validate() -> list[str]:
+    expected_ids = [item_id for item_id, _ in EXPECTED_CATALOG]
+    expected_keys = [asset_key for _, asset_key in EXPECTED_CATALOG]
+    registered = parse_registered_items()
+    entries = parse_runtime_catalog_entries()
 
-    for size, group in grouped.items():
-        image = references[size].copy()
-        draw = ImageDraw.Draw(image)
-        for match in group:
-            color = (70, 230, 80) if match.score <= 0.95 and match.margin >= 0.12 else (255, 207, 72)
-            x, y = match.sample.x, match.sample.y
-            draw.rectangle((x, y, x + 40, y + 40), outline=color, width=2)
-            draw.text((x, y - 12), str(match.item_id), fill=color)
-        image.save(output_dir / f"itemshop_catalog_verify_{size[0]}x{size[1]}.png")
+    require(len(entries) == len(EXPECTED_CATALOG), f"catalog entry count is {len(entries)}, expected {len(EXPECTED_CATALOG)}")
+    require([entry[0] for entry in entries] == expected_ids, "catalog item order differs from the curated order")
+    require([entry[1] for entry in entries] == expected_keys, "catalog asset-key order differs from the curated list")
+    require(len(set(expected_ids)) == len(expected_ids), "curated item IDs are not unique")
+    require(set(expected_ids) == set(registered), "ItemDef IDs and curated catalog IDs differ")
+    require(all(entry[2] == "legacy" for entry in entries), "catalog entries must use the flat legacy layout")
+
+    manifest = json.loads(ATLAS_MANIFEST.read_text(encoding="utf-8"))
+    sprites = manifest.get("sprites", {})
+    for item_id, asset_key, _, icon_path, sprite in entries:
+        require(item_id in registered, f"item {item_id} is not registered in ItemDef")
+        require(icon_path == f"Resource/Texture/UI/Items/{asset_key}", f"item {item_id} icon path does not match its asset key")
+        require((ITEM_ICON_DIR / asset_key).is_file(), f"item {item_id} icon is missing: {asset_key}")
+        require(sprite == f"item:{asset_key}", f"item {item_id} atlas sprite key is invalid")
+        require(sprite in sprites, f"item {item_id} atlas sprite is missing: {sprite}")
+        require(sprites[sprite].get("texture") == "items", f"item {item_id} atlas sprite uses the wrong texture")
+
+    require(find_reference_sizes() == EXPECTED_REFERENCE_SIZES, "상점1/상점2 reference dimensions were not both found")
+
+    lua = RUNTIME_CATALOG.read_text(encoding="utf-8")
+    required_lua = (
+        "local items = UI.GetShopItems()",
+        "item.x = 172 + (zeroBased % 10) * 56",
+        "item.y = 201 + math.floor(zeroBased / 10) * 114",
+        "items = items",
+    )
+    for token in required_lua:
+        require(token in lua, f"runtime catalog is missing: {token}")
+    require("{ id =" not in lua, "runtime catalog contains hardcoded item rows")
+
+    return [
+        f"{item_id}:{registered[item_id][0]}:{registered[item_id][1]}:{asset_key}"
+        for item_id, asset_key in EXPECTED_CATALOG
+    ]
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--verify", action="store_true")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description="Validate the 15-item server-authoritative Winters shop catalog without writing runtime files."
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="Compatibility alias; validation is always performed and no files are written.",
+    )
+    parser.parse_args()
 
-    samples = build_samples()
-    refs = {size: Image.open(find_reference_by_size(size)).convert("RGB") for size in {(s.ref_size) for s in samples}}
-    icons = load_icon_features()
-    registered = parse_registered_items()
-    matches = [match_sample(sample, refs, icons, registered) for sample in samples]
-    matches.sort(key=lambda match: match.sample.order)
-    selected = select_best_slot_matches(matches)
-    write_catalog(selected, registered, icons)
+    try:
+        rows = validate()
+    except (OSError, json.JSONDecodeError, ValidationError) as error:
+        print(f"item shop catalog validation failed: {error}", file=sys.stderr)
+        return 1
 
-    if args.verify:
-        write_verify_images(matches, refs)
-        reviewed = sum(1 for match in selected if match.score > 0.95 or match.margin < 0.12)
-        print(f"wrote {OUTPUT_LUA}")
-        print(f"matched slots: {len(selected)} from samples: {len(matches)}, needs review: {reviewed}")
-        for match in selected:
-            flag = " REVIEW" if match.score > 0.95 or match.margin < 0.12 else ""
-            print(
-                f"{match.sample.section:9s} order={match.sample.order:02d} "
-                f"id={match.item_id:5d} price={match.sample.price:4d} "
-                f"score={match.score:.3f} margin={match.margin:.3f}{flag} {match.icon_name}"
-            )
+    count = len(EXPECTED_CATALOG)
+    print("item shop catalog validation passed")
+    print(
+        f"entries={count} uniqueIds={count} authoritativeDefs={count} "
+        f"atlasSprites={count} referenceImages=2")
+    for row in rows:
+        print(row)
     return 0
 
 

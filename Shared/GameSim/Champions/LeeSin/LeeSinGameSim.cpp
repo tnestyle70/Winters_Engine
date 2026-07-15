@@ -11,12 +11,13 @@
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
+#include "Shared/GameSim/Systems/Shield/ShieldSystem.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/SpatialAgentComponent.h"
-#include "ECS/Components/TransformComponent.h"
-#include "ECS/Components/VisionComponents.h"
+#include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/VisionComponents.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
@@ -258,31 +259,13 @@ namespace
             return;
 
         const EntityID target = ctx.pCommand->targetEntity;
-        if (!IsSafeguardTarget(*ctx.pWorld, ctx.casterEntity, target, ctx.casterTeam))
+        if (!LeeSinGameSim::CanCastSafeguard(
+                *ctx.pWorld,
+                *ctx.pTickCtx,
+                ctx.casterEntity,
+                target))
         {
             std::cout << "[LeeSinSim] W rejected invalid safeguard target caster="
-                << ctx.casterEntity << " target=" << target << "\n";
-            return;
-        }
-
-        const f32_t wRange = GameplayDefinitionQuery::ResolveSkillRange(
-            *ctx.pWorld,
-            ctx.casterEntity,
-            *ctx.pTickCtx,
-            eChampion::LEESIN,
-            static_cast<u8_t>(eSkillSlot::W));
-        const f32_t effectiveRange =
-            wRange +
-            GameplayStateQuery::ResolveGameplayRadius(*ctx.pWorld, ctx.casterEntity) +
-            GameplayStateQuery::ResolveGameplayRadius(*ctx.pWorld, target);
-        if (ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity) &&
-            ctx.pWorld->HasComponent<TransformComponent>(target) &&
-            WintersMath::DistanceSqXZ(
-                ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition(),
-                ctx.pWorld->GetComponent<TransformComponent>(target).GetPosition()) >
-                effectiveRange * effectiveRange)
-        {
-            std::cout << "[LeeSinSim] W rejected range caster="
                 << ctx.casterEntity << " target=" << target << "\n";
             return;
         }
@@ -295,13 +278,30 @@ namespace
             ctx,
             eSkillSlot::W,
             eSkillEffectParamId::DashDurationSec);
+        const f32_t shieldAmount = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::ShieldBaseAmount,
+            80.f);
+        const f32_t shieldDurationSec = ResolveLeeSinSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::ShieldDurationSec,
+            3.f);
+        CShieldSystem::Grant(
+            *ctx.pWorld,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            shieldAmount,
+            shieldDurationSec);
         StartTargetDash(*ctx.pWorld, ctx.casterEntity, target, dashGap, dashDuration);
 
         std::cout << "[LeeSinSim] W safeguard caster="
-            << ctx.casterEntity << " target=" << target << "\n";
+            << ctx.casterEntity << " target=" << target
+            << " shield=" << shieldAmount << "\n";
     }
 
-    void ApplyTempestCrippleSlow(CWorld& world, const TickContext& tc, EntityID caster, eTeam casterTeam)
+    void ApplyTempestCrippleSlow(CWorld& world, const TickContext& tc, EntityID caster)
     {
         if (!world.HasComponent<TransformComponent>(caster))
             return;
@@ -325,27 +325,24 @@ namespace
             caster,
             eSkillSlot::E,
             eSkillEffectParamId::MoveSpeedMul);
-        const f32_t radiusSq = radius * radius;
-
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID target, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (target == caster || champion.team == casterTeam)
-                        return;
-                    if (WintersMath::DistanceSqXZ(origin, transform.GetPosition()) > radiusSq)
-                        return;
-
-                    GameplayStatus::ApplySlow(
-                        world,
-                        tc,
-                        target,
-                        caster,
-                        eChampion::LEESIN,
-                        eSkillSlot::E,
-                        slowDurationSec,
-                        slowMoveSpeedMul);
-                }));
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
+                world,
+                caster,
+                origin,
+                radius);
+        for (EntityID target : targets)
+        {
+            GameplayStatus::ApplySlow(
+                world,
+                tc,
+                target,
+                caster,
+                eChampion::LEESIN,
+                eSkillSlot::E,
+                slowDurationSec,
+                slowMoveSpeedMul);
+        }
     }
 
     void OnE(GameplayHookContext& ctx)
@@ -356,8 +353,7 @@ namespace
         ApplyTempestCrippleSlow(
             *ctx.pWorld,
             *ctx.pTickCtx,
-            ctx.casterEntity,
-            ctx.casterTeam);
+            ctx.casterEntity);
 
         std::cout << "[LeeSinSim] E slow caster="
             << ctx.casterEntity << "\n";
@@ -368,9 +364,16 @@ namespace
         if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx)
             return;
 
+        CWorld& world = *ctx.pWorld;
         const EntityID target = ctx.pCommand->targetEntity;
-        if (target == NULL_ENTITY || !ctx.pWorld->IsAlive(target))
+        if (!LeeSinGameSim::CanCastDragonRage(
+                world,
+                *ctx.pTickCtx,
+                ctx.casterEntity,
+                target))
+        {
             return;
+        }
 
         const f32_t rDamage = ResolveLeeSinSkillEffectParam(
             ctx,
@@ -382,7 +385,7 @@ namespace
             eSkillEffectParamId::AirborneDurationSec);
 
         EnqueuePhysicalDamage(
-            *ctx.pWorld,
+            world,
             ctx.casterEntity,
             target,
             ctx.casterTeam,
@@ -390,7 +393,7 @@ namespace
             static_cast<u8_t>(eSkillSlot::R),
             ctx.skillRank);
         GameplayStatus::ApplyAirborne(
-            *ctx.pWorld,
+            world,
             *ctx.pTickCtx,
             target,
             ctx.casterEntity,
@@ -405,6 +408,89 @@ namespace
 
 namespace LeeSinGameSim
 {
+    bool_t CanCastSafeguard(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target)
+    {
+        if (caster == NULL_ENTITY ||
+            !world.IsAlive(caster) ||
+            !world.HasComponent<ChampionComponent>(caster) ||
+            !world.HasComponent<TransformComponent>(caster))
+        {
+            return false;
+        }
+
+        const eTeam casterTeam =
+            world.GetComponent<ChampionComponent>(caster).team;
+        if (!IsSafeguardTarget(world, caster, target, casterTeam))
+            return false;
+
+        const f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            caster,
+            tc,
+            eChampion::LEESIN,
+            static_cast<u8_t>(eSkillSlot::W));
+        if (range <= 0.f)
+            return false;
+
+        const f32_t effectiveRange =
+            range +
+            GameplayStateQuery::ResolveGameplayRadius(world, caster) +
+            GameplayStateQuery::ResolveGameplayRadius(world, target);
+        const Vec3 casterPosition =
+            world.GetComponent<TransformComponent>(caster).GetPosition();
+        const Vec3 targetPosition =
+            world.GetComponent<TransformComponent>(target).GetPosition();
+        return WintersMath::DistanceSqXZ(casterPosition, targetPosition) <=
+            effectiveRange * effectiveRange;
+    }
+
+    bool_t CanCastDragonRage(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target)
+    {
+        if (caster == NULL_ENTITY ||
+            target == NULL_ENTITY ||
+            !world.IsAlive(caster) ||
+            !world.IsAlive(target) ||
+            !world.HasComponent<TransformComponent>(caster) ||
+            !world.HasComponent<TransformComponent>(target) ||
+            !GameplayStateQuery::CanReceiveCrowdControl(world, caster, target))
+        {
+            return false;
+        }
+
+        const f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            caster,
+            tc,
+            eChampion::LEESIN,
+            static_cast<u8_t>(eSkillSlot::R));
+        if (range <= 0.f)
+            return false;
+
+        const f32_t effectiveRange =
+            range +
+            GameplayStateQuery::ResolveGameplayRadius(world, caster) +
+            GameplayStateQuery::ResolveGameplayRadius(world, target);
+        const Vec3 casterPosition =
+            world.GetComponent<TransformComponent>(caster).GetPosition();
+        const Vec3 targetPosition =
+            world.GetComponent<TransformComponent>(target).GetPosition();
+        if (WintersMath::DistanceSqXZ(casterPosition, targetPosition) >
+            effectiveRange * effectiveRange)
+        {
+            return false;
+        }
+        return !tc.pWalkable ||
+            tc.pWalkable->SegmentWalkableXZ(casterPosition, targetPosition, 0.f);
+    }
+
     void RegisterHooks()
     {
         static bool_t s_bRegistered = false;
@@ -431,6 +517,13 @@ namespace LeeSinGameSim
             std::function<void(EntityID, LeeSinDashComponent&, TransformComponent&)>(
                 [&](EntityID entity, LeeSinDashComponent& dash, TransformComponent& transform)
                 {
+                    if (!GameplayStateQuery::CanMove(world, entity) ||
+                        world.HasComponent<ForcedMotionComponent>(entity))
+                    {
+                        finishedDashes.push_back(entity);
+                        return;
+                    }
+
                     ClearMove(world, entity);
 
                     dash.fElapsedSec += tc.fDt;
@@ -471,6 +564,11 @@ namespace LeeSinGameSim
 
         for (EntityID entity : finishedDashes)
         {
+            if (world.HasComponent<ForcedMotionComponent>(entity))
+            {
+                world.RemoveComponent<LeeSinDashComponent>(entity);
+                continue;
+            }
             if (world.HasComponent<LeeSinDashComponent>(entity))
                 SnapDashArrivalToWalkable(world, tc, entity,
                     world.GetComponent<LeeSinDashComponent>(entity).vStart);

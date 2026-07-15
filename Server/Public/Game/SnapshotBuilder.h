@@ -21,7 +21,12 @@ public:
         u64_t serverTimeMs,
         u64_t rngState,
         u32_t lastAckedSeq,
-        NetEntityId yourNetId);
+        NetEntityId yourNetId,
+        u64_t timelineEpoch,
+        u64_t branchId,
+        u64_t toolRevision,
+        bool_t simPaused,
+        f32_t simSpeedMul);
 
 private:
     CSnapshotBuilder() = default;

@@ -269,10 +269,10 @@ void CGameRoom::InitializeServerWalkableGrid(const Winters::Map::StageData* pSta
 
     if (!bSurfaceLoaded)
     {
-        m_pNavGrid->SetAllWalkable(true);
+        m_pNavGrid->SetAllWalkable(false);
         m_pMapSurfaceSampler.reset();
-        OutputServerAITrace("[ServerNav] wmesh load failed; terrain walls disabled; structures-only nav fallback\n");
-        OutputServerNavGridSummary("fallback authored grid", *m_pNavGrid);
+        OutputServerAITrace("[ServerNav] wmesh load failed; fail-closed grid disables movement/combat traversal\n");
+        OutputServerNavGridSummary("fail-closed grid", *m_pNavGrid);
         BuildServerPathNavGrid();
         return;
     }
@@ -316,9 +316,9 @@ void CGameRoom::InitializeServerWalkableGrid(const Winters::Map::StageData* pSta
 
     if (!bBaked || !bSeedsCovered)
     {
-        m_pNavGrid->SetAllWalkable(true);
-        OutputServerAITrace("[ServerNav] terrain bake failed or missed gameplay seeds; fallback all-walkable grid\n");
-        OutputServerNavGridSummary("fallback authored grid", *m_pNavGrid);
+        m_pNavGrid->SetAllWalkable(false);
+        OutputServerAITrace("[ServerNav] terrain bake failed or missed gameplay seeds; fail-closed grid disables movement/combat traversal\n");
+        OutputServerNavGridSummary("fail-closed grid", *m_pNavGrid);
         BuildServerPathNavGrid();
         return;
     }

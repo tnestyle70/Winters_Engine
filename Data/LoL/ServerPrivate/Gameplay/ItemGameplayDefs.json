@@ -1,0 +1,299 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": 1,
+  "buildHash": 276254117,
+  "items": [
+    {
+      "itemId": 1001,
+      "price": 300,
+      "name": "Boots",
+      "stats": {
+        "flatMoveSpeed": 25.0
+      }
+    },
+    {
+      "itemId": 1011,
+      "price": 900,
+      "name": "Giant's Belt",
+      "stats": {
+        "flatHealth": 350.0
+      }
+    },
+    {
+      "itemId": 1018,
+      "price": 600,
+      "name": "Cloak of Agility",
+      "stats": {
+        "critChance": 0.15
+      }
+    },
+    {
+      "itemId": 1026,
+      "price": 850,
+      "name": "Blasting Wand",
+      "stats": {
+        "flatAp": 45.0
+      }
+    },
+    {
+      "itemId": 1027,
+      "price": 400,
+      "name": "Sapphire Crystal",
+      "stats": {
+        "flatMana": 300.0
+      }
+    },
+    {
+      "itemId": 1028,
+      "price": 400,
+      "name": "Ruby Crystal",
+      "stats": {
+        "flatHealth": 150.0
+      }
+    },
+    {
+      "itemId": 1029,
+      "price": 300,
+      "name": "Cloth Armor",
+      "stats": {
+        "flatArmor": 15.0
+      }
+    },
+    {
+      "itemId": 1031,
+      "price": 800,
+      "name": "Chain Vest",
+      "stats": {
+        "flatArmor": 40.0
+      }
+    },
+    {
+      "itemId": 1033,
+      "price": 400,
+      "name": "Null-Magic Mantle",
+      "stats": {
+        "flatMr": 20.0
+      }
+    },
+    {
+      "itemId": 1036,
+      "price": 350,
+      "name": "Long Sword",
+      "stats": {
+        "flatAd": 10.0
+      }
+    },
+    {
+      "itemId": 1037,
+      "price": 875,
+      "name": "Pickaxe",
+      "stats": {
+        "flatAd": 25.0
+      }
+    },
+    {
+      "itemId": 1038,
+      "price": 1300,
+      "name": "B. F. Sword",
+      "stats": {
+        "flatAd": 40.0
+      }
+    },
+    {
+      "itemId": 1042,
+      "price": 250,
+      "name": "Dagger",
+      "stats": {
+        "bonusAttackSpeed": 0.1
+      }
+    },
+    {
+      "itemId": 1043,
+      "price": 700,
+      "name": "Recurve Bow",
+      "stats": {
+        "bonusAttackSpeed": 0.15
+      }
+    },
+    {
+      "itemId": 1052,
+      "price": 400,
+      "name": "Amplifying Tome",
+      "stats": {
+        "flatAp": 20.0
+      }
+    },
+    {
+      "itemId": 1053,
+      "price": 900,
+      "name": "Vampiric Scepter",
+      "stats": {
+        "flatAd": 15.0,
+        "lifeSteal": 0.07
+      }
+    },
+    {
+      "itemId": 1054,
+      "price": 450,
+      "name": "Doran's Shield",
+      "stats": {
+        "flatHealth": 110.0
+      }
+    },
+    {
+      "itemId": 1055,
+      "price": 450,
+      "name": "Doran's Blade",
+      "stats": {
+        "flatAd": 10.0,
+        "flatHealth": 80.0
+      }
+    },
+    {
+      "itemId": 1056,
+      "price": 400,
+      "name": "Doran's Ring",
+      "stats": {
+        "flatAp": 18.0,
+        "flatHealth": 90.0
+      }
+    },
+    {
+      "itemId": 1057,
+      "price": 900,
+      "name": "Negatron Cloak",
+      "stats": {
+        "flatMr": 45.0
+      }
+    },
+    {
+      "itemId": 1058,
+      "price": 1200,
+      "name": "Needlessly Large Rod",
+      "stats": {
+        "flatAp": 65.0
+      }
+    },
+    {
+      "itemId": 3006,
+      "price": 1100,
+      "name": "Berserker's Greaves",
+      "stats": {
+        "bonusAttackSpeed": 0.25,
+        "flatMoveSpeed": 45.0
+      }
+    },
+    {
+      "itemId": 3020,
+      "price": 1100,
+      "name": "Sorcerer's Shoes",
+      "stats": {
+        "flatMoveSpeed": 45.0,
+        "flatMagicPen": 15.0
+      }
+    },
+    {
+      "itemId": 3031,
+      "price": 3450,
+      "name": "Infinity Edge",
+      "stats": {
+        "flatAd": 65.0,
+        "critChance": 0.25
+      }
+    },
+    {
+      "itemId": 3047,
+      "price": 1200,
+      "name": "Plated Steelcaps",
+      "stats": {
+        "flatArmor": 25.0,
+        "flatMoveSpeed": 45.0
+      }
+    },
+    {
+      "itemId": 3065,
+      "price": 2700,
+      "name": "Spirit Visage",
+      "stats": {
+        "flatHealth": 450.0,
+        "flatMr": 50.0,
+        "abilityHaste": 10.0
+      }
+    },
+    {
+      "itemId": 3072,
+      "price": 3400,
+      "name": "Bloodthirster",
+      "stats": {
+        "flatAd": 80.0,
+        "lifeSteal": 0.15
+      }
+    },
+    {
+      "itemId": 3078,
+      "price": 3333,
+      "name": "Trinity Force",
+      "stats": {
+        "flatAd": 45.0,
+        "flatHealth": 300.0,
+        "bonusAttackSpeed": 0.3,
+        "abilityHaste": 15.0
+      }
+    },
+    {
+      "itemId": 3089,
+      "price": 3500,
+      "name": "Rabadon's Deathcap",
+      "stats": {
+        "flatAp": 130.0
+      }
+    },
+    {
+      "itemId": 3111,
+      "price": 1200,
+      "name": "Mercury's Treads",
+      "stats": {
+        "flatMr": 20.0,
+        "flatMoveSpeed": 45.0
+      }
+    },
+    {
+      "itemId": 3153,
+      "price": 3000,
+      "name": "Blade of the Ruined King",
+      "stats": {
+        "flatAd": 40.0,
+        "bonusAttackSpeed": 0.25,
+        "lifeSteal": 0.1
+      }
+    },
+    {
+      "itemId": 3157,
+      "price": 3250,
+      "name": "Zhonya's Hourglass",
+      "stats": {
+        "flatAp": 105.0,
+        "flatArmor": 50.0
+      }
+    },
+    {
+      "itemId": 3158,
+      "price": 950,
+      "name": "Ionian Boots of Lucidity",
+      "stats": {
+        "abilityHaste": 15.0,
+        "flatMoveSpeed": 45.0
+      }
+    },
+    {
+      "itemId": 3742,
+      "price": 2900,
+      "name": "Dead Man's Plate",
+      "stats": {
+        "flatHealth": 350.0,
+        "flatArmor": 45.0,
+        "flatMoveSpeed": 5.0
+      }
+    }
+  ]
+}

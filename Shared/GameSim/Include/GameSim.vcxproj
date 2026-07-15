@@ -59,7 +59,8 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <PreBuildEvent>
-      <Command>$(MSBuildThisFileDirectory)..\..\..\UpdateLib.bat</Command>
+      <Command>call $(MSBuildThisFileDirectory)..\..\..\UpdateLib.bat
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(MSBuildThisFileDirectory)..\..\..\Tools\Harness\Check-SharedBoundary.ps1"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -78,13 +79,16 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <PreBuildEvent>
-      <Command>$(MSBuildThisFileDirectory)..\..\..\UpdateLib.bat</Command>
+      <Command>call $(MSBuildThisFileDirectory)..\..\..\UpdateLib.bat
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(MSBuildThisFileDirectory)..\..\..\Tools\Harness\Check-SharedBoundary.ps1"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Champions\Annie\AnnieGameSim.cpp" />
     <ClCompile Include="..\Champions\Ashe\AsheGameSim.cpp" />
     <ClCompile Include="..\Champions\Fiora\FioraGameSim.cpp" />
+    <ClCompile Include="..\Champions\Ezreal\EzrealGameSim.cpp" />
+    <ClCompile Include="..\Champions\Garen\GarenGameSim.cpp" />
     <ClCompile Include="..\Champions\Irelia\IreliaGameSim.cpp" />
     <ClCompile Include="..\Champions\Jax\JaxGameSim.cpp" />
     <ClCompile Include="..\Champions\Kalista\KalistaGameSim.cpp" />
@@ -97,9 +101,11 @@
     <ClCompile Include="..\Champions\Yasuo\YasuoGameSim.cpp" />
     <ClCompile Include="..\Champions\Yone\YoneGameSim.cpp" />
     <ClCompile Include="..\Champions\Zed\ZedGameSim.cpp" />
+    <ClCompile Include="..\Core\Checkpoint\WorldKeyframe.cpp" />
     <ClCompile Include="..\Definitions\ChampionRuntimeDefaults.cpp" />
     <ClCompile Include="..\Definitions\GameplayDefinitionPack.cpp" />
     <ClCompile Include="..\Definitions\GameplayDefinitionQuery.cpp" />
+    <ClCompile Include="..\Definitions\ItemRegistry.cpp" />
     <ClCompile Include="..\Definitions\MapSpawnPoints.cpp" />
     <ClCompile Include="..\Definitions\SpawnObjectDefinitionPack.cpp" />
     <ClCompile Include="..\Spawn\ChampionGameplayAssembly.cpp" />
@@ -108,12 +114,12 @@
     <ClCompile Include="..\Registries\ChampionStats\ChampionStatsRegistry.cpp" />
     <ClCompile Include="..\Registries\Reward\RewardRegistry.cpp" />
     <ClCompile Include="..\Registries\SkillScaling\SkillScalingRegistry.cpp" />
-    <ClCompile Include="..\Registries\Skin\SkinRegistry.cpp" />
     <ClCompile Include="..\Systems\AreaAura\AreaAuraSystem.cpp" />
     <ClCompile Include="..\Systems\AttackChase\AttackChaseSystem.cpp" />
     <ClCompile Include="..\Systems\Buff\BuffSystem.cpp" />
     <ClCompile Include="..\Systems\ChampionAI\ChampionAIBrain.cpp" />
     <ClCompile Include="..\Systems\ChampionAI\ChampionAIPolicy.cpp" />
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAIItemBuild.cpp" />
     <ClCompile Include="..\Systems\ChampionAI\ChampionAISystem.cpp" />
     <ClCompile Include="..\Systems\ChampionAI\ChampionAIValuation.cpp" />
     <ClCompile Include="..\Systems\Combat\CombatActionSystem.cpp" />
@@ -128,8 +134,10 @@
     <ClCompile Include="..\Systems\JungleAI\JungleAISystem.cpp" />
     <ClCompile Include="..\Systems\Move\MoveSystem.cpp" />
     <ClCompile Include="..\Systems\Recall\RecallSystem.cpp" />
+    <ClCompile Include="..\Systems\Gold\GoldIncomeSystem.cpp" />
     <ClCompile Include="..\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp" />
     <ClCompile Include="..\Systems\Rune\RuneSystem.cpp" />
+    <ClCompile Include="..\Systems\Shield\ShieldSystem.cpp" />
     <ClCompile Include="..\Systems\SkillCooldown\SkillCooldownSystem.cpp" />
     <ClCompile Include="..\Systems\SkillRank\SkillRankSystem.cpp" />
     <ClCompile Include="..\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp" />

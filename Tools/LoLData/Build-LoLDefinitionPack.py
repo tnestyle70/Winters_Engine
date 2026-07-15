@@ -51,6 +51,7 @@ SKILL_EFFECT_PARAM_IDS = {
     "airborneDurationSec": "AirborneDurationSec",
     "markDurationSec": "MarkDurationSec",
     "stackWindowSec": "StackWindowSec",
+    "maxStacks": "MaxStacks",
     "gap": "Gap",
     "dashDistance": "DashDistance",
     "dashDurationSec": "DashDurationSec",
@@ -65,7 +66,10 @@ SKILL_EFFECT_PARAM_IDS = {
     "healBaseAmount": "HealBaseAmount",
     "healAmountPerRank": "HealAmountPerRank",
     "rectLength": "RectLength",
+    "rectLengthPerRank": "RectLengthPerRank",
     "rectWidth": "RectWidth",
+    "formationDelaySec": "FormationDelaySec",
+    "damagePerSpear": "DamagePerSpear",
     "halfWidth": "HalfWidth",
     "disarmDurationSec": "DisarmDurationSec",
     "tornadoSpeed": "TornadoSpeed",
@@ -74,6 +78,18 @@ SKILL_EFFECT_PARAM_IDS = {
     "tornadoDamage": "TornadoDamage",
     "dashAreaRadius": "DashAreaRadius",
     "dashAreaDamage": "DashAreaDamage",
+    "bonusAd": "BonusAd",
+    "bonusAttackSpeed": "BonusAttackSpeed",
+    "totalAdRatio": "TotalAdRatio",
+    "bonusAdRatio": "BonusAdRatio",
+    "apRatio": "ApRatio",
+    "nonEpicBaseDamage": "NonEpicBaseDamage",
+    "nonEpicDamagePerRank": "NonEpicDamagePerRank",
+    "cooldownRefundSec": "CooldownRefundSec",
+    "manaRestoreFlat": "ManaRestoreFlat",
+    "castTimeSec": "CastTimeSec",
+    "manaCostPerRank": "ManaCostPerRank",
+    "cooldownReductionPerRank": "CooldownReductionPerRank",
     "halfAngleCos": "HalfAngleCos",
     "radius": "Radius",
     "shieldDurationSec": "ShieldDurationSec",
@@ -99,6 +115,77 @@ SUMMON_POLICY_PARAM_IDS = {
 }
 SUMMON_POLICY_PARAM_MAX = 16
 
+ECONOMY_XP_CURVE_LENGTH = 17
+
+ECONOMY_CHAMPION_KILL_FIELDS = (
+    ("killerGold", 0.0),
+    ("assistGold", 0.0),
+    ("firstBloodBonusGold", 0.0),
+    ("victimNextLevelXPFactor", 0.0),
+    ("shareRadius", 0.0),
+)
+
+ECONOMY_MINION_KINDS = ("melee", "ranged", "siege", "super")
+
+ECONOMY_MINION_FIELDS = (
+    ("soloXP", 0.0),
+    ("sharedXP", 0.0),
+    ("gold", 0.0),
+    ("maxGold", 0.0),
+    ("growthAmount", 0.0),
+    ("growthIntervalSec", 0.0),
+)
+
+ECONOMY_JUNGLE_FIELDS = (
+    ("smallCampGold", 0.0),
+    ("smallCampXP", 0.0),
+    ("epicGold", 0.0),
+    ("epicXP", 0.0),
+    ("baronGold", 0.0),
+    ("baronXP", 0.0),
+)
+
+ECONOMY_TIMER_FIELDS = (
+    ("assistCreditWindowSec", 0.0),
+    ("recallDurationSec", 0.0),
+)
+
+# ItemStatModifier 멤버명과 1:1 (0이 아닌 필드만 JSON 에 기재).
+ITEM_STAT_FIELDS = (
+    "flatAd",
+    "flatAp",
+    "flatHealth",
+    "flatMana",
+    "flatArmor",
+    "flatMr",
+    "bonusAttackSpeed",
+    "critChance",
+    "abilityHaste",
+    "flatMoveSpeed",
+    "lifeSteal",
+    "flatMagicPen",
+    "lethality",
+)
+
+
+def validate_skill_effect_param_domain(param_name: str, value: float, path: str) -> float:
+    if param_name == "halfAngleCos":
+        if value < -1.0 or value > 1.0:
+            fail(f"{path} must be in [-1, 1]")
+        return value
+
+    if value < 0.0 or value > 1_000_000.0:
+        fail(f"{path} must be in [0, 1000000]")
+    return value
+
+
+def validate_summon_policy_param_domain(param_name: str, value: float, path: str) -> float:
+    if value < 0.0 or value > 1_000_000.0:
+        fail(f"{path} must be in [0, 1000000]")
+    if param_name in {"roleType", "lane"} and (value > 255.0 or value != float(int(value))):
+        fail(f"{path} must be an integer-like value in [0, 255]")
+    return value
+
 JUNGLE_FIELDS = (
     ("maxHp", 1500.0),
     ("radius", 1.0),
@@ -108,6 +195,8 @@ JUNGLE_FIELDS = (
     ("moveSpeed", 4.0),
     ("baseArmor", 20.0),
     ("baseMr", 20.0),
+    ("aggroRange", 3.0),
+    ("leashRange", 9.0),
 )
 
 MINION_FIELDS = (
@@ -117,6 +206,14 @@ MINION_FIELDS = (
     ("attackDamage", 40.0),
     ("attackCooldownMax", 1.0),
     ("maxHp", 450.0),
+)
+
+MINION_WAVE_RANGED_PROJECTILE_FIELDS = (
+    ("speed", 14.0),
+    ("hitRadius", 0.45),
+    ("forwardOffset", 0.45),
+    ("spawnHeight", 0.85),
+    ("maxDistancePadding", 2.0),
 )
 
 
@@ -236,6 +333,33 @@ def normalize_spawn_object_root(root: dict) -> dict:
             }
         )
 
+    minion_wave_source = require_object(root.get("minionWave", {}), "minionWave")
+    minion_wave = {
+        "waveIntervalTicks": legacy.as_int(
+            minion_wave_source.get("waveIntervalTicks", 900), "minionWave.waveIntervalTicks"),
+        "initialDelayTicks": legacy.as_int(
+            minion_wave_source.get("initialDelayTicks", 300), "minionWave.initialDelayTicks"),
+        "perMinionDelayTicks": legacy.as_int(
+            minion_wave_source.get("perMinionDelayTicks", 10), "minionWave.perMinionDelayTicks"),
+        "siegeWavePeriod": legacy.as_int(
+            minion_wave_source.get("siegeWavePeriod", 3), "minionWave.siegeWavePeriod"),
+        "timeGrowthPerMinute": legacy.as_float(
+            minion_wave_source.get("timeGrowthPerMinute", 0.025), "minionWave.timeGrowthPerMinute"),
+        "timeGrowthCapMinutes": legacy.as_int(
+            minion_wave_source.get("timeGrowthCapMinutes", 30), "minionWave.timeGrowthCapMinutes"),
+        "rangedProjectile": normalize_float_fields(
+            require_object(minion_wave_source.get("rangedProjectile", {}), "minionWave.rangedProjectile"),
+            MINION_WAVE_RANGED_PROJECTILE_FIELDS,
+            "minionWave.rangedProjectile",
+        ),
+        "corpseDeathTimerSec": legacy.as_float(
+            minion_wave_source.get("corpseDeathTimerSec", 1.5), "minionWave.corpseDeathTimerSec"),
+    }
+    if minion_wave["waveIntervalTicks"] < 1:
+        fail("minionWave.waveIntervalTicks must be >= 1")
+    if minion_wave["siegeWavePeriod"] < 1:
+        fail("minionWave.siegeWavePeriod must be >= 1")
+
     return {
         "schemaVersion": legacy.as_int(root.get("schemaVersion", 1), "spawnObject.schemaVersion"),
         "dataVersion": legacy.as_int(root.get("dataVersion", 1), "spawnObject.dataVersion"),
@@ -295,6 +419,122 @@ def normalize_spawn_object_root(root: dict) -> dict:
             "defaultMinion",
         ),
         "minions": sorted(minions, key=lambda item: item["roleType"]),
+        "minionWave": minion_wave,
+    }
+
+
+def validate_economy_number(value: float, path: str) -> float:
+    if value < 0.0 or value > 1_000_000.0:
+        fail(f"{path} must be in [0, 1000000]")
+    return value
+
+
+def normalize_economy_root(root: dict) -> dict:
+    root = require_object(root, "economy")
+
+    curve_source = require_array(root.get("xpCurve", []), "xpCurve")
+    if len(curve_source) != ECONOMY_XP_CURVE_LENGTH:
+        fail(f"xpCurve must have {ECONOMY_XP_CURVE_LENGTH} entries (levels 1..17)")
+    xp_curve = [
+        validate_economy_number(legacy.as_float(value, f"xpCurve[{index}]"), f"xpCurve[{index}]")
+        for index, value in enumerate(curve_source)
+    ]
+
+    def normalized_group(name: str, fields: tuple[tuple[str, float], ...]) -> dict:
+        record = normalize_float_fields(require_object(root.get(name, {}), name), fields, name)
+        for key, value in record.items():
+            validate_economy_number(value, f"{name}.{key}")
+        return record
+
+    minions_source = require_object(root.get("minions", {}), "minions")
+    minions = {}
+    for kind in ECONOMY_MINION_KINDS:
+        record = normalize_float_fields(
+            require_object(minions_source.get(kind, {}), f"minions.{kind}"),
+            ECONOMY_MINION_FIELDS,
+            f"minions.{kind}",
+        )
+        for key, value in record.items():
+            validate_economy_number(value, f"minions.{kind}.{key}")
+        minions[kind] = record
+
+    passive_source = require_object(root.get("passiveGold", {}), "passiveGold")
+    passive_gold = {
+        "startTick": legacy.as_int(passive_source.get("startTick", 0), "passiveGold.startTick"),
+        "intervalTicks": legacy.as_int(passive_source.get("intervalTicks", 1), "passiveGold.intervalTicks"),
+        "perGrant": legacy.as_int(passive_source.get("perGrant", 0), "passiveGold.perGrant"),
+    }
+    for key, value in passive_gold.items():
+        validate_economy_number(float(value), f"passiveGold.{key}")
+    if passive_gold["intervalTicks"] < 1:
+        fail("passiveGold.intervalTicks must be >= 1")
+
+    return {
+        "schemaVersion": legacy.as_int(root.get("schemaVersion", 1), "economy.schemaVersion"),
+        "dataVersion": legacy.as_int(root.get("dataVersion", 1), "economy.dataVersion"),
+        "xpCurve": xp_curve,
+        "championKill": normalized_group("championKill", ECONOMY_CHAMPION_KILL_FIELDS),
+        "minions": minions,
+        "turretGold": validate_economy_number(
+            legacy.as_float(root.get("turretGold", 0.0), "turretGold"), "turretGold"
+        ),
+        "jungle": normalized_group("jungle", ECONOMY_JUNGLE_FIELDS),
+        "passiveGold": passive_gold,
+        "timers": normalized_group("timers", ECONOMY_TIMER_FIELDS),
+    }
+
+
+def validate_item_stat_number(value: float, path: str) -> float:
+    if value < -1_000_000.0 or value > 1_000_000.0:
+        fail(f"{path} must be in [-1000000, 1000000]")
+    return value
+
+
+def normalize_items_root(root: dict) -> dict:
+    root = require_object(root, "items")
+
+    records = []
+    seen_ids = set()
+    for index, item in enumerate(require_array(root.get("items", []), "items")):
+        item = require_object(item, f"items[{index}]")
+
+        item_id = legacy.as_int(item.get("itemId", 0), f"items[{index}].itemId")
+        if item_id < 1 or item_id > 65535:
+            fail(f"items[{index}].itemId must be in [1, 65535] (u16 wire type)")
+        if item_id in seen_ids:
+            fail(f"duplicated itemId: {item_id}")
+        seen_ids.add(item_id)
+
+        price = legacy.as_int(item.get("price", 0), f"items[{index}].price")
+        if price < 0 or price > 65535:
+            fail(f"items[{index}].price must be in [0, 65535] (u16 wire type)")
+
+        name = item.get("name")
+        if not isinstance(name, str) or not name:
+            fail(f"items[{index}].name must be a non-empty string")
+
+        stats_source = require_object(item.get("stats", {}), f"items[{index}].stats")
+        for key in stats_source:
+            if key not in ITEM_STAT_FIELDS:
+                fail(f"items[{index}].stats unknown field: {key}")
+        stats = {
+            key: validate_item_stat_number(
+                legacy.as_float(stats_source[key], f"items[{index}].stats.{key}"),
+                f"items[{index}].stats.{key}",
+            )
+            for key in ITEM_STAT_FIELDS
+            if key in stats_source
+        }
+
+        records.append({"itemId": item_id, "price": price, "name": name, "stats": stats})
+
+    if not records:
+        fail("items[] must not be empty")
+
+    return {
+        "schemaVersion": legacy.as_int(root.get("schemaVersion", 1), "items.schemaVersion"),
+        "dataVersion": legacy.as_int(root.get("dataVersion", 1), "items.dataVersion"),
+        "items": sorted(records, key=lambda record: record["itemId"]),
     }
 
 
@@ -366,8 +606,9 @@ def normalize_object_visual_root(root: dict) -> dict:
                 }
             )
 
-        if len(states) > 4:
-            fail(f"structures[{index}].visibilityStates has too many entries: {len(states)} > 4")
+        # S035: kVisualSubmeshStateCount(LoLVisualDefinitionPack.h)와 정렬 — 포탑 7상태 수용.
+        if len(states) > 8:
+            fail(f"structures[{index}].visibilityStates has too many entries: {len(states)} > 8")
 
         structures.append(
             {
@@ -407,6 +648,13 @@ def normalize_object_visual_root(root: dict) -> dict:
         if "Client/Bin/Resource" in shader.replace("\\", "/"):
             fail(f"jungles[{index}].shader must be resource-relative, not rooted")
 
+        visual_scale_multiplier = legacy.as_float(
+            item.get("visualScaleMultiplier", 1.0),
+            f"jungles[{index}].visualScaleMultiplier",
+        )
+        if visual_scale_multiplier <= 0.0:
+            fail(f"jungles[{index}].visualScaleMultiplier must be greater than zero")
+
         texture_overrides = []
         seen_texture_meshes = set()
         for override_index, override in enumerate(require_array(item.get("textureOverrides", []), f"jungles[{index}].textureOverrides")):
@@ -435,15 +683,16 @@ def normalize_object_visual_root(root: dict) -> dict:
         if len(texture_overrides) > 4:
             fail(f"jungles[{index}].textureOverrides has too many entries: {len(texture_overrides)} > 4")
 
-        jungles.append(
-            {
-                "key": key,
-                "subKind": sub_kind,
-                "mesh": mesh.replace("\\", "/"),
-                "shader": shader.replace("\\", "/"),
-                "textureOverrides": texture_overrides,
-            }
-        )
+        jungle_record = {
+            "key": key,
+            "subKind": sub_kind,
+            "mesh": mesh.replace("\\", "/"),
+            "shader": shader.replace("\\", "/"),
+        }
+        if visual_scale_multiplier != 1.0:
+            jungle_record["visualScaleMultiplier"] = visual_scale_multiplier
+        jungle_record["textureOverrides"] = texture_overrides
+        jungles.append(jungle_record)
 
     seen_minion_pairs = set()
     for index, item in enumerate(require_array(root.get("minions", []), "minions")):
@@ -747,13 +996,16 @@ def normalize_skill_effect_root(root: dict, valid_skill_keys: set[str]) -> dict:
             if param_name in seen_params:
                 fail(f"duplicated skill effect param: {key}.{param_name}")
             seen_params.add(param_name)
+            param_path = f"skillEffects[{index}].params.{param_name}"
+            value = legacy.as_float(params_source[param_name], param_path)
             params.append(
                 {
                     "id": param_name,
                     "cppId": SKILL_EFFECT_PARAM_IDS[param_name],
-                    "value": legacy.as_float(
-                        params_source[param_name],
-                        f"skillEffects[{index}].params.{param_name}",
+                    "value": validate_skill_effect_param_domain(
+                        param_name,
+                        value,
+                        param_path,
                     ),
                 }
             )
@@ -773,13 +1025,16 @@ def normalize_skill_effect_root(root: dict, valid_skill_keys: set[str]) -> dict:
             if param_name in seen_summon_params:
                 fail(f"duplicated summon policy param: {key}.{param_name}")
             seen_summon_params.add(param_name)
+            param_path = f"skillEffects[{index}].summonPolicy.{param_name}"
+            value = legacy.as_float(summon_source[param_name], param_path)
             summon_params.append(
                 {
                     "id": param_name,
                     "cppId": SUMMON_POLICY_PARAM_IDS[param_name],
-                    "value": legacy.as_float(
-                        summon_source[param_name],
-                        f"skillEffects[{index}].summonPolicy.{param_name}",
+                    "value": validate_summon_policy_param_domain(
+                        param_name,
+                        value,
+                        param_path,
                     ),
                 }
             )
@@ -811,13 +1066,17 @@ def compute_definition_pack_hash(
     data: dict,
     summoner_spell_data: dict,
     spawn_object_data: dict,
-    skill_effect_data: dict) -> int:
+    skill_effect_data: dict,
+    economy_data: dict,
+    item_data: dict) -> int:
     stable = json.dumps(
         {
             "championGameplay": data,
             "summonerSpellGameplay": summoner_spell_data,
             "spawnObjectGameplay": spawn_object_data,
             "skillEffectGameplay": skill_effect_data,
+            "economyGameplay": economy_data,
+            "itemGameplay": item_data,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -1260,8 +1519,14 @@ def emit_client_visual_cpp(visual_data: dict, object_visual_data: dict, champion
                 f"        def.subKind = {record['subKind']}u;",
                 f"        def.mesh.resourceRelativePath = {cpp_string(record['mesh'])};",
                 f"        def.shader.runtimePath = {cpp_wstring(record['shader'])};",
-                f"        def.textureOverrideCount = static_cast<u8_t>({len(record['textureOverrides'])}u);",
             ]
+        )
+        if record.get("visualScaleMultiplier", 1.0) != 1.0:
+            lines.append(
+                f"        def.visualScaleMultiplier = {cpp_float(record['visualScaleMultiplier'])};"
+            )
+        lines.append(
+            f"        def.textureOverrideCount = static_cast<u8_t>({len(record['textureOverrides'])}u);"
         )
         for override_index, override in enumerate(record["textureOverrides"]):
             lines.append(
@@ -1617,6 +1882,26 @@ def append_spawn_object_cpp(lines: list[str], spawn_object_data: dict) -> None:
     for record in spawn_object_data["minions"]:
         append_minion_def(lines, f"MakeMinionCombat_{record['roleType']}", record)
 
+    minion_wave = spawn_object_data["minionWave"]
+    lines.extend(
+        [
+            "    MinionWaveDef MakeMinionWaveDef()",
+            "    {",
+            "        MinionWaveDef def{};",
+            f"        def.waveIntervalTicks = {minion_wave['waveIntervalTicks']}ull;",
+            f"        def.initialDelayTicks = {minion_wave['initialDelayTicks']}ull;",
+            f"        def.perMinionDelayTicks = {minion_wave['perMinionDelayTicks']}ull;",
+            f"        def.siegeWavePeriod = {minion_wave['siegeWavePeriod']}u;",
+            f"        def.timeGrowthCapMinutes = {minion_wave['timeGrowthCapMinutes']}u;",
+            f"        def.timeGrowthPerMinute = {cpp_float(minion_wave['timeGrowthPerMinute'])};",
+            f"        def.corpseDeathTimerSec = {cpp_float(minion_wave['corpseDeathTimerSec'])};",
+        ]
+    )
+    for key, _ in MINION_WAVE_RANGED_PROJECTILE_FIELDS:
+        lines.append(
+            f"        def.rangedProjectile.{key} = {cpp_float(minion_wave['rangedProjectile'][key])};")
+    lines.extend(["        return def;", "    }", ""])
+
     lines.extend(["    const JungleCampGameDefEntry kJungleCamps[] =", "    {"])
     lines.extend(
         f"        {{ static_cast<u8_t>({record['subKind']}u), MakeJungleCamp_{record['subKind']}() }},"
@@ -1630,9 +1915,75 @@ def append_spawn_object_cpp(lines: list[str], spawn_object_data: dict) -> None:
     lines.extend(["    };", ""])
 
 
+def append_economy_cpp(lines: list[str], economy_data: dict) -> None:
+    lines.extend(
+        [
+            "    EconomyGameplayDef MakeEconomyDef()",
+            "    {",
+            "        EconomyGameplayDef def{};",
+        ]
+    )
+    for index, value in enumerate(economy_data["xpCurve"], start=1):
+        lines.append(f"        def.xpRequiredForNextLevel[{index}] = {cpp_float(value)};")
+    champion_kill = economy_data["championKill"]
+    for key, _ in ECONOMY_CHAMPION_KILL_FIELDS:
+        lines.append(f"        def.championKill.{key} = {cpp_float(champion_kill[key])};")
+    for kind in ECONOMY_MINION_KINDS:
+        record = economy_data["minions"][kind]
+        for key, _ in ECONOMY_MINION_FIELDS:
+            lines.append(f"        def.{kind}.{key} = {cpp_float(record[key])};")
+    lines.append(f"        def.turretGold = {cpp_float(economy_data['turretGold'])};")
+    jungle = economy_data["jungle"]
+    for key, _ in ECONOMY_JUNGLE_FIELDS:
+        lines.append(f"        def.jungle.{key} = {cpp_float(jungle[key])};")
+    passive_gold = economy_data["passiveGold"]
+    timers = economy_data["timers"]
+    lines.extend(
+        [
+            f"        def.passiveGoldStartTick = {passive_gold['startTick']}ull;",
+            f"        def.passiveGoldIntervalTicks = {passive_gold['intervalTicks']}ull;",
+            f"        def.passiveGoldPerGrant = {passive_gold['perGrant']}u;",
+            f"        def.assistCreditWindowSec = {cpp_float(timers['assistCreditWindowSec'])};",
+            f"        def.recallDurationSec = {cpp_float(timers['recallDurationSec'])};",
+            "        def.bValid = true;",
+            "        return def;",
+            "    }",
+            "",
+        ]
+    )
+
+
+def append_items_cpp(lines: list[str], item_data: dict) -> None:
+    for record in item_data["items"]:
+        lines.extend(
+            [
+                f"    ItemDef MakeItem_{record['itemId']}()",
+                "    {",
+                "        ItemDef def{};",
+                f"        def.itemId = {record['itemId']}u;",
+                f"        def.price = {record['price']}u;",
+            ]
+        )
+        for key, value in record["stats"].items():
+            lines.append(f"        def.stats.{key} = {cpp_float(value)};")
+        lines.extend(
+            [
+                f"        def.displayName = {cpp_string(record['name'])};",
+                "        return def;",
+                "    }",
+                "",
+            ]
+        )
+    lines.extend(["    const ItemDef kItemDefs[] =", "    {"])
+    lines.extend(f"        MakeItem_{record['itemId']}()," for record in item_data["items"])
+    lines.extend(["    };", ""])
+
+
 def emit_cpp(
     data: dict,
     spawn_object_data: dict,
+    economy_data: dict,
+    item_data: dict,
     champions: list[dict],
     skills: list[dict],
     spells: list[dict],
@@ -1768,6 +2119,8 @@ def emit_cpp(
         )
 
     append_spawn_object_cpp(lines, spawn_object_data)
+    append_economy_cpp(lines, economy_data)
+    append_items_cpp(lines, item_data)
 
     lines.extend(["    const ChampionGameplayDef kChampions[] =", "    {"])
     lines.extend(f"        MakeChampion_{record['champion']}()," for record in champions)
@@ -1787,6 +2140,7 @@ def emit_cpp(
             "{",
             "    const GameplayDefinitionPack& GetLoLGameplayDefinitionPack()",
             "    {",
+            "        static const EconomyGameplayDef economyDef = MakeEconomyDef();",
             "        static const GameplayDefinitionPack pack =",
             "        {",
             f"            {{ {data['schemaVersion']}u, {max(c['dataVersion'] for c in champions)}u, kBuildHash, 0u, eDataPackVisibility::ServerPrivate }},",
@@ -1796,6 +2150,9 @@ def emit_cpp(
             "            sizeof(kSkills) / sizeof(kSkills[0]),",
             "            kSummonerSpells,",
             "            sizeof(kSummonerSpells) / sizeof(kSummonerSpells[0]),",
+            "            &economyDef,",
+            "            kItemDefs,",
+            "            sizeof(kItemDefs) / sizeof(kItemDefs[0]),",
             "        };",
             "        return pack;",
             "    }",
@@ -1814,6 +2171,7 @@ def emit_cpp(
             "            MakeDefaultMinionCombat(),",
             "            kMinions,",
             "            sizeof(kMinions) / sizeof(kMinions[0]),",
+            "            MakeMinionWaveDef(),",
             "        };",
             "        return pack;",
             "    }",
@@ -1847,6 +2205,12 @@ def main() -> int:
     skill_effect_source = root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "SkillEffectGameplayDefs.json"
     if not skill_effect_source.exists():
         fail(f"missing source: {skill_effect_source}")
+    economy_source = root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "EconomyGameplayDefs.json"
+    if not economy_source.exists():
+        fail(f"missing source: {economy_source}")
+    item_source = root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "ItemGameplayDefs.json"
+    if not item_source.exists():
+        fail(f"missing source: {item_source}")
     champion_visual_source = root / "Data" / "LoL" / "ClientPublic" / "Visual" / "ChampionVisualDefs.json"
     if not champion_visual_source.exists():
         fail(f"missing source: {champion_visual_source}")
@@ -1888,7 +2252,14 @@ def main() -> int:
         {record["canonicalKey"] for record in skills},
     )
     apply_skill_effect_params(skills, skill_effect_data)
-    build_hash = compute_definition_pack_hash(data, summoner_spell_data, spawn_object_data, skill_effect_data)
+    economy_raw = json.loads(economy_source.read_text(encoding="utf-8"))
+    economy_raw.pop("buildHash", None)
+    economy_data = normalize_economy_root(economy_raw)
+    item_raw = json.loads(item_source.read_text(encoding="utf-8"))
+    item_raw.pop("buildHash", None)
+    item_data = normalize_items_root(item_raw)
+    build_hash = compute_definition_pack_hash(
+        data, summoner_spell_data, spawn_object_data, skill_effect_data, economy_data, item_data)
     champion_ids = {record["canonicalKey"]: record["defId"] for record in champions}
     skill_ids = {record["canonicalKey"]: record["defId"] for record in skills}
 
@@ -1938,6 +2309,7 @@ def main() -> int:
                 "jungleCamps": spawn_object_data["jungleCamps"],
                 "defaultMinion": spawn_object_data["defaultMinion"],
                 "minions": spawn_object_data["minions"],
+                "minionWave": spawn_object_data["minionWave"],
             }
         ),
         root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "SkillEffectGameplayDefs.json": json_text(
@@ -1949,6 +2321,28 @@ def main() -> int:
                     skill_effect_json(record)
                     for record in skill_effect_data["skillEffects"]
                 ],
+            }
+        ),
+        root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "EconomyGameplayDefs.json": json_text(
+            {
+                "schemaVersion": economy_data["schemaVersion"],
+                "dataVersion": economy_data["dataVersion"],
+                "buildHash": build_hash,
+                "xpCurve": economy_data["xpCurve"],
+                "championKill": economy_data["championKill"],
+                "minions": economy_data["minions"],
+                "turretGold": economy_data["turretGold"],
+                "jungle": economy_data["jungle"],
+                "passiveGold": economy_data["passiveGold"],
+                "timers": economy_data["timers"],
+            }
+        ),
+        root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "ItemGameplayDefs.json": json_text(
+            {
+                "schemaVersion": item_data["schemaVersion"],
+                "dataVersion": item_data["dataVersion"],
+                "buildHash": build_hash,
+                "items": item_data["items"],
             }
         ),
         root / "Data" / "LoL" / "ClientPublic" / "Visual" / "ChampionVisualDefs.json": json_text(
@@ -1964,7 +2358,7 @@ def main() -> int:
             manifest_json(data, champions, skills, spells, build_hash)
         ),
         root / "Server" / "Private" / "Data" / "Generated" / "LoLGameplayDefinitions.generated.cpp": emit_cpp(
-            data, spawn_object_data, champions, skills, spells, build_hash
+            data, spawn_object_data, economy_data, item_data, champions, skills, spells, build_hash
         ),
         root / "Client" / "Private" / "Data" / "Generated" / "LoLVisualDefinitions.generated.cpp": emit_client_visual_cpp(
             champion_visual_data, object_visual_data, champion_asset_visual_data

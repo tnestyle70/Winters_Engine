@@ -35,6 +35,29 @@ table AIDebugTraceRow {
     enemyHpRatio:float;
     enemyDistance:float;
     turretDanger:float;
+    retreatScore:float;
+    skillCastIntervalSec:float;
+    skillCastIntervalRemainingSec:float;
+    legalCandidateMask:uint;
+    illegalCandidateMask:uint;
+    commandSequence:uint;
+    executorReason:ushort;
+    executorState:ubyte;
+    comboStep:ubyte;
+    shadowPolicyRevision:ulong;
+    shadowPolicySha256Prefix:ulong;
+    shadowLogitRetreat:float;
+    shadowLogitFight:float;
+    shadowLogitFarm:float;
+    shadowLogitSiege:float;
+    shadowSelectedMargin:float;
+    shadowTopFeatureContribution:float;
+    shadowLegalCandidateMask:uint;
+    shadowTopFeatureIndex:ushort = 65535;
+    shadowStatus:ubyte;
+    shadowActiveCandidateKind:ubyte;
+    shadowSelectedCandidateKind:ubyte;
+    shadowDisagreed:bool;
 }
 
 table EntitySnapshot {
@@ -145,6 +168,48 @@ table EntitySnapshot {
     spellbookChampionId:ubyte;
     spellbookSlot:ubyte;
     spellbookRemaining:float;
+
+    actionSourceChampionId:ubyte;
+    actionSourceSlot:ubyte;
+    actionMovePolicy:ubyte;
+    actionLockEndTick:ulong;
+    actionCommandSeq:uint;
+    minionAttackWindupSec:float;
+    minionAttackRecoverySec:float;
+    gameplayStateFlags:uint;
+    gameplayMoveSpeedMul:float = 1.0;
+    forcedMotionKind:ubyte;
+    forcedMotionRemainingSec:float;
+    projectileDirX:float;
+    projectileDirY:float;
+    projectileDirZ:float;
+    projectileTraveledDist:float;
+}
+
+enum GameplayStateKind : ushort {
+    None = 0,
+    EzrealRisingSpellForce = 1,
+    EzrealEssenceFlux = 2,
+    YasuoWindWall = 3
+}
+
+table GameplayStateSnapshot {
+    kind:GameplayStateKind;
+    sourceNet:uint;
+    targetNet:uint;
+    startTick:ulong;
+    expireTick:ulong;
+    stackCount:ushort;
+    rank:ubyte;
+    flags:uint;
+    posX:float;
+    posY:float;
+    posZ:float;
+    dirX:float;
+    dirY:float;
+    dirZ:float;
+    magnitude0:float;
+    magnitude1:float;
 }
 
 table Snapshot {
@@ -164,6 +229,15 @@ table Snapshot {
     redDragons:ushort;
     blueBarons:ushort;
     redBarons:ushort;
+
+    // Append-only Chrono timeline metadata. Zero-valued identity fields are
+    // the backward-compatible defaults used by snapshots written before S017.
+    timelineEpoch:ulong = 0;
+    branchId:ulong = 0;
+    toolRevision:ulong = 0;
+    simPaused:bool = false;
+    simSpeedMul:float = 1.0;
+    gameplayStates:[GameplayStateSnapshot];
 }
 
 root_type Snapshot;

@@ -1,16 +1,19 @@
 #include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
 
 #include "Shared/GameSim/Components/FioraSimComponent.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Systems/Move/DashArrival.h"
 
@@ -19,6 +22,8 @@
 #include <functional>
 #include <iostream>
 #include <vector>
+
+#include "Shared/GameSim/Core/Checkpoint/KeyframeComponentRegistry.h"
 
 namespace
 {
@@ -50,6 +55,14 @@ namespace
         f32_t elapsedSec = 0.f;
         f32_t durationSec = 0.f;
     };
+
+    // Chrono Break: 익명 네임스페이스 컴포넌트는 소유 TU에서 자기등록한다.
+    const bool_t s_bFioraDashKeyframeRegistered = []()
+    {
+        SimCheckpoint::KeyframeComponentRegistry::Get()
+            .Register<FioraDashComponent>("FioraDashComponent");
+        return true;
+    }();
 
     FioraSimComponent& EnsureFioraState(CWorld& world, EntityID caster)
     {
@@ -273,10 +286,27 @@ namespace
         if (!ctx.pWorld)
             return;
 
+        const f32_t eWindowSec = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::EffectDurationSec,
+            5.0f);
+        const f32_t eMaxStacks = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::MaxStacks,
+            2.f);
+        const f32_t eDamageBonus = ResolveFioraSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::BaseDamage,
+            30.f);
+
         FioraSimComponent& state = EnsureFioraState(*ctx.pWorld, ctx.casterEntity);
         state.bBladeworkActive = true;
-        state.bladeworkTimerSec = 5.0f;
-        state.bladeworkHitsRemaining = 2;
+        state.bladeworkTimerSec = eWindowSec;
+        state.bladeworkHitsRemaining = static_cast<u8_t>(eMaxStacks);
+        state.bladeworkDamageBonus = eDamageBonus;
 
         std::cout << "[FioraSim] E bladework caster=" << ctx.casterEntity << "\n";
     }
@@ -288,7 +318,12 @@ namespace
 
         CWorld& world = *ctx.pWorld;
         const EntityID target = ctx.pCommand->targetEntity;
-        if (target == NULL_ENTITY)
+        if (!ctx.pTickCtx ||
+            !FioraGameSim::CanCastGrandChallenge(
+                world,
+                *ctx.pTickCtx,
+                ctx.casterEntity,
+                target))
             return;
 
         FioraSimComponent& state = EnsureFioraState(world, ctx.casterEntity);
@@ -316,6 +351,66 @@ namespace
 
 namespace FioraGameSim
 {
+	bool_t CanCastGrandChallenge(
+		CWorld& world,
+		const TickContext& tc,
+		EntityID caster,
+		EntityID target)
+	{
+		if (caster == NULL_ENTITY ||
+			target == NULL_ENTITY ||
+			!world.IsAlive(caster) ||
+			!world.IsAlive(target) ||
+			!world.HasComponent<ChampionComponent>(caster) ||
+			!world.HasComponent<ChampionComponent>(target) ||
+			!world.HasComponent<HealthComponent>(target) ||
+			!world.HasComponent<TransformComponent>(caster) ||
+			!world.HasComponent<TransformComponent>(target) ||
+			!GameplayStateQuery::CanBeTargetedBy(world, caster, target) ||
+			!GameplayStateQuery::CanReceiveDamage(world, caster, target))
+		{
+			return false;
+		}
+
+		const auto& targetHealth = world.GetComponent<HealthComponent>(target);
+		if (targetHealth.bIsDead || targetHealth.fCurrent <= 0.f)
+			return false;
+
+		const auto& casterChampion = world.GetComponent<ChampionComponent>(caster);
+		const auto& targetChampion = world.GetComponent<ChampionComponent>(target);
+		if (casterChampion.team == targetChampion.team)
+			return false;
+
+		f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+			world,
+			caster,
+			tc,
+			eChampion::FIORA,
+			static_cast<u8_t>(eSkillSlot::R));
+		if (range <= 0.f)
+			range = 5.f;
+		range += GameplayStateQuery::ResolveGameplayRadius(world, caster);
+		range += GameplayStateQuery::ResolveGameplayRadius(world, target);
+
+		const Vec3 casterPosition =
+			world.GetComponent<TransformComponent>(caster).GetPosition();
+		const Vec3 targetPosition =
+			world.GetComponent<TransformComponent>(target).GetPosition();
+		if (WintersMath::DistanceSqXZ(casterPosition, targetPosition) > range * range)
+			return false;
+
+		return !tc.pWalkable ||
+			tc.pWalkable->SegmentWalkableXZ(casterPosition, targetPosition, 0.f);
+	}
+
+    void CancelRuntime(CWorld& world, EntityID caster)
+    {
+        if (world.HasComponent<FioraDashComponent>(caster))
+            world.RemoveComponent<FioraDashComponent>(caster);
+        if (world.HasComponent<FioraSimComponent>(caster))
+            world.RemoveComponent<FioraSimComponent>(caster);
+    }
+
     f32_t ConsumeBasicAttackDamage(CWorld& world, EntityID caster, f32_t baseDamage)
     {
         if (!world.HasComponent<FioraSimComponent>(caster))
@@ -339,6 +434,13 @@ namespace FioraGameSim
             std::function<void(EntityID, FioraDashComponent&, TransformComponent&)>(
                 [&](EntityID entity, FioraDashComponent& dash, TransformComponent& transform)
                 {
+                    if (!GameplayStateQuery::CanMove(world, entity) ||
+                        world.HasComponent<ForcedMotionComponent>(entity))
+                    {
+                        finishedDashes.push_back(entity);
+                        return;
+                    }
+
                     ClearMove(world, entity);
 
                     dash.elapsedSec += tc.fDt;
@@ -379,6 +481,11 @@ namespace FioraGameSim
 
         for (EntityID entity : finishedDashes)
         {
+            if (world.HasComponent<ForcedMotionComponent>(entity))
+            {
+                world.RemoveComponent<FioraDashComponent>(entity);
+                continue;
+            }
             if (world.HasComponent<FioraDashComponent>(entity))
                 SnapDashArrivalToWalkable(world, tc, entity,
                     world.GetComponent<FioraDashComponent>(entity).start);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "WintersTypes.h"
 
@@ -30,6 +30,18 @@ public:
 		EntityID caster,
 		eChampion baseChampion,
 		u8_t localSlot);
+
+	static SkillOverrideResolveResult ResolveBasicAttack(
+		CWorld& world,
+		EntityID caster,
+		eChampion baseChampion);
+
+	static eChampion ResolveVisualChampion(
+		CWorld& world,
+		EntityID caster,
+		eChampion baseChampion);
+
+	static bool_t CanDispatchCapturedUltimate(eChampion sourceChampion);
 
 	static void ConsumeSpellbookOverride(
 		CWorld& world,

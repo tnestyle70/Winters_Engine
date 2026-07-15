@@ -89,3 +89,20 @@ const SummonerSpellGameplayDef* GameplayDefinitionPack::FindSummonerSpellByLegac
 
     return nullptr;
 }
+
+const EconomyGameplayDef* GameplayDefinitionPack::FindEconomy() const
+{
+    return (economy && economy->bValid) ? economy : nullptr;
+}
+
+const ItemDef* GameplayDefinitionPack::FindItems(std::size_t& outCount) const
+{
+    if (items && itemCount > 0u)
+    {
+        outCount = itemCount;
+        return items;
+    }
+
+    outCount = 0u;
+    return nullptr;
+}

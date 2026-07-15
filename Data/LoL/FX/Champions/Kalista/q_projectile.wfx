@@ -1,0 +1,22 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Kalista.Q.Projectile",
+  "emitters": [
+    {
+      "name": "q_spear_mesh",
+      "render_type": "MeshParticle",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_q_mis_spear.fbx",
+      "texture": "Client/Bin/Resource/Texture/FX/Kalista/kalista_base_q_mis_glow_color.png",
+      "lifetime": 1.0,
+      "scale": [0.015, 0.015, 0.015],
+      "color": [0.50, 1.00, 1.50, 1.00],
+      "attach_offset": [0.0, 0.0, 0.0],
+      "fade_in": 0.01,
+      "fade_out": 0.08,
+      "blockable_by_wind_wall": true
+    }
+  ]
+}

@@ -9,12 +9,13 @@
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Systems/Move/DashArrival.h"
 
 #include <cmath>
@@ -682,6 +683,17 @@ namespace IreliaGameSim
                 {
                     if (state.bDashActive)
                     {
+                        if (!GameplayStateQuery::CanMove(world, entity) ||
+                            world.HasComponent<ForcedMotionComponent>(entity))
+                        {
+                            state.bDashActive = false;
+                            state.dashElapsedSec = 0.f;
+                            state.dashDurationSec = 0.f;
+                            state.dashTarget = NULL_ENTITY;
+                            TickRWave(world, tc, entity, state);
+                            return;
+                        }
+
                         ClearMove(world, entity);
 
                         const f32_t duration = state.dashDurationSec > 0.01f

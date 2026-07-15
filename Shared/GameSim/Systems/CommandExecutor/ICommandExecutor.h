@@ -5,7 +5,7 @@
 #include "Shared/GameSim/Core/Determinism/DeterministicRng.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
 
 #include <cstdint>
 #include <memory>
@@ -40,9 +40,9 @@ struct LagCompensatedEntityState
 struct ILagCompensationQuery
 {
     virtual ~ILagCompensationQuery() = default;
-    virtual bool_t TryGetHistoricalState(
-        EntityID entity,
-        u64_t rewindTicks,
+    virtual bool_t TryGetHistoricalStateAtTick(
+        EntityHandle hEntity,
+        u64_t uExpectedTick,
         LagCompensatedEntityState& outState) const = 0;
 };
 
@@ -72,7 +72,119 @@ enum class eCommandKind : uint8_t
     RecallCancel = 8,
     AIDebugControl = 9,
     Flash = 10,
+    CompanionCommand = 11,
+    PracticeControl = 12,
 };
+
+enum class eCompanionCommandMode : uint16_t
+{
+    Move = 0,
+    Attack = 1,
+};
+
+enum class ePracticeOperation : uint16_t
+{
+    None = 0,
+    SetEnabled = 1,
+    SetOptions = 2,
+    RestoreHealthMana = 3,
+    ResetCooldowns = 4,
+    AddGold = 5,
+    SetLevel = 6,
+    Teleport = 7,
+    SpawnMinion = 8,
+    ClearPracticeSpawns = 9,
+    ApplySkillEffectOverride = 10,
+    ClearSkillEffectOverrides = 11,
+    SetSimulationPaused = 12,
+    StepSimulationTicks = 13,
+    SetSimulationTimeScale = 14,
+    RewindSimulationSeconds = 15,
+    SpawnChampion = 16,
+    ApplyChampionStatOverride = 17,
+    ClearChampionStatOverrides = 18,
+    ApplyItemStatOverride = 19,
+    ClearItemStatOverrides = 20,
+    TakeControlRosterChampion = 21,
+    ReplaceControlledChampion = 22,
+    ApplyStructureStatOverride = 23,
+    ClearStructureStatOverrides = 24,
+    ReloadGameplayDefinitions = 25,
+    Count = 26,
+};
+
+// ApplyChampionStatOverride: slot = eChampionStatOverrideId, value = 대체값, targetNet 지정 가능.
+// ApplyItemStatOverride: flags = (itemId << 8) | eItemStatOverrideField, value = 대체값.
+// TakeControlRosterChampion: targetNet = authoritative 10-player roster bot NetId.
+// ReplaceControlledChampion: flags = eChampion; replace only the current human slot.
+// ReloadGameplayDefinitions: 서버가 진실 JSON 3종을 재파싱해 활성 정의 팩을 교체 (Debug 전용, value/flags 미사용).
+enum class eChampionStatOverrideId : uint8_t
+{
+    None = 0,
+    BaseHp = 1,
+    HpPerLevel = 2,
+    BaseMana = 3,
+    ManaPerLevel = 4,
+    BaseAd = 5,
+    AdPerLevel = 6,
+    BaseAp = 7,
+    ApPerLevel = 8,
+    BaseArmor = 9,
+    ArmorPerLevel = 10,
+    BaseMr = 11,
+    MrPerLevel = 12,
+    BaseAttackSpeed = 13,
+    AttackSpeedPerLevel = 14,
+    BaseMoveSpeed = 15,
+    BaseAttackRange = 16,
+    // Practice-only final value applied after level, item, rune, and buff modifiers.
+    EffectiveAttackSpeed = 17,
+    Count = 18,
+};
+
+// ApplyStructureStatOverride: slot = eStructureStatOverrideId, value = 대체값.
+//   MaxHp 계열은 해당 kind 의 살아있는 모든 구조물의 현재/최대 체력을 함께 재설정한다.
+//   TurretAttackDamage 는 모든 TurretAIComponent 의 attackDamage 를 재설정한다.
+// ClearStructureStatOverrides: 정의 팩 기본값(SpawnObjectGameplayDefs)으로 복원.
+enum class eStructureStatOverrideId : uint8_t
+{
+    None = 0,
+    TurretMaxHp = 1,
+    InhibitorMaxHp = 2,
+    NexusMaxHp = 3,
+    TurretAttackDamage = 4,
+    Count = 5,
+};
+
+enum class eItemStatOverrideField : uint8_t
+{
+    None = 0,
+    Price = 1,
+    FlatAd = 2,
+    FlatAp = 3,
+    FlatHealth = 4,
+    FlatMana = 5,
+    FlatArmor = 6,
+    FlatMr = 7,
+    BonusAttackSpeed = 8,
+    CritChance = 9,
+    AbilityHaste = 10,
+    FlatMoveSpeed = 11,
+    LifeSteal = 12,
+    FlatMagicPen = 13,
+    Lethality = 14,
+    Count = 15,
+};
+
+inline constexpr u32_t kPracticeInfiniteHealthFlag = 1u << 0;
+inline constexpr u32_t kPracticeInfiniteManaFlag = 1u << 1;
+inline constexpr u32_t kPracticeNoCooldownFlag = 1u << 2;
+inline constexpr u32_t kPracticeInfiniteGoldFlag = 1u << 3;
+inline constexpr u32_t kPracticeAllOptionFlags =
+    kPracticeInfiniteHealthFlag |
+    kPracticeInfiniteManaFlag |
+    kPracticeNoCooldownFlag |
+    kPracticeInfiniteGoldFlag;
 
 struct GameCommandWire
 {
@@ -84,6 +196,9 @@ struct GameCommandWire
     Vec3 groundPos{};
     Vec3 direction{};
     uint16_t itemId = 0;
+    ePracticeOperation practiceOperation = ePracticeOperation::None;
+    f32_t practiceValue = 0.f;
+    u32_t practiceFlags = 0u;
 };
 
 struct GameCommand
@@ -98,6 +213,80 @@ struct GameCommand
     Vec3 groundPos{};
     Vec3 direction{};
     uint16_t itemId = 0;
+    uint32_t sourceSessionId = 0u;
+    ePracticeOperation practiceOperation = ePracticeOperation::None;
+    f32_t practiceValue = 0.f;
+    u32_t practiceFlags = 0u;
+};
+
+// Stable command-execution outcomes are consumed by server feedback and AI
+// research traces. Keep the explicit values append-only once exported.
+enum class eCommandExecutionState : uint8_t
+{
+    Unknown = 0u,
+    Accepted = 1u,
+    Rejected = 2u,
+};
+
+enum class eCommandExecutionReason : uint16_t
+{
+    None = 0u,
+    UnsupportedCommand = 1u,
+    InvalidIssuer = 2u,
+    IssuerNotAlive = 3u,
+    StateBlocked = 4u,
+    ActionBlocked = 5u,
+    PossessionPending = 6u,
+    InvalidPayload = 7u,
+    MissingComponent = 8u,
+    InvalidTarget = 9u,
+    DeadTarget = 10u,
+    UntargetableTarget = 11u,
+    FriendlyTarget = 12u,
+    Cooldown = 13u,
+    UnlearnedSkill = 14u,
+    InvalidSkillStage = 15u,
+    InsufficientResource = 16u,
+    OutOfRange = 17u,
+    NavigationBlocked = 18u,
+    NoActiveRecall = 19u,
+    MissingSummonerSpell = 20u,
+    ChampionRuleBlocked = 21u,
+    CarriedStateBlocked = 22u,
+};
+
+struct CommandExecutionResult
+{
+    eCommandExecutionState state = eCommandExecutionState::Unknown;
+    eCommandExecutionReason reason = eCommandExecutionReason::None;
+    uint32_t commandSequence = 0u;
+    Vec3 resolvedPosition{};
+
+    static CommandExecutionResult Unknown(
+        uint32_t sequence,
+        eCommandExecutionReason why = eCommandExecutionReason::UnsupportedCommand)
+    {
+        return { eCommandExecutionState::Unknown, why, sequence, {} };
+    }
+
+    static CommandExecutionResult Accepted(
+        uint32_t sequence,
+        const Vec3& position = {})
+    {
+        return {
+            eCommandExecutionState::Accepted,
+            eCommandExecutionReason::None,
+            sequence,
+            position
+        };
+    }
+
+    static CommandExecutionResult Rejected(
+        uint32_t sequence,
+        eCommandExecutionReason why)
+    {
+        return { eCommandExecutionState::Rejected, why, sequence, {} };
+    }
 };
 
 class ICommandExecutor
@@ -105,7 +294,7 @@ class ICommandExecutor
 public:
     virtual ~ICommandExecutor() = default;
 
-    virtual void ExecuteCommand(CWorld& world, const TickContext& tc,
+    virtual CommandExecutionResult ExecuteCommand(CWorld& world, const TickContext& tc,
         const GameCommand& cmd) = 0;
 };
 
@@ -115,22 +304,23 @@ public:
     static std::unique_ptr<CDefaultCommandExecutor> Create();
     ~CDefaultCommandExecutor() override = default;
 
-    void ExecuteCommand(CWorld& world, const TickContext& tc,
+    CommandExecutionResult ExecuteCommand(CWorld& world, const TickContext& tc,
         const GameCommand& cmd) override;
 
 private:
     CDefaultCommandExecutor() = default;
 
-    void HandleMove(CWorld&, const TickContext&, const GameCommand&);
-    void HandleCastSkill(CWorld&, const TickContext&, const GameCommand&);
-    void HandleBasicAttack(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleMove(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleCastSkill(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleBasicAttack(CWorld&, const TickContext&, const GameCommand&);
     void HandleLevelSkill(CWorld&, const TickContext&, const GameCommand&);
     void HandleBuyItem(CWorld&, const TickContext&, const GameCommand&);
     void HandleUseItem(CWorld&, const TickContext&, const GameCommand&);
-    void HandleRecall(CWorld&, const TickContext&, const GameCommand&);
-    void HandleRecallCancel(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleRecall(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleRecallCancel(CWorld&, const TickContext&, const GameCommand&);
     void HandleAIDebugControl(CWorld&, const TickContext&, const GameCommand&);
-    void HandleFlash(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleFlash(CWorld&, const TickContext&, const GameCommand&);
+    void HandleCompanionCommand(CWorld&, const TickContext&, const GameCommand&);
 };
 
 GameCommand BuildServerCommand(const GameCommandWire& wire,

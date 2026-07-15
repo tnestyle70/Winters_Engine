@@ -1,7 +1,7 @@
 #pragma once
 
 #include "WintersTypes.h"
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
 
 class CWorld;
@@ -11,6 +11,7 @@ namespace JaxGameSim
 {
     void RegisterHooks();
     void Tick(CWorld& world, const TickContext& tc);
+    void CancelRuntime(CWorld& world, EntityID caster);
 
     bool_t TryConsumeEmpowerForBasicAttack(CWorld& world, EntityID caster);
 

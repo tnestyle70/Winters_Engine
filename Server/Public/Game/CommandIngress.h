@@ -6,7 +6,6 @@
 #include <mutex>
 #include <vector>
 
-class CSession;
 namespace Shared::Schema { struct CommandBatch; }
 
 struct PendingCommand
@@ -26,8 +25,7 @@ public:
         u32_t sessionId,
         const Shared::Schema::CommandBatch* batch,
         u64_t acceptedTick,
-        u64_t recvTimeMs,
-        CSession& session);
+        u64_t recvTimeMs);
 
     void EnqueueCommand(
         u32_t sessionId,
@@ -37,6 +35,13 @@ public:
         u64_t clientTimestampMs);
 
     std::vector<PendingCommand> DrainSorted();
+
+    // Chrono Break: 되감기 시 명령 백로그 폐기 (과거로 간 세계에 미래 입력을 흘리지 않는다).
+    void Clear()
+    {
+        std::lock_guard lock(m_pendingMutex);
+        m_pendingCommands.clear();
+    }
 
     static void TraceCommandTiming(const PendingCommand& pending, u64_t execTick);
 

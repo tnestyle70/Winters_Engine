@@ -1,0 +1,101 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Yasuo.Passive.Shield",
+  "emitters": [
+    {
+      "name": "passive_wind_shell_mesh",
+      "render_type": "MeshParticle",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Yasuo/particles/fbx/yasuo_base_passive_hit.fbx",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/color_yasuo_passive_shield.png",
+      "lifetime": 3.0,
+      "fade_in": 0.03,
+      "fade_out": 0.30,
+      "scale": [0.014, 0.014, 0.014],
+      "world_yaw_spin_speed": 0.45,
+      "color": [1.00, 1.00, 1.00, 0.42],
+      "attach_offset": [0.0, 1.05, 0.0],
+      "alpha_clip": 0.01,
+      "depth_write": false,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.30,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
+    },
+    {
+      "name": "passive_shield_bubble_rim",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/LeeSin/particles/leesin_base_w_shield_1.png",
+      "lifetime": 3.0,
+      "start_delay": 0.01,
+      "fade_in": 0.03,
+      "fade_out": 0.34,
+      "width": 2.75,
+      "height": 2.75,
+      "color": [1.00, 1.00, 1.00, 0.58],
+      "attach_offset": [0.0, 1.06, 0.0],
+      "billboard": true,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.34,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
+    },
+    {
+      "name": "passive_shield_outer_glow",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/LeeSin/particles/leesin_base_w_glow_outer.png",
+      "lifetime": 3.0,
+      "start_delay": 0.02,
+      "fade_in": 0.03,
+      "fade_out": 0.34,
+      "width": 2.95,
+      "height": 2.95,
+      "color": [1.00, 1.00, 1.00, 0.42],
+      "attach_offset": [0.0, 1.08, 0.0],
+      "billboard": true,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.34,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
+    },
+    {
+      "name": "passive_wind_glyphs",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_passive_smoke.png",
+      "lifetime": 3.0,
+      "start_delay": 0.02,
+      "fade_in": 0.03,
+      "fade_out": 0.30,
+      "width": 2.25,
+      "height": 2.25,
+      "color": [1.00, 1.00, 1.00, 0.38],
+      "attach_offset": [0.0, 1.08, 0.0],
+      "atlas_cols": 4,
+      "atlas_rows": 4,
+      "atlas_frame_count": 16,
+      "atlas_fps": 20.0,
+      "atlas_loop": true,
+      "billboard": true,
+      "lifecycle": {
+        "mode": "Timed",
+        "stop_fade_out": 0.30,
+        "detach_on_stop": false,
+        "kill_when_anchor_invalid": true
+      }
+    }
+  ]
+}

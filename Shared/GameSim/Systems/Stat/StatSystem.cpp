@@ -1,13 +1,15 @@
 #include "Shared/GameSim/Systems/Stat/StatSystem.h"
 
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Components/BuffComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
-#include "Shared/GameSim/Components/RuneComponent.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
+#include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
@@ -20,6 +22,116 @@
 
 namespace
 {
+    // Item definitions keep LoL-facing movement points (25, 45, ...), while
+    // authoritative simulation positions use the repository-wide 0.01 world scale.
+    constexpr f32_t kLoLDistanceToWorldScale = 0.01f;
+
+    // Practice 오버라이드는 정의 팩/레지스트리 원본을 바꾸지 않고
+    // 이 엔티티의 스탯 재계산 입력에만 오버레이된다 (서버 스냅샷으로 회귀).
+    template <typename TStats>
+    void ApplyPracticeChampionStatOverrides(
+        const CWorld& world,
+        EntityID entity,
+        TStats& def)
+    {
+        const PracticeChampionStatOverrideComponent* pOverrides =
+            world.TryGetComponent<PracticeChampionStatOverrideComponent>(entity);
+        if (!pOverrides || pOverrides->count == 0u)
+            return;
+
+        const u8_t count = (std::min)(
+            pOverrides->count, PracticeChampionStatOverrideComponent::kMaxEntries);
+        for (u8_t i = 0u; i < count; ++i)
+        {
+            const PracticeChampionStatOverrideEntry& entry = pOverrides->entries[i];
+            switch (static_cast<eChampionStatOverrideId>(entry.statId))
+            {
+            case eChampionStatOverrideId::BaseHp: def.baseHp = entry.value; break;
+            case eChampionStatOverrideId::HpPerLevel: def.hpPerLevel = entry.value; break;
+            case eChampionStatOverrideId::BaseMana: def.baseMana = entry.value; break;
+            case eChampionStatOverrideId::ManaPerLevel: def.manaPerLevel = entry.value; break;
+            case eChampionStatOverrideId::BaseAd: def.baseAd = entry.value; break;
+            case eChampionStatOverrideId::AdPerLevel: def.adPerLevel = entry.value; break;
+            case eChampionStatOverrideId::BaseAp: def.baseAp = entry.value; break;
+            case eChampionStatOverrideId::ApPerLevel: def.apPerLevel = entry.value; break;
+            case eChampionStatOverrideId::BaseArmor: def.baseArmor = entry.value; break;
+            case eChampionStatOverrideId::ArmorPerLevel: def.armorPerLevel = entry.value; break;
+            case eChampionStatOverrideId::BaseMr: def.baseMr = entry.value; break;
+            case eChampionStatOverrideId::MrPerLevel: def.mrPerLevel = entry.value; break;
+            case eChampionStatOverrideId::BaseAttackSpeed: def.baseAttackSpeed = entry.value; break;
+            case eChampionStatOverrideId::AttackSpeedPerLevel: def.attackSpeedPerLevel = entry.value; break;
+            case eChampionStatOverrideId::BaseMoveSpeed: def.baseMoveSpeed = entry.value; break;
+            case eChampionStatOverrideId::BaseAttackRange: def.baseAttackRange = entry.value; break;
+            default: break;
+            }
+        }
+    }
+
+    bool_t TryResolvePracticeEffectiveAttackSpeed(
+        const CWorld& world,
+        EntityID entity,
+        f32_t& outAttackSpeed)
+    {
+        const PracticeChampionStatOverrideComponent* pOverrides =
+            world.TryGetComponent<PracticeChampionStatOverrideComponent>(entity);
+        if (!pOverrides)
+            return false;
+
+        const u8_t count = (std::min)(
+            pOverrides->count,
+            PracticeChampionStatOverrideComponent::kMaxEntries);
+        for (u8_t i = 0u; i < count; ++i)
+        {
+            const PracticeChampionStatOverrideEntry& entry = pOverrides->entries[i];
+            if (static_cast<eChampionStatOverrideId>(entry.statId) ==
+                eChampionStatOverrideId::EffectiveAttackSpeed)
+            {
+                outAttackSpeed = entry.value;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void ApplyPracticeItemStatOverrides(
+        const CWorld& world,
+        EntityID entity,
+        u16_t itemId,
+        ItemStatModifier& stats)
+    {
+        const PracticeItemStatOverrideComponent* pOverrides =
+            world.TryGetComponent<PracticeItemStatOverrideComponent>(entity);
+        if (!pOverrides || pOverrides->count == 0u)
+            return;
+
+        const u8_t count = (std::min)(
+            pOverrides->count, PracticeItemStatOverrideComponent::kMaxEntries);
+        for (u8_t i = 0u; i < count; ++i)
+        {
+            const PracticeItemStatOverrideEntry& entry = pOverrides->entries[i];
+            if (entry.itemId != itemId)
+                continue;
+
+            switch (static_cast<eItemStatOverrideField>(entry.fieldId))
+            {
+            case eItemStatOverrideField::FlatAd: stats.flatAd = entry.value; break;
+            case eItemStatOverrideField::FlatAp: stats.flatAp = entry.value; break;
+            case eItemStatOverrideField::FlatHealth: stats.flatHealth = entry.value; break;
+            case eItemStatOverrideField::FlatMana: stats.flatMana = entry.value; break;
+            case eItemStatOverrideField::FlatArmor: stats.flatArmor = entry.value; break;
+            case eItemStatOverrideField::FlatMr: stats.flatMr = entry.value; break;
+            case eItemStatOverrideField::BonusAttackSpeed: stats.bonusAttackSpeed = entry.value; break;
+            case eItemStatOverrideField::CritChance: stats.critChance = entry.value; break;
+            case eItemStatOverrideField::AbilityHaste: stats.abilityHaste = entry.value; break;
+            case eItemStatOverrideField::FlatMoveSpeed: stats.flatMoveSpeed = entry.value; break;
+            case eItemStatOverrideField::LifeSteal: stats.lifeSteal = entry.value; break;
+            case eItemStatOverrideField::FlatMagicPen: stats.flatMagicPen = entry.value; break;
+            case eItemStatOverrideField::Lethality: stats.lethality = entry.value; break;
+            default: break;
+            }
+        }
+    }
+
     template <typename TStats>
     StatComponent BuildBaseStatsFromValues(
         const TStats& def,
@@ -92,7 +204,8 @@ StatComponent CStatSystem::BuildBaseStats(
 
 void CStatSystem::Recompute(CWorld& world, EntityID entity, StatComponent& stat)
 {
-    const ChampionStatsDef def = CChampionStatsRegistry::Instance().Resolve(stat.championId);
+    ChampionStatsDef def = CChampionStatsRegistry::Instance().Resolve(stat.championId);
+    ApplyPracticeChampionStatOverrides(world, entity, def);
 
     const u8_t level = (stat.level > 0) ? stat.level : 1;
     const u32_t oldBuffHash = stat.buffMaskHash;
@@ -117,12 +230,25 @@ void CStatSystem::Recompute(
         identity ? definitions.FindChampion(identity->championDefId) : nullptr;
     if (definition)
     {
-        stat = BuildBaseStats(definition->stats, definition->legacyChampion, level);
+        ChampionStatBlock statsCopy = definition->stats;
+        ApplyPracticeChampionStatOverrides(world, entity, statsCopy);
+        stat = BuildBaseStats(statsCopy, definition->legacyChampion, level);
     }
     else
     {
-        const ChampionStatsDef legacyDef =
+        static u32_t s_statPackMissLogCount = 0;
+        if (s_statPackMissLogCount < 16u)
+        {
+            char msg[128]{};
+            sprintf_s(msg,
+                "[Data] stat recompute pack miss champ=%u -> legacy registry\n",
+                static_cast<u32_t>(stat.championId));
+            WintersOutputAIDebugStringA(msg);
+            ++s_statPackMissLogCount;
+        }
+        ChampionStatsDef legacyDef =
             CChampionStatsRegistry::Instance().Resolve(stat.championId);
+        ApplyPracticeChampionStatOverrides(world, entity, legacyDef);
         stat = BuildBaseStats(legacyDef, level);
     }
 
@@ -149,23 +275,26 @@ void CStatSystem::ApplyRuntimeModifiers(
             if (!pItem)
                 continue;
 
-            stat.bonusAd += pItem->stats.flatAd;
-            stat.ap += pItem->stats.flatAp;
-            stat.hpMax += pItem->stats.flatHealth;
-            stat.manaMax += pItem->stats.flatMana;
-            stat.bonusArmor += pItem->stats.flatArmor;
-            stat.bonusMr += pItem->stats.flatMr;
-            stat.bonusAttackSpeed += pItem->stats.bonusAttackSpeed;
-            stat.critChance += pItem->stats.critChance;
-            stat.abilityHaste += pItem->stats.abilityHaste;
-            stat.armorPenPercent += pItem->stats.armorPenPercent;
-            stat.bonusArmorPenPercent += pItem->stats.bonusArmorPenPercent;
-            stat.lethality += pItem->stats.lethality;
-            stat.magicPenPercent += pItem->stats.magicPenPercent;
-            stat.flatMagicPen += pItem->stats.flatMagicPen;
-            stat.moveSpeed += pItem->stats.flatMoveSpeed;
-            stat.lifesteal += pItem->stats.lifeSteal;
-            fItemMoveSpeedMul *= (1.f + pItem->stats.percentMoveSpeed);
+            ItemStatModifier itemStats = pItem->stats;
+            ApplyPracticeItemStatOverrides(world, entity, pItem->itemId, itemStats);
+
+            stat.bonusAd += itemStats.flatAd;
+            stat.ap += itemStats.flatAp;
+            stat.hpMax += itemStats.flatHealth;
+            stat.manaMax += itemStats.flatMana;
+            stat.bonusArmor += itemStats.flatArmor;
+            stat.bonusMr += itemStats.flatMr;
+            stat.bonusAttackSpeed += itemStats.bonusAttackSpeed;
+            stat.critChance += itemStats.critChance;
+            stat.abilityHaste += itemStats.abilityHaste;
+            stat.armorPenPercent += itemStats.armorPenPercent;
+            stat.bonusArmorPenPercent += itemStats.bonusArmorPenPercent;
+            stat.lethality += itemStats.lethality;
+            stat.magicPenPercent += itemStats.magicPenPercent;
+            stat.flatMagicPen += itemStats.flatMagicPen;
+            stat.moveSpeed += itemStats.flatMoveSpeed * kLoLDistanceToWorldScale;
+            stat.lifesteal += itemStats.lifeSteal;
+            fItemMoveSpeedMul *= (1.f + itemStats.percentMoveSpeed);
         }
     }
     stat.moveSpeed *= fItemMoveSpeedMul;
@@ -182,17 +311,10 @@ void CStatSystem::ApplyRuntimeModifiers(
             stat.ap += buff.flatApPerStack * stacks;
             stat.bonusArmor += buff.flatArmorPerStack * stacks;
             stat.bonusMr += buff.flatMrPerStack * stacks;
+            stat.bonusAttackSpeed += buff.bonusAttackSpeedPerStack * stacks;
             moveSpeedMul *= buff.moveSpeedMul;
         }
         stat.moveSpeed *= moveSpeedMul;
-    }
-
-    if (world.HasComponent<RuneRuntimeComponent>(entity))
-    {
-        const RuneRuntimeComponent& runes = world.GetComponent<RuneRuntimeComponent>(entity);
-        stat.bonusAttackSpeed +=
-            static_cast<f32_t>(runes.iLethalTempoStacks) *
-            RuneTuning::kLethalTempoAttackSpeedPerStack;
     }
 
     stat.ad = stat.baseAd + stat.bonusAd;
@@ -204,6 +326,15 @@ void CStatSystem::ApplyRuntimeModifiers(
         stat.attackSpeedGrowth,
         stat.bonusAttackSpeed,
         stat.level);
+
+    f32_t fPracticeEffectiveAttackSpeed = 0.f;
+    if (TryResolvePracticeEffectiveAttackSpeed(
+        world,
+        entity,
+        fPracticeEffectiveAttackSpeed))
+    {
+        stat.attackSpeed = fPracticeEffectiveAttackSpeed;
+    }
 
     stat.abilityHaste = std::max(0.f, stat.abilityHaste);
     stat.cdr = Clamp(stat.cdr, 0.f, 0.4f);

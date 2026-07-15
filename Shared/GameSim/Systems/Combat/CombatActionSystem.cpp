@@ -1,9 +1,12 @@
 #include "Shared/GameSim/Systems/Combat/CombatActionSystem.h"
 
 #include "Shared/GameSim/Champions/Ashe/AsheGameSim.h"
+#include "Shared/GameSim/Champions/Ezreal/EzrealGameSim.h"
 #include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
 #include "Shared/GameSim/Champions/Jax/JaxGameSim.h"
+#include "Shared/GameSim/Champions/Kalista/KalistaGameSim.h"
 #include "Shared/GameSim/Champions/Kindred/KindredGameSim.h"
+#include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/CombatActionComponent.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
@@ -16,10 +19,9 @@
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
-#include "Shared/GameSim/Systems/Rune/RuneSystem.h"
 
-#include "ECS/Components/SpatialAgentComponent.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "WintersMath.h"
 
@@ -65,6 +67,7 @@ namespace
         EntityID source,
         EntityID target,
         eTeam sourceTeam,
+        eChampion champion,
         u16_t actionFlags)
     {
         f32_t damage = 55.f;
@@ -75,7 +78,8 @@ namespace
                 damage = stat.ad;
         }
 
-        const eChampion champion = ResolveChampion(world, source);
+        if (champion == eChampion::NONE || champion == eChampion::END)
+            champion = ResolveChampion(world, source);
         if (champion == eChampion::FIORA)
             return FioraGameSim::ConsumeBasicAttackDamage(world, source, damage);
         if (champion == eChampion::JAX)
@@ -91,17 +95,24 @@ namespace
         return damage;
     }
 
-    u32_t BuildGenericEffectId(CWorld& world, EntityID entity, u8_t slot)
+    u32_t BuildGenericEffectId(
+        CWorld& world,
+        EntityID entity,
+        eChampion champion,
+        u8_t slot)
     {
-        u32_t champion = 0;
-        if (world.HasComponent<ChampionComponent>(entity))
-            champion = static_cast<u32_t>(world.GetComponent<ChampionComponent>(entity).id);
-        return (champion << 8) | static_cast<u32_t>(slot);
+        if (champion == eChampion::NONE || champion == eChampion::END)
+            champion = ResolveChampion(world, entity);
+        return (static_cast<u32_t>(champion) << 8) | static_cast<u32_t>(slot);
     }
 
-    u32_t BuildBasicAttackEffectId(CWorld& world, EntityID entity)
+    u32_t BuildBasicAttackEffectId(
+        CWorld& world,
+        EntityID entity,
+        eChampion champion)
     {
-        const eChampion champion = ResolveChampion(world, entity);
+        if (champion == eChampion::NONE || champion == eChampion::END)
+            champion = ResolveChampion(world, entity);
         const u8_t slot = static_cast<u8_t>(eSkillSlot::BasicAttack);
 
         u32_t effectId = 0;
@@ -117,7 +128,9 @@ namespace
             break;
         }
 
-        return effectId != 0 ? effectId : BuildGenericEffectId(world, entity, slot);
+        return effectId != 0
+            ? effectId
+            : BuildGenericEffectId(world, entity, champion, slot);
     }
 
     Vec3 ResolveEventPosition(CWorld& world, EntityID source, EntityID target)
@@ -150,6 +163,8 @@ namespace
     {
         moveTarget.pathCount = 0;
         moveTarget.pathIndex = 0;
+        moveTarget.blockedMoveTicks = 0;
+        moveTarget.bestMoveDistance = -1.f;
         moveTarget.facingTarget = {};
         moveTarget.facingDirection = {};
         moveTarget.facingSequenceNum = 0;
@@ -246,8 +261,40 @@ namespace
         if (sourceTeam == targetTeam && sourceTeam != eTeam::Neutral)
             return false;
 
-        const f32_t damage =
-            ResolveBasicAttackDamage(world, tc, source, target, sourceTeam, action.uFlags);
+        const eChampion resolvedChampion = ResolveChampion(world, source);
+        if (resolvedChampion != eChampion::ASHE &&
+            resolvedChampion != eChampion::EZREAL &&
+            resolvedChampion != eChampion::KALISTA &&
+            tc.pWalkable &&
+            !GameplayStateQuery::IsAttackSegmentGateExemptTarget(world, target) &&
+            world.HasComponent<TransformComponent>(source) &&
+            world.HasComponent<TransformComponent>(target))
+        {
+            const Vec3 sourcePos =
+                world.GetComponent<TransformComponent>(source).GetPosition();
+            const Vec3 targetPos =
+                world.GetComponent<TransformComponent>(target).GetPosition();
+            const f32_t sourceRadius = world.HasComponent<SpatialAgentComponent>(source)
+                ? world.GetComponent<SpatialAgentComponent>(source).radius
+                : 0.f;
+            if (!tc.pWalkable->SegmentWalkableXZ(
+                sourcePos,
+                targetPos,
+                (std::max)(0.f, sourceRadius)))
+            {
+                return false;
+            }
+        }
+
+        const eChampion actionChampion = action.eSourceChampion;
+        const f32_t damage = ResolveBasicAttackDamage(
+            world,
+            tc,
+            source,
+            target,
+            sourceTeam,
+            actionChampion,
+            action.uFlags);
 
         DamageRequest request{};
         request.source = source;
@@ -257,18 +304,45 @@ namespace
         request.flatAmount = damage;
         request.iSourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
         request.eSourceKind = eDamageSourceKind::BasicAttack;
-        request.flags = DamageFlag_OnHit;
-        EnqueueDamageRequest(world, request);
-        CRuneSystem::OnBasicAttackHitChampion(world, tc, source, target);
+        request.flags = DamageFlag_OnHit | DamageFlag_CanCrit | DamageFlag_CanLifesteal;
+        const bool_t bProjectileImpactDeferred =
+            AsheGameSim::TryLaunchBasicAttackProjectile(
+                world,
+                tc,
+                source,
+                target,
+                request) ||
+            EzrealGameSim::TryLaunchBasicAttackProjectile(
+                world,
+                tc,
+                source,
+                target,
+                request) ||
+            KalistaGameSim::TryLaunchBasicAttackProjectile(
+                world,
+                tc,
+                source,
+                target,
+                request);
+        if (!bProjectileImpactDeferred)
+        {
+            EnqueueDamageRequest(world, request);
+        }
 
-        if (ResolveChampion(world, source) == eChampion::IRELIA)
+        if (bProjectileImpactDeferred && resolvedChampion == eChampion::ASHE)
+            return true;
+
+        if (actionChampion == eChampion::IRELIA)
             return true;
 
         ReplicatedEventComponent effectEvent{};
         effectEvent.kind = eReplicatedEventKind::EffectTrigger;
         effectEvent.sourceEntity = source;
         effectEvent.targetEntity = target;
-        effectEvent.effectId = BuildBasicAttackEffectId(world, source);
+        effectEvent.effectId = BuildBasicAttackEffectId(
+            world,
+            source,
+            actionChampion);
         effectEvent.slot = static_cast<u8_t>(eSkillSlot::BasicAttack);
         const u8_t stage = action.uStage == 0u ? 1u : action.uStage;
         effectEvent.flags = static_cast<u16_t>(
@@ -294,6 +368,15 @@ void CCombatActionSystem::Execute(CWorld& world, const TickContext& tc)
             continue;
 
         auto& action = world.GetComponent<CombatActionComponent>(entity);
+        if (action.uOwnerActionSequence != 0u &&
+            (!world.HasComponent<ActionStateComponent>(entity) ||
+                world.GetComponent<ActionStateComponent>(entity).sequence !=
+                    action.uOwnerActionSequence))
+        {
+            world.RemoveComponent<CombatActionComponent>(entity);
+            continue;
+        }
+
         if (action.eKind != eCombatActionKind::BasicAttack)
         {
             if (tc.tickIndex >= action.uEndTick)

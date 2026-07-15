@@ -1,0 +1,192 @@
+{
+  "volume": 0.8,
+  "champions": [
+    {
+      "champion": "Annie",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Annie/annie_base_sfx_1_12749723.wav",
+        "skillQ": "LoL/Champions/Annie/annie_base_sfx_2_52102561.wav",
+        "skillW": "LoL/Champions/Annie/annie_base_sfx_3_66577041.wav",
+        "skillE": "LoL/Champions/Annie/annie_base_sfx_4_70623096.wav",
+        "skillR": "LoL/Champions/Annie/annie_base_sfx_5_101593806.wav",
+        "death": "LoL/Champions/Annie/annie_base_sfx_6_119369386.wav"
+      }
+    },
+    {
+      "champion": "Ashe",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Ashe/ashe_base_sfx_1_9562456.wav",
+        "skillQ": "LoL/Champions/Ashe/ashe_base_sfx_2_47185398.wav",
+        "skillW": "LoL/Champions/Ashe/ashe_base_sfx_3_61040111.wav",
+        "skillE": "LoL/Champions/Ashe/ashe_base_sfx_4_67757603.wav",
+        "skillR": "LoL/Champions/Ashe/ashe_base_sfx_5_69888753.wav",
+        "death": "LoL/Champions/Ashe/ashe_base_sfx_6_85843841.wav"
+      }
+    },
+    {
+      "champion": "Ezreal",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Ezreal/ezreal_base_sfx_1_30365090.wav",
+        "skillQ": "LoL/Champions/Ezreal/ezreal_base_sfx_2_78925441.wav",
+        "skillW": "LoL/Champions/Ezreal/ezreal_base_sfx_3_79763005.wav",
+        "skillE": "LoL/Champions/Ezreal/ezreal_base_sfx_4_88285726.wav",
+        "skillR": "LoL/Champions/Ezreal/ezreal_base_sfx_5_145443037.wav",
+        "death": "LoL/Champions/Ezreal/ezreal_base_sfx_6_152123294.wav"
+      }
+    },
+    {
+      "champion": "Fiora",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Fiora/fiora_base_sfx_1_4179099.wav",
+        "skillQ": "LoL/Champions/Fiora/fiora_base_sfx_2_15982667.wav",
+        "skillW": "LoL/Champions/Fiora/fiora_base_sfx_3_16322475.wav",
+        "skillE": "LoL/Champions/Fiora/fiora_base_sfx_4_22895149.wav",
+        "skillR": "LoL/Champions/Fiora/fiora_base_sfx_5_26194829.wav",
+        "death": "LoL/Champions/Fiora/fiora_base_sfx_6_29059332.wav"
+      }
+    },
+    {
+      "champion": "Garen",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Garen/garen_base_sfx_1_1246050.wav",
+        "skillQ": "LoL/Champions/Garen/garen_base_sfx_2_3618390.wav",
+        "skillW": "LoL/Champions/Garen/garen_base_sfx_3_5845376.wav",
+        "skillE": "LoL/Champions/Garen/garen_base_sfx_4_9695656.wav",
+        "skillR": "LoL/Champions/Garen/garen_base_sfx_5_13912708.wav",
+        "death": "LoL/Champions/Garen/garen_base_sfx_6_14110164.wav"
+      }
+    },
+    {
+      "champion": "Irelia",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Irelia/irelia_base_sfx_26_54676396.wav",
+        "skillQ": "LoL/Champions/Irelia/irelia_base_sfx_26_54676396.wav",
+        "skillW": "LoL/Champions/Irelia/irelia_base_sfx_26_54676396.wav",
+        "skillE": "LoL/Champions/Irelia/irelia_base_sfx_26_54676396.wav",
+        "skillR": "LoL/Champions/Irelia/irelia_base_sfx_26_54676396.wav",
+        "death": "LoL/Champions/Irelia/irelia_base_sfx_26_54676396.wav"
+      }
+    },
+    {
+      "champion": "Jax",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Jax/jax_base_sfx_1_1325221.wav",
+        "skillQ": "LoL/Champions/Jax/jax_base_sfx_2_14847114.wav",
+        "skillW": "LoL/Champions/Jax/jax_base_sfx_3_22350288.wav",
+        "skillE": "LoL/Champions/Jax/jax_base_sfx_4_64237646.wav",
+        "skillR": "LoL/Champions/Jax/jax_base_sfx_5_85903700.wav",
+        "death": "LoL/Champions/Jax/jax_base_sfx_6_89673508.wav"
+      }
+    },
+    {
+      "champion": "Kalista",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Kalista/kalista_base_sfx_1_8877745.wav",
+        "skillQ": "LoL/Champions/Kalista/kalista_base_sfx_2_10705451.wav",
+        "skillW": "LoL/Champions/Kalista/kalista_base_sfx_3_11879335.wav",
+        "skillE": "LoL/Champions/Kalista/kalista_base_sfx_4_14780541.wav",
+        "skillR": "LoL/Champions/Kalista/kalista_base_sfx_5_15857237.wav",
+        "death": "LoL/Champions/Kalista/kalista_base_sfx_6_42896223.wav"
+      }
+    },
+    {
+      "champion": "Kindred",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Kindred/kindred_base_sfx_1_1975512.wav",
+        "skillQ": "LoL/Champions/Kindred/kindred_base_sfx_2_22620447.wav",
+        "skillW": "LoL/Champions/Kindred/kindred_base_sfx_3_24932106.wav",
+        "skillE": "LoL/Champions/Kindred/kindred_base_sfx_4_26942979.wav",
+        "skillR": "LoL/Champions/Kindred/kindred_base_sfx_5_29228744.wav",
+        "death": "LoL/Champions/Kindred/kindred_base_sfx_6_37118054.wav"
+      }
+    },
+    {
+      "champion": "LeeSin",
+      "sounds": {
+        "basicAttack": "LoL/Champions/LeeSin/leesin_base_sfx_1_1160187.wav",
+        "skillQ": "LoL/Champions/LeeSin/leesin_base_sfx_2_2282822.wav",
+        "skillW": "LoL/Champions/LeeSin/leesin_base_sfx_3_9567031.wav",
+        "skillE": "LoL/Champions/LeeSin/leesin_base_sfx_4_11087255.wav",
+        "skillR": "LoL/Champions/LeeSin/leesin_base_sfx_5_11752443.wav",
+        "death": "LoL/Champions/LeeSin/leesin_base_sfx_6_13470672.wav"
+      }
+    },
+    {
+      "champion": "MasterYi",
+      "sounds": {
+        "basicAttack": "LoL/Champions/MasterYi/masteryi_base_sfx_1_789302.wav",
+        "skillQ": "LoL/Champions/MasterYi/masteryi_base_sfx_2_7394909.wav",
+        "skillW": "LoL/Champions/MasterYi/masteryi_base_sfx_3_16380216.wav",
+        "skillE": "LoL/Champions/MasterYi/masteryi_base_sfx_4_19763561.wav",
+        "skillR": "LoL/Champions/MasterYi/masteryi_base_sfx_5_21301409.wav",
+        "death": "LoL/Champions/MasterYi/masteryi_base_sfx_6_31491481.wav"
+      }
+    },
+    {
+      "champion": "Riven",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Riven/riven_base_sfx_1_8980832.wav",
+        "skillQ": "LoL/Champions/Riven/riven_base_sfx_2_12382225.wav",
+        "skillW": "LoL/Champions/Riven/riven_base_sfx_3_18596071.wav",
+        "skillE": "LoL/Champions/Riven/riven_base_sfx_4_22782194.wav",
+        "skillR": "LoL/Champions/Riven/riven_base_sfx_5_30710599.wav",
+        "death": "LoL/Champions/Riven/riven_base_sfx_6_47688915.wav"
+      }
+    },
+    {
+      "champion": "Sylas",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Sylas/sylas_base_sfx_1_5509082.wav",
+        "skillQ": "LoL/Champions/Sylas/sylas_base_sfx_2_15419382.wav",
+        "skillW": "LoL/Champions/Sylas/sylas_base_sfx_3_21693485.wav",
+        "skillE": "LoL/Champions/Sylas/sylas_base_sfx_4_32212247.wav",
+        "skillR": "LoL/Champions/Sylas/sylas_base_sfx_5_36025083.wav",
+        "death": "LoL/Champions/Sylas/sylas_base_sfx_6_52369847.wav"
+      }
+    },
+    {
+      "champion": "Viego",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Viego/viego_base_sfx_1_10520235.wav",
+        "skillQ": "LoL/Champions/Viego/viego_base_sfx_2_12789642.wav",
+        "skillW": "LoL/Champions/Viego/viego_base_sfx_3_13878620.wav",
+        "skillE": "LoL/Champions/Viego/viego_base_sfx_4_40268801.wav",
+        "skillR": "LoL/Champions/Viego/viego_base_sfx_5_87159301.wav",
+        "death": "LoL/Champions/Viego/viego_base_sfx_6_89839331.wav"
+      }
+    },
+    {
+      "champion": "Yasuo",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Yasuo/yasuo_base_sfx_1_3870801.wav",
+        "skillQ": "LoL/Champions/Yasuo/yasuo_base_sfx_2_5144442.wav",
+        "skillW": "LoL/Champions/Yasuo/yasuo_base_sfx_3_11618992.wav",
+        "skillE": "LoL/Champions/Yasuo/yasuo_base_sfx_4_16490758.wav",
+        "skillR": "LoL/Champions/Yasuo/yasuo_base_sfx_5_32025629.wav",
+        "death": "LoL/Champions/Yasuo/yasuo_base_sfx_6_32446370.wav"
+      }
+    },
+    {
+      "champion": "Yone",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Yone/yone_base_sfx_1_2465604.wav",
+        "skillQ": "LoL/Champions/Yone/yone_base_sfx_2_4593285.wav",
+        "skillW": "LoL/Champions/Yone/yone_base_sfx_3_17265215.wav",
+        "skillE": "LoL/Champions/Yone/yone_base_sfx_4_23626290.wav",
+        "skillR": "LoL/Champions/Yone/yone_base_sfx_5_32292976.wav",
+        "death": "LoL/Champions/Yone/yone_base_sfx_6_52943608.wav"
+      }
+    },
+    {
+      "champion": "Zed",
+      "sounds": {
+        "basicAttack": "LoL/Champions/Zed/zed_base_sfx_1_38768423.wav",
+        "skillQ": "LoL/Champions/Zed/zed_base_sfx_2_44997049.wav",
+        "skillW": "LoL/Champions/Zed/zed_base_sfx_3_45349466.wav",
+        "skillE": "LoL/Champions/Zed/zed_base_sfx_4_48781906.wav",
+        "skillR": "LoL/Champions/Zed/zed_base_sfx_5_51708590.wav",
+        "death": "LoL/Champions/Zed/zed_base_sfx_6_57265211.wav"
+      }
+    }
+  ]
+}

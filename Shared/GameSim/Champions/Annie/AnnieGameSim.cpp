@@ -12,14 +12,15 @@
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
-#include "ECS/Components/CoreComponents.h"
+#include "Shared/GameSim/Core/Ecs/CoreComponents.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/NavigationThrottleComponent.h"
-#include "ECS/Components/SpatialAgentComponent.h"
-#include "ECS/Components/TransformComponent.h"
-#include "ECS/Components/VisionComponents.h"
+#include "Shared/GameSim/Core/Ecs/NavigationThrottleComponent.h"
+#include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/VisionComponents.h"
 
 #include <algorithm>
 #include <cmath>
@@ -384,76 +385,6 @@ namespace
         return pos;
     }
 
-    void CollectCircleTargets(CWorld& world, const Vec3& center, f32_t radius,
-        EntityID source, eTeam sourceTeam, std::vector<EntityID>& outTargets)
-    {
-        const f32_t radiusSq = radius * radius;
-        auto tryAdd = [&](EntityID target, const Vec3& pos)
-        {
-            if (!IsEnemyDamageTarget(world, source, target, sourceTeam))
-                return;
-
-            const f32_t dx = pos.x - center.x;
-            const f32_t dz = pos.z - center.z;
-            if (dx * dx + dz * dz <= radiusSq)
-                outTargets.push_back(target);
-        };
-
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID target, ChampionComponent&, TransformComponent& tf)
-                {
-                    tryAdd(target, tf.GetPosition());
-                }));
-
-        world.ForEach<MinionComponent, TransformComponent>(
-            std::function<void(EntityID, MinionComponent&, TransformComponent&)>(
-                [&](EntityID target, MinionComponent&, TransformComponent& tf)
-                {
-                    tryAdd(target, tf.GetPosition());
-                }));
-    }
-
-    void CollectConeTargets(CWorld& world, const Vec3& origin, const Vec3& forward,
-        f32_t range,
-        f32_t halfAngleCos,
-        EntityID source,
-        eTeam sourceTeam,
-        std::vector<EntityID>& outTargets)
-    {
-        const f32_t rangeSq = range * range;
-        auto tryAdd = [&](EntityID target, const Vec3& pos)
-        {
-            if (!IsEnemyDamageTarget(world, source, target, sourceTeam))
-                return;
-
-            const f32_t dx = pos.x - origin.x;
-            const f32_t dz = pos.z - origin.z;
-            const f32_t distSq = dx * dx + dz * dz;
-            if (distSq <= 0.0001f || distSq > rangeSq)
-                return;
-
-            const f32_t invDist = 1.f / std::sqrtf(distSq);
-            const f32_t dot = (dx * invDist) * forward.x + (dz * invDist) * forward.z;
-            if (dot >= halfAngleCos)
-                outTargets.push_back(target);
-        };
-
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID target, ChampionComponent&, TransformComponent& tf)
-                {
-                    tryAdd(target, tf.GetPosition());
-                }));
-
-        world.ForEach<MinionComponent, TransformComponent>(
-            std::function<void(EntityID, MinionComponent&, TransformComponent&)>(
-                [&](EntityID target, MinionComponent&, TransformComponent& tf)
-                {
-                    tryAdd(target, tf.GetPosition());
-                }));
-    }
-
     void DestroyTibbers(CWorld& world, const TickContext& tc, EntityID tibbers)
     {
         if (tibbers == NULL_ENTITY || !world.IsAlive(tibbers))
@@ -574,9 +505,18 @@ namespace
         }
 
         CWorld& world = *ctx.pWorld;
-        AnnieSimComponent& state = EnsureAnnieState(world, ctx.casterEntity);
-        const bool_t bShouldStun = ConsumeStunReady(state);
         const EntityID target = ctx.pCommand->targetEntity;
+        if (!GameplayStateQuery::CanReceiveCrowdControl(
+            world,
+            ctx.casterEntity,
+            target))
+        {
+            return;
+        }
+
+        AnnieSimComponent& state = EnsureAnnieState(world, ctx.casterEntity);
+        AddStunStack(state);
+        const bool_t bShouldStun = ConsumeStunReady(state);
         const f32_t baseDamage = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::Q,
@@ -602,7 +542,6 @@ namespace
         if (bShouldStun)
             ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::Q, stunDurationSec);
 
-        AddStunStack(state);
     }
 
     void OnW(GameplayHookContext& ctx)
@@ -615,7 +554,7 @@ namespace
 
         CWorld& world = *ctx.pWorld;
         AnnieSimComponent& state = EnsureAnnieState(world, ctx.casterEntity);
-        const bool_t bShouldStun = ConsumeStunReady(state);
+        AddStunStack(state);
         const Vec3 origin = world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 forward = ResolveForward(world, ctx.casterEntity, ctx.pCommand);
         const f32_t baseDamage = ResolveAnnieSkillEffectParam(
@@ -639,17 +578,18 @@ namespace
             eSkillSlot::W,
             eSkillEffectParamId::StunDurationSec);
 
-        std::vector<EntityID> targets;
-        targets.reserve(8);
-        CollectConeTargets(
-            world,
-            origin,
-            forward,
-            range,
-            halfAngleCos,
-            ctx.casterEntity,
-            ctx.casterTeam,
-            targets);
+        const f32_t halfAngleRad = std::acos(
+            std::clamp(halfAngleCos, -1.f, 1.f));
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInCone(
+                world,
+                ctx.casterEntity,
+                origin,
+                forward,
+                range,
+                halfAngleRad);
+        const bool_t bShouldStun =
+            !targets.empty() && ConsumeStunReady(state);
 
         for (EntityID target : targets)
         {
@@ -666,7 +606,6 @@ namespace
                 ApplyStun(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::W, stunDurationSec);
         }
 
-        AddStunStack(state);
     }
 
     void OnE(GameplayHookContext& ctx)
@@ -730,7 +669,7 @@ namespace
 
         CWorld& world = *ctx.pWorld;
         AnnieSimComponent& state = EnsureAnnieState(world, ctx.casterEntity);
-        const bool_t bShouldStun = ConsumeStunReady(state);
+        AddStunStack(state);
         const f32_t baseDamage = ResolveAnnieSkillEffectParam(
             ctx,
             eSkillSlot::R,
@@ -756,9 +695,14 @@ namespace
         const Vec3 center =
             ResolveGroundCastPosition(world, *ctx.pTickCtx, ctx.casterEntity, ctx.pCommand, range);
 
-        std::vector<EntityID> targets;
-        targets.reserve(8);
-        CollectCircleTargets(world, center, radius, ctx.casterEntity, ctx.casterTeam, targets);
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
+                world,
+                ctx.casterEntity,
+                center,
+                radius);
+        const bool_t bShouldStun =
+            !targets.empty() && ConsumeStunReady(state);
 
         for (EntityID target : targets)
         {
@@ -783,12 +727,44 @@ namespace
             center,
             ctx.skillRank,
             tibbersTuning);
-        AddStunStack(state);
     }
 }
 
 namespace AnnieGameSim
 {
+    bool_t CanCastDisintegrate(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target)
+    {
+        if (!GameplayStateQuery::CanReceiveCrowdControl(world, caster, target) ||
+            !world.HasComponent<TransformComponent>(caster) ||
+            !world.HasComponent<TransformComponent>(target))
+        {
+            return false;
+        }
+
+        const Vec3 casterPosition =
+            world.GetComponent<TransformComponent>(caster).GetPosition();
+        const Vec3 targetPosition =
+            world.GetComponent<TransformComponent>(target).GetPosition();
+        const f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            caster,
+            tc,
+            eChampion::ANNIE,
+            static_cast<u8_t>(eSkillSlot::Q));
+        if (range <= 0.f ||
+            WintersMath::DistanceSqXZ(casterPosition, targetPosition) >
+                range * range)
+        {
+            return false;
+        }
+        return !tc.pWalkable ||
+            tc.pWalkable->SegmentWalkableXZ(casterPosition, targetPosition, 0.f);
+    }
+
     void Tick(CWorld& world, const TickContext& tc)
     {
         world.ForEach<AnnieSimComponent>(

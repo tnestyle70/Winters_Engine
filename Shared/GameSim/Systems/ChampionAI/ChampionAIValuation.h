@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 #include "WintersTypes.h"
 
 // ─────────────────────────────────────────────────────────────
@@ -18,11 +19,35 @@
 
 namespace ChampionAIValuation
 {
-    // RewardRegistry 실측치와 정렬한 골드 기준값
-    constexpr f32_t kChampionKillGold = 300.f;
-    constexpr f32_t kMeleeMinionGold = 21.f;
-    constexpr f32_t kRangedMinionGold = 14.f;
-    constexpr f32_t kTurretGold = 250.f;
+    // RewardRegistry 실측치를 직접 조회하는 골드 기준값 (미등록 시 레거시 상수 폴백).
+    inline f32_t GetChampionKillGoldValue()
+    {
+        const RewardDef* pReward =
+            CRewardRegistry::Instance().FindReward(eRewardSourceKind::Champion);
+        return pReward ? pReward->gold.killerGold : 300.f;
+    }
+
+    inline f32_t GetMeleeMinionGoldValue()
+    {
+        const RewardDef* pReward = CRewardRegistry::Instance().FindReward(
+            eRewardSourceKind::Minion, static_cast<u8_t>(eMinionRewardKind::Melee));
+        return pReward ? pReward->gold.killerGold : 21.f;
+    }
+
+    inline f32_t GetRangedMinionGoldValue()
+    {
+        const RewardDef* pReward = CRewardRegistry::Instance().FindReward(
+            eRewardSourceKind::Minion, static_cast<u8_t>(eMinionRewardKind::Ranged));
+        return pReward ? pReward->gold.killerGold : 14.f;
+    }
+
+    inline f32_t GetTurretGoldValue()
+    {
+        const RewardDef* pReward =
+            CRewardRegistry::Instance().FindReward(eRewardSourceKind::Turret);
+        return pReward ? pReward->gold.killerGold : 250.f;
+    }
+
     constexpr f32_t kGoldLeadFullScale = 1000.f;  // 경제차 1000골드 = 우위 만점
     constexpr f32_t kLevelGoldValue = 120.f;      // 레벨 1 ≈ 120골드 가치 근사
 
@@ -39,6 +64,12 @@ namespace ChampionAIValuation
         f32_t attackRange = 1.5f;
         f32_t turretDanger = 0.f;
         f32_t retreatHpRatio = 0.10f;
+        f32_t reengageHpRatio = 0.25f;
+        f32_t fightUtilityWeight = 1.f;
+        f32_t farmUtilityWeight = 1.f;
+        f32_t siegeUtilityWeight = 1.f;
+        f32_t turretRiskWeight = 1.f;
+        bool_t bEnemyChampionTargetable = false;
         bool_t bAlliedWaveNearby = false;
         bool_t bEnemyMinionInRange = false;
         bool_t bStructureExposed = false;
@@ -56,4 +87,15 @@ namespace ChampionAIValuation
     f32_t StructureValue(const ValueInput& in);
     // 6. 딜교환 타이밍(지금 들어갈 때인가) → [0, 1]
     f32_t TradeWindow(const ValueInput& in);
+
+    struct UtilityScores
+    {
+        f32_t retreat = 0.f;
+        f32_t fight = 0.f;
+        f32_t farm = 0.f;
+        f32_t siege = 0.f;
+    };
+
+    f32_t RetreatValue(const ValueInput& in);
+    UtilityScores BuildUtilityScores(const ValueInput& in);
 }

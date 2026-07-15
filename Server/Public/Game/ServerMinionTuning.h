@@ -14,8 +14,8 @@ struct ServerMinionTuning final
 	static constexpr f32_t kMinionSoftSeparationWeight = 0.35f;
 	static constexpr f32_t kMinionSoftSeparationMaxStep = 0.18f;
 	static constexpr f32_t kLanePathRebuildIntervalSec = 1.00f;
-	static constexpr f32_t kChasePathRebuildIntervalSec = 0.60f;
-	static constexpr f32_t kPathTargetRefreshDistanceSq = 1.0f;
+	static constexpr f32_t kChasePathRebuildIntervalSec = 0.20f;
+	static constexpr f32_t kPathTargetRefreshDistanceSq = 0.1225f;
 	static constexpr f32_t kPathWaypointArriveRadius = 0.35f;
 	static constexpr u32_t kPathBuildBudgetPerTick = 4u;
 	static constexpr u8_t kBlockedFramesBeforeRepath = 6u;
@@ -23,12 +23,19 @@ struct ServerMinionTuning final
 	static constexpr f32_t kFlowFieldProgressSlackSq = 0.01f;
 	static constexpr f32_t kStructureAcquireRangePadding = 0.75f;
 
-	static constexpr f32_t kTargetScanIntervalSec = 0.50f;
+	static constexpr f32_t kTargetScanIntervalSec = 0.15f;
 	static constexpr u32_t kTargetScanStaggerBuckets = 10u;
+	static constexpr u8_t kRangedRoleType = 1u;
+	static constexpr f32_t kAttackExitRangePadding = 0.18f;
+	static constexpr f32_t kLaneAttackSpeedScale = 0.6f;
+	static constexpr f32_t kMeleeAttackWindupSec =
+		0.22f / kLaneAttackSpeedScale;
+	static constexpr f32_t kRangedAttackWindupSec =
+		0.28f / kLaneAttackSpeedScale;
+	static constexpr f32_t kAttackRecoverySec =
+		0.22f / kLaneAttackSpeedScale;
 
-	static constexpr u64_t kWaveIntervalTicks = 900u;
-	static constexpr u64_t kInitialWaveDelayTicks = 300u;
-	// 웨이브 내 미니언을 한 마리씩 시간차로 내보내는 간격 (30Hz 기준 10틱 ≈ 0.33초)
-	static constexpr u64_t kPerMinionSpawnDelayTicks = 10u;
+	// 웨이브 간격/초기 지연/미니언당 지연/공성 주기는 SpawnObject 팩 minionWave 로 이동 (M4).
+	// 팩 미장착 시 폴백은 MinionWaveDef 기본값(= 이전 상수와 동일).
 	static constexpr f32_t kWaveStartX = 5.0f;
 };

@@ -1,11 +1,15 @@
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/SpatialAgentComponent.h"
-#include "ECS/World.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
+#include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/ViegoSoulComponent.h"
+#include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -84,9 +88,51 @@ namespace GameplayStateQuery
             return world.GetComponent<MinionStateComponent>(entity).team;
         if (world.HasComponent<StructureComponent>(entity))
             return world.GetComponent<StructureComponent>(entity).team;
-        if (world.HasComponent<JungleComponent>(entity))
+        if (world.HasComponent<TurretComponent>(entity))
+            return world.GetComponent<TurretComponent>(entity).team;
+        if (world.HasComponent<JungleComponent>(entity) ||
+            world.HasComponent<JungleMonsterTag>(entity))
+        {
             return eTeam::Neutral;
+        }
         return eTeam::TEAM_END;
+    }
+
+    eGameplayTargetKind ResolveTargetKind(CWorld& world, EntityID entity)
+    {
+        if (entity == NULL_ENTITY || !world.IsAlive(entity))
+            return eGameplayTargetKind::None;
+        if (world.HasComponent<ChampionComponent>(entity))
+            return eGameplayTargetKind::Champion;
+        if (world.HasComponent<JungleComponent>(entity) ||
+            world.HasComponent<JungleMonsterTag>(entity))
+        {
+            return eGameplayTargetKind::JungleMonster;
+        }
+        if (world.HasComponent<MinionComponent>(entity) ||
+            world.HasComponent<MinionStateComponent>(entity))
+        {
+            return eGameplayTargetKind::MinionOrSummon;
+        }
+        if (world.HasComponent<StructureComponent>(entity) ||
+            world.HasComponent<TurretComponent>(entity))
+        {
+            return eGameplayTargetKind::Structure;
+        }
+        return eGameplayTargetKind::None;
+    }
+
+    bool_t IsMobileCombatUnit(CWorld& world, EntityID entity)
+    {
+        const eGameplayTargetKind kind = ResolveTargetKind(world, entity);
+        return kind == eGameplayTargetKind::Champion ||
+            kind == eGameplayTargetKind::MinionOrSummon ||
+            kind == eGameplayTargetKind::JungleMonster;
+    }
+
+    bool_t IsAttackSegmentGateExemptTarget(CWorld& world, EntityID target)
+    {
+        return ResolveTargetKind(world, target) == eGameplayTargetKind::Structure;
     }
 
     bool_t HasState(CWorld& world, EntityID entity, u32_t stateFlag)
@@ -136,6 +182,8 @@ namespace GameplayStateQuery
     {
         if (!IsAliveGameplayTarget(world, target))
             return false;
+        if (world.HasComponent<ViegoSoulComponent>(target))
+            return false;
         if (!world.HasComponent<TargetableTag>(target))
             return false;
         if (HasState(world, target, kGameplayStateUntargetableFlag))
@@ -153,6 +201,135 @@ namespace GameplayStateQuery
     bool_t CanReceiveProjectileHit(CWorld& world, EntityID source, EntityID target)
     {
         return CanReceiveDamage(world, source, target);
+    }
+
+    bool_t CanReceiveEnemyAbilityHit(CWorld& world, EntityID source, EntityID target)
+    {
+        if (target == source ||
+            !IsMobileCombatUnit(world, target) ||
+            !CanReceiveDamage(world, source, target) ||
+            world.HasComponent<ViegoSoulComponent>(target) ||
+            !world.HasComponent<TargetableTag>(target))
+        {
+            return false;
+        }
+        return source == NULL_ENTITY || IsEnemy(world, source, target);
+    }
+
+    bool_t CanReceiveCrowdControl(CWorld& world, EntityID source, EntityID target)
+    {
+        if (target == source ||
+            !IsAliveGameplayTarget(world, target) ||
+            !IsMobileCombatUnit(world, target))
+        {
+            return false;
+        }
+        if (world.HasComponent<ViegoSoulComponent>(target) ||
+            !world.HasComponent<TargetableTag>(target) ||
+            HasState(world, target, kGameplayStateUntargetableFlag))
+        {
+            return false;
+        }
+        return source == NULL_ENTITY || IsEnemy(world, source, target);
+    }
+
+    std::vector<EntityID> CollectEnemyMobileUnitsInCircle(
+        CWorld& world,
+        EntityID source,
+        const Vec3& center,
+        f32_t radius)
+    {
+        std::vector<EntityID> result;
+        const f32_t clampedRadius = (std::max)(0.f, radius);
+        const f32_t radiusSq = clampedRadius * clampedRadius;
+        const auto entities =
+            DeterministicEntityIterator<TransformComponent>::CollectSorted(world);
+        result.reserve(entities.size());
+
+        for (EntityID entity : entities)
+        {
+            if (!CanReceiveEnemyAbilityHit(world, source, entity))
+                continue;
+            const Vec3 position = world.GetComponent<TransformComponent>(entity).GetPosition();
+            if (WintersMath::DistanceSqXZ(center, position) <= radiusSq)
+                result.push_back(entity);
+        }
+        return result;
+    }
+
+    std::vector<EntityID> CollectEnemyMobileUnitsInSegment(
+        CWorld& world,
+        EntityID source,
+        const Vec3& start,
+        const Vec3& end,
+        f32_t halfWidth)
+    {
+        std::vector<EntityID> result;
+        const f32_t clampedHalfWidth = (std::max)(0.f, halfWidth);
+        const f32_t halfWidthSq = clampedHalfWidth * clampedHalfWidth;
+        const auto entities =
+            DeterministicEntityIterator<TransformComponent>::CollectSorted(world);
+        result.reserve(entities.size());
+
+        for (EntityID entity : entities)
+        {
+            if (!CanReceiveEnemyAbilityHit(world, source, entity))
+                continue;
+            const Vec3 position = world.GetComponent<TransformComponent>(entity).GetPosition();
+            if (WintersMath::DistanceSqPointToSegmentXZ(position, start, end) <= halfWidthSq)
+                result.push_back(entity);
+        }
+        return result;
+    }
+
+    std::vector<EntityID> CollectEnemyMobileUnitsInCone(
+        CWorld& world,
+        EntityID source,
+        const Vec3& origin,
+        const Vec3& direction,
+        f32_t range,
+        f32_t halfAngleRad)
+    {
+        std::vector<EntityID> result;
+        const f32_t directionLengthSq =
+            direction.x * direction.x + direction.z * direction.z;
+        if (directionLengthSq <= 0.000001f || range < 0.f)
+            return result;
+
+        const f32_t inverseDirectionLength = 1.f / std::sqrt(directionLengthSq);
+        const Vec3 forward{
+            direction.x * inverseDirectionLength,
+            0.f,
+            direction.z * inverseDirectionLength
+        };
+        const f32_t rangeSq = range * range;
+        const f32_t clampedHalfAngle =
+            (std::clamp)(halfAngleRad, 0.f, WintersMath::kPi);
+        const f32_t minimumDot = std::cos(clampedHalfAngle);
+        const auto entities =
+            DeterministicEntityIterator<TransformComponent>::CollectSorted(world);
+        result.reserve(entities.size());
+
+        for (EntityID entity : entities)
+        {
+            if (!CanReceiveEnemyAbilityHit(world, source, entity))
+                continue;
+
+            const Vec3 position = world.GetComponent<TransformComponent>(entity).GetPosition();
+            const f32_t offsetX = position.x - origin.x;
+            const f32_t offsetZ = position.z - origin.z;
+            const f32_t distanceSq = offsetX * offsetX + offsetZ * offsetZ;
+            if (distanceSq <= 0.000001f || distanceSq > rangeSq)
+                continue;
+
+            const f32_t inverseDistance = 1.f / std::sqrt(distanceSq);
+            const f32_t dot =
+                offsetX * inverseDistance * forward.x +
+                offsetZ * inverseDistance * forward.z;
+            if (dot >= minimumDot)
+                result.push_back(entity);
+        }
+        return result;
     }
 
     f32_t GetMoveSpeedMultiplier(CWorld& world, EntityID entity)

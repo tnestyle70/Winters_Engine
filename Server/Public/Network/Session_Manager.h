@@ -2,7 +2,6 @@
 
 #include "Network/Session.h"
 
-#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -33,6 +32,5 @@ private:
 
     std::unordered_map<u32_t, std::shared_ptr<CSession>> m_sessions;
     std::vector<std::shared_ptr<CSession>> m_closingSessions;
-    std::atomic<u32_t> m_nextSessionId{ 1 };
     mutable std::mutex m_mutex;
 };

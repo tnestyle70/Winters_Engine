@@ -1,7 +1,7 @@
 #pragma once
 
 #include "WintersTypes.h"
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
 
 class CWorld;
 struct TickContext;

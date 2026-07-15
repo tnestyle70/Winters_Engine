@@ -36,11 +36,13 @@ enum class CommandKind : uint8_t {
   RecallCancel = 8,
   AIDebugControl = 9,
   Flash = 10,
+  CompanionCommand = 11,
+  PracticeControl = 12,
   MIN = None,
-  MAX = Flash
+  MAX = PracticeControl
 };
 
-inline const CommandKind (&EnumValuesCommandKind())[11] {
+inline const CommandKind (&EnumValuesCommandKind())[13] {
   static const CommandKind values[] = {
     CommandKind::None,
     CommandKind::Move,
@@ -52,13 +54,15 @@ inline const CommandKind (&EnumValuesCommandKind())[11] {
     CommandKind::Recall,
     CommandKind::RecallCancel,
     CommandKind::AIDebugControl,
-    CommandKind::Flash
+    CommandKind::Flash,
+    CommandKind::CompanionCommand,
+    CommandKind::PracticeControl
   };
   return values;
 }
 
 inline const char * const *EnumNamesCommandKind() {
-  static const char * const names[12] = {
+  static const char * const names[14] = {
     "None",
     "Move",
     "CastSkill",
@@ -70,15 +74,119 @@ inline const char * const *EnumNamesCommandKind() {
     "RecallCancel",
     "AIDebugControl",
     "Flash",
+    "CompanionCommand",
+    "PracticeControl",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameCommandKind(CommandKind e) {
-  if (::flatbuffers::IsOutRange(e, CommandKind::None, CommandKind::Flash)) return "";
+  if (::flatbuffers::IsOutRange(e, CommandKind::None, CommandKind::PracticeControl)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesCommandKind()[index];
+}
+
+enum class PracticeOperation : uint16_t {
+  None = 0,
+  SetEnabled = 1,
+  SetOptions = 2,
+  RestoreHealthMana = 3,
+  ResetCooldowns = 4,
+  AddGold = 5,
+  SetLevel = 6,
+  Teleport = 7,
+  SpawnMinion = 8,
+  ClearPracticeSpawns = 9,
+  ApplySkillEffectOverride = 10,
+  ClearSkillEffectOverrides = 11,
+  SetSimulationPaused = 12,
+  StepSimulationTicks = 13,
+  SetSimulationTimeScale = 14,
+  RewindSimulationSeconds = 15,
+  SpawnChampion = 16,
+  ApplyChampionStatOverride = 17,
+  ClearChampionStatOverrides = 18,
+  ApplyItemStatOverride = 19,
+  ClearItemStatOverrides = 20,
+  TakeControlRosterChampion = 21,
+  ReplaceControlledChampion = 22,
+  ApplyStructureStatOverride = 23,
+  ClearStructureStatOverrides = 24,
+  ReloadGameplayDefinitions = 25,
+  MIN = None,
+  MAX = ReloadGameplayDefinitions
+};
+
+inline const PracticeOperation (&EnumValuesPracticeOperation())[26] {
+  static const PracticeOperation values[] = {
+    PracticeOperation::None,
+    PracticeOperation::SetEnabled,
+    PracticeOperation::SetOptions,
+    PracticeOperation::RestoreHealthMana,
+    PracticeOperation::ResetCooldowns,
+    PracticeOperation::AddGold,
+    PracticeOperation::SetLevel,
+    PracticeOperation::Teleport,
+    PracticeOperation::SpawnMinion,
+    PracticeOperation::ClearPracticeSpawns,
+    PracticeOperation::ApplySkillEffectOverride,
+    PracticeOperation::ClearSkillEffectOverrides,
+    PracticeOperation::SetSimulationPaused,
+    PracticeOperation::StepSimulationTicks,
+    PracticeOperation::SetSimulationTimeScale,
+    PracticeOperation::RewindSimulationSeconds,
+    PracticeOperation::SpawnChampion,
+    PracticeOperation::ApplyChampionStatOverride,
+    PracticeOperation::ClearChampionStatOverrides,
+    PracticeOperation::ApplyItemStatOverride,
+    PracticeOperation::ClearItemStatOverrides,
+    PracticeOperation::TakeControlRosterChampion,
+    PracticeOperation::ReplaceControlledChampion,
+    PracticeOperation::ApplyStructureStatOverride,
+    PracticeOperation::ClearStructureStatOverrides,
+    PracticeOperation::ReloadGameplayDefinitions
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesPracticeOperation() {
+  static const char * const names[27] = {
+    "None",
+    "SetEnabled",
+    "SetOptions",
+    "RestoreHealthMana",
+    "ResetCooldowns",
+    "AddGold",
+    "SetLevel",
+    "Teleport",
+    "SpawnMinion",
+    "ClearPracticeSpawns",
+    "ApplySkillEffectOverride",
+    "ClearSkillEffectOverrides",
+    "SetSimulationPaused",
+    "StepSimulationTicks",
+    "SetSimulationTimeScale",
+    "RewindSimulationSeconds",
+    "SpawnChampion",
+    "ApplyChampionStatOverride",
+    "ClearChampionStatOverrides",
+    "ApplyItemStatOverride",
+    "ClearItemStatOverrides",
+    "TakeControlRosterChampion",
+    "ReplaceControlledChampion",
+    "ApplyStructureStatOverride",
+    "ClearStructureStatOverrides",
+    "ReloadGameplayDefinitions",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNamePracticeOperation(PracticeOperation e) {
+  if (::flatbuffers::IsOutRange(e, PracticeOperation::None, PracticeOperation::ReloadGameplayDefinitions)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesPracticeOperation()[index];
 }
 
 FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(4) Vec3 FLATBUFFERS_FINAL_CLASS {
@@ -121,7 +229,10 @@ struct CommandPacket FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_GROUNDPOS = 14,
     VT_DIRECTION = 16,
     VT_ITEMID = 18,
-    VT_PAD = 20
+    VT_PAD = 20,
+    VT_PRACTICEOPERATION = 22,
+    VT_PRACTICEVALUE = 24,
+    VT_PRACTICEFLAGS = 26
   };
   Shared::Schema::CommandKind kind() const {
     return static_cast<Shared::Schema::CommandKind>(GetField<uint8_t>(VT_KIND, 0));
@@ -150,6 +261,15 @@ struct CommandPacket FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint16_t pad() const {
     return GetField<uint16_t>(VT_PAD, 0);
   }
+  Shared::Schema::PracticeOperation practiceOperation() const {
+    return static_cast<Shared::Schema::PracticeOperation>(GetField<uint16_t>(VT_PRACTICEOPERATION, 0));
+  }
+  float practiceValue() const {
+    return GetField<float>(VT_PRACTICEVALUE, 0.0f);
+  }
+  uint32_t practiceFlags() const {
+    return GetField<uint32_t>(VT_PRACTICEFLAGS, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -162,6 +282,9 @@ struct CommandPacket FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<Shared::Schema::Vec3>(verifier, VT_DIRECTION, 4) &&
            VerifyField<uint16_t>(verifier, VT_ITEMID, 2) &&
            VerifyField<uint16_t>(verifier, VT_PAD, 2) &&
+           VerifyField<uint16_t>(verifier, VT_PRACTICEOPERATION, 2) &&
+           VerifyField<float>(verifier, VT_PRACTICEVALUE, 4) &&
+           VerifyField<uint32_t>(verifier, VT_PRACTICEFLAGS, 4) &&
            verifier.EndTable();
   }
 };
@@ -197,6 +320,15 @@ struct CommandPacketBuilder {
   void add_pad(uint16_t pad) {
     fbb_.AddElement<uint16_t>(CommandPacket::VT_PAD, pad, 0);
   }
+  void add_practiceOperation(Shared::Schema::PracticeOperation practiceOperation) {
+    fbb_.AddElement<uint16_t>(CommandPacket::VT_PRACTICEOPERATION, static_cast<uint16_t>(practiceOperation), 0);
+  }
+  void add_practiceValue(float practiceValue) {
+    fbb_.AddElement<float>(CommandPacket::VT_PRACTICEVALUE, practiceValue, 0.0f);
+  }
+  void add_practiceFlags(uint32_t practiceFlags) {
+    fbb_.AddElement<uint32_t>(CommandPacket::VT_PRACTICEFLAGS, practiceFlags, 0);
+  }
   explicit CommandPacketBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -218,13 +350,19 @@ inline ::flatbuffers::Offset<CommandPacket> CreateCommandPacket(
     const Shared::Schema::Vec3 *groundPos = nullptr,
     const Shared::Schema::Vec3 *direction = nullptr,
     uint16_t itemId = 0,
-    uint16_t pad = 0) {
+    uint16_t pad = 0,
+    Shared::Schema::PracticeOperation practiceOperation = Shared::Schema::PracticeOperation::None,
+    float practiceValue = 0.0f,
+    uint32_t practiceFlags = 0) {
   CommandPacketBuilder builder_(_fbb);
   builder_.add_clientTick(clientTick);
+  builder_.add_practiceFlags(practiceFlags);
+  builder_.add_practiceValue(practiceValue);
   builder_.add_direction(direction);
   builder_.add_groundPos(groundPos);
   builder_.add_targetNet(targetNet);
   builder_.add_sequenceNum(sequenceNum);
+  builder_.add_practiceOperation(practiceOperation);
   builder_.add_pad(pad);
   builder_.add_itemId(itemId);
   builder_.add_slot(slot);

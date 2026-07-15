@@ -461,6 +461,102 @@ void CLobbyAuthority::SetSlotNetId(u8_t slotId, NetEntityId netId)
         pSlot->netId = netId;
 }
 
+LobbyAuthorityResult CLobbyAuthority::TransferInGameHumanControl(
+    u32_t sessionId,
+    NetEntityId targetNetId)
+{
+    LobbyAuthorityResult result{};
+    result.sessionId = sessionId;
+    if (m_phase != eRoomPhase::InGame || targetNetId == NULL_NET_ENTITY)
+        return result;
+
+    const auto sourceIt = m_sessionToSlot.find(sessionId);
+    if (sourceIt == m_sessionToSlot.end())
+        return result;
+
+    LobbySlotState& source = m_slots[sourceIt->second];
+    LobbySlotState* pTarget = nullptr;
+    for (LobbySlotState& slot : m_slots)
+    {
+        if (slot.netId == targetNetId)
+        {
+            pTarget = &slot;
+            break;
+        }
+    }
+
+    if (!pTarget ||
+        pTarget == &source ||
+        !source.bHuman ||
+        source.bBot ||
+        source.sessionId != sessionId ||
+        !pTarget->bBot ||
+        pTarget->bHuman ||
+        pTarget->bDummy)
+    {
+        return result;
+    }
+
+    source.bHuman = false;
+    source.bBot = true;
+    source.sessionId = 0u;
+    source.bReady = true;
+    if (source.botDifficulty == 0u)
+        source.botDifficulty = 2u;
+    if (!IsValidLobbyBotLane(source.botLane))
+        source.botLane = GetDefaultLobbyBotLane(source.slotId);
+
+    pTarget->bHuman = true;
+    pTarget->bBot = false;
+    pTarget->sessionId = sessionId;
+    pTarget->bReady = true;
+    m_sessionToSlot[sessionId] = pTarget->slotId;
+
+    result.bSendHello = true;
+    result.helloNetId = pTarget->netId;
+    result.helloChampion = pTarget->champion;
+    result.helloTeam = pTarget->team;
+    SetMessage("practice control transferred to roster champion");
+    IncrementRevision(result);
+    return result;
+}
+
+LobbyAuthorityResult CLobbyAuthority::ReplaceInGameControlledChampion(
+    u32_t sessionId,
+    eChampion champion,
+    NetEntityId newNetId)
+{
+    LobbyAuthorityResult result{};
+    result.sessionId = sessionId;
+    if (m_phase != eRoomPhase::InGame ||
+        newNetId == NULL_NET_ENTITY ||
+        champion == eChampion::NONE ||
+        champion == eChampion::END)
+    {
+        return result;
+    }
+
+    const auto sourceIt = m_sessionToSlot.find(sessionId);
+    if (sourceIt == m_sessionToSlot.end())
+        return result;
+
+    LobbySlotState& slot = m_slots[sourceIt->second];
+    if (!slot.bHuman || slot.bBot || slot.sessionId != sessionId)
+        return result;
+
+    slot.champion = champion;
+    slot.netId = newNetId;
+    slot.bReady = true;
+
+    result.bSendHello = true;
+    result.helloNetId = slot.netId;
+    result.helloChampion = slot.champion;
+    result.helloTeam = slot.team;
+    SetMessage("practice controlled champion replaced");
+    IncrementRevision(result);
+    return result;
+}
+
 u8_t CLobbyAuthority::FindFirstEmptySlot(u32_t beginSlot, u32_t endSlot) const
 {
     for (u32_t i = beginSlot; i < endSlot && i < kGameRosterSlotCount; ++i)
@@ -937,16 +1033,13 @@ bool CLobbyAuthority::TryStartGame(u32_t sessionId)
         return false;
     }
 
-    bool_t bHasHuman = false;
+    u32_t humanCount = 0u;
     for (const LobbySlotState& slot : m_slots)
     {
         if (slot.bHuman)
-        {
-            bHasHuman = true;
-            break;
-        }
+            ++humanCount;
     }
-    if (!bHasHuman)
+    if (humanCount == 0u)
     {
         SetMessage(FormatLobbyCommandLog(
             "reject",
@@ -958,7 +1051,32 @@ bool CLobbyAuthority::TryStartGame(u32_t sessionId)
         return false;
     }
 
-    if (ShouldUseRedSylasSmokeRoster())
+    if (ShouldUseAttackSpeedLabRoster())
+    {
+        if (humanCount != 1u)
+        {
+            SetMessage(FormatLobbyCommandLog(
+                "reject",
+                sessionId,
+                Shared::Schema::LobbyCommandKind::StartGame,
+                kInvalidGameRosterSlot,
+                eChampion::END,
+                "attack speed lab requires exactly one human"));
+            return false;
+        }
+        if (!EnsureAttackSpeedLabRoster(m_slots, kGameRosterSlotCount))
+        {
+            SetMessage(FormatLobbyCommandLog(
+                "reject",
+                sessionId,
+                Shared::Schema::LobbyCommandKind::StartGame,
+                kInvalidGameRosterSlot,
+                eChampion::END,
+                "attack speed lab roster bootstrap failed"));
+            return false;
+        }
+    }
+    else if (ShouldUseRedSylasSmokeRoster())
         EnsureRedSylasSmokeRoster(m_slots, kGameRosterSlotCount);
 
     for (u32_t i = 0; i < kGameRosterSlotCount; ++i)

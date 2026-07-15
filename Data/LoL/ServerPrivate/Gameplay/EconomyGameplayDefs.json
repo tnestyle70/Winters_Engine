@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": 1,
+  "buildHash": 276254117,
+  "xpCurve": [
+    280.0,
+    380.0,
+    480.0,
+    580.0,
+    680.0,
+    780.0,
+    880.0,
+    980.0,
+    1080.0,
+    1180.0,
+    1280.0,
+    1380.0,
+    1480.0,
+    1580.0,
+    1680.0,
+    1780.0,
+    1880.0
+  ],
+  "championKill": {
+    "killerGold": 300.0,
+    "assistGold": 150.0,
+    "firstBloodBonusGold": 100.0,
+    "victimNextLevelXPFactor": 0.5,
+    "shareRadius": 20.0
+  },
+  "minions": {
+    "melee": {
+      "soloXP": 61.75,
+      "sharedXP": 80.6,
+      "gold": 21.0,
+      "maxGold": 0.0,
+      "growthAmount": 0.0,
+      "growthIntervalSec": 0.0
+    },
+    "ranged": {
+      "soloXP": 30.4,
+      "sharedXP": 39.68,
+      "gold": 14.0,
+      "maxGold": 0.0,
+      "growthAmount": 0.0,
+      "growthIntervalSec": 0.0
+    },
+    "siege": {
+      "soloXP": 95.0,
+      "sharedXP": 124.0,
+      "gold": 60.0,
+      "maxGold": 90.0,
+      "growthAmount": 3.0,
+      "growthIntervalSec": 90.0
+    },
+    "super": {
+      "soloXP": 95.0,
+      "sharedXP": 124.0,
+      "gold": 60.0,
+      "maxGold": 90.0,
+      "growthAmount": 3.0,
+      "growthIntervalSec": 90.0
+    }
+  },
+  "turretGold": 250.0,
+  "jungle": {
+    "smallCampGold": 35.0,
+    "smallCampXP": 75.0,
+    "epicGold": 150.0,
+    "epicXP": 250.0,
+    "baronGold": 300.0,
+    "baronXP": 600.0
+  },
+  "passiveGold": {
+    "startTick": 3300,
+    "intervalTicks": 30,
+    "perGrant": 2
+  },
+  "timers": {
+    "assistCreditWindowSec": 10.0,
+    "recallDurationSec": 2.0
+  }
+}

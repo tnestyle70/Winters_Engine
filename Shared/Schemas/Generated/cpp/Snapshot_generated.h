@@ -24,6 +24,9 @@ struct AIDebugTraceRowBuilder;
 struct EntitySnapshot;
 struct EntitySnapshotBuilder;
 
+struct GameplayStateSnapshot;
+struct GameplayStateSnapshotBuilder;
+
 struct Snapshot;
 struct SnapshotBuilder;
 
@@ -81,6 +84,42 @@ inline const char *EnumNameEntityKind(EntityKind e) {
   return EnumNamesEntityKind()[index];
 }
 
+enum class GameplayStateKind : uint16_t {
+  None = 0,
+  EzrealRisingSpellForce = 1,
+  EzrealEssenceFlux = 2,
+  YasuoWindWall = 3,
+  MIN = None,
+  MAX = YasuoWindWall
+};
+
+inline const GameplayStateKind (&EnumValuesGameplayStateKind())[4] {
+  static const GameplayStateKind values[] = {
+    GameplayStateKind::None,
+    GameplayStateKind::EzrealRisingSpellForce,
+    GameplayStateKind::EzrealEssenceFlux,
+    GameplayStateKind::YasuoWindWall
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesGameplayStateKind() {
+  static const char * const names[5] = {
+    "None",
+    "EzrealRisingSpellForce",
+    "EzrealEssenceFlux",
+    "YasuoWindWall",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameGameplayStateKind(GameplayStateKind e) {
+  if (::flatbuffers::IsOutRange(e, GameplayStateKind::None, GameplayStateKind::YasuoWindWall)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesGameplayStateKind()[index];
+}
+
 struct AIDebugTraceRow FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef AIDebugTraceRowBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -102,7 +141,30 @@ struct AIDebugTraceRow FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_SELFHPRATIO = 34,
     VT_ENEMYHPRATIO = 36,
     VT_ENEMYDISTANCE = 38,
-    VT_TURRETDANGER = 40
+    VT_TURRETDANGER = 40,
+    VT_RETREATSCORE = 42,
+    VT_SKILLCASTINTERVALSEC = 44,
+    VT_SKILLCASTINTERVALREMAININGSEC = 46,
+    VT_LEGALCANDIDATEMASK = 48,
+    VT_ILLEGALCANDIDATEMASK = 50,
+    VT_COMMANDSEQUENCE = 52,
+    VT_EXECUTORREASON = 54,
+    VT_EXECUTORSTATE = 56,
+    VT_COMBOSTEP = 58,
+    VT_SHADOWPOLICYREVISION = 60,
+    VT_SHADOWPOLICYSHA256PREFIX = 62,
+    VT_SHADOWLOGITRETREAT = 64,
+    VT_SHADOWLOGITFIGHT = 66,
+    VT_SHADOWLOGITFARM = 68,
+    VT_SHADOWLOGITSIEGE = 70,
+    VT_SHADOWSELECTEDMARGIN = 72,
+    VT_SHADOWTOPFEATURECONTRIBUTION = 74,
+    VT_SHADOWLEGALCANDIDATEMASK = 76,
+    VT_SHADOWTOPFEATUREINDEX = 78,
+    VT_SHADOWSTATUS = 80,
+    VT_SHADOWACTIVECANDIDATEKIND = 82,
+    VT_SHADOWSELECTEDCANDIDATEKIND = 84,
+    VT_SHADOWDISAGREED = 86
   };
   uint64_t tick() const {
     return GetField<uint64_t>(VT_TICK, 0);
@@ -161,6 +223,75 @@ struct AIDebugTraceRow FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   float turretDanger() const {
     return GetField<float>(VT_TURRETDANGER, 0.0f);
   }
+  float retreatScore() const {
+    return GetField<float>(VT_RETREATSCORE, 0.0f);
+  }
+  float skillCastIntervalSec() const {
+    return GetField<float>(VT_SKILLCASTINTERVALSEC, 0.0f);
+  }
+  float skillCastIntervalRemainingSec() const {
+    return GetField<float>(VT_SKILLCASTINTERVALREMAININGSEC, 0.0f);
+  }
+  uint32_t legalCandidateMask() const {
+    return GetField<uint32_t>(VT_LEGALCANDIDATEMASK, 0);
+  }
+  uint32_t illegalCandidateMask() const {
+    return GetField<uint32_t>(VT_ILLEGALCANDIDATEMASK, 0);
+  }
+  uint32_t commandSequence() const {
+    return GetField<uint32_t>(VT_COMMANDSEQUENCE, 0);
+  }
+  uint16_t executorReason() const {
+    return GetField<uint16_t>(VT_EXECUTORREASON, 0);
+  }
+  uint8_t executorState() const {
+    return GetField<uint8_t>(VT_EXECUTORSTATE, 0);
+  }
+  uint8_t comboStep() const {
+    return GetField<uint8_t>(VT_COMBOSTEP, 0);
+  }
+  uint64_t shadowPolicyRevision() const {
+    return GetField<uint64_t>(VT_SHADOWPOLICYREVISION, 0);
+  }
+  uint64_t shadowPolicySha256Prefix() const {
+    return GetField<uint64_t>(VT_SHADOWPOLICYSHA256PREFIX, 0);
+  }
+  float shadowLogitRetreat() const {
+    return GetField<float>(VT_SHADOWLOGITRETREAT, 0.0f);
+  }
+  float shadowLogitFight() const {
+    return GetField<float>(VT_SHADOWLOGITFIGHT, 0.0f);
+  }
+  float shadowLogitFarm() const {
+    return GetField<float>(VT_SHADOWLOGITFARM, 0.0f);
+  }
+  float shadowLogitSiege() const {
+    return GetField<float>(VT_SHADOWLOGITSIEGE, 0.0f);
+  }
+  float shadowSelectedMargin() const {
+    return GetField<float>(VT_SHADOWSELECTEDMARGIN, 0.0f);
+  }
+  float shadowTopFeatureContribution() const {
+    return GetField<float>(VT_SHADOWTOPFEATURECONTRIBUTION, 0.0f);
+  }
+  uint32_t shadowLegalCandidateMask() const {
+    return GetField<uint32_t>(VT_SHADOWLEGALCANDIDATEMASK, 0);
+  }
+  uint16_t shadowTopFeatureIndex() const {
+    return GetField<uint16_t>(VT_SHADOWTOPFEATUREINDEX, 65535);
+  }
+  uint8_t shadowStatus() const {
+    return GetField<uint8_t>(VT_SHADOWSTATUS, 0);
+  }
+  uint8_t shadowActiveCandidateKind() const {
+    return GetField<uint8_t>(VT_SHADOWACTIVECANDIDATEKIND, 0);
+  }
+  uint8_t shadowSelectedCandidateKind() const {
+    return GetField<uint8_t>(VT_SHADOWSELECTEDCANDIDATEKIND, 0);
+  }
+  bool shadowDisagreed() const {
+    return GetField<uint8_t>(VT_SHADOWDISAGREED, 0) != 0;
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -183,6 +314,29 @@ struct AIDebugTraceRow FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<float>(verifier, VT_ENEMYHPRATIO, 4) &&
            VerifyField<float>(verifier, VT_ENEMYDISTANCE, 4) &&
            VerifyField<float>(verifier, VT_TURRETDANGER, 4) &&
+           VerifyField<float>(verifier, VT_RETREATSCORE, 4) &&
+           VerifyField<float>(verifier, VT_SKILLCASTINTERVALSEC, 4) &&
+           VerifyField<float>(verifier, VT_SKILLCASTINTERVALREMAININGSEC, 4) &&
+           VerifyField<uint32_t>(verifier, VT_LEGALCANDIDATEMASK, 4) &&
+           VerifyField<uint32_t>(verifier, VT_ILLEGALCANDIDATEMASK, 4) &&
+           VerifyField<uint32_t>(verifier, VT_COMMANDSEQUENCE, 4) &&
+           VerifyField<uint16_t>(verifier, VT_EXECUTORREASON, 2) &&
+           VerifyField<uint8_t>(verifier, VT_EXECUTORSTATE, 1) &&
+           VerifyField<uint8_t>(verifier, VT_COMBOSTEP, 1) &&
+           VerifyField<uint64_t>(verifier, VT_SHADOWPOLICYREVISION, 8) &&
+           VerifyField<uint64_t>(verifier, VT_SHADOWPOLICYSHA256PREFIX, 8) &&
+           VerifyField<float>(verifier, VT_SHADOWLOGITRETREAT, 4) &&
+           VerifyField<float>(verifier, VT_SHADOWLOGITFIGHT, 4) &&
+           VerifyField<float>(verifier, VT_SHADOWLOGITFARM, 4) &&
+           VerifyField<float>(verifier, VT_SHADOWLOGITSIEGE, 4) &&
+           VerifyField<float>(verifier, VT_SHADOWSELECTEDMARGIN, 4) &&
+           VerifyField<float>(verifier, VT_SHADOWTOPFEATURECONTRIBUTION, 4) &&
+           VerifyField<uint32_t>(verifier, VT_SHADOWLEGALCANDIDATEMASK, 4) &&
+           VerifyField<uint16_t>(verifier, VT_SHADOWTOPFEATUREINDEX, 2) &&
+           VerifyField<uint8_t>(verifier, VT_SHADOWSTATUS, 1) &&
+           VerifyField<uint8_t>(verifier, VT_SHADOWACTIVECANDIDATEKIND, 1) &&
+           VerifyField<uint8_t>(verifier, VT_SHADOWSELECTEDCANDIDATEKIND, 1) &&
+           VerifyField<uint8_t>(verifier, VT_SHADOWDISAGREED, 1) &&
            verifier.EndTable();
   }
 };
@@ -248,6 +402,75 @@ struct AIDebugTraceRowBuilder {
   void add_turretDanger(float turretDanger) {
     fbb_.AddElement<float>(AIDebugTraceRow::VT_TURRETDANGER, turretDanger, 0.0f);
   }
+  void add_retreatScore(float retreatScore) {
+    fbb_.AddElement<float>(AIDebugTraceRow::VT_RETREATSCORE, retreatScore, 0.0f);
+  }
+  void add_skillCastIntervalSec(float skillCastIntervalSec) {
+    fbb_.AddElement<float>(AIDebugTraceRow::VT_SKILLCASTINTERVALSEC, skillCastIntervalSec, 0.0f);
+  }
+  void add_skillCastIntervalRemainingSec(float skillCastIntervalRemainingSec) {
+    fbb_.AddElement<float>(AIDebugTraceRow::VT_SKILLCASTINTERVALREMAININGSEC, skillCastIntervalRemainingSec, 0.0f);
+  }
+  void add_legalCandidateMask(uint32_t legalCandidateMask) {
+    fbb_.AddElement<uint32_t>(AIDebugTraceRow::VT_LEGALCANDIDATEMASK, legalCandidateMask, 0);
+  }
+  void add_illegalCandidateMask(uint32_t illegalCandidateMask) {
+    fbb_.AddElement<uint32_t>(AIDebugTraceRow::VT_ILLEGALCANDIDATEMASK, illegalCandidateMask, 0);
+  }
+  void add_commandSequence(uint32_t commandSequence) {
+    fbb_.AddElement<uint32_t>(AIDebugTraceRow::VT_COMMANDSEQUENCE, commandSequence, 0);
+  }
+  void add_executorReason(uint16_t executorReason) {
+    fbb_.AddElement<uint16_t>(AIDebugTraceRow::VT_EXECUTORREASON, executorReason, 0);
+  }
+  void add_executorState(uint8_t executorState) {
+    fbb_.AddElement<uint8_t>(AIDebugTraceRow::VT_EXECUTORSTATE, executorState, 0);
+  }
+  void add_comboStep(uint8_t comboStep) {
+    fbb_.AddElement<uint8_t>(AIDebugTraceRow::VT_COMBOSTEP, comboStep, 0);
+  }
+  void add_shadowPolicyRevision(uint64_t shadowPolicyRevision) {
+    fbb_.AddElement<uint64_t>(AIDebugTraceRow::VT_SHADOWPOLICYREVISION, shadowPolicyRevision, 0);
+  }
+  void add_shadowPolicySha256Prefix(uint64_t shadowPolicySha256Prefix) {
+    fbb_.AddElement<uint64_t>(AIDebugTraceRow::VT_SHADOWPOLICYSHA256PREFIX, shadowPolicySha256Prefix, 0);
+  }
+  void add_shadowLogitRetreat(float shadowLogitRetreat) {
+    fbb_.AddElement<float>(AIDebugTraceRow::VT_SHADOWLOGITRETREAT, shadowLogitRetreat, 0.0f);
+  }
+  void add_shadowLogitFight(float shadowLogitFight) {
+    fbb_.AddElement<float>(AIDebugTraceRow::VT_SHADOWLOGITFIGHT, shadowLogitFight, 0.0f);
+  }
+  void add_shadowLogitFarm(float shadowLogitFarm) {
+    fbb_.AddElement<float>(AIDebugTraceRow::VT_SHADOWLOGITFARM, shadowLogitFarm, 0.0f);
+  }
+  void add_shadowLogitSiege(float shadowLogitSiege) {
+    fbb_.AddElement<float>(AIDebugTraceRow::VT_SHADOWLOGITSIEGE, shadowLogitSiege, 0.0f);
+  }
+  void add_shadowSelectedMargin(float shadowSelectedMargin) {
+    fbb_.AddElement<float>(AIDebugTraceRow::VT_SHADOWSELECTEDMARGIN, shadowSelectedMargin, 0.0f);
+  }
+  void add_shadowTopFeatureContribution(float shadowTopFeatureContribution) {
+    fbb_.AddElement<float>(AIDebugTraceRow::VT_SHADOWTOPFEATURECONTRIBUTION, shadowTopFeatureContribution, 0.0f);
+  }
+  void add_shadowLegalCandidateMask(uint32_t shadowLegalCandidateMask) {
+    fbb_.AddElement<uint32_t>(AIDebugTraceRow::VT_SHADOWLEGALCANDIDATEMASK, shadowLegalCandidateMask, 0);
+  }
+  void add_shadowTopFeatureIndex(uint16_t shadowTopFeatureIndex) {
+    fbb_.AddElement<uint16_t>(AIDebugTraceRow::VT_SHADOWTOPFEATUREINDEX, shadowTopFeatureIndex, 65535);
+  }
+  void add_shadowStatus(uint8_t shadowStatus) {
+    fbb_.AddElement<uint8_t>(AIDebugTraceRow::VT_SHADOWSTATUS, shadowStatus, 0);
+  }
+  void add_shadowActiveCandidateKind(uint8_t shadowActiveCandidateKind) {
+    fbb_.AddElement<uint8_t>(AIDebugTraceRow::VT_SHADOWACTIVECANDIDATEKIND, shadowActiveCandidateKind, 0);
+  }
+  void add_shadowSelectedCandidateKind(uint8_t shadowSelectedCandidateKind) {
+    fbb_.AddElement<uint8_t>(AIDebugTraceRow::VT_SHADOWSELECTEDCANDIDATEKIND, shadowSelectedCandidateKind, 0);
+  }
+  void add_shadowDisagreed(bool shadowDisagreed) {
+    fbb_.AddElement<uint8_t>(AIDebugTraceRow::VT_SHADOWDISAGREED, static_cast<uint8_t>(shadowDisagreed), 0);
+  }
   explicit AIDebugTraceRowBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -279,9 +502,47 @@ inline ::flatbuffers::Offset<AIDebugTraceRow> CreateAIDebugTraceRow(
     float selfHpRatio = 0.0f,
     float enemyHpRatio = 0.0f,
     float enemyDistance = 0.0f,
-    float turretDanger = 0.0f) {
+    float turretDanger = 0.0f,
+    float retreatScore = 0.0f,
+    float skillCastIntervalSec = 0.0f,
+    float skillCastIntervalRemainingSec = 0.0f,
+    uint32_t legalCandidateMask = 0,
+    uint32_t illegalCandidateMask = 0,
+    uint32_t commandSequence = 0,
+    uint16_t executorReason = 0,
+    uint8_t executorState = 0,
+    uint8_t comboStep = 0,
+    uint64_t shadowPolicyRevision = 0,
+    uint64_t shadowPolicySha256Prefix = 0,
+    float shadowLogitRetreat = 0.0f,
+    float shadowLogitFight = 0.0f,
+    float shadowLogitFarm = 0.0f,
+    float shadowLogitSiege = 0.0f,
+    float shadowSelectedMargin = 0.0f,
+    float shadowTopFeatureContribution = 0.0f,
+    uint32_t shadowLegalCandidateMask = 0,
+    uint16_t shadowTopFeatureIndex = 65535,
+    uint8_t shadowStatus = 0,
+    uint8_t shadowActiveCandidateKind = 0,
+    uint8_t shadowSelectedCandidateKind = 0,
+    bool shadowDisagreed = false) {
   AIDebugTraceRowBuilder builder_(_fbb);
+  builder_.add_shadowPolicySha256Prefix(shadowPolicySha256Prefix);
+  builder_.add_shadowPolicyRevision(shadowPolicyRevision);
   builder_.add_tick(tick);
+  builder_.add_shadowLegalCandidateMask(shadowLegalCandidateMask);
+  builder_.add_shadowTopFeatureContribution(shadowTopFeatureContribution);
+  builder_.add_shadowSelectedMargin(shadowSelectedMargin);
+  builder_.add_shadowLogitSiege(shadowLogitSiege);
+  builder_.add_shadowLogitFarm(shadowLogitFarm);
+  builder_.add_shadowLogitFight(shadowLogitFight);
+  builder_.add_shadowLogitRetreat(shadowLogitRetreat);
+  builder_.add_commandSequence(commandSequence);
+  builder_.add_illegalCandidateMask(illegalCandidateMask);
+  builder_.add_legalCandidateMask(legalCandidateMask);
+  builder_.add_skillCastIntervalRemainingSec(skillCastIntervalRemainingSec);
+  builder_.add_skillCastIntervalSec(skillCastIntervalSec);
+  builder_.add_retreatScore(retreatScore);
   builder_.add_turretDanger(turretDanger);
   builder_.add_enemyDistance(enemyDistance);
   builder_.add_enemyHpRatio(enemyHpRatio);
@@ -293,6 +554,14 @@ inline ::flatbuffers::Offset<AIDebugTraceRow> CreateAIDebugTraceRow(
   builder_.add_commandPosY(commandPosY);
   builder_.add_commandPosX(commandPosX);
   builder_.add_targetNet(targetNet);
+  builder_.add_shadowTopFeatureIndex(shadowTopFeatureIndex);
+  builder_.add_executorReason(executorReason);
+  builder_.add_shadowDisagreed(shadowDisagreed);
+  builder_.add_shadowSelectedCandidateKind(shadowSelectedCandidateKind);
+  builder_.add_shadowActiveCandidateKind(shadowActiveCandidateKind);
+  builder_.add_shadowStatus(shadowStatus);
+  builder_.add_comboStep(comboStep);
+  builder_.add_executorState(executorState);
   builder_.add_commandSlot(commandSlot);
   builder_.add_commandKind(commandKind);
   builder_.add_blockReason(blockReason);
@@ -408,7 +677,22 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_SKILLSLOTMASK = 202,
     VT_SPELLBOOKCHAMPIONID = 204,
     VT_SPELLBOOKSLOT = 206,
-    VT_SPELLBOOKREMAINING = 208
+    VT_SPELLBOOKREMAINING = 208,
+    VT_ACTIONSOURCECHAMPIONID = 210,
+    VT_ACTIONSOURCESLOT = 212,
+    VT_ACTIONMOVEPOLICY = 214,
+    VT_ACTIONLOCKENDTICK = 216,
+    VT_ACTIONCOMMANDSEQ = 218,
+    VT_MINIONATTACKWINDUPSEC = 220,
+    VT_MINIONATTACKRECOVERYSEC = 222,
+    VT_GAMEPLAYSTATEFLAGS = 224,
+    VT_GAMEPLAYMOVESPEEDMUL = 226,
+    VT_FORCEDMOTIONKIND = 228,
+    VT_FORCEDMOTIONREMAININGSEC = 230,
+    VT_PROJECTILEDIRX = 232,
+    VT_PROJECTILEDIRY = 234,
+    VT_PROJECTILEDIRZ = 236,
+    VT_PROJECTILETRAVELEDDIST = 238
   };
   uint32_t netId() const {
     return GetField<uint32_t>(VT_NETID, 0);
@@ -719,6 +1003,51 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   float spellbookRemaining() const {
     return GetField<float>(VT_SPELLBOOKREMAINING, 0.0f);
   }
+  uint8_t actionSourceChampionId() const {
+    return GetField<uint8_t>(VT_ACTIONSOURCECHAMPIONID, 0);
+  }
+  uint8_t actionSourceSlot() const {
+    return GetField<uint8_t>(VT_ACTIONSOURCESLOT, 0);
+  }
+  uint8_t actionMovePolicy() const {
+    return GetField<uint8_t>(VT_ACTIONMOVEPOLICY, 0);
+  }
+  uint64_t actionLockEndTick() const {
+    return GetField<uint64_t>(VT_ACTIONLOCKENDTICK, 0);
+  }
+  uint32_t actionCommandSeq() const {
+    return GetField<uint32_t>(VT_ACTIONCOMMANDSEQ, 0);
+  }
+  float minionAttackWindupSec() const {
+    return GetField<float>(VT_MINIONATTACKWINDUPSEC, 0.0f);
+  }
+  float minionAttackRecoverySec() const {
+    return GetField<float>(VT_MINIONATTACKRECOVERYSEC, 0.0f);
+  }
+  uint32_t gameplayStateFlags() const {
+    return GetField<uint32_t>(VT_GAMEPLAYSTATEFLAGS, 0);
+  }
+  float gameplayMoveSpeedMul() const {
+    return GetField<float>(VT_GAMEPLAYMOVESPEEDMUL, 1.0f);
+  }
+  uint8_t forcedMotionKind() const {
+    return GetField<uint8_t>(VT_FORCEDMOTIONKIND, 0);
+  }
+  float forcedMotionRemainingSec() const {
+    return GetField<float>(VT_FORCEDMOTIONREMAININGSEC, 0.0f);
+  }
+  float projectileDirX() const {
+    return GetField<float>(VT_PROJECTILEDIRX, 0.0f);
+  }
+  float projectileDirY() const {
+    return GetField<float>(VT_PROJECTILEDIRY, 0.0f);
+  }
+  float projectileDirZ() const {
+    return GetField<float>(VT_PROJECTILEDIRZ, 0.0f);
+  }
+  float projectileTraveledDist() const {
+    return GetField<float>(VT_PROJECTILETRAVELEDDIST, 0.0f);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -834,6 +1163,21 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_SPELLBOOKCHAMPIONID, 1) &&
            VerifyField<uint8_t>(verifier, VT_SPELLBOOKSLOT, 1) &&
            VerifyField<float>(verifier, VT_SPELLBOOKREMAINING, 4) &&
+           VerifyField<uint8_t>(verifier, VT_ACTIONSOURCECHAMPIONID, 1) &&
+           VerifyField<uint8_t>(verifier, VT_ACTIONSOURCESLOT, 1) &&
+           VerifyField<uint8_t>(verifier, VT_ACTIONMOVEPOLICY, 1) &&
+           VerifyField<uint64_t>(verifier, VT_ACTIONLOCKENDTICK, 8) &&
+           VerifyField<uint32_t>(verifier, VT_ACTIONCOMMANDSEQ, 4) &&
+           VerifyField<float>(verifier, VT_MINIONATTACKWINDUPSEC, 4) &&
+           VerifyField<float>(verifier, VT_MINIONATTACKRECOVERYSEC, 4) &&
+           VerifyField<uint32_t>(verifier, VT_GAMEPLAYSTATEFLAGS, 4) &&
+           VerifyField<float>(verifier, VT_GAMEPLAYMOVESPEEDMUL, 4) &&
+           VerifyField<uint8_t>(verifier, VT_FORCEDMOTIONKIND, 1) &&
+           VerifyField<float>(verifier, VT_FORCEDMOTIONREMAININGSEC, 4) &&
+           VerifyField<float>(verifier, VT_PROJECTILEDIRX, 4) &&
+           VerifyField<float>(verifier, VT_PROJECTILEDIRY, 4) &&
+           VerifyField<float>(verifier, VT_PROJECTILEDIRZ, 4) &&
+           VerifyField<float>(verifier, VT_PROJECTILETRAVELEDDIST, 4) &&
            verifier.EndTable();
   }
 };
@@ -1151,6 +1495,51 @@ struct EntitySnapshotBuilder {
   void add_spellbookRemaining(float spellbookRemaining) {
     fbb_.AddElement<float>(EntitySnapshot::VT_SPELLBOOKREMAINING, spellbookRemaining, 0.0f);
   }
+  void add_actionSourceChampionId(uint8_t actionSourceChampionId) {
+    fbb_.AddElement<uint8_t>(EntitySnapshot::VT_ACTIONSOURCECHAMPIONID, actionSourceChampionId, 0);
+  }
+  void add_actionSourceSlot(uint8_t actionSourceSlot) {
+    fbb_.AddElement<uint8_t>(EntitySnapshot::VT_ACTIONSOURCESLOT, actionSourceSlot, 0);
+  }
+  void add_actionMovePolicy(uint8_t actionMovePolicy) {
+    fbb_.AddElement<uint8_t>(EntitySnapshot::VT_ACTIONMOVEPOLICY, actionMovePolicy, 0);
+  }
+  void add_actionLockEndTick(uint64_t actionLockEndTick) {
+    fbb_.AddElement<uint64_t>(EntitySnapshot::VT_ACTIONLOCKENDTICK, actionLockEndTick, 0);
+  }
+  void add_actionCommandSeq(uint32_t actionCommandSeq) {
+    fbb_.AddElement<uint32_t>(EntitySnapshot::VT_ACTIONCOMMANDSEQ, actionCommandSeq, 0);
+  }
+  void add_minionAttackWindupSec(float minionAttackWindupSec) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_MINIONATTACKWINDUPSEC, minionAttackWindupSec, 0.0f);
+  }
+  void add_minionAttackRecoverySec(float minionAttackRecoverySec) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_MINIONATTACKRECOVERYSEC, minionAttackRecoverySec, 0.0f);
+  }
+  void add_gameplayStateFlags(uint32_t gameplayStateFlags) {
+    fbb_.AddElement<uint32_t>(EntitySnapshot::VT_GAMEPLAYSTATEFLAGS, gameplayStateFlags, 0);
+  }
+  void add_gameplayMoveSpeedMul(float gameplayMoveSpeedMul) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_GAMEPLAYMOVESPEEDMUL, gameplayMoveSpeedMul, 1.0f);
+  }
+  void add_forcedMotionKind(uint8_t forcedMotionKind) {
+    fbb_.AddElement<uint8_t>(EntitySnapshot::VT_FORCEDMOTIONKIND, forcedMotionKind, 0);
+  }
+  void add_forcedMotionRemainingSec(float forcedMotionRemainingSec) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_FORCEDMOTIONREMAININGSEC, forcedMotionRemainingSec, 0.0f);
+  }
+  void add_projectileDirX(float projectileDirX) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_PROJECTILEDIRX, projectileDirX, 0.0f);
+  }
+  void add_projectileDirY(float projectileDirY) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_PROJECTILEDIRY, projectileDirY, 0.0f);
+  }
+  void add_projectileDirZ(float projectileDirZ) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_PROJECTILEDIRZ, projectileDirZ, 0.0f);
+  }
+  void add_projectileTraveledDist(float projectileTraveledDist) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_PROJECTILETRAVELEDDIST, projectileTraveledDist, 0.0f);
+  }
   explicit EntitySnapshotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1266,10 +1655,36 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
     uint8_t skillSlotMask = 0,
     uint8_t spellbookChampionId = 0,
     uint8_t spellbookSlot = 0,
-    float spellbookRemaining = 0.0f) {
+    float spellbookRemaining = 0.0f,
+    uint8_t actionSourceChampionId = 0,
+    uint8_t actionSourceSlot = 0,
+    uint8_t actionMovePolicy = 0,
+    uint64_t actionLockEndTick = 0,
+    uint32_t actionCommandSeq = 0,
+    float minionAttackWindupSec = 0.0f,
+    float minionAttackRecoverySec = 0.0f,
+    uint32_t gameplayStateFlags = 0,
+    float gameplayMoveSpeedMul = 1.0f,
+    uint8_t forcedMotionKind = 0,
+    float forcedMotionRemainingSec = 0.0f,
+    float projectileDirX = 0.0f,
+    float projectileDirY = 0.0f,
+    float projectileDirZ = 0.0f,
+    float projectileTraveledDist = 0.0f) {
   EntitySnapshotBuilder builder_(_fbb);
+  builder_.add_actionLockEndTick(actionLockEndTick);
   builder_.add_actionStartTick(actionStartTick);
   builder_.add_poseStartTick(poseStartTick);
+  builder_.add_projectileTraveledDist(projectileTraveledDist);
+  builder_.add_projectileDirZ(projectileDirZ);
+  builder_.add_projectileDirY(projectileDirY);
+  builder_.add_projectileDirX(projectileDirX);
+  builder_.add_forcedMotionRemainingSec(forcedMotionRemainingSec);
+  builder_.add_gameplayMoveSpeedMul(gameplayMoveSpeedMul);
+  builder_.add_gameplayStateFlags(gameplayStateFlags);
+  builder_.add_minionAttackRecoverySec(minionAttackRecoverySec);
+  builder_.add_minionAttackWindupSec(minionAttackWindupSec);
+  builder_.add_actionCommandSeq(actionCommandSeq);
   builder_.add_spellbookRemaining(spellbookRemaining);
   builder_.add_aiDebugTrace(aiDebugTrace);
   builder_.add_aiDebugDiveExtraBAWindow(aiDebugDiveExtraBAWindow);
@@ -1354,6 +1769,10 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
   builder_.add_subtype(subtype);
   builder_.add_actionId(actionId);
   builder_.add_poseId(poseId);
+  builder_.add_forcedMotionKind(forcedMotionKind);
+  builder_.add_actionMovePolicy(actionMovePolicy);
+  builder_.add_actionSourceSlot(actionSourceSlot);
+  builder_.add_actionSourceChampionId(actionSourceChampionId);
   builder_.add_spellbookSlot(spellbookSlot);
   builder_.add_spellbookChampionId(spellbookChampionId);
   builder_.add_skillSlotMask(skillSlotMask);
@@ -1478,7 +1897,22 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
     uint8_t skillSlotMask = 0,
     uint8_t spellbookChampionId = 0,
     uint8_t spellbookSlot = 0,
-    float spellbookRemaining = 0.0f) {
+    float spellbookRemaining = 0.0f,
+    uint8_t actionSourceChampionId = 0,
+    uint8_t actionSourceSlot = 0,
+    uint8_t actionMovePolicy = 0,
+    uint64_t actionLockEndTick = 0,
+    uint32_t actionCommandSeq = 0,
+    float minionAttackWindupSec = 0.0f,
+    float minionAttackRecoverySec = 0.0f,
+    uint32_t gameplayStateFlags = 0,
+    float gameplayMoveSpeedMul = 1.0f,
+    uint8_t forcedMotionKind = 0,
+    float forcedMotionRemainingSec = 0.0f,
+    float projectileDirX = 0.0f,
+    float projectileDirY = 0.0f,
+    float projectileDirZ = 0.0f,
+    float projectileTraveledDist = 0.0f) {
   auto skillCooldowns__ = skillCooldowns ? _fbb.CreateVector<float>(*skillCooldowns) : 0;
   auto skillCooldownDurations__ = skillCooldownDurations ? _fbb.CreateVector<float>(*skillCooldownDurations) : 0;
   auto skillRanks__ = skillRanks ? _fbb.CreateVector<uint8_t>(*skillRanks) : 0;
@@ -1591,7 +2025,214 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
       skillSlotMask,
       spellbookChampionId,
       spellbookSlot,
-      spellbookRemaining);
+      spellbookRemaining,
+      actionSourceChampionId,
+      actionSourceSlot,
+      actionMovePolicy,
+      actionLockEndTick,
+      actionCommandSeq,
+      minionAttackWindupSec,
+      minionAttackRecoverySec,
+      gameplayStateFlags,
+      gameplayMoveSpeedMul,
+      forcedMotionKind,
+      forcedMotionRemainingSec,
+      projectileDirX,
+      projectileDirY,
+      projectileDirZ,
+      projectileTraveledDist);
+}
+
+struct GameplayStateSnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef GameplayStateSnapshotBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_KIND = 4,
+    VT_SOURCENET = 6,
+    VT_TARGETNET = 8,
+    VT_STARTTICK = 10,
+    VT_EXPIRETICK = 12,
+    VT_STACKCOUNT = 14,
+    VT_RANK = 16,
+    VT_FLAGS = 18,
+    VT_POSX = 20,
+    VT_POSY = 22,
+    VT_POSZ = 24,
+    VT_DIRX = 26,
+    VT_DIRY = 28,
+    VT_DIRZ = 30,
+    VT_MAGNITUDE0 = 32,
+    VT_MAGNITUDE1 = 34
+  };
+  Shared::Schema::GameplayStateKind kind() const {
+    return static_cast<Shared::Schema::GameplayStateKind>(GetField<uint16_t>(VT_KIND, 0));
+  }
+  uint32_t sourceNet() const {
+    return GetField<uint32_t>(VT_SOURCENET, 0);
+  }
+  uint32_t targetNet() const {
+    return GetField<uint32_t>(VT_TARGETNET, 0);
+  }
+  uint64_t startTick() const {
+    return GetField<uint64_t>(VT_STARTTICK, 0);
+  }
+  uint64_t expireTick() const {
+    return GetField<uint64_t>(VT_EXPIRETICK, 0);
+  }
+  uint16_t stackCount() const {
+    return GetField<uint16_t>(VT_STACKCOUNT, 0);
+  }
+  uint8_t rank() const {
+    return GetField<uint8_t>(VT_RANK, 0);
+  }
+  uint32_t flags() const {
+    return GetField<uint32_t>(VT_FLAGS, 0);
+  }
+  float posX() const {
+    return GetField<float>(VT_POSX, 0.0f);
+  }
+  float posY() const {
+    return GetField<float>(VT_POSY, 0.0f);
+  }
+  float posZ() const {
+    return GetField<float>(VT_POSZ, 0.0f);
+  }
+  float dirX() const {
+    return GetField<float>(VT_DIRX, 0.0f);
+  }
+  float dirY() const {
+    return GetField<float>(VT_DIRY, 0.0f);
+  }
+  float dirZ() const {
+    return GetField<float>(VT_DIRZ, 0.0f);
+  }
+  float magnitude0() const {
+    return GetField<float>(VT_MAGNITUDE0, 0.0f);
+  }
+  float magnitude1() const {
+    return GetField<float>(VT_MAGNITUDE1, 0.0f);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint16_t>(verifier, VT_KIND, 2) &&
+           VerifyField<uint32_t>(verifier, VT_SOURCENET, 4) &&
+           VerifyField<uint32_t>(verifier, VT_TARGETNET, 4) &&
+           VerifyField<uint64_t>(verifier, VT_STARTTICK, 8) &&
+           VerifyField<uint64_t>(verifier, VT_EXPIRETICK, 8) &&
+           VerifyField<uint16_t>(verifier, VT_STACKCOUNT, 2) &&
+           VerifyField<uint8_t>(verifier, VT_RANK, 1) &&
+           VerifyField<uint32_t>(verifier, VT_FLAGS, 4) &&
+           VerifyField<float>(verifier, VT_POSX, 4) &&
+           VerifyField<float>(verifier, VT_POSY, 4) &&
+           VerifyField<float>(verifier, VT_POSZ, 4) &&
+           VerifyField<float>(verifier, VT_DIRX, 4) &&
+           VerifyField<float>(verifier, VT_DIRY, 4) &&
+           VerifyField<float>(verifier, VT_DIRZ, 4) &&
+           VerifyField<float>(verifier, VT_MAGNITUDE0, 4) &&
+           VerifyField<float>(verifier, VT_MAGNITUDE1, 4) &&
+           verifier.EndTable();
+  }
+};
+
+struct GameplayStateSnapshotBuilder {
+  typedef GameplayStateSnapshot Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_kind(Shared::Schema::GameplayStateKind kind) {
+    fbb_.AddElement<uint16_t>(GameplayStateSnapshot::VT_KIND, static_cast<uint16_t>(kind), 0);
+  }
+  void add_sourceNet(uint32_t sourceNet) {
+    fbb_.AddElement<uint32_t>(GameplayStateSnapshot::VT_SOURCENET, sourceNet, 0);
+  }
+  void add_targetNet(uint32_t targetNet) {
+    fbb_.AddElement<uint32_t>(GameplayStateSnapshot::VT_TARGETNET, targetNet, 0);
+  }
+  void add_startTick(uint64_t startTick) {
+    fbb_.AddElement<uint64_t>(GameplayStateSnapshot::VT_STARTTICK, startTick, 0);
+  }
+  void add_expireTick(uint64_t expireTick) {
+    fbb_.AddElement<uint64_t>(GameplayStateSnapshot::VT_EXPIRETICK, expireTick, 0);
+  }
+  void add_stackCount(uint16_t stackCount) {
+    fbb_.AddElement<uint16_t>(GameplayStateSnapshot::VT_STACKCOUNT, stackCount, 0);
+  }
+  void add_rank(uint8_t rank) {
+    fbb_.AddElement<uint8_t>(GameplayStateSnapshot::VT_RANK, rank, 0);
+  }
+  void add_flags(uint32_t flags) {
+    fbb_.AddElement<uint32_t>(GameplayStateSnapshot::VT_FLAGS, flags, 0);
+  }
+  void add_posX(float posX) {
+    fbb_.AddElement<float>(GameplayStateSnapshot::VT_POSX, posX, 0.0f);
+  }
+  void add_posY(float posY) {
+    fbb_.AddElement<float>(GameplayStateSnapshot::VT_POSY, posY, 0.0f);
+  }
+  void add_posZ(float posZ) {
+    fbb_.AddElement<float>(GameplayStateSnapshot::VT_POSZ, posZ, 0.0f);
+  }
+  void add_dirX(float dirX) {
+    fbb_.AddElement<float>(GameplayStateSnapshot::VT_DIRX, dirX, 0.0f);
+  }
+  void add_dirY(float dirY) {
+    fbb_.AddElement<float>(GameplayStateSnapshot::VT_DIRY, dirY, 0.0f);
+  }
+  void add_dirZ(float dirZ) {
+    fbb_.AddElement<float>(GameplayStateSnapshot::VT_DIRZ, dirZ, 0.0f);
+  }
+  void add_magnitude0(float magnitude0) {
+    fbb_.AddElement<float>(GameplayStateSnapshot::VT_MAGNITUDE0, magnitude0, 0.0f);
+  }
+  void add_magnitude1(float magnitude1) {
+    fbb_.AddElement<float>(GameplayStateSnapshot::VT_MAGNITUDE1, magnitude1, 0.0f);
+  }
+  explicit GameplayStateSnapshotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<GameplayStateSnapshot> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<GameplayStateSnapshot>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<GameplayStateSnapshot> CreateGameplayStateSnapshot(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    Shared::Schema::GameplayStateKind kind = Shared::Schema::GameplayStateKind::None,
+    uint32_t sourceNet = 0,
+    uint32_t targetNet = 0,
+    uint64_t startTick = 0,
+    uint64_t expireTick = 0,
+    uint16_t stackCount = 0,
+    uint8_t rank = 0,
+    uint32_t flags = 0,
+    float posX = 0.0f,
+    float posY = 0.0f,
+    float posZ = 0.0f,
+    float dirX = 0.0f,
+    float dirY = 0.0f,
+    float dirZ = 0.0f,
+    float magnitude0 = 0.0f,
+    float magnitude1 = 0.0f) {
+  GameplayStateSnapshotBuilder builder_(_fbb);
+  builder_.add_expireTick(expireTick);
+  builder_.add_startTick(startTick);
+  builder_.add_magnitude1(magnitude1);
+  builder_.add_magnitude0(magnitude0);
+  builder_.add_dirZ(dirZ);
+  builder_.add_dirY(dirY);
+  builder_.add_dirX(dirX);
+  builder_.add_posZ(posZ);
+  builder_.add_posY(posY);
+  builder_.add_posX(posX);
+  builder_.add_flags(flags);
+  builder_.add_targetNet(targetNet);
+  builder_.add_sourceNet(sourceNet);
+  builder_.add_stackCount(stackCount);
+  builder_.add_kind(kind);
+  builder_.add_rank(rank);
+  return builder_.Finish();
 }
 
 struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -1611,7 +2252,13 @@ struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_BLUEDRAGONS = 26,
     VT_REDDRAGONS = 28,
     VT_BLUEBARONS = 30,
-    VT_REDBARONS = 32
+    VT_REDBARONS = 32,
+    VT_TIMELINEEPOCH = 34,
+    VT_BRANCHID = 36,
+    VT_TOOLREVISION = 38,
+    VT_SIMPAUSED = 40,
+    VT_SIMSPEEDMUL = 42,
+    VT_GAMEPLAYSTATES = 44
   };
   uint64_t serverTick() const {
     return GetField<uint64_t>(VT_SERVERTICK, 0);
@@ -1658,6 +2305,24 @@ struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint16_t redBarons() const {
     return GetField<uint16_t>(VT_REDBARONS, 0);
   }
+  uint64_t timelineEpoch() const {
+    return GetField<uint64_t>(VT_TIMELINEEPOCH, 0);
+  }
+  uint64_t branchId() const {
+    return GetField<uint64_t>(VT_BRANCHID, 0);
+  }
+  uint64_t toolRevision() const {
+    return GetField<uint64_t>(VT_TOOLREVISION, 0);
+  }
+  bool simPaused() const {
+    return GetField<uint8_t>(VT_SIMPAUSED, 0) != 0;
+  }
+  float simSpeedMul() const {
+    return GetField<float>(VT_SIMSPEEDMUL, 1.0f);
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *gameplayStates() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *>(VT_GAMEPLAYSTATES);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1678,6 +2343,14 @@ struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint16_t>(verifier, VT_REDDRAGONS, 2) &&
            VerifyField<uint16_t>(verifier, VT_BLUEBARONS, 2) &&
            VerifyField<uint16_t>(verifier, VT_REDBARONS, 2) &&
+           VerifyField<uint64_t>(verifier, VT_TIMELINEEPOCH, 8) &&
+           VerifyField<uint64_t>(verifier, VT_BRANCHID, 8) &&
+           VerifyField<uint64_t>(verifier, VT_TOOLREVISION, 8) &&
+           VerifyField<uint8_t>(verifier, VT_SIMPAUSED, 1) &&
+           VerifyField<float>(verifier, VT_SIMSPEEDMUL, 4) &&
+           VerifyOffset(verifier, VT_GAMEPLAYSTATES) &&
+           verifier.VerifyVector(gameplayStates()) &&
+           verifier.VerifyVectorOfTables(gameplayStates()) &&
            verifier.EndTable();
   }
 };
@@ -1731,6 +2404,24 @@ struct SnapshotBuilder {
   void add_redBarons(uint16_t redBarons) {
     fbb_.AddElement<uint16_t>(Snapshot::VT_REDBARONS, redBarons, 0);
   }
+  void add_timelineEpoch(uint64_t timelineEpoch) {
+    fbb_.AddElement<uint64_t>(Snapshot::VT_TIMELINEEPOCH, timelineEpoch, 0);
+  }
+  void add_branchId(uint64_t branchId) {
+    fbb_.AddElement<uint64_t>(Snapshot::VT_BRANCHID, branchId, 0);
+  }
+  void add_toolRevision(uint64_t toolRevision) {
+    fbb_.AddElement<uint64_t>(Snapshot::VT_TOOLREVISION, toolRevision, 0);
+  }
+  void add_simPaused(bool simPaused) {
+    fbb_.AddElement<uint8_t>(Snapshot::VT_SIMPAUSED, static_cast<uint8_t>(simPaused), 0);
+  }
+  void add_simSpeedMul(float simSpeedMul) {
+    fbb_.AddElement<float>(Snapshot::VT_SIMSPEEDMUL, simSpeedMul, 1.0f);
+  }
+  void add_gameplayStates(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>> gameplayStates) {
+    fbb_.AddOffset(Snapshot::VT_GAMEPLAYSTATES, gameplayStates);
+  }
   explicit SnapshotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1758,12 +2449,23 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshot(
     uint16_t blueDragons = 0,
     uint16_t redDragons = 0,
     uint16_t blueBarons = 0,
-    uint16_t redBarons = 0) {
+    uint16_t redBarons = 0,
+    uint64_t timelineEpoch = 0,
+    uint64_t branchId = 0,
+    uint64_t toolRevision = 0,
+    bool simPaused = false,
+    float simSpeedMul = 1.0f,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>> gameplayStates = 0) {
   SnapshotBuilder builder_(_fbb);
+  builder_.add_toolRevision(toolRevision);
+  builder_.add_branchId(branchId);
+  builder_.add_timelineEpoch(timelineEpoch);
   builder_.add_deltaBaseTick(deltaBaseTick);
   builder_.add_rngState(rngState);
   builder_.add_serverTimeMs(serverTimeMs);
   builder_.add_serverTick(serverTick);
+  builder_.add_gameplayStates(gameplayStates);
+  builder_.add_simSpeedMul(simSpeedMul);
   builder_.add_yourNetId(yourNetId);
   builder_.add_lastAckedCommandSeq(lastAckedCommandSeq);
   builder_.add_entities(entities);
@@ -1775,6 +2477,7 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshot(
   builder_.add_blueDestroyedTurrets(blueDestroyedTurrets);
   builder_.add_redTotalKills(redTotalKills);
   builder_.add_blueTotalKills(blueTotalKills);
+  builder_.add_simPaused(simPaused);
   return builder_.Finish();
 }
 
@@ -1794,8 +2497,15 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshotDirect(
     uint16_t blueDragons = 0,
     uint16_t redDragons = 0,
     uint16_t blueBarons = 0,
-    uint16_t redBarons = 0) {
+    uint16_t redBarons = 0,
+    uint64_t timelineEpoch = 0,
+    uint64_t branchId = 0,
+    uint64_t toolRevision = 0,
+    bool simPaused = false,
+    float simSpeedMul = 1.0f,
+    const std::vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *gameplayStates = nullptr) {
   auto entities__ = entities ? _fbb.CreateVector<::flatbuffers::Offset<Shared::Schema::EntitySnapshot>>(*entities) : 0;
+  auto gameplayStates__ = gameplayStates ? _fbb.CreateVector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>(*gameplayStates) : 0;
   return Shared::Schema::CreateSnapshot(
       _fbb,
       serverTick,
@@ -1812,7 +2522,13 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshotDirect(
       blueDragons,
       redDragons,
       blueBarons,
-      redBarons);
+      redBarons,
+      timelineEpoch,
+      branchId,
+      toolRevision,
+      simPaused,
+      simSpeedMul,
+      gameplayStates__);
 }
 
 inline const Shared::Schema::Snapshot *GetSnapshot(const void *buf) {

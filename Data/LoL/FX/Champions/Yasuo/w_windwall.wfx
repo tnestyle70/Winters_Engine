@@ -10,12 +10,12 @@
       "depth_mode": "DepthTestWriteOff",
       "model": "Client/Bin/Resource/Texture/Character/Yasuo/particles/fbx/yasuo_w_windwall_mesh.fbx",
       "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_w_windwall_main.png",
-      "lifetime": 5.00,
+      "lifetime": 4.00,
       "fade_in": 0.10,
       "fade_out": 0.55,
       "scale": [0.060, 0.018, 0.004],
       "color": [0.52, 0.78, 1.00, 0.90],
-      "attach_offset": [0.0, 0.0, 1.50]
+      "attach_offset": [0.0, 0.0, 0.0]
     },
     {
       "name": "w_wall_behind_mesh",
@@ -24,13 +24,13 @@
       "depth_mode": "DepthTestWriteOff",
       "model": "Client/Bin/Resource/Texture/Character/Yasuo/particles/fbx/yasuo_w_windwall_behind_mesh.fbx",
       "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_w_windwall_main_02.png",
-      "lifetime": 5.00,
+      "lifetime": 4.00,
       "start_delay": 0.03,
       "fade_in": 0.12,
       "fade_out": 0.55,
       "scale": [0.055, 0.018, 0.004],
       "color": [0.58, 0.76, 0.95, 0.52],
-      "attach_offset": [0.0, 0.0, 1.50]
+      "attach_offset": [0.0, 0.0, 0.0]
     },
     {
       "name": "w_wall_wispy_sheet",
@@ -38,13 +38,13 @@
       "blend_mode": "Additive",
       "depth_mode": "DepthTestWriteOff",
       "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_w_wind_wispy.png",
-      "lifetime": 5.00,
+      "lifetime": 4.00,
       "fade_in": 0.12,
       "fade_out": 0.55,
       "width": 6.20,
       "height": 2.15,
       "color": [0.42, 0.72, 1.00, 0.62],
-      "attach_offset": [0.0, 1.08, 1.50],
+      "attach_offset": [0.0, 1.08, 0.0],
       "uv_scroll": [0.0, -0.34],
       "billboard": false
     },
@@ -54,14 +54,14 @@
       "blend_mode": "AlphaBlend",
       "depth_mode": "DepthTestWriteOff",
       "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_w_windwall_distort.png",
-      "lifetime": 5.00,
+      "lifetime": 4.00,
       "start_delay": 0.03,
       "fade_in": 0.14,
       "fade_out": 0.60,
       "width": 6.35,
       "height": 2.45,
       "color": [0.72, 0.88, 1.00, 0.36],
-      "attach_offset": [0.0, 1.10, 1.50],
+      "attach_offset": [0.0, 1.10, 0.0],
       "billboard": false
     },
     {
@@ -70,13 +70,13 @@
       "blend_mode": "AlphaBlend",
       "depth_mode": "DepthTestWriteOff",
       "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/yasuo_base_w_windwall_groud_crack.png",
-      "lifetime": 5.00,
+      "lifetime": 4.00,
       "fade_in": 0.07,
       "fade_out": 0.50,
       "width": 6.20,
       "height": 1.05,
       "color": [0.55, 0.62, 0.68, 0.72],
-      "attach_offset": [0.0, 0.04, 1.50],
+      "attach_offset": [0.0, 0.04, 0.0],
       "billboard": false
     },
     {
@@ -85,13 +85,13 @@
       "blend_mode": "Additive",
       "depth_mode": "DepthTestWriteOff",
       "texture": "Client/Bin/Resource/Texture/Character/Yasuo/particles/color_yasuo_w_windwall_dust.png",
-      "lifetime": 5.00,
+      "lifetime": 4.00,
       "fade_in": 0.08,
       "fade_out": 0.48,
       "width": 6.35,
       "height": 0.88,
       "color": [0.46, 0.76, 1.00, 0.54],
-      "attach_offset": [0.0, 0.08, 1.50],
+      "attach_offset": [0.0, 0.08, 0.0],
       "billboard": false
     }
   ]

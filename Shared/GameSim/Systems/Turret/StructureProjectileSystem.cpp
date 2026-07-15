@@ -1,9 +1,9 @@
 #include "Shared/GameSim/Systems/Turret/StructureProjectileSystem.h"
 
-#include "ECS/Components/CoreComponents.h"
-#include "ECS/Components/NavAgentComponent.h"
-#include "ECS/Components/TransformComponent.h"
-#include "ECS/World.h"
+#include "Shared/GameSim/Core/Ecs/CoreComponents.h"
+#include "Shared/GameSim/Core/Ecs/NavAgentComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/World/World.h"
 #include "ProfilerAPI.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
 
@@ -30,6 +30,14 @@ namespace GameplayTurret
             std::function<void(EntityID, StructureProjectileComponent&, TransformComponent&)>(
                 [&](EntityID id, StructureProjectileComponent& pc, TransformComponent& xf)
                 {
+                    if (pc.sourceHandle.IsValid())
+                    {
+                        pc.sourceEntity = world.ResolveEntity(pc.sourceHandle);
+                    }
+                    if (pc.targetHandle.IsValid())
+                    {
+                        pc.targetEntity = world.ResolveEntity(pc.targetHandle);
+                    }
                     if (!world.IsAlive(pc.targetEntity) ||
                         !world.HasComponent<TransformComponent>(pc.targetEntity))
                     {

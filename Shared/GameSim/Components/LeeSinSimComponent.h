@@ -1,12 +1,15 @@
 #pragma once
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
 #include "../Definitions/LoLMatchContext.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
 
 struct LeeSinSimComponent
 {
+    u8_t reserved = 0u;
 };
+
+static_assert(sizeof(LeeSinSimComponent) == 1u);
 
 struct LeeSinQMarkComponent
 {

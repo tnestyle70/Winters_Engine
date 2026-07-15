@@ -1,6 +1,12 @@
 #include "Game/SnapshotBuilder.h"
 
+#include "Game/ServerProjectileAuthority.h"
+
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
+#include "Shared/GameSim/Components/BuffComponent.h"
+#include "Shared/GameSim/Components/EzrealSimComponent.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/ProjectileBarrierComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
 #include "ECS/World.h"
@@ -8,9 +14,11 @@
 #include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Components/MatchScore.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
+#include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/KalistaBondComponent.h"
 #include "Shared/GameSim/Components/KalistaSentinelComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/ReplicatedActionComponent.h"
@@ -36,64 +44,16 @@
 
 namespace
 {
-    bool_t IsMoveBlockingSnapshotAction(eActionStateId actionId)
-    {
-        switch (actionId)
-        {
-        case eActionStateId::SkillQ:
-        case eActionStateId::SkillW:
-        case eActionStateId::SkillE:
-        case eActionStateId::SkillR:
-            return true;
-        default:
-            return false;
-        }
-    }
-
-    u8_t ResolveMoveBlockingActionSlot(eActionStateId actionId)
-    {
-        switch (actionId)
-        {
-        case eActionStateId::SkillQ:
-            return static_cast<u8_t>(eSkillSlot::Q);
-        case eActionStateId::SkillW:
-            return static_cast<u8_t>(eSkillSlot::W);
-        case eActionStateId::SkillE:
-            return static_cast<u8_t>(eSkillSlot::E);
-        case eActionStateId::SkillR:
-            return static_cast<u8_t>(eSkillSlot::R);
-        default:
-            return static_cast<u8_t>(eSkillSlot::BasicAttack);
-        }
-    }
-
-    eChampion ResolveSnapshotChampion(CWorld& world, EntityID entity)
-    {
-        if (world.HasComponent<ChampionComponent>(entity))
-            return world.GetComponent<ChampionComponent>(entity).id;
-        if (world.HasComponent<StatComponent>(entity))
-            return world.GetComponent<StatComponent>(entity).championId;
-        return eChampion::NONE;
-    }
-
     bool_t IsMoveLockedBySnapshotAction(CWorld& world, EntityID entity, u64_t serverTick)
     {
         if (!world.HasComponent<ReplicatedActionComponent>(entity))
             return false;
 
         const auto& action = world.GetComponent<ReplicatedActionComponent>(entity);
-        const auto actionId = static_cast<eActionStateId>(action.actionId);
-        if (!IsMoveBlockingSnapshotAction(actionId))
-            return false;
         if (serverTick < action.startTick)
             return false;
-
-        const eChampion champion = ResolveSnapshotChampion(world, entity);
-        const u8_t slot = ResolveMoveBlockingActionSlot(actionId);
-        const u8_t stage = action.stage == 0u ? 1u : action.stage;
-        const u64_t lockTicks =
-            GetDefaultChampionSkillActionLockTicks(champion, slot, stage);
-        return (serverTick - action.startTick) < lockTicks;
+        return action.movePolicy != eSkillActionMovePolicy::Allow &&
+            serverTick < action.lockEndTick;
     }
 }
 
@@ -109,7 +69,12 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
     u64_t serverTimeMs,
     u64_t rngState,
     u32_t lastAckedSeq,
-    NetEntityId yourNetId)
+    NetEntityId yourNetId,
+    u64_t timelineEpoch,
+    u64_t branchId,
+    u64_t toolRevision,
+    bool_t simPaused,
+    f32_t simSpeedMul)
 {
     flatbuffers::FlatBufferBuilder fbb(2048);
 
@@ -180,6 +145,13 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         u64_t actionStartTick = 0;
         u32_t actionSeq = 0;
         u8_t actionStage = 1;
+        u8_t actionSourceChampionId = 0;
+        u8_t actionSourceSlot = 0;
+        u8_t actionMovePolicy = 0;
+        u64_t actionLockEndTick = 0;
+        u32_t actionCommandSeq = 0;
+        f32_t minionAttackWindupSec = 0.f;
+        f32_t minionAttackRecoverySec = 0.f;
         u8_t championId = 0;
         u8_t team = 0;
         u8_t level = 1;
@@ -190,6 +162,10 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         u32_t buffMask = 0;
         u32_t statHash = 0;
         u32_t stateFlags = 0;
+        u32_t gameplayStateFlags = 0;
+        f32_t gameplayMoveSpeedMul = 1.f;
+        u8_t forcedMotionKind = 0u;
+        f32_t forcedMotionRemainingSec = 0.f;
         u32_t ownerNet = 0;
         u16_t subtype = 0;
         u16_t projectileKind = 0;
@@ -198,6 +174,8 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         f32_t projectileSpeed = 0.f;
         f32_t projectileRadius = 0.f;
         f32_t projectileMaxDist = 0.f;
+        Vec3 projectileDirection{};
+        f32_t projectileTraveledDist = 0.f;
         u8_t baseChampionId = 0;
         u8_t visualChampionId = 0;
         u8_t skillChampionId = 0;
@@ -247,15 +225,16 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             entityKind = Shared::Schema::EntityKind::Champion;
             if (maxHp <= 0.f)
                 maxHp = champion.maxHp;
+            mana = champion.mana;
             if (maxMana <= 0.f)
                 maxMana = champion.maxMana;
+            shield = (std::max)(0.f, champion.shield);
         }
         if (world.HasComponent<YasuoStateComponent>(entity))
         {
             const auto& yasuoState = world.GetComponent<YasuoStateComponent>(entity);
             mana = yasuoState.fPassiveFlow;
             maxMana = yasuoState.fPassiveFlowMax;
-            shield = yasuoState.fPassiveShieldRemaining;
         }
 
         //Viego Soul 처리
@@ -329,6 +308,8 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             team = static_cast<u8_t>(minion.team);
             subtype = minion.type;
             moveSpeed = minion.moveSpeed;
+            minionAttackWindupSec = minion.attackWindup;
+            minionAttackRecoverySec = minion.attackRecovery;
             entityKind = Shared::Schema::EntityKind::Minion;
             if (minion.current == MinionStateComponent::Attack)
                 stateFlags |= kSnapshotStateAttackFlag;
@@ -400,10 +381,18 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         {
             const auto& projectile = world.GetComponent<StructureProjectileComponent>(entity);
             entityKind = Shared::Schema::EntityKind::Projectile;
-            projectileOwnerNet = entityMap.ToNet(projectile.sourceEntity);
-            projectileTargetNet = entityMap.ToNet(projectile.targetEntity);
+            projectileKind = CServerProjectileAuthority::kStructureProjectileKind;
+            projectileOwnerNet = projectile.uSourceNetAtSpawn != NULL_NET_ENTITY
+                ? projectile.uSourceNetAtSpawn
+                : entityMap.ToNet(projectile.sourceEntity);
+            projectileTargetNet = projectile.uTargetNetAtSpawn != NULL_NET_ENTITY
+                ? projectile.uTargetNetAtSpawn
+                : entityMap.ToNet(projectile.targetEntity);
             projectileSpeed = projectile.speed;
             projectileRadius = projectile.hitRadius;
+            projectileMaxDist = projectile.maxDistance;
+            projectileDirection = projectile.direction;
+            projectileTraveledDist = projectile.traveledDistance;
             ownerNet = projectileOwnerNet;
         }
 
@@ -412,11 +401,17 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             const auto& projectile = world.GetComponent<SkillProjectileComponent>(entity);
             entityKind = Shared::Schema::EntityKind::Projectile;
             projectileKind = static_cast<u16_t>(projectile.kind);
-            projectileOwnerNet = entityMap.ToNet(projectile.sourceEntity);
-            projectileTargetNet = NULL_NET_ENTITY;
+            projectileOwnerNet = projectile.uSourceNetAtSpawn != NULL_NET_ENTITY
+                ? projectile.uSourceNetAtSpawn
+                : entityMap.ToNet(projectile.sourceEntity);
+            projectileTargetNet = projectile.uTargetNetAtSpawn != NULL_NET_ENTITY
+                ? projectile.uTargetNetAtSpawn
+                : entityMap.ToNet(projectile.targetEntity);
             projectileSpeed = projectile.speed;
             projectileRadius = projectile.hitRadius;
             projectileMaxDist = projectile.maxDistance;
+            projectileDirection = projectile.direction;
+            projectileTraveledDist = projectile.traveledDistance;
             ownerNet = projectileOwnerNet;
             team = static_cast<u8_t>(projectile.sourceTeam);
         }
@@ -435,6 +430,11 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             actionStartTick = action.startTick;
             actionSeq = action.sequence;
             actionStage = action.stage;
+            actionSourceChampionId = static_cast<u8_t>(action.sourceChampion);
+            actionSourceSlot = action.sourceSlot;
+            actionMovePolicy = static_cast<u8_t>(action.movePolicy);
+            actionLockEndTick = action.lockEndTick;
+            actionCommandSeq = action.commandSequence;
         }
 
         if (!IsMoveLockedBySnapshotAction(world, entity, serverTick) &&
@@ -444,12 +444,45 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             stateFlags |= kSnapshotStateMovingFlag;
         }
 
-        if (world.HasComponent<GameplayStateComponent>(entity) &&
-            (world.GetComponent<GameplayStateComponent>(entity).stateFlags &
-                kGameplayStateInvisibleFlag) != 0u)
+        if (world.HasComponent<GameplayStateComponent>(entity))
         {
-            stateFlags |= kSnapshotStateInvisibleFlag;
+            const auto& gameplay = world.GetComponent<GameplayStateComponent>(entity);
+            gameplayStateFlags = gameplay.stateFlags;
+            gameplayMoveSpeedMul = gameplay.fMoveSpeedMul;
+            if ((gameplay.stateFlags & kGameplayStateInvisibleFlag) != 0u)
+                stateFlags |= kSnapshotStateInvisibleFlag;
         }
+
+        if (world.HasComponent<KalistaFateCallCarriedComponent>(entity) &&
+            world.GetComponent<KalistaFateCallCarriedComponent>(entity).bHidden)
+        {
+            stateFlags |= kSnapshotStateKalistaCarriedFlag;
+        }
+
+        if (world.HasComponent<KalistaOathswornByComponent>(entity))
+        {
+            const EntityID kalista =
+                world.GetComponent<KalistaOathswornByComponent>(entity).entityKalista;
+            if (kalista != NULL_ENTITY &&
+                world.IsAlive(kalista) &&
+                world.HasComponent<KalistaOathswornComponent>(kalista) &&
+                world.GetComponent<KalistaOathswornComponent>(kalista).eStage ==
+                    eKalistaOathswornStage::Binding)
+            {
+                stateFlags |= kSnapshotStateKalistaOathswornRitualFlag;
+            }
+        }
+
+        if (world.HasComponent<ForcedMotionComponent>(entity))
+        {
+            const auto& motion = world.GetComponent<ForcedMotionComponent>(entity);
+            forcedMotionKind = static_cast<u8_t>(motion.kind);
+            forcedMotionRemainingSec =
+                (std::max)(0.f, motion.fDurationSec - motion.fElapsedSec);
+        }
+
+        if (world.HasComponent<AnnieTibbersComponent>(entity))
+            ownerNet = entityMap.ToNet(world.GetComponent<AnnieTibbersComponent>(entity).owner);
 
         u32_t aiDebugAvailableActionMask = 0u;
         u32_t aiDebugAvailableSkillMask = 0u;
@@ -535,6 +568,11 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 aiDebugFlags |= kChampionAIDebugCanAttackChampionFlag;
             if (ai.bPostComboBAAllowed)
                 aiDebugFlags |= kChampionAIDebugPostComboBAAllowedFlag;
+            if (ai.bMidDefenseActive)
+                aiDebugFlags |= kChampionAIDebugMidDefenseActiveFlag;
+            aiDebugFlags |=
+                (static_cast<u32_t>(ai.brainType) << kChampionAIDebugBrainTypeShift) &
+                kChampionAIDebugBrainTypeMask;
             aiDebugChampionScore = ai.fChampionDecisionScore;
             aiDebugFarmScore = ai.fFarmDecisionScore;
             aiDebugStructureScore = ai.fStructureDecisionScore;
@@ -653,15 +691,29 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             const u8_t count = std::min<u8_t>(
                 ai.debugDecisionTraceCount,
                 kChampionAIDebugTraceCapacity);
-            aiDebugTraceRows.reserve(count);
-            const u8_t start = static_cast<u8_t>(
-                (ai.debugDecisionTraceHead + kChampionAIDebugTraceCapacity - count) %
-                kChampionAIDebugTraceCapacity);
-            for (u8_t i = 0u; i < count; ++i)
+            // The authoritative AI keeps a bounded 16-row ring, but the
+            // 30 Hz snapshot carries only the newest evidence row. F9 builds
+            // selected-bot branch history locally while open, avoiding the
+            // previous 16x per-bot replication cost on every snapshot.
+            if (count > 0u)
             {
                 const u8_t index = static_cast<u8_t>(
-                    (start + i) % kChampionAIDebugTraceCapacity);
+                    (ai.debugDecisionTraceHead +
+                        kChampionAIDebugTraceCapacity - 1u) %
+                    kChampionAIDebugTraceCapacity);
                 const ChampionAIDecisionTraceEntry& row = ai.debugDecisionTrace[index];
+                const ChampionAIDecisionTraceEntry* pShadowRow = nullptr;
+                if (world.HasComponent<ChampionAIResearchDebugComponent>(entity))
+                {
+                    const auto& research =
+                        world.GetComponent<ChampionAIResearchDebugComponent>(entity);
+                    if (research.bShadowDecisionPresent &&
+                        research.shadowDecision.tick == row.tick &&
+                        research.shadowDecision.commandSequence == row.commandSequence)
+                    {
+                        pShadowRow = &research.shadowDecision;
+                    }
+                }
                 const u32_t rowTargetNet = row.target != NULL_ENTITY
                     ? entityMap.ToNet(row.target)
                     : NULL_NET_ENTITY;
@@ -685,7 +737,30 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                     row.selfHpRatio,
                     row.enemyHpRatio,
                     row.enemyDistance,
-                    row.turretDanger));
+                    row.turretDanger,
+                    row.retreatScore,
+                    ai.fSkillCastMinInterval,
+                    ai.fSkillCastCooldownTimer,
+                    row.legalCandidateMask,
+                    row.illegalCandidateMask,
+                    row.commandSequence,
+                    row.executorReason,
+                    row.executorState,
+                    row.comboStep,
+                    pShadowRow ? pShadowRow->shadowPolicyRevision : 0u,
+                    pShadowRow ? pShadowRow->shadowPolicySha256Prefix : 0u,
+                    pShadowRow ? pShadowRow->shadowLogits[0] : 0.f,
+                    pShadowRow ? pShadowRow->shadowLogits[1] : 0.f,
+                    pShadowRow ? pShadowRow->shadowLogits[2] : 0.f,
+                    pShadowRow ? pShadowRow->shadowLogits[3] : 0.f,
+                    pShadowRow ? pShadowRow->shadowSelectedMargin : 0.f,
+                    pShadowRow ? pShadowRow->shadowTopFeatureContribution : 0.f,
+                    pShadowRow ? pShadowRow->shadowLegalCandidateMask : 0u,
+                    pShadowRow ? pShadowRow->shadowTopFeatureIndex : 0xFFFFu,
+                    pShadowRow ? pShadowRow->shadowStatus : 0u,
+                    pShadowRow ? pShadowRow->shadowActiveCandidateKind : 0u,
+                    pShadowRow ? pShadowRow->shadowSelectedCandidateKind : 0u,
+                    pShadowRow ? pShadowRow->bShadowDisagreed : false));
             }
         }
         const auto aiDebugTraceOffset = fbb.CreateVector(aiDebugTraceRows);
@@ -853,10 +928,161 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             skillSlotMask,
             spellbookChampionId,
             spellbookSlot,
-            spellbookRemaining));
+            spellbookRemaining,
+            actionSourceChampionId,
+            actionSourceSlot,
+            actionMovePolicy,
+            actionLockEndTick,
+            actionCommandSeq,
+            minionAttackWindupSec,
+            minionAttackRecoverySec,
+            gameplayStateFlags,
+            gameplayMoveSpeedMul,
+            forcedMotionKind,
+            forcedMotionRemainingSec,
+            projectileDirection.x,
+            projectileDirection.y,
+            projectileDirection.z,
+            projectileTraveledDist));
     }
 
     const auto entitiesOffset = fbb.CreateVector(snapshots);
+
+    struct GameplayStateRow
+    {
+        Shared::Schema::GameplayStateKind kind =
+            Shared::Schema::GameplayStateKind::None;
+        NetEntityId sourceNet = NULL_NET_ENTITY;
+        NetEntityId targetNet = NULL_NET_ENTITY;
+        u64_t startTick = 0u;
+        u64_t expireTick = 0u;
+        u16_t stackCount = 0u;
+        u8_t rank = 0u;
+        u32_t flags = 0u;
+        Vec3 position{};
+        Vec3 direction{};
+        f32_t magnitude0 = 0.f;
+        f32_t magnitude1 = 0.f;
+    };
+
+    std::vector<GameplayStateRow> gameplayStateRows;
+    const auto buffEntities =
+        DeterministicEntityIterator<BuffComponent>::CollectSorted(world);
+    for (EntityID entity : buffEntities)
+    {
+        const BuffComponent& buffs = world.GetComponent<BuffComponent>(entity);
+        for (u8_t i = 0u;
+            i < buffs.count && i < BuffComponent::kMaxBuffs;
+            ++i)
+        {
+            const BuffInstance& buff = buffs.buffs[i];
+            if (buff.buffDefId != kEzrealRisingSpellForceBuffDefId ||
+                buff.stackCount == 0u ||
+                (buff.uExpireTick != 0u && buff.uExpireTick <= serverTick))
+            {
+                continue;
+            }
+
+            const NetEntityId sourceNet = buff.source != NULL_ENTITY
+                ? entityMap.ToNet(buff.source)
+                : entityMap.ToNet(entity);
+            if (sourceNet == NULL_NET_ENTITY)
+                continue;
+
+            GameplayStateRow row{};
+            row.kind = Shared::Schema::GameplayStateKind::EzrealRisingSpellForce;
+            row.sourceNet = sourceNet;
+            row.expireTick = buff.uExpireTick;
+            row.stackCount = buff.stackCount;
+            row.magnitude0 = buff.bonusAttackSpeedPerStack;
+            gameplayStateRows.push_back(row);
+        }
+    }
+
+    const auto fluxMarkEntities =
+        DeterministicEntityIterator<EzrealEssenceFluxMarkComponent>::CollectSorted(world);
+    for (EntityID entity : fluxMarkEntities)
+    {
+        const EzrealEssenceFluxMarkComponent& mark =
+            world.GetComponent<EzrealEssenceFluxMarkComponent>(entity);
+        if (mark.uSourceNet == NULL_NET_ENTITY ||
+            mark.uTargetNet == NULL_NET_ENTITY ||
+            mark.uExpireTick <= serverTick)
+        {
+            continue;
+        }
+
+        GameplayStateRow row{};
+        row.kind = Shared::Schema::GameplayStateKind::EzrealEssenceFlux;
+        row.sourceNet = mark.uSourceNet;
+        row.targetNet = mark.uTargetNet;
+        row.expireTick = mark.uExpireTick;
+        row.rank = mark.uRank;
+        gameplayStateRows.push_back(row);
+    }
+
+    const auto barrierEntities =
+        DeterministicEntityIterator<ProjectileBarrierComponent>::CollectSorted(world);
+    for (EntityID entity : barrierEntities)
+    {
+        const ProjectileBarrierComponent& barrier =
+            world.GetComponent<ProjectileBarrierComponent>(entity);
+        const NetEntityId sourceNet = entityMap.ToNet(barrier.sourceEntity);
+        if (sourceNet == NULL_NET_ENTITY || barrier.expireTick <= serverTick)
+            continue;
+
+        GameplayStateRow row{};
+        row.kind = Shared::Schema::GameplayStateKind::YasuoWindWall;
+        row.sourceNet = sourceNet;
+        row.startTick = barrier.spawnTick;
+        row.expireTick = barrier.expireTick;
+        row.position = barrier.center;
+        row.direction = barrier.direction;
+        row.magnitude0 = barrier.halfLength;
+        row.magnitude1 = barrier.halfThickness;
+        gameplayStateRows.push_back(row);
+    }
+
+    std::sort(
+        gameplayStateRows.begin(),
+        gameplayStateRows.end(),
+        [](const GameplayStateRow& lhs, const GameplayStateRow& rhs)
+        {
+            if (lhs.kind != rhs.kind)
+                return lhs.kind < rhs.kind;
+            if (lhs.sourceNet != rhs.sourceNet)
+                return lhs.sourceNet < rhs.sourceNet;
+            if (lhs.targetNet != rhs.targetNet)
+                return lhs.targetNet < rhs.targetNet;
+            return lhs.startTick < rhs.startTick;
+        });
+
+    std::vector<flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>
+        gameplayStates;
+    gameplayStates.reserve(gameplayStateRows.size());
+    for (const GameplayStateRow& row : gameplayStateRows)
+    {
+        gameplayStates.push_back(Shared::Schema::CreateGameplayStateSnapshot(
+            fbb,
+            row.kind,
+            row.sourceNet,
+            row.targetNet,
+            row.startTick,
+            row.expireTick,
+            row.stackCount,
+            row.rank,
+            row.flags,
+            row.position.x,
+            row.position.y,
+            row.position.z,
+            row.direction.x,
+            row.direction.y,
+            row.direction.z,
+            row.magnitude0,
+            row.magnitude1));
+    }
+    const auto gameplayStatesOffset = fbb.CreateVector(gameplayStates);
+
     const auto snapshot = Shared::Schema::CreateSnapshot(
         fbb,
         serverTick,
@@ -873,7 +1099,13 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         matchScore.Blue.iDragons,
         matchScore.Red.iDragons,
         matchScore.Blue.iBarons,
-        matchScore.Red.iBarons);
+        matchScore.Red.iBarons,
+        timelineEpoch,
+        branchId,
+        toolRevision,
+        simPaused,
+        simSpeedMul,
+        gameplayStatesOffset);
     // Finish writes the Snapshot root; Release returns the byte buffer for the server packet path.
     fbb.Finish(snapshot);
     return fbb.Release();

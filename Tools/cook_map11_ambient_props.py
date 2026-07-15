@@ -1,9 +1,9 @@
-# map11 앰비언트 프롭(새/오리) 배치 추출 + 쿡 스크립트.
+# map11 앰비언트 프롭(새/오리/반딧불) 배치 추출 + 쿡 스크립트.
 # 1) LeagueToolkitProbe levelprops로 base.materials.bin에서 LevelProp 배치(LoL 좌표) 추출
 # 2) manifest/map11_ambient_props.csv (문서용) + cooked/map11_ambient_props.wamb (런타임용) 생성
 #    .wamb v1: u32 'WAMB' | u32 version=1 | u32 count | u32 reserved
-#              entry: u32 kind(0=bird,1=duck) | f32 lolX,lolY,lolZ | f32 lolYaw(rad) | f32 scale
-#    좌표는 LoL 공간 그대로 저장 — 클라이언트가 맵 메시와 동일한 m_MapTransform 행렬로 변환한다.
+#              entry: u32 kind(0=bird,1=duck,2=firefly) | f32 lolX,lolY,lolZ | f32 lolYaw(rad) | f32 scale
+#    좌표는 LoL 공간 그대로 저장 — 클라이언트가 canonical Stage 좌표로 변환한다.
 # 3) cooked/ambient/<name>/<name>.wmesh + anims/ 레이아웃으로 복사 (CModel의 anims/ 규약)
 import math
 import shutil
@@ -18,10 +18,14 @@ REBUILD = ROOT / "Client/Bin/Resource/Texture/MAP/Map11_Rebuild"
 CSV_OUT = REBUILD / "manifest/map11_ambient_props.csv"
 BIN_OUT = REBUILD / "cooked/map11_ambient_props.wamb"
 
-KINDS = {"levelprop_sru_bird": 0, "levelprop_sru_duck": 1}
+KINDS = {
+    "levelprop_sru_bird": 0,
+    "levelprop_sru_duck": 1,
+    "audio-emitter_sru_insects": 2,
+}
 
 out = subprocess.run(
-    [str(PROBE), "levelprops", str(MATERIALS_BIN), "sru_bird,sru_duck"],
+    [str(PROBE), "levelprops", str(MATERIALS_BIN), "sru_bird,sru_duck,sru_insects"],
     capture_output=True, text=True, check=True).stdout
 
 entries = []
@@ -32,7 +36,7 @@ for line in out.splitlines():
     name = parts[0]
     key = next((k for k in KINDS if name.lower().startswith(k)), None)
     if key is None:
-        continue  # Audio-Emitter 등 제외
+        continue
     tx, ty, tz = (float(parts[1]), float(parts[2]), float(parts[3]))
     m11, m12, m13, m21, m22, m23, m31, m32, m33 = (float(v) for v in parts[4:13])
     yaw = math.atan2(m31, m33)
@@ -47,8 +51,8 @@ if not entries:
 entries.sort(key=lambda e: (e[1], e[0]))
 
 CSV_OUT.write_text(
-    "# schema: name,kind(0=bird/1=duck),lolX,lolY,lolZ,lolYawRad,scale\n"
-    "# source: data/maps/mapgeometry/map11/base.materials.bin (LevelProp transforms)\n"
+    "# schema: name,kind(0=bird/1=duck/2=firefly),lolX,lolY,lolZ,lolYawRad,scale\n"
+    "# source: data/maps/mapgeometry/map11/base.materials.bin (LevelProp/Audio-Emitter transforms)\n"
     + "".join(
         f"{n},{k},{x:.3f},{y:.3f},{z:.3f},{yaw:.4f},{s:.4f}\n"
         for n, k, x, y, z, yaw, s in entries),
@@ -60,7 +64,7 @@ for _, k, x, y, z, yaw, s in entries:
 BIN_OUT.write_bytes(payload)
 
 # 에셋 레이아웃: <name>/<name>.{wmesh,wskel,wmat} + <name>/anims/*.wanim
-for name in ("sru_bird", "sru_duck"):
+for name in ("sru_bird", "sru_duck", "chemtech_firefly_animated"):
     src = REBUILD / "cooked/ambient"
     dst = src / name
     (dst / "anims").mkdir(parents=True, exist_ok=True)

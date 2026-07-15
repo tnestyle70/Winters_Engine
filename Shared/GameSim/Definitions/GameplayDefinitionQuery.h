@@ -1,6 +1,7 @@
 #pragma once
 
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
+#include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/SkillAtomData.h"
 #include "WintersTypes.h"
@@ -45,6 +46,13 @@ namespace GameplayDefinitionQuery
         eChampion fallbackChampion,
         u8_t slot);
 
+    f32_t ResolveSkillManaCost(
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot);
+
     f32_t ResolveSkillEffectParam(
         CWorld& world,
         EntityID entity,
@@ -68,6 +76,11 @@ namespace GameplayDefinitionQuery
         EntityID entity,
         const TickContext& tc,
         eChampion fallbackChampion,
+        u8_t slot,
+        u8_t stage = 1u);
+
+    eSkillActionMovePolicy ResolveSkillActionMovePolicy(
+        eChampion champion,
         u8_t slot,
         u8_t stage = 1u);
 

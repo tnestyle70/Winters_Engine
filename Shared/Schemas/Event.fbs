@@ -43,6 +43,18 @@ table BuffApplyEvent {
     stackCount:ubyte;
 }
 
+enum ProjectileContactReason : ubyte {
+    None = 0,
+    UnitHit = 1,
+    Barrier = 2,
+    Terrain = 3,
+    RangeExpired = 4,
+    SourceInvalid = 5,
+    TargetInvalid = 6,
+    InvalidTrajectory = 7,
+    HitLimit = 8
+}
+
 table ProjectileSpawnEvent {
     netId:uint;
     ownerNet:uint;
@@ -55,6 +67,7 @@ table ProjectileSpawnEvent {
     dirZ:float;
     speed:float;
     maxDist:float;
+    targetNet:uint;
 }
 
 table ProjectileHitEvent {
@@ -66,6 +79,8 @@ table ProjectileHitEvent {
     posY:float;
     posZ:float;
     bDestroyed:bool;
+    contactReason:ProjectileContactReason = None;
+    contactOrdinal:ushort;
 }
 
 table SkillCastEvent {
@@ -81,6 +96,11 @@ table ActionStartEvent {
     actionStage:ubyte = 1;
     actionSeq:uint;
     startTick:ulong;
+    sourceChampionId:ubyte;
+    sourceSlot:ubyte;
+    movePolicy:ubyte;
+    lockEndTick:ulong;
+    commandSeq:uint;
 }
 
 table EffectTriggerEvent {
@@ -129,6 +149,7 @@ table EventPacket {
     actionStart:ActionStartEvent;
     effect:EffectTriggerEvent;
     killFeed:KillFeedEvent;
+    eventOrdinal:uint;
 }
 
 root_type EventPacket;

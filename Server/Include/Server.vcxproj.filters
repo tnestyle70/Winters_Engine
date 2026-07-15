@@ -28,6 +28,9 @@
     <Filter Include="01. Network\02. PacketDispatcher">
       <UniqueIdentifier>{b6a75512-0a54-4d07-b889-e2dcc2be8865}</UniqueIdentifier>
     </Filter>
+    <Filter Include="01. Network\04. UDP">
+      <UniqueIdentifier>{0c6fcf5f-114b-4a27-b18c-d0fe829ad9c2}</UniqueIdentifier>
+    </Filter>
     <Filter Include="03. Security\01. LagCompensation">
       <UniqueIdentifier>{7fe2d4f8-1ef7-4561-a8d4-a8c755f86e3c}</UniqueIdentifier>
     </Filter>
@@ -126,6 +129,9 @@
     <ClCompile Include="..\Private\Network\PacketDispatcher.cpp">
       <Filter>01. Network\02. PacketDispatcher</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Network\ServerSessionHub.cpp">
+      <Filter>01. Network\01. Session</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Network\Session_Manager.cpp">
       <Filter>01. Network\01. Session</Filter>
     </ClCompile>
@@ -140,6 +146,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\Network\Session.cpp">
       <Filter>01. Network\01. Session\Session</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\UdpIocpCore.cpp">
+      <Filter>01. Network\04. UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\Network\UdpReliabilityChannel.cpp">
+      <Filter>01. Network\04. UDP</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Game\ReplayRecorder.cpp">
       <Filter>02. Game\07. Replay</Filter>
@@ -401,6 +413,9 @@
     <ClInclude Include="..\Public\Network\PacketDispatcher.h">
       <Filter>01. Network\02. PacketDispatcher</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Network\ServerSessionHub.h">
+      <Filter>01. Network\01. Session</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\Security\LagCompensation.h">
       <Filter>03. Security\01. LagCompensation</Filter>
     </ClInclude>
@@ -409,6 +424,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\Network\Session.h">
       <Filter>01. Network\01. Session\Session</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\UdpIocpCore.h">
+      <Filter>01. Network\04. UDP</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Game\SnapshotBuilder.h">
       <Filter>02. Game\05. SnapshotBuilder</Filter>

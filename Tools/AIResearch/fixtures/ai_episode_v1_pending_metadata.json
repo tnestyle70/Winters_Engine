@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "episode_id": "p1b-cpp-fixture",
+  "scenario_id": "typed-decision-record-codec",
+  "timeline_epoch": 1,
+  "branch_id": 0,
+  "seed": 20260712,
+  "rules_hash": "0000000000000000000000000000000000000000000000000000000000000011",
+  "definition_hash": "0000000000000000000000000000000000000000000000000000000000000022",
+  "policy_revision": 1,
+  "transitions": [
+    {
+      "trace_index": 0,
+      "next_state_hash": "1234567890abcdef",
+      "reward": 0.0,
+      "terminal": false,
+      "truncated": true
+    }
+  ]
+}

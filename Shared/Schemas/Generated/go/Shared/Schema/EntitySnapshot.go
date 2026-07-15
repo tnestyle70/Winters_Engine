@@ -1391,8 +1391,188 @@ func (rcv *EntitySnapshot) MutateSpellbookRemaining(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(208, n)
 }
 
+func (rcv *EntitySnapshot) ActionSourceChampionId() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(210))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateActionSourceChampionId(n byte) bool {
+	return rcv._tab.MutateByteSlot(210, n)
+}
+
+func (rcv *EntitySnapshot) ActionSourceSlot() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(212))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateActionSourceSlot(n byte) bool {
+	return rcv._tab.MutateByteSlot(212, n)
+}
+
+func (rcv *EntitySnapshot) ActionMovePolicy() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(214))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateActionMovePolicy(n byte) bool {
+	return rcv._tab.MutateByteSlot(214, n)
+}
+
+func (rcv *EntitySnapshot) ActionLockEndTick() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(216))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateActionLockEndTick(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(216, n)
+}
+
+func (rcv *EntitySnapshot) ActionCommandSeq() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(218))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateActionCommandSeq(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(218, n)
+}
+
+func (rcv *EntitySnapshot) MinionAttackWindupSec() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(220))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateMinionAttackWindupSec(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(220, n)
+}
+
+func (rcv *EntitySnapshot) MinionAttackRecoverySec() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(222))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateMinionAttackRecoverySec(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(222, n)
+}
+
+func (rcv *EntitySnapshot) GameplayStateFlags() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(224))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateGameplayStateFlags(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(224, n)
+}
+
+func (rcv *EntitySnapshot) GameplayMoveSpeedMul() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(226))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 1.0
+}
+
+func (rcv *EntitySnapshot) MutateGameplayMoveSpeedMul(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(226, n)
+}
+
+func (rcv *EntitySnapshot) ForcedMotionKind() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(228))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateForcedMotionKind(n byte) bool {
+	return rcv._tab.MutateByteSlot(228, n)
+}
+
+func (rcv *EntitySnapshot) ForcedMotionRemainingSec() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(230))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateForcedMotionRemainingSec(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(230, n)
+}
+
+func (rcv *EntitySnapshot) ProjectileDirX() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(232))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateProjectileDirX(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(232, n)
+}
+
+func (rcv *EntitySnapshot) ProjectileDirY() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(234))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateProjectileDirY(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(234, n)
+}
+
+func (rcv *EntitySnapshot) ProjectileDirZ() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(236))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateProjectileDirZ(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(236, n)
+}
+
+func (rcv *EntitySnapshot) ProjectileTraveledDist() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(238))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateProjectileTraveledDist(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(238, n)
+}
+
 func EntitySnapshotStart(builder *flatbuffers.Builder) {
-	builder.StartObject(103)
+	builder.StartObject(118)
 }
 func EntitySnapshotAddNetId(builder *flatbuffers.Builder, netId uint32) {
 	builder.PrependUint32Slot(0, netId, 0)
@@ -1726,6 +1906,51 @@ func EntitySnapshotAddSpellbookSlot(builder *flatbuffers.Builder, spellbookSlot 
 }
 func EntitySnapshotAddSpellbookRemaining(builder *flatbuffers.Builder, spellbookRemaining float32) {
 	builder.PrependFloat32Slot(102, spellbookRemaining, 0.0)
+}
+func EntitySnapshotAddActionSourceChampionId(builder *flatbuffers.Builder, actionSourceChampionId byte) {
+	builder.PrependByteSlot(103, actionSourceChampionId, 0)
+}
+func EntitySnapshotAddActionSourceSlot(builder *flatbuffers.Builder, actionSourceSlot byte) {
+	builder.PrependByteSlot(104, actionSourceSlot, 0)
+}
+func EntitySnapshotAddActionMovePolicy(builder *flatbuffers.Builder, actionMovePolicy byte) {
+	builder.PrependByteSlot(105, actionMovePolicy, 0)
+}
+func EntitySnapshotAddActionLockEndTick(builder *flatbuffers.Builder, actionLockEndTick uint64) {
+	builder.PrependUint64Slot(106, actionLockEndTick, 0)
+}
+func EntitySnapshotAddActionCommandSeq(builder *flatbuffers.Builder, actionCommandSeq uint32) {
+	builder.PrependUint32Slot(107, actionCommandSeq, 0)
+}
+func EntitySnapshotAddMinionAttackWindupSec(builder *flatbuffers.Builder, minionAttackWindupSec float32) {
+	builder.PrependFloat32Slot(108, minionAttackWindupSec, 0.0)
+}
+func EntitySnapshotAddMinionAttackRecoverySec(builder *flatbuffers.Builder, minionAttackRecoverySec float32) {
+	builder.PrependFloat32Slot(109, minionAttackRecoverySec, 0.0)
+}
+func EntitySnapshotAddGameplayStateFlags(builder *flatbuffers.Builder, gameplayStateFlags uint32) {
+	builder.PrependUint32Slot(110, gameplayStateFlags, 0)
+}
+func EntitySnapshotAddGameplayMoveSpeedMul(builder *flatbuffers.Builder, gameplayMoveSpeedMul float32) {
+	builder.PrependFloat32Slot(111, gameplayMoveSpeedMul, 1.0)
+}
+func EntitySnapshotAddForcedMotionKind(builder *flatbuffers.Builder, forcedMotionKind byte) {
+	builder.PrependByteSlot(112, forcedMotionKind, 0)
+}
+func EntitySnapshotAddForcedMotionRemainingSec(builder *flatbuffers.Builder, forcedMotionRemainingSec float32) {
+	builder.PrependFloat32Slot(113, forcedMotionRemainingSec, 0.0)
+}
+func EntitySnapshotAddProjectileDirX(builder *flatbuffers.Builder, projectileDirX float32) {
+	builder.PrependFloat32Slot(114, projectileDirX, 0.0)
+}
+func EntitySnapshotAddProjectileDirY(builder *flatbuffers.Builder, projectileDirY float32) {
+	builder.PrependFloat32Slot(115, projectileDirY, 0.0)
+}
+func EntitySnapshotAddProjectileDirZ(builder *flatbuffers.Builder, projectileDirZ float32) {
+	builder.PrependFloat32Slot(116, projectileDirZ, 0.0)
+}
+func EntitySnapshotAddProjectileTraveledDist(builder *flatbuffers.Builder, projectileTraveledDist float32) {
+	builder.PrependFloat32Slot(117, projectileTraveledDist, 0.0)
 }
 func EntitySnapshotEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

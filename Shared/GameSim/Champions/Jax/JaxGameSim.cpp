@@ -12,12 +12,13 @@
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Systems/Move/DashArrival.h"
 
@@ -26,6 +27,8 @@
 #include <functional>
 #include <iostream>
 #include <vector>
+
+#include "Shared/GameSim/Core/Checkpoint/KeyframeComponentRegistry.h"
 
 namespace
 {
@@ -75,6 +78,14 @@ namespace
         f32_t elapsedSec = 0.f;
         f32_t durationSec = 0.f;
     };
+
+    // Chrono Break: 익명 네임스페이스 컴포넌트는 소유 TU에서 자기등록한다.
+    const bool_t s_bJaxDashKeyframeRegistered = []()
+    {
+        SimCheckpoint::KeyframeComponentRegistry::Get()
+            .Register<JaxDashComponent>("JaxDashComponent");
+        return true;
+    }();
 
     JaxSimComponent& EnsureJaxState(CWorld& world, EntityID caster)
     {
@@ -137,29 +148,19 @@ namespace
         f32_t radius,
         f32_t amount,
         f32_t stunDurationSec,
-        u8_t slot)
+        u8_t slot,
+        u8_t rank)
     {
-        const f32_t radiusSq = radius * radius;
-        std::vector<EntityID> targets;
-        targets.reserve(8);
-
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
-                {
-                    if (entity == source || champion.team == sourceTeam)
-                        return;
-
-                    const Vec3 pos = transform.GetPosition();
-                    const f32_t dx = pos.x - origin.x;
-                    const f32_t dz = pos.z - origin.z;
-                    if (dx * dx + dz * dz <= radiusSq)
-                        targets.push_back(entity);
-                }));
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
+                world,
+                source,
+                origin,
+                radius);
 
         for (EntityID target : targets)
         {
-            EnqueuePhysicalDamage(world, source, target, sourceTeam, amount, slot, 1);
+            EnqueuePhysicalDamage(world, source, target, sourceTeam, amount, slot, rank);
             if (slot == static_cast<u8_t>(eSkillSlot::E))
             {
                 GameplayStatus::ApplyStun(
@@ -185,7 +186,37 @@ namespace
 
     void StartJaxEReleaseAction(CWorld& world, EntityID caster, const TickContext& tc)
     {
-        StartActionState(world, caster, eActionStateId::SkillE, tc.tickIndex, 2u);
+        bool_t bHasQueuedMove = false;
+        u32_t queuedMoveSequence = 0u;
+        Vec3 queuedMoveTarget{};
+        Vec3 queuedMoveDirection{};
+        if (world.HasComponent<ActionStateComponent>(caster))
+        {
+            const auto& previous = world.GetComponent<ActionStateComponent>(caster);
+            bHasQueuedMove = previous.bHasQueuedMove;
+            queuedMoveSequence = previous.queuedMoveSequence;
+            queuedMoveTarget = previous.queuedMoveTarget;
+            queuedMoveDirection = previous.queuedMoveDirection;
+        }
+
+        auto& action =
+            StartActionState(world, caster, eActionStateId::SkillE, tc.tickIndex, 2u);
+        action.commandSequence = 0u;
+        action.sourceChampion = eChampion::JAX;
+        action.sourceSlot = static_cast<u8_t>(eSkillSlot::E);
+        action.movePolicy = eSkillActionMovePolicy::Allow;
+        action.lockEndTick = tc.tickIndex +
+            GameplayDefinitionQuery::ResolveSkillActionLockTicks(
+                world,
+                caster,
+                tc,
+                eChampion::JAX,
+                static_cast<u8_t>(eSkillSlot::E),
+                2u);
+        action.bHasQueuedMove = bHasQueuedMove;
+        action.queuedMoveSequence = queuedMoveSequence;
+        action.queuedMoveTarget = queuedMoveTarget;
+        action.queuedMoveDirection = queuedMoveDirection;
     }
 
     void ClearJaxEStageWindow(CWorld& world, EntityID caster)
@@ -248,16 +279,31 @@ namespace
                 caster,
                 eSkillSlot::E,
                 eSkillEffectParamId::StunDurationSec);
+            const f32_t radius = ResolveJaxSkillEffectParam(
+                world,
+                tc,
+                caster,
+                eSkillSlot::E,
+                eSkillEffectParamId::Radius,
+                state.counterRadius);
+            const f32_t damage = ResolveJaxSkillEffectParam(
+                world,
+                tc,
+                caster,
+                eSkillSlot::E,
+                eSkillEffectParamId::BaseDamage,
+                state.counterDamage);
             EnqueueCircleDamage(
                 world,
                 tc,
                 caster,
                 champion.team,
                 origin,
-                state.counterRadius,
-                state.counterDamage,
+                radius,
+                damage,
                 stunDurationSec,
-                static_cast<u8_t>(eSkillSlot::E));
+                static_cast<u8_t>(eSkillSlot::E),
+                state.counterRank);
         }
     }
 
@@ -348,6 +394,16 @@ namespace
             return;
 
         JaxSimComponent& state = EnsureJaxState(*ctx.pWorld, ctx.casterEntity);
+        state.empowerWindowSec = ResolveJaxSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::EffectDurationSec,
+            5.f);
+        state.empowerBonusDamage = ResolveJaxSkillEffectParam(
+            ctx,
+            eSkillSlot::W,
+            eSkillEffectParamId::BaseDamage,
+            45.f);
         state.bEmpowerActive = true;
         state.empowerTimerSec = state.empowerWindowSec;
         std::cout << "[JaxSim] W empower caster=" << ctx.casterEntity << "\n";
@@ -371,7 +427,6 @@ namespace
         state.bCounterStrikeActive = true;
         state.counterTimerSec = state.counterDurationSec;
         state.counterRank = ctx.skillRank;
-        ClearMove(*ctx.pWorld, ctx.casterEntity);
         std::cout << "[JaxSim] E counter start caster=" << ctx.casterEntity << "\n";
     }
 
@@ -381,6 +436,21 @@ namespace
             return;
 
         JaxSimComponent& state = EnsureJaxState(*ctx.pWorld, ctx.casterEntity);
+        state.ultDurationSec = ResolveJaxSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::EffectDurationSec,
+            8.f);
+        state.ultThirdHitDamage = ResolveJaxSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::BaseDamage,
+            70.f);
+        state.ultThirdHitThreshold = static_cast<u8_t>(ResolveJaxSkillEffectParam(
+            ctx,
+            eSkillSlot::R,
+            eSkillEffectParamId::MaxStacks,
+            3.f));
         state.bUltActive = true;
         state.ultTimerSec = state.ultDurationSec;
         state.ultAttackCounter = 0;
@@ -390,6 +460,14 @@ namespace
 
 namespace JaxGameSim
 {
+    void CancelRuntime(CWorld& world, EntityID caster)
+    {
+        if (world.HasComponent<JaxDashComponent>(caster))
+            world.RemoveComponent<JaxDashComponent>(caster);
+        if (world.HasComponent<JaxSimComponent>(caster))
+            world.RemoveComponent<JaxSimComponent>(caster);
+    }
+
     bool_t TryConsumeEmpowerForBasicAttack(CWorld& world, EntityID caster)
     {
         if (!world.HasComponent<JaxSimComponent>(caster))
@@ -424,7 +502,7 @@ namespace JaxGameSim
         if (state.bUltActive)
         {
             ++state.ultAttackCounter;
-            if (state.ultAttackCounter >= 3)
+            if (state.ultAttackCounter >= state.ultThirdHitThreshold)
             {
                 state.ultAttackCounter = 0;
                 damage += state.ultThirdHitDamage;
@@ -441,6 +519,13 @@ namespace JaxGameSim
             std::function<void(EntityID, JaxDashComponent&, TransformComponent&)>(
                 [&](EntityID entity, JaxDashComponent& dash, TransformComponent& transform)
                 {
+                    if (!GameplayStateQuery::CanMove(world, entity) ||
+                        world.HasComponent<ForcedMotionComponent>(entity))
+                    {
+                        finishedDashes.push_back(entity);
+                        return;
+                    }
+
                     ClearMove(world, entity);
 
                     dash.elapsedSec += tc.fDt;
@@ -481,6 +566,11 @@ namespace JaxGameSim
 
         for (EntityID entity : finishedDashes)
         {
+            if (world.HasComponent<ForcedMotionComponent>(entity))
+            {
+                world.RemoveComponent<JaxDashComponent>(entity);
+                continue;
+            }
             if (world.HasComponent<JaxDashComponent>(entity))
                 SnapDashArrivalToWalkable(world, tc, entity,
                     world.GetComponent<JaxDashComponent>(entity).start);

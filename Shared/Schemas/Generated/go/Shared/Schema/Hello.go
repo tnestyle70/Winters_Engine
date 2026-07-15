@@ -113,8 +113,44 @@ func (rcv *Hello) MutateTeam(n byte) bool {
 	return rcv._tab.MutateByteSlot(14, n)
 }
 
+func (rcv *Hello) DataBuildHash() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Hello) MutateDataBuildHash(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(16, n)
+}
+
+func (rcv *Hello) GameplayPackHash() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Hello) MutateGameplayPackHash(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(18, n)
+}
+
+func (rcv *Hello) GameplayPackRevision() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Hello) MutateGameplayPackRevision(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(20, n)
+}
+
 func HelloStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(9)
 }
 func HelloAddSessionId(builder *flatbuffers.Builder, sessionId uint32) {
 	builder.PrependUint32Slot(0, sessionId, 0)
@@ -133,6 +169,15 @@ func HelloAddChampionId(builder *flatbuffers.Builder, championId byte) {
 }
 func HelloAddTeam(builder *flatbuffers.Builder, team byte) {
 	builder.PrependByteSlot(5, team, 0)
+}
+func HelloAddDataBuildHash(builder *flatbuffers.Builder, dataBuildHash uint32) {
+	builder.PrependUint32Slot(6, dataBuildHash, 0)
+}
+func HelloAddGameplayPackHash(builder *flatbuffers.Builder, gameplayPackHash uint32) {
+	builder.PrependUint32Slot(7, gameplayPackHash, 0)
+}
+func HelloAddGameplayPackRevision(builder *flatbuffers.Builder, gameplayPackRevision uint32) {
+	builder.PrependUint32Slot(8, gameplayPackRevision, 0)
 }
 func HelloEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

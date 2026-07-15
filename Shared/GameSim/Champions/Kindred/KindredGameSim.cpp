@@ -5,15 +5,18 @@
 #include "Shared/GameSim/Components/KindredSimComponent.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
+#include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <iostream>
 
@@ -423,6 +426,14 @@ namespace
         Vec3 center = ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         if (ctx.pCommand)
             center = ctx.pCommand->groundPos;
+		if (!KindredGameSim::CanCastLambsRespite(
+			*ctx.pWorld,
+			*ctx.pTickCtx,
+			ctx.casterEntity,
+			center))
+		{
+			return;
+		}
 
         KindredSimComponent& state = EnsureKindredState(*ctx.pWorld, ctx.casterEntity);
         state.fRRemainingSec = ResolveKindredSkillEffectParam(
@@ -440,6 +451,43 @@ namespace
 
 namespace KindredGameSim
 {
+	bool_t CanCastLambsRespite(
+		CWorld& world,
+		const TickContext& tc,
+		EntityID caster,
+		const Vec3& center)
+	{
+		if (caster == NULL_ENTITY ||
+			!world.IsAlive(caster) ||
+			!world.HasComponent<ChampionComponent>(caster) ||
+			!world.HasComponent<TransformComponent>(caster) ||
+			!std::isfinite(center.x) ||
+			!std::isfinite(center.y) ||
+			!std::isfinite(center.z))
+		{
+			return false;
+		}
+
+		f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+			world,
+			caster,
+			tc,
+			eChampion::KINDRED,
+			static_cast<u8_t>(eSkillSlot::R));
+		if (range <= 0.f)
+			range = 6.f;
+		range += GameplayStateQuery::ResolveGameplayRadius(world, caster);
+
+		const Vec3 casterPosition =
+			world.GetComponent<TransformComponent>(caster).GetPosition();
+		if (WintersMath::DistanceSqXZ(casterPosition, center) > range * range)
+			return false;
+
+		return !tc.pWalkable ||
+			(tc.pWalkable->IsWalkableXZ(center) &&
+				tc.pWalkable->SegmentWalkableXZ(casterPosition, center, 0.f));
+	}
+
     void RegisterHooks()
     {
         static bool_t s_bRegistered = false;
@@ -536,11 +584,15 @@ namespace KindredGameSim
         if (state.markedTarget != target || state.fEMarkRemainingSec <= 0.f)
             return baseDamage;
 
+        const u32_t maxStacks = static_cast<u32_t>(ResolveKindredSkillEffectParam(
+            world, tc, caster, eSkillSlot::E,
+            eSkillEffectParamId::MaxStacks, 3.f));
+
         state.mountingDreadHitCount =
-            static_cast<u8_t>(std::min<u32_t>(3u, state.mountingDreadHitCount + 1u));
+            static_cast<u8_t>(std::min<u32_t>(maxStacks, state.mountingDreadHitCount + 1u));
         EmitMountingDreadStackEffect(world, tc, caster, target, state.mountingDreadHitCount);
 
-        if (state.mountingDreadHitCount < 3u)
+        if (state.mountingDreadHitCount < maxStacks)
             return baseDamage;
 
         state.markedTarget = NULL_ENTITY;

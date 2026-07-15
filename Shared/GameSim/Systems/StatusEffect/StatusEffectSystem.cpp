@@ -1,12 +1,19 @@
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 
-#include "ECS/World.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/World/World.h"
+#include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/AttackChaseComponent.h"
+#include "Shared/GameSim/Components/CombatActionComponent.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
+#include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Feedback/GameplayFeedbackQueue.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
-#include "Shared/GameSim/Core/World/World.h"
+#include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 
 #include <algorithm>
+#include <cmath>
 #include <functional>
 #include <vector>
 
@@ -29,9 +36,23 @@ namespace
     bool_t IsSameStack(const StatusEffectInstance& effect, const StatusEffectApplyDesc& desc)
     {
         if (desc.stackGroup != 0u)
-            return effect.stackGroup == desc.stackGroup;
+        {
+            return effect.stackGroup == desc.stackGroup &&
+                effect.effectId == desc.effectId &&
+                effect.sourceEntity == desc.sourceEntity;
+        }
         return effect.effectId == desc.effectId &&
             effect.sourceEntity == desc.sourceEntity;
+    }
+
+    bool_t IsCrowdControlStatus(const StatusEffectApplyDesc& desc)
+    {
+        constexpr u32_t kCrowdControlFlags =
+            kGameplayStateStunnedFlag |
+            kGameplayStateSlowedFlag |
+            kGameplayStateDisarmedFlag |
+            kGameplayStateAirborneFlag;
+        return (desc.stateFlags & kCrowdControlFlags) != 0u;
     }
 
     void CompactExpired(StatusEffectComponent& effects)
@@ -55,7 +76,7 @@ namespace
         effects.count = write;
     }
 
-    void UpsertEffect(StatusEffectComponent& effects, const StatusEffectApplyDesc& desc)
+    bool_t UpsertEffect(StatusEffectComponent& effects, const StatusEffectApplyDesc& desc)
     {
         if (desc.stackPolicy != eStatusStackPolicy::AddIndependent)
         {
@@ -75,7 +96,7 @@ namespace
                     effect.fRemainingSec = (std::max)(effect.fRemainingSec, desc.fDurationSec);
                 else
                     effect.fRemainingSec = desc.fDurationSec;
-                return;
+                return true;
             }
         }
 
@@ -91,16 +112,13 @@ namespace
         if (effects.count < kMaxStatusEffectInstances)
         {
             effects.active[effects.count++] = next;
-            return;
+            return true;
         }
 
-        u8_t replaceIndex = 0;
-        for (u8_t i = 1; i < effects.count; ++i)
-        {
-            if (effects.active[i].fRemainingSec < effects.active[replaceIndex].fRemainingSec)
-                replaceIndex = i;
-        }
-        effects.active[replaceIndex] = next;
+        // Silently evicting a live effect can detach state ownership from a
+        // forced motion, carry lock, or channel. Preserve existing contracts
+        // and let the caller observe deterministic capacity rejection.
+        return false;
     }
 
     void PushUnique(std::vector<EntityID>& entities, EntityID entity)
@@ -123,32 +141,89 @@ namespace
         {
             return false;
         }
+        if (IsCrowdControlStatus(desc) &&
+            !GameplayStateQuery::CanReceiveCrowdControl(
+                world,
+                desc.sourceEntity,
+                target))
+        {
+            return false;
+        }
 
         StatusEffectComponent& effects = EnsureStatusEffects(world, target);
-        UpsertEffect(effects, desc);
+        if (desc.effectId == eStatusEffectId::GenericAirborne)
+        {
+            // Forced motion is single-owner per entity. A newer airborne therefore
+            // replaces the complete previous airborne contract (state + motion)
+            // instead of leaving independent timers behind with no matching arc.
+            for (u8_t i = 0; i < effects.count; ++i)
+            {
+                if (effects.active[i].effectId == eStatusEffectId::GenericAirborne)
+                    effects.active[i] = StatusEffectInstance{};
+            }
+            CompactExpired(effects);
+        }
+        if (!UpsertEffect(effects, desc))
+            return false;
         GameplayStatus::RebuildGameplayState(world, target);
         return true;
+    }
+
+    void InterruptActionsForCrowdControl(
+        CWorld& world,
+        EntityID target,
+        const StatusEffectApplyDesc& desc,
+        const TickContext& tc)
+    {
+        constexpr u32_t kInterruptingFlags =
+            kGameplayStateStunnedFlag |
+            kGameplayStateAirborneFlag;
+        if ((desc.stateFlags & kInterruptingFlags) == 0u)
+            return;
+
+        if (world.HasComponent<CombatActionComponent>(target))
+            world.RemoveComponent<CombatActionComponent>(target);
+        if (world.HasComponent<AttackChaseComponent>(target))
+            world.RemoveComponent<AttackChaseComponent>(target);
+        if (world.HasComponent<RecallComponent>(target))
+            world.RemoveComponent<RecallComponent>(target);
+
+        if (world.HasComponent<ActionStateComponent>(target))
+        {
+            auto& action = world.GetComponent<ActionStateComponent>(target);
+            action.actionId = static_cast<u16_t>(eActionStateId::None);
+            action.startTick = tc.tickIndex;
+            action.lockEndTick = tc.tickIndex;
+            ++action.sequence;
+            action.sourceChampion = eChampion::NONE;
+            action.sourceSlot = 0u;
+            action.stage = 1u;
+            action.movePolicy = eSkillActionMovePolicy::Allow;
+        }
+        SetPoseState(world, target, ePoseStateId::Idle, tc.tickIndex, true);
     }
 }
 
 namespace GameplayStatus
 {
-    void ApplyStatusEffect(
+    bool_t TryApplyStatusEffect(
         CWorld& world,
         EntityID target,
         const StatusEffectApplyDesc& desc)
     {
-        (void)ApplyStatusEffectInternal(world, target, desc);
+        return ApplyStatusEffectInternal(world, target, desc);
     }
 
-    void ApplyStatusEffect(
+    bool_t TryApplyStatusEffect(
         CWorld& world,
         EntityID target,
         const StatusEffectApplyDesc& desc,
         const TickContext& tc)
     {
         if (!ApplyStatusEffectInternal(world, target, desc))
-            return;
+            return false;
+
+        InterruptActionsForCrowdControl(world, target, desc, tc);
 
         const GameplayFeedback::WorldTextFeedbackKind feedbackKind =
             GameplayFeedback::ResolveStatusFeedbackKind(desc.effectId, desc.stateFlags);
@@ -158,6 +233,110 @@ namespace GameplayStatus
             desc.sourceEntity,
             target,
             feedbackKind);
+        return true;
+    }
+
+    void ApplyStatusEffect(
+        CWorld& world,
+        EntityID target,
+        const StatusEffectApplyDesc& desc)
+    {
+        (void)TryApplyStatusEffect(world, target, desc);
+    }
+
+    void ApplyStatusEffect(
+        CWorld& world,
+        EntityID target,
+        const StatusEffectApplyDesc& desc,
+        const TickContext& tc)
+    {
+        (void)TryApplyStatusEffect(world, target, desc, tc);
+    }
+
+    bool_t RemoveStatusEffect(
+        CWorld& world,
+        EntityID target,
+        eStatusEffectId effectId,
+        EntityID source)
+    {
+        if (target == NULL_ENTITY ||
+            !world.IsAlive(target) ||
+            effectId == eStatusEffectId::None ||
+            !world.HasComponent<StatusEffectComponent>(target))
+        {
+            return false;
+        }
+
+        StatusEffectComponent& effects = world.GetComponent<StatusEffectComponent>(target);
+        bool_t removed = false;
+        for (u8_t i = 0; i < effects.count; ++i)
+        {
+            StatusEffectInstance& effect = effects.active[i];
+            if (effect.effectId != effectId || effect.sourceEntity != source)
+                continue;
+            effect = StatusEffectInstance{};
+            removed = true;
+        }
+        if (!removed)
+            return false;
+
+        CompactExpired(effects);
+        if (effectId == eStatusEffectId::GenericAirborne &&
+            world.HasComponent<ForcedMotionComponent>(target))
+        {
+            const ForcedMotionComponent motion =
+                world.GetComponent<ForcedMotionComponent>(target);
+            if (motion.sourceEntity == source)
+            {
+                if (world.HasComponent<TransformComponent>(target))
+                    world.GetComponent<TransformComponent>(target).SetPosition(motion.end);
+                world.RemoveComponent<ForcedMotionComponent>(target);
+            }
+        }
+        RebuildGameplayState(world, target);
+        return true;
+    }
+
+    bool_t StartAirborneMotion(
+        CWorld& world,
+        EntityID target,
+        EntityID source,
+        const Vec3& landingPosition,
+        f32_t durationSec,
+        f32_t arcHeight,
+        bool_t bGatherToLanding)
+    {
+        if (target == NULL_ENTITY ||
+            !world.IsAlive(target) ||
+            durationSec <= 0.f ||
+            !world.HasComponent<TransformComponent>(target) ||
+            !GameplayStateQuery::CanReceiveCrowdControl(world, source, target))
+        {
+            return false;
+        }
+
+        const Vec3 currentPosition =
+            world.GetComponent<TransformComponent>(target).GetPosition();
+        ForcedMotionComponent motion{};
+        motion.kind = bGatherToLanding
+            ? eForcedMotionKind::GatherAirborneArc
+            : eForcedMotionKind::AirborneArc;
+        motion.sourceEntity = source;
+        motion.start = currentPosition;
+        motion.end = landingPosition;
+        if (!bGatherToLanding)
+        {
+            motion.end.x = currentPosition.x;
+            motion.end.z = currentPosition.z;
+        }
+        motion.fDurationSec = durationSec;
+        motion.fArcHeight = (std::max)(0.f, arcHeight);
+
+        if (world.HasComponent<ForcedMotionComponent>(target))
+            world.GetComponent<ForcedMotionComponent>(target) = motion;
+        else
+            world.AddComponent<ForcedMotionComponent>(target, motion);
+        return true;
     }
 
     void TickStatusEffects(CWorld& world, const TickContext& tc)
@@ -223,6 +402,87 @@ namespace GameplayStatus
             if (world.IsAlive(entity))
                 RebuildGameplayState(world, entity);
         }
+    }
+
+    void TickForcedMotions(CWorld& world, const TickContext& tc)
+    {
+        std::vector<EntityID> finished;
+        const auto entities =
+            DeterministicEntityIterator<ForcedMotionComponent>::CollectSorted(world);
+        finished.reserve(entities.size());
+
+        for (EntityID entity : entities)
+        {
+            if (!world.IsAlive(entity) ||
+                !world.HasComponent<ForcedMotionComponent>(entity))
+            {
+                continue;
+            }
+            if (!world.HasComponent<TransformComponent>(entity))
+            {
+                finished.push_back(entity);
+                continue;
+            }
+
+            ForcedMotionComponent& motion =
+                world.GetComponent<ForcedMotionComponent>(entity);
+            motion.fElapsedSec += tc.fDt;
+            const f32_t duration = (std::max)(0.0001f, motion.fDurationSec);
+            const f32_t t = (std::clamp)(motion.fElapsedSec / duration, 0.f, 1.f);
+            const f32_t arc =
+                std::sin(t * WintersMath::kPi) * (std::max)(0.f, motion.fArcHeight);
+
+            Vec3 position{};
+            if (motion.kind == eForcedMotionKind::GatherAirborneArc)
+            {
+                position.x = motion.start.x + (motion.end.x - motion.start.x) * t;
+                position.z = motion.start.z + (motion.end.z - motion.start.z) * t;
+            }
+            else
+            {
+                position.x = motion.start.x;
+                position.z = motion.start.z;
+            }
+            position.y =
+                motion.start.y + (motion.end.y - motion.start.y) * t + arc;
+            world.GetComponent<TransformComponent>(entity).SetPosition(position);
+
+            if (t >= 1.f || motion.kind == eForcedMotionKind::None)
+            {
+                world.GetComponent<TransformComponent>(entity).SetPosition(motion.end);
+                finished.push_back(entity);
+            }
+        }
+
+        for (EntityID entity : finished)
+        {
+            if (world.IsAlive(entity) && world.HasComponent<ForcedMotionComponent>(entity))
+                world.RemoveComponent<ForcedMotionComponent>(entity);
+        }
+    }
+
+    void ClearStatusEffects(CWorld& world, EntityID entity)
+    {
+        if (entity == NULL_ENTITY || !world.IsAlive(entity))
+            return;
+
+        if (world.HasComponent<ForcedMotionComponent>(entity))
+        {
+            const ForcedMotionComponent motion =
+                world.GetComponent<ForcedMotionComponent>(entity);
+            if (world.HasComponent<TransformComponent>(entity))
+                world.GetComponent<TransformComponent>(entity).SetPosition(motion.end);
+            world.RemoveComponent<ForcedMotionComponent>(entity);
+        }
+        if (world.HasComponent<StatusEffectComponent>(entity))
+            world.RemoveComponent<StatusEffectComponent>(entity);
+        if (world.HasComponent<StunComponent>(entity))
+            world.RemoveComponent<StunComponent>(entity);
+        if (world.HasComponent<SlowComponent>(entity))
+            world.RemoveComponent<SlowComponent>(entity);
+        if (world.HasComponent<DisarmComponent>(entity))
+            world.RemoveComponent<DisarmComponent>(entity);
+        RebuildGameplayState(world, entity);
     }
 
     void RebuildGameplayState(CWorld& world, EntityID entity)

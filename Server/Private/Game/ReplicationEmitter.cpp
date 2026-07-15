@@ -87,6 +87,7 @@ bool_t CReplicationEmitter::TryBuildReplicatedEvent(
     EntityIdMap& entityMap,
     EntityID eventEntity,
     u64_t serverTick,
+    u32_t uEventOrdinal,
     SharedSim::SerializedReplicatedEvent& outSerialized)
 {
     if (!world.IsAlive(eventEntity) ||
@@ -103,5 +104,6 @@ bool_t CReplicationEmitter::TryBuildReplicatedEvent(
         entityMap,
         event,
         serverTick,
+        uEventOrdinal,
         outSerialized);
 }

@@ -24,9 +24,10 @@ namespace
 void CServerAICommandProducer::Execute(
     CWorld& world,
     const TickContext& tc,
-    std::vector<GameCommand>& outCommands)
+    std::vector<GameCommand>& outCommands,
+    const ChampionAIShadowPolicyArtifactV1* pShadowPolicy)
 {
-    CChampionAISystem::Execute(world, tc, outCommands);
+    CChampionAISystem::Execute(world, tc, outCommands, pShadowPolicy);
 }
 
 u8_t CServerAICommandProducer::ResolveInitialBotLane(

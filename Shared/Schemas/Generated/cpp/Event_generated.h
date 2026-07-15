@@ -129,6 +129,57 @@ inline const char *EnumNameEventKind(EventKind e) {
   return EnumNamesEventKind()[index];
 }
 
+enum class ProjectileContactReason : uint8_t {
+  None = 0,
+  UnitHit = 1,
+  Barrier = 2,
+  Terrain = 3,
+  RangeExpired = 4,
+  SourceInvalid = 5,
+  TargetInvalid = 6,
+  InvalidTrajectory = 7,
+  HitLimit = 8,
+  MIN = None,
+  MAX = HitLimit
+};
+
+inline const ProjectileContactReason (&EnumValuesProjectileContactReason())[9] {
+  static const ProjectileContactReason values[] = {
+    ProjectileContactReason::None,
+    ProjectileContactReason::UnitHit,
+    ProjectileContactReason::Barrier,
+    ProjectileContactReason::Terrain,
+    ProjectileContactReason::RangeExpired,
+    ProjectileContactReason::SourceInvalid,
+    ProjectileContactReason::TargetInvalid,
+    ProjectileContactReason::InvalidTrajectory,
+    ProjectileContactReason::HitLimit
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesProjectileContactReason() {
+  static const char * const names[10] = {
+    "None",
+    "UnitHit",
+    "Barrier",
+    "Terrain",
+    "RangeExpired",
+    "SourceInvalid",
+    "TargetInvalid",
+    "InvalidTrajectory",
+    "HitLimit",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameProjectileContactReason(ProjectileContactReason e) {
+  if (::flatbuffers::IsOutRange(e, ProjectileContactReason::None, ProjectileContactReason::HitLimit)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesProjectileContactReason()[index];
+}
+
 enum class KillFeedObjectKind : uint8_t {
   None = 0,
   Champion = 1,
@@ -368,7 +419,8 @@ struct ProjectileSpawnEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
     VT_DIRY = 18,
     VT_DIRZ = 20,
     VT_SPEED = 22,
-    VT_MAXDIST = 24
+    VT_MAXDIST = 24,
+    VT_TARGETNET = 26
   };
   uint32_t netId() const {
     return GetField<uint32_t>(VT_NETID, 0);
@@ -403,6 +455,9 @@ struct ProjectileSpawnEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
   float maxDist() const {
     return GetField<float>(VT_MAXDIST, 0.0f);
   }
+  uint32_t targetNet() const {
+    return GetField<uint32_t>(VT_TARGETNET, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -417,6 +472,7 @@ struct ProjectileSpawnEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Tab
            VerifyField<float>(verifier, VT_DIRZ, 4) &&
            VerifyField<float>(verifier, VT_SPEED, 4) &&
            VerifyField<float>(verifier, VT_MAXDIST, 4) &&
+           VerifyField<uint32_t>(verifier, VT_TARGETNET, 4) &&
            verifier.EndTable();
   }
 };
@@ -458,6 +514,9 @@ struct ProjectileSpawnEventBuilder {
   void add_maxDist(float maxDist) {
     fbb_.AddElement<float>(ProjectileSpawnEvent::VT_MAXDIST, maxDist, 0.0f);
   }
+  void add_targetNet(uint32_t targetNet) {
+    fbb_.AddElement<uint32_t>(ProjectileSpawnEvent::VT_TARGETNET, targetNet, 0);
+  }
   explicit ProjectileSpawnEventBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -481,8 +540,10 @@ inline ::flatbuffers::Offset<ProjectileSpawnEvent> CreateProjectileSpawnEvent(
     float dirY = 0.0f,
     float dirZ = 0.0f,
     float speed = 0.0f,
-    float maxDist = 0.0f) {
+    float maxDist = 0.0f,
+    uint32_t targetNet = 0) {
   ProjectileSpawnEventBuilder builder_(_fbb);
+  builder_.add_targetNet(targetNet);
   builder_.add_maxDist(maxDist);
   builder_.add_speed(speed);
   builder_.add_dirZ(dirZ);
@@ -507,7 +568,9 @@ struct ProjectileHitEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
     VT_POSX = 12,
     VT_POSY = 14,
     VT_POSZ = 16,
-    VT_BDESTROYED = 18
+    VT_BDESTROYED = 18,
+    VT_CONTACTREASON = 20,
+    VT_CONTACTORDINAL = 22
   };
   uint32_t netId() const {
     return GetField<uint32_t>(VT_NETID, 0);
@@ -533,6 +596,12 @@ struct ProjectileHitEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
   bool bDestroyed() const {
     return GetField<uint8_t>(VT_BDESTROYED, 0) != 0;
   }
+  Shared::Schema::ProjectileContactReason contactReason() const {
+    return static_cast<Shared::Schema::ProjectileContactReason>(GetField<uint8_t>(VT_CONTACTREASON, 0));
+  }
+  uint16_t contactOrdinal() const {
+    return GetField<uint16_t>(VT_CONTACTORDINAL, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -544,6 +613,8 @@ struct ProjectileHitEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
            VerifyField<float>(verifier, VT_POSY, 4) &&
            VerifyField<float>(verifier, VT_POSZ, 4) &&
            VerifyField<uint8_t>(verifier, VT_BDESTROYED, 1) &&
+           VerifyField<uint8_t>(verifier, VT_CONTACTREASON, 1) &&
+           VerifyField<uint16_t>(verifier, VT_CONTACTORDINAL, 2) &&
            verifier.EndTable();
   }
 };
@@ -576,6 +647,12 @@ struct ProjectileHitEventBuilder {
   void add_bDestroyed(bool bDestroyed) {
     fbb_.AddElement<uint8_t>(ProjectileHitEvent::VT_BDESTROYED, static_cast<uint8_t>(bDestroyed), 0);
   }
+  void add_contactReason(Shared::Schema::ProjectileContactReason contactReason) {
+    fbb_.AddElement<uint8_t>(ProjectileHitEvent::VT_CONTACTREASON, static_cast<uint8_t>(contactReason), 0);
+  }
+  void add_contactOrdinal(uint16_t contactOrdinal) {
+    fbb_.AddElement<uint16_t>(ProjectileHitEvent::VT_CONTACTORDINAL, contactOrdinal, 0);
+  }
   explicit ProjectileHitEventBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -596,7 +673,9 @@ inline ::flatbuffers::Offset<ProjectileHitEvent> CreateProjectileHitEvent(
     float posX = 0.0f,
     float posY = 0.0f,
     float posZ = 0.0f,
-    bool bDestroyed = false) {
+    bool bDestroyed = false,
+    Shared::Schema::ProjectileContactReason contactReason = Shared::Schema::ProjectileContactReason::None,
+    uint16_t contactOrdinal = 0) {
   ProjectileHitEventBuilder builder_(_fbb);
   builder_.add_posZ(posZ);
   builder_.add_posY(posY);
@@ -604,7 +683,9 @@ inline ::flatbuffers::Offset<ProjectileHitEvent> CreateProjectileHitEvent(
   builder_.add_targetNet(targetNet);
   builder_.add_ownerNet(ownerNet);
   builder_.add_netId(netId);
+  builder_.add_contactOrdinal(contactOrdinal);
   builder_.add_kind(kind);
+  builder_.add_contactReason(contactReason);
   builder_.add_bDestroyed(bDestroyed);
   return builder_.Finish();
 }
@@ -688,7 +769,12 @@ struct ActionStartEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_ACTIONID = 6,
     VT_ACTIONSTAGE = 8,
     VT_ACTIONSEQ = 10,
-    VT_STARTTICK = 12
+    VT_STARTTICK = 12,
+    VT_SOURCECHAMPIONID = 14,
+    VT_SOURCESLOT = 16,
+    VT_MOVEPOLICY = 18,
+    VT_LOCKENDTICK = 20,
+    VT_COMMANDSEQ = 22
   };
   uint32_t netId() const {
     return GetField<uint32_t>(VT_NETID, 0);
@@ -705,6 +791,21 @@ struct ActionStartEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint64_t startTick() const {
     return GetField<uint64_t>(VT_STARTTICK, 0);
   }
+  uint8_t sourceChampionId() const {
+    return GetField<uint8_t>(VT_SOURCECHAMPIONID, 0);
+  }
+  uint8_t sourceSlot() const {
+    return GetField<uint8_t>(VT_SOURCESLOT, 0);
+  }
+  uint8_t movePolicy() const {
+    return GetField<uint8_t>(VT_MOVEPOLICY, 0);
+  }
+  uint64_t lockEndTick() const {
+    return GetField<uint64_t>(VT_LOCKENDTICK, 0);
+  }
+  uint32_t commandSeq() const {
+    return GetField<uint32_t>(VT_COMMANDSEQ, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -713,6 +814,11 @@ struct ActionStartEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_ACTIONSTAGE, 1) &&
            VerifyField<uint32_t>(verifier, VT_ACTIONSEQ, 4) &&
            VerifyField<uint64_t>(verifier, VT_STARTTICK, 8) &&
+           VerifyField<uint8_t>(verifier, VT_SOURCECHAMPIONID, 1) &&
+           VerifyField<uint8_t>(verifier, VT_SOURCESLOT, 1) &&
+           VerifyField<uint8_t>(verifier, VT_MOVEPOLICY, 1) &&
+           VerifyField<uint64_t>(verifier, VT_LOCKENDTICK, 8) &&
+           VerifyField<uint32_t>(verifier, VT_COMMANDSEQ, 4) &&
            verifier.EndTable();
   }
 };
@@ -736,6 +842,21 @@ struct ActionStartEventBuilder {
   void add_startTick(uint64_t startTick) {
     fbb_.AddElement<uint64_t>(ActionStartEvent::VT_STARTTICK, startTick, 0);
   }
+  void add_sourceChampionId(uint8_t sourceChampionId) {
+    fbb_.AddElement<uint8_t>(ActionStartEvent::VT_SOURCECHAMPIONID, sourceChampionId, 0);
+  }
+  void add_sourceSlot(uint8_t sourceSlot) {
+    fbb_.AddElement<uint8_t>(ActionStartEvent::VT_SOURCESLOT, sourceSlot, 0);
+  }
+  void add_movePolicy(uint8_t movePolicy) {
+    fbb_.AddElement<uint8_t>(ActionStartEvent::VT_MOVEPOLICY, movePolicy, 0);
+  }
+  void add_lockEndTick(uint64_t lockEndTick) {
+    fbb_.AddElement<uint64_t>(ActionStartEvent::VT_LOCKENDTICK, lockEndTick, 0);
+  }
+  void add_commandSeq(uint32_t commandSeq) {
+    fbb_.AddElement<uint32_t>(ActionStartEvent::VT_COMMANDSEQ, commandSeq, 0);
+  }
   explicit ActionStartEventBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -753,12 +874,22 @@ inline ::flatbuffers::Offset<ActionStartEvent> CreateActionStartEvent(
     uint16_t actionId = 0,
     uint8_t actionStage = 1,
     uint32_t actionSeq = 0,
-    uint64_t startTick = 0) {
+    uint64_t startTick = 0,
+    uint8_t sourceChampionId = 0,
+    uint8_t sourceSlot = 0,
+    uint8_t movePolicy = 0,
+    uint64_t lockEndTick = 0,
+    uint32_t commandSeq = 0) {
   ActionStartEventBuilder builder_(_fbb);
+  builder_.add_lockEndTick(lockEndTick);
   builder_.add_startTick(startTick);
+  builder_.add_commandSeq(commandSeq);
   builder_.add_actionSeq(actionSeq);
   builder_.add_netId(netId);
   builder_.add_actionId(actionId);
+  builder_.add_movePolicy(movePolicy);
+  builder_.add_sourceSlot(sourceSlot);
+  builder_.add_sourceChampionId(sourceChampionId);
   builder_.add_actionStage(actionStage);
   return builder_.Finish();
 }
@@ -1039,7 +1170,8 @@ struct EventPacket FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_SKILLCAST = 16,
     VT_ACTIONSTART = 18,
     VT_EFFECT = 20,
-    VT_KILLFEED = 22
+    VT_KILLFEED = 22,
+    VT_EVENTORDINAL = 24
   };
   Shared::Schema::EventKind kind() const {
     return static_cast<Shared::Schema::EventKind>(GetField<uint8_t>(VT_KIND, 0));
@@ -1071,6 +1203,9 @@ struct EventPacket FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const Shared::Schema::KillFeedEvent *killFeed() const {
     return GetPointer<const Shared::Schema::KillFeedEvent *>(VT_KILLFEED);
   }
+  uint32_t eventOrdinal() const {
+    return GetField<uint32_t>(VT_EVENTORDINAL, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1092,6 +1227,7 @@ struct EventPacket FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            verifier.VerifyTable(effect()) &&
            VerifyOffset(verifier, VT_KILLFEED) &&
            verifier.VerifyTable(killFeed()) &&
+           VerifyField<uint32_t>(verifier, VT_EVENTORDINAL, 4) &&
            verifier.EndTable();
   }
 };
@@ -1130,6 +1266,9 @@ struct EventPacketBuilder {
   void add_killFeed(::flatbuffers::Offset<Shared::Schema::KillFeedEvent> killFeed) {
     fbb_.AddOffset(EventPacket::VT_KILLFEED, killFeed);
   }
+  void add_eventOrdinal(uint32_t eventOrdinal) {
+    fbb_.AddElement<uint32_t>(EventPacket::VT_EVENTORDINAL, eventOrdinal, 0);
+  }
   explicit EventPacketBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1152,9 +1291,11 @@ inline ::flatbuffers::Offset<EventPacket> CreateEventPacket(
     ::flatbuffers::Offset<Shared::Schema::SkillCastEvent> skillCast = 0,
     ::flatbuffers::Offset<Shared::Schema::ActionStartEvent> actionStart = 0,
     ::flatbuffers::Offset<Shared::Schema::EffectTriggerEvent> effect = 0,
-    ::flatbuffers::Offset<Shared::Schema::KillFeedEvent> killFeed = 0) {
+    ::flatbuffers::Offset<Shared::Schema::KillFeedEvent> killFeed = 0,
+    uint32_t eventOrdinal = 0) {
   EventPacketBuilder builder_(_fbb);
   builder_.add_serverTick(serverTick);
+  builder_.add_eventOrdinal(eventOrdinal);
   builder_.add_killFeed(killFeed);
   builder_.add_effect(effect);
   builder_.add_actionStart(actionStart);

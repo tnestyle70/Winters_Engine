@@ -3,12 +3,15 @@
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/KindredSimComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Registries/SkillScaling/SkillScalingRegistry.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/Shield/ShieldSystem.h"
 
 #include <algorithm>
 
@@ -250,44 +253,42 @@ namespace
         outShielded = true;
         return amount - absorbed;
     }
-    f32_t ApplyYasuoPassiveShield(CWorld& world, EntityID target, f32_t amount,
-        bool_t& outShielded)
+    void TryActivateYasuoPassiveShield(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID target,
+        f32_t incomingDamage)
     {
-        if (amount <= 0.f ||
+        if (incomingDamage <= 0.f ||
             target == NULL_ENTITY ||
             !world.HasComponent<ChampionComponent>(target) ||
             !world.HasComponent<YasuoStateComponent>(target))
-            return amount;
+        {
+            return;
+        }
 
         ChampionComponent& champion = world.GetComponent<ChampionComponent>(target);
         if (champion.id != eChampion::YASUO)
-            return amount;
+            return;
 
         YasuoStateComponent& state = world.GetComponent<YasuoStateComponent>(target);
-        if (state.fPassiveShieldRemaining <= 0.f &&
-            state.fPassiveFlowMax > 0.f &&
-            state.fPassiveFlow >= state.fPassiveFlowMax)
+        if (state.fPassiveShieldRemaining > 0.f ||
+            state.fPassiveFlowMax <= 0.f ||
+            state.fPassiveFlow < state.fPassiveFlowMax)
         {
-            state.fPassiveShieldMax = state.fPassiveFlowMax;
-            state.fPassiveShieldRemaining = state.fPassiveShieldMax;
-            state.fPassiveShieldTimer = 1.f;
+            return;
+        }
+
+        constexpr f32_t kPassiveShieldDurationSec = 3.f;
+        if (CShieldSystem::Grant(
+                world,
+                tc,
+                target,
+                state.fPassiveFlowMax,
+                kPassiveShieldDurationSec))
+        {
             state.fPassiveFlow = 0.f;
         }
-
-        if (state.fPassiveShieldRemaining <= 0.f)
-            return amount;
-
-        const f32_t absorbed = std::min(amount, state.fPassiveShieldRemaining);
-        state.fPassiveShieldRemaining -= absorbed;
-        if (state.fPassiveShieldRemaining <= 0.f)
-        {
-            state.fPassiveShieldRemaining = 0.f;
-            state.fPassiveShieldTimer = 0.f;
-        }
-
-        champion.shield = state.fPassiveShieldRemaining;
-        outShielded = true;
-        return amount - absorbed;
     }
 }
 
@@ -342,6 +343,8 @@ DamageResult ApplyDamageRequest(CWorld& world, const TickContext& tc, const Dama
         return result;
     if (!world.IsAlive(req.target) || !world.HasComponent<HealthComponent>(req.target))
         return result;
+    if (world.HasComponent<ViegoSoulComponent>(req.target))
+        return result;
 
     const auto& targetHealth = world.GetComponent<HealthComponent>(req.target);
     if (targetHealth.bIsDead || targetHealth.fCurrent <= 0.f)
@@ -363,7 +366,9 @@ DamageResult ApplyDamageRequest(CWorld& world, const TickContext& tc, const Dama
     f32_t amount = BuildRawDamage(world, req);
     amount = ApplyCritIfNeeded(world, tc, req, flags, amount, result.bWasCrit);
     amount = ApplyTypedResistance(world, req, damageType, amount);
-    amount = ApplyYasuoPassiveShield(world, req.target, amount, result.bWasShielded);
+    TryActivateYasuoPassiveShield(world, tc, req.target, amount);
+    amount = CShieldSystem::Absorb(
+        world, tc, req.target, amount, result.bWasShielded);
     amount = ApplyAnnieEShield(world, req.target, amount, result.bWasShielded);
     amount = std::max(0.f, amount);
 
@@ -380,6 +385,30 @@ DamageResult ApplyDamageRequest(CWorld& world, const TickContext& tc, const Dama
     hp.bIsDead = result.bKilled;
 
     MirrorHealth(world, req.target, hp.fCurrent, hp.fMaximum);
+
+    // 챔피언 피해는 진행 중인 리콜을 끊는다 (LoL 파리티).
+    if (result.finalAmount > 0.f && world.HasComponent<RecallComponent>(req.target))
+        world.RemoveComponent<RecallComponent>(req.target);
+
+    // 흡혈: 실제 적용 데미지 기준, 시전자 생존 시에만 회복.
+    if ((flags & DamageFlag_CanLifesteal) != 0u &&
+        result.finalAmount > 0.f &&
+        req.source != NULL_ENTITY &&
+        world.IsAlive(req.source) &&
+        world.HasComponent<StatComponent>(req.source) &&
+        world.HasComponent<HealthComponent>(req.source))
+    {
+        const auto& sourceStat = world.GetComponent<StatComponent>(req.source);
+        auto& sourceHp = world.GetComponent<HealthComponent>(req.source);
+        if (sourceStat.lifesteal > 0.f && !sourceHp.bIsDead)
+        {
+            sourceHp.fCurrent = std::min(
+                sourceHp.fMaximum,
+                sourceHp.fCurrent + result.finalAmount * sourceStat.lifesteal);
+            MirrorHealth(world, req.source, sourceHp.fCurrent, sourceHp.fMaximum);
+        }
+    }
+
     return result;
 }
 

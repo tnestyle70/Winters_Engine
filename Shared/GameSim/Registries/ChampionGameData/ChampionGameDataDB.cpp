@@ -1,9 +1,11 @@
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Core/Determinism/DeterministicTime.h"
 #include "Shared/GameSim/Generated/ChampionGameData.generated.h"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 namespace
 {
@@ -135,6 +137,18 @@ namespace ChampionGameDataDB
             return pData->stats;
         }
 
+        // P1: 생성 테이블에 없는 챔피언이 범용 스탯(600HP/55AD)으로 조용히 살아나면
+        // 데이터 팩 오구성이 "미묘하게 이상한 챔피언"으로만 보인다.
+        static u32_t s_fallbackStatsLogCount = 0;
+        if (s_fallbackStatsLogCount < 16u)
+        {
+            char msg[128]{};
+            sprintf_s(msg,
+                "[Data] champion game-data miss champ=%u -> fallback stats\n",
+                static_cast<u32_t>(champion));
+            WintersOutputAIDebugStringA(msg);
+            ++s_fallbackStatsLogCount;
+        }
         return BuildFallbackStats(champion);
     }
 

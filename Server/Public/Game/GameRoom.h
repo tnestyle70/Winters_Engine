@@ -12,6 +12,7 @@
 #include "Shared/GameSim/Core/Determinism/DeterministicTime.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/Replay/ReplayFormat.h"
 #include "Game/ServerMinionWaveRuntime.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
@@ -45,13 +46,17 @@ namespace GameplayTurret
 
 class CSnapshotBuilder;
 class CLagCompensation;
+class CGameRoomIntegrationProbeAccess;
+struct ChampionAIShadowPolicyArtifactV1;
 //Replay
 class CReplayRecorder;
 
 class CGameRoom final : public IWalkableQuery
 {
 public:
-    static std::unique_ptr<CGameRoom> Create(u32_t roomId);
+    static std::unique_ptr<CGameRoom> Create(
+        u32_t roomId,
+        std::shared_ptr<const ChampionAIShadowPolicyArtifactV1> shadowPolicy = {});
     ~CGameRoom();
 
     void Start();
@@ -87,7 +92,10 @@ public:
     bool IsRunning() const { return m_bRunning.load(std::memory_order_relaxed); }
 
 private:
-    CGameRoom(u32_t roomId);
+    friend class CGameRoomIntegrationProbeAccess;
+    CGameRoom(
+        u32_t roomId,
+        std::shared_ptr<const ChampionAIShadowPolicyArtifactV1> shadowPolicy = {});
     static u64_t ResolveServerGameTimeMs(u64_t iServerTick);
 
     void TickThread();
@@ -96,6 +104,10 @@ private:
 
     //Replay
     void FinalizeReplayRecorder();
+
+    // S035: 게임종료 후 마지막 세션 이탈 시 룸을 새 매치 대기 상태(SeatSelect)로 리셋.
+    // m_stateMutex를 잡은 문맥에서만 호출한다.
+    void ResetMatchStateLocked();
 
     void Phase_DrainCommands(TickContext& tc);
     void Phase_ExecuteCommands(TickContext& tc);
@@ -107,11 +119,39 @@ private:
     void Phase_ServerMinionDepenetration(TickContext& tc);
     void Phase_ServerProjectiles(TickContext& tc);
     void Phase_ServerDeathAndRespawn(TickContext& tc);
+    void Phase_CheckGameEnd(TickContext& tc);
     void Phase_BroadcastEvents(TickContext& tc);
     void Phase_BroadcastSnapshot(TickContext& tc);
     void BroadcastEventPayload(const u8_t* payload, u32_t payloadSize, u32_t sequence);
+    void RecordReplayCommand(
+        u64_t tick,
+        const PendingCommand& pending,
+        Winters::Replay::eReplayCommandDomain domain,
+        Winters::Replay::eReplayJournalOutcome outcome);
+    void RecordPendingReplayCommand(
+        u64_t tick,
+        const GameCommand& command,
+        Winters::Replay::eReplayJournalOutcome outcome);
+    bool_t TryHandlePracticeControl(
+        const TickContext& tc,
+        const GameCommand& cmd,
+        bool_t& outAccepted);
+    bool_t TryHandleAIDebugControl(
+        const TickContext& tc,
+        const GameCommand& cmd,
+        bool_t& outAccepted);
+    void TickPracticeControls(const TickContext& tc);
+    void ClearPracticeSpawns();
+    bool_t CommitPendingPracticeControlChange(const TickContext& tc);
+    void CancelPendingPracticeControlChange(u64_t tick);
+    void TickPausedControlLane();
+    void CaptureKeyframeIfDue(const TickContext& tc);
+    void PerformPendingRewind();
 
     EntityID SpawnChampionForLobbySlot(LobbySlotState& slot);
+    void ConfigureChampionControlRole(
+        EntityID entity,
+        const LobbySlotState& slot);
     void SpawnChampionsFromLobby();
     void InitializeServerSimSystems();
     void InitializeServerWalkableGrid(const Winters::Map::StageData* pStage, const wchar_t* pStagePath);
@@ -203,6 +243,7 @@ private:
     DeterministicRng m_rng{ 0xC0FFEEull };
     u64_t m_tickIndex = 0;
     std::atomic<u64_t> m_visibleTickIndex{ 0 };
+    const std::shared_ptr<const ChampionAIShadowPolicyArtifactV1> m_pShadowPolicy;
 
     std::unique_ptr<ICommandExecutor> m_pExecutor;
     std::unique_ptr<CSnapshotBuilder> m_pSnapBuilder;
@@ -211,6 +252,8 @@ private:
     //Replay
     std::unique_ptr<CReplayRecorder> m_pReplayRecorder;
     bool_t m_bReplayFinalized = false;
+    // S030: 넥서스 파괴 게임 종료 latch — 종료 이벤트 1회 브로드캐스트 + 리플레이 발행 보증.
+    bool_t m_bGameEnded = false;
 
     std::unique_ptr<Engine::CSpatialHashSystem> m_pSpatialSystem;
     std::unique_ptr<GameplayTurret::CTurretAISystem> m_pTurretAI;
@@ -221,6 +264,50 @@ private:
 
     CCommandIngress m_commandIngress;
     std::vector<GameCommand> m_pendingExecCommands;
+    std::unordered_map<u64_t, PendingCommand> m_pendingReplayCommands;
+    bool_t m_bPracticeModeEnabled = false;
+    std::vector<EntityID> m_PracticeSpawnedEntities;
+
+    enum class PracticeControlChangeKind : u8_t
+    {
+        None = 0u,
+        TakeRosterChampion,
+        ReplaceControlledChampion,
+    };
+
+    struct PendingPracticeControlChange
+    {
+        PracticeControlChangeKind eKind = PracticeControlChangeKind::None;
+        u32_t uSessionId = 0u;
+        NetEntityId uSourceNetId = NULL_NET_ENTITY;
+        NetEntityId uTargetNetId = NULL_NET_ENTITY;
+        eChampion eChampionId = eChampion::END;
+        GameCommand tCommand{};
+    };
+
+    PendingPracticeControlChange m_PendingPracticeControlChange{};
+
+    // Simulation time control (designer/practice; sim dt stays kFixedDt)
+    bool_t m_bSimPaused = false;
+    u32_t m_simStepBudget = 0;
+    std::atomic<f32_t> m_simSpeedMul{ 1.f };
+    u64_t m_toolRevision = 0;
+    u64_t m_timelineEpoch = 1;
+    u64_t m_timelineBranchId = 1;
+    u64_t m_lastReplaySnapshotTick = ~0ull;
+    u64_t m_lastReplayToolRevision = ~0ull;
+
+    // Chrono Break: 주기 키프레임 링(1초 간격, 90초 창) + 지연 되감기 요청(틱 경계에서 수행)
+    struct RoomKeyframe
+    {
+        u64_t tick = 0;
+        std::vector<u8_t> simBytes;
+        CServerMinionWaveRuntime::WaveState waveState{};
+        f32_t turretActivationAccum = 0.f;
+        bool_t bPracticeModeEnabled = false;
+    };
+    std::vector<RoomKeyframe> m_keyframes;
+    u64_t m_pendingRewindToTick = 0;
 
     std::vector<u32_t> m_sessionIds;
     CSessionBinding m_sessionBinding;

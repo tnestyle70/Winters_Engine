@@ -1,0 +1,23 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Kalista.Rend.Spear",
+  "emitters": [
+    {
+      "name": "rend_stuck_spear",
+      "render_type": "MeshParticle",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/FX/Kalista/fbx/kalista_base_e_spear_hold.fbx",
+      "texture": "Client/Bin/Resource/Texture/FX/Kalista/kalista_base_e_spear_glow.png",
+      "lifetime": 6.0,
+      "scale": [0.009, 0.009, 0.009],
+      "rotation": [1.57079632679, 0.0, 0.0],
+      "color": [0.50, 1.00, 1.50, 1.00],
+      "attach_offset": [0.0, 1.0, 0.0],
+      "fade_in": 0.02,
+      "fade_out": 0.30,
+      "blockable_by_wind_wall": false
+    }
+  ]
+}

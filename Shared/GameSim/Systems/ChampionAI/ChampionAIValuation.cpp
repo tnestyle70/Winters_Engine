@@ -37,7 +37,7 @@ namespace ChampionAIValuation
         score += (in.enemyDistance <= in.attackRange) ? 0.20f : -0.10f;  // 사거리
         score += in.bAlliedWaveNearby ? 0.10f : 0.f;                     // 백업 웨이브
         score += EconomyLead(in) * 0.10f;                                // 경제 우위(신규)
-        score -= in.turretDanger * 0.50f;                                // 포탑 위험
+        score -= in.turretDanger * 0.50f * in.turretRiskWeight;          // 포탑 위험
         return WintersMath::Clamp01(score);
     }
 
@@ -63,5 +63,32 @@ namespace ChampionAIValuation
         window += EconomyLead(in) * 0.2f;
         window -= in.turretDanger * 0.5f;
         return WintersMath::Clamp01(window);
+    }
+
+    f32_t RetreatValue(const ValueInput& in)
+    {
+        const f32_t reengage = (std::max)(in.reengageHpRatio, 0.01f);
+        const f32_t healthPressure = WintersMath::Clamp01(
+            (reengage - in.selfHpRatio) / reengage);
+        f32_t score = healthPressure * 0.75f +
+            in.turretDanger * 0.45f * in.turretRiskWeight;
+        if (in.selfHpRatio <= in.retreatHpRatio)
+            score = 1.f;
+        return WintersMath::Clamp01(score);
+    }
+
+    UtilityScores BuildUtilityScores(const ValueInput& in)
+    {
+        UtilityScores scores{};
+        scores.retreat = RetreatValue(in);
+        scores.fight = in.bEnemyChampionTargetable
+            ? WintersMath::Clamp01(
+                ChampionFightValue(in) * in.fightUtilityWeight)
+            : 0.f;
+        scores.farm = WintersMath::Clamp01(
+            MinionFarmValue(in) * in.farmUtilityWeight);
+        scores.siege = WintersMath::Clamp01(
+            StructureValue(in) * in.siegeUtilityWeight);
+        return scores;
     }
 }

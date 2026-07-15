@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "report_type": "WintersPolicyLeagueReportV1",
+  "evidence_kind": "GOLDEN_CONTRACT_FIXTURE",
+  "generated_by": "PolicyPromotionGateV1 failing contract fixture",
+  "attestation": {
+    "status": "UNATTESTED",
+    "candidate_artifact_sha256": "",
+    "runner_artifact_sha256": "",
+    "attestation_sha256": "",
+    "attested_by": ""
+  },
+  "environment": {
+    "observation_schema_version": 1,
+    "action_schema_version": 1,
+    "rules_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "definition_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+  },
+  "candidate": {
+    "policy_id": "candidate-fixture-v2",
+    "policy_revision": 2,
+    "policy_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+  },
+  "frozen_baseline": {
+    "policy_id": "baseline-fixture-v1",
+    "policy_revision": 1,
+    "policy_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "holdout": {
+    "suite_id": "fixture-holdout-v1",
+    "suite_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "frozen": false
+  },
+  "runs": [
+    {
+      "run_id": "fail-blue-0",
+      "mirror_id": "mirror-fail",
+      "scenario_id": "lane-fail-blue",
+      "scenario_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "seed": 13,
+      "side": "BLUE",
+      "repeat_index": 0,
+      "candidate_result_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "baseline_result_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "candidate_score": 0.2,
+      "baseline_score": 0.6,
+      "candidate_win": false,
+      "baseline_win": true,
+      "fault_count": 1,
+      "invalid_command_count": 0,
+      "privileged_observation_count": 0
+    },
+    {
+      "run_id": "fail-blue-1",
+      "mirror_id": "mirror-fail",
+      "scenario_id": "lane-fail-blue",
+      "scenario_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "seed": 13,
+      "side": "BLUE",
+      "repeat_index": 1,
+      "candidate_result_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "baseline_result_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "candidate_score": 0.1,
+      "baseline_score": 0.6,
+      "candidate_win": false,
+      "baseline_win": true,
+      "fault_count": 0,
+      "invalid_command_count": 1,
+      "privileged_observation_count": 1
+    }
+  ],
+  "summary": {
+    "raw_run_count": 2,
+    "sample_count": 0,
+    "mirrored_pair_count": 0,
+    "candidate_win_rate": 0.0,
+    "baseline_win_rate": 0.0,
+    "score_delta_mean": 0.0,
+    "score_delta_ci_lower": 0.0,
+    "score_delta_ci_upper": 0.0,
+    "confidence_level": 0.95,
+    "fault_count": 1,
+    "invalid_command_count": 1,
+    "privileged_observation_count": 1
+  },
+  "evidence_sha256": "f06bb069cb726ec2a57e03102538f4d73cba01110afd9bd17c280f6533db73b9"
+}

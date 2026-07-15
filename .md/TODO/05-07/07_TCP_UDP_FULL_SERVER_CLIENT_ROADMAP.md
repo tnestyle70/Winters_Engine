@@ -1,5 +1,8 @@
 # TCP / UDP 완성형 서버-클라이언트 로드맵
 
+> [!IMPORTANT]
+> **Historical hybrid target.** 아래 `TCP Control + UDP Gameplay` 로드맵은 2026-05 설계 기록이다. 2026-07-13 현재 WintersServer는 `--net-transport=tcp|udp|dual`을 제공하고 UDP v3 association이 control/gameplay frame을 transport-neutral hub로 전달하지만, 안전한 기본값은 TCP이고 완전한 production cutover는 아직 아니다. 현행 코드, 수치, 전환 gate는 [canonical implementation plan](../../plan/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)를 따른다.
+
 작성일: 2026-05-07  
 대상: 실제 LoL식 Winters 서버-클라 완성  
 결론: **TCP는 Control, UDP는 Gameplay. 서버는 모든 gameplay 결과의 단일 원천이다.**

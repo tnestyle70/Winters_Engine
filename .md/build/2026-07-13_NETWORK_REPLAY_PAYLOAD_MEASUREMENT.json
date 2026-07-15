@@ -1,0 +1,124 @@
+{
+  "configuration": {
+    "tick_rate": 30.0,
+    "datagram_budget": 1200,
+    "transport_header_bytes": 40,
+    "fragment_header_bytes": 16,
+    "auth_tag_bytes": 0,
+    "fragment_payload_budget": 1144
+  },
+  "replays": [
+    {
+      "path": "C:\\Users\\user\\Desktop\\Winters\\Replay\\room1_tick1_1602.wrpl",
+      "replay_version": 1,
+      "declared_record_count": 3160,
+      "parsed_record_count": 3160,
+      "snapshots": {
+        "count": 1602,
+        "minimum_bytes": 5432,
+        "p50_bytes": 11320,
+        "p95_bytes": 18624,
+        "maximum_bytes": 20024,
+        "average_bytes": 12410.701622971286
+      },
+      "events": {
+        "count": 1558,
+        "minimum_bytes": 72,
+        "p50_bytes": 96,
+        "p95_bytes": 112,
+        "maximum_bytes": 128,
+        "average_bytes": 94.05905006418486
+      },
+      "snapshot_payload_kib_per_second": 363.5947741104869,
+      "snapshot_wire_kib_per_second": 381.95297869850185,
+      "ack_only_uplink_kib_per_second": 13.113003277153558,
+      "snapshot_datagrams_average": 11.18976279650437,
+      "snapshot_datagrams_p95": 17,
+      "snapshot_datagrams_maximum": 18
+    },
+    {
+      "path": "C:\\Users\\user\\Desktop\\Winters\\Replay\\room1_tick1_1681.wrpl",
+      "replay_version": 1,
+      "declared_record_count": 3330,
+      "parsed_record_count": 3330,
+      "snapshots": {
+        "count": 1681,
+        "minimum_bytes": 5432,
+        "p50_bytes": 12688,
+        "p95_bytes": 18624,
+        "maximum_bytes": 20008,
+        "average_bytes": 12603.65496728138
+      },
+      "events": {
+        "count": 1649,
+        "minimum_bytes": 72,
+        "p50_bytes": 96,
+        "p95_bytes": 112,
+        "maximum_bytes": 128,
+        "average_bytes": 94.13220133414191
+      },
+      "snapshot_payload_kib_per_second": 369.24770411957167,
+      "snapshot_wire_kib_per_second": 387.90749553837003,
+      "ack_only_uplink_kib_per_second": 13.328422441998809,
+      "snapshot_datagrams_average": 11.373587150505651,
+      "snapshot_datagrams_p95": 17,
+      "snapshot_datagrams_maximum": 18
+    },
+    {
+      "path": "C:\\Users\\user\\Desktop\\Winters\\Replay\\room1_tick1_1786.wrpl",
+      "replay_version": 1,
+      "declared_record_count": 3138,
+      "parsed_record_count": 3138,
+      "snapshots": {
+        "count": 1786,
+        "minimum_bytes": 8768,
+        "p50_bytes": 16256,
+        "p95_bytes": 19808,
+        "maximum_bytes": 22104,
+        "average_bytes": 15415.771556550952
+      },
+      "events": {
+        "count": 1352,
+        "minimum_bytes": 72,
+        "p50_bytes": 88,
+        "p95_bytes": 112,
+        "maximum_bytes": 128,
+        "average_bytes": 92.33136094674556
+      },
+      "snapshot_payload_kib_per_second": 451.63393232082865,
+      "snapshot_wire_kib_per_second": 474.34455487122057,
+      "ack_only_uplink_kib_per_second": 16.221873250279955,
+      "snapshot_datagrams_average": 13.842665173572229,
+      "snapshot_datagrams_p95": 18,
+      "snapshot_datagrams_maximum": 20
+    },
+    {
+      "path": "C:\\Users\\user\\Desktop\\Winters\\Replay\\room1_tick1_798.wrpl",
+      "replay_version": 1,
+      "declared_record_count": 812,
+      "parsed_record_count": 812,
+      "snapshots": {
+        "count": 798,
+        "minimum_bytes": 6432,
+        "p50_bytes": 12568,
+        "p95_bytes": 14120,
+        "maximum_bytes": 14168,
+        "average_bytes": 10853.40350877193
+      },
+      "events": {
+        "count": 14,
+        "minimum_bytes": 88,
+        "p50_bytes": 88,
+        "p95_bytes": 88,
+        "maximum_bytes": 88,
+        "average_bytes": 88.0
+      },
+      "snapshot_payload_kib_per_second": 317.9708059210526,
+      "snapshot_wire_kib_per_second": 334.0830592105263,
+      "ack_only_uplink_kib_per_second": 11.50875234962406,
+      "snapshot_datagrams_average": 9.820802005012531,
+      "snapshot_datagrams_p95": 13,
+      "snapshot_datagrams_maximum": 13
+    }
+  ]
+}

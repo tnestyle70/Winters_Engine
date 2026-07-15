@@ -1,5 +1,8 @@
 # UDP Gameplay Transport 이주 계획
 
+> [!IMPORTANT]
+> **Historical migration design.** 이 문서의 “UDP 호출자 없음 / fragment 없는 M1” 전제는 2026-07-11 당시 기록이다. 2026-07-13 현재 UDP v3 socket·lane reliability·bounded fragmentation/reassembly·cookie handshake·Server IOCP·Client facade가 opt-in vertical slice로 구현·검증됐다. 기본값은 TCP이며 production cutover는 아직 아니다. 현행 코드, 측정치, 남은 gate는 [canonical implementation plan](../../plan/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)를 따른다.
+
 작성일: 2026-05-07  
 대상: InGame CommandBatch / Snapshot / Event 전송 계층  
 결론: **UDP는 gameplay 전용 transport로 추가하고, BanPick TCP를 대체하지 않는다.**

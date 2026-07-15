@@ -1,5 +1,7 @@
 # Minion Combat + Worker-Safety 통합 구현 계획서
 
+> **상태 동기화 (2026-07-11 — HISTORICAL PLAN)**: 아래 `Set_JobSystem` 비활성 코드는 당시 봉쇄 단계다. 현재 local-only `CLocalUnitAISystem`과 Navigation에는 JobSystem이 주입되며 Client ThreadOnly 경로가 활성이다. 최신 Job/Fiber 판정은 [상태 감사](../2026-07-11_JOB_SYSTEM_CHASE_LEV_FIBER_STATE_AUDIT.md)를 따른다.
+>
 **작성일**: 2026-04-28
 **개정**: v1 (사용자 큰 그림 + Codex 1차/2차/3차/4차 검토 = 20건 통합 반영)
 **전제**:

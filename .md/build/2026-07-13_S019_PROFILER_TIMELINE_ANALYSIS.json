@@ -1,0 +1,331 @@
+{
+  "schema": "WintersProfilerAnalysis.v2",
+  "capture": "C:\\Users\\user\\Desktop\\Winters\\Client\\Bin\\Debug\\Profiles\\profiler_20260713_163205_104.json",
+  "captureSchema": "WintersProfilerTimeline.v2",
+  "targetFps": 300.0,
+  "frameBudgetMs": 3.3333333333333335,
+  "medianBudgetMs": 2.777777777777778,
+  "p99BudgetMs": 4.166666666666667,
+  "hitchThresholdMs": 8.333333333333334,
+  "profilerOverheadBudgetMs": 0.03333333333333333,
+  "expectedResolution": [
+    1920,
+    1080
+  ],
+  "minimumDurationSec": 60.0,
+  "capturedDurationSec": 0.0,
+  "frameCount": 300,
+  "performanceSampleCount": 300,
+  "range": {
+    "firstRenderFrame": 38181,
+    "lastRenderFrame": 38480,
+    "firstServerTick": null,
+    "lastServerTick": null
+  },
+  "workFrameMs": {
+    "count": 300,
+    "min": 0.1681,
+    "median": 0.24465,
+    "p95": 0.42465,
+    "p99": 0.6080719999999997,
+    "max": 1.1498,
+    "mean": 0.26796466666666663
+  },
+  "wallFrameMs": {
+    "count": 300,
+    "min": 0.168,
+    "median": 0.245,
+    "p95": 0.42600000000000005,
+    "p99": 0.6092699999999998,
+    "max": 1.152,
+    "mean": 0.2687
+  },
+  "cadenceFrameMs": {
+    "count": 0,
+    "min": null,
+    "median": null,
+    "p95": null,
+    "p99": null,
+    "max": null,
+    "mean": null
+  },
+  "gpuFrameMs": {
+    "count": 285,
+    "min": 0.045,
+    "median": 0.047,
+    "p95": 0.049,
+    "p99": 0.1040400000000011,
+    "max": 0.143,
+    "mean": 0.04956140350877193
+  },
+  "profilerPreviousEndFrameMs": {
+    "count": 0,
+    "min": null,
+    "median": null,
+    "p95": null,
+    "p99": null,
+    "max": null,
+    "mean": null
+  },
+  "effectiveFps": 3721.622627465575,
+  "gpuSourceJoinCoverage": 0.0,
+  "drops": {
+    "scopeStats": 0,
+    "counters": 0,
+    "rawEvents": 0
+  },
+  "observedConfig": {
+    "targetFps": 0,
+    "limiterActive": 0,
+    "vsyncRequested": 0,
+    "presentationVsync": 0,
+    "windowWidth": 1280,
+    "windowHeight": 720,
+    "rhiBackend": 0
+  },
+  "gate": {
+    "scenarioValid": false,
+    "inGameFrameCount": 0,
+    "fullScenarioFrameCount": 0,
+    "configValidFrameCount": 0,
+    "serverTickFrameCount": 0,
+    "requiredSceneFrames": 285,
+    "requiredServerTickFrames": 270,
+    "serverTickMonotonic": true,
+    "serverTickSpan": 0,
+    "minimumServerTickSpan": 1200,
+    "cadenceCoverage": 0.0,
+    "requiredGpuSamples": 270,
+    "gpuSourceFramesMonotonic": true,
+    "gpuSourceJoinValid": false,
+    "requiresCpuP95AtOrBelowBudget": true,
+    "requiresGpuP95AtOrBelowBudget": true,
+    "requiresMedianHeadroom": true,
+    "requiresP99AtOrBelow125PercentBudget": true,
+    "requiresNoHitchesAbove120FpsBudget": true,
+    "hitchCount": 0,
+    "requiresProfilerEndFrameP95AtOrBelowOnePercentBudget": true,
+    "requiresNoDroppedRecords": true,
+    "pass": false
+  },
+  "topScopesInclusive": [
+    {
+      "name": "Frame",
+      "count": 300,
+      "min": 0.1681,
+      "median": 0.24465,
+      "p95": 0.42465,
+      "p99": 0.6080719999999997,
+      "max": 1.1498,
+      "mean": 0.26796466666666663,
+      "calls": 300
+    },
+    {
+      "name": "Render",
+      "count": 300,
+      "min": 0.1564,
+      "median": 0.22885,
+      "p95": 0.39561500000000005,
+      "p99": 0.5788949999999997,
+      "max": 1.1175,
+      "mean": 0.25122333333333335,
+      "calls": 300
+    },
+    {
+      "name": "Render::EndFrame",
+      "count": 300,
+      "min": 0.0625,
+      "median": 0.092,
+      "p95": 0.16942000000000004,
+      "p99": 0.22343699999999997,
+      "max": 0.8483,
+      "mean": 0.10202233333333334,
+      "calls": 300
+    },
+    {
+      "name": "ImGui::BeginFrame",
+      "count": 300,
+      "min": 0.0361,
+      "median": 0.0541,
+      "p95": 0.111525,
+      "p99": 0.21460799999999983,
+      "max": 0.2652,
+      "mean": 0.06477366666666666,
+      "calls": 300
+    },
+    {
+      "name": "Scene::Render",
+      "count": 300,
+      "min": 0.0144,
+      "median": 0.02175,
+      "p95": 0.0381,
+      "p99": 0.049503,
+      "max": 0.0757,
+      "mean": 0.023472666666666666,
+      "calls": 300
+    },
+    {
+      "name": "SceneManager::Render",
+      "count": 300,
+      "min": 0.0139,
+      "median": 0.02095,
+      "p95": 0.036,
+      "p99": 0.047101000000000004,
+      "max": 0.0726,
+      "mean": 0.022610333333333333,
+      "calls": 300
+    },
+    {
+      "name": "EngineDebug::Render",
+      "count": 300,
+      "min": 0.0127,
+      "median": 0.01725,
+      "p95": 0.029720000000000007,
+      "p99": 0.04547999999999993,
+      "max": 0.1316,
+      "mean": 0.01913933333333333,
+      "calls": 300
+    },
+    {
+      "name": "ImGui::EndFrame",
+      "count": 300,
+      "min": 0.013,
+      "median": 0.0175,
+      "p95": 0.02868500000000002,
+      "p99": 0.04376499999999994,
+      "max": 0.0595,
+      "mean": 0.018907333333333335,
+      "calls": 300
+    },
+    {
+      "name": "UI::Cursor",
+      "count": 300,
+      "min": 0.0059,
+      "median": 0.0071,
+      "p95": 0.013330000000000005,
+      "p99": 0.02150699999999999,
+      "max": 0.1039,
+      "mean": 0.008245666666666667,
+      "calls": 300
+    },
+    {
+      "name": "Render::BeginFrame",
+      "count": 300,
+      "min": 0.0028,
+      "median": 0.0048,
+      "p95": 0.011220000000000004,
+      "p99": 0.01551099999999999,
+      "max": 0.0223,
+      "mean": 0.00599,
+      "calls": 300
+    },
+    {
+      "name": "Frame::TimerUpdate",
+      "count": 300,
+      "min": 0.0033,
+      "median": 0.006,
+      "p95": 0.0109,
+      "p99": 0.013629999999999972,
+      "max": 0.0873,
+      "mean": 0.006601999999999999,
+      "calls": 300
+    },
+    {
+      "name": "Update",
+      "count": 300,
+      "min": 0.0022,
+      "median": 0.0033,
+      "p95": 0.0051100000000000026,
+      "p99": 0.007108999999999992,
+      "max": 0.0256,
+      "mean": 0.003518,
+      "calls": 300
+    },
+    {
+      "name": "SceneManager::Update",
+      "count": 300,
+      "min": 0.0012,
+      "median": 0.0021,
+      "p95": 0.0031,
+      "p99": 0.004811999999999989,
+      "max": 0.0241,
+      "mean": 0.0022589999999999997,
+      "calls": 300
+    },
+    {
+      "name": "Engine::ServiceTick",
+      "count": 300,
+      "min": 0.0011,
+      "median": 0.0017,
+      "p95": 0.0025,
+      "p99": 0.0035,
+      "max": 0.0062,
+      "mean": 0.0017676666666666667,
+      "calls": 300
+    },
+    {
+      "name": "Scene::ImGui",
+      "count": 300,
+      "min": 0.0006,
+      "median": 0.0008,
+      "p95": 0.0013,
+      "p99": 0.0016009999999999991,
+      "max": 0.0018,
+      "mean": 0.0008313333333333333,
+      "calls": 300
+    },
+    {
+      "name": "Frame::PumpMessages",
+      "count": 300,
+      "min": 0.0002,
+      "median": 0.0003,
+      "p95": 0.0006050000000000012,
+      "p99": 0.0013429999999999608,
+      "max": 0.0305,
+      "mean": 0.0005053333333333333,
+      "calls": 300
+    },
+    {
+      "name": "App::ImGui",
+      "count": 300,
+      "min": 0.0002,
+      "median": 0.0003,
+      "p95": 0.0004,
+      "p99": 0.0006,
+      "max": 0.0009,
+      "mean": 0.0002853333333333333,
+      "calls": 300
+    },
+    {
+      "name": "SceneManager::ImGui",
+      "count": 300,
+      "min": 0.0001,
+      "median": 0.0002,
+      "p95": 0.0003,
+      "p99": 0.0004009999999999991,
+      "max": 0.0005,
+      "mean": 0.0002156666666666667,
+      "calls": 300
+    },
+    {
+      "name": "SceneManager::LateUpdate",
+      "count": 300,
+      "min": 0.0001,
+      "median": 0.0002,
+      "p95": 0.0003,
+      "p99": 0.0003009999999999991,
+      "max": 0.0004,
+      "mean": 0.00018,
+      "calls": 300
+    }
+  ],
+  "budgetExceedingFrames": [],
+  "warnings": [
+    "Frame::CadenceUs coverage is below 90%; profiler overhead is not fully represented.",
+    "GPU source-frame timing coverage is below the 90% acceptance threshold.",
+    "Profiler::PreviousEndFrameUs is missing; profiler overhead cannot be gated.",
+    "Capture is not a valid 1080p normal-F5 network gameplay acceptance scenario.",
+    "DX11 GPU timing is delayed; GPU::SourceRHIFrame preserves its source frame identity.",
+    "Mesh::DrawCalls is a partial legacy counter until all RHI/direct draw paths share frame stats."
+  ]
+}

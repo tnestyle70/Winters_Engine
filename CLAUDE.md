@@ -100,6 +100,10 @@ Mistake-prevention log lives in [.claude/gotchas.md](.claude/gotchas.md). Import
 
 @.claude/gotchas.md
 
+## Goal Operating Lens
+
+For goal/plan/priority/retro conversations, apply `.md/process/GOAL_OPERATING_DOCTRINE.md`: enforce the 30% ceiling budget in plans, ask "천장 예산은요?" after 3+ consecutive floor-work sessions on one track, require 이해→환전 before a new deep dive, and propose external deadlines for deadline-less goals. Never cite this lens to lower code verification standards.
+
 ## Progressive Sections
 
 - Team shared rules and coding conventions: add only behavior-changing decisions here; put detailed C++ style in `.md/architecture/WINTERS_ENGINE_CONVENTIONS.md`.

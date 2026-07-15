@@ -1,5 +1,7 @@
 # Server Fiber Refactor Steps
 
+> **상태 동기화 (2026-07-11 — SUPERSEDED ORDER)**: 아래 stage는 2026-05-07 계획이다. 현재 `ServerEntry`는 이미 파일/프로젝트에 있으나 비동작 stub이고, 기존 SnapshotBuilder의 동시 호출 안전 및 TickThread Fiber shell 전제는 유효하지 않다. `ThreadOnly stress -> Server lifetime -> RoomIngress -> immutable DTO -> ThreadOnly jobify -> FiberShell lab -> Engine FiberFull` 순서는 [2026-07-11 UDP/Fiber 통합 감사](../../../plan/2026-07-11_FULL_UDP_AND_SERVER_FIBER_INTEGRATION_AUDIT.md)를 우선한다.
+
 작성일: 2026-05-07  
 목표: 사용자가 직접 step by step 으로 Server Fiber refactor 를 진행할 수 있게 한다.
 
@@ -561,4 +563,3 @@ Repeat 10000
 ```
 
 이 순서대로 가면, 너는 Fiber를 "적용"하는 게 아니라 "통제"하게 된다.
-

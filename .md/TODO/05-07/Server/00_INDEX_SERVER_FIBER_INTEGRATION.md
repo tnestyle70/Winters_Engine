@@ -1,5 +1,12 @@
 # Server Fiber 통합 박제 인덱스 (Server-side Fiber Integration Master Index)
 
+> [!IMPORTANT]
+> **Historical design index.** 아래 본문을 현재 구현 상태로 사용하지 않는다. 최신 기준은 [2026-07-13 canonical implementation plan](../../../plan/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)다.
+> As-built delta: JobSystem Submit race, Chase-Lev deque, FiberFull 및 stress 구현은 완료되었고, UDP v3 generic vertical slice와 server hub/client facade가 구현되었다. main F5 통합과 최종 build 상태는 S023 결과 보고서를 따른다. 6주 Fiber mastery 프로그램은 미착수이며, 현재 상태는 production UDP cutover가 아니다.
+> 과거 UDP v2 수치인 **24 B header / 10 B fragment header / 1 MiB logical payload**는 historical design이다. 실제 v3 상수는 **40 B header / 16 B fragment header / 1,200 B datagram / 64 KiB logical payload**다.
+
+> **상태 동기화 (2026-07-11 — DESIGN ONLY)**: Engine의 Main-push owner race 우회와 per-job FiberShell 본체는 이미 존재한다. 그러나 Server Stage 1은 operational하지 않다. `CServerEntry`는 mode 설정·Shutdown·getter·상태 반환이 stub이고 `main`/Tick 호출자가 0이다. 별도 AcceptThread도 없으며 TickThread shell은 mainline 성능 단계가 아니다. Engine 상세는 [JobSystem 상태 감사](../../../plan/2026-07-11_JOB_SYSTEM_CHASE_LEV_FIBER_STATE_AUDIT.md), UDP/Server 적용 순서는 [통합 감사](../../../plan/2026-07-11_FULL_UDP_AND_SERVER_FIBER_INTEGRATION_AUDIT.md)를 따른다.
+>
 작성일: 2026-05-07
 대상: `WintersServer.exe` (Server/) — TCP IOCP MVP + 30Hz Tick GameRoom
 핵심 결정: **Engine `CJobSystem` (Phase 5-A Chase-Lev MVP) 의 Fiber-aware 인터페이스 (L37-38, L48, L65-70, L79-80) 를 Server 에서 그대로 활용. Engine 본체 Fiber 구현은 별도 트랙 (`.md/plan/engine/FIBER_JOB_SYSTEM.md`) 에 위임. Server 는 (a) 단일 글로벌 `CJobSystem`, (b) `CGameRoom::TickThread` 를 Fiber 컨텍스트로 진입, (c) Phase 별 행동 보존 병렬화 — 3 단계로 점진 적용.**
@@ -130,7 +137,7 @@ private:
 
 **의미**: counter 자체는 Wait 메서드 없음. 대기는 `CJobSystem::WaitForCounter(pCounter, 0)` 로 (코멘트 L9).
 
-### 2.3 Engine Fiber stub 3 파일 (현재 상태)
+### 2.3 Engine Fiber 공개 placeholder 3 파일 (2026-05-07 snapshot)
 
 **파일**: [`Engine/Public/Core/Fiber/FiberTypes.h`](../../../Engine/Public/Core/Fiber/FiberTypes.h:1) (전문 18줄)
 
@@ -159,7 +166,7 @@ using NativeFiberHandle = void*;
 
 **파일**: [`Engine/Public/Core/Fiber/FiberPool.h`](../../../Engine/Public/Core/Fiber/FiberPool.h:1) (전문 22줄): `Reset()` + `GetCount()` 만.
 
-**의미**: Engine 측 Fiber 본체 (CreateFiber/SwitchToFiber/...)  미구현. **Server 박제는 Engine 본체 구현을 가정하지 않는다**. Server 는 (a) `eJobExecutionMode::FiberShell` 만 set, (b) Tick thread 자체를 `ConvertThreadToFiber` 로 직접 변환 — Engine 의 Fiber 인프라에 의존하지 않음.
+**2026-07-11 정정**: 공개 `CFiber/CFiberPool`은 여전히 placeholder지만 Engine `JobSystem.cpp`에는 per-job `CreateFiber/SwitchToFiber/DeleteFiber` FiberShell 본체가 존재한다. 미구현인 것은 pool과 `WaitForCounter` yield/resume다. Server는 mode를 set하지 않고 Tick도 변환하지 않으므로 아래는 아직 목표 설계다.
 
 ### 2.4 Server `CGameRoom` Tick 모델
 
@@ -336,7 +343,7 @@ void CGameRoom::Phase_ServerTurretAI(TickContext& tc)
   반환으로 변경
 ```
 
-**파일**: [`CLAUDE.md`](../../../CLAUDE.md) §1.C 미결:
+**역사 기록**: 2026-05-07 당시 `CLAUDE.md` §1.C 미결:
 
 ```text
 - (★ Fiber 진입 전제) Phase 5-A Chase-Lev Main-push race —
@@ -345,7 +352,7 @@ void CGameRoom::Phase_ServerTurretAI(TickContext& tc)
   옵션 A: Main → Global Queue, Worker → 자기 Deque.
 ```
 
-**의미**: Server 의 Tick thread 가 `m_pJobSystem->Submit(...)` 을 호출하면 Tick thread 는 worker thread 가 아니므로 동일한 race 가능. **본 박제는 Submit 시 Global Queue 경로 사용 (또는 Engine 측 race fix 가 들어온 후 진입)** — Stage 별 가이드 명시.
+**2026-07-11 정정**: 이 선결은 충족됐다. Tick/main/external submit은 현재 Global Queue로 라우팅된다. Server Stage가 미착수인 이유는 owner-race가 아니라 `CServerEntry`/main/Tick wiring과 검증이 구현되지 않았기 때문이다.
 
 ---
 
@@ -369,7 +376,7 @@ void CGameRoom::Phase_ServerTurretAI(TickContext& tc)
 
 ## 4. Stage 매트릭스 (Phase A ~ Phase C)
 
-각 Stage 는 **독립 PR** 로 박제 가능. Stage N+1 은 Stage N 의 verification 통과 후 진입.
+각 Stage 는 **미래 독립 PR 계획**이다. 2026-07-11 현재 Stage 1도 완료되지 않았으며, `CServerEntry` 파일/프로젝트 등록만 있고 동작 본체와 호출 wiring이 없다.
 
 | Stage | 목표 | 변경 파일 | 검증 | 행동 변화 |
 |---|---|---|---|---|
@@ -377,9 +384,9 @@ void CGameRoom::Phase_ServerTurretAI(TickContext& tc)
 | **Stage 2** (`02_SERVER_TICK_FIBER_AWARE.md`) | Tick 안에서 `CServerEntry::Get_JobSystem()->WaitForCounter(...)` 호출 가능한 컨텍스트 확보. **Phase 분해 시도 시 즉시 yield 안 하고 inline 실행 (FiberShell 1 job 실행)**. 2-pass 패턴 (Decision-Apply) 구조 표준화. `Phase_BroadcastEvents` 의 stable_sort 보존. | `Server/Public/Game/GameRoom.h` (helper 메서드 추가) `Server/Private/Game/GameRoom.cpp` (Phase_BroadcastEvents 구조 정리, 분해 X) `Server/Public/Game/SnapshotBuilder.h` (per-session API 표면) `Server/Private/Game/SnapshotBuilder.cpp` (helper 분리) | Stage 1 + per-session SnapshotBuilder 호출 결과 byte-identical 비교 (직렬 vs Fiber shell 모드) | **0** (행동 보존) |
 | **Stage 3** (`03_SERVER_PARALLEL_PHASES.md`) | `Phase_BroadcastSnapshot` per-session SnapshotBuilder 호출 N 개 동시 Submit + WaitForCounter. `Phase_ServerProjectiles` 의 read-only loop (collision query) 분할. **Read-only 만 병렬화**. | `Server/Private/Game/GameRoom.cpp` (Phase_BroadcastSnapshot/Phase_ServerProjectiles 본체 변경) `Server/Public/Game/SnapshotBuilder.h` (PerSessionInput POD) | Stage 2 + 8 session 동시 snapshot 결과 byte-identical 비교 + Tick max time 측정 (8 session × 50KB snapshot 직렬 vs 병렬) | **byte-identical 보장** (P-14 회피) |
 
-**선결 조건 (Stage 1 진입 전)**:
-- CLAUDE.md §1.C 미결의 **Phase 5-A Chase-Lev Main-push race 정식 수정** 이 _Engine 측에서 들어와 있어야_ Stage 2 의 `Submit` 안전. Stage 1 은 Submit 호출 0 이므로 race 무관 — **Stage 1 은 race fix 와 독립적으로 진행 가능**.
-- Stage 2 진입 전 Engine 측 race fix 확인 (`grep -rn "PushToSomeDeque" Engine/Private/Core/JobSystem.cpp` 후 Main-push 가드 코드 확인).
+**선결 조건 상태 (2026-07-11)**:
+- ✅ Main-push owner-race 경로: worker self deque / external Global Queue로 수정됨.
+- ❌ Stage 1 operational skeleton: `CServerEntry` 구현, `main` lifetime, Tick fiber shell, smoke 검증이 남음.
 
 ---
 
@@ -461,12 +468,11 @@ void CGameRoom::Phase_ServerTurretAI(TickContext& tc)
 ## 9. 진입 순서 권장
 
 ```text
-1. Engine 측 Phase 5-A Chase-Lev Main-push race fix 확인 (CLAUDE.md §1.C)
-   - 없으면 Engine 측 별도 PR 선결
-2. 01_SERVER_FIBER_SKELETON.md 박제 적용
+1. ✅ Engine 측 Phase 5-A Main-push owner-race 경로 확인 완료
+2. 01_SERVER_FIBER_SKELETON.md를 현재 코드에 맞게 재감사한 뒤 적용
    - 빌드 → 30s smoke → 합격 기준 통과
-3. (선택) Engine 측 Fiber 본체 구현 (FIBER_JOB_SYSTEM.md) 진입
-   - 본 박제와 독립이지만 Stage 2 의 효과는 Fiber 본체 후 명확
+3. (선택) Engine FiberPool/FiberFull 구현 진입
+   - per-job FiberShell은 이미 있으나 기본 OFF/미검증. Stage 2의 비차단 wait 효과는 FiberFull 이후에만 생김
 4. 02_SERVER_TICK_FIBER_AWARE.md 박제 적용
    - 빌드 → byte-identical 검증
 5. 03_SERVER_PARALLEL_PHASES.md 박제 적용

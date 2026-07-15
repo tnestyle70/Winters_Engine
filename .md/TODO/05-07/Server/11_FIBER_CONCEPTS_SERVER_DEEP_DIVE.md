@@ -1,5 +1,7 @@
 # Fiber Concepts For Server Deep Dive
 
+> **상태 동기화 (2026-07-11)**: 개념 자료로 보존한다. 현재 Server에는 별도 AcceptThread가 없고, Engine은 `CreateFiber(0)`의 per-job FiberShell만 가지며 pool/waiter/ready/yield-resume는 없다. TickThread의 단순 변환은 mainline 성능 단계가 아니며 최신 적용 경계는 [2026-07-11 UDP/Fiber 통합 감사](../../../plan/2026-07-11_FULL_UDP_AND_SERVER_FIBER_INTEGRATION_AUDIT.md)를 따른다.
+
 작성일: 2026-05-07  
 목표: Server Fiber 적용 전에 반드시 이해해야 하는 개념을 Winters 코드 기준으로 잡는다.
 
@@ -439,4 +441,3 @@ Q. counter를 왜 Submit 전에 Increment하면 안 되는가?
 Q. Get_WorkerSlot 값이 yield 전후에 달라질 수 있는 이유는?
 Q. read-only 병렬화와 write-heavy 병렬화의 차이는?
 ```
-

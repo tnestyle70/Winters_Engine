@@ -1,5 +1,7 @@
 # 10. Server·네트워크(Netcode) — 박사 연구 심화
 
+> **코드 상태 동기화 (2026-07-11)**: 현재 구현은 IOCP TCP server-authority이며 lobby/Command/Snapshot/Event가 모두 TCP를 탄다. UDP는 header/fragment/reliability/client API 선언만 있고 송수신 구현·호출자, delta/AOI runtime은 없다. 아래 TCP-control/UDP-gameplay 및 AOI·reliability 서술은 연구/목표 architecture로 읽고, 구현 사실과 최신 전체-session UDP + Server Fiber 설계는 [2026-07-11 통합 감사](../plan/2026-07-11_FULL_UDP_AND_SERVER_FIBER_INTEGRATION_AUDIT.md)를 우선한다.
+
 > 전제 문서: [`00_PHD_Paper_Guide.md`](00_PHD_Paper_Guide.md). 본 문서는 가이드 §1(구현 vs 기여), §3(thesis statement), §4(구조), §7(평가: 지연 ms, 대역폭 KB/tick, CCU 확장성, 예측 정확도, 부정 저항성)을 **그대로 전제**한다. 모든 세부주제마다 "이건 구현 항목인가, 기여 후보인가?"를 가이드 §1로 되돌아가 묻는다.
 >
 > 독자: LoL 스타일 MOBA + 오픈월드 엔진 'Winters'를 만든 숙련 C++ 개발자. 현재 **TCP(제어면, BanPick/Backend) + UDP(데이터면, InGame gameplay)** 분리 서버 권위(server-authoritative) 아키텍처를 구현 중이다. 서버는 fixed-tick·stable-sort·`/fp:precise`로 **결정론 기반**을 깔고, lag compensation·delta snapshot·AOI를 단계적으로 얹는다.

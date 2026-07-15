@@ -1,0 +1,1120 @@
+{
+  "schema": "WintersProfilerCoverageAudit.v1",
+  "heuristic": true,
+  "directScopeCoverageIsAcceptanceGate": false,
+  "instrumentationPolicy": [
+    "Engine/Client frame and subsystem boundaries may use direct scopes.",
+    "Repeated entity, behavior-tree, animation, and draw leaves use aggregate counters or on-demand traces.",
+    "Server and Shared/GameSim must use dependency-neutral metrics instead of Engine ProfilerAPI includes."
+  ],
+  "roots": [
+    "Engine/Private",
+    "Client/Private",
+    "Server/Private",
+    "Shared/GameSim"
+  ],
+  "summary": {
+    "entryPoints": 134,
+    "directlyScoped": 37,
+    "missingDirectScope": 97,
+    "coveragePercent": 27.61
+  },
+  "byRoot": {
+    "Engine": {
+      "entryPoints": 42,
+      "directlyScoped": 15,
+      "missingDirectScope": 27
+    },
+    "Client": {
+      "entryPoints": 73,
+      "directlyScoped": 20,
+      "missingDirectScope": 53
+    },
+    "Server": {
+      "entryPoints": 2,
+      "directlyScoped": 0,
+      "missingDirectScope": 2
+    },
+    "Shared": {
+      "entryPoints": 17,
+      "directlyScoped": 2,
+      "missingDirectScope": 15
+    }
+  },
+  "missing": [
+    {
+      "file": "Engine/Private/AI/BehaviorTree.cpp",
+      "line": 6,
+      "function": "CBTSelector::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/AI/BehaviorTree.cpp",
+      "line": 29,
+      "function": "CBTSequence::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/AI/BehaviorTree.cpp",
+      "line": 52,
+      "function": "CBTParallel::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/AI/BehaviorTree.cpp",
+      "line": 83,
+      "function": "CBTInverter::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/AI/BehaviorTree.cpp",
+      "line": 109,
+      "function": "CBTCooldownDecorator::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/AI/BehaviorTree.cpp",
+      "line": 142,
+      "function": "CBTCondition::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/AI/BehaviorTree.cpp",
+      "line": 148,
+      "function": "CBTAction::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/AI/BehaviorTree.cpp",
+      "line": 154,
+      "function": "CBehaviorTree::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Cinematic/CSequencePlayer.cpp",
+      "line": 75,
+      "function": "CSequencePlayer::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Core/Profiler/ProfilerStableView.cpp",
+      "line": 42,
+      "function": "CProfilerStableView::Update",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/CoreSystems.cpp",
+      "line": 13,
+      "function": "CPlayerSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/CoreSystems.cpp",
+      "line": 41,
+      "function": "CAISystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/CoreSystems.cpp",
+      "line": 82,
+      "function": "CMovementSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/CoreSystems.cpp",
+      "line": 101,
+      "function": "CCollisionSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/CoreSystems.cpp",
+      "line": 111,
+      "function": "CHealthSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/SystemScheduler.cpp",
+      "line": 85,
+      "function": "CSystemSchedular::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 4
+    },
+    {
+      "file": "Engine/Private/Framework/CEngineApp.cpp",
+      "line": 400,
+      "function": "CEngineApp::Update",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Renderer/CCamera.cpp",
+      "line": 45,
+      "function": "CCamera::Update",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Renderer/CubeRenderer.cpp",
+      "line": 137,
+      "function": "CubeRenderer::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Renderer/ModelRenderer.cpp",
+      "line": 492,
+      "function": "ModelRenderer::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Renderer/ModelRenderer.cpp",
+      "line": 806,
+      "function": "ModelRenderer::Update",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Renderer/PlaneRenderer.cpp",
+      "line": 200,
+      "function": "CPlaneRenderer::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Renderer/SSAOPass.cpp",
+      "line": 218,
+      "function": "CSSAOPass::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Resource/Animator.cpp",
+      "line": 42,
+      "function": "CAnimator::Update",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Resource/Mesh.cpp",
+      "line": 46,
+      "function": "CMesh::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 2
+    },
+    {
+      "file": "Engine/Private/Sound/Sound_Manager.cpp",
+      "line": 48,
+      "function": "CSound_Manager::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/World/WorldPartitionSystem.cpp",
+      "line": 999,
+      "function": "CWorldPartitionSystem::Update",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/DynamicCamera.cpp",
+      "line": 30,
+      "function": "CDynamicCamera::Update",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/DynamicCamera.cpp",
+      "line": 258,
+      "function": "CDynamicCamera::OnImGui",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/ECS/Systems/YoneSoulSpawnSystem.cpp",
+      "line": 123,
+      "function": "CYoneSoulSpawnSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameMode/LOL/LOLGameModeRuntime.cpp",
+      "line": 28,
+      "function": "CLOLGameModeRuntime::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GamePlay/InputSystem.cpp",
+      "line": 26,
+      "function": "Systems::CInputSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GamePlay/System/SkillDispatchSystem.cpp",
+      "line": 45,
+      "function": "Systems::CSkillDispatchSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Manager/AmbientProp_Manager.cpp",
+      "line": 127,
+      "function": "CAmbientProp_Manager::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Manager/AmbientProp_Manager.cpp",
+      "line": 136,
+      "function": "CAmbientProp_Manager::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Manager/Bush_Manager.cpp",
+      "line": 187,
+      "function": "CBush_Manager::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Manager/Jungle_Manager.cpp",
+      "line": 220,
+      "function": "CJungle_Manager::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Manager/Structure_Manager.cpp",
+      "line": 111,
+      "function": "CStructure_Manager::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 3
+    },
+    {
+      "file": "Client/Private/Replay/ReplayPlayer.cpp",
+      "line": 194,
+      "function": "CReplayPlayer::Update",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_BanPick.cpp",
+      "line": 347,
+      "function": "CScene_BanPick::OnUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_BanPick.cpp",
+      "line": 409,
+      "function": "CScene_BanPick::OnLateUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_BanPick.cpp",
+      "line": 413,
+      "function": "CScene_BanPick::OnRender",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_BanPick.cpp",
+      "line": 423,
+      "function": "CScene_BanPick::OnImGui",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_CustomMode.cpp",
+      "line": 83,
+      "function": "CScene_CustomMode::OnUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_CustomMode.cpp",
+      "line": 121,
+      "function": "CScene_CustomMode::OnLateUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_CustomMode.cpp",
+      "line": 125,
+      "function": "CScene_CustomMode::OnRender",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_CustomMode.cpp",
+      "line": 130,
+      "function": "CScene_CustomMode::OnImGui",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Editor.cpp",
+      "line": 148,
+      "function": "CScene_Editor::OnUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Editor.cpp",
+      "line": 174,
+      "function": "CScene_Editor::OnLateUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Editor.cpp",
+      "line": 176,
+      "function": "CScene_Editor::OnRender",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Editor.cpp",
+      "line": 233,
+      "function": "CScene_Editor::OnImGui",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_GameSelect.cpp",
+      "line": 48,
+      "function": "CScene_GameSelect::OnUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_GameSelect.cpp",
+      "line": 60,
+      "function": "CScene_GameSelect::OnLateUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_GameSelect.cpp",
+      "line": 64,
+      "function": "CScene_GameSelect::OnRender",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_GameSelect.cpp",
+      "line": 68,
+      "function": "CScene_GameSelect::OnImGui",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_InGame.cpp",
+      "line": 1243,
+      "function": "CScene_InGame::OnLateUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Loading.cpp",
+      "line": 27,
+      "function": "CScene_Loading::OnUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Loading.cpp",
+      "line": 46,
+      "function": "CScene_Loading::OnImGui",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Login.cpp",
+      "line": 56,
+      "function": "CScene_Login::OnUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Login.cpp",
+      "line": 72,
+      "function": "CScene_Login::OnLateUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Login.cpp",
+      "line": 75,
+      "function": "CScene_Login::OnRender",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_Login.cpp",
+      "line": 80,
+      "function": "CScene_Login::OnImGui",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_MainMenu.cpp",
+      "line": 56,
+      "function": "CScene_MainMenu::OnUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_MainMenu.cpp",
+      "line": 69,
+      "function": "CScene_MainMenu::OnLateUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_MainMenu.cpp",
+      "line": 72,
+      "function": "CScene_MainMenu::OnRender",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_MainMenu.cpp",
+      "line": 77,
+      "function": "CScene_MainMenu::OnImGui",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_MatchLoading.cpp",
+      "line": 54,
+      "function": "CScene_MatchLoading::OnUpdate",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_MatchLoading.cpp",
+      "line": 98,
+      "function": "CScene_MatchLoading::OnRender",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_MatchLoading.cpp",
+      "line": 109,
+      "function": "CScene_MatchLoading::OnImGui",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/AIDebugPanel.cpp",
+      "line": 338,
+      "function": "UI::CAIDebugPanel::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/ChampionTuner.cpp",
+      "line": 674,
+      "function": "CChampionTuner::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/CombatDebugPanel.cpp",
+      "line": 16,
+      "function": "CCombatDebugPanel::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/DebugDrawSystem.cpp",
+      "line": 261,
+      "function": "CDebugDrawSystem::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/EffectTuner.cpp",
+      "line": 309,
+      "function": "UI::CEffectTuner::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/ImageScenePresenter.cpp",
+      "line": 80,
+      "function": "CImageScenePresenter::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/MapTunerPanel.cpp",
+      "line": 13,
+      "function": "CMapTunerPanel::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/ModelAnimPanel.cpp",
+      "line": 61,
+      "function": "CModelAnimPanel::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/RenderDebug.cpp",
+      "line": 11,
+      "function": "CRenderDebugPanel::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/SkillTimingPanel.cpp",
+      "line": 13,
+      "function": "CSkillTimingPanel::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/UI/WfxEffectToolPanel.cpp",
+      "line": 1160,
+      "function": "UI::CWfxEffectToolPanel::Render",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Server/Private/Game/GameRoomTick.cpp",
+      "line": 92,
+      "function": "CGameRoom::Tick",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Server/Private/Game/ServerAICommandProducer.cpp",
+      "line": 24,
+      "function": "CServerAICommandProducer::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/AreaAura/AreaAuraSystem.cpp",
+      "line": 55,
+      "function": "CAreaAuraSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/AttackChase/AttackChaseSystem.cpp",
+      "line": 251,
+      "function": "CAttackChaseSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/ChampionAI/ChampionAISystem.cpp",
+      "line": 3969,
+      "function": "CChampionAISystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/Combat/CombatActionSystem.cpp",
+      "line": 340,
+      "function": "CCombatActionSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/Damage/DamageQueueSystem.cpp",
+      "line": 308,
+      "function": "CDamageQueueSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/Death/DeathSystem.cpp",
+      "line": 11,
+      "function": "CDeathSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/JungleAI/JungleAISystem.cpp",
+      "line": 94,
+      "function": "CJungleAISystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/Move/MoveSystem.cpp",
+      "line": 430,
+      "function": "CMoveSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/Recall/RecallSystem.cpp",
+      "line": 63,
+      "function": "CRecallSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/Rune/RuneSystem.cpp",
+      "line": 59,
+      "function": "CRuneSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/SkillCooldown/SkillCooldownSystem.cpp",
+      "line": 158,
+      "function": "CSkillCooldownSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/SpellbookFormOverride/SpellbookFormOverrideSystem.cpp",
+      "line": 37,
+      "function": "CSpellbookFormOverrideSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/Stat/StatSystem.cpp",
+      "line": 248,
+      "function": "CStatSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/Stat/StatSystem.cpp",
+      "line": 259,
+      "function": "CStatSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    },
+    {
+      "file": "Shared/GameSim/Systems/WaypointPatrol/WaypointPatrolSystem.cpp",
+      "line": 97,
+      "function": "CWaypointPatrolSystem::Execute",
+      "directScope": false,
+      "scopeCount": 0,
+      "counterCount": 0
+    }
+  ],
+  "covered": [
+    {
+      "file": "Engine/Private/ECS/Systems/BehaviorTreeSystem.cpp",
+      "line": 9,
+      "function": "CBehaviorTreeSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/MCTSSystem.cpp",
+      "line": 10,
+      "function": "CMCTSSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/NavigationSystem.cpp",
+      "line": 49,
+      "function": "CNavigationSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/NavigationThrottleSystem.cpp",
+      "line": 33,
+      "function": "CNavigationThrottleSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 3
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/SpatialHashSystem.cpp",
+      "line": 9,
+      "function": "CSpatialHashSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/StatusEffectSystem.cpp",
+      "line": 16,
+      "function": "CStatusEffectSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/TransformSystem.cpp",
+      "line": 19,
+      "function": "CTransformSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 3
+    },
+    {
+      "file": "Engine/Private/ECS/Systems/VisionSystem.cpp",
+      "line": 116,
+      "function": "CVisionSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Framework/CEngineApp.cpp",
+      "line": 417,
+      "function": "CEngineApp::Render",
+      "directScope": true,
+      "scopeCount": 18,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Renderer/RHISceneRenderer.cpp",
+      "line": 398,
+      "function": "CRHISceneRenderer::Render",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 3
+    },
+    {
+      "file": "Engine/Private/Resource/Model.cpp",
+      "line": 537,
+      "function": "CModel::Render",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 2
+    },
+    {
+      "file": "Engine/Private/Scene/Scene_Manager.cpp",
+      "line": 42,
+      "function": "CScene_Manager::Update",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Scene/Scene_Manager.cpp",
+      "line": 51,
+      "function": "CScene_Manager::LateUpdate",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Scene/Scene_Manager.cpp",
+      "line": 60,
+      "function": "CScene_Manager::Render",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Engine/Private/Scene/Scene_Manager.cpp",
+      "line": 69,
+      "function": "CScene_Manager::ImGui",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameObject/Champion/Irelia/IreliaBladeSystem.cpp",
+      "line": 68,
+      "function": "CIreliaBladeSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameObject/Champion/Kalista/KalistaProjectileSystem.cpp",
+      "line": 21,
+      "function": "CKalistaProjectileSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameObject/Champion/Kalista/KalistaRendSystem.cpp",
+      "line": 127,
+      "function": "CKalistaRendSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameObject/Champion/Yasuo/PendingHitSystem.cpp",
+      "line": 41,
+      "function": "CPendingHitSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameObject/Champion/Yasuo/YasuoProjectileSystem.cpp",
+      "line": 77,
+      "function": "CYasuoProjectileSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameObject/FX/FxBeamSystem.cpp",
+      "line": 393,
+      "function": "CFxBeamSystem::Update",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameObject/FX/FxBeamSystem.cpp",
+      "line": 506,
+      "function": "CFxBeamSystem::Render",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 3
+    },
+    {
+      "file": "Client/Private/GameObject/FX/FxMeshSystem.cpp",
+      "line": 127,
+      "function": "CFxMeshSystem::Update",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameObject/FX/FxMeshSystem.cpp",
+      "line": 185,
+      "function": "CFxMeshSystem::Render",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 2
+    },
+    {
+      "file": "Client/Private/GameObject/FX/FxSystem.cpp",
+      "line": 218,
+      "function": "CFxSystem::Update",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GameObject/FX/FxSystem.cpp",
+      "line": 270,
+      "function": "CFxSystem::Render",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 2
+    },
+    {
+      "file": "Client/Private/GameObject/FX/WindWallSystem.cpp",
+      "line": 35,
+      "function": "CWindWallSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GamePlay/System/LocalStatusEffectSystem.cpp",
+      "line": 15,
+      "function": "CLocalStatusEffectSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/GamePlay/System/LocalUnitAISystem.cpp",
+      "line": 61,
+      "function": "CLocalUnitAISystem::Execute",
+      "directScope": true,
+      "scopeCount": 4,
+      "counterCount": 1
+    },
+    {
+      "file": "Client/Private/Manager/Jungle_Manager.cpp",
+      "line": 172,
+      "function": "CJungle_Manager::Update",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 3
+    },
+    {
+      "file": "Client/Private/Manager/Minion_Manager.cpp",
+      "line": 403,
+      "function": "CMinion_Manager::Tick",
+      "directScope": true,
+      "scopeCount": 2,
+      "counterCount": 1
+    },
+    {
+      "file": "Client/Private/Manager/Minion_Manager.cpp",
+      "line": 858,
+      "function": "CMinion_Manager::Render",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 4
+    },
+    {
+      "file": "Client/Private/Scene/Scene_InGame.cpp",
+      "line": 768,
+      "function": "CScene_InGame::OnUpdate",
+      "directScope": true,
+      "scopeCount": 4,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_InGameImGui.cpp",
+      "line": 37,
+      "function": "CScene_InGame::OnImGui",
+      "directScope": true,
+      "scopeCount": 6,
+      "counterCount": 0
+    },
+    {
+      "file": "Client/Private/Scene/Scene_InGameRender.cpp",
+      "line": 331,
+      "function": "CScene_InGame::OnRender",
+      "directScope": true,
+      "scopeCount": 24,
+      "counterCount": 5
+    },
+    {
+      "file": "Shared/GameSim/Systems/Turret/StructureProjectileSystem.cpp",
+      "line": 16,
+      "function": "CStructureProjectileSystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 1
+    },
+    {
+      "file": "Shared/GameSim/Systems/Turret/TurretAISystem.cpp",
+      "line": 72,
+      "function": "CTurretAISystem::Execute",
+      "directScope": true,
+      "scopeCount": 1,
+      "counterCount": 0
+    }
+  ]
+}

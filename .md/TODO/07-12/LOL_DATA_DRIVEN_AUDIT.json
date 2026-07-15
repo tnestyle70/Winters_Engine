@@ -1,0 +1,679 @@
+﻿{
+    "generatedAtUtc":  "2026-07-12T08:09:43.5320154Z",
+    "root":  "C:\\Users\\user\\Desktop\\Winters",
+    "championGameData":  {
+                             "path":  "C:\\Users\\user\\Desktop\\Winters\\Data\\Gameplay\\ChampionGameData\\champions.json",
+                             "championCount":  17,
+                             "summonerSpellCount":  0,
+                             "skillStageCount":  96,
+                             "visualYawOffsetCount":  0,
+                             "animPlaySpeedCount":  0,
+                             "castFrameCount":  0,
+                             "recoveryFrameCount":  0
+                         },
+    "legacyRegistrations":  {
+                                "skillRegistrationFileCount":  17,
+                                "skillRegistrationFiles":  [
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Annie\\Annie_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Kindred\\Kindred_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\MasterYi\\MasterYi_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ashe\\Ashe_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ezreal\\Ezreal_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Fiora\\Fiora_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Garen\\Garen_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Jax\\Jax_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Irelia\\Irelia_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Kalista\\Kalista_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\LeeSin\\LeeSin_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Zed\\Zed_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Viego\\Viego_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Sylas\\SylasRegistration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Riven\\Riven_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Yasuo\\Yasuo_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Yone\\Yone_Registration.cpp"
+                                                           ],
+                                "championRegistrationFileCount":  12,
+                                "championRegistrationFiles":  [
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\MasterYi\\MasterYi_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Jax\\Jax_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Sylas\\SylasRegistration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Kindred\\Kindred_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Yone\\Yone_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\LeeSin\\LeeSin_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Viego\\Viego_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Irelia\\Irelia_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Fiora\\Fiora_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Annie\\Annie_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ashe\\Ashe_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ezreal\\Ezreal_Registration.cpp"
+                                                              ]
+                            },
+    "legacyLineCounts":  {
+                             "skillDefRelated":  241,
+                             "championDefRelated":  206,
+                             "visualFieldsInGameplayOrLegacy":  438,
+                             "serverObjectHardcode":  33,
+                             "projectileVisualCatalog":  25,
+                             "skillEffectHardcodeCandidates":  0,
+                             "skillEffectDataQueryReaders":  222
+                         },
+    "skillEffectCutover":  {
+                               "hardcodeCandidateCount":  0,
+                               "dataQueryReaderCount":  222,
+                               "hardcodeCandidatesByFile":  {
+
+                                                            },
+                               "dataQueryReadersByFile":  [
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Annie\\AnnieGameSim.cpp",
+                                                                  "count":  19
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Ashe\\AsheGameSim.cpp",
+                                                                  "count":  12
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Ezreal\\EzrealGameSim.cpp",
+                                                                  "count":  6
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Fiora\\FioraGameSim.cpp",
+                                                                  "count":  11
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Garen\\GarenGameSim.cpp",
+                                                                  "count":  6
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Irelia\\IreliaGameSim.cpp",
+                                                                  "count":  23
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Jax\\JaxGameSim.cpp",
+                                                                  "count":  8
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Kalista\\KalistaGameSim.cpp",
+                                                                  "count":  10
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Kindred\\KindredGameSim.cpp",
+                                                                  "count":  17
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\LeeSin\\LeeSinGameSim.cpp",
+                                                                  "count":  12
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\MasterYi\\MasterYiGameSim.cpp",
+                                                                  "count":  6
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Riven\\RivenGameSim.cpp",
+                                                                  "count":  12
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Sylas\\SylasGameSim.cpp",
+                                                                  "count":  12
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Viego\\ViegoGameSim.cpp",
+                                                                  "count":  16
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Yasuo\\YasuoGameSim.cpp",
+                                                                  "count":  21
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Yone\\YoneGameSim.cpp",
+                                                                  "count":  15
+                                                              },
+                                                              {
+                                                                  "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Zed\\ZedGameSim.cpp",
+                                                                  "count":  16
+                                                              }
+                                                          ]
+                           },
+    "visualFieldBreakdown":  {
+                                 "total":  438,
+                                 "expectedClientPublicVisual":  380,
+                                 "toolExtraction":  35,
+                                 "legacyGameplaySource":  0,
+                                 "clientLegacyRuntime":  22,
+                                 "sharedGameSimAuthoritative":  0,
+                                 "serverAuthoritative":  0,
+                                 "suspiciousAuthoritative":  0
+                             },
+    "phaseGoalCounts":  {
+                            "p3SkillEffectHardcode":  0,
+                            "p4VisualAuthorityLeak":  0,
+                            "p5AiPolicyHardcode":  217,
+                            "p6ObjectWaveHardcode":  33,
+                            "p7NetworkIdentityLegacy":  579,
+                            "p8LegacyValueOwner":  194
+                        },
+    "phaseGoalBreakdown":  {
+                               "p3SkillEffectHardcode":  {
+
+                                                         },
+                               "p4VisualAuthorityLeak":  {
+
+                                                         },
+                               "p5AiPolicyHardcode":  [
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Include\\Server.vcxproj.filters",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoom.cpp",
+                                                              "count":  7
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomCommands.cpp",
+                                                              "count":  5
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomSpawn.cpp",
+                                                              "count":  11
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\SnapshotBuilder.cpp",
+                                                              "count":  19
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\ChampionAI\\ChampionAIBrain.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\ChampionAI\\ChampionAIBrain.h",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\ChampionAI\\ChampionAIPolicy.cpp",
+                                                              "count":  56
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\ChampionAI\\ChampionAIPolicy.h",
+                                                              "count":  6
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\ChampionAI\\ChampionAISystem.cpp",
+                                                              "count":  108
+                                                          }
+                                                      ],
+                               "p6ObjectWaveHardcode":  [
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomCommands.cpp",
+                                                                "count":  3
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomSpawn.cpp",
+                                                                "count":  3
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\ServerMinionWaveRuntime.cpp",
+                                                                "count":  5
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\SnapshotBuilder.cpp",
+                                                                "count":  1
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Public\\Game\\ServerMinionTuning.h",
+                                                                "count":  2
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Components\\RuneComponent.h",
+                                                                "count":  4
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\CommandExecutor\\CommandExecutor.cpp",
+                                                                "count":  2
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\Rune\\RuneSystem.cpp",
+                                                                "count":  3
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\Stat\\StatSystem.cpp",
+                                                                "count":  2
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\go\\Shared\\Schema\\EntitySnapshot.go",
+                                                                "count":  3
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Tools\\LoLData\\Build-LoLDefinitionPack.py",
+                                                                "count":  1
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Tools\\LoLData\\Collect-LoLLegacyDataAudit.ps1",
+                                                                "count":  2
+                                                            },
+                                                            {
+                                                                "path":  "C:\\Users\\user\\Desktop\\Winters\\Tools\\SimLab\\main.cpp",
+                                                                "count":  2
+                                                            }
+                                                        ],
+                               "p7NetworkIdentityLegacy":  [
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Network\\Client\\CommandSerializer.cpp",
+                                                                   "count":  1
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Network\\Client\\EventApplier.cpp",
+                                                                   "count":  34
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Network\\Client\\GameSessionClient.cpp",
+                                                                   "count":  5
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Network\\Client\\SnapshotApplier.cpp",
+                                                                   "count":  64
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\GameplayQuery.cpp",
+                                                                   "count":  8
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\InGameRosterSpawner.cpp",
+                                                                   "count":  19
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Loader.cpp",
+                                                                   "count":  14
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\LobbyRosterHelpers.cpp",
+                                                                   "count":  13
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_BanPick.cpp",
+                                                                   "count":  38
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_CustomMode.cpp",
+                                                                   "count":  4
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGame.cpp",
+                                                                   "count":  17
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameImGui.cpp",
+                                                                   "count":  1
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameInput.cpp",
+                                                                   "count":  6
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameInternal.cpp",
+                                                                   "count":  2
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameLifecycle.cpp",
+                                                                   "count":  29
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameLocalSkills.cpp",
+                                                                   "count":  30
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameNetwork.cpp",
+                                                                   "count":  41
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameRender.cpp",
+                                                                   "count":  5
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\Factory\\ChampionSimComponentTable.cpp",
+                                                                   "count":  12
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\Factory\\ChampionSimComponentTable.h",
+                                                                   "count":  1
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoom.cpp",
+                                                                   "count":  5
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomChampionAI.cpp",
+                                                                   "count":  5
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomCommands.cpp",
+                                                                   "count":  1
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomLobby.cpp",
+                                                                   "count":  2
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomSmokeRoster.cpp",
+                                                                   "count":  3
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomSpawn.cpp",
+                                                                   "count":  10
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\LobbyAuthority.cpp",
+                                                                   "count":  47
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\SnapshotBuilder.cpp",
+                                                                   "count":  34
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\ReplicatedEventSerializer\\ReplicatedEventSerializer.cpp",
+                                                                   "count":  2
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Event.fbs",
+                                                                   "count":  2
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\cpp\\Event_generated.h",
+                                                                   "count":  10
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\cpp\\Hello_generated.h",
+                                                                   "count":  5
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\cpp\\LobbyCommand_generated.h",
+                                                                   "count":  5
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\cpp\\LobbyTypes_generated.h",
+                                                                   "count":  5
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\cpp\\Snapshot_generated.h",
+                                                                   "count":  42
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\go\\Shared\\Schema\\ActionStartEvent.go",
+                                                                   "count":  4
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\go\\Shared\\Schema\\AIDebugTraceRow.go",
+                                                                   "count":  1
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\go\\Shared\\Schema\\EntitySnapshot.go",
+                                                                   "count":  24
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\go\\Shared\\Schema\\Hello.go",
+                                                                   "count":  4
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\go\\Shared\\Schema\\KillFeedEvent.go",
+                                                                   "count":  4
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\go\\Shared\\Schema\\LobbyCommand.go",
+                                                                   "count":  4
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\go\\Shared\\Schema\\LobbyPhase.go",
+                                                                   "count":  3
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Generated\\go\\Shared\\Schema\\LobbySlot.go",
+                                                                   "count":  4
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Hello.fbs",
+                                                                   "count":  1
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\LobbyCommand.fbs",
+                                                                   "count":  1
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\LobbyTypes.fbs",
+                                                                   "count":  1
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Snapshot.fbs",
+                                                                   "count":  6
+                                                               }
+                                                           ],
+                               "p8LegacyValueOwner":  [
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Include\\Client.vcxproj",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Include\\Client.vcxproj.filters",
+                                                              "count":  5
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Zed\\ZedFxPresets.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\ChampionSpawnService.cpp",
+                                                              "count":  3
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\SkillTable.cpp",
+                                                              "count":  6
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GamePlay\\SharedGameSimSmoke.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Manager\\Minion_Manager.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Network\\Client\\EventApplier.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Network\\Client\\SnapshotApplier.cpp",
+                                                              "count":  4
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\GameplayQuery.cpp",
+                                                              "count":  4
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGame.cpp",
+                                                              "count":  3
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameInput.cpp",
+                                                              "count":  3
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameInternal.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameLifecycle.cpp",
+                                                              "count":  3
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameLocalSkills.cpp",
+                                                              "count":  5
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameMapNav.cpp",
+                                                              "count":  3
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameNetwork.cpp",
+                                                              "count":  5
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\Scene\\Scene_InGameRender.cpp",
+                                                              "count":  3
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\UI\\AIDebugPanel.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\UI\\SkillTimingPanel.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Include\\Server.vcxproj",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Include\\Server.vcxproj.filters",
+                                                              "count":  4
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoom.cpp",
+                                                              "count":  4
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomLobby.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomNav.cpp",
+                                                              "count":  3
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomSpawn.cpp",
+                                                              "count":  12
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomUnitAI.cpp",
+                                                              "count":  23
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\ServerMinionWaveRuntime.cpp",
+                                                              "count":  7
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\SnapshotBuilder.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Server\\Public\\Game\\ServerMinionTuning.h",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Fiora\\FioraGameSim.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Irelia\\IreliaGameSim.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Jax\\JaxGameSim.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Kalista\\KalistaGameSim.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\LeeSin\\LeeSinGameSim.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Sylas\\SylasGameSim.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Viego\\ViegoGameSim.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Yasuo\\YasuoGameSim.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Yone\\YoneGameSim.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Zed\\ZedGameSim.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Definitions\\ChampionRuntimeDefaults.cpp",
+                                                              "count":  14
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Definitions\\GameplayDefinitionQuery.cpp",
+                                                              "count":  12
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Definitions\\MinionCombatDef.h",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Definitions\\SkillDef.h",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Definitions\\SkillTypes.h",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Generated\\ChampionGameData.generated.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Generated\\ChampionGameData.generated.h",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Include\\GameSim.vcxproj",
+                                                              "count":  3
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Registries\\ChampionGameData\\ChampionGameDataDB.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Registries\\ChampionGameData\\ChampionGameDataDB.h",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Registries\\ChampionStats\\ChampionStatsRegistry.cpp",
+                                                              "count":  8
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Registries\\ChampionStats\\ChampionStatsRegistry.h",
+                                                              "count":  6
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\AttackChase\\AttackChaseSystem.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\ChampionAI\\ChampionAISystem.cpp",
+                                                              "count":  1
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\CommandExecutor\\CommandExecutor.cpp",
+                                                              "count":  4
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\Move\\MoveSystem.cpp",
+                                                              "count":  2
+                                                          },
+                                                          {
+                                                              "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Systems\\Stat\\StatSystem.cpp",
+                                                              "count":  3
+                                                          }
+                                                      ]
+                           }
+}

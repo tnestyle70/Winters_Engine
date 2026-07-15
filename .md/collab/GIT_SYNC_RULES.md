@@ -25,6 +25,12 @@ git switch -c codex/<area>-<short-task>
 - `codex/server-*`
 - `codex/bot-ai-*`
 
+Claude 레인 브랜치는 `claude/` prefix로 레인을 구분한다:
+
+- `claude/audit-*`
+- `claude/docs-*`
+- `claude/plan-*`
+
 ## 작업 중
 
 - work packet의 owned paths만 수정한다.

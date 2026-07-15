@@ -1,5 +1,7 @@
 # Worker-Safety 통합 패키지 — 병렬 ECS 인프라 안정화
 
+> **상태 동기화 (2026-07-11 — HISTORICAL PLAN)**: 본문의 `pAI/pNav Set_JobSystem` 임시 비활성은 과거 봉쇄 단계다. 현재 Main-push owner-race 경로는 수정됐고 Client local-only UnitAI/Nav 및 Transform의 ThreadOnly JobSystem 경로가 활성이다. 전용 JobSystem stress와 FiberFull은 여전히 미완료다. 최신 판정은 [상태 감사](../2026-07-11_JOB_SYSTEM_CHASE_LEV_FIBER_STATE_AUDIT.md)를 따른다.
+>
 **작성일**: 2026-04-28
 **개정**: **v3 (Codex 3차 검토 반영)** — Decision 구조 분리 (desiredState/stopMovement/emitDamage), MinionStateComponent 5상태 확장 (Chase 추가), ISystem.Initialize 우회 (Set_JobSystem 시 resize), SystemAccess/TypeID 명시 정의, B-10c stale reference 전수 통일
 

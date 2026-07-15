@@ -1,5 +1,7 @@
 # Engine Fiber Prerequisites And Fixes For Server
 
+> **상태 동기화 (2026-07-11)**: 선결 1 `CJobSystem` DLL export와 선결 3 Main/external→GlobalQueue owner-race 우회는 현재 코드에 적용됐다. FiberShell은 dormant prototype으로 존재하지만 FiberPool과 wait/yield/resume는 없고 Server는 연결되지 않았다. 아래 “현재 관찰”은 2026-05-07 스냅샷이다. Engine 상세는 [JobSystem 상태 감사](../../../plan/2026-07-11_JOB_SYSTEM_CHASE_LEV_FIBER_STATE_AUDIT.md), Server 적용·pinning·RoomIngress 순서는 [통합 감사](../../../plan/2026-07-11_FULL_UDP_AND_SERVER_FIBER_INTEGRATION_AUDIT.md)를 우선한다.
+>
 작성일: 2026-05-07  
 목표: Server Fiber refactor 전에 Engine `CJobSystem`에서 반드시 정리해야 하는 선결 사항을 확정한다.
 
@@ -418,4 +420,3 @@ Submit(job, &counter)는 counter를 내부에서 증가시킨다.
 Fiber context 의 WaitForCounter 는 도움실행이 아니라 yield 해야 한다.
 Server Tick thread 의 Submit 은 external submit 이므로 global queue 로 들어가야 한다.
 ```
-

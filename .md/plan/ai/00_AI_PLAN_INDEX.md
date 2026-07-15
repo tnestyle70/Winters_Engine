@@ -23,6 +23,8 @@ Tactical (미들, 0.2~0.5초)   개별 봇의 경로·포지션·교전 판단
 Operational (마이크로, 매 프레임)   스킬샷 예측, 평타 무빙, 궁 캔슬링
 ```
 
+> **주의 (2026-07-12)**: 아래 Stage 로드맵, "구현 순서 (권장)", Codex 구현 계획서 표는 **aspirational 트랙** — 디렉토리/타입/심볼이 실제 코드와 다르며 어휘·청사진으로만 인용한다 (16 §0.2). **활성 실행 순서는 하나다: Extreme Bot 세트(18)의 M0~M5.** 실현 트랙 코드 기준은 16, 실행 계획은 18을 따른다.
+
 ## Stage 로드맵 (0~8)
 
 | Stage | 내용 | 난이도 | 문서 |
@@ -48,6 +50,29 @@ Operational (마이크로, 매 프레임)   스킬샷 예측, 평타 무빙, 궁
 | NYPC Competition ML Lab → Winters LoL AI 통합 경계 | [14_NYPC_COMPETITION_ML_LAB_BRIDGE.md](14_NYPC_COMPETITION_ML_LAB_BRIDGE.md) |
 | NYPC → MobaZero 연구 플랫폼/포트폴리오 로드맵 | [15_MOBAZERO_RESEARCH_PLATFORM_ROADMAP.md](15_MOBAZERO_RESEARCH_PLATFORM_ROADMAP.md) |
 | **봇 AI 완성 파이프라인 가이드 (현행 코드 기준 인간형 방향+튜닝/디버깅+검증)** | [16_BOT_AI_HUMANLIKE_COMPLETION_PIPELINE_GUIDE.md](16_BOT_AI_HUMANLIKE_COMPLETION_PIPELINE_GUIDE.md) |
+
+## Extreme Bot 설계 세트 (2026-07-12) — 상대 행동·반응 기반 봇
+
+읽기 순서: 17 → 18 → (19~23은 18의 마일스톤 순서대로). 전부 16의 실현 트랙 북극성에 정렬 — 01/07/codex의 `Engine/Public/AI` 트리는 어휘로만 인용.
+
+| 주제 | 문서 |
+|---|---|
+| NYPC 전장 vs LoL 봇 차이 분석 (이식 가능 원리 8종) | [17_NYPC_BATTLEFIELD_VS_LOL_BOT_GAP_ANALYSIS.md](17_NYPC_BATTLEFIELD_VS_LOL_BOT_GAP_ANALYSIS.md) |
+| **마스터 플랜** (M0~M5 마일스톤 + 환전물 게이트 + 천장 예산) | [18_EXTREME_BOT_MASTER_PLAN.md](18_EXTREME_BOT_MASTER_PLAN.md) |
+| 상대 반응 모델 (OppTrack/FOW/쿨다운 추론/귀속/MIA/커밋 오라클/리드) | [19_OPPONENT_REACTION_MODEL.md](19_OPPONENT_REACTION_MODEL.md) |
+| 영향맵 GameSim 실현판 (07 supersede — 결정론 CPU ThreatField) | [20_INFLUENCE_MAP_GAMESIM.md](20_INFLUENCE_MAP_GAMESIM.md) |
+| AI 디버그 툴 확장 (breakdown/why-not/히트맵/JSONL/inspector) | [21_AI_DEBUG_TOOL_EXTENSION.md](21_AI_DEBUG_TOOL_EXTENSION.md) |
+| 크로노 브레이크 봇 튜닝 루프 (반사실 실험/골든 시나리오 공장) | [22_CHRONO_BREAK_BOT_TUNING_LOOP.md](22_CHRONO_BREAK_BOT_TUNING_LOOP.md) |
+| NYPC .py 툴체인 이식 (BotLab — 14 §10 보류 해제) | [23_NYPC_PY_TOOLCHAIN_PORT.md](23_NYPC_PY_TOOLCHAIN_PORT.md) |
+
+채용 연계: `.md/이력서/AI연구직_지원작전.md` (RL/모방학습 게임 AI 공고 매핑 + 제출 순서).
+
+## RL/IL/ML 인프라 감사 & 반영 로드맵 (2026-07-15)
+
+| 주제 | 문서 |
+|---|---|
+| **전수 감사 보고서** (IL 조건부 가능/RL 불가/병렬 판정 + 적대적 검증 4건 + 07-15 트리 재실행) | [24_RL_IL_ML_INFRA_AUDIT_20260715.md](24_RL_IL_ML_INFRA_AUDIT_20260715.md) |
+| **반영 계획서** (P0 자산보전·회귀수복 → P1 병렬 데이터 공장 → P2 리그/승급 → P3 LearnedControl → P4 RL) | [25_RL_IL_ML_CPU_PARALLEL_TRAINING_ROLLOUT_PLAN.md](25_RL_IL_ML_CPU_PARALLEL_TRAINING_ROLLOUT_PLAN.md) |
 
 ## Codex 구현 계획서
 

@@ -10,6 +10,18 @@
 - ServerPrivate gameplay values compile only into Server; ClientPublic visual values compile only into Client.
 - Legacy tables are deleted only after reader count reaches zero and build/SimLab/client-server smoke gates pass.
 - Hot Reload and Perforce integration start after the DataDriven ownership and cutover gates are complete.
+- Practice/balance tools stay on the normal in-game network path: Client UI sends typed commands, Server policy and GameSim own every gameplay mutation, and Snapshot/Event reports the result.
+- A practice balance overlay is temporary bounded session data, never canonical authoring data. Approved values return to JSON/sheet -> validate -> cook -> SimLab/build before release.
+
+## Runtime Concurrency / Network Boundary
+
+- Transport adapters own sockets, connection generations, framing, ACK/retry/order, fragmentation/reassembly, and transport backpressure. GameRoom consumes a logical session id, packet type/sequence, and owned payload bytes; it must not branch on socket handles or UDP endpoints.
+- IOCP completion callbacks do not mutate GameRoom, ECS, lobby, or authority state. They publish bounded owned ingress; the 30 Hz room owner drains and revalidates it before world mutation.
+- TCP and UDP may coexist only behind the same logical-session/send boundary. Adding a transport must not duplicate command validation, GameSim execution, Snapshot/Event construction, or client visual application.
+- Engine owns generic JobSystem/Chase-Lev/Fiber primitives. Do not expose Engine jobs, Win32 fiber handles, TLS/FLS, IOCP, or socket types to `Shared/GameSim`; Shared describes deterministic work/data dependencies only.
+- IOCP waits remain OS-thread completion waits. FiberFull is for CPU continuations waiting on JobCounter dependencies, not for wrapping `GetQueuedCompletionStatus`, overlapped socket lifetime, or arbitrary blocking I/O.
+- A FiberFull `WaitForCounter` boundary must not be crossed while holding a thread-affine lock, an in-flight socket/OVERLAPPED ownership assumption, or mutable TLS scratch that must survive as fiber-local state. Use stack/job-owned state or FLS for continuation-owned context.
+- Job publication is a lifetime contract: fully construct immutable work before pointer-token publication, increment counters before publication, and keep Submit/Wait admitted until publish/inline completion. Shutdown destroys deque/fiber state only after that admission boundary is quiescent.
 
 작성일: 2026-06-04
 
@@ -24,8 +36,12 @@
 
 도메인 문서:
 - 서버 권위, GameSim, 네트워크, 스냅샷, 챔피언 스킬, AI, FX cue: `CLAUDE_Legacy.md`
+- 서버 상태 전이, 챔피언 예외, 충돌 우선순위, 사람형 bot 확장 원칙: `.md/architecture/WINTERS_SERVER_SIMULATION_EXCEPTION_DOCTRINE.md`
+- 한 실행 내 Practice/AI/asset authoring, Undo/Redo, linked clock, deterministic rewind/branch 원칙: `.md/architecture/WINTERS_LIVE_AUTHORING_CHRONOBREAK_ARCHITECTURE.md`
+- NYPC Perception/회고 자산, Influence layer, Chrono AI A/B, imitation/RL artifact bridge 원칙: `.md/architecture/WINTERS_NYPC_HUMANLIKE_AI_RESEARCH_ARCHITECTURE.md`
 - 엔진 C++ 컨벤션과 `CGameInstance` 경계: `.md/architecture/WINTERS_ENGINE_CONVENTIONS.md`
 - LoL/Elden 공용 RHI 방향: `.md/plan/rhi/sessions/S13_LOL_TO_ELDEN_SHARED_RHI_RENDER_PIPELINE.md`
+- Unreal 5.7.4 기준 backend/feature profile/renderer/platform 분리와 Console Restricted 경계: `.md/architecture/WINTERS_UNREAL_STYLE_MULTI_BACKEND_RHI_ARCHITECTURE.md`
 - 렌더링 필터와 DX11 생존 경로: `.md/plan/rhi/sessions/S15_ENGINE_RENDERING_FILTER_AUDIT.md`
 - Elden 클라이언트 분리 방향: `.md/EldenRing/00_ELDENRING_INDEX.md`
 - Elden editor 세션: `.md/plan/EldenRingEditor/01_DX12_IMGUI_EDITOR_BOOTSTRAP.md`부터 `07_BOSS_BLACKBOARD_HFSM_BT_TUNING.md`
@@ -67,6 +83,25 @@ WintersEngine.dll
 금지:
 - 서버 로그만으로 client visual 성공을 판정하지 않는다.
 - bot AI가 Transform/HP/cooldown 같은 truth component를 직접 고치지 않는다. command를 생산한다.
+
+LoL bot decision contract:
+
+```text
+Server World Fact
+-> ChampionAIPerception (30 Hz read-only target/status/economy facts)
+-> ChampionAIValuation (deterministic utility scores)
+-> IChampionAIBrain (intent + hysteresis)
+-> champion profile/combo executor
+-> GameCommand
+-> CDefaultCommandExecutor
+```
+
+- 30 Hz는 perception/utility 및 emergency interrupt 갱신 주기다. 일반 deliberation은 기본 5 Hz이고 동일 command를 매 tick 재전송하지 않는다.
+- `Q/W/E/R/BA/Combo` 선택은 profile/combo 계층에 두고 damage, status, movement 결과는 기존 executor와 champion GameSim이 만든다.
+- 선택 우선순위는 `hard safety -> active combo/dive commitment -> new utility`다. emit 전 `CanMove/CanAttack/CanCast`를 검사해 서버가 거절할 명령으로 combo step을 진행시키지 않는다.
+- 포탑 파괴 같은 macro 전환은 home lane을 덮어쓰지 않고 active objective/lane으로 분리한다. macro는 hard safety와 이미 승인된 combo/dive 뒤에서만 전환하며, 모든 bot 결과는 기존 `GameCommand` 경로로만 적용한다.
+- 상태 충돌은 마지막 if가 이기는 방식으로 숨기지 않는다. `ActionState` sequence, 명시적 우선순위, 결정론 probe로 stale impact와 중복 commit을 차단한다.
+- 공용 Perception에는 champion 이름을 포함한 필드를 추가하지 않는다. 특수 대상은 generic ability/mobility target으로 전달하고 champion tactics registry가 해석한다.
 
 ### Engine
 
@@ -160,6 +195,12 @@ Editor는 디자이너 workflow를 만들되, runtime gameplay truth와 renderer
 - `CLAUDE.md`: Claude Code용 행동 규칙과 hook
 - `.claude/gotchas.md`: 반복 실수 방지 로그
 - 이 문서: active architecture compass
+- `.md/architecture/WINTERS_DESIGN_PHILOSOPHY.md`: 설계 원칙 P1~P4 (실패 즉시 가시화, 실패 격리, 특수상황 명시, 디버깅 우선)
+- `.md/architecture/WINTERS_ERROR_HANDLING_POLICY.md`: 예외/실패 처리 규약과 경계별 초크포인트
+- `.md/architecture/WINTERS_DEPENDENCY_MAP.md`: 실측 의존성 지도 (빌드 그래프, 위반 목록, 해소 로드맵)
+- `.md/architecture/WINTERS_HANDOFF_GUIDE.md`: 온보딩/패치 체크리스트/지뢰밭 목록
+- `.md/architecture/WINTERS_DATA_ARCHITECTURE.md`: 게임 데이터 소유권 매트릭스, 폴백 가시화 규칙, D-1~D-6 마이그레이션 슬라이스
+- `.md/architecture/WINTERS_UE_FAB_TOOL_ADOPTION.md`: UE 툴/Fab 자산의 Winters 이식 설계 (ingestion→cook→validator 경로)
 - `.md/계획서작성규칙.md`: `/plan-rules` 출력 형식
 - `.md/architecture/WINTERS_ENGINE_CONVENTIONS.md`: C++ 컨벤션과 Engine boundary
 - `CLAUDE_Legacy.md`: 서버 권위 GameSim 작업 compact brief
@@ -176,3 +217,11 @@ cross-module 작업이면 먼저 아래를 답한다.
 5. normal F5 runtime을 debug/lab path로 우회하고 있지는 않은가?
 6. LoL 전용 코드가 Elden/공용 엔진 경계로 새는가?
 7. 문서 갱신이 필요한 architectural decision인가, gotcha인가, 일회성 plan인가?
+
+## Boundary enforcement pointers
+
+- Job/Fiber ownership: `Engine/Public/Core/JobSystem.h`, `Engine/Private/Core/JobSystem.cpp`, `Engine/Public/Core/JobSystem/WorkStealingDeque.h`
+- Transport semantics: `Shared/Network/PacketSemantics.h`, `UdpPacketHeader.h`, `UdpFragmentHeader.h`
+- Socket/ACK/reassembly adapters: `Server/Private/Network/UdpIocpCore.cpp`, `Client/Private/Network/Client/UdpClient.cpp`
+- Logical session/tick handoff: `Server/Public/Network/ServerSessionHub.h`, `Server/Private/Network/ServerSessionHub.cpp`, `Server/Private/Game/GameRoomTick.cpp`
+- Shared boundary gate: `Tools/Harness/Check-SharedBoundary.ps1`

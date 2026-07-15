@@ -1,5 +1,12 @@
 # Phase Sim-10 v2 — UDP LoL-Authoritative NetStack Master Plan (Codex 보정)
 
+> [!IMPORTANT]
+> **Historical design.** 아래 본문을 현재 구현 상태로 사용하지 않는다. 최신 기준은 [2026-07-13 canonical implementation plan](../2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)다.
+> As-built delta: JobSystem Submit race, Chase-Lev deque, FiberFull 및 stress 구현은 완료되었고, UDP v3 generic vertical slice와 server hub/client facade가 구현되었다. main F5 통합과 최종 build 상태는 S023 결과 보고서를 따른다. 6주 Fiber mastery 프로그램은 미착수이며, 현재 상태는 production UDP cutover가 아니다.
+> 이 문서의 UDP v2 수치인 **24 B header / 10 B fragment header / 1 MiB logical payload**는 historical design이다. 실제 v3 상수는 **40 B header / 16 B fragment header / 1,200 B datagram / 64 KiB logical payload**다.
+
+> **2026-07-11 historical snapshot:** 당시의 “TCP-only / UDP 선언-only” 판정은 위 2026-07-13 as-built delta로 대체됐다. 아래 단계와 수치는 설계 진화 기록으로만 읽고, 현재 코드·검증·남은 production gate는 위 canonical plan과 S023 결과 보고서를 따른다.
+
 **작성일**: 2026-04-30
 **v1 → v2 변경 사유**: Codex 리뷰 7건 + 마일스톤 조정. 큰 축 (UDP/Reliability/Delta/AOI/LagComp/Prediction/Replay) 유지. 구현 안전성을 위해 인터페이스 정확화 + 결정성 가드 M1 부터 적용 + Encryption 별도 Phase.
 **범위**: Server/Shared/Client 의 네트워크 + 결정성 + Snapshot/AOI + Prediction 전 영역

@@ -1,5 +1,10 @@
 # Phase Sim-10 — UDP LoL-Authoritative NetStack Master Plan
 
+> [!IMPORTANT]
+> **Historical and deprecated design.** 아래 본문을 현재 구현 상태로 사용하지 않는다. 최신 기준은 [2026-07-13 canonical implementation plan](../2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)다.
+> As-built delta: JobSystem Submit race, Chase-Lev deque, FiberFull 및 stress 구현은 완료되었고, UDP v3 generic vertical slice와 server hub/client facade가 구현되었다. main F5 통합과 최종 build 상태는 S023 결과 보고서를 따른다. 6주 Fiber mastery 프로그램은 미착수이며, 현재 상태는 production UDP cutover가 아니다.
+> 과거 UDP v2 수치인 **24 B header / 10 B fragment header / 1 MiB logical payload**는 historical design이다. 실제 v3 상수는 **40 B header / 16 B fragment header / 1,200 B datagram / 64 KiB logical payload**다.
+
 > ⚠️ **DEPRECATED — 2026-04-30**
 >
 > 본 v1 문서는 **Codex 7건 보정 후 v2 로 대체**. 신규 작업은 **`10_UDP_LOL_NETSTACK_MASTER_v2.md`** 참조.

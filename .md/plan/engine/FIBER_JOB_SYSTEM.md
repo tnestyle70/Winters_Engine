@@ -1,5 +1,8 @@
 # Fiber 기반 Job System 구현 계획서
 
+> [!IMPORTANT]
+> **Historical design.** 아래 본문은 2026-04-08의 v1 설계 기록이며 현재 구현 지침이 아니다. 2026-07-13 현재 Submit/Shutdown admission race와 Chase-Lev publication/last-item race가 닫혔고, `ThreadOnly`·`FiberShell`·`FiberFull` 및 FiberFull nested wait/resume stress가 구현·검증됐다. Server는 `CServerEntry`와 `--job-mode`로 수명주기 및 startup probe까지 연결됐지만 GameRoom tick/snapshot workload jobification과 6주 mastery 프로그램은 아직 완료되지 않았다. 현행 기준은 [canonical implementation plan](../2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)를 따른다.
+>
 > 작성일: 2026-04-08
 > 구현 순서: **Fiber Job System** → Render Graph → GPU Driven Pipeline
 

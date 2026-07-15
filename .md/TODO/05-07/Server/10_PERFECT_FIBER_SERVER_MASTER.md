@@ -1,5 +1,12 @@
 # Perfect Fiber Server Refactor Master
 
+> [!IMPORTANT]
+> **Historical design.** 아래 본문을 현재 구현 상태로 사용하지 않는다. 최신 기준은 [2026-07-13 canonical implementation plan](../../../plan/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)다.
+> As-built delta: JobSystem Submit race, Chase-Lev deque, FiberFull 및 stress 구현은 완료되었고, UDP v3 generic vertical slice와 server hub/client facade가 구현되었다. main F5 통합과 최종 build 상태는 S023 결과 보고서를 따른다. 6주 Fiber mastery 프로그램은 미착수이며, 현재 상태는 production UDP cutover가 아니다.
+> 과거 UDP v2 수치인 **24 B header / 10 B fragment header / 1 MiB logical payload**는 historical design이다. 실제 v3 상수는 **40 B header / 16 B fragment header / 1,200 B datagram / 64 KiB logical payload**다.
+
+> **상태 동기화 (2026-07-11 — DESIGN ONLY)**: Server runtime JobSystem worker는 0이며 `CServerEntry`는 worker를 시작한 뒤 false를 반환하는 위험한 stub이다. 별도 AcceptThread도 없다. IOCP worker/TickThread를 Fiber로 바꾸지 않고 `RoomIngress -> single-writer Tick -> immutable replication DTO -> ThreadOnly jobs`부터 연결하는 최신 순서는 [2026-07-11 UDP/Fiber 통합 감사](../../../plan/2026-07-11_FULL_UDP_AND_SERVER_FIBER_INTEGRATION_AUDIT.md)를 우선한다.
+
 작성일: 2026-05-07  
 목표: Server Fiber 적용을 "패치 따라치기"가 아니라, 직접 이해하고 단계별로 리팩터링할 수 있는 트랙으로 만든다.
 
@@ -217,4 +224,3 @@ flowchart TD
 ```
 
 여기까지가 목표다.
-

@@ -1,0 +1,93 @@
+﻿{
+    "generatedAtUtc":  "2026-07-12T08:09:43.7546111Z",
+    "root":  "C:\\Users\\user\\Desktop\\Winters",
+    "sourceDocument":  ".md/plan/collab-pipeline/07_DATA_DRIVEN_FULL_CUTOVER_CODEX_REQUIREMENTS.md",
+    "buildHash":  592494486,
+    "complete":  false,
+    "completedGoalCount":  2,
+    "totalGoalCount":  6,
+    "nextGoal":  {
+                     "key":  "P5AiPolicyHardcode",
+                     "phase":  "P5",
+                     "phaseRank":  2,
+                     "name":  "Bot AI tactics and skill-rank policy are data-owned",
+                     "currentCount":  217,
+                     "targetMax":  0,
+                     "achieved":  false,
+                     "remaining":  217,
+                     "nextFocus":  "Move ChampionAIPolicy profile, combo, and bot skill-rank constants to ServerPrivate AI definition data."
+                 },
+    "goals":  [
+                  {
+                      "key":  "P3SkillEffectHardcode",
+                      "phase":  "P3",
+                      "phaseRank":  0,
+                      "name":  "Champion skill gameplay/balance literals are removed",
+                      "currentCount":  0,
+                      "targetMax":  0,
+                      "achieved":  true,
+                      "remaining":  0,
+                      "nextFocus":  "Convert remaining champion skill gameplay literals to generated ServerPrivate gameplay atoms, then delete fallback constants only after readers are data-backed."
+                  },
+                  {
+                      "key":  "P4VisualAuthorityLeak",
+                      "phase":  "P4",
+                      "phaseRank":  1,
+                      "name":  "Gameplay authority no longer reads visual timing/yaw fields",
+                      "currentCount":  0,
+                      "targetMax":  0,
+                      "achieved":  true,
+                      "remaining":  0,
+                      "nextFocus":  "Split action timing from visual timing. Server/GameSim keeps action lock/window facts, ClientPublic owns animation/cast/recovery/yaw presentation facts."
+                  },
+                  {
+                      "key":  "P5AiPolicyHardcode",
+                      "phase":  "P5",
+                      "phaseRank":  2,
+                      "name":  "Bot AI tactics and skill-rank policy are data-owned",
+                      "currentCount":  217,
+                      "targetMax":  0,
+                      "achieved":  false,
+                      "remaining":  217,
+                      "nextFocus":  "Move ChampionAIPolicy profile, combo, and bot skill-rank constants to ServerPrivate AI definition data."
+                  },
+                  {
+                      "key":  "P6ObjectWaveHardcode",
+                      "phase":  "P6",
+                      "phaseRank":  3,
+                      "name":  "Minion, wave, jungle, structure, and placement game values are data-owned",
+                      "currentCount":  33,
+                      "targetMax":  0,
+                      "achieved":  false,
+                      "remaining":  33,
+                      "nextFocus":  "Move object combat, wave timing, jungle, structure, turret, and placement fallback values into ServerPrivate object/map data."
+                  },
+                  {
+                      "key":  "P7NetworkIdentityLegacy",
+                      "phase":  "P7",
+                      "phaseRank":  4,
+                      "name":  "Network identity uses stable DefinitionKey boundaries",
+                      "currentCount":  579,
+                      "targetMax":  0,
+                      "achieved":  false,
+                      "remaining":  579,
+                      "nextFocus":  "Add stable DefinitionKey paths for command/snapshot boundaries and remove dense pack-local champion id assumptions from network contracts."
+                  },
+                  {
+                      "key":  "P8LegacyValueOwner",
+                      "phase":  "P8",
+                      "phaseRank":  5,
+                      "name":  "Legacy value owner paths have no runtime readers",
+                      "currentCount":  194,
+                      "targetMax":  0,
+                      "achieved":  false,
+                      "remaining":  194,
+                      "nextFocus":  "After reader count reaches zero, delete ChampionGameDataDB value ownership, ChampionStatsRegistry defaults, ChampionRuntimeDefaults defaults, SkillTable, ChampionTable, and remaining fallback tables."
+                  }
+              ],
+    "auditPath":  "C:\\Users\\user\\Desktop\\Winters\\.md\\TODO\\07-12\\LOL_DATA_DRIVEN_AUDIT.json",
+    "statusPath":  "C:\\Users\\user\\Desktop\\Winters\\.md\\TODO\\07-12\\LOL_DATA_DRIVEN_GOAL_STATUS.json",
+    "markdownPath":  "C:\\Users\\user\\Desktop\\Winters\\.md\\TODO\\07-12\\LOL_DATA_DRIVEN_GOAL_STATUS.md",
+    "fullVerificationCommand":  "powershell -ExecutionPolicy Bypass -File Tools/LoLData/Verify-LoLDataDrivenPipeline.ps1",
+    "completionDefinition":  "All goals have currentCount \u003c= targetMax and the full verification command passes."
+}

@@ -1,5 +1,7 @@
 Session - Dash 벽 끼임, 미니맵 좌표 동기화, 미니맵 원형 초상화, 포탑 이펙트 높이, L키 커서 lock 5개 항목을 반영한다.
 
+> SUPERSEDED(2026-07-11, minimap calibration only): NavGrid 256 정사각형을 미니맵 texture landmark footprint로 간주한 ±181.02 projection은 실제 Stage 오브젝트를 중앙 50%로 축소했다. S006의 centered measured calibration을 현재 계약으로 사용한다.
+
 1. 반영해야 하는 코드
 
 1-1. C:/Users/tnest/Desktop/Winters/Shared/GameSim/Systems/Move/DashArrival.h

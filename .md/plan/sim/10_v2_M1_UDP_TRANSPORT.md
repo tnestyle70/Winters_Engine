@@ -1,5 +1,8 @@
 # Phase Sim-10 v2 — M1 Sub-plan: UDP Transport (TCP → UDP migration)
 
+> [!IMPORTANT]
+> **Historical M1 design.** 아래의 “UDP 미착수 / reliability·fragment 없음” 전제는 더 이상 현행 상태가 아니다. 2026-07-13 현재 UDP v3 vertical slice는 40 B header, 16 B fragment header, 1,200 B datagram, reliable-ordered/unreliable-sequenced lanes, bounded fragmentation/reassembly, cookie handshake, Server IOCP와 Client facade까지 구현·검증됐다. 다만 기본 transport는 여전히 TCP이고 production UDP cutover는 인증·암호화, congestion/pacing, snapshot diet/AOI, WAN soak gate를 남긴 opt-in 상태다. 현행 기준은 [canonical implementation plan](../2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)를 따른다.
+
 **작성일**: 2026-04-30
 **상위 문서**: `10_UDP_LOL_NETSTACK_MASTER_v2.md` §8 M1
 **전제**: `04a_v2_D0~D3` (TCP MVP) 합격 완료 — Server IOCP + Client TCP + Hello/CommandBatch/Snapshot loop 동작 검증

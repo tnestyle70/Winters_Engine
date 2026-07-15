@@ -1,5 +1,7 @@
 Session - 2026-06-24 Dash 벽 끼임 / 미니맵 좌표·원형 초상화 / 포탑 이펙트 높이 / L키 커서 lock 5개 항목 반영 결과 보고서.
 
+> SUPERSEDED(2026-07-11, minimap calibration only): NavGrid 256 정사각형을 미니맵 texture landmark footprint로 간주한 ±181.02 projection은 실제 Stage 오브젝트를 중앙 50%로 축소했다. S006의 centered measured calibration을 현재 계약으로 사용한다.
+
 1. 항목별 반영 상태
 
 1-1. Dash 벽 끼임 (도착 시 가장 가까운 walkable 셀로 스냅)

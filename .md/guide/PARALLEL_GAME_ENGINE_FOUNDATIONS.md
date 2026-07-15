@@ -1,12 +1,23 @@
 # Parallel Game Engine Foundations — OS 본질부터 ECS / JobSystem / Fiber 까지
 
+> **현행 정본 (2026-07-13)**: Winters는 heap `WorkItem*` publication, Submit/Shutdown admission lease, 고정 4096-slot Chase-Lev deque, `ThreadOnly`/`FiberShell`/`FiberFull`, worker별 64-fiber pool과 origin-pinned wait/resume를 구현했고 전용 stress를 통과했다. 기본 모드는 `ThreadOnly`다. 서버 제품 배선과 세 mode startup probe는 완료됐지만 실제 GameRoom workload의 병렬화와 성능 수치는 별도 단계이므로 scheduler 구현 완료와 제품 speedup을 동일시하지 않는다. Fiber 6주 mastery 프로그램은 미착수다. 표의 고정 ns/μs 수치는 교육용 범위 예시일 뿐 대상 머신 계측 없이 Winters 성능 주장에 사용하지 않는다.
+>
 > **작성일**: 2026-05-03
 > **목적**: 게임 엔진 병렬화의 진짜 원리를 OS 본질 + C++ 기반 + Winters 코드 베이스로 한 흐름. "왜 OOP 가 느린가" → "왜 ECS 가 빠른가" → "왜 JobSystem 만으론 부족한가" → "왜 Naughty Dog 가 fiber 를 쓰는가" 까지 7-layer 학습 트리.
 > **선수 지식**: C++14 이상, basic OS (process/thread), pointer/메모리 기초.
+
+### 현재 구현을 관통하는 네 가지 불변식
+
+1. **publish-before-consume**: `WorkItem`은 heap에서 완성되고 counter가 먼저 증가한 뒤, atomic pointer token만 queue에 publish된다. 실패하면 counter를 rollback한다.
+2. **one owner, many thieves**: worker만 자기 deque bottom을 push/pop하고, 외부 submitter와 overflow는 global MPMC queue로 간다. thief는 top CAS에 성공한 경우에만 token을 실행·회수한다.
+3. **lifecycle is a memory-lifetime boundary**: admission lease가 활성 Submit과 standalone external Wait를 pin한다. Shutdown은 그 경계를 통과한 뒤 worker join, queue drain, deque/fiber state 파괴 순서로 간다.
+4. **fiber is continuation, not parallelism**: 병렬 실행의 운반체는 OS worker thread다. FiberFull은 wait 중 stack을 보존해 동일 origin worker가 다른 job을 실행하게 하며, IOCP OS wait나 임의 socket callback을 fiber 안으로 끌어들이지 않는다.
+
+현행 FiberFull은 worker마다 64개를 `CreateFiberEx`로 미리 만든다(64 KiB commit, 256 KiB reserve, `FIBER_FLAG_FLOAT_SWITCH`). counter별 waiter map에서 target 도달을 재확인하고 owner worker의 64-slot ready ring에만 enqueue한다. profiler scope stack과 nested Submit call-chain처럼 **fiber를 따라야 하는 상태**는 FLS를 사용한다.
 > **연결**:
-> - 얕은 fiber 가이드: [FIBER_LEARNING_GUIDE.md](.md/guide/FIBER_LEARNING_GUIDE.md)
-> - 신규 박제 코드: [.md/plan/engine/FIBER_JOB_SYSTEM_v2.md](.md/plan/engine/FIBER_JOB_SYSTEM_v2.md)
-> - 현 코드: [Engine/Public/Core/JobSystem.h](Engine/Public/Core/JobSystem.h), [Engine/Public/Core/JobCounter.h](Engine/Public/Core/JobCounter.h)
+> - Fiber 집중 가이드: `FIBER_LEARNING_GUIDE.md`
+> - 역사적 설계안: `.md/plan/engine/FIBER_JOB_SYSTEM_v2.md`
+> - 현행 코드는 문서 끝 canonical code pointers를 따른다.
 
 ---
 
@@ -41,12 +52,12 @@ CPU 는 두 모드로 명령 실행:
 | 모드 | 권한 | 비용 | 예시 |
 |---|---|---|---|
 | **User Mode (Ring 3)** | 제한 — 다른 프로세스 메모리 접근 X | 빠름 | 일반 함수 호출, 산술 연산 |
-| **Kernel Mode (Ring 0)** | 모든 권한 — HW 직접 제어 | **느림 — mode switch ~100ns** | `read()`, `write()`, `mutex lock`, OS API |
+| **Kernel Mode (Ring 0)** | 모든 권한 — HW 직접 제어 | syscall/scheduler/cache 효과를 포함해 workload별 상이 | 파일·소켓 I/O, page fault, contended wait |
 
 **왜 mode switch 가 느린가**:
 1. CPU 의 `iret`/`sysret` 명령 실행 (수십 cycle)
-2. **TLB flush 위험** — 가상 주소 변환 캐시 비움 (수백 cycle)
-3. CPU pipeline flush (분기 예측 무효화)
+2. address-space 전환이면 TLB/PCID 영향이 생길 수 있음; 같은 process thread 전환을 매번 full flush로 단정할 수 없음
+3. scheduler와 cache working-set 교체가 간접 비용을 만들 수 있음
 
 **핵심**: 게임 엔진은 user mode 에서 최대한 머물러야 빠름. **fiber 가 user mode 만 쓰는 이유**.
 
@@ -55,8 +66,8 @@ CPU 는 두 모드로 명령 실행:
 | | Process | Thread |
 |---|---|---|
 | 주소 공간 | 독립 (가상 메모리 분리) | 공유 (같은 process 안) |
-| 생성 비용 | ~ms | ~μs |
-| 컨텍스트 스위치 | ~5μs (TLB flush 포함) | ~1μs |
+| 생성 비용 | 주소 공간·핸들·초기화 때문에 보통 더 큼 | stack/TCB·scheduler 등록 비용; 환경별 측정 |
+| 컨텍스트 스위치 | 주소 공간 변경 영향 가능 | 같은 주소 공간을 공유하지만 cache/scheduler 비용은 존재 |
 | 통신 | IPC (파이프/소켓/공유메모리) | 직접 메모리 read/write |
 | 보호 | OS 가 강제 | 같은 process 안 — 사람이 책임 |
 
@@ -70,22 +81,17 @@ CPU 는 두 모드로 명령 실행:
 Worker thread 가 wait → 다른 thread 로 전환 시 OS 가 하는 일:
 
 ```
-1. 현재 thread 의 모든 레지스터 저장 (stack pointer, instruction pointer, GP regs)
-   - x64 에서 16개 GP + 16개 XMM = ~256 bytes
-2. 스케줄러 결정 (다음 thread 선택, ~수십 cycle)
-3. 새 thread 의 레지스터 복원 (~256 bytes load)
-4. ★ TLB partial flush (만약 다른 process 면 full flush)
-5. CPU pipeline flush (분기 예측 무효화)
-6. ★ Cache 워밍업 — 새 thread 의 데이터가 L1/L2 에 없으면 miss 누적
+1. ABI/OS가 요구하는 thread context(스택·명령 위치·필요 레지스터)를 저장
+2. scheduler가 runnable thread와 processor placement를 결정
+3. 다음 thread context를 복원
+4. 주소 공간이 바뀌면 page-translation cache 영향이 커질 수 있음
+5. 새 실행 흐름으로 frontend/branch/cache locality가 흔들릴 수 있음
+6. ★ 새 thread의 working set이 L1/L2에 없으면 cache miss 누적
 ```
 
-**실제 비용** (Intel Haswell 기준):
-- Direct cost: ~1-2μs
-- Indirect cost (cache miss 누적): ~5-50μs (workload 따라)
+직접 switch 비용보다 새 working set을 다시 데우는 간접 비용이 더 클 수 있다. 고정 μs나 손실 비율은 CPU·Windows build·affinity·부하에 따라 달라지므로 ETW/WPA 또는 profiler capture로 측정한다.
 
-**의미**: thread 100개가 1ms 마다 swap 되면 → CPU 시간의 10-50% 가 swap overhead.
-
-→ **게임 엔진은 thread 수를 코어 수와 같거나 적게** 유지. 그래서 `hardware_concurrency() - 2` 패턴.
+→ CPU-bound worker는 대개 logical processor 수를 넘겨 oversubscribe하지 않도록 시작하고, main/render/IO thread와 workload를 측정해 조정한다. Winters JobSystem의 `workerCount=0` 기본값은 `hardware_concurrency()-2`지만 서버는 IOCP/tick 예약을 고려한 명시값이 더 적절하다.
 
 ### 1-4. CPU Cache Hierarchy
 
@@ -100,9 +106,7 @@ CPU Core
      Main RAM       16-64GB ~200 cycle  (50-100ns)
 ```
 
-**1 cache miss = 50-100ns = ~250 명령 실행 가능 시간**.
-
-→ Cache 친화 = 게임 엔진 성능의 50% 이상.
+위 숫자는 특정 세대의 전형적 규모를 설명하는 예시다. cache 크기·inclusive 정책·latency는 CPU마다 다르고 memory-level parallelism/prefetch 때문에 miss 하나를 고정 시간으로 환산할 수 없다. 본질은 계산량뿐 아니라 working-set과 접근 순서가 frame time을 지배할 수 있다는 점이다.
 
 ### 1-5. Cache Line + False Sharing (★ 매우 중요)
 
@@ -148,7 +152,7 @@ alignas(64) std::atomic<std::int64_t> m_iTop{ 0 };     // 타인 가끔 수정
 
 ### 2-1. std::atomic + Memory Ordering
 
-`std::atomic<T>` = CPU 의 atomic 명령 (LOCK prefix on x64) wrapper. 단순 `int++` 도 race 발생 — atomic 이 보장.
+`std::atomic<T>`는 data race 없는 원자 접근과 선택한 memory ordering을 표현한다. x64에서도 단순 load/store가 항상 `LOCK` prefix를 쓰는 것은 아니며, read-modify-write/CAS와 ordering에 따라 코드 생성이 달라진다. MSVC가 C++ memory model을 target ISA에 맞게 구현한다.
 
 **6 memory orders** (가장 어려운 부분):
 
@@ -159,7 +163,7 @@ alignas(64) std::atomic<std::int64_t> m_iTop{ 0 };     // 타인 가끔 수정
 | `acquire` | 이후 read/write 가 이 시점 이후로 reorder X | 중간 | wait/lock 진입 |
 | `release` | 이전 read/write 가 이 시점 이전으로 reorder X | 중간 | publish/unlock |
 | `acq_rel` | acquire + release | 중간 | RMW (read-modify-write) |
-| `seq_cst` | 전 thread 가 같은 순서 관찰 | 가장 비쌈 | 디버깅 안전 default |
+| `seq_cst` | 모든 seq_cst 연산이 하나의 total order를 이룸 | ISA/연산별 상이 | 가장 강한 단순 모델이 필요할 때 |
 
 **비유**:
 - `relaxed` = 우편 도착 순서 불정 (각자 받음)
@@ -211,7 +215,7 @@ Winters Chase-Lev 은 ABA 가능 케이스 회피 설계. 단순 CAS.
 
 ### 2-3. std::mutex / lock_guard
 
-**Mutex 의 진실**: user mode lock 시도 → 실패 시 kernel block (`futex_wait`).
+**Mutex의 진실**: uncontended fast path는 user mode에서 끝날 수 있지만 contention이 지속되면 OS wait/wake와 scheduler가 개입한다. `futex`는 Linux 용어다. Windows의 MSVC `std::mutex` 내부 구현은 버전별로 달라질 수 있으므로 특정 primitive로 ABI 계약처럼 가정하지 않는다.
 
 ```cpp
 std::mutex m;
@@ -221,10 +225,7 @@ std::mutex m;
 }
 ```
 
-**비용**:
-- Uncontended (경쟁 없음): ~25ns (user mode 만)
-- Contended: ~1-10μs (kernel 진입)
-- High contention: ~100μs+ (priority inversion)
+비용은 critical-section 길이, 경쟁자 수, preemption과 Windows 구현에 따라 달라진다. uncontended/contended를 별도 benchmark하고 lock hold time을 profiler에서 본다.
 
 **원칙**: critical section 짧게. lock 안에서 system call 금지.
 
@@ -248,7 +249,7 @@ bool ready = false;
     std::lock_guard<std::mutex> lk(m);
     ready = true;
 }
-cv.notify_one();  // ★ kernel call
+cv.notify_one();  // waiter를 깨우는 신호; 실제 kernel transition 여부는 구현/상태별 상이
 ```
 
 **문제**: `cv.wait()` = OS thread 진짜 멈춤. 게임 엔진의 worker 가 멈추면 그 thread 의 코어 유휴.
@@ -257,11 +258,11 @@ cv.notify_one();  // ★ kernel call
 ```cpp
 while (pCounter->Load() > iTarget) {
     if (!TryExecuteOneJob(workerIdx))
-        std::this_thread::yield();  // ★ user mode yield (CPU 양보, thread 안 멈춤)
+        std::this_thread::yield();  // OS scheduler에 실행 기회를 양보하는 힌트. Fiber yield가 아님
 }
 ```
 
-**Phase 5-B 추가 해결**: fiber yield → thread 가 다른 fiber 픽업.
+**현행 FiberFull 해결**: current fiber를 waiter map에 등록하고 origin worker의 root scheduler fiber로 전환한다. 같은 worker thread는 다른 ready fiber/job을 픽업하고, counter가 target에 도달하면 그 fiber는 origin worker ready ring을 통해 재개된다.
 
 ### 2-5. RAII + Scope Guard
 
@@ -407,14 +408,14 @@ public:
 
 ### 3-6. ECS 의 진짜 가치
 
-| 측면 | OOP | ECS | 배수 |
-|---|---|---|---|
-| Cache miss / 1000 entity | ~5000 | ~50 | **100배** |
-| SIMD 가능성 | 불가 | 자연 | — |
-| 병렬화 가능성 | virtual + heap = 어려움 | system 단위 깔끔 | — |
-| 메모리 (1000 entity) | ~500KB (포인터 + heap fragments) | ~100KB (연속) | **5배** |
+| 측면 | pointer-heavy object graph | data-oriented ECS |
+|---|---|---|
+| Cache locality | 객체/컴포넌트 배치에 따라 pointer chasing 증가 | 같은 component의 dense iteration을 설계하기 쉬움 |
+| SIMD | 가상 호출·산재 데이터가 자동 vectorization을 방해할 수 있음 | SoA/contiguous layout이면 vectorization 후보가 명확 |
+| 병렬화 | side effect와 access set이 객체 메서드 안에 숨기 쉬움 | system read/write contract를 명시하기 쉬움 |
+| 메모리 | allocation metadata/fragmentation/포인터 비용 가능 | dense store는 overhead를 줄일 수 있으나 sparse/indirection 비용도 존재 |
 
-→ **ECS = 게임 엔진의 표준 (UE5 의 Mass Entity, Unity DOTS, Bevy 모두)**.
+ECS가 자동으로 빠른 것은 아니다. archetype 이동, sparse lookup, branch, 실제 access pattern을 함께 측정해야 한다. 가치는 "데이터 배치와 access contract를 명시적으로 설계할 수 있다"는 데 있다. UE Mass, Unity DOTS, Bevy는 이 방향의 서로 다른 구현이다.
 
 ---
 
@@ -483,38 +484,42 @@ Worker 0 deque:                 Worker 1 deque:
 ```cpp
 template <typename T>
 class CWorkStealingDeque {
+    static_assert(std::is_trivially_copyable_v<T>);
     alignas(64) std::atomic<int64_t> m_iBottom{ 0 };
     alignas(64) std::atomic<int64_t> m_iTop{ 0 };
-    std::array<T, 4096> m_arrBuf;
+    std::array<std::atomic<T>, 4096> m_arrBuf{};
 
 public:
-    bool Push(const T& v) {  // owner only
+    bool Push(T v) {  // owner only
         int64_t b = m_iBottom.load(std::memory_order_relaxed);
         int64_t t = m_iTop.load(std::memory_order_acquire);
         if (b - t >= kCapacity) return false;
-        m_arrBuf[b & MASK] = v;
-        std::atomic_thread_fence(std::memory_order_release);  // ★ fence
-        m_iBottom.store(b + 1, std::memory_order_relaxed);
+        m_arrBuf[b & MASK].store(v, std::memory_order_relaxed);
+        m_iBottom.store(b + 1, std::memory_order_release);
         return true;
     }
 
     bool Pop(T& out) {  // owner only
         int64_t b = m_iBottom.load(std::memory_order_relaxed) - 1;
-        m_iBottom.store(b, std::memory_order_relaxed);
-        std::atomic_thread_fence(std::memory_order_seq_cst);  // ★ fence
+        m_iBottom.store(b, std::memory_order_release);
+        std::atomic_thread_fence(std::memory_order_seq_cst);
         int64_t t = m_iTop.load(std::memory_order_relaxed);
         if (t > b) {  // empty
-            m_iBottom.store(t, std::memory_order_relaxed);
+            m_iBottom.store(t, std::memory_order_release);
             return false;
         }
-        out = m_arrBuf[b & MASK];
-        if (t != b) return true;  // 일반 case
+        const T value = m_arrBuf[b & MASK].load(std::memory_order_acquire);
+        if (t != b) { out = value; return true; }
         // 마지막 1개 — Steal 와 경쟁
+        const int64_t lastIndex = t;
         bool ok = m_iTop.compare_exchange_strong(
             t, t + 1,
             std::memory_order_seq_cst,
             std::memory_order_relaxed);
-        m_iBottom.store(t + 1, std::memory_order_relaxed);
+        // CAS 실패 시 expected `t`는 thief가 쓴 새 top으로 바뀐다.
+        // 반드시 CAS 전 index로 bottom generation을 복구한다.
+        m_iBottom.store(lastIndex + 1, std::memory_order_release);
+        if (ok) out = value;
         return ok;
     }
 
@@ -523,16 +528,19 @@ public:
         std::atomic_thread_fence(std::memory_order_seq_cst);
         int64_t b = m_iBottom.load(std::memory_order_acquire);
         if (t >= b) return false;
-        out = m_arrBuf[t & MASK];
+        const T value = m_arrBuf[t & MASK].load(std::memory_order_acquire);
         if (!m_iTop.compare_exchange_weak(
             t, t + 1,
             std::memory_order_seq_cst,
             std::memory_order_relaxed))
             return false;
+        out = value;
         return true;
     }
 };
 ```
+
+Winters의 `T`는 `WorkItem*`다. 함수 객체 자체를 ring slot에 두지 않는 이유는 publication과 object lifetime을 분리하기 위해서다. 4096칸을 넘으면 owner push가 `false`를 반환하고 JobSystem이 global queue로 넘긴다. 마지막 한 칸은 owner Pop과 thief Steal 중 **CAS 승자 하나만** 가져가며, stress는 이 경합을 10만 회 반복해 중복/유실과 ring wrap generation을 검사한다.
 
 ### 4-3. Counter (atomic only — cv 제거됨)
 
@@ -542,12 +550,14 @@ class CJobCounter {
     std::atomic<uint32_t> m_iCount{ 0 };
 public:
     void Increment(uint32_t n = 1) { m_iCount.fetch_add(n, std::memory_order_relaxed); }
-    void Decrement() { m_iCount.fetch_sub(1, std::memory_order_acq_rel); }
+    bool TryDecrement(uint32_t& remaining); // CAS로 underflow 차단
     uint32_t Load() const { return m_iCount.load(std::memory_order_acquire); }
 };
 ```
 
-**왜 cv 제거**: cv.wait() = OS block. Worker thread 가 진짜로 멈춤.
+Submit은 counter를 **queue publish 전에** 증가시킨다. allocation/publish가 예외로 실패하면 같은 counter를 rollback하고, 실행 경로는 예외가 나도 정확히 한 번 `TryDecrement`한다. 그래서 waiter가 `0`을 너무 일찍 보고 return하거나 실패 job 때문에 영원히 남는 두 race를 함께 막는다.
+
+**왜 counter 자체에 cv를 두지 않는가**: worker가 counter cv에서 잠들면 그 OS worker는 다른 job을 수행할 수 없다. ThreadOnly/FiberShell은 help-execute하고, FiberFull job fiber는 waiter map에 자신을 등록한 뒤 root로 양보한다. JobSystem의 idle worker를 깨우는 1ms wake CV는 별개 목적이다.
 
 → **WaitForCounter 가 busy-wait + help-stealing 으로 대체** (5-A) → fiber yield 로 대체 예정 (5-B).
 
@@ -584,7 +594,7 @@ A → B → C → D → E → F
 
 각 단계가 wait. 만약 thread 4개고 depth 6 인데 각 단계 1개 job 만 있으면 → 3 worker 는 항상 idle.
 
-**Fiber 가 해결하는 것**: C 가 wait 하는 동안 fiber 만 wait list 로 → worker 0 는 즉시 D 같은 다른 fiber 픽업. CPU 100% 활용.
+**Fiber가 해결하는 것**: C의 call stack만 waiter로 빼고 worker 0가 ready D를 실행할 기회를 만든다. ready work가 없거나 memory/lock 병목이면 utilization이 자동으로 100%가 되는 것은 아니다.
 
 ### 4-5. 의존성 그래프 (DAG)
 
@@ -732,7 +742,7 @@ void CMinionAISystem::ApplyPass(CWorld& world, float dt) {
 | 4 | **self-entity only** | ECS Component write (자기 entity 만) |
 | 5 | **per-worker buffer + main flush** | cross-entity write (MinionAI Decision/Apply) |
 
-→ Phase 5-B fiber 도입 시 5 정책 모두 그대로 작동 (정합성).
+→ FiberFull에서는 atomic/lock/main-merge 원칙은 유지되지만 `thread_local`은 재분류가 필요하다. yield가 없는 leaf scratch는 TLS로 둘 수 있고, wait를 가로지르는 continuation 상태는 stack/FLS/job-owned state로 옮긴다. worker별 buffer는 origin pinning으로 slot이 유지되더라도 sibling fiber interleave에 안전한 사용 규약이 있어야 한다.
 
 ---
 
@@ -791,7 +801,9 @@ void WaitForCounter(CJobCounter* c) {
 
 ### 6-3. Wait List + Resume 메커니즘
 
-3 자료구조:
+> **현행과의 차이**: 아래 global `m_ReadyFibers`/pool 128 코드는 2026-05 역사적 설계다. 실제 구현은 `FiberSchedulerState::WorkerState`마다 64-fiber pool과 64-slot ready ring을 소유한다. `FiberRecord::iOwnerWorker`는 생성 시 고정되고 notifier는 그 worker의 ring에만 넣는다. waiter 등록은 counter를 lock 안에서 다시 읽은 뒤 `Running → Waiting`으로 전환해 completion과의 lost-wakeup을 막는다.
+
+역사적 3 자료구조 스케치:
 
 ```cpp
 class CJobSystem {
@@ -815,7 +827,7 @@ private:
     std::mutex m_ReadyMutex;
     std::queue<uint32_t> m_ReadyFibers;
 
-    // 4) Fiber Pool — 128 fiber
+    // 4) Fiber Pool — 128 fiber (역사적 global-pool 초안)
     std::unique_ptr<CFiberPool> m_pFiberPool;
 };
 ```
@@ -849,11 +861,11 @@ ExecuteItem 의 wrap 람다:
       f. for idx in notify: m_ReadyFibers.push(idx); GetFiber(idx).SetState(Ready)
       g. unlock
    ↓
-Worker 3: TryExecuteOneJob → ready 큐 우선 검사 → A 픽업
+Worker 0: 자기 ready ring 우선 검사 → A 픽업
    ↓
 Fiber_TryResumeOne:
-   1. A.SetReturnFiber(thread_fiber 3)  ← ★ resume worker 의 thread fiber
-   2. ctx.iCurrentFiber = A_idx
+   1. A의 hRootFiber는 생성 당시 worker 0 root로 고정
+   2. worker 0가 Ready → Running CAS
    3. SwitchToFiber(A)  ← A 의 stack frame 복원
    ↓
 Fiber A: WaitForCounter 의 SwitchToFiber 다음 줄에서 재개
@@ -861,9 +873,9 @@ Fiber A: WaitForCounter 의 SwitchToFiber 다음 줄에서 재개
    - 다음 코드 진행
 ```
 
-### 6-4. Get_WorkerSlot 함정 (★ 가장 어려운 디버깅)
+### 6-4. TLS와 FLS 함정 (★ 가장 어려운 디버깅)
 
-Fiber A 가 worker 0 에서 시작 → worker 3 에서 resume.
+현행 Fiber A는 worker 0에서 시작해 worker 0에서 재개되므로 `Get_WorkerSlot()`은 유지된다. 아래 cross-worker 예시는 채택되지 않은 역사적 설계가 왜 위험했는지 보여준다.
 
 ```cpp
 void Some_System_Function() {
@@ -884,6 +896,8 @@ void Some_System_Function() {
     m_buf[slot].push_back(...);  // ★ push 직전, yield 0
 }
 ```
+
+현행의 실제 함정은 **같은 worker TLS를 sibling fibers가 공유**한다는 점이다. A가 TLS linked-stack에 node를 push한 뒤 wait하고 B가 같은 worker에서 그 TLS를 덮으면, A 재개 시 B의 이미 파괴된 stack node를 따라갈 수 있다. Winters는 nested Submit admission chain을 FLS로, CPU profiler scope stack도 FLS로 옮겼다. worker index처럼 thread에 귀속된 값은 TLS에 남긴다.
 
 ### 6-5. Counter Destroy 안전성 (Codex #4)
 
@@ -921,7 +935,9 @@ class CJobSystem {
 }  // ← counter destroy. m_mapWaiters 에 entry 없음 → 안전
 ```
 
-### 6-6. Naughty Dog GDC 2015 모델 완성형
+정확한 public contract는 더 강하다. counter는 모든 submitted job과 waiter보다 오래 살아야 하고 caller는 `WaitForCounter` 완료 전에 scope를 끝내면 안 된다. wait map이 counter 안에 있지 않다는 사실은 정상 완료의 정리를 단순하게 할 뿐, dangling counter 사용을 자동으로 합법화하지 않는다.
+
+### 6-6. Naughty Dog 모델과 Winters의 구체화
 
 ```
 ┌────────────────────────────────────────────────┐
@@ -934,7 +950,7 @@ class CJobSystem {
 │  SwitchToFiber  SwitchToFiber  SwitchToFiber   │
 │     │         │                │               │
 │  ┌──┴─────────┴────────────────┴─┐            │
-│  │   Fiber Pool 128             │            │
+│  │   Fiber Pool 64 / worker     │            │
 │  │ F0(Run) F1(Wait) F2(Free) ...│            │
 │  └──────────────────────────────┘            │
 │                                                │
@@ -943,24 +959,24 @@ class CJobSystem {
 │  │ counter B → [F12]             │            │
 │  └───────────────────────────────┘            │
 │                                                │
-│  ┌── m_ReadyFibers ──────────────┐            │
-│  │ [F3, F7, F1] queue            │            │
+│  ┌── origin worker ready ring ────┐            │
+│  │ fixed 64 slots / worker        │            │
 │  └───────────────────────────────┘            │
 └────────────────────────────────────────────────┘
 ```
 
 **3 핵심**:
-1. Worker thread = 절대 안 멈춤 (busy 또는 다른 fiber 픽업)
-2. Pool = 실행 컨텍스트 (stack + 코드 위치)
-3. Wait map + Ready queue = 진행 상태 박제
+1. Worker thread = 실제 병렬 실행 주체; idle 시 wake CV로 대기하고 FiberFull wait에서는 다른 work를 픽업
+2. worker-local pool = 실행 continuation(stack + 코드 위치), 64 KiB commit/256 KiB reserve
+3. global counter waiter map + origin-worker ready ring = 진행 상태와 native fiber thread-affinity를 함께 보존
 
-**Naughty Dog 결과**: 게임 프레임 30 FPS → 60 FPS 안정. 모든 코어 95%+ 활용.
+**주의**: 외부 발표의 성능 수치는 해당 게임·하드웨어·워크로드 결과다. Winters의 합격 수치로 복사하지 않고 자체 before/after와 core utilization을 측정한다.
 
 ---
 
 ## §7. Winters 코드 적용
 
-### 7-1. Phase 5-A 의 흐름 (현재)
+### 7-1. 기본 경로 — ThreadOnly
 
 ```
 [Main thread]
@@ -980,19 +996,22 @@ class CJobSystem {
        2. global queue pop
        3. steal (다른 worker)
        → ExecuteItem (job 실행 + counter Decrement)
+       → 일이 없으면 condition_variable wait_for(1ms)
    shutdown
 ```
 
-### 7-2. Phase 5-B 의 흐름 (FiberFull 모드)
+### 7-2. opt-in 경로 — FiberFull (구현·stress 완료)
 
 ```
 [Main thread] — 변경 0
    기존 그대로
 
 [Worker thread]
-   Initialize: ConvertThreadToFiber(NULL)  ← thread → fiber
+   Initialize: ConvertThreadToFiberEx(FLOAT_SWITCH)
+               + worker-local fiber 64개 완전 생성, 아니면 startup 실패
    while !shutdown:
        1. ★ Ready fiber 우선 검사 (yield 됐던 것 깨움)
+          → origin worker ready ring에서 pop/CAS
           → SwitchToFiber(ready_fiber)
             → fiber 의 stack frame 복원, 작업 진행
             → 작업 끝 또는 다시 yield
@@ -1001,12 +1020,14 @@ class CJobSystem {
        3. global pop
        4. steal
        → ExecuteItem:
-            Pool.Acquire() → fiber idx
+            worker.Pool.Acquire() → native fiber
             fiber.AssignJob(wrap_lambda)
             SwitchToFiber(fiber)  ← fiber 진입
               → 작업 (또는 yield)
-            복귀 → Pool Release (Free) 또는 대기 (Waiting)
+            복귀 → Pool Release (Free) 또는 waiter map 대기 (Waiting)
 ```
+
+`FiberShell`은 중간 검증 모드다. worker thread를 fiber로 바꾸고 job마다 64 KiB/256 KiB stack의 native fiber를 생성·삭제하지만 counter wait는 ThreadOnly처럼 help-execute한다. 따라서 FiberFull의 성능 모드가 아니라 Win32 전환/예외/완료 경로를 분리 검증하는 비교군이다.
 
 ### 7-3. 통합 사이클
 
@@ -1029,8 +1050,9 @@ class CJobSystem {
    → GPU Kick
 
 2. Worker thread (모든 단계):
-   - FiberFull 모드면 wait 시 yield → 다른 fiber 픽업
-   - thread 는 절대 멈추지 않음
+   - FiberFull job fiber가 counter wait 시 origin root로 yield → 다른 fiber/job 픽업
+   - 외부/main Wait는 submission lease 아래 global drain/steal로 help-execute
+   - 일감이 전혀 없으면 wake CV에서 짧게 대기하며 busy-spin을 피함
 
 3. EndFrame
 ```
@@ -1039,7 +1061,7 @@ class CJobSystem {
 
 ## §8. 실전 디버깅 + 측정
 
-### 8-1. thread_local + Fiber Resume 함정
+### 8-1. TLS 공유 + Fiber Interleave 함정
 
 ```cpp
 thread_local std::vector<float> tls_buffer;
@@ -1048,12 +1070,12 @@ void Function_With_Yield() {
     tls_buffer.clear();
     DoWork(tls_buffer);
     WaitForCounter(&someCounter);  // ★ yield 가능
-    // ★ 깨어나면 다른 worker 의 tls_buffer 봄!
-    UseBuffer(tls_buffer);  // ← 의도한 buffer 가 아님
+    // 같은 origin worker라도 그 사이 sibling fiber가 같은 TLS를 사용 가능
+    UseBuffer(tls_buffer);  // ← sibling이 clear/overwrite했을 수 있음
 }
 ```
 
-**해결**: yield 호출 가능 함수 안에서 thread_local 대신 stack 변수 사용.
+**해결**: worker identity/scheduler root처럼 thread에 귀속된 값만 TLS에 둔다. yield를 건너 continuation별로 유지해야 하는 값은 stack, job-owned state, FLS 중 하나를 사용한다. Winters의 nested Submit admission chain과 profiler scope stack은 FLS다.
 
 ### 8-2. Profiler 통합
 
@@ -1063,21 +1085,23 @@ WINTERS_PROFILE_SCOPE("MinionAI::DecisionPass");
 WINTERS_PROFILE_COUNT("Nav::PathNodes", nodeCount);
 ```
 
-**Worker-Safety v3 적용**:
-- Profiler scope stack = thread_local (CPUProfiler.cpp t_vProfilerStack)
-- Event merge = mutex + main flush
-- Fiber resume 시 thread_local 변경되지만 stack 자체는 보존됨 (RAII)
+**현행 profiler 적용**:
+- profiler scope stack = `FlsAlloc` 기반 fiber-local stack (`CPUProfiler.cpp`)
+- event merge = mutex + main flush
+- Tracy에는 안정된 fiber name과 `TracyFiberEnter/Leave`를 연결
+- FLS 할당 실패 fallback은 진단 대상이며 FiberFull submission context는 fail-closed startup 조건
 
-### 8-3. Stress 시나리오 (FIBER_JOB_SYSTEM_v2.md §5-2)
+### 8-3. 현행 executable stress gate
 
-| # | 시나리오 | 합격 |
+| 범주 | 실제 하네스 | 합격 조건 |
 |---|---|---|
-| S1 | 16 미니언 1 타겟 집중 공격 100회 | 데미지 손실 0 |
-| S2 | 16 worker × Submit 의존 그래프 1000회 | wait 정확 깨움, deadlock 0 |
-| S3 | Get_WorkerSlot resume 100 fiber × 100 yield | per-slot buffer race 0 |
-| S4 | FiberPool 고갈 (128+1 동시 Submit) | inline fallback 정상 |
-| S5 | 16 동시 pathfinding | counter contention 1/노드 → 1/함수 |
-| S6 | Counter destroy 안전성 1000회 | m_mapWaiters 누수 0 |
+| deque | 마지막 1개 Pop/Steal 경합 100,000회 | 매 iteration 승자 정확히 1, 값/size/wrap 이상 0 |
+| 세 모드 | fan-out, pure-worker, nested wait, overflow, 예외, shutdown drain | submitted/executed/counter exact, deadlock/유실/중복 0 |
+| lifecycle | multi-producer Submit/Shutdown, stopped recursive Submit, external Wait/Shutdown, reinitialize, worker lifecycle guard | admission 경계 전 publish와 경계 후 inline 실행 모두 완료 |
+| FLS | 1 worker에서 sibling parent/child Submit interleave | child/follow-up exact, wait/resume parity |
+| pool | 1 worker에 waiting parent 80개 | 64 parked continuation 이후 inline fallback, pool miss > 0, 전체 완료 |
+
+명령은 `Tools/Harness/RunJobSystemStress.ps1 -Mode all`이다. 이 PASS는 scheduler correctness 증거이지 GameRoom 병렬화의 FPS/TPS 향상 증거는 아니다. 성능은 제품 workload의 before/after capture로 별도 증명한다.
 
 ---
 
@@ -1124,12 +1148,23 @@ WINTERS_PROFILE_COUNT("Nav::PathNodes", nodeCount);
 
 ### 통합 (실전, 2-4주)
 
-- Winters 의 5-B 직접 구현 (M1 → M2 → M3 → M4)
-- Stress S1-S6 통과
+- Winters scheduler 구현은 완료됐으므로 actual Server/Client workload의 immutable input/output 경계와 DAG를 설계한다.
+- `ThreadOnly` parity를 유지한 채 `FiberFull` opt-in capture에서 wall time, worker utilization, fiber waits/resumes/pool misses를 비교한다.
 - 자가 평가: "이걸 회사 첫 출근에 30분 안에 설명할 수 있는가?"
+
+이 학습 트리는 권장 순서이며 완료 기록이 아니다. 별도로 계획된 6주 mastery 프로그램은 2026-07-13 기준 미착수다.
 
 ---
 
 ## §10. 한 줄 요약
 
-**OS 의 user/kernel mode + cache hierarchy + false sharing → C++ atomic + memory ordering + alignas + lock-free → ECS 의 SoA + cache coherency → Job System 의 work stealing + counter → ECS+JobSystem 의 access contract + Decision/Apply 2-pass → Fiber 의 user-mode 양보 + wait list + resume → Naughty Dog 의 worker N + pool 128 + wait map + ready queue. 7 layer 가 게임 엔진 프레임 17ms 안에 모든 의존성 그래프를 굴리는 진짜 원리. Winters 의 Phase 5-B 는 layer 6-7 의 첫 도입 — 5-A (Job System + Worker-Safety v3) 위에 fiber 4 모드 (ThreadOnly/Shell/Pool/Full) 쌓아 점진 적용.**
+**OS scheduling/cache → C++ atomic과 memory ordering → ECS data/access contract → immutable job publication과 Chase-Lev → stackful Fiber continuation이 한 층씩 연결된다. Winters scheduler는 세 모드와 worker-local FiberFull, lifecycle admission, FLS를 구현하고 correctness stress를 통과했다. 기본값은 ThreadOnly이고, 실제 제품 speedup·서버 workload fan-out·6주 mastery는 별도의 적용/계측 과제다.**
+
+## Canonical code pointers
+
+- Job lifecycle and scheduler: `Engine/Public/Core/JobSystem.h`, `Engine/Private/Core/JobSystem.cpp`
+- Chase-Lev deque: `Engine/Public/Core/JobSystem/WorkStealingDeque.h`
+- Counter: `Engine/Public/Core/JobCounter.h`
+- Fiber pool/types: `Engine/Public/Core/Fiber/FiberPool.h`, `Engine/Public/Core/Fiber/FiberTypes.h`
+- FLS profiler stack: `Engine/Private/Core/Profiler/CPUProfiler.cpp`
+- Executable gate: `Tools/Harness/JobSystemStress.cpp`, `Tools/Harness/RunJobSystemStress.ps1`

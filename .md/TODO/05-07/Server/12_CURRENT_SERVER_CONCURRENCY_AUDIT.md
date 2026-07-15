@@ -1,5 +1,8 @@
 # Current Server Concurrency Audit
 
+> [!IMPORTANT]
+> **Historical concurrency map.** 아래 thread/lock 지도는 2026-05-07 감사 자료다. 2026-07-13 현재 별도 AcceptThread 없이 IOCP worker가 pre-posted `AcceptEx` completion을 처리하고, `CServerEntry`가 JobSystem 수명주기와 `--job-mode=thread|fiber-shell|fiber-full` startup probe를 소유한다. 다만 GameRoom tick/snapshot workload 자체는 아직 Job/Fiber로 분해되지 않았으므로 이 연결을 서버 전체 fiber 전환으로 해석하면 안 된다. 현행 경계와 검증은 [canonical implementation plan](../../../plan/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)를 따른다.
+>
 작성일: 2026-05-07  
 목표: Server Fiber refactor 전에 현재 thread, lock, phase, shared state 구조를 확정한다.
 
@@ -481,4 +484,3 @@ EntityIdMap read/write phase 구분 필요
 counter API 오해 시 deadlock
 write-heavy phase 가 많아서 Decision/Apply 필수
 ```
-

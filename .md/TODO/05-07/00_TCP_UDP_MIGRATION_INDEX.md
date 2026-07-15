@@ -1,5 +1,13 @@
 # TCP / UDP 이주 계획서 인덱스
 
+> [!IMPORTANT]
+> **Historical baseline.** 아래 본문을 현재 구현 상태로 사용하지 않는다. 최신 기준은 [2026-07-13 canonical implementation plan](../../plan/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)다.
+> As-built delta: JobSystem Submit race, Chase-Lev deque, FiberFull 및 stress 구현은 완료되었고, UDP v3 generic vertical slice와 server hub/client facade가 구현되었다. main F5 통합과 최종 build 상태는 S023 결과 보고서를 따른다. 6주 Fiber mastery 프로그램은 미착수이며, 현재 상태는 production UDP cutover가 아니다.
+> 2026-07-14 S031 추가: reliable lane의 고정 120ms RTO가 RFC 6298 적응형 RTO(SRTT/RTTVAR + Karn)로 대체되었고, 시드 고정 loss/reorder/dup chaos 검증이 `UdpLoopbackHarness`에 추가되었다 — [S031 결과](../../../Plan/S031_UDP_ADAPTIVE_RTO_CHAOS_HARNESS_RESULT_20260714.md). 보안(MAC/AEAD·ticket validator), pacing/congestion, Snapshot diet, cutover는 여전히 미완이다.
+> 과거 UDP v2 수치인 **24 B header / 10 B fragment header / 1 MiB logical payload**는 historical design이다. 실제 v3 상수는 **40 B header / 16 B fragment header / 1,200 B datagram / 64 KiB logical payload**다.
+
+> **상태 동기화 (2026-07-11 — HISTORICAL HYBRID PLAN)**: 현재 runtime의 lobby와 gameplay는 모두 TCP이며 UDP 송수신 구현은 0이다. 이 묶음의 `TCP Control + UDP Gameplay`는 2026-05-07 목표안이지 구현 완료 상태가 아니다. 사용자의 최신 목표인 **WintersServer 실시간 session 전체 UDP + Server Job/Fiber 통합**, 실제 5~22KB snapshot 측정, 수정된 이행 순서는 [2026-07-11 통합 감사](../../plan/2026-07-11_FULL_UDP_AND_SERVER_FIBER_INTEGRATION_AUDIT.md)를 우선한다.
+
 작성일: 2026-05-07  
 대상: Winters LoL 네트워크 구조 이주  
 핵심 결정: **TCP는 BanPick + Backend 제어면(Control Plane), UDP는 InGame Gameplay 데이터면(Gameplay Plane)으로 분리한다.**

@@ -1,5 +1,7 @@
 Session - ECS/JobSystem/Fiber를 identity, storage, query, mutation, work, wait, truth, view 원자로 다시 자른다.
 
+> **상태 동기화 (2026-07-11 — PARTIALLY APPLIED)**: 이 계획의 일부 ECS query 변경은 적용됐지만 `FiberPool/FiberFull` enum, pool, waiter/ready queue, yield/resume는 적용되지 않았다. 현재 상태와 현 workspace 경로는 [2026-07-11 상태 감사](../2026-07-11_JOB_SYSTEM_CHASE_LEV_FIBER_STATE_AUDIT.md)를 우선한다.
+
 1. 반영해야 하는 코드
 
 1-1. C:/Users/tnest/Desktop/Winters/.md/architecture/WINTERS_CODEBASE_COMPASS.md

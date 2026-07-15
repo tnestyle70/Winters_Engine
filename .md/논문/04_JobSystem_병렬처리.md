@@ -1,5 +1,7 @@
 # 04. JobSystem·병렬처리 — 박사 연구 심화
 
+> **상태 동기화 (2026-07-11 — RESEARCH ROADMAP)**: Client JobSystem은 active ThreadOnly이고 과거 Main-push owner race 경로는 수정됐다. FiberShell은 dormant prototype이며 FiberFull·Server 결정론 병렬 runtime·전용 stress는 아직 연구/구현 목표다. 아래 미래 시스템을 작동하는 결과로 인용하지 말고 [2026-07-11 상태 감사](../plan/2026-07-11_JOB_SYSTEM_CHASE_LEV_FIBER_STATE_AUDIT.md)를 현재 기준으로 삼는다.
+>
 > 전제 문서: [`00_PHD_Paper_Guide.md`](00_PHD_Paper_Guide.md). 본 문서는 가이드 §1(구현 vs 기여), §3(thesis statement), §4(구조), §7(평가: 약/강 scaling, core 수 대비 throughput, 결정론 재현률, 메모리)을 **그대로 전제**한다. 모든 세부주제마다 "이건 구현 항목인가, 기여 후보인가?"를 가이드 §1로 되돌아가 묻는다.
 >
 > 독자: LoL 스타일 MOBA + 오픈월드 엔진 'Winters'를 만든 숙련 C++ 엔진 개발자. 현재 Naughty Dog 스타일 fiber 기반 **서버** 잡 시스템을 설계 중이며, 서버는 lockstep/replay 결정론 권위를 가진다.
@@ -153,8 +155,8 @@ Winters는 **이미 실제 Chase-Lev deque를 구현**해 두었다 — 이게 t
 
 - [`Engine/Public/Core/JobSystem/WorkStealingDeque.h`](../../Engine/Public/Core/JobSystem/WorkStealingDeque.h) — `CWorkStealingDeque<T>`, 헤더 주석이 명시적으로 "(Chase & Lev 2005)"를 표방. 고정 4096 슬롯(grow 없는 MVP), `alignas(64)`로 top/bottom **false-sharing 방지**(L91-92).
 - **§1.3 의사코드와 1:1 대응이 실재한다:** `Push`의 release fence(L37), `Pop`의 마지막-원소 `compare_exchange_strong(seq_cst)`(L58-61), `Steal`의 seq_cst fence + `compare_exchange_weak(seq_cst)`(L70-80). **즉 §1.3에서 설명한 (1)(2)(3) fence가 그대로 코드에 박혀 있다.** Lê et al.(2013) 분석을 이 파일에 직접 적용해 "이 fence가 정말 필요/충분한가"를 model checker로 검증하는 것이 곧 §1.4-(1) 기여의 testbed.
-- [`Engine/Public/Core/JobSystem.h`](../../Engine/Public/Core/JobSystem.h) — `CJobSystem`. 주석(L19-25)에 "Worker N개(hw_concurrency-2), 각 Worker가 deque 1개, Submit은 round-robin push, WaitForCounter는 busy-wait + help-stealing(Main도 steal)". `PickVictim(iSelf, N)`(L83)이 **현재 victim 선택 지점** → §1.4-(2) NUMA-aware victim의 개입점. `m_GlobalQueue`(L93)는 "global MPMC + per-worker deque hybrid" 주석 → 중앙 경합 측정 대상.
-- **알려진 race(연구 소재):** Server 설계 문서가 "Phase 5-A Chase-Lev **Main-push race**"를 미해결로 명시([`03_SERVER_PARALLEL_PHASES.md`](../TODO/05-07/Server/03_SERVER_PARALLEL_PHASES.md) §1, CLAUDE.md §1.C 인용). Main 스레드가 owner가 아닌 deque에 push하면 Chase-Lev의 single-owner 불변식이 깨진다 — **§1.4-(1)의 "엔진이 쓰는 최적화 변형의 숨은 버그" 사례가 자기 코드에 실재**. 이걸 형식적으로 드러내고 고치는 것이 그대로 기여 챕터의 사례 연구가 된다.
+- [`Engine/Public/Core/JobSystem.h`](../../Engine/Public/Core/JobSystem.h) / `JobSystem.cpp` — `CJobSystem`. 현재 Submit은 **worker→자기 deque, main/외부/overflow→mutex global queue** 하이브리드이고 `WaitForCounter`는 help-stealing이다. `PickVictim`은 현재 victim 선택 지점, `m_GlobalQueue`는 중앙 경합 측정 대상이다.
+- **역사적 race(연구 소재):** 2026-04-23에는 Main이 non-owner worker deque의 bottom에 Push해 Chase-Lev single-owner 불변식을 깼다. 현재는 `EnqueueJob` 경로 분리로 해당 접근을 차단했다. 연구 과제는 “미해결 race 수정”이 아니라 이 과거 사고를 최소 재현하고, fixed-ring/non-trivial payload를 포함한 현재 변형 전체를 stress/model checking으로 검증하는 것이다.
 
 ---
 
@@ -261,12 +263,12 @@ OnJobComplete(counter):                         // job 끝낸 fiber가
 
 ### 2.7 Winters 연결점
 
-Winters는 **fiber 통합을 단계적으로 박제 중**이며, 본 절의 모든 함정·긴장이 설계 문서에 명시적으로 살아 있다 — 박사 testbed로서 거의 이상적이다.
+Winters는 **active ThreadOnly 위에 dormant FiberShell 골격까지만 구현**했고, 이후 단계는 설계 문서로 남아 있다. 따라서 현재는 완성된 사례가 아니라 단계별 검증이 가능한 testbed다.
 
-- **단계적 fiber 도입(연구 챕터 구조와 1:1):** `eJobExecutionMode { ThreadOnly, FiberShell }`([`FiberTypes.h`](../../Engine/Public/Core/Fiber/FiberTypes.h:5)) → 설계상 `FiberShell`(API/lifecycle 검증) → `FiberPool`(Create/Delete 반복 제거) → `FiberFull`(WaitForCounter가 fiber yield). 이 단계 분해가 [`11_FIBER_CONCEPTS_SERVER_DEEP_DIVE.md`](../TODO/05-07/Server/11_FIBER_CONCEPTS_SERVER_DEEP_DIVE.md) §5에 정리.
-- **§2.3 함정이 전부 문서화됨:** 같은 deep-dive §10이 "Counter 이중 증가"(사고1), "fiber 안 help-execute가 다른 fiber resume"(사고2), "IOCP worker fiber화 금지"(사고3), "CWorld read-only 가정 금지"(사고4)를 Winters 코드 기준으로 적시. §8은 **thread-local vs fiber-local 함정**(`t_iWorkerIdx`, `t_hThreadFiber`, `t_bInsideJobFiber`)을 다루며 "Server code는 `Get_WorkerSlot`/`Get_WorkerIdx`를 직접 쓰지 않는다, yield 전후로 slot 캐싱 금지"를 규칙화 → **§2.4-(4) fiber-safe 정의의 실증 사례**.
-- **현재 API 표면:** [`JobSystem.h`](../../Engine/Public/Core/JobSystem.h) — `Submit(fn, counter)`(L43), `WaitForCounter(counter, target)`(L49, "busy-wait + help-stealing, 블로킹 아님"), `FiberShellEntry`(L81, `WINTERS_FIBER_CALL=__stdcall`), `TryExecuteItemOnFiber`(L80). [`JobCounter.h`](../../Engine/Public/Core/JobCounter.h) — `Increment`은 relaxed, `Decrement`은 **acq_rel**(L31), 주석에 "Phase 5-B에서 Fiber yield로 교체" 명시. **즉 §2.3 의사코드의 메모리 순서가 실제 코드와 대조 가능.**
-- **결정론 계약이 이미 설계됨(§2.4-(1)의 testbed):** [`15_SERVER_PHASE_JOBIFICATION_PLAYBOOK.md`](../TODO/05-07/Server/15_SERVER_PHASE_JOBIFICATION_PLAYBOOK.md)가 "Decision parallel / Apply serial", "output per-index write", "Apply는 항상 정렬된(EntityID ascending) output을 직렬 처리"를 규칙화. [`03_SERVER_PARALLEL_PHASES.md`](../TODO/05-07/Server/03_SERVER_PARALLEL_PHASES.md)는 `Phase_BroadcastSnapshot`만 병렬화(read-only)하고 RNG 상태를 tick 시점 캐시해 **모든 job에 동일 값 전달 → byte-identical** 을 보장 — **§2.4-(1) "결정론-by-construction"의 작동하는 미니 사례.**
+- **단계적 fiber 도입:** 실제 enum은 `ThreadOnly/FiberShell` 둘뿐이다. FiberShell은 per-job Create/Switch/Delete 골격이지만 default OFF이고 enable caller가 없다. `FiberPool`과 `FiberFull(WaitForCounter yield)`은 목표 설계다.
+- **§2.3 함정은 설계 위험 목록:** counter 이중 증가, lock을 든 yield, TLS/FLS, IOCP 비적용, CWorld access 계약은 구현 완료 사고가 아니라 이후 단계의 검증 체크리스트다.
+- **현재 API 표면:** `Submit`, help-stealing `WaitForCounter`, dormant `FiberShellEntry/TryExecuteItemOnFiber`까지 존재한다. `CJobCounter`는 atomic count만 가지며 waiter map/ready queue는 없다.
+- **결정론 계약은 설계됨:** Server playbook의 Decision-parallel/Apply-serial, sorted reduction, byte-identical 기준은 유효한 목표다. 그러나 현재 Server runtime은 JobSystem/Fiber에 연결되지 않았으므로 “작동하는 서버 병렬 사례”가 아니라 future acceptance contract로 분류한다.
 - **권위 충돌이 실재(핵심 긴장의 testbed):** 서버는 lockstep/replay 결정론 권위를 가지는데(Server/Replay 문서군) fiber 병렬을 도입 중 → "병렬 + 결정론"의 충돌이 **추상 명제가 아니라 자기 코드의 미해결 과제**. 박사 명제(§2.5)를 자기 엔진에서 직접 falsify/검증 가능.
 - **IOCP 비적용 경계:** deep-dive §6이 IOCP WorkerLoop/accept thread/blocking socket을 **fiber 비적용**으로 명시 — "OS completion queue와 user-mode cooperative scheduling을 같은 층에 섞지 않는다"는 시스템 설계 판단. 평가의 threats(어디까지가 fiber 영역인가)를 명확히 함.
 

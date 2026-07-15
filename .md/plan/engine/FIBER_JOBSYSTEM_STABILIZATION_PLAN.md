@@ -1,5 +1,12 @@
 # Fiber JobSystem 안정화 계획서 (Phase 5-B-pre)
 
+> [!IMPORTANT]
+> **Historical stabilization plan.** 아래 본문을 현재 구현 상태로 사용하지 않는다. 최신 기준은 [2026-07-13 canonical implementation plan](../2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_IMPLEMENTATION_PLAN.md)과 [S023 결과 보고서](../../build/2026-07-13_UDP_JOB_SYSTEM_CHASE_LEV_FIBER_RESULT.md)다.
+> As-built delta: JobSystem Submit race, Chase-Lev deque, FiberFull 및 stress 구현은 완료되었고, UDP v3 generic vertical slice와 server hub/client facade가 구현되었다. main F5 통합과 최종 build 상태는 S023 결과 보고서를 따른다. 6주 Fiber mastery 프로그램은 미착수이며, 현재 상태는 production UDP cutover가 아니다.
+> 과거 UDP v2 수치인 **24 B header / 10 B fragment header / 1 MiB logical payload**는 historical design이다. 실제 v3 상수는 **40 B header / 16 B fragment header / 1,200 B datagram / 64 KiB logical payload**다.
+
+> **상태 동기화 (2026-07-11)**: 이 문서는 2026-05-06 당시 workspace를 박제한 역사 계획이다. 현재는 Main-push owner race 우회와 Client `Set_JobSystem` 주입이 적용됐고 `CJobSystem`도 DLL export된다. 반면 이 문서가 제안한 stress project, FiberPool, waiter/ready queue, yield/resume는 아직 없다. 옛 줄 번호·worktree·미주입 주장을 직접 적용하지 말고 [2026-07-11 상태 감사](../2026-07-11_JOB_SYSTEM_CHASE_LEV_FIBER_STATE_AUDIT.md)에서 다시 진입한다.
+
 작성일: 2026-05-06 (codex 4차 검토 반영 — 사용자 12 + 4 P1 + 구현성 2건 추가)
 
 계기:

@@ -41,6 +41,9 @@ Cross-agent operating rules for Winters. Keep the behavioral core aligned with `
 - Start the document with `Session - ...`, include current code evidence, ownership boundaries, staged direction, and verification/handoff notes.
 - Keep `AGENTS.md` as the rule pointer only; put detailed design guidance in the dated plan document.
 
+## Goal Operating Lens
+For goal/plan/priority/retro conversations, apply `.md/process/GOAL_OPERATING_DOCTRINE.md`: enforce the 30% ceiling budget in plans, ask the ceiling-budget question after 3+ consecutive floor-work sessions on one track, require insight-to-output conversion (이해→환전) before a new deep dive, and propose external deadlines for deadline-less goals. Never cite this lens to lower code verification standards.
+
 ## Andrej Karpathy Coding Guardrail
 Behavioral guidelines to reduce common LLM coding mistakes. Apply before coding unless the task is truly trivial. **Tradeoff:** caution over speed; use judgment for tiny edits.
 

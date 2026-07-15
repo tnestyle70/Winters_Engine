@@ -4,6 +4,37 @@
 
 이 문서는 `C:\Users\tnest\Desktop\NYPC\mushroom`에서 진행하는 독립 Competition ML Lab과 Winters Engine AI 계획 사이의 경계와 통합 순서를 정리한다.
 
+2026-07-12 상태:
+
+- 현재 장비의 실제 NYPC 루트는 `C:\Users\user\Desktop\NYPC`다.
+- 사용자가 NYPC battlefield/NEXT NATION 자산과 Winters ChronoBreak의 명시적 통합 세션을 요청했다.
+- Python 601개 전부를 복사하는 방식은 폐기한다. source SHA/provenance/disposition을 가진 selective bridge manifest를 먼저 만든다.
+- 현재 NYPC에는 production PPO/DQN/Gymnasium 구현이 없으며 PyTorch는 toy 예제 수준이다. 실제 BC/DAgger/PPO는 Winters GameSim episode 계약 위에서 새로 검증한다.
+- 상세 아키텍처와 적용 순서는 `.md/architecture/WINTERS_NYPC_HUMANLIKE_AI_RESEARCH_ARCHITECTURE.md`와 `.md/plan/2026-07-12_S017_NYPC_NEXT_NATION_TO_WINTERS_AI_CHRONOBREAK_PLAN.md`를 따른다.
+
+2026-07-13 S017 반영 상태:
+
+- selective bridge manifest/validator, typed `AiEpisodeV1` export/validation,
+  promotion-report gate와 NumPy pairwise supervised imitation baseline이
+  Winters 도구 경계에 구현됐다.
+- champion AI observation에는 radial/cone/concealment team-vision filter와
+  5초 last-seen memory가 있으며, 숨은 적 current fact는 episode에서
+  canonical zero다. terrain LOS와 network snapshot FOW는 미완료다.
+- 9x9 네-layer Influence Map은 transient research instrumentation으로
+  구현됐지만 policy, episode, Client UI에는 연결되지 않았다.
+- snapshot timeline epoch/branch/tool revision, Client rebase와 WRPL v2 journal
+  foundation은 구현됐다. exact journal re-simulation과 reactive Chrono A/B는
+  미완료다.
+- 현재 episode는 four-candidate decision-event BC/ranking 계약이다. PPO
+  trajectory가 아니며 실제 PyTorch BC/DAgger/PPO, self-play, league,
+  ShadowCoach는 아직 없다.
+- 2026-07-13 full validation(`SimTicks=1800`, `Seed=42`)과 Server/Client
+  Debug x64 빌드가 통과했다. replay fail-closed 변경 뒤 Client도 재빌드됐고,
+  live episode 두 run의 JSONL SHA-256은
+  `BECC9A151ABD8C24E45D79C787EA37FDB7BAFFA513896723128F912C98B0130E`로
+  일치했다. 이 결과는 foundation 계약 증거이며 AI strength/RL 완료 증거는
+  아니다.
+
 ## 1. 경계 원칙
 
 NYPC Lab은 Winters Engine 내부 기능이 아니라 독립 실험실이다.
@@ -66,6 +97,11 @@ NYPC Complete Game Model
 목표:
 - 현재 `torch=missing` 상태를 `torch=installed`로 바꾼다.
 - NYPC `MLHelloWorldTorch.py`가 실제 학습까지 수행하도록 한다.
+
+이 절은 원래 NYPC Lab 계획을 보존한 것이다. S017에 구현된 NumPy
+pairwise baseline은 PyTorch 설치나 RL 경력을 대신하지 않는다. Winters의
+실제 PyTorch 작업은 measured `AiEpisode` corpus와 PPO-ready trajectory
+schema가 준비된 뒤 BC -> DAgger -> recurrent PPO 순서로 별도 검증한다.
 
 산출물:
 - Python interpreter 확인 문서
@@ -196,9 +232,11 @@ Winters 관점 학습 포인트:
 다음 단계 진입 조건:
 - RL이 complexity만 늘리는지, 실제 league 성능을 올리는지 숫자로 판단 가능하다.
 
-## 10. Winters 통합 세션 진입 조건
+## 10. Winters 통합 세션 진입 조건과 현재 단계
 
-Winters runtime/source code 수정은 아래 조건을 만족하고 사용자가 명시적으로 요청할 때만 시작한다.
+아래 목록은 원래의 통합 진입 gate다. 사용자가 2026-07-12에 명시적으로
+통합을 요청했으므로 S017 foundation은 이미 Winters에 선택적으로 반영됐다.
+이는 검증되지 않은 NYPC gameplay model 전체를 가져와도 된다는 뜻이 아니다.
 
 - NYPC Lab에서 Complete Game Model, replay, log, league가 안정화됨
 - Search Expert 또는 policy/value model이 baseline을 통계적으로 이김
@@ -206,4 +244,8 @@ Winters runtime/source code 수정은 아래 조건을 만족하고 사용자가
 - runtime 추론 또는 baked artifact 방식이 결정됨
 - `Shared/GameSim` 서버 권위 경계를 깨지 않는 통합 계획이 있음
 
-통합 첫 세션의 목표는 LoL 전체 RL이 아니다. 첫 목표는 작은 `BattleState` 또는 `BotDecisionContext`를 만들어 deterministic tactical simulator와 debug snapshot을 연결하는 것이다.
+첫 통합 수직 슬라이스는 LoL 전체 RL이 아니라 typed champion decision과
+executor result를 deterministic episode로 만드는 것이었고, 이 foundation은
+구현됐다. 다음 승격 gate는 terrain/network FOW, exact Chrono journal A/B,
+measured corpus의 PyTorch BC/DAgger이며, 그 전까지 learned control이나 PPO를
+완료로 주장하지 않는다.

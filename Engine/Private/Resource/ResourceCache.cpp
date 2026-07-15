@@ -44,7 +44,10 @@ CTexture* CResourceCache::LoadTexture(const wstring& strPath,
     return pRaw;
 }
 
-shared_ptr<CModel> CResourceCache::LoadModel(IRHIDevice* pDevice, const string& strPath)
+shared_ptr<CModel> CResourceCache::LoadModel(
+    IRHIDevice* pDevice,
+    const string& strPath,
+    CModel::LoadYieldCallback pYield)
 {
     const string strCookedPath = ToCookedModelPath(strPath);
     const string strKey = NormalizeModelPath(strCookedPath);
@@ -58,7 +61,7 @@ shared_ptr<CModel> CResourceCache::LoadModel(IRHIDevice* pDevice, const string& 
         return it->second;
     }
     //Cache Miss - 존재하지 않아서 unique_ptr로 create해서 반환
-    auto pModel = CModel::Create(pDevice, strCookedPath);
+    auto pModel = CModel::Create(pDevice, strCookedPath, pYield);
     if (!pModel)
     {
         OutputDebugStringA(("[CResourceCache] Model load FAILED: " + strCookedPath + "\n").c_str());

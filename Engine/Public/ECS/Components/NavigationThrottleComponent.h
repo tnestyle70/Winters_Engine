@@ -10,4 +10,7 @@ struct NavRepathThrottleComponent
 	f32_t fMinRepathInterval = 0.5f;
 	f32_t fTargetMoveThreshold = 1.5f;
 	bool_t bHasAcceptedTarget = false;
+	u8_t reservedTail[3]{};
 };
+
+static_assert(sizeof(NavRepathThrottleComponent) == 28u);

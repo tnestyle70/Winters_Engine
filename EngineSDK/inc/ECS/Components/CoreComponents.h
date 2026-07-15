@@ -18,6 +18,7 @@ struct HealthComponent
 	float fCurrent{ 100.f };
 	float fMaximum{ 100.f };
 	bool bIsDead{ false };
+	uint8_t reservedTail[3]{};
 };
 
 struct ColliderComponent
@@ -25,7 +26,11 @@ struct ColliderComponent
 	Vec3 vHalfExtents{ 0.5f, 0.5f, 0.5f };
 	Vec3 vOffset{ 0.f, 0.f, 0.f };
 	bool bIsTrigger{ false };
+	uint8_t reservedTail[3]{};
 };
+
+static_assert(sizeof(HealthComponent) == 12u);
+static_assert(sizeof(ColliderComponent) == 28u);
 
 struct PlayerTag
 {

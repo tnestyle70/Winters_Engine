@@ -23,10 +23,10 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam
 // 클래스 이름을 바꾸면 예전에 등록된(흰색 hbrBackground 등) 윈도우 클래스와 충돌하지 않음.
 static constexpr WStr CLASS_NAME = L"WintersWindowClass_D3D_v3";
 static constexpr DWORD WINDOW_STYLE = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
-static bool s_bCursorHIDden = false;
 
 bool CWin32Window::Create(const WindowDesc& desc)
 {
+    m_bQuitRequested = false;
     m_Width  = desc.width;
     m_Height = desc.height;
 
@@ -90,11 +90,7 @@ bool CWin32Window::Create(const WindowDesc& desc)
 
     ShowWindow(m_hWnd, SW_SHOW);
     UpdateWindow(m_hWnd);
-    if (!s_bCursorHIDden)
-    {
-        ::ShowCursor(FALSE);
-        s_bCursorHIDden = true;
-    }
+    SetSystemCursorVisible(false);
 
     return true;
 }
@@ -106,24 +102,56 @@ void CWin32Window::Destroy()
         DestroyWindow(m_hWnd);
         m_hWnd = nullptr;
     }
-    if (s_bCursorHIDden)
-    {
-        ::ShowCursor(TRUE);
-        s_bCursorHIDden = false;
-    }
+    SetSystemCursorVisible(true);
     UnregisterClassW(CLASS_NAME, GetModuleHandleW(nullptr));
 }
 
-bool CWin32Window::PumpMessages()
+void CWin32Window::SetSystemCursorVisible(bool bVisible)
 {
-    MSG msg = {};
-    while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
+    if (m_bSystemCursorVisible == bVisible)
+        return;
+
+    if (bVisible)
     {
+        while (::ShowCursor(TRUE) < 0) {}
+    }
+    else
+    {
+        while (::ShowCursor(FALSE) >= 0) {}
+    }
+    m_bSystemCursorVisible = bVisible;
+}
+
+bool CWin32Window::PumpMessages(uint32 maxMessages)
+{
+    if (m_bQuitRequested)
+        return false;
+    if (m_bPumpingMessages)
+        return true;
+
+    struct PumpScope final
+    {
+        explicit PumpScope(bool& pumping) : flag(pumping) { flag = true; }
+        ~PumpScope() { flag = false; }
+        bool& flag;
+    } pumpScope(m_bPumpingMessages);
+
+    MSG msg = {};
+    uint32 processedMessages = 0u;
+    while ((maxMessages == 0u || processedMessages < maxMessages) &&
+        PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
+    {
+        ++processedMessages;
         if (msg.message == WM_QUIT)
+        {
+            m_bQuitRequested = true;
             return false;
+        }
 
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
+        if (m_bQuitRequested)
+            return false;
     }
     return true;
 }
@@ -153,6 +181,8 @@ LRESULT CALLBACK CWin32Window::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARA
         return 0;
 
     case WM_DESTROY:
+        if (pThis)
+            pThis->m_bQuitRequested = true;
         PostQuitMessage(0);
         return 0;
 

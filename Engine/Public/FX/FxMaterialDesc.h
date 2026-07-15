@@ -11,6 +11,7 @@ enum class eFxMaterialStyleMode : u32_t
 	ToonCell = 2,
 	Gradient = 3,
 	MagicSurface = 4,
+	RadialWipe = 5,
 	VolumetricSmoke = 16,
 	MotionTrail = 17,
 };

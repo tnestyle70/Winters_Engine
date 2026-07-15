@@ -777,7 +777,9 @@ bool CDX11Device::Initialize(const DeviceDesc& desc)
     m_pContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
 
     // GPU 타이밍 쿼리는 실패해도 디바이스 초기화를 막지 않는다.
+#ifdef WINTERS_PROFILING
     m_bGpuTimingReady = CreateGpuTimingQueries();
+#endif
 
     return true;
 }
@@ -942,11 +944,17 @@ void CDX11Device::ReadGpuTimingResults()
 
         slot.bPending = false;
 
-        if (disjoint.Disjoint || disjoint.Frequency == 0 || endTicks <= beginTicks)
-            continue;
+        if (!disjoint.Disjoint && disjoint.Frequency != 0 && endTicks > beginTicks)
+        {
+            const uint64_t gpuUs =
+                (endTicks - beginTicks) * 1000000ull / disjoint.Frequency;
+            WINTERS_PROFILE_GAUGE("GPU::FrameUs", gpuUs);
+            WINTERS_PROFILE_GAUGE("GPU::SourceRHIFrame", slot.uSourceRHIFrame);
+        }
 
-        const uint64_t gpuUs = (endTicks - beginTicks) * 1000000ull / disjoint.Frequency;
-        WINTERS_PROFILE_COUNT("GPU::FrameUs", gpuUs);
+        // Preserve one timing result per CPU frame. Multiple completed slots must never
+        // be added together and reported as one GPU frame duration.
+        return;
     }
 }
 
@@ -968,15 +976,19 @@ void CDX11Device::BeginFrame(float32 r, float32 g, float32 b, float32 a)
     m_pContext->OMSetRenderTargets(1, m_pRenderTargetView.GetAddressOf(), m_pDepthStencilView.Get());
     m_pContext->RSSetViewports(1, &m_Viewport);
 
+#ifdef WINTERS_PROFILING
+    ++m_uGpuTimingFrameSerial;
     if (m_bGpuTimingReady)
     {
         GpuTimingSlot& slot = m_GpuTimingSlots[m_uGpuTimingWriteIndex];
         if (!slot.bPending)
         {
+            slot.uSourceRHIFrame = m_uGpuTimingFrameSerial;
             m_pContext->Begin(slot.pDisjoint.Get());
             m_pContext->End(slot.pBegin.Get());
         }
     }
+#endif
 
     float clearColor[4] = { r, g, b, a };
     m_pContext->ClearRenderTargetView(m_pRenderTargetView.Get(), clearColor);
@@ -989,6 +1001,7 @@ void CDX11Device::BeginFrame(float32 r, float32 g, float32 b, float32 a)
 
 void CDX11Device::EndFrame()
 {
+#ifdef WINTERS_PROFILING
     if (m_bGpuTimingReady)
     {
         GpuTimingSlot& slot = m_GpuTimingSlots[m_uGpuTimingWriteIndex];
@@ -1000,6 +1013,7 @@ void CDX11Device::EndFrame()
             m_uGpuTimingWriteIndex = (m_uGpuTimingWriteIndex + 1u) % kGpuTimingSlots;
         }
     }
+#endif
 
     // SyncInterval: 1 = VSync, 0 = 즉시 표시
     HRESULT hr = m_pSwapChain->Present(m_bVSync ? 1 : 0, 0);
@@ -1012,8 +1026,10 @@ void CDX11Device::EndFrame()
         OutputDebugStringA("[CDX11Device] Present FAILED — HRESULT 오류\n");
     }
 
+#ifdef WINTERS_PROFILING
     if (m_bGpuTimingReady)
         ReadGpuTimingResults();
+#endif
 }
 
 RHIPipelineHandle CDX11Device::CreatePipeline(const RHIPipelineDesc& desc)
@@ -1127,11 +1143,18 @@ RHIBufferHandle CDX11Device::CreateBuffer(const RHIBufferDesc& desc, const void*
     pBuffer->desc = desc;
     pBuffer->dynamic = bDynamic;
 
-    if (FAILED(m_pDevice->CreateBuffer(
+    const HRESULT hrBuffer = m_pDevice->CreateBuffer(
         &bufferDesc,
         pInitialData ? &initData : nullptr,
-        pBuffer->pBuffer.GetAddressOf())))
+        pBuffer->pBuffer.GetAddressOf());
+    if (FAILED(hrBuffer))
     {
+        char msg[256]{};
+        sprintf_s(msg, "[CDX11Device] FAIL: CreateBuffer hr=0x%08X size=%u name=%s\n",
+            static_cast<unsigned>(hrBuffer),
+            desc.sizeBytes,
+            desc.debugName ? desc.debugName : "(unnamed)");
+        OutputDebugStringA(msg);
         delete pBuffer;
         return {};
     }
@@ -1221,20 +1244,34 @@ RHITextureHandle CDX11Device::CreateTexture(
     CDX11TextureObject* pTexture = new CDX11TextureObject();
     pTexture->desc = desc;
 
-    if (FAILED(m_pDevice->CreateTexture2D(
+    const HRESULT hrTexture = m_pDevice->CreateTexture2D(
         &texDesc,
         pInitialData ? &initData : nullptr,
-        pTexture->pTexture.GetAddressOf())))
+        pTexture->pTexture.GetAddressOf());
+    if (FAILED(hrTexture))
     {
+        char msg[256]{};
+        sprintf_s(msg, "[CDX11Device] FAIL: CreateTexture2D hr=0x%08X %ux%u name=%s\n",
+            static_cast<unsigned>(hrTexture),
+            desc.width,
+            desc.height,
+            desc.debugName ? desc.debugName : "(unnamed)");
+        OutputDebugStringA(msg);
         delete pTexture;
         return {};
     }
 
-    if (FAILED(m_pDevice->CreateShaderResourceView(
+    const HRESULT hrSRV = m_pDevice->CreateShaderResourceView(
         pTexture->pTexture.Get(),
         nullptr,
-        pTexture->pSRV.GetAddressOf())))
+        pTexture->pSRV.GetAddressOf());
+    if (FAILED(hrSRV))
     {
+        char msg[256]{};
+        sprintf_s(msg, "[CDX11Device] FAIL: CreateShaderResourceView hr=0x%08X name=%s\n",
+            static_cast<unsigned>(hrSRV),
+            desc.debugName ? desc.debugName : "(unnamed)");
+        OutputDebugStringA(msg);
         delete pTexture;
         return {};
     }

@@ -16,13 +16,30 @@
 #include <cstring>
 #include <filesystem>
 #include <cmath>
+#include <cwctype>
 #include <d3d11.h>
+#include <unordered_map>
 
 using namespace Engine;
 
 namespace
 {
 	constexpr size_t kCombinedStaticCoarseCullSubmeshThreshold = 512u;
+
+	bool_t YieldModelLoad(CModel::LoadYieldCallback pYield)
+	{
+		return !pYield || pYield();
+	}
+
+	std::wstring BuildMaterialTextureKey(const wchar_t* pPath)
+	{
+		std::wstring key = pPath ? pPath : L"";
+		std::replace(key.begin(), key.end(), L'\\', L'/');
+		std::transform(key.begin(), key.end(), key.begin(),
+			[](wchar_t ch) { return static_cast<wchar_t>(std::towlower(ch)); });
+		key += L"|wrap|shader-local-srgb";
+		return key;
+	}
 
 	RHITextureHandle CreateModelDefaultRHITexture(IRHIDevice* pDevice)
 	{
@@ -854,7 +871,7 @@ CTexture* CModel::ResolveMaterialTexture(u32_t iMeshIndex) const
 	}
 
 	if (matIdx < m_vecTextures.size() && m_vecTextures[matIdx])
-		return m_vecTextures[matIdx].get();
+		return m_vecTextures[matIdx];
 
 	return m_pDefaultTexture.get();
 }
@@ -920,7 +937,7 @@ void CModel::ReleaseRHIResources()
 {
 	if (m_pRHIDevice)
 	{
-		for (RHITextureHandle& hTexture : m_vecRHITextures)
+		for (RHITextureHandle& hTexture : m_vecOwnedRHITextures)
 		{
 			if (hTexture.IsValid())
 				m_pRHIDevice->DestroyTexture(hTexture);
@@ -932,22 +949,29 @@ void CModel::ReleaseRHIResources()
 	}
 
 	m_vecRHITextures.clear();
+	m_vecOwnedRHITextures.clear();
 	m_hDefaultRHITexture = {};
 	m_hDefaultRHISampler = {};
 	m_pRHIDevice = nullptr;
 }
 
-unique_ptr<CModel> CModel::Create(IRHIDevice* pDevice, const string& strFilePath)
+unique_ptr<CModel> CModel::Create(
+	IRHIDevice* pDevice,
+	const string& strFilePath,
+	LoadYieldCallback pYield)
 {
 	auto pInstance = unique_ptr<CModel>(new CModel());
 
-	if (FAILED(pInstance->LoadModel(pDevice, strFilePath)))
+	if (FAILED(pInstance->LoadModel(pDevice, strFilePath, pYield)))
 		return nullptr;
 
 	return pInstance;
 }
 
-HRESULT CModel::LoadModel(IRHIDevice* pDevice, const string& strFilePath)
+HRESULT CModel::LoadModel(
+	IRHIDevice* pDevice,
+	const string& strFilePath,
+	LoadYieldCallback pYield)
 {
 	WINTERS_PROFILE_SCOPE("Model::LoadModel");
 
@@ -973,6 +997,8 @@ HRESULT CModel::LoadModel(IRHIDevice* pDevice, const string& strFilePath)
 			return E_FAIL;
 		}
 	}
+	if (!YieldModelLoad(pYield))
+		return E_ABORT;
 
 	const bool bHasBoneData = wm.header.bone_count > 0;
 	const bool bAllowStaticFallback = ShouldFallbackSkinnedMeshToStatic(ToNarrowPath(resolvedWMeshPath));
@@ -1005,12 +1031,23 @@ HRESULT CModel::LoadModel(IRHIDevice* pDevice, const string& strFilePath)
 			bUseSkeleton = true;
 		}
 	}
+	if (!YieldModelLoad(pYield))
+		return E_ABORT;
 
 	m_pRHIDevice = pDevice;
 	m_pDefaultTexture = CTexture::CreateDefault(pDevice);
 	m_hDefaultRHITexture = CreateModelDefaultRHITexture(pDevice);
 	m_hDefaultRHISampler = CreateModelDefaultRHISampler(pDevice);
-	LoadCookedTextures(pDevice, ToNarrowPath(resolvedWMeshPath), wm);
+	if (FAILED(LoadCookedTextures(
+		pDevice,
+		ToNarrowPath(resolvedWMeshPath),
+		wm,
+		pYield)))
+	{
+		return E_ABORT;
+	}
+	if (!YieldModelLoad(pYield))
+		return E_ABORT;
 
 	if (bUseSkeleton)
 	{
@@ -1033,6 +1070,8 @@ HRESULT CModel::LoadModel(IRHIDevice* pDevice, const string& strFilePath)
 			return E_FAIL;
 		}
 	}
+	if (!YieldModelLoad(pYield))
+		return E_ABORT;
 	m_vecSubmeshBounds = BuildSubmeshBounds(wm);
 	m_LocalBounds = {};
 	for (const LocalBounds& bounds : m_vecSubmeshBounds)
@@ -1069,15 +1108,18 @@ HRESULT CModel::LoadModel(IRHIDevice* pDevice, const string& strFilePath)
 	return S_OK;
 }
 
-void CModel::LoadCookedTextures(IRHIDevice* pDevice,
+HRESULT CModel::LoadCookedTextures(IRHIDevice* pDevice,
 	const string& strMeshPath,
-	const Winters::Asset::WMeshLoaded& wm)
+	const Winters::Asset::WMeshLoaded& wm,
+	LoadYieldCallback pYield)
 {
 	u32_t materialCount = 0;
 	for (const auto& sub : wm.subMeshes)
 		materialCount = (std::max)(materialCount, sub.material_index + 1u);
+	m_vecOwnedTextures.clear();
 	m_vecTextures.clear();
-	m_vecTextures.resize(materialCount);
+	m_vecTextures.resize(materialCount, nullptr);
+	m_vecOwnedRHITextures.clear();
 	m_vecRHITextures.clear();
 	m_vecRHITextures.resize(materialCount);
 
@@ -1088,14 +1130,19 @@ void CModel::LoadCookedTextures(IRHIDevice* pDevice,
 	if (!Winters::Asset::CWMaterialLoader::Load(wmatWPath.c_str(), materials))
 	{
 		OutputDebugStringW((L"[CModel] .wmat missing or invalid: " + wmatWPath + L"\n").c_str());
-		return;
+		return S_OK;
 	}
+	if (!YieldModelLoad(pYield))
+		return E_ABORT;
 
 	if (materials.header.material_count > m_vecTextures.size())
 	{
-		m_vecTextures.resize(materials.header.material_count);
+		m_vecTextures.resize(materials.header.material_count, nullptr);
 		m_vecRHITextures.resize(materials.header.material_count);
 	}
+
+	std::unordered_map<std::wstring, CTexture*> legacyTextures{};
+	std::unordered_map<std::wstring, RHITextureHandle> rhiTextures{};
 
 	for (const auto& entry : materials.entries)
 	{
@@ -1104,21 +1151,58 @@ void CModel::LoadCookedTextures(IRHIDevice* pDevice,
 		if (entry.diffuse_path[0] == L'\0')
 			continue;
 
-		m_vecTextures[entry.material_index] = CTexture::Create(
-			pDevice,
-			entry.diffuse_path,
-			eTexSamplerMode::Wrap,
-			eTexColorSpace::ShaderLocalSRGB);
-		m_vecRHITextures[entry.material_index] = RHI_CreateTextureFromFile(
-			pDevice,
-			entry.diffuse_path,
-			"CModel.MaterialRHITexture");
+		const std::wstring key = BuildMaterialTextureKey(entry.diffuse_path);
+		auto legacyIt = legacyTextures.find(key);
+		if (legacyIt == legacyTextures.end())
+		{
+			if (!YieldModelLoad(pYield))
+				return E_ABORT;
+
+			auto texture = CTexture::Create(
+				pDevice,
+				entry.diffuse_path,
+				eTexSamplerMode::Wrap,
+				eTexColorSpace::ShaderLocalSRGB);
+			CTexture* pTexture = texture.get();
+			if (texture)
+				m_vecOwnedTextures.push_back(std::move(texture));
+			legacyIt = legacyTextures.emplace(key, pTexture).first;
+		}
+		m_vecTextures[entry.material_index] = legacyIt->second;
+
+		auto rhiIt = rhiTextures.find(key);
+		if (rhiIt == rhiTextures.end())
+		{
+			if (!YieldModelLoad(pYield))
+				return E_ABORT;
+
+			RHITextureHandle handle = RHI_CreateTextureFromFile(
+				pDevice,
+				entry.diffuse_path,
+				"CModel.MaterialRHITexture");
+			if (handle.IsValid())
+				m_vecOwnedRHITextures.push_back(handle);
+			rhiIt = rhiTextures.emplace(key, handle).first;
+		}
+		m_vecRHITextures[entry.material_index] = rhiIt->second;
+
 		if (!m_vecTextures[entry.material_index])
 		{
 			OutputDebugStringW((L"[CModel] cooked texture load failed: "
 				+ std::wstring(entry.diffuse_path) + L"\n").c_str());
 		}
+
+		if (!YieldModelLoad(pYield))
+			return E_ABORT;
 	}
+
+	WINTERS_PROFILE_COUNT(
+		"Model::MaterialBindings",
+		static_cast<uint64_t>(materials.entries.size()));
+	WINTERS_PROFILE_COUNT(
+		"Model::UniqueMaterialTextures",
+		static_cast<uint64_t>(legacyTextures.size()));
+	return S_OK;
 }
 
 void CModel::LoadCookedAnimations(const string& strMeshPath,

@@ -134,7 +134,21 @@ void CVisionSystem::SetFowProjection(const FowProjection& Projection)
     if (!Projection.IsValid())
         return;
 
+    const bool_t bProjectionChanged =
+        m_FowProjection.vWorldAtUv00.x != Projection.vWorldAtUv00.x ||
+        m_FowProjection.vWorldAtUv00.y != Projection.vWorldAtUv00.y ||
+        m_FowProjection.vWorldAtUv10.x != Projection.vWorldAtUv10.x ||
+        m_FowProjection.vWorldAtUv10.y != Projection.vWorldAtUv10.y ||
+        m_FowProjection.vWorldAtUv01.x != Projection.vWorldAtUv01.x ||
+        m_FowProjection.vWorldAtUv01.y != Projection.vWorldAtUv01.y;
+
     m_FowProjection = Projection;
+    if (bProjectionChanged)
+    {
+        // Explored texels are projection-space history and cannot be reused
+        // after the world-to-UV basis changes without a reprojection pass.
+        std::fill(m_vecFowTexture.begin(), m_vecFowTexture.end(), 0u);
+    }
     m_bForceRebuild = true;
     m_bFowTextureDirty = true;
 }

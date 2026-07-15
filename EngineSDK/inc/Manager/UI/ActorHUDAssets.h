@@ -26,9 +26,15 @@ namespace Engine
     {
         u16_t iItemId = 0u;
         u16_t iPrice = 0u;
+        u32_t iOrder = 0u;
+        const char* pAssetKey = nullptr;
+        const char* pSection = nullptr;
         const char* pDisplayName = nullptr;
         const wchar_t* pIconPath = nullptr;
+        const char* pIconSprite = nullptr;
         const char* const* pStatLines = nullptr;
         u32_t iStatLineCount = 0u;
+        bool_t bEnabled = true;
+        bool_t bPurchasable = false;
     };
 }

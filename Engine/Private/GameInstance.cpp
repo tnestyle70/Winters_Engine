@@ -94,7 +94,15 @@ bool_t CGameInstance::Preload_ModelResource(const char* pPath)
 	if (!pPath || pPath[0] == '\0')
 		return false;
 
-	return CEngineApp::Get().GetResourceCache().LoadModel(Get_RHIDevice(), pPath) != nullptr;
+	const auto PumpLoadingMessages = []() -> bool_t
+	{
+		constexpr uint32 kLoadingMessageBudget = 32u;
+		return CEngineApp::Get().GetWindow().PumpMessages(kLoadingMessageBudget);
+	};
+	return CEngineApp::Get().GetResourceCache().LoadModel(
+		Get_RHIDevice(),
+		pPath,
+		PumpLoadingMessages) != nullptr;
 }
 
 bool_t CGameInstance::Preload_TextureResource(const wchar_t* pPath)
@@ -135,10 +143,12 @@ HRESULT CGameInstance::Initialize_Engine(uint32_t iNumScenes)
 	m_pFxAssetRegistry = std::unique_ptr<::CFxAssetRegistry>(new ::CFxAssetRegistry());
 
 	//항상 Profiler생성! 
+#ifdef WINTERS_PROFILING
 	m_pProfiler = CCPUProfiler::Create();
 	if (!m_pProfiler) return E_FAIL;
 	m_pProfilerOverlay = CProfilerOverlay::Create(m_pProfiler.get());
 	if (!m_pProfilerOverlay) return E_FAIL;
+#endif
 
 	return S_OK;
 }
@@ -190,8 +200,7 @@ HRESULT CGameInstance::Change_Scene(uint32_t iNextSceneID, unique_ptr<IScene> pN
 	if (m_pScene_Manager == nullptr)
 		return E_FAIL;
 
-	m_pScene_Manager->Change_Scene(iNextSceneID, std::move(pNewScene));
-	return S_OK;
+	return m_pScene_Manager->Change_Scene(iNextSceneID, std::move(pNewScene));
 }
 
 HRESULT CGameInstance::Set_StaticScene(unique_ptr<IScene> pScene)
@@ -273,6 +282,15 @@ void CGameInstance::UI_Render_Cursor()
 		m_pUI_Manager->Render_Cursor();
 }
 
+void CGameInstance::SetLoadingCursorMode(bool_t bLoading)
+{
+	// The texture cursor only advances when a frame is rendered. Keep the native
+	// cursor responsive while render-owner resource finalization is in progress.
+	CEngineApp::Get().GetWindow().SetSystemCursorVisible(bLoading);
+	if (m_pUI_Manager)
+		m_pUI_Manager->Set_ShowMouseCursor(!bLoading);
+}
+
 bool_t CGameInstance::UI_Begin_RawImagePass(uint32_t iScreenWidth, uint32_t iScreenHeight, bool_t bPointSample)
 {
 	if (!m_pUI_Manager)
@@ -309,6 +327,11 @@ void CGameInstance::UI_Draw_RawImageCircle(
 void CGameInstance::UI_OnImGui_Tuner()
 {
 	if (m_pUI_Manager) m_pUI_Manager->OnImGui_Tuner();
+}
+
+void CGameInstance::UI_OnImGui_StatusPanelLayoutTuner()
+{
+	if (m_pUI_Manager) m_pUI_Manager->OnImGui_StatusPanelLayoutTuner();
 }
 
 void CGameInstance::UI_Set_ActiveLuaScreen(const char* pScreenID)
@@ -589,7 +612,11 @@ void CGameInstance::Profiler_DrawOverlay()
 		m_pProfilerOverlay->Draw();
 }
 
-bool_t CGameInstance::Profiler_SaveJson(const char* pPath)
+bool_t CGameInstance::Profiler_SaveJson(
+	const char* pPath,
+	bool_t bForceCapture,
+	const char* pAliasPath)
 {
-	return m_pProfilerOverlay && m_pProfilerOverlay->CaptureToJson(pPath, true);
+	return m_pProfilerOverlay &&
+		m_pProfilerOverlay->CaptureToJson(pPath, bForceCapture, pAliasPath);
 }

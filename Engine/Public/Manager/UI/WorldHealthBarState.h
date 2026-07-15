@@ -20,8 +20,10 @@ namespace Engine
         Vec3 vWorldPos{};
         f32_t fCurrent = 0.f;
         f32_t fMaximum = 0.f;
+        f32_t fShield = 0.f;
         f32_t fManaCurrent = 0.f;
         f32_t fManaMaximum = 0.f;
+        f32_t fWidthScale = 1.f;
         u8_t iTeam = 255u;
         bool_t bDead = false;
     };

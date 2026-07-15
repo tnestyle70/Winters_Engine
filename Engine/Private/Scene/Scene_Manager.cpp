@@ -1,5 +1,6 @@
 #include "Scene/Scene_Manager.h"
 #include "GameInstance.h"
+#include "ProfilerAPI.h"
 
 CScene_Manager::~CScene_Manager()
 {
@@ -14,6 +15,12 @@ CScene_Manager::~CScene_Manager()
 
 HRESULT CScene_Manager::Change_Scene(uint32_t iNextSceneID, unique_ptr<IScene> pScene)
 {
+    if (!pScene)
+    {
+        OutputDebugStringA("[Scene_Manager] Change_Scene rejected null scene\n");
+        return E_INVALIDARG;
+    }
+
     //이전 씬 정리
     if (m_pCurrentScene)
     {
@@ -27,14 +34,20 @@ HRESULT CScene_Manager::Change_Scene(uint32_t iNextSceneID, unique_ptr<IScene> p
     m_pCurrentScene = std::move(pScene);
     m_iCurrentSceneID = iNextSceneID;
 
-    if (m_pCurrentScene)
-        m_pCurrentScene->OnEnter();
+    if (!m_pCurrentScene->OnEnter())
+    {
+        char msg[128]{};
+        sprintf_s(msg, "[Scene_Manager] Change_Scene OnEnter FAILED sceneID=%u\n", iNextSceneID);
+        OutputDebugStringA(msg);
+        return E_FAIL;
+    }
 
     return S_OK;
 }
 
 void CScene_Manager::Update(f32_t dt)
 {
+    WINTERS_PROFILE_SCOPE("SceneManager::Update");
     if (m_pStaticScene)
         m_pStaticScene->OnUpdate(dt);
     if (m_pCurrentScene) 
@@ -43,6 +56,7 @@ void CScene_Manager::Update(f32_t dt)
 
 void CScene_Manager::LateUpdate(f32_t dt)
 {
+    WINTERS_PROFILE_SCOPE("SceneManager::LateUpdate");
     if (m_pStaticScene)
         m_pStaticScene->OnLateUpdate(dt);
     if (m_pCurrentScene) 
@@ -51,6 +65,7 @@ void CScene_Manager::LateUpdate(f32_t dt)
 
 void CScene_Manager::Render()
 {
+    WINTERS_PROFILE_SCOPE("SceneManager::Render");
     if (m_pStaticScene)
         m_pStaticScene->OnRender();
     if (m_pCurrentScene) 
@@ -59,6 +74,7 @@ void CScene_Manager::Render()
 
 void CScene_Manager::ImGui()
 {
+    WINTERS_PROFILE_SCOPE("SceneManager::ImGui");
     if (m_pStaticScene)
         m_pStaticScene->OnImGui();
     if (m_pCurrentScene) 

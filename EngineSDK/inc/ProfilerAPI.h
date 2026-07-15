@@ -7,6 +7,7 @@
 #ifdef WINTERS_PROFILING
 #define TRACY_ENABLE
 #define TRACY_ON_DEMAND
+#define TRACY_FIBERS
 #ifdef WINTERS_ENGINE_EXPORTS
 #define TRACY_EXPORTS
 #else
@@ -21,9 +22,12 @@
 
 #ifdef WINTERS_PROFILING
 WINTERS_ENGINE void Winters_Profile_Counter(const char* pName, uint64_t delta);
+WINTERS_ENGINE void Winters_Profile_Gauge(const char* pName, uint64_t value);
 #define WINTERS_PROFILE_COUNT(name, delta) Winters_Profile_Counter(name, delta)
+#define WINTERS_PROFILE_GAUGE(name, value) Winters_Profile_Gauge(name, value)
 #else
 #define WINTERS_PROFILE_COUNT(name, delta) ((void)0)
+#define WINTERS_PROFILE_GAUGE(name, value) ((void)0)
 #endif
 
 #ifdef WINTERS_PROFILING

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Engine_Defines.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
 #include "ECS/Entity.h"
@@ -23,8 +22,10 @@ struct VisibilityComponent
 {
     u8_t teamVisibilityMask = 0;
     bool_t bInConcealment = false;
+    u8_t reservedConcealmentAlignment[2]{};
     EntityID concealmentId = NULL_ENTITY;
 };
+static_assert(sizeof(VisibilityComponent) == 8u);
 
 struct ConcealmentVolumeComponent
 {

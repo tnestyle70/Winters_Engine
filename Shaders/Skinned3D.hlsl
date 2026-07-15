@@ -176,7 +176,7 @@ float4 PS(PS_INPUT input) : SV_TARGET
 {
     const float4 texColor = g_DiffuseMap.Sample(g_Sampler, input.vTexCoord);
     clip(texColor.a - 0.05f);
-    if (g_vMaterialOverrideColor.a > 0.5f)
+    if (g_vMaterialOverrideColor.a >= 0.999f)
         return float4(g_vMaterialOverrideColor.rgb, texColor.a);
 
     const float ao = SampleScreenAO(input.vPosition);
@@ -185,5 +185,14 @@ float4 PS(PS_INPUT input) : SV_TARGET
         input.vWorldPos, ao);
     const float3 outlinedLinear = ApplyHoverOutline(colorLinear, normalize(input.vNormal),
         input.vWorldPos);
-    return float4(LinearToSrgbApprox(outlinedLinear), texColor.a);
+    const float3 outlinedSrgb = LinearToSrgbApprox(outlinedLinear);
+    if (g_vMaterialOverrideColor.a > 0.001f)
+    {
+        const float3 tinted = saturate(
+            outlinedSrgb * saturate(g_vMaterialOverrideColor.rgb));
+        return float4(
+            tinted,
+            texColor.a * saturate(g_vMaterialOverrideColor.a));
+    }
+    return float4(outlinedSrgb, texColor.a);
 }

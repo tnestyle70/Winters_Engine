@@ -4,6 +4,7 @@
 #ifdef WINTERS_PROFILING
 #define TRACY_ENABLE
 #define TRACY_ON_DEMAND
+#define TRACY_FIBERS
 #define TRACY_EXPORTS
 #include "TracyClient.cpp"
 #endif

@@ -420,13 +420,31 @@ namespace
         f32_t radiusWorld,
         CellPredicate pCanUseCell,
         StepPredicate pCanStep,
-        const char* pNodesCounterName)
+        const char* pNodesCounterName,
+        ePathFindResult* pOutResult = nullptr)
     {
+        if (pOutResult)
+            *pOutResult = ePathFindResult::Success;
+
         std::vector<CNavGrid::Cell> emptyPath;
-        if (!pGrid ||
-            !pCanUseCell(pGrid, start, radiusWorld) ||
-            !pCanUseCell(pGrid, goal, radiusWorld))
+        if (!pGrid)
+        {
+            if (pOutResult)
+                *pOutResult = ePathFindResult::NullGrid;
             return emptyPath;
+        }
+        if (!pCanUseCell(pGrid, start, radiusWorld))
+        {
+            if (pOutResult)
+                *pOutResult = ePathFindResult::StartBlocked;
+            return emptyPath;
+        }
+        if (!pCanUseCell(pGrid, goal, radiusWorld))
+        {
+            if (pOutResult)
+                *pOutResult = ePathFindResult::GoalBlocked;
+            return emptyPath;
+        }
 
         u32_t nodesVisited = 0;
         struct CounterFlush
@@ -516,7 +534,11 @@ namespace
         Touch(goalIdx);
 
         if (tls_parent[goalIdx] == -1 && !(goal.x == start.x && goal.y == start.y))
+        {
+            if (pOutResult)
+                *pOutResult = ePathFindResult::NoRoute;
             return emptyPath;
+        }
 
         std::vector<CNavGrid::Cell> path;
         uint32_t curIdx = goalIdx;
@@ -533,6 +555,8 @@ namespace
             const int32_t parentIdx = tls_parent[curIdx];
             if (parentIdx < 0)
             {
+                if (pOutResult)
+                    *pOutResult = ePathFindResult::BrokenPath;
                 path.clear();
                 return emptyPath;
             }
@@ -652,7 +676,8 @@ f32_t CPathfinder::Octile(int32_t dx, int32_t dy)
 }
 
 std::vector<CNavGrid::Cell> CPathfinder::Find_Path(
-    const CNavGrid* pGrid, CNavGrid::Cell start, CNavGrid::Cell goal)
+    const CNavGrid* pGrid, CNavGrid::Cell start, CNavGrid::Cell goal,
+    ePathFindResult* pOutResult)
 {
     WINTERS_PROFILE_SCOPE("AStar::FindPath");
 
@@ -663,14 +688,16 @@ std::vector<CNavGrid::Cell> CPathfinder::Find_Path(
         0.f,
         IsWalkableCell,
         CanStepToNeighborNoRadius,
-        "AStar::NodesVisited");
+        "AStar::NodesVisited",
+        pOutResult);
 }
 
 std::vector<CNavGrid::Cell> CPathfinder::FindPathForRadius(
     const CNavGrid* pGrid,
     CNavGrid::Cell start,
     CNavGrid::Cell goal,
-    f32_t radiusWorld)
+    f32_t radiusWorld,
+    ePathFindResult* pOutResult)
 {
     WINTERS_PROFILE_SCOPE("AStar::FindPathForRadius");
 
@@ -681,7 +708,8 @@ std::vector<CNavGrid::Cell> CPathfinder::FindPathForRadius(
         radiusWorld,
         IsWalkableCellForRadius,
         CanStepToNeighborWithRadius,
-        "AStarRadius::NodesVisited");
+        "AStarRadius::NodesVisited",
+        pOutResult);
 }
 
 void CPathfinder::PrewarmReachabilityCache(const CNavGrid* pGrid)

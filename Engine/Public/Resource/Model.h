@@ -87,13 +87,22 @@ public:
 	CAnimation* GetAnimation(u32_t iIndex) const;
 	i32_t FindAnimationIndex(const string& strName) const;
 
-	static unique_ptr<CModel> Create(IRHIDevice* pDevice, const string& strFilePath);
+	using LoadYieldCallback = bool_t(*)();
+
+	static unique_ptr<CModel> Create(
+		IRHIDevice* pDevice,
+		const string& strFilePath,
+		LoadYieldCallback pYield = nullptr);
 
 private:
-	HRESULT LoadModel(IRHIDevice* pDevice, const string& strFilePath);
-	void LoadCookedTextures(IRHIDevice* pDevice,
+	HRESULT LoadModel(
+		IRHIDevice* pDevice,
+		const string& strFilePath,
+		LoadYieldCallback pYield);
+	HRESULT LoadCookedTextures(IRHIDevice* pDevice,
 		const string& strMeshPath,
-		const Winters::Asset::WMeshLoaded& wm);
+		const Winters::Asset::WMeshLoaded& wm,
+		LoadYieldCallback pYield);
 	void LoadCookedAnimations(const string& strMeshPath,
 		const Winters::Asset::WSkelLoaded& ws);
 	CTexture* ResolveMaterialTexture(u32_t iMeshIndex) const;
@@ -112,7 +121,9 @@ private:
 	vector<SubmeshInfo> m_vecSubmeshInfos;
 	vector<LocalBounds> m_vecSubmeshBounds;
 	LocalBounds m_LocalBounds{};
-	vector<unique_ptr<CTexture>> m_vecTextures;
+	vector<unique_ptr<CTexture>> m_vecOwnedTextures;
+	vector<CTexture*> m_vecTextures;
+	vector<RHITextureHandle> m_vecOwnedRHITextures;
 	vector<RHITextureHandle> m_vecRHITextures;
 	vector<CTexture*> m_vecMeshTextureOverrides; //비소유 메시 인덱스 기준
 	unique_ptr<CTexture> m_pDefaultTexture;

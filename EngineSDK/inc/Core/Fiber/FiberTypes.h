@@ -6,6 +6,7 @@ enum class eJobExecutionMode : u8_t
 {
 	ThreadOnly = 0,
 	FiberShell,
+	FiberFull,
 };
 
 using NativeFiberHandle = void*;

@@ -559,25 +559,65 @@ std::unique_ptr<CFxStaticMeshRenderer> CFxStaticMeshRenderer::Create(
 
 bool CFxStaticMeshRenderer::PreloadMesh(const std::string& strFbxPath, const std::wstring& strTexturePath)
 {
-    return PreloadMesh(strFbxPath, strTexturePath, L"");
+    return PreloadMeshInternal(strFbxPath, strTexturePath, L"", false);
 }
 
 bool CFxStaticMeshRenderer::PreloadMesh(const std::string& strFbxPath,
     const std::wstring& strTexturePath, const std::wstring& strErodeTexturePath)
 {
+    return PreloadMeshInternal(
+        strFbxPath,
+        strTexturePath,
+        strErodeTexturePath,
+        false);
+}
+
+bool CFxStaticMeshRenderer::PreloadMeshStrict(
+    const std::string& strFbxPath,
+    const std::wstring& strTexturePath)
+{
+    return PreloadMeshInternal(strFbxPath, strTexturePath, L"", true);
+}
+
+bool CFxStaticMeshRenderer::PreloadMeshInternal(
+    const std::string& strFbxPath,
+    const std::wstring& strTexturePath,
+    const std::wstring& strErodeTexturePath,
+    bool_t bRequireDiffuseTexture)
+{
     if (!m_pImpl)
         return false;
 
     if (m_pImpl->mapModels.find(strFbxPath) != m_pImpl->mapModels.end())
-        return true;
+    {
+        return !bRequireDiffuseTexture ||
+            strTexturePath.empty() ||
+            m_pImpl->mapTextures.find(strTexturePath) != m_pImpl->mapTextures.end();
+    }
 
     if (m_pImpl->bRHIBackend)
     {
-        return m_pImpl->pRHIMeshCache &&
-            m_pImpl->pRHIMeshCache->LoadOrGet(
-                strFbxPath,
-                strTexturePath,
-                strErodeTexturePath) != nullptr;
+        if (!m_pImpl->pRHIMeshCache)
+            return false;
+
+        RHIFxMeshResource* pResource = m_pImpl->pRHIMeshCache->LoadOrGet(
+            strFbxPath,
+            strTexturePath,
+            strErodeTexturePath);
+        if (!pResource)
+            return false;
+
+        if (bRequireDiffuseTexture && !strTexturePath.empty())
+        {
+            const RHITextureHandle hDefault =
+                m_pImpl->pRHIMeshCache->GetDefaultTexture();
+            if (!pResource->hDiffuseTexture.IsValid() ||
+                pResource->hDiffuseTexture.value == hDefault.value)
+            {
+                return false;
+            }
+        }
+        return true;
     }
     std::unique_ptr<CModel> pOwned = CModel::Create(m_pImpl->pDevice, strFbxPath);
     if (!pOwned)
@@ -613,6 +653,9 @@ bool CFxStaticMeshRenderer::PreloadMesh(const std::string& strFbxPath,
         {
             pRawTex = itTex->second.get();
         }
+
+        if (!pRawTex && bRequireDiffuseTexture)
+            return false;
 
         if (pRawTex)
         {

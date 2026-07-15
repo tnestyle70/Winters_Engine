@@ -5,6 +5,7 @@
 #include "RHI/DX11/DX11Shader.h"
 #include "RHI/DX11/DX11Pipeline.h"
 #include "RHI/DX11/DX11ConstantBuffer.h"
+#include "RHI/DX11/BlendStateCache.h"
 #include "Renderer/CMaterialPBR.h"
 #include "Resource/Model.h"
 #include "Resource/Texture.h"
@@ -28,6 +29,60 @@ namespace
     // GPU bone palette: structured buffer SRV (t8) so 512+ bone large-character
     // rigs skin in one draw. Replaces the old 256/512 cbuffer palette.
     constexpr u32_t kMaxGPUBones = 1024;
+
+    class ScopedModelAlphaState final
+    {
+    public:
+        ScopedModelAlphaState(
+            ID3D11DeviceContext* pContext,
+            CBlendStateCache* pBlendCache,
+            ID3D11DepthStencilState* pReadOnlyDepth,
+            bool_t bEnabled)
+            : m_pContext(pContext)
+        {
+            if (!bEnabled || !m_pContext || !pBlendCache || !pReadOnlyDepth)
+                return;
+
+            m_pContext->OMGetBlendState(
+                &m_pPreviousBlend,
+                m_fPreviousBlendFactor,
+                &m_uPreviousSampleMask);
+            m_pContext->OMGetDepthStencilState(
+                &m_pPreviousDepth,
+                &m_uPreviousStencilRef);
+
+            pBlendCache->Bind(m_pContext, eBlendPreset::AlphaBlend);
+            m_pContext->OMSetDepthStencilState(pReadOnlyDepth, 0u);
+            m_bActive = true;
+        }
+
+        ~ScopedModelAlphaState()
+        {
+            if (!m_bActive || !m_pContext)
+                return;
+
+            m_pContext->OMSetBlendState(
+                m_pPreviousBlend,
+                m_fPreviousBlendFactor,
+                m_uPreviousSampleMask);
+            m_pContext->OMSetDepthStencilState(
+                m_pPreviousDepth,
+                m_uPreviousStencilRef);
+            if (m_pPreviousBlend)
+                m_pPreviousBlend->Release();
+            if (m_pPreviousDepth)
+                m_pPreviousDepth->Release();
+        }
+
+    private:
+        ID3D11DeviceContext* m_pContext = nullptr;
+        ID3D11BlendState* m_pPreviousBlend = nullptr;
+        ID3D11DepthStencilState* m_pPreviousDepth = nullptr;
+        FLOAT m_fPreviousBlendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
+        UINT m_uPreviousSampleMask = 0xFFFFFFFFu;
+        UINT m_uPreviousStencilRef = 0u;
+        bool_t m_bActive = false;
+    };
 
     struct BoneMatrixSRVBuffer
     {
@@ -101,11 +156,6 @@ namespace
             WintersMath::kPi) <= kYawTraceHalfTurnTolerance;
     }
 
-    bool_t ShouldLogAnimationName(const string& animName)
-    {
-        return !animName.empty();
-    }
-
     void LogMissingAnimationName(const string& keyword)
     {
         static u32_t s_missingAnimationLogCount = 0;
@@ -142,6 +192,7 @@ struct ModelRenderer::Impl
     // 수동 텍스처 오버라이드 (인스턴스별)
     unique_ptr<CTexture>                pManualTexture;
     ID3D11ShaderResourceView*           pAmbientOcclusionSRV = nullptr;
+    ID3D11DepthStencilState*            pAlphaReadOnlyDepth = nullptr;
 
     bool_t                              bUsePBR = false;
     bool_t                              bSkinnedReady = false;
@@ -198,6 +249,17 @@ bool ModelRenderer::Initialize(const string& strFbxPath, const wchar_t* pHlslPat
         return false;
     if (!m_pImpl->cbPerObject.Create(pNativeDevice))
         return false;
+
+    D3D11_DEPTH_STENCIL_DESC alphaDepthDesc{};
+    alphaDepthDesc.DepthEnable = TRUE;
+    alphaDepthDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+    alphaDepthDesc.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
+    if (FAILED(pNativeDevice->CreateDepthStencilState(
+        &alphaDepthDesc,
+        &m_pImpl->pAlphaReadOnlyDepth)))
+    {
+        return false;
+    }
     if (m_pImpl->bUsePBR)
     {
         m_pImpl->pMaterialPBR = CMaterialPBR::Create(pDevice);
@@ -467,6 +529,10 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
     if (!pContext)
         return;
     ID3D11ShaderResourceView* pAmbientOcclusionSRV = m_pImpl->pAmbientOcclusionSRV;
+    const bool_t bAlphaOverride =
+        m_pImpl->bMaterialOverrideEnabled &&
+        m_pImpl->vMaterialOverrideColor.w > 0.001f &&
+        m_pImpl->vMaterialOverrideColor.w < 0.999f;
 
     // ── 스키닝 렌더링 ──
     const bool_t bUseSkinnedPath =
@@ -486,6 +552,11 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
 
         m_pImpl->pSharedSkinnedShader->Bind(pContext);
         m_pImpl->pSharedSkinnedPipeline->Bind(pContext);
+        ScopedModelAlphaState alphaState(
+            pContext,
+            CGameInstance::Get()->Get_BlendStateCache(),
+            m_pImpl->pAlphaReadOnlyDepth,
+            bAlphaOverride);
         if (m_pImpl->bUsePBR)
         {
             m_pImpl->cbPerFrame.Bind(pContext, 0);
@@ -518,6 +589,11 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
 
     m_pImpl->pSharedMeshShader->Bind(pContext);
     m_pImpl->pSharedMeshPipeline->Bind(pContext);
+    ScopedModelAlphaState alphaState(
+        pContext,
+        CGameInstance::Get()->Get_BlendStateCache(),
+        m_pImpl->pAlphaReadOnlyDepth,
+        bAlphaOverride);
     if (m_pImpl->bUsePBR)
     {
         m_pImpl->cbPerFrame.Bind(pContext, 0);
@@ -661,6 +737,11 @@ u32_t ModelRenderer::AppendRenderSnapshotMeshes(
         return 0;
     }
 
+    // RenderWorldSnapshot/RHISceneRenderer currently has no skinned vertex path or bone palette.
+    // Skinned models must stay on the legacy animated renderer until RHI skinning is explicit.
+    if (m_pImpl->pSharedModel->HasSkeleton())
+        return 0;
+
     return m_pImpl->pSharedModel->AppendRenderSnapshotMeshes(
         snapshot,
         m_pImpl->matWorld,
@@ -801,15 +882,70 @@ bool ModelRenderer::PlayAnimationByNameAdvanced(
     const f64_t startTime = bReverse ? pAnim->GetDuration() : 0.0;
     m_pImpl->pInstanceAnimator->PlayAnimation(pAnim, bLoop, startTime, speed);
 
-    if (ShouldLogAnimationName(pAnim->GetName()))
-    {
-        OutputDebugStringA((string("[ModelRenderer] Playing (loop=")
-            + (bLoop ? "true" : "false")
-            + ", reverse=" + (bReverse ? "true" : "false") + "): "
-            + pAnim->GetName() + "\n").c_str());
-    }
+    return true;
+}
+
+const char* ModelRenderer::GetAnimationNameByIndex(uint32 iIndex) const
+{
+    if (!m_pImpl || !m_pImpl->pSharedModel)
+        return nullptr;
+
+    auto* pAnim = m_pImpl->pSharedModel->GetAnimation(iIndex);
+    return pAnim ? pAnim->GetName().c_str() : nullptr;
+}
+
+bool ModelRenderer::PlayAnimationByIndexAdvanced(
+    uint32 iIndex,
+    bool bLoop,
+    bool_t bReverse,
+    f32_t fPlaySpeed)
+{
+    if (!m_pImpl || !m_pImpl->pSharedModel || !m_pImpl->pInstanceAnimator)
+        return false;
+
+    auto* pAnim = m_pImpl->pSharedModel->GetAnimation(iIndex);
+    if (!pAnim)
+        return false;
+
+    f32_t speed = (fPlaySpeed < 0.f) ? -fPlaySpeed : fPlaySpeed;
+    if (speed < 0.01f)
+        speed = 1.f;
+    if (bReverse)
+        speed = -speed;
+
+    const f64_t startTime = bReverse ? pAnim->GetDuration() : 0.0;
+    m_pImpl->pInstanceAnimator->PlayAnimation(pAnim, bLoop, startTime, speed);
 
     return true;
+}
+
+uint32 ModelRenderer::GetSubmeshInfoCount() const
+{
+    if (!m_pImpl || !m_pImpl->pSharedModel)
+        return 0;
+    return static_cast<uint32>(m_pImpl->pSharedModel->GetSubmeshInfos().size());
+}
+
+const char* ModelRenderer::GetSubmeshNameByIndex(uint32 iIndex) const
+{
+    if (!m_pImpl || !m_pImpl->pSharedModel)
+        return nullptr;
+
+    const auto& infos = m_pImpl->pSharedModel->GetSubmeshInfos();
+    if (iIndex >= infos.size())
+        return nullptr;
+    return infos[iIndex].name;
+}
+
+uint32 ModelRenderer::GetSubmeshMaterialIndexByIndex(uint32 iIndex) const
+{
+    if (!m_pImpl || !m_pImpl->pSharedModel)
+        return 0;
+
+    const auto& infos = m_pImpl->pSharedModel->GetSubmeshInfos();
+    if (iIndex >= infos.size())
+        return 0;
+    return infos[iIndex].materialIndex;
 }
 
 bool ModelRenderer::HasSkeleton() const
@@ -932,6 +1068,11 @@ void ModelRenderer::Shutdown()
         m_pImpl->cbPerFrame.Release();
         m_pImpl->cbPerObject.Release();
         m_pImpl->bonesSRV.Release();
+        if (m_pImpl->pAlphaReadOnlyDepth)
+        {
+            m_pImpl->pAlphaReadOnlyDepth->Release();
+            m_pImpl->pAlphaReadOnlyDepth = nullptr;
+        }
 
         // 공유 셰이더/파이프라인 포인터는 nullptr 만 (소유권 없음, CEngineApp 이 해제)
         m_pImpl->pSharedMeshShader = nullptr;

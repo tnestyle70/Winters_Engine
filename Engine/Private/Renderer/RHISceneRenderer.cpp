@@ -5,6 +5,7 @@
 #include "RHI/IRHICommandList.h"
 #include "RHI/IRHIDevice.h"
 #include "RHI/RHIShaderCompiler.h"
+#include "ProfilerAPI.h"
 
 #include <Windows.h>
 
@@ -396,6 +397,7 @@ bool_t CRHISceneRenderer::IsReady() const
 
 void CRHISceneRenderer::Render(IRHIDevice* pDevice, const RenderWorldSnapshot& snapshot)
 {
+    WINTERS_PROFILE_SCOPE("RHISceneRenderer::Render");
     if (!IsReady() || !pDevice || pDevice != m_pImpl->pDevice)
         return;
 
@@ -404,6 +406,7 @@ void CRHISceneRenderer::Render(IRHIDevice* pDevice, const RenderWorldSnapshot& s
         return;
 
     const u32_t meshCount = static_cast<u32_t>(snapshot.meshes.size());
+    WINTERS_PROFILE_COUNT("RHI::SceneMeshCandidates", meshCount);
     if (meshCount == 0 || !m_pImpl->EnsureDrawSlots(meshCount))
         return;
 
@@ -414,6 +417,8 @@ void CRHISceneRenderer::Render(IRHIDevice* pDevice, const RenderWorldSnapshot& s
         &frameData,
         static_cast<u32_t>(sizeof(frameData)));
 
+    u32_t submittedDraws = 0;
+    u64_t submittedIndices = 0;
     for (u32_t i = 0; i < meshCount; ++i)
     {
         const RenderMeshItem& item = snapshot.meshes[i];
@@ -483,7 +488,12 @@ void CRHISceneRenderer::Render(IRHIDevice* pDevice, const RenderWorldSnapshot& s
             mesh.firstIndex,
             mesh.baseVertex,
             0);
+        ++submittedDraws;
+        submittedIndices += mesh.indexCount;
     }
+
+    WINTERS_PROFILE_COUNT("RHI::SceneDrawCalls", submittedDraws);
+    WINTERS_PROFILE_COUNT("RHI::SceneSubmittedIndices", submittedIndices);
 }
 
 void CRHISceneRenderer::Shutdown()

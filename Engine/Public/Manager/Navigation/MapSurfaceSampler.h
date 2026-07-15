@@ -5,6 +5,7 @@
 #include "WintersMath.h"
 #include "WintersTypes.h"
 
+#include <atomic>
 #include <vector>
 
 namespace Winters::Asset
@@ -24,7 +25,10 @@ struct MapSurfaceSample
 class WINTERS_ENGINE CMapSurfaceSampler final
 {
 public:
-    bool_t LoadFromWMesh(const wchar_t* pPath, const Mat4& matWorld);
+    bool_t LoadFromWMesh(
+        const wchar_t* pPath,
+        const Mat4& matWorld,
+        const std::atomic_bool* pCancel = nullptr);
 
     bool_t IsReady() const { return m_bReady; }
     bool_t SampleHeight(f32_t x, f32_t z, f32_t& outHeight) const;
@@ -51,11 +55,13 @@ private:
     bool_t BuildWorldVertices(
         const Winters::Asset::WMeshLoaded& mesh,
         const Mat4& matWorld,
-        std::vector<Vec3>& outVertices);
+        std::vector<Vec3>& outVertices,
+        const std::atomic_bool* pCancel);
     bool_t HasValidBounds() const;
-    void BuildSurfaceCells(
+    bool_t BuildSurfaceCells(
         const Winters::Asset::WMeshLoaded& mesh,
-        const std::vector<Vec3>& vertices);
+        const std::vector<Vec3>& vertices,
+        const std::atomic_bool* pCancel);
     void LogLoadedSurface() const;
 
     static u32_t ReadIndex(

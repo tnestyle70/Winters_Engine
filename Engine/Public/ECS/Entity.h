@@ -179,12 +179,35 @@ public:
 		return m_iAliveCount;
 	}
 
-private:
+	// Chrono Break: bit-exact allocator snapshot access.
+	// slots+freeHead를 바이트 그대로 복원하면 이후 CreateEntity의 id/generation 할당 순서가 정확히 재현된다.
 	struct EntitySlot
 	{
 		EntityGeneration generation = NULL_ENTITY_GENERATION;
 		EntityID nextFree = NULL_ENTITY;
 	};
+	const std::vector<EntitySlot>& RawSlots() const { return m_vecSlots; }
+	EntityID RawFreeHead() const { return m_iFreeHead; }
+	uint32_t RawAliveCount() const { return m_iAliveCount; }
+	void RestoreRaw(std::vector<EntitySlot>&& slots, EntityID freeHead, uint32_t aliveCount)
+	{
+		m_vecSlots = std::move(slots);
+		m_iFreeHead = freeHead;
+		m_iAliveCount = aliveCount;
+		EnsureNullSlot();
+	}
+	void SwapRawState(CEntityManager& other) noexcept
+	{
+		m_vecSlots.swap(other.m_vecSlots);
+		const EntityID freeHead = m_iFreeHead;
+		m_iFreeHead = other.m_iFreeHead;
+		other.m_iFreeHead = freeHead;
+		const uint32_t aliveCount = m_iAliveCount;
+		m_iAliveCount = other.m_iAliveCount;
+		other.m_iAliveCount = aliveCount;
+	}
+
+private:
 
 	static bool IsAliveGeneration(EntityGeneration generation)
 	{

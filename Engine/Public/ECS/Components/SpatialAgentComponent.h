@@ -24,10 +24,13 @@ struct SpatialAgentComponent
 {
     eSpatialKind kind = eSpatialKind::None;
     u8_t team = 0;
+    u8_t reservedRadiusAlignment[3]{};
     f32_t radius = 0.5f;
     i32_t cachedCellX = INT32_MIN;
     i32_t cachedCellZ = INT32_MIN;
 };
+
+static_assert(sizeof(SpatialAgentComponent) == 20u);
 
 inline constexpr u32_t SpatialMask(eSpatialKind kind)
 {

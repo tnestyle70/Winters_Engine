@@ -26,7 +26,11 @@ EntityID CConcealmentVolumeIndex::QueryVolumeAt(const Vec3& pos) const
         const f32_t dx = pos.x - volume.center.x;
         const f32_t dz = pos.z - volume.center.z;
         if (dx * dx + dz * dz <= volume.radius * volume.radius)
-            return volume.ID;
+        {
+            return volume.volumeId != 0u
+                ? static_cast<EntityID>(volume.volumeId)
+                : volume.ID;
+        }
     }
     return NULL_ENTITY;
 }

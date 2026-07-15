@@ -58,6 +58,19 @@ public:
 	T* Data() { return m_vecData.data(); }
 	const T* Data() const { return m_vecData.data(); }
 
+	// Chrono Break: bit-exact keyframe raw access.
+	// dense/data 순서는 ForEach 순회 순서라 sim-observable — 정렬/재구축 금지, 원본 그대로 저장/복원한다.
+	const std::vector<uint32_t>& RawSparse() const { return m_vecSparse; }
+	const std::vector<EntityID>& RawDense() const { return m_vecDense; }
+	const std::vector<T>& RawData() const { return m_vecData; }
+	void RestoreRaw(std::vector<uint32_t>&& sparse, std::vector<EntityID>&& dense, std::vector<T>&& data)
+	{
+		assert(dense.size() == data.size());
+		m_vecSparse = std::move(sparse);
+		m_vecDense = std::move(dense);
+		m_vecData = std::move(data);
+	}
+
 private:
 	static constexpr uint32_t INVALID = UINT32_MAX;
 	std::vector<uint32_t> m_vecSparse;

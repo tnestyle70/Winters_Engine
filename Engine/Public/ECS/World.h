@@ -175,6 +175,23 @@ public:
 				fn(e, s1->Data()[i], s2->Get(e), s3->Get(e));
 		}
 	}
+
+	// Chrono Break: keyframe enumeration/state access (header-inline, DLL 표면 무변경).
+	template<typename Fn> void ForEachStoreBase(Fn&& fn) const
+	{
+		for (const auto& [type, store] : m_mapStores)
+			fn(type, *store);
+	}
+	CEntityManager& GetEntityManager() { return m_entityMgr; }
+	const CEntityManager& GetEntityManager() const { return m_entityMgr; }
+	template<typename T> CComponentStore<T>* Checkpoint_TryGetStore() { return TryGetStore<T>(); }
+	template<typename T> const CComponentStore<T>* Checkpoint_TryGetStore() const { return TryGetStore<T>(); }
+	template<typename T> CComponentStore<T>& Checkpoint_GetOrCreateStore() { return GetOrCreateStore<T>(); }
+	void Checkpoint_SwapState(CWorld& other) noexcept
+	{
+		m_entityMgr.SwapRawState(other.m_entityMgr);
+		m_mapStores.swap(other.m_mapStores);
+	}
 private:
 	template<typename T>
 	CComponentStore<T>* TryGetStore()

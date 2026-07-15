@@ -1,17 +1,13 @@
 #pragma once
+
 #include <atomic>
 #include <cstdint>
 
-// ─────────────────────────────────────────────────────────────
-// CJobCounter — Job 묶음의 남은 개수 원자 카운터
-//  - Submit(job, &counter)  호출 시 Increment()
-//  - Job 실행 완료 시 CJobSystem::ExecuteItem 이 Decrement()
-//  - 대기는 CJobSystem::WaitForCounter(pCounter, 0) 로 수행
-//    (busy-wait + help-stealing. Phase 5-B 에서 Fiber yield 로 교체)
-//
-// 주의: cv/mutex 제거됨. 기존 JobCounter::Wait() API 삭제.
-//       호출부는 반드시 pJobSystem->WaitForCounter(&c) 로 대체.
-// ─────────────────────────────────────────────────────────────
+// Atomic remaining-work counter for a fork/join group.
+// Submit increments before publication. Exactly one completion decrements.
+// ThreadOnly/FiberShell waits help-execute work; FiberFull registers a waiter,
+// yields to the origin worker root, and resumes through that worker's ready inbox.
+// The counter must outlive every submitted job and its WaitForCounter call.
 class CJobCounter
 {
 public:
@@ -26,9 +22,24 @@ public:
         m_iCount.fetch_add(n, std::memory_order_relaxed);
     }
 
-    void Decrement()
+    bool TryDecrement(std::uint32_t& iRemaining)
     {
-        m_iCount.fetch_sub(1, std::memory_order_acq_rel);
+        std::uint32_t iCurrent = m_iCount.load(std::memory_order_acquire);
+        while (iCurrent != 0)
+        {
+            if (m_iCount.compare_exchange_weak(
+                iCurrent,
+                iCurrent - 1,
+                std::memory_order_acq_rel,
+                std::memory_order_acquire))
+            {
+                iRemaining = iCurrent - 1;
+                return true;
+            }
+        }
+
+        iRemaining = 0;
+        return false;
     }
 
     bool IsComplete() const

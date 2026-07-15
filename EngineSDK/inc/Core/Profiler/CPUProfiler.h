@@ -1,5 +1,7 @@
 #pragma once
 #include "ProfilerTypes.h"
+#include <atomic>
+#include <deque>
 #include <vector>
 #include <memory>
 #include <mutex>
@@ -15,6 +17,13 @@ public:
 	void EndFrame();
 	void PushScope(const char* pName);
 	void PopScope();
+	void SetCounter(const char* pName, uint64_t value);
+	void SetHistoryEnabled(bool_t bEnabled);
+	bool_t IsHistoryEnabled() const;
+	void SetHistoryConfig(const ProfilerHistoryConfig& config);
+	ProfilerHistoryConfig GetHistoryConfig() const;
+	void ClearHistory();
+	std::vector<ProfilerFrameRecord> TakeHistory();
 
 	//Overlay 읽기
 	const std::vector<ProfilerEvent>& Get_LastFrameEvents() const
@@ -41,5 +50,24 @@ private:
 
 	std::vector<ProfilerCounter> m_vCurrentCounters{};
 	std::vector<ProfilerCounter> m_vLastCounters{};
-	std::mutex m_Mutex{};
+	std::deque<ProfilerFrameRecord> m_History{};
+	ProfilerHistoryConfig m_HistoryConfig{};
+	uint64_t m_uRenderFrame = 0;
+	uint64_t m_uLastCapturedServerTick = ~uint64_t{ 0 };
+	uint32_t m_uCurrentDroppedScopeStats = 0;
+	uint32_t m_uLastDroppedScopeStats = 0;
+	uint32_t m_uCurrentDroppedCounters = 0;
+	uint32_t m_uLastDroppedCounters = 0;
+	uint32_t m_uCurrentDroppedRawEvents = 0;
+	uint32_t m_uLastDroppedRawEvents = 0;
+	std::atomic<uint64_t> m_uScopeCalls{ 0 };
+	std::atomic<uint64_t> m_uCounterCalls{ 0 };
+	std::atomic<uint64_t> m_uGaugeCalls{ 0 };
+	uint64_t m_uPreviousEndFrameUs = 0;
+#ifdef WINTERS_PROFILING
+	bool_t m_bHistoryEnabled = true;
+#else
+	bool_t m_bHistoryEnabled = false;
+#endif
+	mutable std::mutex m_Mutex{};
 };

@@ -65,6 +65,9 @@
     <Filter Include="03. Renderer\03. Model\02. SSAOPass">
       <UniqueIdentifier>{a7373159-3fd4-46b0-9e61-84380515d18f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="03. Renderer\03. Model\03. PostFxPass">
+      <UniqueIdentifier>{310f1bac-b6e8-466c-bcc5-df90988273ee}</UniqueIdentifier>
+    </Filter>
     <Filter Include="03. Renderer\05. FX\00. Asset">
       <UniqueIdentifier>{656f4949-3128-4a32-ae73-5cff1038080d}</UniqueIdentifier>
     </Filter>
@@ -655,6 +658,9 @@
     <ClInclude Include="..\Public\Renderer\SSAOPass.h">
       <Filter>03. Renderer\03. Model\02. SSAOPass</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Renderer\PostFxPass.h">
+      <Filter>03. Renderer\03. Model\03. PostFxPass</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\FX\FxAsset.h">
       <Filter>03. Renderer\05. FX\00. Asset</Filter>
     </ClInclude>
@@ -1170,6 +1176,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\SSAOPass.cpp">
       <Filter>03. Renderer\03. Model\02. SSAOPass</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Renderer\PostFxPass.cpp">
+      <Filter>03. Renderer\03. Model\03. PostFxPass</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\FX\FxAsset.cpp">
       <Filter>03. Renderer\05. FX\00. Asset</Filter>

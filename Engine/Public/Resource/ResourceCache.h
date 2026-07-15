@@ -19,7 +19,10 @@ public:
 	CTexture* LoadTexture(const wstring& strPath,
 		eTexColorSpace eColorSpace = eTexColorSpace::Auto);
     //같은 경로일 경우 shared_ptr 반환!
-    shared_ptr<CModel> LoadModel(IRHIDevice* pDevice, const string& strPath);
+    shared_ptr<CModel> LoadModel(
+        IRHIDevice* pDevice,
+        const string& strPath,
+        CModel::LoadYieldCallback pYield = nullptr);
 
     // 모든 캐시 해제 (OnShutdown 후, Device.Destroy 전에 호출)
     void Clear();

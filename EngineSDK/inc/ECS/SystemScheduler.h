@@ -33,8 +33,8 @@ private:
 
     void RebuildExecutionPlan();
 
-    // Phase = 시스템 실행 순서 그룹.
-    // 같은 Phase 는 JobSystem 으로 병렬 실행 가능.
+    // Phase = coarse 실행 순서 그룹.
+    // 같은 Phase 안에서도 DescribeAccess 가 충돌하지 않는 batch 만 병렬 실행 가능.
     CJobSystem* m_pJobSystem{ nullptr };
     map<uint32_t, vector<unique_ptr<ISystem>>> m_mapPhases;
     map<uint32_t, PhaseExecutionPlan> m_mapExecutionPlan;

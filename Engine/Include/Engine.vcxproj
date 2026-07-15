@@ -80,7 +80,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WINTERS_ENGINE_EXPORTS;IMGUI_API=__declspec(dllexport);WIN32;NDEBUG;_WINDOWS;_USRDLL;WINTERS_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WINTERS_ENGINE_EXPORTS;IMGUI_API=__declspec(dllexport);WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
@@ -347,6 +347,7 @@
     <ClCompile Include="..\Private\Renderer\ModelRenderer.cpp" />
     <ClCompile Include="..\Private\Renderer\NormalPass.cpp" />
     <ClCompile Include="..\Private\Renderer\PlaneRenderer.cpp" />
+    <ClCompile Include="..\Private\Renderer\PostFxPass.cpp" />
     <ClCompile Include="..\Private\Renderer\FogOfWarRenderer.cpp" />
     <ClCompile Include="..\Private\Renderer\SSAOPass.cpp" />
     <ClCompile Include="..\Private\Renderer\RHIMaterialResource.cpp" />
@@ -490,6 +491,7 @@
     <ClInclude Include="..\Public\Renderer\ModelRenderer.h" />
     <ClInclude Include="..\Public\Renderer\NormalPass.h" />
     <ClInclude Include="..\Public\Renderer\PlaneRenderer.h" />
+    <ClInclude Include="..\Public\Renderer\PostFxPass.h" />
     <ClInclude Include="..\Public\Renderer\RenderWorldSnapshot.h" />
     <ClInclude Include="..\Public\Renderer\RHIMaterialResource.h" />
     <ClInclude Include="..\Public\Renderer\RHIMeshResource.h" />

@@ -146,10 +146,12 @@ private:
         Microsoft::WRL::ComPtr<ID3D11Query> pDisjoint;
         Microsoft::WRL::ComPtr<ID3D11Query> pBegin;
         Microsoft::WRL::ComPtr<ID3D11Query> pEnd;
+        uint64_t uSourceRHIFrame = 0;
         bool bPending = false;
     };
     GpuTimingSlot   m_GpuTimingSlots[kGpuTimingSlots];
     uint32          m_uGpuTimingWriteIndex = 0;
+    uint64_t        m_uGpuTimingFrameSerial = 0;
     bool            m_bGpuTimingReady = false;
 
     CRHIResourceTable<IRHIPipelineState, RHIPipelineTag> m_PipelineTable;

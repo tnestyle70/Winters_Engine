@@ -101,6 +101,18 @@ float3 ApplyFxStyle(float4 texColor, float2 localUV)
     return stylized * g_vTint.rgb + rimRGB;
 }
 
+float ComputeRadialWipeMask(float2 localUV)
+{
+    const float2 fromCenter = localUV - 0.5f;
+    const float phase = frac(
+        atan2(-fromCenter.y, fromCenter.x) * 0.1591549431f + 1.0f);
+    const float age = saturate(g_vTimeParams.y);
+    const float feather = 0.008f;
+    const float mask = smoothstep(age - feather, age + feather, phase);
+    clip(mask - 0.001f);
+    return mask;
+}
+
 float4 ApplyMagicSurface(float2 uv, float2 localUV)
 {
     const float elapsed = g_vTimeParams.x;
@@ -165,6 +177,13 @@ float4 PS(PS_INPUT input) : SV_TARGET
     const float styleMode = g_vStyleParams.x;
     if (styleMode >= 3.5f && styleMode < 4.5f)
         return ApplyMagicSurface(input.vTexCoord, input.vLocalUV);
+    if (styleMode >= 4.5f && styleMode < 5.5f)
+    {
+        const float radialMask = ComputeRadialWipeMask(input.vLocalUV);
+        texColor.rgb *= g_vTint.rgb * radialMask;
+        texColor.a *= radialMask;
+        return texColor;
+    }
 
     texColor.rgb = ApplyFxStyle(texColor, input.vLocalUV);
     return texColor;

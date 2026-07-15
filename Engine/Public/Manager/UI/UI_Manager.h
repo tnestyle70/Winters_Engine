@@ -68,6 +68,7 @@ public:
 
     // ImGui 튜닝 패널 (Scene::OnImGui 에서 호출)
     void    OnImGui_Tuner();
+    void    OnImGui_StatusPanelLayoutTuner();
 
     void Bind_World(CWorld* pWorld);
     void    Set_ShowHealthBars(bool_t b) { m_bShowHealthBars = b; }
@@ -235,6 +236,49 @@ private:
         const wchar_t* IconPath() const { return strIconPath.empty() ? nullptr : strIconPath.c_str(); }
     };
 
+    struct StatusPanelLayout
+    {
+        bool_t bPreviewPanel = true;
+        bool_t bLockAssetAspect = true;
+        f32_t fPanelWidth = 966.f;
+        f32_t fPanelHeight = 388.7f;
+        f32_t fPanelOffsetX = 18.f;
+        f32_t fPanelOffsetY = 113.f;
+
+        f32_t fBlueContentX = 40.f;
+        f32_t fRedContentX = 814.f;
+        f32_t fRowStartY = 101.f;
+        f32_t fRowSpacingY = 99.36f;
+
+        f32_t fPortraitOffsetX = -3.8f;
+        f32_t fPortraitOffsetY = 7.4f;
+        f32_t fPortraitSize = 76.6f;
+        f32_t fLevelOffsetX = 60.9f;
+        f32_t fLevelOffsetY = 57.4f;
+        f32_t fLevelFontScale = 1.51f;
+
+        f32_t fSpellOffsetX = 82.4f;
+        f32_t fSpellOffsetY = 16.3f;
+        f32_t fSpellSize = 38.8f;
+        f32_t fSpellSpacingY = 31.3f;
+
+        f32_t fKdaOffsetX = 150.8f;
+        f32_t fKdaOffsetY = 33.4f;
+        f32_t fKdaFontScale = 1.36f;
+
+        f32_t fItemOffsetX = 277.8f;
+        f32_t fItemOffsetY = 27.2f;
+        f32_t fItemSize = 48.7f;
+        f32_t fItemSpacingX = 56.2f;
+
+        f32_t fObjectiveOffsetX = 13.8f;
+        f32_t fObjectiveY = 40.2f;
+        f32_t fObjectiveFontScale = 1.55f;
+    };
+
+    bool_t LoadStatusPanelLayoutSettings();
+    bool_t SaveStatusPanelLayoutSettings();
+
     void    DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
     void    DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP);
     void    DrawHealthBarBarcodeOverlay(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
@@ -258,8 +302,6 @@ private:
     void    ResetMatchContextHUDStats();
     void    LoadPingWheelAssets();
     ePingWheelDirection ResolvePingWheelDirection() const;
-    void    DrawHUDStatusFlash(ImDrawList* pDraw, const ImVec2& root, f32_t hudW, f32_t hudH);
-    void    UpdateHUDStatusTimers(EntityID localEntity, f32_t hp, bool_t bStunned, f32_t dt);
     void UpdateCharacterHealthBarTrails(f32_t dt);
     f32_t ResolveCharacterHealthTrailRatio(EntityID entity, f32_t currentRatio) const;
     void    ApplyCursorMode();
@@ -269,9 +311,15 @@ private:
     {
         u16_t iItemId = 0;
         u16_t iPrice = 0;
+        u32_t iOrder = 0u;
+        std::string strAssetKey;
+        std::string strSection;
         std::string strName;
         std::wstring strIconPath;
+        std::string strIconSprite;
         std::vector<std::string> StatLines;
+        bool_t bEnabled = true;
+        bool_t bPurchasable = false;
         void* pSRV = nullptr;
     };
 
@@ -327,9 +375,9 @@ private:
     bool_t m_bInGameShopOpen = false;
     bool_t m_bStatusPanelOpen = false;
     f32_t m_fInGameShopReferenceAlpha = 0.14f;
-    f32_t m_fStatusPanelDrawWidth = 600.f;
-    f32_t m_fStatusPanelDrawHeight = 400.f;
-    f32_t m_fStatusPanelOffsetY = 0.f;
+    StatusPanelLayout m_StatusPanelLayout{};
+    i32_t m_iStatusPanelLayoutTunerFrame = -2;
+    std::string m_strStatusPanelLayoutSaveMessage;
     u16_t m_iSelectedInGameShopItemId = 0;
     u32_t m_iInGameGold = 10000;
     std::string m_strInGameShopStatus = "Press P to open shop";
@@ -360,8 +408,6 @@ private:
     void* m_pSRV_StructureBlueHPBar = nullptr;
     void* m_pSRV_StructureRedHPBar = nullptr;
     void* m_pSRV_ActorHUDBase = nullptr;
-    void* m_pSRV_HUDHit = nullptr;
-    void* m_pSRV_HUDStun = nullptr;
     CUIAtlasManifest m_HudAtlasManifest;
     std::unique_ptr<CActorHudPanel> m_pActorHudPanel;
     std::unique_ptr<CLuaUIHost> m_pLuaUIHost;
@@ -409,15 +455,6 @@ private:
     bool_t                    m_bShowActorHUD = true;
     bool_t                    m_bShowActorHUDReference = true;
     f32_t                     m_fHUDReferenceAlpha = 0.10f;
-    bool_t                    m_bShowHUDStatusFlash = true;
-    f32_t                     m_fHUDHitFlashDuration = 0.5f;
-    f32_t                     m_fHUDStunFlashDuration = 0.5f;
-    f32_t                     m_fHUDHitFlashTimer = 0.f;
-    f32_t                     m_fHUDStunFlashTimer = 0.f;
-    EntityID                  m_LastHUDLocalEntity = NULL_ENTITY;
-    f32_t                     m_fLastHUDHP = 0.f;
-    bool_t                    m_bHasLastHUDHP = false;
-    bool_t                    m_bWasLocalStunned = false;
 
     bool_t  m_bShowHealthBars = true;
     f32_t   m_fHPBarWidth = 104.f;    // 화면 픽셀

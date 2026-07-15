@@ -40,7 +40,11 @@ public:
 
     // 메시지 루프 한 사이클 처리
     // false 반환 = WM_QUIT 수신 → 게임 루프 종료
-    bool    PumpMessages();
+    // maxMessages == 0 drains the queue. A finite budget is used by nested
+    // loading yields so continuous WM_MOUSEMOVE traffic cannot starve loading.
+    bool    PumpMessages(uint32 maxMessages = 0u);
+    void    SetSystemCursorVisible(bool bVisible);
+    bool    IsQuitRequested() const { return m_bQuitRequested; }
 
     HWND    GetHandle() const { return m_hWnd;   }
     int32   GetWidth()  const { return m_Width;  }
@@ -84,4 +88,7 @@ private:
     HWND    m_hWnd   = nullptr;
     int32   m_Width  = 0;
     int32   m_Height = 0;
+    bool    m_bQuitRequested = false;
+    bool    m_bSystemCursorVisible = true;
+    bool    m_bPumpingMessages = false;
 };

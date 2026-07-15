@@ -16,6 +16,9 @@ class WINTERS_ENGINE CMCTSSystem final : public ISystem
 public:
     ~CMCTSSystem() override = default;
 
+    CMCTSSystem(const CMCTSSystem&) = delete;
+    CMCTSSystem& operator=(const CMCTSSystem&) = delete;
+
     static std::unique_ptr<CMCTSSystem> Create()
     {
         auto p = std::unique_ptr<CMCTSSystem>(new CMCTSSystem());

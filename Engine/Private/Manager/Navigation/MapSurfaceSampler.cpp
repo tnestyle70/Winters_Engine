@@ -16,24 +16,37 @@ namespace
     constexpr f32_t kWallBlockerHalfWidth = 0.45f;
 }
 
-bool_t CMapSurfaceSampler::LoadFromWMesh(const wchar_t* pPath, const Mat4& matWorld)
+bool_t CMapSurfaceSampler::LoadFromWMesh(
+    const wchar_t* pPath,
+    const Mat4& matWorld,
+    const std::atomic_bool* pCancel)
 {
     Reset();
 
+    if (pCancel && pCancel->load(std::memory_order_acquire))
+        return false;
+
     Winters::Asset::WMeshLoaded mesh{};
     if (!Winters::Asset::CWMeshLoader::Load(pPath, mesh))
+        return false;
+    if (pCancel && pCancel->load(std::memory_order_acquire))
         return false;
     if (!mesh.pVertexBlob || !mesh.pIndexBlob || mesh.header.total_vertex_count == 0)
         return false;
 
     std::vector<Vec3> vertices{};
-    if (!BuildWorldVertices(mesh, matWorld, vertices))
+    if (!BuildWorldVertices(mesh, matWorld, vertices, pCancel))
     {
         Reset();
         return false;
     }
 
-    BuildSurfaceCells(mesh, vertices);
+    if (!BuildSurfaceCells(mesh, vertices, pCancel))
+    {
+        Reset();
+        return false;
+    }
+
     m_bReady = true;
     LogLoadedSurface();
     return true;
@@ -42,7 +55,8 @@ bool_t CMapSurfaceSampler::LoadFromWMesh(const wchar_t* pPath, const Mat4& matWo
 bool_t CMapSurfaceSampler::BuildWorldVertices(
     const Winters::Asset::WMeshLoaded& mesh,
     const Mat4& matWorld,
-    std::vector<Vec3>& outVertices)
+    std::vector<Vec3>& outVertices,
+    const std::atomic_bool* pCancel)
 {
     const u32_t vertexCount = mesh.header.total_vertex_count;
     const u32_t stride = mesh.header.vertex_stride;
@@ -56,6 +70,12 @@ bool_t CMapSurfaceSampler::BuildWorldVertices(
     const DirectX::XMMATRIX mat = matWorld.ToXMMATRIX();
     for (u32_t i = 0; i < vertexCount; ++i)
     {
+        if ((i & 0x0FFFu) == 0u &&
+            pCancel && pCancel->load(std::memory_order_acquire))
+        {
+            return false;
+        }
+
         const u8_t* pVertex = mesh.pVertexBlob + static_cast<size_t>(i) * stride;
         const f32_t* pPos = reinterpret_cast<const f32_t*>(pVertex);
         const DirectX::XMVECTOR local =
@@ -73,7 +93,9 @@ bool_t CMapSurfaceSampler::BuildWorldVertices(
         m_fMaxZ = (std::max)(m_fMaxZ, v.z);
     }
 
-    return HasValidBounds();
+    return
+        (!pCancel || !pCancel->load(std::memory_order_acquire)) &&
+        HasValidBounds();
 }
 
 bool_t CMapSurfaceSampler::HasValidBounds() const
@@ -87,9 +109,10 @@ bool_t CMapSurfaceSampler::HasValidBounds() const
         (m_fMaxZ - m_fMinZ) > 0.001f;
 }
 
-void CMapSurfaceSampler::BuildSurfaceCells(
+bool_t CMapSurfaceSampler::BuildSurfaceCells(
     const Winters::Asset::WMeshLoaded& mesh,
-    const std::vector<Vec3>& vertices)
+    const std::vector<Vec3>& vertices,
+    const std::atomic_bool* pCancel)
 {
     const u32_t vertexCount = static_cast<u32_t>(vertices.size());
     const u32_t stride = mesh.header.vertex_stride;
@@ -97,11 +120,20 @@ void CMapSurfaceSampler::BuildSurfaceCells(
     m_fStepZ = (m_fMaxZ - m_fMinZ) / static_cast<f32_t>(kGridDim - 1);
     m_vecCells.assign(kGridDim * kGridDim, SurfaceCell{});
 
+    u32_t indicesSinceCancelCheck = 0;
     for (const auto& submesh : mesh.subMeshes)
     {
         const u32_t baseVertex = submesh.vertex_offset / stride;
         for (u32_t i = 0; i + 2 < submesh.index_count; i += 3)
         {
+            indicesSinceCancelCheck += 3;
+            if (indicesSinceCancelCheck >= 4096u)
+            {
+                indicesSinceCancelCheck = 0;
+                if (pCancel && pCancel->load(std::memory_order_acquire))
+                    return false;
+            }
+
             const u32_t i0 = baseVertex + ReadIndex(mesh, submesh.index_offset, i + 0);
             const u32_t i1 = baseVertex + ReadIndex(mesh, submesh.index_offset, i + 1);
             const u32_t i2 = baseVertex + ReadIndex(mesh, submesh.index_offset, i + 2);
@@ -111,6 +143,8 @@ void CMapSurfaceSampler::BuildSurfaceCells(
             RasterizeTriangle(vertices[i0], vertices[i1], vertices[i2]);
         }
     }
+
+    return !pCancel || !pCancel->load(std::memory_order_acquire);
 }
 
 void CMapSurfaceSampler::LogLoadedSurface() const

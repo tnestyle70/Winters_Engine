@@ -71,6 +71,7 @@ public: // UI
     void UI_Shutdown();
     void UI_Render_Overlay(const Mat4& matVP);
     void UI_Render_Cursor();
+    void SetLoadingCursorMode(bool_t bLoading);
     bool_t UI_Begin_RawImagePass(uint32_t iScreenWidth, uint32_t iScreenHeight, bool_t bPointSample);
     void UI_Draw_RawImage(void* pTextureSRV,
         f32_t fX, f32_t fY, f32_t fW, f32_t fH,
@@ -83,6 +84,7 @@ public: // UI
         const Vec4& vColor,
         u32_t iSegmentCount = 48);
     void UI_OnImGui_Tuner();
+    void UI_OnImGui_StatusPanelLayoutTuner();
     void UI_Set_ActiveLuaScreen(const char* pScreenID);
     void UI_Reload_Lua();
     void UI_Toggle_InGameShop();
@@ -145,7 +147,10 @@ public: // Profiler
     void Profiler_Toggle();
     bool_t Profiler_IsOverlayVisible() const;
     void Profiler_DrawOverlay();
-    bool_t Profiler_SaveJson(const char* pPath);
+    bool_t Profiler_SaveJson(
+        const char* pPath,
+        bool_t bForceCapture = true,
+        const char* pAliasPath = nullptr);
     class CCPUProfiler* Get_CPUProfiler() { return m_pProfiler.get(); }
 
 public: // JobSystem

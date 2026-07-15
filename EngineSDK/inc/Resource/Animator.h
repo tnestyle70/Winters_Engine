@@ -46,6 +46,12 @@ public:
 			: s;
 	}
 	f32_t GetPlaySpeed() const { return m_fPlaySpeed; }
+
+	// [ModelAnimPanel] 툴 전용 세터 — Phase T-2 패턴(인라인, dllexport 불요).
+	// SetPlaySpeedRawForTool(0.f) = 일시정지: Update가 시간을 0만큼 진행하되 포즈는
+	// 매 프레임 재평가하므로 SetCurrentTimeTicksForTool 스크럽이 즉시 반영된다.
+	void SetPlaySpeedRawForTool(f32_t fSpeed) { m_fPlaySpeed = fSpeed; }
+	void SetCurrentTimeTicksForTool(f64_t dTicks) { m_dCurrentTime = dTicks; }
 private:
 	CSkeleton* m_pSkeleton = nullptr;
 	CAnimation* m_pCurrentAnim = nullptr;

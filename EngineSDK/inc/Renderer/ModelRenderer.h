@@ -95,6 +95,17 @@ public:
 
 	uint32	GetAnimationCount() const;
 
+	// [ModelAnimPanel] 인덱스 기반 접근 — FindAnimationIndex는 부분 문자열 매칭이라
+	// 이름 기반 재생은 다른 클립에 오염될 수 있다. 툴은 인덱스로 다룬다.
+	const char* GetAnimationNameByIndex(uint32 iIndex) const;
+	bool PlayAnimationByIndexAdvanced(uint32 iIndex,
+		bool bLoop,
+		bool_t bReverse,
+		f32_t fPlaySpeed = 1.f);
+	uint32 GetSubmeshInfoCount() const;
+	const char* GetSubmeshNameByIndex(uint32 iIndex) const;
+	uint32 GetSubmeshMaterialIndexByIndex(uint32 iIndex) const;
+
 	// [Phase T] 프레임 이벤트 감지용 — 활성 Animator 접근 (null 가능)
 	const Engine::CAnimator* GetAnimator() const;
 	Engine::CAnimator* GetAnimator(); //Tuner용

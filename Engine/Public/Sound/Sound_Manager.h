@@ -15,7 +15,7 @@ NS_BEGIN(Engine)
 // ─────────────────────────────────────────────────────────────
 //  CSound_Manager
 //    - FMOD System 초기화/해제
-//    - Resource/Sound/ 재귀 로드 (파일명 → wstring_t 키)
+//    - Resource/Sound/ 상대 키를 첫 재생 시 canonical 루트에서 lazy 로드
 //    - 고정 채널(eSoundChannel) + 자동 채널(PlayEffect) 분리
 //    - Winters 경계 규칙: 내부 매니저 (SDK 배포 금지).
 //      Client 는 CGameInstance 포워딩 메서드로만 접근.
@@ -48,10 +48,10 @@ public:
 private:
     HRESULT Initialize();
 
-    // Resource/Sound/ 재귀 로드. 키는 상대 경로 (예: L"BGM/Title.wav")
-    void LoadSoundFolder();
-    void LoadSoundFolderRecursive(const wstring_t& strFolderPath,
-                                   const wstring_t& strRelativePath);
+    // 키(Resource/Sound 상대 경로, 예: L"BGM/Title.wav")를 캐시에서 찾거나
+    // canonical Resource 루트(WintersResolveContentPath)에서 lazy 로드한다.
+    // 실패는 키별 최초 1회만 Debug 로그를 남기고 nullptr를 반환한다.
+    FMOD::Sound* FindOrLoadSound(const wstring_t& strSoundKey);
 
 private:
     FMOD::System*                          m_pSystem = nullptr;

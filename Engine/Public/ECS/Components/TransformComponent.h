@@ -1,5 +1,7 @@
 #pragma once
-#include "Engine_Defines.h"
+// Windows/Engine_Defines 오염을 Shared/GameSim TU로 전이시키지 않는다.
+// f32_t는 WintersTypes.h, Vec3/Mat4는 WintersMath.h가 소유 (WINTERS_DEPENDENCY_MAP.md §3).
+#include "WintersTypes.h"
 #include "WintersMath.h"
 #include "ECS/Entity.h"   // 폴더-정규화 경로: Engine(..\Public) + SDK(EngineSDK\inc) 양쪽 resolve
 #include <vector>

@@ -1,13 +1,13 @@
 #pragma once
-#include "Engine_Defines.h"
 #include "WintersTypes.h"
 #include "WintersMath.h"
 #include "ECS/Entity.h"
 #include <vector>
 
-NS_BEGIN(Engine)
+namespace Engine
+{
 class CNavGrid;
-NS_END
+}
 
 // ─────────────────────────────────────────────────────────────
 // NavAgentComponent — Pathfinding 수요자

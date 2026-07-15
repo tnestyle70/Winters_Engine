@@ -6,6 +6,9 @@
 #include <fmod_errors.h>
 #include <Windows.h>
 
+#include <set>
+#include <string>
+
 NS_BEGIN(Engine)
 
 CSound_Manager::CSound_Manager() = default;
@@ -41,7 +44,6 @@ HRESULT CSound_Manager::Initialize()
     r = m_pSystem->init(1024, FMOD_INIT_NORMAL, nullptr);
     if (r != FMOD_OK) return E_FAIL;
 
-    LoadSoundFolder();
     return S_OK;
 }
 
@@ -56,8 +58,8 @@ void CSound_Manager::Tick()
 void CSound_Manager::PlaySoundOn(const wstring_t& strSoundKey, eSoundChannel eChannel, f32_t fVolume)
 {
     if (!m_pSystem) return;
-    auto it = m_mapSounds.find(strSoundKey);
-    if (it == m_mapSounds.end()) return;
+    FMOD::Sound* pSound = FindOrLoadSound(strSoundKey);
+    if (!pSound) return;
 
     const u32_t idx = static_cast<u32_t>(eChannel);
     if (idx >= SOUND_CHANNEL_COUNT) return;
@@ -66,29 +68,31 @@ void CSound_Manager::PlaySoundOn(const wstring_t& strSoundKey, eSoundChannel eCh
     if (m_pChannels[idx]) m_pChannels[idx]->isPlaying(&bPlaying);
     if (bPlaying) m_pChannels[idx]->stop();
 
-    m_pSystem->playSound(it->second, nullptr, false, &m_pChannels[idx]);
+    m_pSystem->playSound(pSound, nullptr, false, &m_pChannels[idx]);
     if (m_pChannels[idx]) m_pChannels[idx]->setVolume(fVolume);
 }
 
 void CSound_Manager::PlayEffect(const wstring_t& strSoundKey, f32_t fVolume)
 {
     if (!m_pSystem) return;
-    auto it = m_mapSounds.find(strSoundKey);
-    if (it == m_mapSounds.end()) return;
+    FMOD::Sound* pSound = FindOrLoadSound(strSoundKey);
+    if (!pSound) return;
 
     FMOD::Channel* pChannel = nullptr;
-    m_pSystem->playSound(it->second, nullptr, false, &pChannel);
+    m_pSystem->playSound(pSound, nullptr, false, &pChannel);
     if (pChannel) pChannel->setVolume(fVolume);
 }
 
 void CSound_Manager::PlayBGM(const wstring_t& strSoundKey, f32_t fVolume)
 {
     if (!m_pSystem) return;
-    auto it = m_mapSounds.find(strSoundKey);
-    if (it == m_mapSounds.end()) return;
+    FMOD::Sound* pSound = FindOrLoadSound(strSoundKey);
+    if (!pSound) return;
 
+    // 단일 BGM 채널 규칙: 새 BGM 재생 전 기존 채널 정지 (겹침 방지).
     const u32_t idx = static_cast<u32_t>(eSoundChannel::BGM);
-    m_pSystem->playSound(it->second, nullptr, false, &m_pChannels[idx]);
+    if (m_pChannels[idx]) m_pChannels[idx]->stop();
+    m_pSystem->playSound(pSound, nullptr, false, &m_pChannels[idx]);
     if (m_pChannels[idx])
     {
         m_pChannels[idx]->setMode(FMOD_LOOP_NORMAL);
@@ -125,64 +129,55 @@ void CSound_Manager::SetMasterVolume(f32_t fVolume)
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Resource/Sound/ 재귀 로드
+//  Resource/Sound/ lazy 로드
+//    - 과거 시작 시 전량 스캔은 exe 폴더(<Bin/Debug>) 기준 경로 조합이라
+//      canonical 루트(Client/Bin/Resource)를 한 번도 찾지 못했다(전면 무음).
+//    - 파일 해석은 Engine 공용 WintersResolveContentPath 재사용
+//      ("Sound\" 접두 상대 경로 지원). 실패 진단은 키별 최초 1회 bounded.
 // ─────────────────────────────────────────────────────────────
-void CSound_Manager::LoadSoundFolder()
+namespace
 {
-    // exe 디렉터리 기준 Resource/Sound/ 탐색.
-    // WintersResolveContentPath 는 파일만 해결하므로 여기선 직접 구성.
-    wchar_t exePath[MAX_PATH] = {};
-    if (GetModuleFileNameW(nullptr, exePath, MAX_PATH) == 0) return;
-
-    wchar_t* lastSlash = wcsrchr(exePath, L'\\');
-    if (!lastSlash) return;
-    *(lastSlash + 1) = L'\0';
-
-    wstring_t base = wstring_t(exePath) + L"Resource\\Sound\\";
-    OutputDebugStringW((L"[Sound] scanning: " + base + L"\n").c_str());
-    LoadSoundFolderRecursive(base, L"");
+    std::set<wstring_t> s_SoundLoadFailLoggedKeys;
 }
 
-void CSound_Manager::LoadSoundFolderRecursive(const wstring_t& strFolderPath,
-                                               const wstring_t& strRelativePath)
+FMOD::Sound* CSound_Manager::FindOrLoadSound(const wstring_t& strSoundKey)
 {
-    wstring_t search = strFolderPath + strRelativePath + L"*";
+    auto it = m_mapSounds.find(strSoundKey);
+    if (it != m_mapSounds.end())
+        return it->second;
 
-    WIN32_FIND_DATAW fd{};
-    HANDLE hFind = FindFirstFileW(search.c_str(), &fd);
-    if (hFind == INVALID_HANDLE_VALUE) return;
+    if (!m_pSystem || strSoundKey.empty())
+        return nullptr;
 
-    do
+    const wstring_t relative = L"Sound/" + strSoundKey;
+    wchar_t resolved[MAX_PATH] = {};
+    if (!WintersResolveContentPath(relative.c_str(), resolved, MAX_PATH))
     {
-        if (!wcscmp(fd.cFileName, L".") || !wcscmp(fd.cFileName, L".."))
-            continue;
+        if (s_SoundLoadFailLoggedKeys.insert(strSoundKey).second)
+            OutputDebugStringW((L"[Sound] resolve failed: " + relative + L"\n").c_str());
+        return nullptr;
+    }
 
-        wstring_t nextRel = strRelativePath + fd.cFileName;
+    // FMOD 는 UTF-8 경로. wstring → UTF-8 변환.
+    char utf8Path[MAX_PATH * 2] = {};
+    WideCharToMultiByte(CP_UTF8, 0, resolved, -1,
+                        utf8Path, sizeof(utf8Path), nullptr, nullptr);
 
-        if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    FMOD::Sound* pSound = nullptr;
+    const FMOD_RESULT r = m_pSystem->createSound(utf8Path, FMOD_DEFAULT, nullptr, &pSound);
+    if (r != FMOD_OK || !pSound)
+    {
+        if (s_SoundLoadFailLoggedKeys.insert(strSoundKey).second)
         {
-            LoadSoundFolderRecursive(strFolderPath, nextRel + L"/");
+            OutputDebugStringW((L"[Sound] createSound failed: " + strSoundKey +
+                L" fmod=" + std::to_wstring(static_cast<int>(r)) + L"\n").c_str());
         }
-        else
-        {
-            wstring_t filePath = strFolderPath + nextRel;
+        return nullptr;
+    }
 
-            // FMOD 는 UTF-8 경로. wstring → UTF-8 변환.
-            char utf8Path[MAX_PATH * 2] = {};
-            WideCharToMultiByte(CP_UTF8, 0, filePath.c_str(), -1,
-                                utf8Path, sizeof(utf8Path), nullptr, nullptr);
-
-            FMOD::Sound* pSound = nullptr;
-            FMOD_RESULT r = m_pSystem->createSound(utf8Path, FMOD_DEFAULT, nullptr, &pSound);
-            if (r == FMOD_OK && pSound)
-            {
-                m_mapSounds.emplace(nextRel, pSound);
-                OutputDebugStringW((L"[Sound] loaded: " + nextRel + L"\n").c_str());
-            }
-        }
-    } while (FindNextFileW(hFind, &fd));
-
-    FindClose(hFind);
+    m_mapSounds.emplace(strSoundKey, pSound);
+    OutputDebugStringW((L"[Sound] loaded: " + strSoundKey + L"\n").c_str());
+    return pSound;
 }
 
 NS_END

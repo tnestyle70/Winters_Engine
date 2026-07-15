@@ -146,7 +146,8 @@ void CNavigationSystem::ProcessAgent(CWorld& world, EntityID id)
         const bool_t bStartWalkable = m_pGrid->IsWalkable(start.x, start.y);
         const bool_t bGoalWalkable = m_pGrid->IsWalkable(goal.x, goal.y);
 
-        auto path = CPathfinder::Find_Path(m_pGrid, start, goal);
+        ePathFindResult pathResult = ePathFindResult::Success;
+        auto path = CPathfinder::Find_Path(m_pGrid, start, goal, &pathResult);
 
         WINTERS_PROFILE_COUNT("Nav::PathNodes", path.size());
 
@@ -158,7 +159,7 @@ void CNavigationSystem::ProcessAgent(CWorld& world, EntityID id)
             {
                 char dbg[512];
                 sprintf_s(dbg,
-                    "[NavAgent] #%d id=%u pos=(%.2f,%.2f,%.2f) target=(%.2f,%.2f,%.2f) start=(%d,%d,%d) goal=(%d,%d,%d) path=%u speed=%.2f arrive=%.2f\n",
+                    "[NavAgent] #%d id=%u pos=(%.2f,%.2f,%.2f) target=(%.2f,%.2f,%.2f) start=(%d,%d,%d) goal=(%d,%d,%d) path=%u result=%u speed=%.2f arrive=%.2f\n",
                     s_navLogCount,
                     static_cast<u32_t>(id),
                     vPos.x, vPos.y, vPos.z,
@@ -166,6 +167,7 @@ void CNavigationSystem::ProcessAgent(CWorld& world, EntityID id)
                     start.x, start.y, bStartWalkable ? 1 : 0,
                     goal.x, goal.y, bGoalWalkable ? 1 : 0,
                     static_cast<u32_t>(path.size()),
+                    static_cast<u32_t>(pathResult),
                     agent.fSpeed,
                     agent.fArriveRadius);
                 OutputDebugStringA(dbg);

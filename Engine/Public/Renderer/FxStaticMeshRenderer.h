@@ -60,6 +60,11 @@ public:
     bool PreloadMesh(const std::string& strFbxPath,
         const std::wstring& strTexturePath,
         const std::wstring& strErodeTexturePath);
+    // Loading barriers must not report ready after substituting the white
+    // fallback for an explicitly requested diffuse texture.
+    bool PreloadMeshStrict(
+        const std::string& strFbxPath,
+        const std::wstring& strTexturePath);
     void BeginFrame(const Mat4& matViewProj,
         const Vec3& vCameraWorld = Vec3{ 0.f, 0.f, 0.f });
     void DrawMesh(const char* pFbxPath, const FxMeshDrawParams& params);
@@ -69,6 +74,12 @@ public:
 
 private:
     CFxStaticMeshRenderer() = default;
+
+    bool PreloadMeshInternal(
+        const std::string& strFbxPath,
+        const std::wstring& strTexturePath,
+        const std::wstring& strErodeTexturePath,
+        bool_t bRequireDiffuseTexture);
 
     Impl* m_pImpl = nullptr;
 };

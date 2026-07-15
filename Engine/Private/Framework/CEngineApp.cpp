@@ -80,8 +80,10 @@ namespace
 
         SYSTEMTIME st{};
         GetLocalTime(&st);
-        sprintf_s(pOut, sizeBytes, "Profiles/profiler_%04u%02u%02u_%02u%02u%02u.json",
-            st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond);
+        sprintf_s(pOut, sizeBytes,
+            "Profiles/profiler_%04u%02u%02u_%02u%02u%02u_%03u.json",
+            st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond,
+            st.wMilliseconds);
     }
 
     std::unique_ptr<IRHIDevice> CreateDX11DeviceForWindow(CWin32Window& window, const EngineConfig& config)
@@ -125,6 +127,8 @@ bool CEngineApp::Initialize(IWintersApp* pGameApp, const EngineConfig& config)
     m_spInstance = this;
     m_pGameApp  = pGameApp;
     m_uTargetFPS = config.targetFPS;
+    m_bVSyncRequested = config.vsync;
+    m_bPresentationVSync = ShouldUsePresentationVSync(config);
 
     if (config.vsync && m_uTargetFPS > 0u)
     {
@@ -281,18 +285,35 @@ int32 CEngineApp::Run()
     const CScopedFrameTimerResolution timerResolution(bLimitFrameRate);
 
     WINTERS_PROFILE_THREAD_NAME("MainThread");
+    const auto runStart = FrameClock::now();
+    auto previousFrameStart = runStart;
+    bool_t bHasPreviousFrameStart = false;
 
     while (m_bRunning)
     {
         const auto frameStart = FrameClock::now();
+        const uint64_t cadenceUs = bHasPreviousFrameStart
+            ? static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::microseconds>(
+                frameStart - previousFrameStart).count())
+            : 0u;
+        previousFrameStart = frameStart;
+        bHasPreviousFrameStart = true;
         bool_t bSaveProfilerJson = false;
         bool_t bOpenProfilerOverlayAfterSave = false;
 
         {
             CGameInstance::Get()->Profiler_Begin();
             WINTERS_PROFILE_SCOPE("Frame");
+            if (cadenceUs > 0u)
+                WINTERS_PROFILE_GAUGE("Frame::CadenceUs", cadenceUs);
 
-            if (!m_Window.PumpMessages())
+            bool_t bWindowAlive = false;
+            {
+                WINTERS_PROFILE_SCOPE("Frame::PumpMessages");
+                bWindowAlive = m_Window.PumpMessages();
+            }
+
+            if (!bWindowAlive)
             {
                 m_bRunning = false;
             }
@@ -300,7 +321,8 @@ int32 CEngineApp::Run()
             {
                 if (CInput::Get().IsKeyPressed(VK_F3))
                     CGameInstance::Get()->Profiler_Toggle();
-                if (CInput::Get().IsKeyPressed(VK_F4))
+                // F12: 프로파일러 JSON 캡처 (F4 는 클라이언트 Structure Tuner 가 사용)
+                if (CInput::Get().IsKeyPressed(VK_F12))
                 {
                     bSaveProfilerJson = true;
                     bOpenProfilerOverlayAfterSave = true;
@@ -309,10 +331,17 @@ int32 CEngineApp::Run()
                 if (m_uTargetFPS > 0u && CInput::Get().IsKeyPressed(VK_F11))
                     bLimitFrameRate = !bLimitFrameRate;
 
-                CGameInstance::Get()->Update_TimeDelta(L"Timer_Default");
-                float32 deltaTime = CGameInstance::Get()->Get_TimeDelta(L"Timer_Default");
+                float32 deltaTime = 0.f;
+                {
+                    WINTERS_PROFILE_SCOPE("Frame::TimerUpdate");
+                    CGameInstance::Get()->Update_TimeDelta(L"Timer_Default");
+                    deltaTime = CGameInstance::Get()->Get_TimeDelta(L"Timer_Default");
+                }
 
-                CGameInstance::Get()->Tick_Engine();
+                {
+                    WINTERS_PROFILE_SCOPE("Engine::ServiceTick");
+                    CGameInstance::Get()->Tick_Engine();
+                }
 
                 {
                     WINTERS_PROFILE_SCOPE("Update");
@@ -323,10 +352,31 @@ int32 CEngineApp::Run()
                     Render();
                 }
 
-                WINTERS_PROFILE_COUNT("Frame::LimiterActive", bLimitFrameRate ? 1u : 0u);
-                WINTERS_PROFILE_COUNT("Frame::TargetFPS", m_uTargetFPS);
+                WINTERS_PROFILE_GAUGE("Frame::LimiterActive", bLimitFrameRate ? 1u : 0u);
+                WINTERS_PROFILE_GAUGE("Frame::TargetFPS", m_uTargetFPS);
+                WINTERS_PROFILE_GAUGE("Frame::WindowWidth", static_cast<uint64_t>(m_Window.GetWidth()));
+                WINTERS_PROFILE_GAUGE("Frame::WindowHeight", static_cast<uint64_t>(m_Window.GetHeight()));
+                WINTERS_PROFILE_GAUGE("Frame::VSyncRequested", m_bVSyncRequested ? 1u : 0u);
+                WINTERS_PROFILE_GAUGE("Frame::PresentationVSync", m_bPresentationVSync ? 1u : 0u);
+                WINTERS_PROFILE_GAUGE("RHI::Backend", static_cast<uint64_t>(m_pDevice->GetBackend()));
             }
         }
+
+        CInput::Get().EndFrame();
+
+        if (m_bRunning && bLimitFrameRate)
+        {
+            WINTERS_PROFILE_SCOPE("Frame::LimiterWait");
+            SleepUntilFrameTarget(frameStart + targetFrameDuration);
+        }
+
+        const auto frameEnd = FrameClock::now();
+        const uint64_t wallUs = static_cast<uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - frameStart).count());
+        const uint64_t runElapsedUs = static_cast<uint64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - runStart).count());
+        WINTERS_PROFILE_GAUGE("Frame::WallUs", wallUs);
+        WINTERS_PROFILE_GAUGE("Frame::RunElapsedUs", runElapsedUs);
 
         CGameInstance::Get()->Profiler_End();
         WINTERS_PROFILE_FRAME_MARK;
@@ -334,19 +384,16 @@ int32 CEngineApp::Run()
         {
             char capturePath[96] = {};
             BuildProfilerCapturePath(capturePath, sizeof(capturePath));
-            CGameInstance::Get()->Profiler_SaveJson(capturePath);
-            CGameInstance::Get()->Profiler_SaveJson("profiler.json");
+            CGameInstance::Get()->Profiler_SaveJson(
+                capturePath,
+                true,
+                "profiler.json");
         }
         if (bOpenProfilerOverlayAfterSave && !CGameInstance::Get()->Profiler_IsOverlayVisible())
             CGameInstance::Get()->Profiler_Toggle();
 
-        CInput::Get().EndFrame();
-
         if (!m_bRunning)
             break;
-
-        if (bLimitFrameRate)
-            SleepUntilFrameTarget(frameStart + targetFrameDuration);
     }
 
     Shutdown();

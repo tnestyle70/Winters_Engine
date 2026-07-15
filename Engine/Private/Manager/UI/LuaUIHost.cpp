@@ -56,6 +56,23 @@ namespace
         return Result;
     }
 
+    std::string WideToUtf8(const wchar_t* pText)
+    {
+        if (!pText || pText[0] == L'\0')
+            return {};
+
+        const int iBytes = WideCharToMultiByte(CP_UTF8, 0, pText, -1, nullptr, 0, nullptr, nullptr);
+        if (iBytes <= 0)
+            return {};
+
+        std::string Result;
+        Result.resize(static_cast<std::size_t>(iBytes));
+        WideCharToMultiByte(CP_UTF8, 0, pText, -1, Result.data(), iBytes, nullptr, nullptr);
+        if (!Result.empty() && Result.back() == '\0')
+            Result.pop_back();
+        return Result;
+    }
+
     ImU32 LuaColor(lua_State* pState, int iFirstArg)
     {
         const int r = static_cast<int>(luaL_optinteger(pState, iFirstArg, 255));
@@ -105,6 +122,7 @@ namespace Engine
     void CLuaUIHost::Shutdown()
     {
         ReleaseLuaImages();
+        m_ShopItems.clear();
         m_pShopAtlasManifest.reset();
         if (m_pLua)
             m_pLua->Shutdown();
@@ -130,6 +148,41 @@ namespace Engine
     void CLuaUIHost::SetActorHUDState(const ActorHUDState& State)
     {
         m_HudState = State;
+    }
+
+    void CLuaUIHost::SetShopItems(const UIShopItemAssetDesc* pItems, u32_t iItemCount)
+    {
+        m_ShopItems.clear();
+        if (!pItems || iItemCount == 0u)
+            return;
+
+        m_ShopItems.reserve(iItemCount);
+        for (u32_t i = 0u; i < iItemCount; ++i)
+        {
+            const UIShopItemAssetDesc& Source = pItems[i];
+            LuaShopItemView Item{};
+            Item.ItemId = Source.iItemId;
+            Item.Price = Source.iPrice;
+            Item.Order = Source.iOrder;
+            Item.AssetKey = Source.pAssetKey ? Source.pAssetKey : "";
+            Item.Section = Source.pSection ? Source.pSection : "all";
+            Item.DisplayName = Source.pDisplayName ? Source.pDisplayName : Item.AssetKey;
+            Item.IconPath = WideToUtf8(Source.pIconPath);
+            Item.IconSprite = Source.pIconSprite ? Source.pIconSprite : "";
+            Item.Enabled = Source.bEnabled;
+            Item.Purchasable = Source.bPurchasable;
+            m_ShopItems.push_back(std::move(Item));
+        }
+
+        std::stable_sort(
+            m_ShopItems.begin(),
+            m_ShopItems.end(),
+            [](const LuaShopItemView& Left, const LuaShopItemView& Right)
+            {
+                if (Left.Order != Right.Order)
+                    return Left.Order < Right.Order;
+                return Left.AssetKey < Right.AssetKey;
+            });
     }
 
     void CLuaUIHost::SetBuyItemCallback(void(*pfn)(void*, u16_t), void* pUser)
@@ -227,6 +280,8 @@ namespace Engine
         lua_setfield(pState, -2, "LevelSkill");
         lua_pushcfunction(pState, &CLuaUIHost::LuaGetHudState);
         lua_setfield(pState, -2, "GetHudState");
+        lua_pushcfunction(pState, &CLuaUIHost::LuaGetShopItems);
+        lua_setfield(pState, -2, "GetShopItems");
         lua_pushcfunction(pState, &CLuaUIHost::LuaText);
         lua_setfield(pState, -2, "Text");
         lua_pushcfunction(pState, &CLuaUIHost::LuaButtonRect);
@@ -384,6 +439,43 @@ namespace Engine
         return 1;
     }
 
+    int CLuaUIHost::LuaGetShopItems(lua_State* pState)
+    {
+        CLuaUIHost* pHost = GetHost(pState);
+        lua_newtable(pState);
+        if (!pHost)
+            return 1;
+
+        lua_Integer OutputIndex = 1;
+        for (const LuaShopItemView& Item : pHost->m_ShopItems)
+        {
+            if (!Item.Enabled)
+                continue;
+
+            lua_newtable(pState);
+            lua_pushstring(pState, Item.AssetKey.c_str());
+            lua_setfield(pState, -2, "key");
+            lua_pushinteger(pState, Item.ItemId);
+            lua_setfield(pState, -2, "id");
+            lua_pushinteger(pState, Item.Price);
+            lua_setfield(pState, -2, "price");
+            lua_pushinteger(pState, Item.Order);
+            lua_setfield(pState, -2, "order");
+            lua_pushstring(pState, Item.Section.c_str());
+            lua_setfield(pState, -2, "section");
+            lua_pushstring(pState, Item.DisplayName.c_str());
+            lua_setfield(pState, -2, "name");
+            lua_pushstring(pState, Item.IconPath.c_str());
+            lua_setfield(pState, -2, "icon");
+            lua_pushstring(pState, Item.IconSprite.c_str());
+            lua_setfield(pState, -2, "sprite");
+            lua_pushboolean(pState, Item.Purchasable ? 1 : 0);
+            lua_setfield(pState, -2, "purchasable");
+            lua_rawseti(pState, -2, OutputIndex++);
+        }
+        return 1;
+    }
+
     int CLuaUIHost::LuaText(lua_State* pState)
     {
         CLuaUIHost* pHost = GetHost(pState);
@@ -520,16 +612,25 @@ namespace Engine
     {
         CLuaUIHost* pHost = GetHost(pState);
         if (!pHost || !pHost->m_pCurrentDrawList || !pHost->m_pShopAtlasManifest)
-            return 0;
+        {
+            lua_pushboolean(pState, 0);
+            return 1;
+        }
 
         const char* pSpriteID = luaL_optstring(pState, 1, "");
         const UISpriteDef* pSprite = pHost->m_pShopAtlasManifest->FindSprite(pSpriteID);
         if (!pSprite)
-            return 0;
+        {
+            lua_pushboolean(pState, 0);
+            return 1;
+        }
 
         const UIAtlasTextureDef* pTexture = pHost->m_pShopAtlasManifest->FindTexture(pSprite->strTextureID);
         if (!pTexture || !pTexture->pSRV)
-            return 0;
+        {
+            lua_pushboolean(pState, 0);
+            return 1;
+        }
 
         const f32_t X = static_cast<f32_t>(luaL_optnumber(pState, 2, 0.0));
         const f32_t Y = static_cast<f32_t>(luaL_optnumber(pState, 3, 0.0));
@@ -544,7 +645,8 @@ namespace Engine
             ImVec2(UV.x, UV.y),
             ImVec2(UV.z, UV.w),
             IM_COL32(255, 255, 255, static_cast<int>(std::clamp(Alpha, 0.f, 1.f) * 255.f)));
-        return 0;
+        lua_pushboolean(pState, 1);
+        return 1;
     }
 
     int CLuaUIHost::LuaRect(lua_State* pState)

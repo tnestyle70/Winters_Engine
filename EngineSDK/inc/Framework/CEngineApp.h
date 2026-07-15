@@ -63,6 +63,8 @@ private:
     bool m_bImGuiRuntimeEnabled = false;
     bool m_bGameInitialized = false;
     bool m_bShutdown = false;
+    bool m_bVSyncRequested = false;
+    bool m_bPresentationVSync = false;
     uint32 m_uTargetFPS = 60;
 
     static CEngineApp* m_spInstance;

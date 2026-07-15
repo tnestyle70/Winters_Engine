@@ -33,6 +33,16 @@ struct MatchRecord
 using ProfileCallback = function<void(const ProfileData&)>;
 using HistoryCallback = function<void(const vector<MatchRecord>&)>;
 
+struct MatchReportResult
+{
+	bool_t success = false;
+	i32_t  mmrChange = 0;
+	i32_t  rpReward = 0;
+	string error;
+};
+
+using MatchReportCallback = function<void(const MatchReportResult&)>;
+
 class CProfileClient
 {
 private:
@@ -43,6 +53,11 @@ public:
 	void SetAuthToken(const string& token);
 	void GetProfile(const string& userId, ProfileCallback callback);
 	void GetHistory(const string& userId, HistoryCallback callback);
+	// JWT claims 기반 자기 프로필/전적 (/profile/me, /profile/me/history) — user id를 보내지 않는다.
+	void GetMyProfile(ProfileCallback callback);
+	void GetMyHistory(HistoryCallback callback);
+	// 매치결과 자기신고 (POST /profile/me/matches, JWT claims 기반) — S035.
+	void ReportMyMatch(bool_t bVictory, MatchReportCallback callback);
 	void ProcessCallbacks();
 
 	static unique_ptr<CProfileClient> Create(const string& baseURL);

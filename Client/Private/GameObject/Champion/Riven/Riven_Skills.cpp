@@ -6,6 +6,7 @@
 #include "GamePlay/VisualHookRegistry.h"
 
 #include <Windows.h>
+#include <algorithm>
 #include <cstdio>
 
 namespace Riven
@@ -62,12 +63,12 @@ namespace Riven
         }
         else if (slot == static_cast<u8_t>(eSkillSlot::E))
         {
-            RivenFx::SpawnEShield(*ctx.pWorld, ctx.casterEntity, 1.5f,
+            RivenFx::SpawnEShield(*ctx.pWorld, ctx.casterEntity, 3.0f,
                 ctx.pFxMeshRenderer);
             if (pRivenState)
             {
                 pRivenState->fShieldRemaining = 70.f;
-                pRivenState->fShieldTimer = 1.5f;
+                pRivenState->fShieldTimer = 3.0f;
             }
         }
         else if (slot == static_cast<u8_t>(eSkillSlot::R))
@@ -99,9 +100,10 @@ namespace Riven::Visual
         if (!ctx.pWorld)
             return;
 
-        u8_t stackIdx = 0;
-        if (ctx.pWorld->HasComponent<RivenStateComponent>(ctx.casterEntity))
-            stackIdx = ctx.pWorld->GetComponent<RivenStateComponent>(ctx.casterEntity).qStackCount;
+        const u8_t stackIdx = static_cast<u8_t>(
+            ctx.skillStage > 0u
+                ? (std::min<u32_t>)(2u, static_cast<u32_t>(ctx.skillStage - 1u))
+                : 0u);
 
         RivenFx::SpawnQSlash(*ctx.pWorld, ctx.casterEntity, stackIdx, 0.4f,
             ctx.pFxMeshRenderer);
@@ -120,13 +122,12 @@ namespace Riven::Visual
         }
         else if (slot == static_cast<u8_t>(eSkillSlot::E))
         {
-            RivenFx::SpawnEShield(*ctx.pWorld, ctx.casterEntity, 1.5f,
+            RivenFx::SpawnEShield(*ctx.pWorld, ctx.casterEntity, 3.0f,
                 ctx.pFxMeshRenderer);
         }
         else if (slot == static_cast<u8_t>(eSkillSlot::R))
         {
-            if (ctx.pWorld->HasComponent<RivenStateComponent>(ctx.casterEntity) &&
-                ctx.pWorld->GetComponent<RivenStateComponent>(ctx.casterEntity).bUlted)
+            if (ctx.skillStage >= 2u)
             {
                 RivenFx::SpawnRWindSlash(*ctx.pWorld, ctx.casterEntity, 0.7f,
                     ctx.pFxMeshRenderer);

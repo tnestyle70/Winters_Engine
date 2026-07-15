@@ -21,6 +21,7 @@ enum class eSceneID : int
 	CustomMode,
 	BanPick,
 	Shop,
+	MyInfo,
 	MatchLoading,
 	InGame,
 	Editor,

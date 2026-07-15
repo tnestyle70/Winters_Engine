@@ -38,9 +38,13 @@ namespace UI
 
     struct MinimapProjection
     {
-        Vec2 vWorldAtUv00{ 104.50f, 181.02f };
-        Vec2 vWorldAtUv10{ 285.52f, 0.00f };
-        Vec2 vWorldAtUv01{ -76.52f, 0.00f };
+        // Z half-diagonal must equal the X half-diagonal (94.385) so the
+        // world->UV basis stays orthogonal and uniform (similarity, not shear).
+        // 156.69 inflated world-Z 1.66x and compressed top/bottom lanes toward
+        // the minimap center. Never retune one axis alone.
+        Vec2 vWorldAtUv00{ 104.50f, 94.385f };
+        Vec2 vWorldAtUv10{ 198.885f, 0.00f };
+        Vec2 vWorldAtUv01{ 10.115f, 0.00f };
     };
 
     struct MinimapFrameState
@@ -62,6 +66,8 @@ namespace UI
         std::vector<MinimapIconView> Icons;
     };
 
+    // Legacy-named accessor for the currently applied runtime projection.
+    // Startup/reset uses the S020 canonical uniform basis declared above.
     const MinimapProjection& GetDefaultMinimapProjection();
     Vec3 MinimapUvToWorld(
         const MinimapProjection& Projection,
@@ -91,6 +97,11 @@ namespace UI
     class CMinimapPanel
     {
     public:
+        static bool_t PrewarmChampionPortrait(eChampion champion);
+        static void PrewarmChampionPortraits();
+        static bool_t DrawTunerImGui(
+            bool_t bProjectionSyncAvailable,
+            MinimapProjection& OutAppliedProjection);
         static void RenderRuntime(const MinimapFrameState& State);
         static void ShutdownRuntime();
     };

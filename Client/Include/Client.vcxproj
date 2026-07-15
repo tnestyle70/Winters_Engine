@@ -83,7 +83,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>IMGUI_API=__declspec(dllimport);WIN32;NDEBUG;_WINDOWS;NOMINMAX;WINTERS_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>IMGUI_API=__declspec(dllimport);WIN32;NDEBUG;_WINDOWS;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
@@ -140,7 +140,6 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\GameObject\Champion\Jax\Jax_FxPresets.cpp" />
     <ClCompile Include="..\Private\GameObject\Champion\Jax\Jax_Skills.cpp" />
     <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_Registration.cpp" />
-    <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_FxPresets.cpp" />
     <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_Skills.cpp" />
     <ClCompile Include="..\Private\GameObject\Champion\Ashe\Ashe_Registration.cpp" />
     <ClCompile Include="..\Private\GameObject\Champion\Ashe\Ashe_FxPresets.cpp" />
@@ -196,6 +195,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\GamePlay\ChampionCatalog.cpp" />
     <ClCompile Include="..\Private\GamePlay\ChampionModuleBootstrap.cpp" />
     <ClCompile Include="..\Private\GamePlay\ChampionRegistry.cpp" />
+    <ClCompile Include="..\Private\GamePlay\ChampionSoundCatalog.cpp" />
     <ClCompile Include="..\Private\GamePlay\LoLMatchContextRuntime.cpp" />
     <ClCompile Include="..\Private\GamePlay\LoLUIContentRegistry.cpp" />
     <ClCompile Include="..\Private\GamePlay\CommandQueueComponent.cpp">
@@ -235,10 +235,13 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Network\Client\GameSessionClient.cpp" />
     <ClCompile Include="..\Private\Network\Client\NetworkEventTrace.cpp" />
     <ClCompile Include="..\Private\Network\Client\SnapshotApplier.cpp" />
+    <ClCompile Include="..\Private\Network\Client\UdpClient.cpp" />
+    <ClCompile Include="..\..\Shared\Network\UdpReliabilityChannel.cpp" />
     <ClCompile Include="..\Private\Network\Backend\CShopClient.cpp" />
     <ClCompile Include="..\Private\Network\Backend\MatchClient.cpp" />
     <ClCompile Include="..\Private\Network\Backend\PaymentClient.cpp" />
     <ClCompile Include="..\Private\Network\Backend\ProfileClient.cpp" />
+    <ClCompile Include="..\Private\Replay\LocalMatchRecord.cpp" />
     <ClCompile Include="..\Private\Replay\ReplayLibrary.cpp" />
     <ClCompile Include="..\Private\Replay\ReplayPlayer.cpp" />
     <ClCompile Include="..\Private\Scene\GameplayQuery.cpp" />
@@ -261,8 +264,14 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Scene\Scene_Login.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_MainMenu.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_MatchLoading.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_MyInfo.cpp" />
+    <ClCompile Include="..\Private\Scene\Scene_Shop.cpp" />
     <ClCompile Include="..\Private\UI\AIDebugPanel.cpp" />
+    <ClCompile Include="..\Private\UI\AiTraceExport.cpp" />
+    <ClCompile Include="..\Private\UI\AttackSpeedLab.cpp" />
+    <ClCompile Include="..\Private\UI\StructureTunerPanel.cpp" />
     <ClCompile Include="..\Private\UI\ChampionTuner.cpp" />
+    <ClCompile Include="..\Private\UI\ModelAnimPanel.cpp" />
     <ClCompile Include="..\Private\UI\CombatDebugPanel.cpp" />
     <ClCompile Include="..\Private\UI\DebugDrawSystem.cpp" />
     <ClCompile Include="..\Private\UI\EffectTuner.cpp" />
@@ -311,7 +320,6 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_Registration.h" />
     <ClInclude Include="..\Public\GameObject\Champion\Jax\Jax_Skills.h" />
     <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Components.h" />
-    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_FxPresets.h" />
     <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Registration.h" />
     <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Skills.h" />
     <ClInclude Include="..\Public\GameObject\Champion\Ashe\Ashe_Components.h" />
@@ -370,6 +378,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\GamePlay\ChampionCatalog.h" />
     <ClInclude Include="..\Public\GamePlay\ChampionModuleBootstrap.h" />
     <ClInclude Include="..\Public\GamePlay\ChampionRegistry.h" />
+    <ClInclude Include="..\Public\GamePlay\ChampionSoundCatalog.h" />
     <ClInclude Include="..\Public\GamePlay\LoLMatchContextRuntime.h" />
     <ClInclude Include="..\Public\GamePlay\LoLUIContentRegistry.h" />
     <ClInclude Include="..\Public\GamePlay\CommandQueueComponent.h" />
@@ -395,6 +404,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Network\Client\ClientNetwork.h" />
     <ClInclude Include="..\Public\Network\Client\CommandSerializer.h" />
     <ClInclude Include="..\Public\Network\Client\EventApplier.h" />
+    <ClInclude Include="..\Public\Network\Client\PresentationMutation.h" />
     <ClInclude Include="..\Public\Network\Client\GameSessionClient.h" />
     <ClInclude Include="..\Public\Network\Client\NetworkEventTrace.h" />
     <ClInclude Include="..\Public\Network\Client\SnapshotApplier.h" />
@@ -402,6 +412,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Network\Backend\MatchClient.h" />
     <ClInclude Include="..\Public\Network\Backend\PaymentClient.h" />
     <ClInclude Include="..\Public\Network\Backend\ProfileClient.h" />
+    <ClInclude Include="..\Public\Replay\LocalMatchRecord.h" />
     <ClInclude Include="..\Public\Replay\ReplayLibrary.h" />
     <ClInclude Include="..\Public\Replay\ReplayPlayer.h" />
     <ClInclude Include="..\Public\Scene\GameplayQuery.h" />
@@ -418,8 +429,14 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Scene\Scene_Login.h" />
     <ClInclude Include="..\Public\Scene\Scene_MainMenu.h" />
     <ClInclude Include="..\Public\Scene\Scene_MatchLoading.h" />
+    <ClInclude Include="..\Public\Scene\Scene_MyInfo.h" />
+    <ClInclude Include="..\Public\Scene\Scene_Shop.h" />
     <ClInclude Include="..\Public\UI\AIDebugPanel.h" />
+    <ClInclude Include="..\Public\UI\AiTraceExport.h" />
+    <ClInclude Include="..\Public\UI\AttackSpeedLab.h" />
+    <ClInclude Include="..\Public\UI\StructureTunerPanel.h" />
     <ClInclude Include="..\Public\UI\ChampionTuner.h" />
+    <ClInclude Include="..\Public\UI\ModelAnimPanel.h" />
     <ClInclude Include="..\Public\UI\CombatDebugPanel.h" />
     <ClInclude Include="..\Public\UI\DebugDrawSystem.h" />
     <ClInclude Include="..\Public\UI\EffectTuner.h" />

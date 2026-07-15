@@ -11,6 +11,14 @@
 
 namespace UI
 {
+    inline bool_t IsKalistaCarried(CWorld& world, EntityID entity)
+    {
+        return entity != NULL_ENTITY &&
+            world.HasComponent<ReplicatedStateComponent>(entity) &&
+            (world.GetComponent<ReplicatedStateComponent>(entity).stateFlags &
+                kSnapshotStateKalistaCarriedFlag) != 0u;
+    }
+
     inline u8_t QueryLocalTeam(CWorld& world)
     {
         u8_t localTeam = 0;
@@ -42,6 +50,9 @@ namespace UI
             return true;
 
         const SpatialAgentComponent& agent = world.GetComponent<SpatialAgentComponent>(entity);
+        if (IsKalistaCarried(world, entity))
+            return false;
+
         const bool_t bInvisible =
             world.HasComponent<ReplicatedStateComponent>(entity) &&
             (world.GetComponent<ReplicatedStateComponent>(entity).stateFlags &

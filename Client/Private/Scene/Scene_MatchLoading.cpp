@@ -11,6 +11,11 @@
 #include <string>
 #include <utility>
 
+#pragma push_macro("new")
+#undef new
+#include <imgui.h>
+#pragma pop_macro("new")
+
 namespace
 {
 	constexpr f32_t kChampionCardW = 154.f;
@@ -32,12 +37,31 @@ namespace
 		}
 		return false;
 	}
+
+	bool_t HasAuthoritativeLocalRosterIdentity(const MatchContext& context)
+	{
+		if (!HasRosterEntries(context) ||
+			context.MySessionId == 0u ||
+			context.MyNetId == 0u ||
+			context.MySlotId == kInvalidGameRosterSlot ||
+			context.MySlotId >= kGameRosterSlotCount)
+		{
+			return false;
+		}
+
+		const GameRosterSlot& localSlot = context.Roster[context.MySlotId];
+		return IsSlotOccupied(localSlot) &&
+			localSlot.bHuman &&
+			localSlot.sessionId == context.MySessionId &&
+			localSlot.netId == context.MyNetId;
+	}
 }
 
 bool CScene_MatchLoading::OnEnter()
 {
 	m_fElapsed = 0.f;
 	m_bTransitioning = false;
+	CGameInstance::Get()->SetLoadingCursorMode(true);
 	BuildChampionCards();
 	m_pLoader = Client::CLoader::Create(eSceneID::InGame, m_onLoaded);
 	return true;
@@ -47,6 +71,10 @@ void CScene_MatchLoading::OnExit()
 {
 	m_pLoader.reset();
 	ShutdownMatchLoadingTextures();
+	// InGame::OnEnter releases loading-cursor mode after its remaining bootstrap
+	// work, so the OS cursor does not disappear during the transition hitch.
+	if (!m_bTransitioning)
+		CGameInstance::Get()->SetLoadingCursorMode(false);
 }
 
 void CScene_MatchLoading::OnUpdate(f32_t dt)
@@ -56,12 +84,10 @@ void CScene_MatchLoading::OnUpdate(f32_t dt)
 
 	MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 	CGameSessionClient& session = CGameSessionClient::Instance();
-	const bool_t bNetworkLoading = context.bUseNetworkRoster && session.IsConnected();
+	const bool_t bNetworkMatch = context.bUseNetworkRoster;
+	const bool_t bNetworkLoading = bNetworkMatch && session.IsConnected();
 
 	m_fElapsed += dt;
-
-	if (m_pLoader && !m_pLoader->IsFinished())
-		m_pLoader->TickMainThreadLoad();
 
 	if (bNetworkLoading)
 	{
@@ -75,10 +101,27 @@ void CScene_MatchLoading::OnUpdate(f32_t dt)
 		}
 	}
 
+	// Service the authoritative session before a render-owner finalize step.
+	// A single model can still be expensive; network state must not wait behind it.
+	if (m_pLoader && !m_pLoader->HasFailed())
+		m_pLoader->TickMainThreadLoad();
+
 	if (m_fElapsed < m_fDuration)
 		return;
 
-	if (m_pLoader && !m_pLoader->IsFinished())
+	// Asset readiness alone is insufficient for a server-authoritative match.
+	// Keep the loading scene active until the final lobby roster and the local
+	// session/net identity agree; never silently fall through to an offline
+	// fallback after a disconnect or a delayed lobby frame.
+	if (bNetworkMatch &&
+		(!bNetworkLoading ||
+			!session.HasLobbyState() ||
+			!HasAuthoritativeLocalRosterIdentity(context)))
+	{
+		return;
+	}
+
+	if (m_pLoader && !m_pLoader->IsReadyToActivate())
 		return;
 
 	if (!m_pLoader && !m_onLoaded)
@@ -86,6 +129,12 @@ void CScene_MatchLoading::OnUpdate(f32_t dt)
 
 	m_bTransitioning = true;
 	auto pNext = m_pLoader ? m_pLoader->Build_NextScene() : m_onLoaded();
+	if (!pNext)
+	{
+		m_bTransitioning = false;
+		OutputDebugStringA("[Loading] in-game scene factory did not produce a valid scene\n");
+		return;
+	}
 	m_pLoader.reset();
 
 	CGameInstance::Get()->Change_Scene(
@@ -106,6 +155,22 @@ void CScene_MatchLoading::OnRender()
 
 void CScene_MatchLoading::OnImGui()
 {
+	if (!m_pLoader || !m_pLoader->HasFailed())
+		return;
+
+	const ImVec2 size(520.f, 96.f);
+	ImGui::SetNextWindowPos(
+		ImVec2((static_cast<f32_t>(g_iWinSizeX) - size.x) * 0.5f,
+			(static_cast<f32_t>(g_iWinSizeY) - size.y) * 0.5f),
+		ImGuiCond_Always);
+	ImGui::SetNextWindowSize(size, ImGuiCond_Always);
+	constexpr ImGuiWindowFlags flags =
+		ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoNav;
+	ImGui::Begin("##MatchLoadingFailure", nullptr, flags);
+	ImGui::TextUnformatted("Required game resources failed to prepare.");
+	ImGui::TextUnformatted("The game was not activated. Check Debug Output for [Loading].");
+	ImGui::End();
 }
 
 std::unique_ptr<CScene_MatchLoading> CScene_MatchLoading::Create(

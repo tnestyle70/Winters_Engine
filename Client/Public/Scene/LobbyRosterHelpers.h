@@ -6,6 +6,17 @@
 
 #include <cstddef>
 
+enum class eMatchLaunchRuntimeMode : u8_t
+{
+	ServerRequiredUnavailable = 0,
+	ServerConnected,
+	ExplicitLocalSmoke,
+};
+
+bool_t IsExplicitLocalOnlySmokeRequested();
+eMatchLaunchRuntimeMode ResolveMatchLaunchRuntimeMode(bool_t bServerConnected);
+bool_t CanLaunchLocalGameplay(eMatchLaunchRuntimeMode eMode);
+
 void EnsureLobbyChampionCatalogReady();
 u8_t GetTeamFromSlotId(u32_t slotId);
 const char* GetTeamLabel(u32_t slotId);

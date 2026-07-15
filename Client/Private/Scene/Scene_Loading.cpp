@@ -13,6 +13,7 @@ unique_ptr<CScene_Loading> CScene_Loading::Create(eSceneID eNextSceneID, SceneFa
 bool CScene_Loading::OnEnter()
 {
     m_bTransitioned = false;
+    CGameInstance::Get()->SetLoadingCursorMode(true);
     return true;
 }
 
@@ -20,19 +21,26 @@ void CScene_Loading::OnExit()
 {
     // Loader 소멸자가 Job 완료를 대기 (임시: 스핀 대기)
     m_pLoader.reset();
+    // Keep the native cursor alive through the synchronous InGame bootstrap.
+    // The last loading frame remains presented until OnEnter completes.
+    if (!m_bTransitioned || m_eNextSceneID != eSceneID::InGame)
+        CGameInstance::Get()->SetLoadingCursorMode(false);
 }
 
 void CScene_Loading::OnUpdate(f32_t /*dt*/)
 {
     if (!m_pLoader || m_bTransitioned) return;
 
-    if (!m_pLoader->IsFinished())
+    if (!m_pLoader->HasFailed())
         m_pLoader->TickMainThreadLoad();
 
-    if (m_pLoader->IsFinished())
+    if (m_pLoader->IsReadyToActivate())
     {
-        m_bTransitioned = true;
         auto pNext = m_pLoader->Build_NextScene();
+        if (!pNext)
+            return;
+
+        m_bTransitioned = true;
 
         CGameInstance::Get()->Change_Scene(
             static_cast<uint32_t>(m_pLoader->Get_NextSceneID()),
@@ -56,7 +64,10 @@ void CScene_Loading::OnImGui()
         ImGuiWindowFlags_NoBringToFrontOnFocus;
 
     ImGui::Begin("##Loading", nullptr, flags);
-    ImGui::Text("Loading Assets...");
+    ImGui::TextUnformatted(
+        m_pLoader && m_pLoader->HasFailed()
+            ? "Required assets failed to prepare. Check Debug Output."
+            : "Loading Assets...");
     ImGui::Separator();
 
     const f32_t fProgress = m_pLoader ? m_pLoader->Get_Progress() : 0.f;

@@ -73,6 +73,89 @@ void CProfileClient::GetHistory(const string & userId, HistoryCallback callback)
 		});
 }
 
+void CProfileClient::GetMyProfile(ProfileCallback callback)
+{
+	m_pHttp->AsyncGet("/profile/me", [callback](const HttpResponse& resp) {
+		ProfileData profile;
+		try
+		{
+			auto j = json::parse(resp.body);
+			if (!resp.success)
+			{
+				profile.error = j.value("error", "");
+				callback(profile);
+				return;
+			}
+			auto data = j["data"];
+			profile.userId = data.value("user_id", "");
+			profile.username = data.value("username", "");
+			profile.mmr = data.value("mmr", 0);
+			profile.rank = data.value("rank", 0);
+			profile.wins = data.value("wins", 0);
+			profile.losses = data.value("losses", 0);
+			profile.kills = data.value("kills", 0);
+			profile.deaths = data.value("deaths", 0);
+			profile.assists = data.value("assists", 0);
+		}
+		catch (const json::exception& e) { profile.error = e.what(); }
+		callback(profile);
+		});
+}
+
+void CProfileClient::GetMyHistory(HistoryCallback callback)
+{
+	m_pHttp->AsyncGet("/profile/me/history", [callback](const HttpResponse& resp) {
+		vector<MatchRecord> records;
+		try
+		{
+			auto j = json::parse(resp.body);
+			if (!resp.success || !j.contains("data"))
+			{
+				callback(records);
+				return;
+			}
+			for (const auto& item : j["data"])
+			{
+				MatchRecord rec;
+				rec.matchId = item.value("match_id", "");
+				rec.result = item.value("result", "");
+				rec.kills = item.value("kills", 0);
+				rec.deaths = item.value("deaths", 0);
+				rec.assists = item.value("assists", 0);
+				rec.mmrChange = item.value("mmr_change", 0);
+				records.push_back(rec);
+			}
+		}
+		catch (...) {}
+		callback(records);
+		});
+}
+
+void CProfileClient::ReportMyMatch(bool_t bVictory, MatchReportCallback callback)
+{
+	json body;
+	body["result"] = bVictory ? "win" : "loss";
+	m_pHttp->AsyncPost("/profile/me/matches", body.dump(), [callback](const HttpResponse& resp) {
+		MatchReportResult result;
+		try
+		{
+			auto j = json::parse(resp.body);
+			if (!resp.success)
+			{
+				result.error = j.value("error", "report failed");
+				callback(result);
+				return;
+			}
+			auto data = j["data"];
+			result.success = true;
+			result.mmrChange = data.value("mmr_change", 0);
+			result.rpReward = data.value("rp_reward", 0);
+		}
+		catch (const json::exception& e) { result.error = e.what(); }
+		callback(result);
+		});
+}
+
 void CProfileClient::ProcessCallbacks()
 {
 	m_pHttp->ProcessCallbacks();

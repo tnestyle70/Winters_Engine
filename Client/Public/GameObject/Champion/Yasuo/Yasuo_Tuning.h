@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Defines.h"
-#include "WintersMath.h"
 
 namespace Yasuo
 {
@@ -11,11 +10,11 @@ namespace Yasuo
         f32_t qLifetime = 0.5f;
         f32_t qTornadoSpeed = 18.f;
         f32_t qTornadoLifetime = 1.5f;
-        f32_t qTornadoScale = 0.02f;
-        f32_t wLifetime = 5.0f;
-        f32_t wWidth = 6.0f;
+        f32_t wLifetime = 4.0f;
+        f32_t wWidth = 3.2f;
         f32_t wHeight = 0.5f;
         f32_t eDashDuration = 0.25f;
+        f32_t eTargetReuseDuration = 10.0f;
         f32_t rSearchRadius = 8.f;
         f32_t rSequenceDuration = 1.0f;
 
@@ -25,7 +24,6 @@ namespace Yasuo
         f32_t eDamage = 80.f;
         f32_t rPerHitDamage = 40.f;
         f32_t rHitInterval = 0.2f;
-        Vec4 qTornadoColor{ 1.0f, 1.4f, 2.2f, 1.0f };
         f32_t wMeshScale = 0.01f;
 
         f32_t qHitDelay = 0.25f;

@@ -184,6 +184,7 @@ void CScene_Editor::OnRender()
 
     CStructure_Manager::Get()->Render(matVP);
     CJungle_Manager::Get()->Render(matVP);
+    CBush_Manager::Get()->Render(matVP, m_pCamera->GetEye());
     CBush_Manager::Get()->RenderEditorOverlay(
         matVP,
         (m_eSelectedCategory == eCategory::Bush) ? m_iSelectedIndex : -1);

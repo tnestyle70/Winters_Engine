@@ -22,6 +22,7 @@ struct VisualHookContext
 	u8_t skillStage = 1;
 	std::string* pKeyOut = nullptr; //keyswap channel
 	Engine::CFxStaticMeshRenderer* pFxMeshRenderer = nullptr;
+	bool_t bAuthoritativeEvent = false;
 };
 
 class CVisualHookRegistry

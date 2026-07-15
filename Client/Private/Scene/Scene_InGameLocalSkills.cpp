@@ -83,6 +83,7 @@
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/PoseStateComponent.h"
 #include "Shared/GameSim/Components/RecallComponent.h"
@@ -247,21 +248,6 @@ namespace
         }
 
         return legacyDef.lockDurationSec;
-    }
-
-    bool_t IsMoveBlockingNetworkActionId(u16_t actionId)
-    {
-        switch (static_cast<eActionStateId>(actionId))
-        {
-        case eActionStateId::SkillQ:
-        case eActionStateId::SkillW:
-        case eActionStateId::SkillE:
-        case eActionStateId::SkillR:
-        case eActionStateId::ViegoConsumeSoul:
-            return true;
-        default:
-            return false;
-        }
     }
 
     SkillDef BuildLegacyHookBridge(
@@ -718,6 +704,12 @@ void CScene_InGame::UpdateChampionStateTimers(f32_t dt)
 
 void CScene_InGame::UpdateLocalChampionRuntime(f32_t dt)
 {
+    if (m_bAnnieTibbersCommandMode &&
+        ResolveOwnedTibbersEntity() == NULL_ENTITY)
+    {
+        m_bAnnieTibbersCommandMode = false;
+    }
+
     if (m_pIreliaBladeSystem)
         m_pIreliaBladeSystem->Execute(m_World, dt);
     if (m_pWindWallSystem)
@@ -731,14 +723,17 @@ void CScene_InGame::UpdateLocalChampionRuntime(f32_t dt)
     if (m_bYasuoRActive)
         UpdateLocalUltimateSequence(dt);
 
-    if (m_pPendingHitSystem)
-        m_pPendingHitSystem->Execute(m_World, dt);
-    if (m_pYasuoProjectileSystem)
-        m_pYasuoProjectileSystem->Execute(m_World, dt);
-    if (m_pKalistaProjectileSystem)
-        m_pKalistaProjectileSystem->Execute(m_World, dt);
-    if (m_pKalistaRendSystem)
-        m_pKalistaRendSystem->Execute(m_World, dt);
+    if (!m_bNetworkAuthoritativeGameplay)
+    {
+        if (m_pPendingHitSystem)
+            m_pPendingHitSystem->Execute(m_World, dt);
+        if (m_pYasuoProjectileSystem)
+            m_pYasuoProjectileSystem->Execute(m_World, dt);
+        if (m_pKalistaProjectileSystem)
+            m_pKalistaProjectileSystem->Execute(m_World, dt);
+        if (m_pKalistaRendSystem)
+            m_pKalistaRendSystem->Execute(m_World, dt);
+    }
 
     Irelia::UpdateLocalBladeState(
         m_World,
@@ -768,32 +763,70 @@ bool_t CScene_InGame::IsPlayerNetworkMoveInputLocked() const
     if (!m_bNetworkAuthoritativeGameplay)
         return false;
 
-    if (m_fNetworkMoveInputLockTimer > 0.f)
-        return true;
-
     if (m_PlayerEntity == NULL_ENTITY)
         return false;
 
-    const auto it = m_NetworkActionAnimStates.find(m_PlayerEntity);
-    return it != m_NetworkActionAnimStates.end() &&
-        it->second.bActionActive &&
-        IsMoveBlockingNetworkActionId(it->second.actionId);
+    if (m_World.HasComponent<GameplayStateComponent>(m_PlayerEntity))
+    {
+        const auto& gameplay =
+            m_World.GetComponent<GameplayStateComponent>(m_PlayerEntity);
+        if ((gameplay.stateFlags & kGameplayStateCannotMoveFlag) != 0u)
+            return true;
+    }
+
+    if (!m_World.HasComponent<ActionStateComponent>(m_PlayerEntity))
+        return false;
+
+    const auto& action = m_World.GetComponent<ActionStateComponent>(m_PlayerEntity);
+    if (action.movePolicy == eSkillActionMovePolicy::Allow)
+        return false;
+
+    const u64_t serverTick = m_pSnapshotApplier
+        ? m_pSnapshotApplier->GetLastAppliedServerTick()
+        : 0u;
+    const bool_t bLocked = serverTick < action.lockEndTick;
+#if defined(_DEBUG)
+    if (bLocked)
+    {
+        static u32_t s_uMoveLockTraceCount = 0u;
+        if (s_uMoveLockTraceCount < 64u)
+        {
+            char trace[224]{};
+            sprintf_s(
+                trace,
+                "[NetworkMoveLock] entity=%u serverTick=%llu lockEnd=%llu action=%u actionSeq=%u policy=%u\n",
+                static_cast<u32_t>(m_PlayerEntity),
+                static_cast<unsigned long long>(serverTick),
+                static_cast<unsigned long long>(action.lockEndTick),
+                static_cast<u32_t>(action.actionId),
+                action.sequence,
+                static_cast<u32_t>(action.movePolicy));
+            OutputDebugStringA(trace);
+            ++s_uMoveLockTraceCount;
+        }
+    }
+#endif
+    return bLocked;
 }
 
-void CScene_InGame::ArmNetworkMoveInputLock(
-    const SkillGameAtomBundle& gameData,
-    const SkillDef& legacyDef,
-    u8_t skillStage)
+EntityID CScene_InGame::ResolveOwnedTibbersEntity() const
 {
-    if (!m_bNetworkAuthoritativeGameplay)
-        return;
+    if (m_PlayerEntity == NULL_ENTITY ||
+        !m_World.HasComponent<AnnieSimComponent>(m_PlayerEntity))
+    {
+        return NULL_ENTITY;
+    }
 
-    if (gameData.slot.slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
-        return;
-
-    const f32_t lockSec = ResolveSkillStageLockSec(gameData, legacyDef, skillStage);
-    if (lockSec > 0.f)
-        m_fNetworkMoveInputLockTimer = (std::max)(m_fNetworkMoveInputLockTimer, lockSec);
+    const EntityID tibbers =
+        m_World.GetComponent<AnnieSimComponent>(m_PlayerEntity).tibbersEntity;
+    if (tibbers == NULL_ENTITY ||
+        !m_World.IsAlive(tibbers) ||
+        !m_World.HasComponent<AnnieTibbersComponent>(tibbers) ||
+        m_World.GetComponent<AnnieTibbersComponent>(tibbers).owner != m_PlayerEntity)
+    {
+        return NULL_ENTITY;
+    }
+    return tibbers;
 }
 
 void CScene_InGame::UpdateLocalPostAnimation()
@@ -1279,12 +1312,11 @@ bool_t CScene_InGame::IssuePlayerMoveTarget(
 {
     if (IsPlayerDead())
         return false;
-    if (bNetworkActive &&
+
+    const bool_t bQueueOnly =
+        bNetworkActive &&
         IsPlayerNetworkMoveInputLocked() &&
-        !m_bKalistaPassiveDashMoveCommandPending)
-    {
-        return false;
-    }
+        !m_bKalistaPassiveDashMoveCommandPending;
 
     Vec3 ground = rawGround;
     Vec3 resolvedGround = ground;
@@ -1296,6 +1328,26 @@ bool_t CScene_InGame::IssuePlayerMoveTarget(
 
     if (!TryResolveWalkableMoveTarget(ground, resolvedGround, &predictedFacingTarget))
         return false;
+
+    if (bNetworkActive && m_bAnnieTibbersCommandMode)
+    {
+        if (ResolveOwnedTibbersEntity() == NULL_ENTITY ||
+            !m_pCommandSerializer ||
+            !m_pNetworkView)
+        {
+            m_bAnnieTibbersCommandMode = false;
+            return false;
+        }
+
+        if (bSpawnIndicator)
+            SpawnMovementIndicator(*this, resolvedGround);
+        m_pCommandSerializer->SendCompanionCommand(
+            *m_pNetworkView,
+            NULL_NET_ENTITY,
+            resolvedGround,
+            eCompanionCommandMode::Move);
+        return true;
+    }
 
     Vec3 moveIntent = ground;
     predictedFacingTarget = moveIntent;
@@ -1364,7 +1416,7 @@ bool_t CScene_InGame::IssuePlayerMoveTarget(
                 *m_pNetworkView,
                 moveIntent,
                 moveFacingDirection);
-        if (moveSeq != 0u)
+        if (moveSeq != 0u && !bQueueOnly)
         {
             RecordNetworkMovePrediction(
                 moveSeq,
@@ -1404,7 +1456,7 @@ bool_t CScene_InGame::IssuePlayerMoveTarget(
                 }
             }
         }
-        else
+        else if (!bQueueOnly)
         {
             f32_t predictedYaw = 0.f;
             if (PredictLocalMoveYaw(predictedFacingTarget, predictedYaw) &&
@@ -1416,7 +1468,7 @@ bool_t CScene_InGame::IssuePlayerMoveTarget(
                     predictedYaw);
             }
         }
-        if (m_PlayerEntity != NULL_ENTITY)
+        if (!bQueueOnly && m_PlayerEntity != NULL_ENTITY)
         {
             f32_t& moveGrace =
                 m_NetworkChampionMoveGraceSec[m_PlayerEntity];
@@ -1434,6 +1486,9 @@ bool_t CScene_InGame::IssuePlayerMoveTarget(
             }
             m_bMoving = true;
         }
+
+        if (bQueueOnly)
+            return moveSeq != 0u;
     }
 
     m_vPlayerDest = resolvedGround;
@@ -1487,9 +1542,6 @@ void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t 
     }
 
     const bool_t bActionLocked = (m_fLastActionTimer > 0.f);
-    const bool_t bNetworkMoveInputLocked =
-        bNetworkActive && IsPlayerNetworkMoveInputLocked();
-
     if (m_pPlayerRenderer &&
         (!bNetworkActive || m_bKalistaPassiveDashAnimActive))
     {
@@ -1540,7 +1592,7 @@ void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t 
         if (!bImGuiMouse &&
             !bSkipGroundMove &&
             (bNetworkActive
-                ? (!bNetworkMoveInputLocked || m_bKalistaPassiveDashMoveCommandPending)
+                ? true
                 : !bActionLocked) &&
             !m_bKalistaPassiveDashActive &&
             !bPassiveDashAnimBlocksMove &&
@@ -1756,6 +1808,25 @@ void CScene_InGame::UpdatePlayerControl(f32_t dt, bool_t bNetworkActive, bool_t 
             && !bActionLocked
             && m_pPlayerRenderer)
         {
+#if defined(_DEBUG)
+            if (m_ActiveSkill.bActive && m_ActiveSkill.bCastFrameFired)
+            {
+                char trace[192]{};
+                sprintf_s(
+                    trace,
+                    "[SkillRuntime] action lock ended champ=%u slot=%u frame=%.2f recovery=%.2f\n",
+                    static_cast<u32_t>(m_ActiveSkill.champion),
+                    static_cast<u32_t>(m_ActiveSkill.slot),
+                    m_ActiveSkill.prevFrame,
+                    m_ActiveSkill.legacyHookBridge.visualRecoveryFrame);
+                OutputDebugStringA(trace);
+            }
+#endif
+            // The base animation replaces the one-shot below. Do not leave a
+            // frame-event runtime attached to the new idle/run animation.
+            if (m_ActiveSkill.bActive && m_ActiveSkill.bCastFrameFired)
+                ClearActiveSkillRuntime();
+
             const char* pTransition = nullptr;
             f32_t fDur = 0.f;
             if (m_bHasLastSkillVisual)
@@ -1933,6 +2004,26 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
     if (IsPlayerDead())
         return false;
 
+    if (m_bNetworkAuthoritativeGameplay &&
+        slot == static_cast<uint8_t>(eSkillSlot::R))
+    {
+        if (ResolveOwnedTibbersEntity() != NULL_ENTITY)
+        {
+            m_bAnnieTibbersCommandMode = !m_bAnnieTibbersCommandMode;
+            if (m_pPlayerRenderer &&
+                m_pPlayerRenderer->HasAnimationByName("annie_2012_spell4"))
+            {
+                m_pPlayerRenderer->PlayAnimationByNameAdvanced(
+                    "annie_2012_spell4",
+                    false,
+                    false,
+                    1.f);
+            }
+            return true;
+        }
+        m_bAnnieTibbersCommandMode = false;
+    }
+
     if (!m_pPlayerRenderer || m_PlayerEntity == NULL_ENTITY)
     {
         Winters::DevSmoke::Log(
@@ -1943,9 +2034,15 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
         return false;
     }
 
-    if (slot == static_cast<uint8_t>(eSkillSlot::BasicAttack)
-        && m_World.HasComponent<DisarmComponent>(m_PlayerEntity))
+    if (slot == static_cast<uint8_t>(eSkillSlot::BasicAttack))
+    {
+        if (!GameplayStateQuery::CanAttack(m_World, m_PlayerEntity))
+            return false;
+    }
+    else if (!GameplayStateQuery::CanCast(m_World, m_PlayerEntity))
+    {
         return false;
+    }
 
     using namespace Engine;
     eChampion champ = GetPlayerChampionId();
@@ -2034,7 +2131,6 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
             RotatePlayerToward(gameData.facing, 2, cmd);
 
         SendNetworkSkillCommand(slot, cmd, 2);
-        ArmNetworkMoveInputLock(gameData, *def, 2);
         if (bRequestedStage2 && !bLocalStage2Ready)
         {
             Winters::DevSmoke::Log(
@@ -2082,7 +2178,6 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
     {
         RotatePlayerToward(gameData.facing, 1, cmd);
         SendNetworkSkillCommand(slot, cmd, 1);
-        ArmNetworkMoveInputLock(gameData, *def, 1);
         if (gameData.stage.stageCount == 2)
         {
             slotState.currentStage = 1;
@@ -2298,7 +2393,9 @@ void CScene_InGame::ApplyLocalPrediction(
         const bool hasLegacyAcceptedHook =
             CSkillHookRegistry::Instance().Has(bridge.onCastAcceptedHookId);
         const bool suppressVisualAcceptedForLegacy =
-            hasLegacyAcceptedHook && bridge.champ == eChampion::IRELIA;
+            hasLegacyAcceptedHook &&
+            (bridge.champ == eChampion::IRELIA ||
+                bridge.champ == eChampion::YASUO);
         bool visualAcceptedHandled = false;
         if (!suppressVisualAcceptedForLegacy)
         {

@@ -10,6 +10,7 @@
 #include "Renderer/FogOfWarRenderer.h"
 #include "Resource/Texture.h"
 #include "Scene/LobbyRosterHelpers.h"
+#include "Scene/RenderVisibilityFilter.h"
 
 #include <algorithm>
 #include <cmath>
@@ -18,14 +19,67 @@
 #include <string>
 #include <unordered_map>
 
+#pragma push_macro("new")
+#undef new
+#include <imgui.h>
+#pragma pop_macro("new")
+
 namespace
 {
     constexpr const wchar_t* kPathMinimapBase =
         L"Resource/Texture/UI/InGameUI/minimap_base_clean.png";
     const Vec4 kUVFull{ 0.f, 0.f, 1.f, 1.f };
 
+    constexpr f32_t kCanonicalProjectionCenterX = 104.50f;
+    constexpr f32_t kCanonicalProjectionCenterZ = 0.f;
+    constexpr f32_t kCanonicalProjectionExtent = 94.385f;
+    constexpr f32_t kMinProjectionExtent = 70.f;
+    constexpr f32_t kMaxProjectionExtent = 160.f;
+
+    struct MinimapRuntimeLayout
+    {
+        f32_t ViewportHeightRatio = 0.35f;
+        f32_t RightPadding = 12.f;
+        f32_t BottomPadding = 12.f;
+        f32_t IconScale = 1.f;
+        f32_t ChampionScale = 2.f;
+    };
+
     std::unique_ptr<Engine::CTexture> s_pMinimapBaseTexture;
     const UI::MinimapProjection kDefaultProjection{};
+    UI::MinimapProjection s_RuntimeProjection = kDefaultProjection;
+    f32_t s_fRuntimeProjectionExtent = kCanonicalProjectionExtent;
+    u32_t s_iRuntimeProjectionRevision = 0u;
+    MinimapRuntimeLayout s_MinimapLayout{};
+    u64_t s_iPortraitLoadFailuresSinceLastRender = 0u;
+
+    UI::MinimapProjection BuildUniformMinimapProjection(f32_t fExtent)
+    {
+        const f32_t fClampedExtent = std::clamp(
+            fExtent, kMinProjectionExtent, kMaxProjectionExtent);
+        UI::MinimapProjection Projection{};
+        Projection.vWorldAtUv00 = {
+            kCanonicalProjectionCenterX,
+            kCanonicalProjectionCenterZ + fClampedExtent };
+        Projection.vWorldAtUv10 = {
+            kCanonicalProjectionCenterX + fClampedExtent,
+            kCanonicalProjectionCenterZ };
+        Projection.vWorldAtUv01 = {
+            kCanonicalProjectionCenterX - fClampedExtent,
+            kCanonicalProjectionCenterZ };
+        return Projection;
+    }
+
+    void ApplyRuntimeMinimapProjection()
+    {
+        s_fRuntimeProjectionExtent = std::clamp(
+            s_fRuntimeProjectionExtent,
+            kMinProjectionExtent,
+            kMaxProjectionExtent);
+        s_RuntimeProjection = BuildUniformMinimapProjection(
+            s_fRuntimeProjectionExtent);
+        ++s_iRuntimeProjectionRevision;
+    }
 
     bool_t EnsureMinimapBaseTexture()
     {
@@ -69,13 +123,22 @@ namespace
 
         const wchar_t* pPath = GetRosterChampionPortraitPath(champion);
         if (!pPath)
+        {
+            ++s_iPortraitLoadFailuresSinceLastRender;
             return nullptr;
+        }
 
         auto tex = Engine::CTexture::Create(
             pDevice,
             std::wstring(pPath),
             Engine::eTexSamplerMode::Clamp,
             Engine::eTexColorSpace::IgnoreSRGB);
+        if (!tex)
+        {
+            ++s_iPortraitLoadFailuresSinceLastRender;
+            return nullptr;
+        }
+
         Engine::CTexture* pRaw = tex.get();
         s_ChampionPortraits.emplace(champion, std::move(tex));
         return pRaw;
@@ -130,19 +193,28 @@ namespace
             : Vec4{ 1.f, 0.18f, 0.16f, 1.f };
     }
 
-    f32_t ResolveIconRadius(UI::eMinimapIconKind eKind)
+    f32_t ResolveIconRadius(
+        UI::eMinimapIconKind eKind,
+        f32_t fPanelSide)
     {
+        f32_t fBaseRadius = 2.8f;
         switch (eKind)
         {
-        case UI::eMinimapIconKind::Champion: return 5.5f;
-        case UI::eMinimapIconKind::Nexus: return 5.5f;
-        case UI::eMinimapIconKind::Inhibitor: return 4.8f;
-        case UI::eMinimapIconKind::Turret: return 4.2f;
-        case UI::eMinimapIconKind::JungleMob: return 3.6f;
-        case UI::eMinimapIconKind::Minion: return 2.4f;
-        case UI::eMinimapIconKind::Ward: return 2.6f;
-        default: return 2.8f;
+        case UI::eMinimapIconKind::Champion: fBaseRadius = 5.5f; break;
+        case UI::eMinimapIconKind::Nexus: fBaseRadius = 5.5f; break;
+        case UI::eMinimapIconKind::Inhibitor: fBaseRadius = 4.8f; break;
+        case UI::eMinimapIconKind::Turret: fBaseRadius = 4.2f; break;
+        case UI::eMinimapIconKind::JungleMob: fBaseRadius = 3.6f; break;
+        case UI::eMinimapIconKind::Minion: fBaseRadius = 2.4f; break;
+        case UI::eMinimapIconKind::Ward: fBaseRadius = 2.6f; break;
+        default: break;
         }
+
+        const f32_t fPanelScale = (std::max)(0.35f, fPanelSide / 252.f);
+        const f32_t fChampionScale = eKind == UI::eMinimapIconKind::Champion
+            ? s_MinimapLayout.ChampionScale
+            : 1.f;
+        return fBaseRadius * fPanelScale * s_MinimapLayout.IconScale * fChampionScale;
     }
 
     bool_t WorldToMinimap(
@@ -176,9 +248,21 @@ namespace
         if (!State.bShow || State.fScreenWidth <= 0.f || State.fScreenHeight <= 0.f)
             return false;
 
-        fOutSide = (std::max)(96.f, (std::min)(State.fSize, State.fScreenHeight - 24.f));
-        fOutX = State.fScreenWidth - State.fRightPadding - fOutSide;
-        fOutY = State.fScreenHeight - State.fBottomPadding - fOutSide;
+        const f32_t fRightPadding = std::clamp(
+            s_MinimapLayout.RightPadding, 0.f, (std::max)(0.f, State.fScreenWidth - 96.f));
+        const f32_t fBottomPadding = std::clamp(
+            s_MinimapLayout.BottomPadding, 0.f, (std::max)(0.f, State.fScreenHeight - 96.f));
+        const f32_t fRequestedSide = State.fScreenHeight *
+            std::clamp(s_MinimapLayout.ViewportHeightRatio, 0.18f, 0.55f);
+        const f32_t fAvailableSide = (std::max)(0.f, (std::min)(
+            State.fScreenWidth - fRightPadding,
+            State.fScreenHeight - fBottomPadding));
+        if (fAvailableSide < 96.f)
+            return false;
+
+        fOutSide = (std::max)(96.f, (std::min)(fRequestedSide, fAvailableSide));
+        fOutX = State.fScreenWidth - fRightPadding - fOutSide;
+        fOutY = State.fScreenHeight - fBottomPadding - fOutSide;
         return fOutX >= 0.f && fOutY >= 0.f;
     }
 
@@ -259,22 +343,23 @@ namespace
             Vec4{ 1.f, 1.f, 1.f, 0.96f });
     }
 
-    void DrawIcon(const UI::MinimapIconView& Icon, f32_t fCenterX, f32_t fCenterY)
+    bool_t DrawIcon(
+        const UI::MinimapIconView& Icon,
+        f32_t fCenterX,
+        f32_t fCenterY,
+        f32_t fPanelSide)
     {
         CGameInstance* pGameInstance = CGameInstance::Get();
         if (!pGameInstance)
-            return;
+            return false;
 
-        const f32_t fRadius = ResolveIconRadius(Icon.eKind);
+        const f32_t fRadius = ResolveIconRadius(Icon.eKind, fPanelSide);
         const Vec4 vBorder{ 0.015f, 0.018f, 0.022f, 0.94f };
         const Vec4 vFill = ResolveIconColor(Icon);
 
-        const bool_t bRect =
-            Icon.eKind == UI::eMinimapIconKind::Turret ||
-            Icon.eKind == UI::eMinimapIconKind::Inhibitor ||
-            Icon.eKind == UI::eMinimapIconKind::Nexus;
+        const bool_t bChampion = Icon.eKind == UI::eMinimapIconKind::Champion;
 
-        if (bRect)
+        if (!bChampion)
         {
             pGameInstance->UI_Draw_RawImage(
                 nullptr,
@@ -292,7 +377,7 @@ namespace
                 fRadius * 2.f,
                 kUVFull,
                 vFill);
-            return;
+            return false;
         }
 
         pGameInstance->UI_Draw_RawImageCircle(
@@ -306,11 +391,8 @@ namespace
             28);
 
         void* pPortraitSRV = nullptr;
-        if (Icon.eKind == UI::eMinimapIconKind::Champion)
-        {
-            if (Engine::CTexture* pPortrait = EnsureChampionPortrait(Icon.eChampionId))
-                pPortraitSRV = pPortrait->GetNativeSRV();
-        }
+        if (Engine::CTexture* pPortrait = EnsureChampionPortrait(Icon.eChampionId))
+            pPortraitSRV = pPortrait->GetNativeSRV();
 
         if (pPortraitSRV)
         {
@@ -326,19 +408,19 @@ namespace
                 kUVFull,
                 vTint,
                 40);
+            return true;
         }
-        else
-        {
-            pGameInstance->UI_Draw_RawImageCircle(
-                nullptr,
-                fCenterX - fRadius,
-                fCenterY - fRadius,
-                fRadius * 2.f,
-                fRadius * 2.f,
-                kUVFull,
-                vFill,
-                28);
-        }
+
+        pGameInstance->UI_Draw_RawImageCircle(
+            nullptr,
+            fCenterX - fRadius,
+            fCenterY - fRadius,
+            fRadius * 2.f,
+            fRadius * 2.f,
+            kUVFull,
+            vFill,
+            28);
+        return false;
     }
 }
 
@@ -346,7 +428,7 @@ namespace UI
 {
     const MinimapProjection& GetDefaultMinimapProjection()
     {
-        return kDefaultProjection;
+        return s_RuntimeProjection;
     }
 
     Vec3 MinimapUvToWorld(
@@ -439,6 +521,15 @@ namespace UI
                 [&](EntityID Entity, TransformComponent& Transform,
                     SpatialAgentComponent& Agent, VisibilityComponent& Visibility)
                 {
+                    if (!UI::IsRenderableForLocal(
+                        World,
+                        Entity,
+                        OutState.iLocalTeam,
+                        bRevealAll))
+                    {
+                        return;
+                    }
+
                     const eMinimapIconKind eIconKind = ResolveMinimapIconKind(Agent.kind);
                     if (eIconKind == eMinimapIconKind::Unknown)
                         return;
@@ -469,6 +560,113 @@ namespace UI
 
                     OutState.Icons.push_back(Icon);
                 }));
+    }
+
+    bool_t CMinimapPanel::PrewarmChampionPortrait(eChampion champion)
+    {
+        return EnsureMinimapBaseTexture() && EnsureChampionPortrait(champion) != nullptr;
+    }
+
+    void CMinimapPanel::PrewarmChampionPortraits()
+    {
+        const u32_t iFirstChampion = static_cast<u32_t>(eChampion::IRELIA);
+        const u32_t iLastChampion = static_cast<u32_t>(eChampion::LEESIN);
+        for (u32_t iChampion = iFirstChampion; iChampion <= iLastChampion; ++iChampion)
+            (void)PrewarmChampionPortrait(static_cast<eChampion>(iChampion));
+    }
+
+    bool_t CMinimapPanel::DrawTunerImGui(
+        bool_t bProjectionSyncAvailable,
+        MinimapProjection& OutAppliedProjection)
+    {
+        bool_t bProjectionChanged = false;
+        OutAppliedProjection = s_RuntimeProjection;
+
+        ImGui::SetNextWindowSize(ImVec2(380.f, 440.f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSizeConstraints(
+            ImVec2(340.f, 280.f),
+            ImVec2(560.f, 720.f));
+        if (!ImGui::Begin("Minimap Layout"))
+        {
+            ImGui::End();
+            return false;
+        }
+
+        ImGui::PushID("MinimapLayout");
+        ImGui::PushItemWidth(-155.f);
+        ImGui::SliderFloat(
+            "Viewport Height Ratio",
+            &s_MinimapLayout.ViewportHeightRatio,
+            0.18f,
+            0.55f,
+            "%.2f");
+        ImGui::SliderFloat(
+            "Right Padding",
+            &s_MinimapLayout.RightPadding,
+            0.f,
+            64.f,
+            "%.0f px");
+        ImGui::SliderFloat(
+            "Bottom Padding",
+            &s_MinimapLayout.BottomPadding,
+            0.f,
+            64.f,
+            "%.0f px");
+        ImGui::SliderFloat(
+            "Icon Scale",
+            &s_MinimapLayout.IconScale,
+            0.65f,
+            2.f,
+            "%.2f");
+        ImGui::SliderFloat(
+            "Champion Scale",
+            &s_MinimapLayout.ChampionScale,
+            0.75f,
+            3.f,
+            "%.2f");
+        ImGui::SeparatorText("World Projection (Top / Bottom)");
+        ImGui::TextWrapped(
+            "S020 uniform basis: one extent moves render, click, camera bounds, and FoW together.");
+
+        ImGui::BeginDisabled(!bProjectionSyncAvailable);
+        f32_t fEditedExtent = s_fRuntimeProjectionExtent;
+        if (ImGui::SliderFloat(
+                "World Extent",
+                &fEditedExtent,
+                kMinProjectionExtent,
+                kMaxProjectionExtent,
+                "%.3f world"))
+        {
+            s_fRuntimeProjectionExtent = fEditedExtent;
+            ApplyRuntimeMinimapProjection();
+            OutAppliedProjection = s_RuntimeProjection;
+            bProjectionChanged = true;
+        }
+        ImGui::TextDisabled(
+            "smaller = outward, larger = inward | revision %u",
+            s_iRuntimeProjectionRevision);
+        ImGui::PopItemWidth();
+
+        if (ImGui::Button("Reset S020 Projection"))
+        {
+            s_fRuntimeProjectionExtent = kCanonicalProjectionExtent;
+            ApplyRuntimeMinimapProjection();
+            OutAppliedProjection = s_RuntimeProjection;
+            bProjectionChanged = true;
+        }
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button("Reset Panel / Icons"))
+            s_MinimapLayout = {};
+        if (!bProjectionSyncAvailable)
+        {
+            ImGui::TextColored(
+                ImVec4(1.f, 0.45f, 0.25f, 1.f),
+                "Projection/FoW sync unavailable");
+        }
+        ImGui::PopID();
+        ImGui::End();
+        return bProjectionChanged;
     }
 
     void CMinimapPanel::RenderRuntime(const MinimapFrameState& State)
@@ -548,10 +746,13 @@ namespace UI
             WINTERS_PROFILE_SCOPE("Minimap::Icons");
             for (const MinimapIconView& Icon : State.Icons)
             {
+                if (Icon.eKind == eMinimapIconKind::Champion)
+                    continue;
+
                 f32_t fIconX = 0.f;
                 f32_t fIconY = 0.f;
                 if (WorldToMinimap(State, Icon.vWorldPos, fX, fY, fSide, fIconX, fIconY))
-                    DrawIcon(Icon, fIconX, fIconY);
+                    (void)DrawIcon(Icon, fIconX, fIconY, fSide);
             }
         }
 
@@ -560,6 +761,30 @@ namespace UI
             DrawCameraBounds(State, fX, fY, fSide);
         }
 
+        u64_t iChampionPortraitCount = 0u;
+        {
+            WINTERS_PROFILE_SCOPE("Minimap::ChampionPortraits");
+            for (const MinimapIconView& Icon : State.Icons)
+            {
+                if (Icon.eKind != eMinimapIconKind::Champion)
+                    continue;
+
+                f32_t fIconX = 0.f;
+                f32_t fIconY = 0.f;
+                if (WorldToMinimap(State, Icon.vWorldPos, fX, fY, fSide, fIconX, fIconY) &&
+                    DrawIcon(Icon, fIconX, fIconY, fSide))
+                {
+                    ++iChampionPortraitCount;
+                }
+            }
+        }
+
+        WINTERS_PROFILE_COUNT("Minimap::ChampionPortraitCount", iChampionPortraitCount);
+        WINTERS_PROFILE_COUNT(
+            "Minimap::PortraitLoadFailure",
+            s_iPortraitLoadFailuresSinceLastRender);
+        s_iPortraitLoadFailuresSinceLastRender = 0u;
+
         pGameInstance->UI_End_RawImagePass();
     }
 
@@ -567,5 +792,6 @@ namespace UI
     {
         s_pMinimapBaseTexture.reset();
         s_ChampionPortraits.clear();
+        s_iPortraitLoadFailuresSinceLastRender = 0u;
     }
 }

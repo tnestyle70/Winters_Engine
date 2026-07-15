@@ -6,13 +6,50 @@
 #include "GamePlay/ChampionRegistry.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 
+#include <Windows.h>
+
 #include <cstdio>
+#include <cwchar>
+#include <cwctype>
 #include <vector>
 
 namespace
 {
 	constexpr u32_t kLocalSessionId = 1;
 	constexpr u32_t kLocalNetId = 1;
+	constexpr const wchar_t* kExplicitLocalOnlySmokeFlag = L"--local-only-smoke";
+
+	bool_t HasExactCommandLineFlag(const wchar_t* pFlag)
+	{
+		if (!pFlag || pFlag[0] == L'\0')
+			return false;
+
+		const wchar_t* pCommandLine = ::GetCommandLineW();
+		if (!pCommandLine)
+			return false;
+
+		const size_t flagLength = std::wcslen(pFlag);
+		const wchar_t* pSearch = pCommandLine;
+		while (const wchar_t* pHit = std::wcsstr(pSearch, pFlag))
+		{
+			const bool_t bAtTokenStart =
+				pHit == pCommandLine ||
+				std::iswspace(*(pHit - 1)) != 0 ||
+				*(pHit - 1) == L'"';
+			const wchar_t next = pHit[flagLength];
+			const bool_t bAtTokenEnd =
+				next == L'\0' ||
+				std::iswspace(next) != 0 ||
+				next == L'"';
+
+			if (bAtTokenStart && bAtTokenEnd)
+				return true;
+
+			pSearch = pHit + flagLength;
+		}
+
+		return false;
+	}
 
 	const ChampionDef* FindRosterChampionDef(eChampion champion)
 	{
@@ -31,6 +68,25 @@ namespace
 		if (pReason && reasonBytes > 0)
 			sprintf_s(pReason, reasonBytes, "%s", pText ? pText : "");
 	}
+}
+
+bool_t IsExplicitLocalOnlySmokeRequested()
+{
+	return HasExactCommandLineFlag(kExplicitLocalOnlySmokeFlag);
+}
+
+eMatchLaunchRuntimeMode ResolveMatchLaunchRuntimeMode(bool_t bServerConnected)
+{
+	if (bServerConnected)
+		return eMatchLaunchRuntimeMode::ServerConnected;
+	if (IsExplicitLocalOnlySmokeRequested())
+		return eMatchLaunchRuntimeMode::ExplicitLocalSmoke;
+	return eMatchLaunchRuntimeMode::ServerRequiredUnavailable;
+}
+
+bool_t CanLaunchLocalGameplay(eMatchLaunchRuntimeMode eMode)
+{
+	return eMode == eMatchLaunchRuntimeMode::ExplicitLocalSmoke;
 }
 
 void EnsureLobbyChampionCatalogReady()

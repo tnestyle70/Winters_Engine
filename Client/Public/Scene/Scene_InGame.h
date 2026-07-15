@@ -8,6 +8,7 @@
 #include "Renderer/PlaneRenderer.h"
 #include "Renderer/NormalPass.h"
 #include "Renderer/SSAOPass.h"
+#include "Renderer/PostFxPass.h"
 #include "Renderer/FogOfWarRenderer.h"
 #include "Renderer/RHIFxSpriteRenderer.h"
 #include "Resource/Texture.h"
@@ -57,6 +58,7 @@ class CClientNetwork;
 class CCommandSerializer;
 class CReplayPlayer;
 class CSnapshotApplier;
+struct SnapshotTimelineState;
 class CRHISceneRenderer;
 
 namespace Engine
@@ -88,8 +90,19 @@ public:
 
     bool_t IsPlayerStunned() const
     {
-        return m_PlayerEntity != NULL_ENTITY &&
-            m_World.HasComponent<StunComponent>(m_PlayerEntity);
+        if (m_PlayerEntity == NULL_ENTITY)
+            return false;
+        if (m_World.HasComponent<GameplayStateComponent>(m_PlayerEntity))
+        {
+            const auto& gameplay =
+                m_World.GetComponent<GameplayStateComponent>(m_PlayerEntity);
+            constexpr u32_t kBlocked =
+                kGameplayStateStunnedFlag |
+                kGameplayStateAirborneFlag |
+                kGameplayStateCannotMoveFlag;
+            return (gameplay.stateFlags & kBlocked) != 0u;
+        }
+        return m_World.HasComponent<StunComponent>(m_PlayerEntity);
     }
     bool_t IsPlayerDead() const;
 
@@ -150,6 +163,26 @@ public:
         if (m_pSSAOPass) m_pSSAOPass->SetThicknessHeuristic(v);
     }
 
+    bool_t IsPostFxAvailable() const { return m_pPostFxPass != nullptr; }
+    bool_t GetPostFxEnabled() const
+    {
+        return m_pPostFxPass ? m_pPostFxPass->GetEnabled() : false;
+    }
+    void SetPostFxEnabled(bool_t bEnabled)
+    {
+        if (m_pPostFxPass) m_pPostFxPass->SetEnabled(bEnabled);
+    }
+    Engine::PostFxParams GetPostFxParams() const
+    {
+        return m_pPostFxPass
+            ? m_pPostFxPass->GetParams()
+            : Engine::PostFxParams{};
+    }
+    void SetPostFxParams(const Engine::PostFxParams& params)
+    {
+        if (m_pPostFxPass) m_pPostFxPass->SetParams(params);
+    }
+
     //Irelia - Q Dash Tuner Approach
     f32_t GetDashDuration() const { return m_fDashDuration; }
     void SetDashDuration(f32_t v) { m_fDashDuration = (v < 0.05f) ? 0.05f : v; }
@@ -192,6 +225,13 @@ public:
     f32_t    GetNavMaxStepHeight() const { return m_fNavMaxStepHeight; }
     void     SetNavMaxStepHeight(f32_t v) { m_fNavMaxStepHeight = (v < 0.05f) ? 0.05f : v; }
     void     RebuildMapWalkableNavGridForDebug();
+    static const char* GetSelectedMapMeshPath();
+    static const wchar_t* GetSelectedMapSurfacePath();
+    static void ConfigureDefaultMapTransform(CTransform& transform);
+    void AdoptPreparedMapSurfaceSampler(unique_ptr<Engine::CMapSurfaceSampler> sampler);
+    void AdoptPreparedFxSystem(unique_ptr<CFxSystem> fxSystem);
+    void AdoptPreparedFxMeshRenderer(
+        unique_ptr<Engine::CFxStaticMeshRenderer> renderer);
 
     // Debug
     const CNavGrid* GetNavGrid()    const { return m_pNavGrid.get(); }
@@ -224,6 +264,9 @@ private:
     bool_t m_bShowAIDebug = false;
     bool_t m_bShowUITuner = false;
     bool_t m_bShowWfxEffectTool = false;
+    bool_t m_bShowModelAnimPanel = false;
+    bool_t m_bShowAttackSpeedLab = false;
+    bool_t m_bShowStructureTuner = false;
     bool_t m_bShowReplayControl = false;
     bool_t m_bShowLegacyInGameDebug = false;
     bool_t m_bShowRenderDebug = false;
@@ -259,6 +302,18 @@ private:
     std::string m_strReplayStatus;
     bool_t m_bReplayStopRequested = false;
 
+    // S030: 게임 종료(넥서스 파괴) / 설정창 메인 메뉴 복귀 / 종료 산출물 저장
+    bool_t m_bGameEndActive = false;
+    bool_t m_bLocalVictory = false;
+    bool_t m_bEndOfMatchArtifactsSaved = false;
+    bool_t m_bReturnToMainMenuRequested = false;
+    bool_t m_bExitReplayToMyInfoRequested = false;
+    void PollGameEndAndSettings();
+    void SaveEndOfMatchArtifacts(const char* pResultLabel);
+    void DrawGameEndOverlay();
+    void ChangeToMainMenuScene();
+    void ChangeToMyInfoScene();
+
     // Camera
     unique_ptr<CDynamicCamera> m_pCamera;
 
@@ -272,6 +327,7 @@ private:
     std::unique_ptr<CTexture>       m_pWhiteTexture;
     std::unique_ptr<Engine::CNormalPass> m_pNormalPass;
     std::unique_ptr<Engine::CSSAOPass> m_pSSAOPass;
+    std::unique_ptr<Engine::CPostFxPass> m_pPostFxPass;
     std::unique_ptr<CFogOfWarRenderer> m_pFogOfWarRenderer;
     CConcealmentVolumeIndex m_ConcealmentIndex;
     Engine::CVisionSystem* m_pVisionSystem = nullptr;
@@ -297,6 +353,7 @@ private:
 
     Vec3   m_vPlayerDest{ 0.f, 0.f, 0.f };
     bool   m_bMoving = false;
+    bool_t m_bAnnieTibbersCommandMode = false;
     bool_t m_bPingWheelActive = false;
     f32_t  m_fPingWheelCenterX = 0.f;
     f32_t  m_fPingWheelCenterY = 0.f;
@@ -327,7 +384,6 @@ private:
 
     const char* m_pLastActionLabel = "(none)";
     f32_t m_fLastActionTimer = 0.f;
-    f32_t m_fNetworkMoveInputLockTimer = 0.f;
     bool  m_bShowCombatDebug = false;
     bool  m_bShowMapTuner = false;
 
@@ -379,7 +435,7 @@ private:
     bool_t CanResumeBaseAnimation() const;
     bool_t IsLocalActionProtected() const;
     bool_t IsPlayerNetworkMoveInputLocked() const;
-    void ArmNetworkMoveInputLock(const SkillGameAtomBundle& gameData, const SkillDef& legacyDef, u8_t skillStage);
+    EntityID ResolveOwnedTibbersEntity() const;
     void ResetLocalSkillRuntimeState();
     bool_t TryQueueLocalPassiveDashFromCursor();
     bool_t TriggerNetworkPassiveDashFromAction(u16_t actionId, u32_t actionSeq, bool_t bServerDashLikely);
@@ -427,8 +483,11 @@ private:
     void UpdateFlashCooldown(f32_t dt);
 
     void AssignPureECSChampionAlias(eChampion id, EntityID entity);
+    void ClearPureECSChampionAlias(EntityID entity);
     void CreateMapEntity();
     void BindPlayerToECSChampion(EntityID entity);
+    bool_t ApplyAuthoritativePlayerNetId(NetEntityId netId);
+    void ResetLocalControlHandoffState();
     void SyncPlayerEntityTransformFromECS();
     void SyncPlayerEntityTransformToECS();
     void SyncActorHUDStateToEngineUI();
@@ -444,6 +503,10 @@ private:
         u64_t serverTimeMs,
         u32_t lastAckedCommandSeq,
         u32_t localNetId);
+    void RebaseNetworkTimeline(
+        const SnapshotTimelineState& previous,
+        const SnapshotTimelineState& next,
+        u64_t serverTick);
     void RecordNetworkMovePrediction(u32_t commandSeq,
         const Vec3& vPredictedTarget,
         const Vec3& vFacingDirection);

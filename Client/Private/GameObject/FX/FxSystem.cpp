@@ -1,10 +1,13 @@
 ﻿#include "GameObject/FX/FxSystem.h"
 #include "ECS/CCommandBuffer.h"
 #include "ECS/World.h"
+#include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
+#include "ECS/Components/VisionComponents.h"
 #include "GameObject/FX/FxAnchorResolver.h"
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "GameObject/FX/FxBeamSystem.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Renderer/PlaneRenderer.h"
 #include "Renderer/RHIFxSpriteRenderer.h"
 #include "Renderer/FxShaderConstants.h"
@@ -31,6 +34,54 @@ namespace
 
     constexpr f32_t kFxRenderNearDistance = 8.f;
     constexpr f32_t kFxRenderMaxDistance = 70.f;
+
+    bool_t TryQueryLocalTeam(CWorld& world, u8_t& outLocalTeam)
+    {
+        bool_t bFound = false;
+        world.ForEach<LocalPlayerTag, SpatialAgentComponent>(
+            std::function<void(EntityID, LocalPlayerTag&, SpatialAgentComponent&)>(
+                [&](EntityID, LocalPlayerTag&, SpatialAgentComponent& agent)
+                {
+                    if (bFound)
+                        return;
+                    outLocalTeam = agent.team;
+                    bFound = true;
+                }));
+        return bFound;
+    }
+
+    bool_t IsFxVisibleForLocal(
+        CWorld& world,
+        const FxBillboardComponent& fx,
+        bool_t bHasLocalTeam,
+        u8_t localTeam)
+    {
+        if (fx.visibilityPolicy == eFxVisibilityPolicy::Always)
+            return true;
+
+        if (!bHasLocalTeam || localTeam >= 8u)
+            return false;
+
+        const u8_t localTeamBit = static_cast<u8_t>(1u << localTeam);
+        if (fx.visibilityPolicy == eFxVisibilityPolicy::TeamMask)
+            return (fx.visibilityTeamMask & localTeamBit) != 0u;
+
+        if (fx.attachTo == NULL_ENTITY || !world.IsAlive(fx.attachTo))
+            return false;
+
+        if (world.HasComponent<SpatialAgentComponent>(fx.attachTo) &&
+            world.GetComponent<SpatialAgentComponent>(fx.attachTo).team == localTeam)
+        {
+            return true;
+        }
+
+        if (!world.HasComponent<VisibilityComponent>(fx.attachTo))
+            return false;
+
+        const auto& visibility =
+            world.GetComponent<VisibilityComponent>(fx.attachTo);
+        return (visibility.teamVisibilityMask & localTeamBit) != 0u;
+    }
 
     bool_t IsFxRenderRelevant(
         const Vec3& vWorldPos,
@@ -215,6 +266,17 @@ void CFxSystem::DeferSpawnFromAsset(CCommandBuffer& commandBuffer,
         });
 }
 
+bool_t CFxSystem::PreloadTextureResource(const wchar_t* wszPath)
+{
+    if (!wszPath || !wszPath[0] || !m_pDevice)
+        return false;
+
+    if (m_pDevice->GetBackend() == eRHIBackend::DX12)
+        return GetOrLoadRHITexture(wszPath).IsValid();
+
+    return GetOrLoadTexture(wszPath) != nullptr;
+}
+
 void CFxSystem::Update(CWorld& world, f32_t fTimeDelta)
 {
     WINTERS_PROFILE_SCOPE("Fx::Update");
@@ -253,6 +315,11 @@ void CFxSystem::Update(CWorld& world, f32_t fTimeDelta)
                 else
                 {
                     fx.bAnchorResolvedLastFrame = false;
+                    if (fx.bDestroyWhenAttachInvalid && fx.attachTo != NULL_ENTITY)
+                    {
+                        vecDelete.push_back(e);
+                        return;
+                    }
                     // [Phase T-8r] ?ъ궗泥?紐⑤뱶 ??vVelocity (m/s) ?곸슜
                     fx.vWorldPos.x += fx.vVelocity.x * fEffectiveDelta;
                     fx.vWorldPos.y += fx.vVelocity.y * fEffectiveDelta;
@@ -282,6 +349,8 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
     const Vec3 vCamUp = pCamera->GetUp();
     const Vec3 vCamFwd = pCamera->GetForward();
     const Vec3 vCamPos = pCamera->GetEye();
+    u8_t localTeam = 0u;
+    const bool_t bHasLocalTeam = TryQueryLocalTeam(world, localTeam);
 
     uint64_t drawCount = 0;
     uint64_t cullSkippedCount = 0;
@@ -293,6 +362,7 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                 if (fx.bPendingDelete || fx.fLifetime <= 0.f) return;
                 if (fx.fStartDelay > 0.f) return;
                 if (!fx.texturePath) return;
+                if (!IsFxVisibleForLocal(world, fx, bHasLocalTeam, localTeam)) return;
 
                 const f32_t boundsRadius = (std::max)(fx.fWidth, fx.fHeight) * 0.75f;
                 if (!IsFxRenderRelevant(fx.vWorldPos, vCamPos, vCamFwd, boundsRadius))
@@ -349,11 +419,15 @@ void CFxSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                 const u32_t requestedFrames = (fx.iAtlasFrameCount > 0) ? fx.iAtlasFrameCount : 1;
                 const u32_t atlasFrameCount =
                     (requestedFrames < atlasMaxFrames) ? requestedFrames : atlasMaxFrames;
-                if (atlasFrameCount > 1 && fx.fAtlasFps > 0.f)
+                if (atlasFrameCount > 1)
                 {
-                    u32_t frame = static_cast<u32_t>(fx.fElapsed * fx.fAtlasFps);
-                    if (fx.bAtlasLoop) frame %= atlasFrameCount;
-                    else               frame = (frame < atlasFrameCount) ? frame : (atlasFrameCount - 1);
+                    u32_t frame = 0u;
+                    if (fx.fAtlasFps > 0.f)
+                    {
+                        frame = static_cast<u32_t>(fx.fElapsed * fx.fAtlasFps);
+                        if (fx.bAtlasLoop) frame %= atlasFrameCount;
+                        else               frame = (frame < atlasFrameCount) ? frame : (atlasFrameCount - 1);
+                    }
 
                     const u32_t col = frame % atlasCols;
                     const u32_t row = frame / atlasCols;

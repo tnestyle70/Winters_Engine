@@ -28,13 +28,19 @@ private:
 	void RequestOfflineLogin();
 	void RequestOnlineLogin();
 	void HandleOnlineLoginResult(const std::string& email, const Client::AuthResult& result);
+	void RequestIdLogin();
+	void RequestIdRegister();
+	void HandleIdAuthResult(const Client::AuthResult& result);
 	void ChangeToMainMenu();
 
 	std::unique_ptr<Client::CAuthClient> m_pAuthClient{};
 	CImageScenePresenter m_ImageUI{};
 	char m_szEmail[128]{};
 	char m_szPassword[128]{};
+	char m_szLoginID[64]{};
 	std::string m_strStatus{};
 	bool_t m_bOfflineLoginRequested = false;
 	bool_t m_bLoginInFlight = false;
+	bool_t m_bRegisterInFlight = false;
+	bool_t m_bShowRegisterPrompt = false;
 };

@@ -13,7 +13,7 @@ namespace UI
         if (!pScene) return;
 
         ImGui::SetNextWindowPos(ImVec2(970.f, 50.f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSize(ImVec2(340.f, 460.f), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(360.f, 680.f), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("Render Debug")) { ImGui::End(); return; }
 
         bool b = pScene->IsShowRenderDebug();
@@ -72,6 +72,113 @@ namespace UI
                 ImGui::Text("AO preview");
                 ImGui::Image(ImTextureRef(reinterpret_cast<ImTextureID>(pAOSRV)), ImVec2(220.f, 124.f));
             }
+        }
+        ImGui::EndDisabled();
+
+        ImGui::SeparatorText("PostFx (DX11 LDR)");
+        const bool bPostFxAvailable = pScene->IsPostFxAvailable();
+        if (!bPostFxAvailable)
+        {
+            ImGui::TextColored(
+                ImVec4(1.0f, 0.45f, 0.25f, 1.0f),
+                "PostFx unavailable on this backend");
+        }
+
+        ImGui::BeginDisabled(!bPostFxAvailable);
+        {
+            bool bPostFxEnabled = pScene->GetPostFxEnabled();
+            if (ImGui::Checkbox("PostFx", &bPostFxEnabled))
+                pScene->SetPostFxEnabled(bPostFxEnabled);
+
+            Engine::PostFxParams params = pScene->GetPostFxParams();
+            bool bChanged = false;
+            bChanged |= ImGui::SliderFloat(
+                "Grade strength",
+                &params.fGradeStrength,
+                0.f,
+                1.f,
+                "%.2f");
+            bChanged |= ImGui::SliderFloat(
+                "Gamma (1 = neutral)",
+                &params.fGamma,
+                0.5f,
+                2.5f,
+                "%.2f");
+            bChanged |= ImGui::SliderFloat(
+                "Saturation",
+                &params.fSaturation,
+                0.f,
+                2.f,
+                "%.2f");
+            bChanged |= ImGui::ColorEdit3("Tint", &params.vTint.x);
+            bChanged |= ImGui::SliderFloat(
+                "Vignette strength",
+                &params.fVignetteStrength,
+                0.f,
+                1.f,
+                "%.2f");
+            bChanged |= ImGui::SliderFloat(
+                "Vignette inner",
+                &params.fVignetteInner,
+                0.f,
+                0.95f,
+                "%.2f");
+            bChanged |= ImGui::SliderFloat(
+                "Vignette outer",
+                &params.fVignetteOuter,
+                0.01f,
+                1.f,
+                "%.2f");
+
+            bChanged |= ImGui::Checkbox("LDR bloom", &params.bBloomEnabled);
+            bChanged |= ImGui::SliderFloat(
+                "Bloom threshold",
+                &params.fBloomThreshold,
+                0.f,
+                1.f,
+                "%.2f");
+            bChanged |= ImGui::SliderFloat(
+                "Bloom intensity",
+                &params.fBloomIntensity,
+                0.f,
+                2.f,
+                "%.2f");
+            bChanged |= ImGui::SliderFloat(
+                "Bloom soft knee",
+                &params.fBloomSoftKnee,
+                0.f,
+                1.f,
+                "%.2f");
+
+            if (bChanged)
+                pScene->SetPostFxParams(params);
+
+            if (ImGui::Button("Passthrough"))
+            {
+                pScene->SetPostFxParams(Engine::PostFxParams{});
+                pScene->SetPostFxEnabled(true);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("LoL Subtle"))
+            {
+                Engine::PostFxParams subtle{};
+                subtle.fGamma = 1.f;
+                subtle.fSaturation = 1.1f;
+                subtle.fGradeStrength = 0.65f;
+                subtle.vTint = { 1.02f, 1.f, 0.98f };
+                subtle.fVignetteStrength = 0.16f;
+                subtle.fVignetteInner = 0.36f;
+                subtle.fVignetteOuter = 0.74f;
+                subtle.bBloomEnabled = true;
+                subtle.fBloomThreshold = 0.88f;
+                subtle.fBloomIntensity = 0.45f;
+                subtle.fBloomSoftKnee = 0.12f;
+                pScene->SetPostFxParams(subtle);
+                pScene->SetPostFxEnabled(true);
+            }
+
+            ImGui::TextWrapped(
+                "LDR bloom spreads near-white pixels only; HDR emissive values above 1.0 are already clipped.");
         }
         ImGui::EndDisabled();
 

@@ -10,7 +10,8 @@ namespace ClientData
 {
     inline constexpr u8_t kVisualSkillSlotCount = 5u;
     inline constexpr u8_t kVisualSkillStageCount = 2u;
-    inline constexpr u8_t kVisualSubmeshStateCount = 4u;
+    inline constexpr u8_t kVisualSubmeshStateCount = 8u;   // S035: 포탑 alive/destroyed 7상태 수용
+
     inline constexpr u8_t kVisualTextureOverrideCount = 4u;
     inline constexpr u8_t kChampionModelTextureSlotCount = 8u;
 
@@ -114,6 +115,7 @@ namespace ClientData
         u32_t subKind = 0u;
         VisualAssetPathRef mesh{};
         VisualShaderPathRef shader{};
+        f32_t visualScaleMultiplier = 1.f;
         u8_t textureOverrideCount = 0u;
         VisualTextureOverrideDef textureOverrides[kVisualTextureOverrideCount] = {};
     };

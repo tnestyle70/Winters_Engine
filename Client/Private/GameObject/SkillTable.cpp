@@ -155,8 +155,8 @@ static SkillDef s_SkillTable[] =
             nullptr, nullptr, 0.f
            },
 
-           { eChampion::KALISTA, 1, eTargetMode::Direction,
-             0.2f, 11.f, 50.f,
+            { eChampion::KALISTA, 1, eTargetMode::Direction,
+              0.2f, 16.5f, 50.f,
              "spell1", nullptr, nullptr,
              0.3f, true, eRotateMode::TowardsCursor,
              1, eTargetMode::Self, nullptr, 0.f, eRotateMode::None, 0.f,

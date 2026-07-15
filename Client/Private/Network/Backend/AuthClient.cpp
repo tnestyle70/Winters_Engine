@@ -50,6 +50,40 @@ void CAuthClient::Login(const string & email, const string & password,
 	});
 }
 
+void CAuthClient::LoginByID(const string& loginID, AuthCallback callback)
+{
+	json bodyJson;
+	bodyJson["login_id"] = loginID;
+
+	m_pHttp->AsyncPost("/auth/id/login", bodyJson.dump(), [this, callback](const HttpResponse& resp) {
+		AuthResult result = ParseAuthResponse(resp);
+		if (result.success)
+		{
+			m_AccessToken = result.accessToken;
+			m_RefreshToken = result.refreshToken;
+			m_pHttp->SetAuthToken(m_AccessToken);
+		}
+		callback(result);
+	});
+}
+
+void CAuthClient::RegisterByID(const string& loginID, AuthCallback callback)
+{
+	json bodyJson;
+	bodyJson["login_id"] = loginID;
+
+	m_pHttp->AsyncPost("/auth/id/register", bodyJson.dump(), [this, callback](const HttpResponse& resp) {
+		AuthResult result = ParseAuthResponse(resp);
+		if (result.success)
+		{
+			m_AccessToken = result.accessToken;
+			m_RefreshToken = result.refreshToken;
+			m_pHttp->SetAuthToken(m_AccessToken);
+		}
+		callback(result);
+	});
+}
+
 void CAuthClient::Refresh(AuthCallback callback)
 {
 	string body = "{\"refresh_token\":\"" + m_RefreshToken + "\"}";
@@ -81,6 +115,7 @@ void CAuthClient::ProcessCallbacks()
 AuthResult CAuthClient::ParseAuthResponse(const HttpResponse& resp)
 {
 	AuthResult result;
+	result.statusCode = resp.statusCode;
 	try
 	{
 		auto j = json::parse(resp.body);
@@ -91,6 +126,8 @@ AuthResult CAuthClient::ParseAuthResponse(const HttpResponse& resp)
 		}
 		auto data = j["data"];
 		result.success = true;
+		result.userID = data.value("user_id", "");
+		result.displayName = data.value("display_name", "");
 		result.accessToken = data.value("access_token", "");
 		result.refreshToken = data.value("refresh_token", "");
 		result.expiresAt = data.value("expires_at", (i64_t)0);

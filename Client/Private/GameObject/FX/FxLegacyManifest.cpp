@@ -103,7 +103,7 @@ namespace LegacyFx
             },
             {
                 "Annie.Stun.Ready", "Annie", "CFxCuePlayer::Play",
-                "Client/Private/GameObject/Champion/Annie/Annie_FxPresets.cpp",
+                "Client/Private/GameObject/Champion/Annie/Annie_Skills.cpp",
                 "Billboard",
                 L"Data/LoL/FX/Champions/Annie/stun_ready.wfx",
                 L"",
@@ -168,7 +168,7 @@ namespace LegacyFx
             {
                 "Yasuo.Q.Tornado", "Yasuo", "YasuoFx::SpawnQTornado",
                 "Client/Private/GameObject/Champion/Yasuo/YasuoFxPresets.cpp",
-                "Billboard,MeshParticle",
+                "GroundDecal,Billboard",
                 L"Data/LoL/FX/Champions/Yasuo/q_tornado.wfx",
                 L"",
                 "WfxPilot"
@@ -192,7 +192,7 @@ namespace LegacyFx
             {
                 "Yasuo.EQ.Ring", "Yasuo", "YasuoFx::SpawnEQRing",
                 "Client/Private/GameObject/Champion/Yasuo/YasuoFxPresets.cpp",
-                "GroundDecal",
+                "GroundDecal,ShockwaveRing",
                 L"Data/LoL/FX/Champions/Yasuo/eq_ring.wfx",
                 L"",
                 "WfxPilot"
@@ -208,7 +208,7 @@ namespace LegacyFx
             {
                 "Yasuo.R.SwordGlow", "Yasuo", "YasuoFx::SpawnRLastBreath",
                 "Client/Private/GameObject/Champion/Yasuo/YasuoFxPresets.cpp",
-                "MeshParticle,Billboard",
+                "Billboard",
                 L"Data/LoL/FX/Champions/Yasuo/r_sword_glow.wfx",
                 L"",
                 "WfxPilot"
@@ -294,8 +294,8 @@ namespace LegacyFx
                 "WfxPilot"
             },
             {
-                "Ezreal.BA.Projectile", "Ezreal", "Ezreal::Fx::SpawnBAProjectile",
-                "Client/Private/GameObject/Champion/Ezreal/Ezreal_FxPresets.cpp",
+                "Ezreal.BA.Projectile", "Ezreal", "ProjectileVisualCatalog::Resolve",
+                "Client/Private/GameObject/Projectile/ProjectileVisualCatalog.cpp",
                 "Billboard",
                 L"Data/LoL/FX/Champions/Ezreal/ba_projectile.wfx",
                 L"",
@@ -310,8 +310,8 @@ namespace LegacyFx
                 "WfxPilot"
             },
             {
-                "Ezreal.Q.Projectile", "Ezreal", "Ezreal::Fx::SpawnQProjectile",
-                "Client/Private/GameObject/Champion/Ezreal/Ezreal_FxPresets.cpp",
+                "Ezreal.Q.Projectile", "Ezreal", "ProjectileVisualCatalog::Resolve",
+                "Client/Private/GameObject/Projectile/ProjectileVisualCatalog.cpp",
                 "MeshParticle,Billboard",
                 L"Data/LoL/FX/Champions/Ezreal/q_projectile.wfx",
                 L"",
@@ -334,10 +334,26 @@ namespace LegacyFx
                 "WfxPilot"
             },
             {
-                "Ezreal.W.Projectile", "Ezreal", "Ezreal::Fx::SpawnWProjectile",
-                "Client/Private/GameObject/Champion/Ezreal/Ezreal_FxPresets.cpp",
+                "Ezreal.W.Projectile", "Ezreal", "ProjectileVisualCatalog::Resolve",
+                "Client/Private/GameObject/Projectile/ProjectileVisualCatalog.cpp",
                 "MeshParticle,Billboard",
                 L"Data/LoL/FX/Champions/Ezreal/w_projectile.wfx",
+                L"",
+                "WfxPilot"
+            },
+            {
+                "Ezreal.W.Mark", "Ezreal", "CFxCuePlayer::Play",
+                "Client/Private/Network/Client/EventApplier.cpp",
+                "GroundDecal,Billboard",
+                L"Data/LoL/FX/Champions/Ezreal/w_mark.wfx",
+                L"",
+                "WfxPilot"
+            },
+            {
+                "Ezreal.W.Detonate", "Ezreal", "CFxCuePlayer::Play",
+                "Client/Private/Network/Client/EventApplier.cpp",
+                "Billboard,ShockwaveRing",
+                L"Data/LoL/FX/Champions/Ezreal/w_detonate.wfx",
                 L"",
                 "WfxPilot"
             },
@@ -350,6 +366,22 @@ namespace LegacyFx
                 "WfxPilot"
             },
             {
+                "Ezreal.E.Projectile", "Ezreal", "ProjectileVisualCatalog::Resolve",
+                "Client/Private/GameObject/Projectile/ProjectileVisualCatalog.cpp",
+                "Billboard",
+                L"Data/LoL/FX/Champions/Ezreal/e_projectile.wfx",
+                L"",
+                "WfxPilot"
+            },
+            {
+                "Ezreal.E.Hit", "Ezreal", "ProjectileVisualCatalog::Resolve",
+                "Client/Private/GameObject/Projectile/ProjectileVisualCatalog.cpp",
+                "Billboard,ShockwaveRing",
+                L"Data/LoL/FX/Champions/Ezreal/e_hit.wfx",
+                L"",
+                "WfxPilot"
+            },
+            {
                 "Ezreal.R.Cast", "Ezreal", "Ezreal::Fx::SpawnRBow",
                 "Client/Private/GameObject/Champion/Ezreal/Ezreal_FxPresets.cpp",
                 "MeshParticle,Billboard",
@@ -358,10 +390,18 @@ namespace LegacyFx
                 "WfxPilot"
             },
             {
-                "Ezreal.R.Missile", "Ezreal", "Ezreal::Fx::SpawnRProjectile",
-                "Client/Private/GameObject/Champion/Ezreal/Ezreal_FxPresets.cpp",
+                "Ezreal.R.Missile", "Ezreal", "ProjectileVisualCatalog::Resolve",
+                "Client/Private/GameObject/Projectile/ProjectileVisualCatalog.cpp",
                 "MeshParticle,Billboard",
                 L"Data/LoL/FX/Champions/Ezreal/r_missile.wfx",
+                L"",
+                "WfxPilot"
+            },
+            {
+                "Ezreal.R.Hit", "Ezreal", "ProjectileVisualCatalog::Resolve",
+                "Client/Private/GameObject/Projectile/ProjectileVisualCatalog.cpp",
+                "Billboard,ShockwaveRing",
+                L"Data/LoL/FX/Champions/Ezreal/r_hit.wfx",
                 L"",
                 "WfxPilot"
             }

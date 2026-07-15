@@ -137,13 +137,14 @@ void CStructure_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorl
             rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
             // 넥서스는 양 팀 모두 컬링 없이 항상 렌더한다.
             // (이전엔 Blue 넥서스만 우회해 Red 넥서스가 프러스텀 경계에서 비대칭 컬링/pop-in.)
+            // S035: visibilityStates를 가진 구조물(포탑 Z-fight 수복)도 상태 마스크 경로를 탄다.
+            const auto kind = static_cast<Winters::Map::eObjectKind>(structure.kind);
+            const ClientData::StructureVisualDefinition* pVisual =
+                ClientData::FindStructureVisualDefinition(kind, structure.team);
             const bool_t bNexus =
                 structure.kind == static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus);
-            if (bNexus)
+            if (bNexus || (pVisual && pVisual->submeshStateCount > 0u))
             {
-                const auto kind = static_cast<Winters::Map::eObjectKind>(structure.kind);
-                const ClientData::StructureVisualDefinition* pVisual =
-                    ClientData::FindStructureVisualDefinition(kind, structure.team);
                 const VisibilityMask mask = BuildStructureVisibilityMask(structure, pVisual);
                 rc.pRenderer->RenderWithVisibility(mask);
             }
@@ -188,13 +189,14 @@ u32_t CStructure_Manager::AppendRenderSnapshotMeshes(
             ++visibleCount;
             rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
 
+            // S035: visibilityStates를 가진 구조물(포탑)도 상태 마스크 경로를 탄다.
+            const auto kind = static_cast<Winters::Map::eObjectKind>(structure.kind);
+            const ClientData::StructureVisualDefinition* pVisual =
+                ClientData::FindStructureVisualDefinition(kind, structure.team);
             const bool_t bNexus =
                 structure.kind == static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus);
-            if (bNexus)
+            if (bNexus || (pVisual && pVisual->submeshStateCount > 0u))
             {
-                const auto kind = static_cast<Winters::Map::eObjectKind>(structure.kind);
-                const ClientData::StructureVisualDefinition* pVisual =
-                    ClientData::FindStructureVisualDefinition(kind, structure.team);
                 const VisibilityMask mask = BuildStructureVisibilityMask(structure, pVisual);
                 appendedCount += rc.pRenderer->AppendRenderSnapshotMeshes(snapshot, mask);
             }

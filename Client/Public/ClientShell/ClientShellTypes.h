@@ -26,6 +26,9 @@ struct ShellStoreItem
 	std::string strName{};
 	std::string strDescription{};
 	std::string strItemType{};
+	// DB item UUID(strItemID)는 구매 요청용, contentKey는 챔피언/초상화 연결용.
+	std::string strProductKey{};
+	std::string strContentKey{};
 	i32_t iPriceRP = 0;
 	bool_t bOwned = false;
 };

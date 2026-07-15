@@ -13,6 +13,11 @@ namespace Engine
 
 namespace Ezreal::Fx
 {
+	void SpawnBACast(CWorld& world, EntityID owner, const Vec3& origin, const Vec3& dir);
+	void SpawnQCast(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
+		EntityID owner, const Vec3& origin, const Vec3& dir);
+	void SpawnWCast(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
+		EntityID owner, const Vec3& origin, const Vec3& dir);
 	void SpawnBAProjectile(CWorld& world, EntityID owner, const Vec3& origin,
 		const Vec3& dir, f32_t fLifetime);
 	void SpawnQProjectile(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,

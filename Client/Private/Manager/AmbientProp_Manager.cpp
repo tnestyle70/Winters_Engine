@@ -3,10 +3,9 @@
 
 #include "Client/Private/Data/LoLVisualDefinitionPack.h"
 #include "WintersPaths.h"
-#include "Dev/SmokeLog.h"
 #include "ProfilerAPI.h"
 
-#include <DirectXMath.h>
+#include <cmath>
 #include <cstdio>
 
 namespace
@@ -20,9 +19,30 @@ namespace
         f32_t lolYaw = 0.f;
         f32_t scale = 1.f;
     };
+
+    constexpr f32_t kLolMap11ToStage = 0.01f * 0.70710678118f;
+    constexpr u32_t kFireflyKind = 2u;
+
+    Vec3 ConvertMap11LoLToStage(const MapAmbientPropRecord& record)
+    {
+        return {
+            (record.lolX + record.lolZ) * kLolMap11ToStage,
+            record.lolY * 0.01f,
+            (record.lolX - record.lolZ) * kLolMap11ToStage
+        };
+    }
+
+    f32_t ConvertMap11LoLYawToStage(f32_t lolYaw)
+    {
+        const f32_t rawX = std::sin(lolYaw);
+        const f32_t rawZ = std::cos(lolYaw);
+        const f32_t stageX = rawX + rawZ;
+        const f32_t stageZ = rawX - rawZ;
+        return std::atan2(stageX, stageZ);
+    }
 }
 
-void CAmbientProp_Manager::Spawn(const Mat4& mapWorld, f32_t mapYaw,
+void CAmbientProp_Manager::Spawn(
     const std::function<void(Vec3&)>& projectToSurface)
 {
     m_props.clear();
@@ -53,9 +73,6 @@ void CAmbientProp_Manager::Spawn(const Mat4& mapWorld, f32_t mapYaw,
         return;
     }
 
-    const DirectX::XMMATRIX xmMapWorld =
-        DirectX::XMLoadFloat4x4(reinterpret_cast<const DirectX::XMFLOAT4X4*>(&mapWorld.m));
-
     for (u32_t i = 0; i < header[2]; ++i)
     {
         MapAmbientPropRecord record{};
@@ -70,28 +87,29 @@ void CAmbientProp_Manager::Spawn(const Mat4& mapWorld, f32_t mapYaw,
         auto pRenderer = std::make_unique<ModelRenderer>();
         if (!pRenderer->Initialize(pVisual->mesh.resourceRelativePath, pVisual->shader.runtimePath))
         {
-            Winters::DevSmoke::Log("[MapAmbient] init failed kind=%u\n", record.kind);
+#if defined(_DEBUG)
+            char debugMessage[128]{};
+            sprintf_s(debugMessage, "[MapAmbient] init failed kind=%u\n", record.kind);
+            OutputDebugStringA(debugMessage);
+#endif
             continue;
         }
         if (pVisual->idleAnimation && pVisual->idleAnimation[0])
             pRenderer->PlayAnimationByName(pVisual->idleAnimation, true);
 
-        const DirectX::XMFLOAT3 lolPos{ record.lolX, record.lolY, record.lolZ };
-        const DirectX::XMVECTOR vWorld = DirectX::XMVector3TransformCoord(
-            DirectX::XMLoadFloat3(&lolPos), xmMapWorld);
-        Vec3 worldPos{
-            DirectX::XMVectorGetX(vWorld),
-            DirectX::XMVectorGetY(vWorld),
-            DirectX::XMVectorGetZ(vWorld)
-        };
+        Vec3 worldPos = ConvertMap11LoLToStage(record);
         if (projectToSurface)
             projectToSurface(worldPos);
+        if (record.kind == kFireflyKind)
+        {
+            worldPos.y += 1.4f;
+            pRenderer->SetMaterialOverrideColor({ 0.52f, 0.95f, 0.20f, 1.f }, true);
+        }
 
         Prop prop{};
         prop.pRenderer = std::move(pRenderer);
         prop.transform.SetPosition(worldPos);
-        // X-flip 맵이라 LoL yaw는 부호가 반전된 채 맵 회전에 더해진다.
-        prop.transform.SetRotation({ 0.f, mapYaw - record.lolYaw, 0.f });
+        prop.transform.SetRotation({ 0.f, ConvertMap11LoLYawToStage(record.lolYaw), 0.f });
         const f32_t fScale = 0.01f * record.scale;
         prop.transform.SetScale({ fScale, fScale, fScale });
         m_props.push_back(std::move(prop));
@@ -99,8 +117,11 @@ void CAmbientProp_Manager::Spawn(const Mat4& mapWorld, f32_t mapYaw,
 
     fclose(fp);
 
-    Winters::DevSmoke::Log(
-        "[MapAmbient] spawned %zu ambient props\n", m_props.size());
+#if defined(_DEBUG)
+    char debugMessage[128]{};
+    sprintf_s(debugMessage, "[MapAmbient] spawned %zu ambient props\n", m_props.size());
+    OutputDebugStringA(debugMessage);
+#endif
 }
 
 void CAmbientProp_Manager::Tick(f32_t dt)

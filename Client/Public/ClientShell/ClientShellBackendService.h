@@ -18,12 +18,18 @@ public:
 	void Reset();
 	void ProcessCallbacks();
 	void RequestInitialSync();
+	void RequestStorefrontSync();
+	void RequestMatchHistory();
+	// 게임종료 매치결과 보고 — 오프라인/미구성이면 조용히 스킵 (S035).
+	void RequestReportMatchResult(bool_t bVictory);
 	void RequestPurchase(const std::string& itemId);
 	void RequestJoinQueue();
 	void RequestPollMatchStatus();
 	void RequestLeaveQueue();
 
 	bool_t IsConfigured() const { return m_bConfigured; }
+	bool_t IsPurchaseInFlight() const { return m_bPurchaseRequestInFlight; }
+	bool_t IsStorefrontSyncInFlight() const { return m_bStoreRequestInFlight; }
 	const std::string& GetStatus() const { return m_strStatus; }
 
 private:
@@ -49,7 +55,6 @@ private:
 	bool_t m_bResetAfterCallbacks = false;
 	bool_t m_bProfileRequestInFlight = false;
 	bool_t m_bStoreRequestInFlight = false;
-	bool_t m_bInventoryRequestInFlight = false;
 	bool_t m_bPurchaseRequestInFlight = false;
 	bool_t m_bMatchRequestInFlight = false;
 };

@@ -9,14 +9,12 @@
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Definitions/ChampionDef.h"
+#include "GameObject/ChampionDef.h"
 #include "Shared/GameSim/Definitions/ChampionStatsDef.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
 #include "Shared/GameSim/Definitions/SkillScalingTable.h"
-#include "Shared/GameSim/Definitions/SkinDef.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Registries/SkillScaling/SkillScalingRegistry.h"
-#include "Shared/GameSim/Registries/Skin/SkinRegistry.h"
 #include "Shared/GameSim/Systems/Buff/BuffSystem.h"
 #include "Shared/GameSim/Systems/Damage/Damage.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
@@ -136,11 +134,5 @@ namespace
         request.skillId = 1201;
         request.rank = 1;
         (void)ApplyDamageRequest(world, tick, request);
-
-        SkinDef baseSkin{};
-        baseSkin.skinId = 120001;
-        baseSkin.championId = eChampion::EZREAL;
-        baseSkin.displayName = "Ezreal";
-        CSkinRegistry::Instance().Add(baseSkin.skinId, baseSkin);
     }
 }

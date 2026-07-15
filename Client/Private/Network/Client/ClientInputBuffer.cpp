@@ -23,6 +23,13 @@ void CClientInputBuffer::DropAcked(u32_t ackedSeq)
 	m_count = kept;
 }
 
+void CClientInputBuffer::Clear()
+{
+	m_commands = {};
+	m_head = 0;
+	m_count = 0;
+}
+
 void CClientInputBuffer::ForEachAfter(u32_t ackedSeq,
 	const std::function<void(const GameCommandWire&)>&fn) const
 {

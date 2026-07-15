@@ -335,108 +335,151 @@ void IreliaFx::SpawnRBladeFan(CWorld& world, Engine::CFxStaticMeshRenderer* pRen
     f32_t fLifetime, f32_t fScale, const Vec3& vRotation,
     bool bTriangle, f32_t fTipBoost, f32_t fSideShrink)
 {
-    if (!pRenderer || iCount <= 0)
+    if (!pRenderer || iCount <= 0 || (bTriangle && iCount < 3))
         return;
 
+    const Vec3 forward = WintersMath::NormalizeXZOrZero(vForward);
+    if (forward.x == 0.f && forward.z == 0.f)
+        return;
+
+    const Irelia::IreliaTuning& tuning = Irelia::GetTuning();
+    // The E blade FBX pivot sits below its placement origin. Match SpawnPlaced's
+    // ground lift so the R wall blades remain fully visible above terrain.
+    const f32_t bladeGroundY = vHitPos.y + 3.f;
+    const f32_t fwdYaw = std::atan2f(forward.x, forward.z);
+    const f32_t halfSpread = fSpreadRad * 0.5f;
+    const f32_t leftYaw = fwdYaw - halfSpread;
+    const f32_t rightYaw = fwdYaw + halfSpread;
+    const Vec3 leftDir{ std::sinf(leftYaw), 0.f, std::cosf(leftYaw) };
+    const Vec3 rightDir{ std::sinf(rightYaw), 0.f, std::cosf(rightYaw) };
+    const Vec3 leftEnd{
+        vHitPos.x + leftDir.x * fPlaceDist,
+        bladeGroundY,
+        vHitPos.z + leftDir.z * fPlaceDist
+    };
+    const Vec3 rightEnd{
+        vHitPos.x + rightDir.x * fPlaceDist,
+        bladeGroundY,
+        vHitPos.z + rightDir.z * fPlaceDist
+    };
+    const Vec3 tip{
+        vHitPos.x + forward.x * (fPlaceDist + fTipBoost),
+        bladeGroundY,
+        vHitPos.z + forward.z * (fPlaceDist + fTipBoost)
+    };
+    const f32_t shrinkClamp = (fSideShrink < 0.f) ? 0.f
+        : (fSideShrink > 0.9f ? 0.9f : fSideShrink);
+
+    const f32_t spreadDuration = 0.28f;
+    const f32_t maxStartDelay = 0.14f;
+    const f32_t startRadius = 0.35f;
+
+    auto LerpPoint = [](const Vec3& a, const Vec3& b, f32_t t) -> Vec3
     {
-        const f32_t fwdYaw = std::atan2f(vForward.x, vForward.z);
-        const f32_t shrinkClamp = (fSideShrink < 0.f) ? 0.f
-            : (fSideShrink > 0.9f ? 0.9f : fSideShrink);
+        return {
+            a.x + (b.x - a.x) * t,
+            a.y + (b.y - a.y) * t,
+            a.z + (b.z - a.z) * t
+        };
+    };
 
-        const f32_t spreadDuration = 0.28f;
-        const f32_t maxStartDelay = 0.14f;
-        const f32_t startRadius = 0.35f;
+    auto BuildBlade = [&](const Vec3& pos, const Vec3& velocity,
+        f32_t lifetime, f32_t startDelay, f32_t fadeIn, f32_t fadeOut,
+        f32_t bladeYaw, f32_t bladeScale) -> FxMeshComponent
+    {
+        FxMeshComponent blade{};
+        blade.vWorldPos = pos;
+        blade.vVelocity = velocity;
+        blade.vRotation = { vRotation.x, vRotation.y + bladeYaw, vRotation.z };
+        blade.vScale = { bladeScale, bladeScale, bladeScale };
+        blade.modelPath = kPathRBladeFbx;
+        blade.texturePath = kPathRBladeTex;
+        blade.vColor = tuning.eBladeColor;
+        blade.blendMode = eBlendPreset::AlphaBlend;
+        blade.fLifetime = lifetime;
+        blade.fStartDelay = startDelay;
+        blade.fFadeIn = fadeIn;
+        blade.fFadeOut = fadeOut;
+        blade.fAlphaClip = 0.05f;
+        blade.bDepthWrite = false;
+        blade.RefreshMaterialFromLegacyFields();
+        return blade;
+    };
 
-        auto BuildBlade = [&](const Vec3& pos, const Vec3& velocity,
-            f32_t lifetime, f32_t startDelay, f32_t fadeIn, f32_t fadeOut,
-            f32_t bladeYaw, f32_t bladeScale) -> FxMeshComponent
-        {
-            FxMeshComponent blade{};
-            blade.vWorldPos = pos;
-            blade.vVelocity = velocity;
-            blade.vRotation = { vRotation.x, vRotation.y + bladeYaw, vRotation.z };
-            blade.vScale = { bladeScale, bladeScale, bladeScale };
-            blade.modelPath = kPathRBladeFbx;
-            blade.texturePath = kPathRBladeTex;
-            blade.vColor = { 0.7f, 0.9f, 1.45f, 1.0f };
-            blade.blendMode = eBlendPreset::AlphaBlend;
-            blade.fLifetime = lifetime;
-            blade.fStartDelay = startDelay;
-            blade.fFadeIn = fadeIn;
-            blade.fFadeOut = fadeOut;
-            blade.fAlphaClip = 0.f;
-            blade.bDepthWrite = false;
-            blade.RefreshMaterialFromLegacyFields();
-            return blade;
+    for (i32_t i = 0; i < iCount; ++i)
+    {
+        const f32_t t = (iCount > 1)
+            ? static_cast<f32_t>(i) / static_cast<f32_t>(iCount - 1)
+            : 0.5f;
+        const f32_t sideRatio = std::fabs(2.f * t - 1.f);
+        const f32_t angleOffset = (-halfSpread) + fSpreadRad * t;
+
+        f32_t bladeYaw = fwdYaw + angleOffset;
+        Vec3 bladeDir{ std::sinf(bladeYaw), 0.f, std::cosf(bladeYaw) };
+        Vec3 finalPos{
+            vHitPos.x + bladeDir.x * fPlaceDist,
+            bladeGroundY,
+            vHitPos.z + bladeDir.z * fPlaceDist
         };
 
-        for (i32_t i = 0; i < iCount; ++i)
+        f32_t bladeScale = fScale;
+        f32_t fwdPush = 0.f;
+        if (bTriangle)
         {
-            const f32_t t = (iCount == 1)
-                ? 0.5f
-                : static_cast<f32_t>(i) / static_cast<f32_t>(iCount - 1);
-            const f32_t sideRatio = std::fabs(2.f * t - 1.f);
-            const f32_t angleOffset = (-fSpreadRad * 0.5f) + fSpreadRad * t;
-
-            const f32_t bladeYaw = fwdYaw + angleOffset;
-            const Vec3 bladeDir{ std::sinf(bladeYaw), 0.f, std::cosf(bladeYaw) };
-
-            f32_t bladeScale = fScale;
-            f32_t fwdPush = 0.f;
-            if (bTriangle)
-            {
-                fwdPush = fTipBoost * (1.f - sideRatio);
-                bladeScale = fScale * (1.f - shrinkClamp * sideRatio);
-            }
-
-            const Vec3 startPos{
-                vHitPos.x + bladeDir.x * startRadius + vForward.x * (0.2f + fwdPush * 0.25f),
-                vHitPos.y,
-                vHitPos.z + bladeDir.z * startRadius + vForward.z * (0.2f + fwdPush * 0.25f)
-            };
-
-            const Vec3 finalPos{
-                vHitPos.x + bladeDir.x * fPlaceDist + vForward.x * fwdPush,
-                vHitPos.y,
-                vHitPos.z + bladeDir.z * fPlaceDist + vForward.z * fwdPush
-            };
-
-            const f32_t startDelay = sideRatio * maxStartDelay;
-            const Vec3 velocity{
-                (finalPos.x - startPos.x) / spreadDuration,
-                (finalPos.y - startPos.y) / spreadDuration,
-                (finalPos.z - startPos.z) / spreadDuration
-            };
-
-            FxMeshComponent movingBlade = BuildBlade(
-                startPos,
-                velocity,
-                spreadDuration + 0.08f,
-                startDelay,
-                0.025f,
-                0.08f,
-                bladeYaw,
-                bladeScale);
-            CFxMeshSystem::Spawn(world, pRenderer, movingBlade);
-
-            const f32_t settleDelay = startDelay + spreadDuration * 0.85f;
-            const f32_t settleLifetime = (fLifetime > settleDelay)
-                ? (fLifetime - settleDelay)
-                : 0.1f;
-
-            FxMeshComponent settledBlade = BuildBlade(
-                finalPos,
-                { 0.f, 0.f, 0.f },
-                settleLifetime,
-                settleDelay,
-                0.05f,
-                0.35f,
-                bladeYaw,
-                bladeScale);
-            CFxMeshSystem::Spawn(world, pRenderer, settledBlade);
+            finalPos = (t <= 0.5f)
+                ? LerpPoint(leftEnd, tip, t * 2.f)
+                : LerpPoint(tip, rightEnd, (t - 0.5f) * 2.f);
+            bladeDir = WintersMath::NormalizeXZOrZero(Vec3{
+                finalPos.x - vHitPos.x,
+                0.f,
+                finalPos.z - vHitPos.z
+            });
+            if (bladeDir.x == 0.f && bladeDir.z == 0.f)
+                bladeDir = forward;
+            bladeYaw = std::atan2f(bladeDir.x, bladeDir.z);
+            fwdPush = fTipBoost * (1.f - sideRatio);
+            bladeScale = fScale * (1.f - shrinkClamp * sideRatio);
         }
 
-        return;
+        const Vec3 startPos{
+            vHitPos.x + bladeDir.x * startRadius + forward.x * (0.2f + fwdPush * 0.25f),
+            bladeGroundY,
+            vHitPos.z + bladeDir.z * startRadius + forward.z * (0.2f + fwdPush * 0.25f)
+        };
+
+        const f32_t startDelay = sideRatio * maxStartDelay;
+        const Vec3 velocity{
+            (finalPos.x - startPos.x) / spreadDuration,
+            (finalPos.y - startPos.y) / spreadDuration,
+            (finalPos.z - startPos.z) / spreadDuration
+        };
+
+        FxMeshComponent movingBlade = BuildBlade(
+            startPos,
+            velocity,
+            spreadDuration + 0.08f,
+            startDelay,
+            0.025f,
+            0.08f,
+            bladeYaw,
+            bladeScale);
+        CFxMeshSystem::Spawn(world, pRenderer, movingBlade);
+
+        const f32_t settleDelay = startDelay + spreadDuration * 0.85f;
+        const f32_t settleLifetime = (fLifetime > settleDelay)
+            ? (fLifetime - settleDelay)
+            : 0.1f;
+
+        FxMeshComponent settledBlade = BuildBlade(
+            finalPos,
+            { 0.f, 0.f, 0.f },
+            settleLifetime,
+            settleDelay,
+            0.05f,
+            0.35f,
+            bladeYaw,
+            bladeScale);
+        CFxMeshSystem::Spawn(world, pRenderer, settledBlade);
     }
 
 }

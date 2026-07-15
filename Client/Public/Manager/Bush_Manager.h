@@ -4,7 +4,10 @@
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
 #include "ECS/Entity.h"
+#include "Renderer/ModelRenderer.h"
+#include "Renderer/RenderWorldSnapshot.h"
 #include <cstdio>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -23,6 +26,10 @@ public:
     HRESULT Load_FromFile(FILE* pFile);
 
     void    RenderEditorOverlay(const Mat4& matViewProj, i32_t selectedIndex) const;
+    void    Render(const Mat4& matViewProj, const Vec3& vCameraWorld,
+        void* pAmbientOcclusionSRV = nullptr);
+    u32_t   AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot,
+        const Mat4& matViewProj);
 
     i32_t   Add_At(
         u32_t bushId,
@@ -75,6 +82,7 @@ private:
         f32_t scale = 1.f;
         bool_t bVisible = true;
         std::string assetPath;
+        std::unique_ptr<ModelRenderer> pMeshRenderer;
     };
 
     void Make_AutoName(u32_t bushId, char* pOutBuf, size_t capacity);
@@ -82,6 +90,7 @@ private:
     Winters::Map::BushEntry BuildEntry(u32_t iIndex) const;
     void Sync_BushComponents(u32_t iIndex);
     void Sync_FxComponent(u32_t iIndex);
+    void Sync_MeshRenderer(u32_t iIndex);
 
     CWorld* m_pWorld = nullptr;
     std::vector<EntityID> m_vecEntities;

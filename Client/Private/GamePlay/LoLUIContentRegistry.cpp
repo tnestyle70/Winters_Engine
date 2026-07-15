@@ -7,7 +7,9 @@
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 
 #include <cstdio>
+#include <iterator>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace Client
@@ -43,6 +45,9 @@ namespace Client
             AppendItemStatLine(Lines, "Magic Resist", Stats.flatMr);
             AppendItemStatLine(Lines, "Attack Speed", Stats.bonusAttackSpeed, true);
             AppendItemStatLine(Lines, "Crit Chance", Stats.critChance, true);
+            AppendItemStatLine(Lines, "Ability Haste", Stats.abilityHaste);
+            AppendItemStatLine(Lines, "Magic Pen", Stats.flatMagicPen);
+            AppendItemStatLine(Lines, "Lethality", Stats.lethality);
             AppendItemStatLine(Lines, "Move Speed", Stats.flatMoveSpeed);
             AppendItemStatLine(Lines, "Life Steal", Stats.lifeSteal, true);
 
@@ -262,25 +267,91 @@ namespace Client
             ChampionScoreComponent::kSummonerSpellIgnite,
         };
 
-        constexpr u16_t kLoLShopItemIds[] =
+        struct LoLShopCatalogEntry
         {
-            1055, 1056, 1036, 1042, 1028, 1029, 1033,
-            1001, 1052, 1037, 1043, 1053, 1058, 1038,
-            3153,
+            u16_t iItemId = 0u;
+            const char* pAssetKey = nullptr;
+            const char* pSection = nullptr;
+            const wchar_t* pIconPath = nullptr;
+            const char* pIconSprite = nullptr;
         };
+
+        // 기본 배치: 시작템 -> 신발 -> 재료 -> 완성템. 전 항목 Data Dragon 16.13.1 SR 구매가능 검증.
+        constexpr LoLShopCatalogEntry kLoLShopCatalog[] =
+        {
+            { 1055, "1055_marksman_t1_doransblade.png", "legacy", L"Resource/Texture/UI/Items/1055_marksman_t1_doransblade.png", "item:1055_marksman_t1_doransblade.png" },
+            { 1056, "1056_mage_t1_doransring.png", "legacy", L"Resource/Texture/UI/Items/1056_mage_t1_doransring.png", "item:1056_mage_t1_doransring.png" },
+            { 1054, "1054_tank_t1_doransshield.png", "legacy", L"Resource/Texture/UI/Items/1054_tank_t1_doransshield.png", "item:1054_tank_t1_doransshield.png" },
+            { 1001, "1001_class_t1_bootsofspeed.png", "legacy", L"Resource/Texture/UI/Items/1001_class_t1_bootsofspeed.png", "item:1001_class_t1_bootsofspeed.png" },
+            { 3006, "3006_class_t2_berserkersgreaves.png", "legacy", L"Resource/Texture/UI/Items/3006_class_t2_berserkersgreaves.png", "item:3006_class_t2_berserkersgreaves.png" },
+            { 3020, "3020_class_t2_sorcerersshoes.png", "legacy", L"Resource/Texture/UI/Items/3020_class_t2_sorcerersshoes.png", "item:3020_class_t2_sorcerersshoes.png" },
+            { 3047, "3047_class_t2_ninjatabi.png", "legacy", L"Resource/Texture/UI/Items/3047_class_t2_ninjatabi.png", "item:3047_class_t2_ninjatabi.png" },
+            { 3111, "3111_class_t2_mercurystreads.png", "legacy", L"Resource/Texture/UI/Items/3111_class_t2_mercurystreads.png", "item:3111_class_t2_mercurystreads.png" },
+            { 3158, "3158_class_t2_ionianbootsoflucidity.png", "legacy", L"Resource/Texture/UI/Items/3158_class_t2_ionianbootsoflucidity.png", "item:3158_class_t2_ionianbootsoflucidity.png" },
+            { 1036, "1036_class_t1_longsword.png", "legacy", L"Resource/Texture/UI/Items/1036_class_t1_longsword.png", "item:1036_class_t1_longsword.png" },
+            { 1042, "1042_base_t1_dagger.png", "legacy", L"Resource/Texture/UI/Items/1042_base_t1_dagger.png", "item:1042_base_t1_dagger.png" },
+            { 1043, "1043_base_t2_recurvebow.png", "legacy", L"Resource/Texture/UI/Items/1043_base_t2_recurvebow.png", "item:1043_base_t2_recurvebow.png" },
+            { 1052, "1052_mage_t2_amptome.png", "legacy", L"Resource/Texture/UI/Items/1052_mage_t2_amptome.png", "item:1052_mage_t2_amptome.png" },
+            { 1053, "1053_fighter_t2_vampiricscepter.png", "legacy", L"Resource/Texture/UI/Items/1053_fighter_t2_vampiricscepter.png", "item:1053_fighter_t2_vampiricscepter.png" },
+            { 1028, "1028_base_t1_rubycrystal.png", "legacy", L"Resource/Texture/UI/Items/1028_base_t1_rubycrystal.png", "item:1028_base_t1_rubycrystal.png" },
+            { 1029, "1029_base_t1_clotharmor.png", "legacy", L"Resource/Texture/UI/Items/1029_base_t1_clotharmor.png", "item:1029_base_t1_clotharmor.png" },
+            { 1031, "1031_base_t2_chainvest.png", "legacy", L"Resource/Texture/UI/Items/1031_base_t2_chainvest.png", "item:1031_base_t2_chainvest.png" },
+            { 1033, "1033_base_t1_magicmantle.png", "legacy", L"Resource/Texture/UI/Items/1033_base_t1_magicmantle.png", "item:1033_base_t1_magicmantle.png" },
+            { 1057, "1057_tank_t2_negatroncloak.png", "legacy", L"Resource/Texture/UI/Items/1057_tank_t2_negatroncloak.png", "item:1057_tank_t2_negatroncloak.png" },
+            { 1011, "1011_class_t2_giantsbelt.png", "legacy", L"Resource/Texture/UI/Items/1011_class_t2_giantsbelt.png", "item:1011_class_t2_giantsbelt.png" },
+            { 1018, "1018_base_t1_cloakagility.png", "legacy", L"Resource/Texture/UI/Items/1018_base_t1_cloakagility.png", "item:1018_base_t1_cloakagility.png" },
+            { 1026, "1026_mage_t1_blastingwand.png", "legacy", L"Resource/Texture/UI/Items/1026_mage_t1_blastingwand.png", "item:1026_mage_t1_blastingwand.png" },
+            { 1027, "1027_base_t1_saphirecrystal.png", "legacy", L"Resource/Texture/UI/Items/1027_base_t1_saphirecrystal.png", "item:1027_base_t1_saphirecrystal.png" },
+            { 1037, "1037_class_t1_pickaxe.png", "legacy", L"Resource/Texture/UI/Items/1037_class_t1_pickaxe.png", "item:1037_class_t1_pickaxe.png" },
+            { 1058, "1058_mage_t1_largerod.png", "legacy", L"Resource/Texture/UI/Items/1058_mage_t1_largerod.png", "item:1058_mage_t1_largerod.png" },
+            { 1038, "1038_marksman_t1_bfsword.png", "legacy", L"Resource/Texture/UI/Items/1038_marksman_t1_bfsword.png", "item:1038_marksman_t1_bfsword.png" },
+            { 3031, "3031_marksman_t3_infinityedge.png", "legacy", L"Resource/Texture/UI/Items/3031_marksman_t3_infinityedge.png", "item:3031_marksman_t3_infinityedge.png" },
+            { 3072, "3072_fighter_t3_bloodthirster.png", "legacy", L"Resource/Texture/UI/Items/3072_fighter_t3_bloodthirster.png", "item:3072_fighter_t3_bloodthirster.png" },
+            { 3078, "3078_fighter_t4_trinityforce.png", "legacy", L"Resource/Texture/UI/Items/3078_fighter_t4_trinityforce.png", "item:3078_fighter_t4_trinityforce.png" },
+            { 3153, "3153_fighter_t3_bladeoftheruinedking.png", "legacy", L"Resource/Texture/UI/Items/3153_fighter_t3_bladeoftheruinedking.png", "item:3153_fighter_t3_bladeoftheruinedking.png" },
+            { 3089, "3089_mage_t3_deathcap.png", "legacy", L"Resource/Texture/UI/Items/3089_mage_t3_deathcap.png", "item:3089_mage_t3_deathcap.png" },
+            { 3157, "3157_mage_t3_zhonyashourglass.png", "legacy", L"Resource/Texture/UI/Items/3157_mage_t3_zhonyashourglass.png", "item:3157_mage_t3_zhonyashourglass.png" },
+            { 3065, "3065_tank_t3_spiritvisage.png", "legacy", L"Resource/Texture/UI/Items/3065_tank_t3_spiritvisage.png", "item:3065_tank_t3_spiritvisage.png" },
+            { 3742, "3742_tank_t3_deadmansplate.png", "legacy", L"Resource/Texture/UI/Items/3742_tank_t3_deadmansplate.png", "item:3742_tank_t3_deadmansplate.png" },
+        };
+
+        struct RuntimeShopEntry
+        {
+            const LoLShopCatalogEntry* pEntry = nullptr;
+            bool_t bEnabled = true;
+        };
+
+        std::vector<RuntimeShopEntry>& GetRuntimeShopCatalog()
+        {
+            static std::vector<RuntimeShopEntry> s_Catalog = []
+            {
+                std::vector<RuntimeShopEntry> catalog;
+                catalog.reserve(std::size(kLoLShopCatalog));
+                for (const LoLShopCatalogEntry& entry : kLoLShopCatalog)
+                    catalog.push_back({ &entry, true });
+                return catalog;
+            }();
+            return s_Catalog;
+        }
 
         void RegisterLoLShopItems(Engine::CGameInstance& GameInstance)
         {
+            const std::vector<RuntimeShopEntry>& Catalog = GetRuntimeShopCatalog();
             std::vector<std::vector<std::string>> StatTextStorage;
             std::vector<std::vector<const char*>> StatLineStorage;
             std::vector<Engine::UIShopItemAssetDesc> Items;
-            StatTextStorage.reserve(sizeof(kLoLShopItemIds) / sizeof(kLoLShopItemIds[0]));
-            StatLineStorage.reserve(sizeof(kLoLShopItemIds) / sizeof(kLoLShopItemIds[0]));
-            Items.reserve(sizeof(kLoLShopItemIds) / sizeof(kLoLShopItemIds[0]));
+            const u32_t kItemCount = static_cast<u32_t>(Catalog.size());
+            StatTextStorage.reserve(kItemCount);
+            StatLineStorage.reserve(kItemCount);
+            Items.reserve(kItemCount + 1u);
 
-            for (const u16_t iItemId : kLoLShopItemIds)
+            for (u32_t Index = 0u; Index < kItemCount; ++Index)
             {
-                const ItemDef* pItem = CItemRegistry::Instance().Find(iItemId);
+                if (!Catalog[Index].bEnabled)
+                    continue;
+
+                const LoLShopCatalogEntry& Entry = *Catalog[Index].pEntry;
+                const ItemDef* pItem = CItemRegistry::Instance().Find(Entry.iItemId);
                 if (!pItem)
                     continue;
 
@@ -295,15 +366,36 @@ namespace Client
                 Engine::UIShopItemAssetDesc Desc{};
                 Desc.iItemId = pItem->itemId;
                 Desc.iPrice = pItem->price;
+                Desc.iOrder = Index;
+                Desc.pAssetKey = Entry.pAssetKey;
+                Desc.pSection = Entry.pSection;
                 Desc.pDisplayName = pItem->displayName;
+                Desc.pIconPath = Entry.pIconPath;
+                Desc.pIconSprite = Entry.pIconSprite;
                 Desc.pStatLines = LinePointers.empty() ? nullptr : LinePointers.data();
                 Desc.iStatLineCount = static_cast<u32_t>(LinePointers.size());
+                Desc.bEnabled = true;
+                Desc.bPurchasable = true;
                 Items.push_back(Desc);
             }
+
+            Engine::UIShopItemAssetDesc OathswornItem{};
+            OathswornItem.iItemId = 3599u;
+            OathswornItem.iPrice = 0u;
+            OathswornItem.iOrder = kItemCount;
+            OathswornItem.pAssetKey = "3599_kalistapassiveitem.png";
+            OathswornItem.pSection = "utility";
+            OathswornItem.pDisplayName = "Black Spear";
+            OathswornItem.pIconPath =
+                L"Resource/Texture/UI/Items/3599_kalistapassiveitem.png";
+            OathswornItem.bEnabled = false;
+            OathswornItem.bPurchasable = false;
+            Items.push_back(OathswornItem);
 
             GameInstance.UI_Register_InGameShopItems(
                 Items.data(),
                 static_cast<u32_t>(Items.size()));
+            GameInstance.UI_Reload_Lua();
         }
     }
 
@@ -318,6 +410,52 @@ namespace Client
         GameInstance.UI_Set_StatusPanelDefaultSpellIds(
             kLoLDefaultStatusPanelSpellIds,
             static_cast<u32_t>(sizeof(kLoLDefaultStatusPanelSpellIds) / sizeof(kLoLDefaultStatusPanelSpellIds[0])));
+        RegisterLoLShopItems(GameInstance);
+    }
+
+    u32_t GetLoLShopEditorEntryCount()
+    {
+        return static_cast<u32_t>(GetRuntimeShopCatalog().size());
+    }
+
+    LoLShopEditorEntryView GetLoLShopEditorEntry(u32_t Index)
+    {
+        LoLShopEditorEntryView View{};
+        const std::vector<RuntimeShopEntry>& Catalog = GetRuntimeShopCatalog();
+        if (Index >= Catalog.size())
+            return View;
+
+        View.iItemId = Catalog[Index].pEntry->iItemId;
+        View.bEnabled = Catalog[Index].bEnabled;
+        const ItemDef* pItem = CItemRegistry::Instance().Find(View.iItemId);
+        View.pDisplayName = pItem ? pItem->displayName : Catalog[Index].pEntry->pAssetKey;
+        return View;
+    }
+
+    void SetLoLShopEditorEntryEnabled(u32_t Index, bool_t bEnabled)
+    {
+        std::vector<RuntimeShopEntry>& Catalog = GetRuntimeShopCatalog();
+        if (Index < Catalog.size())
+            Catalog[Index].bEnabled = bEnabled;
+    }
+
+    bool_t MoveLoLShopEditorEntry(u32_t Index, bool_t bMoveUp)
+    {
+        std::vector<RuntimeShopEntry>& Catalog = GetRuntimeShopCatalog();
+        if (Index >= Catalog.size())
+            return false;
+        if (bMoveUp && Index == 0u)
+            return false;
+        if (!bMoveUp && Index + 1u >= Catalog.size())
+            return false;
+
+        const u32_t Other = bMoveUp ? Index - 1u : Index + 1u;
+        std::swap(Catalog[Index], Catalog[Other]);
+        return true;
+    }
+
+    void ReapplyLoLShopItems(Engine::CGameInstance& GameInstance)
+    {
         RegisterLoLShopItems(GameInstance);
     }
 }

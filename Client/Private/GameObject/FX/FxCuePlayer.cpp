@@ -101,17 +101,27 @@ namespace
 
     void LogMissingCue(const char* pszCueName)
     {
+        static u32_t s_missingCueLogCount = 0;
+        if (s_missingCueLogCount >= 64)
+            return;
         char szBuffer[192]{};
         sprintf_s(szBuffer, "[FxCuePlayer] Missing cue: %s\n", pszCueName ? pszCueName : "(null)");
+        OutputDebugStringA(szBuffer);
+        ++s_missingCueLogCount;
     }
 
     void LogSkippedCueEmitter(const char* pszCueName, const FxEmitterDesc& emitter)
     {
+        static u32_t s_skippedEmitterLogCount = 0;
+        if (s_skippedEmitterLogCount >= 64)
+            return;
         char szBuffer[256]{};
         sprintf_s(szBuffer, "[FxCuePlayer] Skipped cue emitter cue=%s emitter=%s type=%u\n",
             pszCueName ? pszCueName : "(null)",
             emitter.strName.empty() ? "(unnamed)" : emitter.strName.c_str(),
             static_cast<u32_t>(emitter.renderType));
+        OutputDebugStringA(szBuffer);
+        ++s_skippedEmitterLogCount;
     }
 
     Vec3 ApplyCueOffset(const Vec3& origin, const Vec3& offset, const Vec3& forward)
@@ -208,10 +218,16 @@ namespace
         fx.vAttachOffset = emitter.vAttachOffset;
         fx.anchor = emitter.anchor;
         fx.lifecycle = emitter.lifecycle;
+        fx.bDestroyWhenAttachInvalid = emitter.lifecycle.bKillWhenAnchorInvalid;
         fx.vVelocity = ctx.bOverrideVelocity ? ctx.vVelocity : emitter.vVelocity;
         fx.SetTexturePath(emitter.strTexturePath);
         fx.fWidth = ctx.bOverrideSize ? ctx.fWidthOverride : emitter.fWidth;
         fx.fHeight = ctx.bOverrideSize ? ctx.fHeightOverride : emitter.fHeight;
+        if (ctx.bOverrideScaleMultiplier)
+        {
+            fx.fWidth *= ctx.vScaleMultiplier.x;
+            fx.fHeight *= ctx.vScaleMultiplier.y;
+        }
         fx.fYaw = emitter.fYaw;
         fx.fStartRadius = emitter.fStartRadius;
         fx.fEndRadius = emitter.fEndRadius;
@@ -357,6 +373,12 @@ namespace
         mesh.lifecycle = emitter.lifecycle;
         mesh.vVelocity = ctx.bOverrideVelocity ? ctx.vVelocity : emitter.vVelocity;
         mesh.vScale = emitter.vScale;
+        if (ctx.bOverrideScaleMultiplier)
+        {
+            mesh.vScale.x *= ctx.vScaleMultiplier.x;
+            mesh.vScale.y *= ctx.vScaleMultiplier.y;
+            mesh.vScale.z *= ctx.vScaleMultiplier.z;
+        }
         mesh.fWorldYawSpinSpeed = emitter.fWorldYawSpinSpeed;
         if (ctx.bOverrideEndWorldPos && emitter.bScaleZToSegment)
         {
@@ -366,6 +388,15 @@ namespace
         mesh.vRotation = emitter.vRotation;
         if (vForward.x != 0.f || vForward.z != 0.f)
             mesh.vRotation.y += WintersMath::YawFromDirectionXZ(vForward);
+        if (ctx.bApplyAttachJitter)
+        {
+            mesh.vAttachOffset.x += ctx.vAttachOffsetJitter.x;
+            mesh.vAttachOffset.y += ctx.vAttachOffsetJitter.y;
+            mesh.vAttachOffset.z += ctx.vAttachOffsetJitter.z;
+            mesh.vRotation.x += ctx.vRotationJitter.x;
+            mesh.vRotation.y += ctx.vRotationJitter.y;
+            mesh.vRotation.z += ctx.vRotationJitter.z;
+        }
         mesh.SetModelPath(emitter.strModelPath);
         mesh.SetTexturePath(emitter.strTexturePath);
         mesh.SetErodeTexturePath(emitter.strErodeTexturePath);
@@ -385,7 +416,19 @@ u32_t CFxCuePlayer::PreloadDirectory(const wchar_t* wszDirectoryPath)
     if (!wszDirectoryPath || !wszDirectoryPath[0])
         return 0u;
 
-    return CFxSystem::GetAssetRegistry().LoadDirectory(wszDirectoryPath);
+    CFxAssetRegistry& registry = CFxSystem::GetAssetRegistry();
+    const u32_t directCount = registry.LoadDirectory(wszDirectoryPath);
+    if (directCount > 0u)
+        return directCount;
+
+    // F5 starts at the workspace root, while a directly launched executable
+    // usually starts in Client/Bin/Debug. Resolve the same authoritative WFX
+    // directory in both cases so the strict loading barrier is not cwd-based.
+    std::wstring fxRoot;
+    if (TryFindWorkspaceFxRoot(fxRoot))
+        return registry.LoadDirectory(fxRoot);
+
+    return 0u;
 }
 
 FxAssetHandle CFxCuePlayer::FindCue(const char* pszCueName)

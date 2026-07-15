@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "champions": [
+    {
+      "champion": "IRELIA",
+      "targetAttackSpeed": 0.8,
+      "animSpeedMul": 1.0
+    }
+  ]
+}

@@ -66,7 +66,7 @@ namespace Irelia
         f32_t rFxYOffset = 0.91f;
         f32_t rFxFwdOffset = 0.0f;
         f32_t rFxYawOffset = 1.571f;
-        i32_t iRWallBladeCount = 24;
+        i32_t iRWallBladeCount = 25;
         f32_t fRWallBladeSpreadRad = 4.18879f;
         f32_t fRWallBladePlaceDist = 3.0f;
         f32_t fRWallBladeLifetime = 2.5f;

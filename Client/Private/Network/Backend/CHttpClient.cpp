@@ -1,6 +1,7 @@
 #include "Network/Backend/CHttpClient.h"
 #include <winhttp.h>
 #include <future>
+#include <chrono>
 
 #pragma comment(lib, "winhttp.lib")
 
@@ -86,29 +87,73 @@ HttpResponse CHttpClient::Delete(const string& path)
 }
 
 //비동기 요청
+//과거 버그: async(launch::async, ...)의 반환 future를 버리면 임시 future 소멸자가
+//작업 완료까지 대기해 사실상 동기 호출이 됐다 (gotcha 2026-07-09 async lifetime).
+//지금은 m_PendingRequests가 future를 소유하고, 소멸자가 전부 드레인한다.
 void CHttpClient::AsyncGet(const string& path, HttpCallback callback)
 {
-	auto self = this;
-	string pathCopy = path;
-	//별도의 쓰레드에서 비동기 요청, 게임이 멈추면 안 되기 때문에 별도의 쓰레드에서 따로 돌림!
-	async(launch::async, [self, pathCopy, callback]() {
-		HttpResponse resp = self->DoRequest("GET", pathCopy, "");
-		lock_guard<mutex> lock(self->m_CallbackMutex);
-		self->m_PendingCallbacks.push([callback, resp]() {callback(resp); });
-	});
+	LaunchAsyncRequest("GET", path, "", callback);
 }
 
 void CHttpClient::AsyncPost(const string & path, const string & jsonBody, HttpCallback callback)
 {
-	auto self = this;
-	string pathCopy = path;
-	string bodyCopy = jsonBody;
-	//별도의 쓰레드에서 요청!, 요청 응답 받을 때까지 게임이 끊기면 안 되기 때문이다!!
-	async(launch::async, [self, pathCopy, bodyCopy, callback]() {
-		HttpResponse resp = self->DoRequest("POST", pathCopy, bodyCopy);
-		lock_guard<mutex> lock(self->m_CallbackMutex);
-		self->m_PendingCallbacks.push([callback, resp]() {callback(resp); });
+	LaunchAsyncRequest("POST", path, jsonBody, callback);
+}
+
+CHttpClient::~CHttpClient()
+{
+	//진행 중인 요청 lambda가 this(m_CallbackMutex/m_PendingCallbacks)를 만지므로
+	//전부 끝날 때까지 대기한다. 블로킹은 파괴 시점에만 발생한다.
+	vector<future<void>> pending;
+	{
+		lock_guard<mutex> lock(m_RequestMutex);
+		pending.swap(m_PendingRequests);
+	}
+	for (auto& task : pending)
+	{
+		if (task.valid())
+			task.wait();
+	}
+}
+
+CHttpClient::RequestSnapshot CHttpClient::MakeRequestSnapshot() const
+{
+	RequestSnapshot snapshot;
+	snapshot.host = m_Host;
+	snapshot.port = m_Port;
+	snapshot.basePath = m_BasePath;
+	snapshot.authToken = m_AuthToken;
+	return snapshot;
+}
+
+void CHttpClient::PruneCompletedRequests()
+{
+	lock_guard<mutex> lock(m_RequestMutex);
+	for (size_t i = m_PendingRequests.size(); i > 0; --i)
+	{
+		auto& task = m_PendingRequests[i - 1];
+		if (!task.valid() ||
+			task.wait_for(chrono::seconds(0)) == future_status::ready)
+		{
+			m_PendingRequests.erase(m_PendingRequests.begin() + (i - 1));
+		}
+	}
+}
+
+void CHttpClient::LaunchAsyncRequest(string method, string path, string body, HttpCallback callback)
+{
+	PruneCompletedRequests();
+
+	const RequestSnapshot snapshot = MakeRequestSnapshot();
+	future<void> task = async(launch::async,
+		[this, snapshot, method, path, body, callback]() {
+			HttpResponse resp = DoRequestWith(snapshot, method, path, body);
+			lock_guard<mutex> lock(m_CallbackMutex);
+			m_PendingCallbacks.push([callback, resp]() { callback(resp); });
 		});
+
+	lock_guard<mutex> lock(m_RequestMutex);
+	m_PendingRequests.push_back(std::move(task));
 }
 //메인 스레드에서 콜백 실행
 void CHttpClient::ProcessCallbacks()
@@ -124,8 +169,17 @@ void CHttpClient::ProcessCallbacks()
 		pending.pop();
 	}
 }
-//핵심 : WinHTTP 요청!
 HttpResponse CHttpClient::DoRequest(const string & method, const string & path, const string & body)
+{
+	return DoRequestWith(MakeRequestSnapshot(), method, path, body);
+}
+
+//핵심 : WinHTTP 요청! worker 스레드에서 실행되므로 멤버 대신 snapshot 복사본만 읽는다(static으로 강제).
+HttpResponse CHttpClient::DoRequestWith(
+	const RequestSnapshot& snapshot,
+	const string& method,
+	const string& path,
+	const string& body)
 {
 	HttpResponse response;
 	//1. 세션 열기
@@ -138,7 +192,7 @@ HttpResponse CHttpClient::DoRequest(const string & method, const string & path, 
 	}
 
 	//2. 서버 연결
-	HINTERNET hConnect = WinHttpConnect(hSession, m_Host.c_str(), m_Port, 0);
+	HINTERNET hConnect = WinHttpConnect(hSession, snapshot.host.c_str(), snapshot.port, 0);
 	if (!hConnect)
 	{
 		response.error = "WinHttpConnect failed";
@@ -147,7 +201,7 @@ HttpResponse CHttpClient::DoRequest(const string & method, const string & path, 
 	}
 
 	//3. 요청 생성
-	wstring fullPath = m_BasePath + ToWide(path);
+	wstring fullPath = snapshot.basePath + ToWide(path);
 	wstring wMethod = ToWide(method);
 
 	HINTERNET hRequest = WinHttpOpenRequest(hConnect, wMethod.c_str(),
@@ -162,8 +216,8 @@ HttpResponse CHttpClient::DoRequest(const string & method, const string & path, 
 
 	//4. 헤더 추가
 	wstring headers = L"Content-Type: application/json\r\n";
-	if (!m_AuthToken.empty())
-		headers += L"Authorization: Bearer " + ToWide(m_AuthToken) + L"\r\n";
+	if (!snapshot.authToken.empty())
+		headers += L"Authorization: Bearer " + ToWide(snapshot.authToken) + L"\r\n";
 
 	WinHttpAddRequestHeaders(hRequest, headers.c_str(), (DWORD)-1, WINHTTP_ADDREQ_FLAG_ADD);
 

@@ -21,6 +21,7 @@ namespace
     constexpr const char* kCueSoulIdle = "Viego.Soul.Idle";
 
     std::unordered_map<EntityID, std::vector<EntityID>> g_WChargeGlowEntities;
+    std::unordered_map<EntityID, std::vector<EntityID>> g_SoulIdleEntities;
 
     Vec3 ResolvePosition(CWorld& world, EntityID entity)
     {
@@ -203,8 +204,33 @@ namespace Viego::Fx
 
     void SpawnSoulIdle(CWorld& world, EntityID owner, f32_t fLifetime)
     {
+        StopSoulIdle(world, owner);
+
         const Vec3 ownerPos = ResolvePosition(world, owner);
         FxCueContext cue = MakeAttachedCue(owner, ownerPos, nullptr, fLifetime);
-        CFxCuePlayer::Play(world, kCueSoulIdle, cue);
+        std::vector<EntityID> spawned;
+        CFxCuePlayer::PlayAll(world, kCueSoulIdle, cue, &spawned);
+        if (owner != NULL_ENTITY && !spawned.empty())
+            g_SoulIdleEntities[owner] = std::move(spawned);
+    }
+
+    void StopSoulIdle(CWorld& world, EntityID owner)
+    {
+        if (owner == NULL_ENTITY)
+            return;
+
+        const auto it = g_SoulIdleEntities.find(owner);
+        if (it == g_SoulIdleEntities.end())
+            return;
+
+        DestroyLiveEntities(world, it->second);
+        g_SoulIdleEntities.erase(it);
+    }
+
+    void StopAllSoulIdle(CWorld& world)
+    {
+        for (const auto& entry : g_SoulIdleEntities)
+            DestroyLiveEntities(world, entry.second);
+        g_SoulIdleEntities.clear();
     }
 }

@@ -2,8 +2,10 @@
 #include "IScene.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Resource/Texture.h"
+#include "Scene/LobbyRosterHelpers.h"
 #include "UI/ImageScenePresenter.h"
 #include <memory>
+#include <string>
 #include <vector>
 
 class CScene_BanPick : public IScene
@@ -29,6 +31,7 @@ private:
 	void HandleServerChampionSelectInput();
 	void HandleLocalChampionSelectInput();
 	void RenderChampionGridAndRosterOverlay();
+	void RenderServerRequiredNotice();
 	void RenderChampionSelectSlots(const MatchContext& context, u8_t selectedSlotId);
 	void BuildChampionCells();
 	void StartMatchLoadingScene();
@@ -42,6 +45,7 @@ private:
 	struct ChampionCell
 	{
 		eChampion champion = eChampion::END;
+		std::string strContentKey{};
 		ImageSourceRect rect{};
 		std::unique_ptr<Engine::CTexture> pTexture{};
 	};
@@ -63,5 +67,7 @@ private:
 	std::vector<ChampionCell> m_ChampionCells{};
 	bool_t m_bServerLobbyActive = false;
 	bool_t m_bSceneTransitionStarted = false;
+	eMatchLaunchRuntimeMode m_eMatchLaunchRuntimeMode =
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable;
 	ServerSmokeAutomation m_ServerSmoke{};
 };

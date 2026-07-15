@@ -5,6 +5,7 @@
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
 #include "Network/Client/CommandSerializer.h"
+#include "Network/Client/SnapshotApplier.h"
 #include "Scene/Scene_InGame.h"
 #include "Manager/Navigation/NavGrid.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
@@ -12,6 +13,7 @@
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
+#include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 
 #pragma push_macro("new")
 #undef new
@@ -19,6 +21,8 @@
 #pragma pop_macro("new")
 
 #include <cstdio>
+#include <algorithm>
+#include <vector>
 
 namespace
 {
@@ -65,6 +69,7 @@ namespace
 		case eChampionAIState::MoveToOuterTurret: return "MoveToOuterTurret";
 		case eChampionAIState::WaitForWave: return "WaitForWave";
 		case eChampionAIState::LaneCombat: return "LaneCombat";
+		case eChampionAIState::GroupMidDefense: return "GroupMidDefense";
 		case eChampionAIState::Diving: return "Diving";
 		case eChampionAIState::Retreat: return "Retreat";
 		case eChampionAIState::Recalling: return "Recalling";
@@ -97,8 +102,20 @@ namespace
 		case eChampionAIIntent::AttackChampion: return "AttackChampion";
 		case eChampionAIIntent::ExecuteDive: return "ExecuteDive";
 		case eChampionAIIntent::SiegeStructure: return "SiegeStructure";
+		case eChampionAIIntent::DefendMid: return "DefendMid";
 		case eChampionAIIntent::Retreat: return "Retreat";
 		case eChampionAIIntent::Recall: return "Recall";
+		default: return "Unknown";
+		}
+	}
+
+	const char* ChampionAIBrainName(eChampionAIBrainType brainType)
+	{
+		switch (brainType)
+		{
+		case eChampionAIBrainType::RuleBased: return "RuleBased";
+		case eChampionAIBrainType::PlayerLike: return "PlayerLike";
+		case eChampionAIBrainType::Decision: return "Decision";
 		default: return "Unknown";
 		}
 	}
@@ -148,7 +165,159 @@ namespace
 		case eChampionAIDecisionBlockReason::StateBlocked: return "StateBlocked";
 		case eChampionAIDecisionBlockReason::InvalidPath: return "InvalidPath";
 		case eChampionAIDecisionBlockReason::CommandRejected: return "Rejected";
+		case eChampionAIDecisionBlockReason::PolicyCastInterval: return "PolicyInterval";
+		case eChampionAIDecisionBlockReason::RuntimeSkillCooldown: return "RuntimeCooldown";
 		default: return "Unknown";
+		}
+	}
+
+	const char* ChampionAIShadowStatusName(u8_t status)
+	{
+		switch (static_cast<eChampionAIShadowStatusV1>(status))
+		{
+		case eChampionAIShadowStatusV1::Disabled: return "Disabled";
+		case eChampionAIShadowStatusV1::Evaluated: return "Evaluated";
+		case eChampionAIShadowStatusV1::InvalidArtifact: return "InvalidArtifact";
+		case eChampionAIShadowStatusV1::InvalidTrace: return "InvalidTrace";
+		case eChampionAIShadowStatusV1::InsufficientLegalCandidates:
+			return "InsufficientLegalCandidates";
+		default: return "InvalidStatus";
+		}
+	}
+
+	const char* ChampionAIShadowCandidateName(u8_t candidateKind)
+	{
+		switch (candidateKind)
+		{
+		case 1u: return "Retreat";
+		case 2u: return "Fight";
+		case 3u: return "Farm";
+		case 4u: return "Siege";
+		default: return "None";
+		}
+	}
+
+	u8_t ResolveChampionAIShadowRunnerUp(
+		const ChampionAIDecisionTraceEntry& row)
+	{
+		u8_t runnerUpKind = 0u;
+		f32_t runnerUpLogit = 0.f;
+		for (u8_t kind = 1u; kind <= kChampionAIShadowCandidateCountV1; ++kind)
+		{
+			const u32_t bit = 1u << (kind - 1u);
+			if ((row.shadowLegalCandidateMask & bit) == 0u ||
+				kind == row.shadowSelectedCandidateKind)
+			{
+				continue;
+			}
+			const f32_t logit = row.shadowLogits[kind - 1u];
+			if (runnerUpKind == 0u || logit > runnerUpLogit)
+			{
+				runnerUpKind = kind;
+				runnerUpLogit = logit;
+			}
+		}
+		return runnerUpKind;
+	}
+
+	const char* ChampionAIShadowFeatureName(u16_t featureIndex)
+	{
+		static_assert(kChampionAIShadowFeatureCountV1 == 67u);
+		static_assert(kChampionAIShadowCandidateCountV1 == 4u);
+		static constexpr const char* kCandidateFeatureNames[] =
+		{
+			"candidate_kind_1",
+			"candidate_kind_2",
+			"candidate_kind_3",
+			"candidate_kind_4",
+		};
+		static constexpr const char* kTargetRelationFeatureNames[] =
+		{
+			"target_relation_none",
+			"target_relation_self",
+			"target_relation_enemy_champion",
+			"target_relation_enemy_minion",
+			"target_relation_enemy_structure",
+			"target_relation_allied_wave",
+			"target_relation_other_observed",
+		};
+		static constexpr const char* kContextFeatureNames[] =
+		{
+			"capability_flags",
+			"self_level",
+			"enemy_level",
+			"self_hp_ratio",
+			"enemy_hp_ratio",
+			"self_gold",
+			"enemy_gold",
+			"enemy_distance",
+			"attack_range",
+			"turret_danger",
+			"legal_candidate_mask",
+			"illegal_candidate_mask",
+			"available_action_mask",
+			"available_skill_mask",
+		};
+
+		if (featureIndex < 4u)
+			return kCandidateFeatureNames[featureIndex];
+		if (featureIndex < 11u)
+			return kTargetRelationFeatureNames[featureIndex - 4u];
+		if (featureIndex >= kChampionAIShadowFeatureCountV1)
+			return "n/a";
+
+		const u16_t contextOffset = static_cast<u16_t>(featureIndex - 11u);
+		const u16_t candidateIndex = static_cast<u16_t>(contextOffset / 14u);
+		const u16_t contextIndex = static_cast<u16_t>(contextOffset % 14u);
+		static thread_local char featureName[64]{};
+		sprintf_s(
+			featureName,
+			"kind_%u_x_%s",
+			static_cast<u32_t>(candidateIndex + 1u),
+			kContextFeatureNames[contextIndex]);
+		return featureName;
+	}
+
+	const char* AIExecutorStateName(u8_t state)
+	{
+		switch (static_cast<AiExecutorStateV1>(state))
+		{
+		case AiExecutorStateV1::Unknown: return "Unknown";
+		case AiExecutorStateV1::Submitted: return "Submitted";
+		case AiExecutorStateV1::Accepted: return "Accepted";
+		case AiExecutorStateV1::Rejected: return "Rejected";
+		default: return "Invalid";
+		}
+	}
+
+	const char* AIExecutorReasonName(u16_t reason)
+	{
+		switch (static_cast<eCommandExecutionReason>(reason))
+		{
+		case eCommandExecutionReason::None: return "None";
+		case eCommandExecutionReason::UnsupportedCommand: return "UnsupportedCommand";
+		case eCommandExecutionReason::InvalidIssuer: return "InvalidIssuer";
+		case eCommandExecutionReason::IssuerNotAlive: return "IssuerNotAlive";
+		case eCommandExecutionReason::StateBlocked: return "StateBlocked";
+		case eCommandExecutionReason::ActionBlocked: return "ActionBlocked";
+		case eCommandExecutionReason::PossessionPending: return "PossessionPending";
+		case eCommandExecutionReason::InvalidPayload: return "InvalidPayload";
+		case eCommandExecutionReason::MissingComponent: return "MissingComponent";
+		case eCommandExecutionReason::InvalidTarget: return "InvalidTarget";
+		case eCommandExecutionReason::DeadTarget: return "DeadTarget";
+		case eCommandExecutionReason::UntargetableTarget: return "UntargetableTarget";
+		case eCommandExecutionReason::FriendlyTarget: return "FriendlyTarget";
+		case eCommandExecutionReason::Cooldown: return "Cooldown";
+		case eCommandExecutionReason::UnlearnedSkill: return "UnlearnedSkill";
+		case eCommandExecutionReason::InvalidSkillStage: return "InvalidSkillStage";
+		case eCommandExecutionReason::InsufficientResource: return "InsufficientResource";
+		case eCommandExecutionReason::OutOfRange: return "OutOfRange";
+		case eCommandExecutionReason::NavigationBlocked: return "NavigationBlocked";
+		case eCommandExecutionReason::NoActiveRecall: return "NoActiveRecall";
+		case eCommandExecutionReason::MissingSummonerSpell: return "MissingSummonerSpell";
+		case eCommandExecutionReason::ChampionRuleBlocked: return "ChampionRuleBlocked";
+		case eCommandExecutionReason::CarriedStateBlocked: return "CarriedStateBlocked";
+		default: return "UnknownReason";
 		}
 	}
 
@@ -319,12 +488,37 @@ namespace
 		ImGui::EndDisabled();
 	}
 
+	struct AIChronoDecisionSample
+	{
+		u64_t serverTick = 0u;
+		u64_t timelineEpoch = 0u;
+		u64_t branchId = 0u;
+		u64_t toolRevision = 0u;
+		NetEntityId netId = NULL_NET_ENTITY;
+		eChampion champion = eChampion::END;
+		eTeam team = eTeam::Neutral;
+		ChampionAIDecisionTraceEntry decision{};
+	};
+
 	NetEntityId s_SelectedAINetId = NULL_NET_ENTITY;
+	std::vector<AIChronoDecisionSample> s_ChronoDecisionHistory;
+	u32_t s_ChronoSampleIntervalTicks = 30u;
+	u32_t s_ChronoMaxSamples = 180u;
+	u32_t s_ChronoRewindTicks = 150u;
+	u64_t s_LastChronoSampleTick = ~0ull;
+	u64_t s_LastChronoEpoch = ~0ull;
+	u64_t s_LastChronoBranch = ~0ull;
+	NetEntityId s_LastChronoNetId = NULL_NET_ENTITY;
+	int s_SelectedChronoSample = -1;
+	u64_t s_LastRequestedTargetTick = 0u;
+	u64_t s_LastRestoredTick = 0u;
+	CScene_InGame* s_pChronoScene = nullptr;
 }
 
 void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 {
-	ImGui::SetNextWindowSize(ImVec2(820.f, 560.f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(820.f, 720.f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSizeConstraints(ImVec2(560.f, 320.f), ImVec2(1400.f, 1200.f));
 	if (!ImGui::Begin("AI Debug"))
 	{
 		ImGui::End();
@@ -349,95 +543,217 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 	};
 
 	SelectedAI selectedAI{};
-	u32_t botCount = 0;
+	std::vector<SelectedAI> botRows;
+	botRows.reserve(16);
 
-	if (ImGui::BeginTable(
-		"ChampionAISnapshotTable",
-		9,
-		ImGuiTableFlags_BordersInnerV |
-		ImGuiTableFlags_RowBg |
-		ImGuiTableFlags_Resizable |
-		ImGuiTableFlags_ScrollY,
-		ImVec2(0.f, 180.f)))
+	world.ForEach<ChampionComponent, TransformComponent>(
+		[&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
+		{
+			if (!world.HasComponent<ChampionAIDebugComponent>(entity))
+				return;
+
+			auto& debug = world.GetComponent<ChampionAIDebugComponent>(entity);
+			if (!debug.bPresent)
+				return;
+
+			SelectedAI row{};
+			row.bValid = true;
+			row.entity = entity;
+			row.champion = champion;
+			row.debug = debug;
+			row.pos = transform.GetLocalPosition();
+			row.hp = world.HasComponent<HealthComponent>(entity)
+				? world.GetComponent<HealthComponent>(entity).fCurrent
+				: champion.hp;
+			row.maxHp = world.HasComponent<HealthComponent>(entity)
+				? world.GetComponent<HealthComponent>(entity).fMaximum
+				: champion.maxHp;
+			row.actionId = world.HasComponent<ActionStateComponent>(entity)
+				? world.GetComponent<ActionStateComponent>(entity).actionId
+				: 0u;
+			botRows.push_back(row);
+		});
+
+	const u32_t botCount = static_cast<u32_t>(botRows.size());
+	if (botCount > 0 && s_SelectedAINetId == NULL_NET_ENTITY)
+		s_SelectedAINetId = botRows.front().debug.netId;
+	for (const SelectedAI& row : botRows)
 	{
-		ImGui::TableSetupColumn("AI");
-		ImGui::TableSetupColumn("Team");
-		ImGui::TableSetupColumn("State");
-		ImGui::TableSetupColumn("Intent");
-		ImGui::TableSetupColumn("Action");
-		ImGui::TableSetupColumn("Target");
-		ImGui::TableSetupColumn("Pos");
-		ImGui::TableSetupColumn("HP");
-		ImGui::TableSetupColumn("ActionId");
-		ImGui::TableHeadersRow();
+		if (row.debug.netId == s_SelectedAINetId)
+		{
+			selectedAI = row;
+			break;
+		}
+	}
 
-		world.ForEach<ChampionComponent, TransformComponent>(
-			[&](EntityID entity, ChampionComponent& champion, TransformComponent& transform)
+	if (botCount > 0)
+	{
+		char preview[96]{};
+		if (selectedAI.bValid)
+		{
+			sprintf_s(preview, "%s (%s) net=%u",
+				ChampionName(selectedAI.champion.id),
+				TeamName(selectedAI.champion.team),
+				selectedAI.debug.netId);
+		}
+		ImGui::SetNextItemWidth(320.f);
+		if (ImGui::BeginCombo("Bot", selectedAI.bValid ? preview : "select bot"))
+		{
+			for (const SelectedAI& row : botRows)
 			{
-				if (!world.HasComponent<ChampionAIDebugComponent>(entity))
-					return;
+				char label[96]{};
+				sprintf_s(label, "%s (%s) net=%u##%llu",
+					ChampionName(row.champion.id),
+					TeamName(row.champion.team),
+					row.debug.netId,
+					static_cast<unsigned long long>(row.entity));
+				const bool_t bRowSelected = row.debug.netId == s_SelectedAINetId;
+				if (ImGui::Selectable(label, bRowSelected))
+					s_SelectedAINetId = row.debug.netId;
+				if (bRowSelected)
+					ImGui::SetItemDefaultFocus();
+			}
+			ImGui::EndCombo();
+		}
+	}
 
-				auto& debug = world.GetComponent<ChampionAIDebugComponent>(entity);
-				if (!debug.bPresent)
-					return;
+	if (s_pChronoScene != pScene)
+	{
+		s_pChronoScene = pScene;
+		s_ChronoDecisionHistory.clear();
+		s_SelectedChronoSample = -1;
+		s_LastChronoSampleTick = ~0ull;
+		s_LastChronoEpoch = ~0ull;
+		s_LastChronoBranch = ~0ull;
+		s_LastChronoNetId = NULL_NET_ENTITY;
+		s_LastRequestedTargetTick = 0u;
+		s_LastRestoredTick = 0u;
+	}
 
-				++botCount;
-				if (s_SelectedAINetId == NULL_NET_ENTITY)
-					s_SelectedAINetId = debug.netId;
+	if (selectedAI.bValid && pScene && pScene->GetSnapshotApplier() &&
+		selectedAI.debug.debugDecisionTraceCount > 0u)
+	{
+		const auto* pSnapshotApplier = pScene->GetSnapshotApplier();
+		const u64_t serverTick = pSnapshotApplier->GetLastAppliedServerTick();
+		const SnapshotTimelineState& timeline = pSnapshotApplier->GetTimelineState();
 
-				const Vec3 pos = transform.GetLocalPosition();
-				const f32_t hp = world.HasComponent<HealthComponent>(entity)
-					? world.GetComponent<HealthComponent>(entity).fCurrent
-					: champion.hp;
-				const f32_t maxHp = world.HasComponent<HealthComponent>(entity)
-					? world.GetComponent<HealthComponent>(entity).fMaximum
-					: champion.maxHp;
-				const u16_t actionId = world.HasComponent<ActionStateComponent>(entity)
-					? world.GetComponent<ActionStateComponent>(entity).actionId
-					: 0u;
-				const bool_t bSelected = debug.netId == s_SelectedAINetId;
+		if (s_LastChronoNetId != selectedAI.debug.netId)
+		{
+			s_ChronoDecisionHistory.clear();
+			s_SelectedChronoSample = -1;
+			s_LastChronoSampleTick = ~0ull;
+			s_LastChronoEpoch = ~0ull;
+			s_LastChronoBranch = ~0ull;
+			s_LastChronoNetId = selectedAI.debug.netId;
+		}
 
-				ImGui::PushID(static_cast<int>(entity));
+		const bool_t bTimelineChanged =
+			s_LastChronoEpoch != ~0ull &&
+			(s_LastChronoEpoch != timeline.timelineEpoch ||
+				s_LastChronoBranch != timeline.branchId);
+		if (bTimelineChanged)
+			s_LastRestoredTick = serverTick;
+
+		const bool_t bSampleDue =
+			s_LastChronoSampleTick == ~0ull ||
+			bTimelineChanged ||
+			serverTick < s_LastChronoSampleTick ||
+			serverTick - s_LastChronoSampleTick >= s_ChronoSampleIntervalTicks;
+		const ChampionAIDecisionTraceEntry& latest =
+			selectedAI.debug.debugDecisionTrace[
+				selectedAI.debug.debugDecisionTraceCount - 1u];
+		const bool_t bDuplicateDecision =
+			!s_ChronoDecisionHistory.empty() &&
+			!bTimelineChanged &&
+			s_ChronoDecisionHistory.back().netId == selectedAI.debug.netId &&
+			s_ChronoDecisionHistory.back().decision.tick == latest.tick;
+		if (bSampleDue && !bDuplicateDecision)
+		{
+			AIChronoDecisionSample sample{};
+			sample.serverTick = serverTick;
+			sample.timelineEpoch = timeline.timelineEpoch;
+			sample.branchId = timeline.branchId;
+			sample.toolRevision = timeline.toolRevision;
+			sample.netId = selectedAI.debug.netId;
+			sample.champion = selectedAI.champion.id;
+			sample.team = selectedAI.champion.team;
+			sample.decision = latest;
+			s_ChronoDecisionHistory.push_back(sample);
+			while (s_ChronoDecisionHistory.size() > s_ChronoMaxSamples)
+			{
+				s_ChronoDecisionHistory.erase(s_ChronoDecisionHistory.begin());
+				if (s_SelectedChronoSample >= 0)
+					--s_SelectedChronoSample;
+			}
+			s_LastChronoSampleTick = serverTick;
+			s_LastChronoEpoch = timeline.timelineEpoch;
+			s_LastChronoBranch = timeline.branchId;
+		}
+	}
+
+	if (ImGui::CollapsingHeader("All Bots"))
+	{
+		if (ImGui::BeginTable(
+			"ChampionAISnapshotTable",
+			11,
+			ImGuiTableFlags_BordersInnerV |
+			ImGuiTableFlags_RowBg |
+			ImGuiTableFlags_Resizable |
+			ImGuiTableFlags_ScrollY,
+			ImVec2(0.f, 180.f)))
+		{
+			ImGui::TableSetupColumn("AI");
+			ImGui::TableSetupColumn("Team");
+			ImGui::TableSetupColumn("State");
+			ImGui::TableSetupColumn("Intent");
+			ImGui::TableSetupColumn("Brain");
+			ImGui::TableSetupColumn("Macro");
+			ImGui::TableSetupColumn("Action");
+			ImGui::TableSetupColumn("Target");
+			ImGui::TableSetupColumn("Pos");
+			ImGui::TableSetupColumn("HP");
+			ImGui::TableSetupColumn("ActionId");
+			ImGui::TableHeadersRow();
+
+			for (const SelectedAI& row : botRows)
+			{
+				const bool_t bSelected = row.debug.netId == s_SelectedAINetId;
+
+				ImGui::PushID(static_cast<int>(row.entity));
 				ImGui::TableNextRow();
 				ImGui::TableNextColumn();
 				char label[96]{};
 				sprintf_s(label, "%s##%llu",
-					ChampionName(champion.id),
-					static_cast<unsigned long long>(entity));
+					ChampionName(row.champion.id),
+					static_cast<unsigned long long>(row.entity));
 				if (ImGui::Selectable(label, bSelected, ImGuiSelectableFlags_SpanAllColumns))
-					s_SelectedAINetId = debug.netId;
+					s_SelectedAINetId = row.debug.netId;
 				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(TeamName(champion.team));
+				ImGui::TextUnformatted(TeamName(row.champion.team));
 				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(ChampionAIStateName(debug.state));
+				ImGui::TextUnformatted(ChampionAIStateName(row.debug.state));
 				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(ChampionAIIntentName(debug.intent));
+				ImGui::TextUnformatted(ChampionAIIntentName(row.debug.intent));
 				ImGui::TableNextColumn();
-				ImGui::TextUnformatted(ChampionAIActionName(debug.action));
+				ImGui::TextUnformatted(ChampionAIBrainName(row.debug.brainType));
 				ImGui::TableNextColumn();
-				ImGui::Text("%u", debug.targetNetId);
+				ImGui::TextUnformatted(
+					row.debug.bMidDefenseActive ? "DefendMid" : "HomeLane");
 				ImGui::TableNextColumn();
-				ImGui::Text("%.1f %.1f %.1f", pos.x, pos.y, pos.z);
+				ImGui::TextUnformatted(ChampionAIActionName(row.debug.action));
 				ImGui::TableNextColumn();
-				ImGui::Text("%.0f / %.0f", hp, maxHp);
+				ImGui::Text("%u", row.debug.targetNetId);
 				ImGui::TableNextColumn();
-				ImGui::Text("%u", static_cast<u32_t>(actionId));
+				ImGui::Text("%.1f %.1f %.1f", row.pos.x, row.pos.y, row.pos.z);
+				ImGui::TableNextColumn();
+				ImGui::Text("%.0f / %.0f", row.hp, row.maxHp);
+				ImGui::TableNextColumn();
+				ImGui::Text("%u", static_cast<u32_t>(row.actionId));
 				ImGui::PopID();
+			}
 
-				if (bSelected)
-				{
-					selectedAI.bValid = true;
-					selectedAI.entity = entity;
-					selectedAI.champion = champion;
-					selectedAI.debug = debug;
-					selectedAI.pos = pos;
-					selectedAI.hp = hp;
-					selectedAI.maxHp = maxHp;
-					selectedAI.actionId = actionId;
-				}
-			});
-
-		ImGui::EndTable();
+			ImGui::EndTable();
+		}
 	}
 
 	if (botCount == 0)
@@ -455,8 +771,13 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 		const ChampionAIProfile& profile = GetChampionAIProfile(selectedAI.champion.id);
 		const auto& debug = selectedAI.debug;
 		const bool_t bCanSend = CanSendAIDebugCommand(pScene);
+		const ChampionAIDecisionTraceEntry* pLatestDecision =
+			debug.debugDecisionTraceCount > 0u
+			? &debug.debugDecisionTrace[debug.debugDecisionTraceCount - 1u]
+			: nullptr;
 
-		ImGui::SeparatorText("Selected Champion AI");
+		if (ImGui::CollapsingHeader("Selected AI", ImGuiTreeNodeFlags_DefaultOpen))
+		{
 		ImGui::Text("%s / %s   entity=%llu   net=%u",
 			TeamName(selectedAI.champion.team),
 			ChampionName(selectedAI.champion.id),
@@ -467,6 +788,9 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 			ChampionAIIntentName(debug.intent),
 			ChampionAIActionName(debug.action),
 			debug.targetNetId);
+		ImGui::Text("Brain: %s   Macro: %s",
+			ChampionAIBrainName(debug.brainType),
+			debug.bMidDefenseActive ? "DefendMid" : "HomeLane");
 		ImGui::Text("HP: %.1f / %.1f   Move: %.2f   Action: %u   Override: %s",
 			selectedAI.hp,
 			selectedAI.maxHp,
@@ -479,12 +803,49 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 			profile.minionScanRange,
 			profile.structureScanRange,
 			profile.leashRange);
-		ImGui::Text("Scores: champion %.2f   farm %.2f   structure %.2f   canFight=%s   postBA=%s",
+		ImGui::Text("Scores: retreat %.2f   champion %.2f   farm %.2f   structure %.2f",
+			debug.fRetreatDecisionScore,
 			debug.fChampionDecisionScore,
 			debug.fFarmDecisionScore,
-			debug.fStructureDecisionScore,
+			debug.fStructureDecisionScore);
+		ImGui::Text("Decision gates: canFight=%s   postBA=%s   legal=0x%08X   illegal=0x%08X",
 			debug.bCanAttackChampion ? "yes" : "no",
-			debug.bPostComboBAAllowed ? "yes" : "no");
+			debug.bPostComboBAAllowed ? "yes" : "no",
+			pLatestDecision ? pLatestDecision->legalCandidateMask : 0u,
+			pLatestDecision ? pLatestDecision->illegalCandidateMask : 0u);
+		if (pLatestDecision)
+		{
+			ImGui::Text("Shadow BC: %s   artifact r%llu sha:%016llx",
+				ChampionAIShadowStatusName(pLatestDecision->shadowStatus),
+				static_cast<unsigned long long>(pLatestDecision->shadowPolicyRevision),
+				static_cast<unsigned long long>(pLatestDecision->shadowPolicySha256Prefix));
+			ImGui::Text("active-final %s -> shadow %s   %s   legal=0x%08X",
+				ChampionAIShadowCandidateName(pLatestDecision->shadowActiveCandidateKind),
+				ChampionAIShadowCandidateName(pLatestDecision->shadowSelectedCandidateKind),
+				pLatestDecision->shadowStatus ==
+					static_cast<u8_t>(eChampionAIShadowStatusV1::Evaluated)
+					? (pLatestDecision->bShadowDisagreed ? "DISAGREE" : "AGREE")
+					: "N/A",
+				pLatestDecision->shadowLegalCandidateMask);
+			ImGui::Text("logits: R %.5f / F %.5f / Farm %.5f / Siege %.5f   selected margin %.5f",
+				pLatestDecision->shadowLogits[0],
+				pLatestDecision->shadowLogits[1],
+				pLatestDecision->shadowLogits[2],
+				pLatestDecision->shadowLogits[3],
+				pLatestDecision->shadowSelectedMargin);
+			ImGui::TextDisabled("Raw masked logits; these values are not probabilities.");
+			const u8_t runnerUpKind =
+				ResolveChampionAIShadowRunnerUp(*pLatestDecision);
+			ImGui::Text("top margin contribution vs %s: %s (#%u)  %+.5f",
+				ChampionAIShadowCandidateName(runnerUpKind),
+				ChampionAIShadowFeatureName(pLatestDecision->shadowTopFeatureIndex),
+				static_cast<u32_t>(pLatestDecision->shadowTopFeatureIndex),
+				pLatestDecision->shadowTopFeatureContribution);
+		}
+		else
+		{
+			ImGui::TextDisabled("Shadow BC: no decision-tick evidence yet.");
+		}
 		ImGui::Text("Perception: champScan %.1f   diveScan %.1f   flash %.1f   lowHP net=%u %.0f%% dist=%.1f",
 			debug.fChampionScanRange,
 			debug.fDiveScanRange,
@@ -502,11 +863,22 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 			debug.lastCommandPos.x,
 			debug.lastCommandPos.y,
 			debug.lastCommandPos.z);
-		ImGui::Text("Risk: retreat %.0f%%   reengage %.0f%%   aggression %.2f   kite %.2f",
-			profile.retreatHpRatio * 100.f,
-			profile.reengageHpRatio * 100.f,
+		ImGui::Text("Risk: HP %.0f%%   retreat<=%.0f%%   reengage>=%.0f%%   turret %.2f/%.2f",
+			debug.fSelfHpRatio * 100.f,
+			debug.fRetreatHpRatio * 100.f,
+			debug.fReengageHpRatio * 100.f,
+			debug.fTurretDanger,
+			debug.fTurretDangerThreshold);
+		ImGui::Text("Profile: aggression %.2f   kite %.2f   policy cast %.2fs remaining %.2fs",
 			profile.aggression,
-			profile.kiteBias);
+			profile.kiteBias,
+			debug.fSkillCastMinInterval,
+			debug.fSkillCastCooldownTimer);
+		ImGui::Text("Executor: seq=%u   state=%s   reason=%s(%u)",
+			debug.lastCommandSequence,
+			AIExecutorStateName(debug.lastExecutorState),
+			AIExecutorReasonName(debug.lastExecutorReason),
+			static_cast<u32_t>(debug.lastExecutorReason));
 
 		if (!bCanSend)
 			ImGui::TextDisabled("Debug control disabled: server-authoritative network session required.");
@@ -572,7 +944,10 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 			ImGui::PopID();
 		}
 
-		ImGui::SeparatorText("Runtime Tuning");
+		}
+
+		if (ImGui::CollapsingHeader("Runtime Tuning"))
+		{
 		RenderTuningSlider(pScene, debug.netId, "Champion Scan", eChampionAITuningId::ChampionScanRange,
 			debug.fChampionScanRange, 1.f, 40.f);
 		RenderTuningSlider(pScene, debug.netId, "Minion Scan", eChampionAITuningId::MinionScanRange,
@@ -601,19 +976,24 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 			debug.fDiveScanRange, 1.f, 40.f);
 		RenderTuningSlider(pScene, debug.netId, "Dive Extra BA Window", eChampionAITuningId::DiveExtraBAWindow,
 			debug.fDiveExtraBAWindow, 0.f, 5.f);
+		RenderTuningSlider(pScene, debug.netId, "Skill Cast Min Interval", eChampionAITuningId::SkillCastMinInterval,
+			debug.fSkillCastMinInterval, 0.f, 15.f);
 		ImGui::BeginDisabled(!bCanSend || debug.netId == NULL_NET_ENTITY);
 		if (ImGui::Button("Reset Runtime Tuning"))
 			pScene->GetCommandSerializer()->SendAIDebugResetTuning(*pScene->GetNetworkView(), debug.netId);
 		ImGui::EndDisabled();
 
-		ImGui::SeparatorText("Decision Trace");
+		}
+
+		if (ImGui::CollapsingHeader("Decision Trace"))
+		{
 		if (debug.debugDecisionTraceCount == 0u)
 		{
 			ImGui::TextDisabled("No decision trace rows yet.");
 		}
 		else if (ImGui::BeginTable(
 			"AIDecisionTraceTable",
-			8,
+			12,
 			ImGuiTableFlags_BordersInnerV |
 			ImGuiTableFlags_RowBg |
 			ImGuiTableFlags_Resizable |
@@ -628,6 +1008,10 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 			ImGui::TableSetupColumn("Cmd");
 			ImGui::TableSetupColumn("Target");
 			ImGui::TableSetupColumn("Score");
+			ImGui::TableSetupColumn("Masks");
+			ImGui::TableSetupColumn("Executor");
+			ImGui::TableSetupColumn("Shadow");
+			ImGui::TableSetupColumn("Artifact");
 			ImGui::TableHeadersRow();
 
 			for (int i = static_cast<int>(debug.debugDecisionTraceCount) - 1; i >= 0; --i)
@@ -651,17 +1035,260 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 				ImGui::TableNextColumn();
 				ImGui::Text("%llu", static_cast<unsigned long long>(row.target));
 				ImGui::TableNextColumn();
-				ImGui::Text("%.2f/%.2f/%.2f",
+				ImGui::Text("%.2f/%.2f/%.2f/%.2f",
+					row.retreatScore,
 					row.championScore,
 					row.farmScore,
 					row.structureScore);
+				ImGui::TableNextColumn();
+				ImGui::Text("%X/%X", row.legalCandidateMask, row.illegalCandidateMask);
+				ImGui::TableNextColumn();
+				ImGui::Text("%u %s/%s",
+					row.commandSequence,
+					AIExecutorStateName(row.executorState),
+					AIExecutorReasonName(row.executorReason));
+				ImGui::TableNextColumn();
+				ImGui::Text("%s->%s %s",
+					ChampionAIShadowCandidateName(row.shadowActiveCandidateKind),
+					ChampionAIShadowCandidateName(row.shadowSelectedCandidateKind),
+					ChampionAIShadowStatusName(row.shadowStatus));
+				ImGui::TableNextColumn();
+				ImGui::Text("r%llu/%016llx",
+					static_cast<unsigned long long>(row.shadowPolicyRevision),
+					static_cast<unsigned long long>(row.shadowPolicySha256Prefix));
 			}
 
 			ImGui::EndTable();
 		}
+		}
+
+		if (ImGui::CollapsingHeader("Chrono Decision Timeline", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			const CSnapshotApplier* pSnapshotApplier = pScene
+				? pScene->GetSnapshotApplier()
+				: nullptr;
+			const u64_t currentTick = pSnapshotApplier
+				? pSnapshotApplier->GetLastAppliedServerTick()
+				: 0u;
+			const SnapshotTimelineState timeline = pSnapshotApplier
+				? pSnapshotApplier->GetTimelineState()
+				: SnapshotTimelineState{};
+
+			ImGui::Text("Tick %llu   epoch %llu   branch %llu   toolRev %llu   %s x%.2f",
+				static_cast<unsigned long long>(currentTick),
+				static_cast<unsigned long long>(timeline.timelineEpoch),
+				static_cast<unsigned long long>(timeline.branchId),
+				static_cast<unsigned long long>(timeline.toolRevision),
+				timeline.simPaused ? "paused" : "running",
+				timeline.simSpeedMul);
+			ImGui::TextDisabled(
+				"Local selected-bot cache only while F9 is open. Restore snaps to nearest <= target 30-tick keyframe.");
+
+			int sampleInterval = static_cast<int>(s_ChronoSampleIntervalTicks);
+			if (ImGui::SliderInt("Sample interval (ticks)", &sampleInterval, 1, 300))
+				s_ChronoSampleIntervalTicks = static_cast<u32_t>(sampleInterval);
+			int maxSamples = static_cast<int>(s_ChronoMaxSamples);
+			if (ImGui::SliderInt("Max local samples", &maxSamples, 16, 512))
+			{
+				s_ChronoMaxSamples = static_cast<u32_t>(maxSamples);
+				while (s_ChronoDecisionHistory.size() > s_ChronoMaxSamples)
+				{
+					s_ChronoDecisionHistory.erase(s_ChronoDecisionHistory.begin());
+					if (s_SelectedChronoSample >= 0)
+						--s_SelectedChronoSample;
+				}
+			}
+			int rewindTicks = static_cast<int>(s_ChronoRewindTicks);
+			if (ImGui::SliderInt("Rewind delta (ticks)", &rewindTicks, 1, 1800))
+				s_ChronoRewindTicks = static_cast<u32_t>(rewindTicks);
+
+			const u64_t requestedTarget = currentTick > s_ChronoRewindTicks
+				? currentTick - s_ChronoRewindTicks
+				: 1u;
+			ImGui::Text("Request: -%u ticks (%.3fs) -> target %llu",
+				s_ChronoRewindTicks,
+				static_cast<f32_t>(s_ChronoRewindTicks) /
+					static_cast<f32_t>(DeterministicTime::kTicksPerSecond),
+				static_cast<unsigned long long>(requestedTarget));
+
+			const bool_t bCanRewind = bCanSend &&
+				pSnapshotApplier &&
+				currentTick > s_ChronoRewindTicks;
+			ImGui::BeginDisabled(!bCanRewind);
+			if (ImGui::Button("Rewind authoritative simulation"))
+			{
+				s_LastRequestedTargetTick = requestedTarget;
+				s_LastRestoredTick = 0u;
+				pScene->GetCommandSerializer()->SendPracticeControl(
+					*pScene->GetNetworkView(),
+					ePracticeOperation::RewindSimulationSeconds,
+					static_cast<f32_t>(s_ChronoRewindTicks) /
+						static_cast<f32_t>(DeterministicTime::kTicksPerSecond));
+			}
+			ImGui::EndDisabled();
+			ImGui::SameLine();
+			if (ImGui::Button("Clear local timeline"))
+			{
+				s_ChronoDecisionHistory.clear();
+				s_SelectedChronoSample = -1;
+				s_LastChronoSampleTick = ~0ull;
+			}
+
+			if (s_LastRequestedTargetTick != 0u)
+			{
+				if (s_LastRestoredTick != 0u)
+				{
+					ImGui::Text("Last request target %llu   observed restored %llu",
+						static_cast<unsigned long long>(s_LastRequestedTargetTick),
+						static_cast<unsigned long long>(s_LastRestoredTick));
+				}
+				else
+				{
+					ImGui::Text("Last request target %llu   observed restored pending",
+						static_cast<unsigned long long>(s_LastRequestedTargetTick));
+				}
+			}
+
+			if (s_ChronoDecisionHistory.empty())
+			{
+				ImGui::TextDisabled("No branch-tagged decision sample yet.");
+			}
+			else if (ImGui::BeginTable(
+				"AIChronoDecisionTable",
+				10,
+				ImGuiTableFlags_BordersInnerV |
+				ImGuiTableFlags_RowBg |
+				ImGuiTableFlags_Resizable |
+				ImGuiTableFlags_ScrollY,
+				ImVec2(0.f, 180.f)))
+			{
+				ImGui::TableSetupColumn("ServerTick");
+				ImGui::TableSetupColumn("Epoch/Branch");
+				ImGui::TableSetupColumn("DecisionTick");
+				ImGui::TableSetupColumn("State");
+				ImGui::TableSetupColumn("Intent");
+				ImGui::TableSetupColumn("Action");
+				ImGui::TableSetupColumn("Why");
+				ImGui::TableSetupColumn("Executor");
+				ImGui::TableSetupColumn("Shadow");
+				ImGui::TableSetupColumn("Artifact");
+				ImGui::TableHeadersRow();
+
+				for (int i = static_cast<int>(s_ChronoDecisionHistory.size()) - 1;
+					i >= 0;
+					--i)
+				{
+					const AIChronoDecisionSample& sample =
+						s_ChronoDecisionHistory[static_cast<size_t>(i)];
+					const ChampionAIDecisionTraceEntry& row = sample.decision;
+					ImGui::PushID(i);
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					char tickLabel[32]{};
+					sprintf_s(tickLabel, "%llu",
+						static_cast<unsigned long long>(sample.serverTick));
+					if (ImGui::Selectable(
+						tickLabel,
+						s_SelectedChronoSample == i,
+						ImGuiSelectableFlags_SpanAllColumns))
+					{
+						s_SelectedChronoSample = i;
+					}
+					ImGui::TableNextColumn();
+					ImGui::Text("%llu/%llu",
+						static_cast<unsigned long long>(sample.timelineEpoch),
+						static_cast<unsigned long long>(sample.branchId));
+					ImGui::TableNextColumn();
+					ImGui::Text("%llu", static_cast<unsigned long long>(row.tick));
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted(ChampionAIStateName(row.state));
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted(ChampionAIIntentName(row.intent));
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted(ChampionAIActionName(row.action));
+					ImGui::TableNextColumn();
+					ImGui::TextUnformatted(ChampionAIBlockReasonName(row.blockReason));
+					ImGui::TableNextColumn();
+					ImGui::Text("%s/%s",
+						AIExecutorStateName(row.executorState),
+						AIExecutorReasonName(row.executorReason));
+					ImGui::TableNextColumn();
+					ImGui::Text("%s->%s %s",
+						ChampionAIShadowCandidateName(row.shadowActiveCandidateKind),
+						ChampionAIShadowCandidateName(row.shadowSelectedCandidateKind),
+						ChampionAIShadowStatusName(row.shadowStatus));
+					ImGui::TableNextColumn();
+					ImGui::Text("r%llu/%016llx",
+						static_cast<unsigned long long>(row.shadowPolicyRevision),
+						static_cast<unsigned long long>(row.shadowPolicySha256Prefix));
+					ImGui::PopID();
+				}
+				ImGui::EndTable();
+			}
+
+			if (s_SelectedChronoSample >= 0 &&
+				static_cast<size_t>(s_SelectedChronoSample) <
+					s_ChronoDecisionHistory.size())
+			{
+				const AIChronoDecisionSample& sample =
+					s_ChronoDecisionHistory[
+						static_cast<size_t>(s_SelectedChronoSample)];
+				const ChampionAIDecisionTraceEntry& row = sample.decision;
+				ImGui::SeparatorText("Selected decision evidence");
+				ImGui::Text("%s %s net=%u   scores R/F/Farm/Siege %.3f / %.3f / %.3f / %.3f",
+					TeamName(sample.team),
+					ChampionName(sample.champion),
+					sample.netId,
+					row.retreatScore,
+					row.championScore,
+					row.farmScore,
+					row.structureScore);
+				ImGui::Text("Shadow BC %s   artifact r%llu sha:%016llx",
+					ChampionAIShadowStatusName(row.shadowStatus),
+					static_cast<unsigned long long>(row.shadowPolicyRevision),
+					static_cast<unsigned long long>(row.shadowPolicySha256Prefix));
+				ImGui::Text("active-final %s -> shadow %s   %s   logits %.5f / %.5f / %.5f / %.5f   margin %.5f",
+					ChampionAIShadowCandidateName(row.shadowActiveCandidateKind),
+					ChampionAIShadowCandidateName(row.shadowSelectedCandidateKind),
+					row.shadowStatus ==
+						static_cast<u8_t>(eChampionAIShadowStatusV1::Evaluated)
+						? (row.bShadowDisagreed ? "DISAGREE" : "AGREE")
+						: "N/A",
+					row.shadowLogits[0],
+					row.shadowLogits[1],
+					row.shadowLogits[2],
+					row.shadowLogits[3],
+					row.shadowSelectedMargin);
+				const u8_t runnerUpKind =
+					ResolveChampionAIShadowRunnerUp(row);
+				ImGui::Text("top margin contribution vs %s: %s (#%u)  %+.5f   shadow legal=0x%08X",
+					ChampionAIShadowCandidateName(runnerUpKind),
+					ChampionAIShadowFeatureName(row.shadowTopFeatureIndex),
+					static_cast<u32_t>(row.shadowTopFeatureIndex),
+					row.shadowTopFeatureContribution,
+					row.shadowLegalCandidateMask);
+				ImGui::Text("HP self/enemy %.3f/%.3f   distance %.2f   turret %.3f   masks %08X/%08X",
+					row.selfHpRatio,
+					row.enemyHpRatio,
+					row.enemyDistance,
+					row.turretDanger,
+					row.legalCandidateMask,
+					row.illegalCandidateMask);
+				ImGui::Text("Command seq=%u %s/%u   block=%s   executor=%s/%s   policy %.2f/%.2f",
+					row.commandSequence,
+					ChampionAICommandKindName(row.commandKind),
+					static_cast<u32_t>(row.commandSlot),
+					ChampionAIBlockReasonName(row.blockReason),
+					AIExecutorStateName(row.executorState),
+					AIExecutorReasonName(row.executorReason),
+					row.skillCastIntervalRemainingSec,
+					row.skillCastIntervalSec);
+			}
+		}
 	}
 
-	ImGui::SeparatorText("Server Minions");
+	if (ImGui::CollapsingHeader("Server Minions"))
+	{
 	ImGui::TextDisabled("Snapshot readout only. Server gameplay tuning lives in ServerMinionTuning.");
 
 	const CNavGrid* pMinionDebugGrid = pScene
@@ -755,6 +1382,7 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 		minionCount,
 		movingCount,
 		attackingCount);
+	}
 
 	ImGui::End();
 }

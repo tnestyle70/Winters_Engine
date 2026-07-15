@@ -26,5 +26,7 @@ namespace Viego::Fx
         EntityID owner, const Vec3& origin, const Vec3& dir, f32_t fDuration);
     void SpawnRImpact(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
         EntityID owner, const Vec3& origin, const Vec3& dir, f32_t fLifetime);
+    void StopSoulIdle(CWorld& world, EntityID owner);
+    void StopAllSoulIdle(CWorld& world);
     void SpawnSoulIdle(CWorld& world, EntityID owner, f32_t fLifetime);
 }

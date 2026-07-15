@@ -20,6 +20,7 @@
 #include "Manager/Structure_Manager.h"
 #include "Manager/Jungle_Manager.h"
 #include "Manager/Minion_Manager.h"
+#include "Manager/Bush_Manager.h"
 #include "Manager/AmbientProp_Manager.h"
 #include "Map/MapDataIO.h"
 #include "Core/CInput.h"
@@ -290,6 +291,10 @@ namespace
             {
                 if (rc.bSceneManaged || !rc.bVisible || !rc.pRenderer)
                     return;
+                if (world.HasComponent<ViegoSoulComponent>(e))
+                    return;
+                if (rc.bAnimated || rc.pRenderer->HasSkeleton())
+                    return;
                 if (!UI::IsRenderableForLocal(world, e, localTeam, bRevealAllForPlayback))
                     return;
 
@@ -325,6 +330,7 @@ namespace
 
 void CScene_InGame::OnRender()
 {
+    WINTERS_PROFILE_SCOPE("Scene_InGame::OnRender");
     Mat4 vp = m_pCamera->GetViewProjection();
     const Vec3 cameraWorld = m_pCamera ? m_pCamera->GetEye() : Vec3{};
     const u64_t lastSnapshotTick = m_pSnapshotApplier
@@ -372,6 +378,8 @@ void CScene_InGame::OnRender()
             [&](EntityID e, ChampionComponent&, RenderComponent& rc, TransformComponent& tf)
             {
                 if (rc.bSceneManaged || !rc.bVisible || !rc.pRenderer)
+                    return;
+                if (m_World.HasComponent<ViegoSoulComponent>(e))
                     return;
                 if (!UI::IsRenderableForLocal(m_World, e, localTeam, bRevealAllForPlayback))
                     return;
@@ -433,7 +441,7 @@ void CScene_InGame::OnRender()
             WINTERS_PROFILE_SCOPE("Map::SetAmbientOcclusion");
             m_Map.SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
         }
-        if (bRHISceneReady)
+        if (bRHISceneOnly)
         {
             WINTERS_PROFILE_SCOPE("Map::RHISceneSnapshot");
 
@@ -457,7 +465,7 @@ void CScene_InGame::OnRender()
 
     {
         WINTERS_PROFILE_SCOPE("Champion::Render");
-        if (bRHISceneReady)
+        if (bRHISceneOnly)
         {
             WINTERS_PROFILE_SCOPE("Champion::RHISceneSnapshot");
 
@@ -479,10 +487,14 @@ void CScene_InGame::OnRender()
 
         if (!bRHISceneOnly)
         {
-            m_World.ForEach<ChampionComponent, RenderComponent, TransformComponent>(
-                [&](EntityID e, ChampionComponent& champion, RenderComponent& rc,
-                    TransformComponent& tf)
-                {
+            const auto renderChampionPass = [&](bool_t bSoulPass)
+            {
+                m_World.ForEach<ChampionComponent, RenderComponent, TransformComponent>(
+                    [&](EntityID e, ChampionComponent& champion, RenderComponent& rc,
+                        TransformComponent& tf)
+                    {
+                    const bool_t bSoul = m_World.HasComponent<ViegoSoulComponent>(e);
+                    if (bSoul != bSoulPass) return;
                     if (rc.bSceneManaged) return;
                     if (!rc.bVisible || !rc.pRenderer) return;
                     if (!UI::IsRenderableForLocal(m_World, e, localTeam, bRevealAllForPlayback)) return;
@@ -518,12 +530,14 @@ void CScene_InGame::OnRender()
                     {
                         rc.pRenderer->RenderFrustumCulled(vp);
                     }
-                }
-            );
+                    });
+            };
+
+            renderChampionPass(false);
         }
     }
 
-    if (bRHISceneReady)
+    if (bRHISceneOnly)
     {
         WINTERS_PROFILE_SCOPE("SceneObjects::RHISceneSnapshot");
 
@@ -541,6 +555,7 @@ void CScene_InGame::OnRender()
             snapshot,
             vp,
             bRevealAllForPlayback);
+        appendedCount += CBush_Manager::Get()->AppendRenderSnapshotMeshes(snapshot, vp);
         appendedCount += CAmbientProp_Manager::Get()->AppendRenderSnapshotMeshes(
             snapshot,
             vp);
@@ -561,8 +576,15 @@ void CScene_InGame::OnRender()
             CJungle_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV);
         }
         CMinion_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV, bRevealAllForPlayback);
+        {
+            WINTERS_PROFILE_SCOPE("Bush::Render");
+            CBush_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV);
+        }
 
-        CAmbientProp_Manager::Get()->Render(vp, cameraWorld);
+        {
+            WINTERS_PROFILE_SCOPE("AmbientProp::Render");
+            CAmbientProp_Manager::Get()->Render(vp, cameraWorld);
+        }
     }
 
     if (!bRHISceneOnly && !bUseDX12RHI && m_pContactShadowPlane)
@@ -573,6 +595,8 @@ void CScene_InGame::OnRender()
             {
                 if (rc.bSceneManaged || !rc.bVisible || !rc.pRenderer)
                     return;
+                if (m_World.HasComponent<ViegoSoulComponent>(e))
+                    return;
                 if (!UI::IsRenderableForLocal(m_World, e, localTeam, bRevealAllForPlayback))
                     return;
 
@@ -581,6 +605,71 @@ void CScene_InGame::OnRender()
                     BuildContactShadowWorld(tf, 1.22f, 0.055f));
                 m_pContactShadowPlane->Render(pDevice, vp);
             });
+    }
+
+    if (!bRHISceneOnly)
+    {
+        WINTERS_PROFILE_SCOPE("ViegoSoul::TransparentRender");
+        std::vector<EntityID> souls;
+        m_World.ForEach<ViegoSoulComponent>(
+            [&](EntityID entity, ViegoSoulComponent&)
+            {
+                if (!m_World.HasComponent<ChampionComponent>(entity) ||
+                    !m_World.HasComponent<RenderComponent>(entity) ||
+                    !m_World.HasComponent<TransformComponent>(entity))
+                {
+                    return;
+                }
+                auto& rc = m_World.GetComponent<RenderComponent>(entity);
+                if (!rc.bSceneManaged && rc.bVisible && rc.pRenderer &&
+                    UI::IsRenderableForLocal(
+                        m_World, entity, localTeam, bRevealAllForPlayback))
+                {
+                    souls.push_back(entity);
+                }
+            });
+
+        std::sort(souls.begin(), souls.end(),
+            [&](EntityID lhs, EntityID rhs)
+            {
+                const Vec3 lhsPos =
+                    m_World.GetComponent<TransformComponent>(lhs).GetLocalPosition();
+                const Vec3 rhsPos =
+                    m_World.GetComponent<TransformComponent>(rhs).GetLocalPosition();
+                const f32_t lhsDistSq =
+                    (lhsPos.x - cameraWorld.x) * (lhsPos.x - cameraWorld.x) +
+                    (lhsPos.y - cameraWorld.y) * (lhsPos.y - cameraWorld.y) +
+                    (lhsPos.z - cameraWorld.z) * (lhsPos.z - cameraWorld.z);
+                const f32_t rhsDistSq =
+                    (rhsPos.x - cameraWorld.x) * (rhsPos.x - cameraWorld.x) +
+                    (rhsPos.y - cameraWorld.y) * (rhsPos.y - cameraWorld.y) +
+                    (rhsPos.z - cameraWorld.z) * (rhsPos.z - cameraWorld.z);
+                return lhsDistSq > rhsDistSq;
+            });
+
+        for (const EntityID entity : souls)
+        {
+            auto& champion = m_World.GetComponent<ChampionComponent>(entity);
+            auto& rc = m_World.GetComponent<RenderComponent>(entity);
+            auto& tf = m_World.GetComponent<TransformComponent>(entity);
+            FlushTransformForRender(tf);
+            rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
+            rc.pRenderer->UpdateCamera(vp, cameraWorld);
+            ApplyViegoMistMaterialOverride(
+                m_World, entity, champion, rc.pRenderer);
+            rc.pRenderer->UpdateTransform(tf.GetWorldMatrix());
+            if (m_World.HasComponent<MeshGroupVisibilityComponent>(entity) &&
+                m_World.GetComponent<MeshGroupVisibilityComponent>(entity).bEnabled)
+            {
+                const auto& visibility =
+                    m_World.GetComponent<MeshGroupVisibilityComponent>(entity);
+                rc.pRenderer->RenderWithVisibility(visibility.mask);
+            }
+            else
+            {
+                rc.pRenderer->RenderFrustumCulled(vp);
+            }
+        }
     }
 
     if (!bRevealAllForPlayback && m_pFogOfWarRenderer)
@@ -616,6 +705,14 @@ void CScene_InGame::OnRender()
     if (m_pFxSystem && m_pCamera)
         m_pFxSystem->Render(m_World, m_pCamera.get());
 
+    if (bUseDX11RHI && m_pPostFxPass && m_pPostFxPass->GetEnabled())
+    {
+        WINTERS_PROFILE_SCOPE("Render::PostFx");
+        const Engine::PostFxParams params = m_pPostFxPass->GetParams();
+        WINTERS_PROFILE_COUNT("PostFx::BloomEnabled", params.bBloomEnabled ? 1u : 0u);
+        m_pPostFxPass->Execute(pDevice);
+    }
+
     {
         WINTERS_PROFILE_SCOPE("UIOverlay::Render");
         CGameInstance::Get()->UI_Render_Overlay(vp);
@@ -646,8 +743,11 @@ void CScene_InGame::OnRender()
         UI::CMinimapPanel::RenderRuntime(MinimapState);
     }
 
-    RenderViegoMistScreenOverlay();
-    RenderDeathScreenOverlay();
+    {
+        WINTERS_PROFILE_SCOPE("ScreenOverlay::Render");
+        RenderViegoMistScreenOverlay();
+        RenderDeathScreenOverlay();
+    }
 }
 
 void CScene_InGame::RenderViegoMistScreenOverlay()

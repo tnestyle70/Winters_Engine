@@ -49,6 +49,9 @@ public:
 		FxAssetHandle handle,
 		const Vec3& vWorldPos,
 		EntityID attachTo = NULL_ENTITY);
+	// Load through this system's actual runtime cache. A generic resource-cache
+	// preload does not prevent the first FX render from loading the texture again.
+	bool_t PreloadTextureResource(const wchar_t* wszPath);
 
 	// 리소스 해제 (Scene 종료 시 호출 — 캐시 텍스처 먼저 해제 후 PlaneRenderer)
 	void Shutdown();

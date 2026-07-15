@@ -5,6 +5,7 @@
 #include "ECS/World.h"
 #include "ProfilerAPI.h"
 #include <Windows.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <functional>
@@ -34,13 +35,64 @@ void CKalistaProjectileSystem::Execute(CWorld& world, f32_t dt)
                     return;
                 }
 
-                const f32_t step = projectile.fSpeed * dt;
+                EntityID trackedTarget = NULL_ENTITY;
+                if (projectile.targetHandle.IsValid())
+                {
+                    trackedTarget = world.ResolveEntity(projectile.targetHandle);
+                    const bool_t bTargetValid =
+                        trackedTarget != NULL_ENTITY &&
+                        world.HasComponent<ChampionComponent>(trackedTarget) &&
+                        world.HasComponent<TransformComponent>(trackedTarget) &&
+                        world.GetComponent<ChampionComponent>(trackedTarget).hp > 0.f;
+                    if (!bTargetValid)
+                    {
+                        if (projectile.visualEntity != NULL_ENTITY &&
+                            world.HasComponent<FxMeshComponent>(projectile.visualEntity))
+                        {
+                            world.GetComponent<FxMeshComponent>(
+                                projectile.visualEntity).bPendingDelete = true;
+                        }
+                        vecDelete.push_back(entity);
+                        return;
+                    }
+
+                    const Vec3 targetPos = world.GetComponent<TransformComponent>(
+                        trackedTarget).GetPosition();
+                    projectile.vDirection = WintersMath::DirectionXZ(
+                        projectile.vWorldPos,
+                        targetPos,
+                        projectile.vDirection);
+                }
+
+                f32_t step = projectile.fSpeed * dt;
+                if (trackedTarget != NULL_ENTITY)
+                {
+                    const Vec3 targetPos = world.GetComponent<TransformComponent>(
+                        trackedTarget).GetPosition();
+                    const f32_t targetDistance = std::sqrt(
+                        WintersMath::DistanceSqXZ(projectile.vWorldPos, targetPos));
+                    step = (std::min)(step, targetDistance);
+                }
                 projectile.vWorldPos.x += projectile.vDirection.x * step;
                 projectile.vWorldPos.z += projectile.vDirection.z * step;
                 projectile.fTravelled += step;
                 tf.m_LocalPosition = projectile.vWorldPos;
 
-                if (projectile.fTravelled >= projectile.fMaxDist)
+                if (projectile.visualEntity != NULL_ENTITY &&
+                    world.HasComponent<FxMeshComponent>(projectile.visualEntity))
+                {
+                    FxMeshComponent& mesh = world.GetComponent<FxMeshComponent>(
+                        projectile.visualEntity);
+                    mesh.vWorldPos = projectile.vWorldPos;
+                    mesh.vVelocity = {};
+                    mesh.attachTo = entity;
+                    mesh.vRotation.y = std::atan2f(
+                        projectile.vDirection.x,
+                        projectile.vDirection.z) + WintersMath::kPi;
+                }
+
+                if (trackedTarget == NULL_ENTITY &&
+                    projectile.fTravelled >= projectile.fMaxDist)
                 {
                     if (projectile.visualEntity != NULL_ENTITY
                         && world.HasComponent<FxMeshComponent>(projectile.visualEntity))
@@ -58,6 +110,7 @@ void CKalistaProjectileSystem::Execute(CWorld& world, f32_t dt)
                         [&](EntityID target, ChampionComponent& champion, TransformComponent& targetTf)
                         {
                             if (projectile.bHasHit) return;
+                            if (trackedTarget != NULL_ENTITY && target != trackedTarget) return;
                             if (target == projectile.ownerEntity) return;
                             if (champion.team == projectile.ownerTeam) return;
 
@@ -98,7 +151,7 @@ void CKalistaProjectileSystem::Execute(CWorld& world, f32_t dt)
         world.DestroyEntity(entity);
 }
 
-EntityID CKalistaProjectileSystem::Spawn(CWorld& world, const Vec3& vOrigin, const Vec3& vDirection, f32_t fSpeed, f32_t fMaxDist, f32_t fRadius, f32_t fDamage, EntityID owner, eTeam ownerTeam, Engine::CFxStaticMeshRenderer* pRenderer, f32_t fSpearScale, bool_t bApplyRendStack, EntityID visualEntity)
+EntityID CKalistaProjectileSystem::Spawn(CWorld& world, const Vec3& vOrigin, const Vec3& vDirection, f32_t fSpeed, f32_t fMaxDist, f32_t fRadius, f32_t fDamage, EntityID owner, eTeam ownerTeam, Engine::CFxStaticMeshRenderer* pRenderer, f32_t fSpearScale, bool_t bApplyRendStack, EntityID visualEntity, EntityID targetEntity)
 {
     EntityID entity = world.CreateEntity();
 
@@ -114,12 +167,23 @@ EntityID CKalistaProjectileSystem::Spawn(CWorld& world, const Vec3& vOrigin, con
     projectile.fRadius = fRadius;
     projectile.fDamage = fDamage;
     projectile.ownerEntity = owner;
+    projectile.targetHandle = targetEntity != NULL_ENTITY
+        ? world.GetEntityHandle(targetEntity)
+        : NULL_ENTITY_HANDLE;
     projectile.ownerTeam = ownerTeam;
     projectile.pRenderer = pRenderer;
     projectile.fSpearScale = fSpearScale;
     projectile.bApplyRendStack = bApplyRendStack;
     projectile.visualEntity = visualEntity;
     world.AddComponent<KalistaProjectileComponent>(entity, projectile);
+
+    if (visualEntity != NULL_ENTITY &&
+        world.HasComponent<FxMeshComponent>(visualEntity))
+    {
+        FxMeshComponent& mesh = world.GetComponent<FxMeshComponent>(visualEntity);
+        mesh.vVelocity = {};
+        mesh.attachTo = entity;
+    }
 
     return entity;
 }

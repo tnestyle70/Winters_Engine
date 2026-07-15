@@ -1,7 +1,6 @@
 #include "GameObject/Champion/Annie/Annie_Skills.h"
 
 #include "GameObject/Champion/Annie/Annie_Components.h"
-#include "GameObject/Champion/Annie/Annie_FxPresets.h"
 
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
@@ -111,13 +110,11 @@ namespace
 
     void PlayStunReadyCue(VisualHookContext& ctx)
     {
-        const Vec3 casterPos = ResolveCasterPosition(ctx);
-        const Vec3 forward = ResolveForward(ctx);
-        if (PlayAnnieCue(ctx, "Annie.Stun.Ready", casterPos, forward, ctx.casterEntity))
-            return;
-
-        if (ctx.pWorld)
-            Annie::Fx::SpawnStunCharge(*ctx.pWorld, ctx.casterEntity, 1.2f);
+        PlayAnnieCue(ctx,
+            "Annie.Stun.Ready",
+            ResolveCasterPosition(ctx),
+            ResolveForward(ctx),
+            ctx.casterEntity);
     }
 
     void AdvanceVisualStunStack(VisualHookContext& ctx, bool_t bConsumesReady)
@@ -170,10 +167,7 @@ namespace Annie
                 endPos.y = casterPos.y;
 
                 PlayAnnieCue(ctx, "Annie.BA.Projectile", casterPos, forward, NULL_ENTITY, &endPos);
-                if (PlayAnnieCue(ctx, "Annie.BA.Hit", targetPos, forward, target))
-                    return;
-
-                Fx::SpawnBAFireFlash(*ctx.pWorld, target, 0.4f);
+                PlayAnnieCue(ctx, "Annie.BA.Hit", targetPos, forward, target);
             }
         }
 
@@ -190,14 +184,7 @@ namespace Annie
                 casterPos.z + forward.z * 5.0f
             });
             endPos.y = casterPos.y;
-            if (!PlayAnnieCue(ctx, "Annie.Q.Fireball", casterPos, forward, NULL_ENTITY, &endPos))
-            {
-                Fx::SpawnQFireball(
-                    *ctx.pWorld,
-                    ctx.casterEntity,
-                    ctx.pCommand->targetEntityId,
-                    0.5f);
-            }
+            PlayAnnieCue(ctx, "Annie.Q.Fireball", casterPos, forward, NULL_ENTITY, &endPos);
             AdvanceVisualStunStack(ctx, true);
         }
 
@@ -208,14 +195,7 @@ namespace Annie
 
             const Vec3 casterPos = ResolveCasterPosition(ctx);
             const Vec3 forward = ResolveForward(ctx);
-            if (!PlayAnnieCue(ctx, "Annie.W.Cone", casterPos, forward, NULL_ENTITY))
-            {
-                Fx::SpawnWConeFire(
-                    *ctx.pWorld,
-                    ctx.casterEntity,
-                    ctx.pCommand->direction,
-                    0.6f);
-            }
+            PlayAnnieCue(ctx, "Annie.W.Cone", casterPos, forward, NULL_ENTITY);
             AdvanceVisualStunStack(ctx, true);
         }
 
@@ -226,8 +206,7 @@ namespace Annie
 
             const Vec3 casterPos = ResolveCasterPosition(ctx);
             const Vec3 forward = ResolveForward(ctx);
-            if (!PlayAnnieCue(ctx, "Annie.E.Shield", casterPos, forward, ctx.casterEntity))
-                Fx::SpawnEShield(*ctx.pWorld, ctx.casterEntity, 3.0f);
+            PlayAnnieCue(ctx, "Annie.E.Shield", casterPos, forward, ctx.casterEntity);
             AdvanceVisualStunStack(ctx, false);
         }
 
@@ -237,14 +216,7 @@ namespace Annie
                 return;
 
             const Vec3 forward = ResolveForward(ctx);
-            if (!PlayAnnieCue(ctx, "Annie.R.Summon", ctx.pCommand->groundPos, forward, NULL_ENTITY))
-            {
-                Fx::SpawnRTibbersSummon(
-                    *ctx.pWorld,
-                    ctx.casterEntity,
-                    ctx.pCommand->groundPos,
-                    1.5f);
-            }
+            PlayAnnieCue(ctx, "Annie.R.Summon", ctx.pCommand->groundPos, forward, NULL_ENTITY);
             AdvanceVisualStunStack(ctx, true);
         }
     }

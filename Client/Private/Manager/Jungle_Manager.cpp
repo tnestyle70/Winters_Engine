@@ -96,6 +96,20 @@ namespace //?대젃寃?const char*濡??ㅼ젙??寃껋쿂???몃━?? RED Engine??
     {
         return Resolve_JungleAnimations(sub).idle;
     }
+
+    Mat4 Resolve_VisualWorldMatrix(
+        const JungleComponent& jungle,
+        const TransformComponent& transform)
+    {
+        const Mat4& world = transform.GetWorldMatrix();
+        const ClientData::JungleVisualDefinition* pVisual =
+            ClientData::FindJungleVisualDefinition(jungle.subKind);
+        if (!pVisual || pVisual->visualScaleMultiplier == 1.f)
+            return world;
+
+        const f32_t scale = pVisual->visualScaleMultiplier;
+        return Mat4::Scale(scale, scale, scale) * world;
+    }
 }
 
 HRESULT CJungle_Manager::Initialize(CWorld* pWorld)
@@ -222,12 +236,12 @@ void CJungle_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorld,
 {
     if (!m_pWorld) return;
     m_pWorld->ForEach<JungleComponent, RenderComponent, TransformComponent>(
-        [&](EntityID, JungleComponent&, RenderComponent& rc, TransformComponent& xform)
+        [&](EntityID, JungleComponent& jungle, RenderComponent& rc, TransformComponent& xform)
         {
             if (!rc.bVisible || !rc.pRenderer) return;
             rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
             rc.pRenderer->UpdateCamera(matViewProj, vCameraWorld);
-            rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
+            rc.pRenderer->UpdateTransform(Resolve_VisualWorldMatrix(jungle, xform));
             rc.pRenderer->RenderFrustumCulled(matViewProj);
         });
 }
@@ -244,14 +258,14 @@ u32_t CJungle_Manager::AppendRenderSnapshotMeshes(
     u32_t appendedCount = 0;
 
     m_pWorld->ForEach<JungleComponent, RenderComponent, TransformComponent>(
-        [&](EntityID, JungleComponent&, RenderComponent& rc, TransformComponent& xform)
+        [&](EntityID, JungleComponent& jungle, RenderComponent& rc, TransformComponent& xform)
         {
             if (!rc.bVisible || !rc.pRenderer)
                 return;
 
             ++candidateCount;
             ++visibleCount;
-            rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
+            rc.pRenderer->UpdateTransform(Resolve_VisualWorldMatrix(jungle, xform));
             appendedCount += rc.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(
                 snapshot,
                 matViewProj);
@@ -545,11 +559,14 @@ EntityID CJungle_Manager::Spawn_FromEntry(const Winters::Map::JungleEntry& entry
     jc.campId  = entry.campId;
 
     //紐밸퀎 Hp 寃곗젙
-    f32_t maxHp = 1500.f;
+    f32_t maxHp = 450.f;
     if (static_cast<eJungleSub>(entry.subKind) == eJungleSub::Baron)
         maxHp = 8000.f;
     else if (static_cast<eJungleSub>(entry.subKind) == eJungleSub::Dragon)
         maxHp = 5000.f;
+    else if (static_cast<eJungleSub>(entry.subKind) == eJungleSub::BlueBuff ||
+             static_cast<eJungleSub>(entry.subKind) == eJungleSub::RedBuff)
+        maxHp = 2300.f;
 
     jc.hp = maxHp;
     jc.maxHp = maxHp;

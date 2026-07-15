@@ -11,6 +11,13 @@
 
 //월드 공간 알파 쿼드 이펙트  
 //POD - CWorld Component Store에 값 복사로 보관 
+enum class eFxVisibilityPolicy : u8_t
+{
+	Always = 0,
+	InheritAttachVisibility,
+	TeamMask
+};
+
 struct FxBillboardComponent
 {
 	//위치/추종/속도 
@@ -20,6 +27,9 @@ struct FxBillboardComponent
 	FxAnchorDesc anchor{};
 	FxLifecycleDesc lifecycle{};
 	bool_t bAnchorResolvedLastFrame = false;
+	eFxVisibilityPolicy visibilityPolicy = eFxVisibilityPolicy::Always;
+	u8_t visibilityTeamMask = 0u;
+	bool_t bDestroyWhenAttachInvalid = false;
 	Vec3 vVelocity = { 0.f, 0.f, 0.f }; //투사체용
 
 	//텍스쳐 + 크기

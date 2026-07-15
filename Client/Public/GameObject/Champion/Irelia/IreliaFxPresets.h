@@ -74,13 +74,12 @@ namespace IreliaFx
 
 	void SpawnRHitLayers(CWorld& world, const Vec3& vHitPos, const Vec3& vForward, f32_t fLifetime);
 
-	// ★ R 명중 시 부채꼴 칼날 깔기 (e_blade.fbx mesh 여러 개)
-	//   hitPos: 명중 위치 / vForward: 궁 진행 방향 (정규화)
-	//   iCount: 칼날 수 (5 권장) / fSpreadRad: 부채꼴 각도 (π/2 = 90도 권장)
-	//   fPlaceDist: 명중 위치에서 칼날까지 거리 (1.5m 권장)
-	//   fScale / vRotation: 칼날 자세 (Phase 1 의 BladePitch/Yaw/Roll 적정값 사용)
-	// ★ Triangle Mode — bTriangle=true 면 중앙 칼날 forward 추가 push (fTipBoost m),
-	//   사이드 칼날 scale 감소 (fSideShrink 0~0.9). 기본 false = 균등 arc.
+	// R 명중 시 E 본체 칼날 mesh를 명중점 기준 벽으로 배치한다.
+	// bTriangle=true: 왼쪽 양변 끝점 -> 전방 꼭짓점 -> 오른쪽 양변 끝점의 직선 위에 배치한다.
+	// bTriangle=false: 기존 균등 원호 배치를 유지한다.
+	// iCount는 중앙 꼭짓점 칼날이 정확히 하나가 되도록 홀수를 사용한다.
+	// fSideShrink는 꼭짓점이 아닌 좌우 끝점으로 갈수록 적용할 scale 감소율이다.
+	// 이 함수는 SpawnPlaced를 호출하지 않으므로 E 공전 칼날과 Irelia.E.Place cue를 생성하지 않는다.
 	void SpawnRBladeFan(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
 		const Vec3& vHitPos, const Vec3& vForward,
 		int32_t iCount, f32_t fSpreadRad, f32_t fPlaceDist,

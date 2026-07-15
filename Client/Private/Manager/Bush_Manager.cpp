@@ -100,6 +100,26 @@ HRESULT CBush_Manager::Load_FromFile(FILE* pFile)
         Spawn_FromEntry(entry);
     }
 
+    u32_t meshCount = 0;
+    u32_t billboardCount = 0;
+    for (const BushRuntimeData& data : m_vecData)
+    {
+        if (data.pMeshRenderer)
+            ++meshCount;
+        else if (data.renderKind == Winters::Map::eBushRenderKind::Billboard && data.bVisible)
+            ++billboardCount;
+    }
+#if defined(_DEBUG)
+    char debugMessage[160]{};
+    sprintf_s(
+        debugMessage,
+        "[MapBush] loaded entries=%u mesh=%u billboard=%u\n",
+        count,
+        meshCount,
+        billboardCount);
+    OutputDebugStringA(debugMessage);
+#endif
+
     return S_OK;
 }
 
@@ -162,6 +182,62 @@ void CBush_Manager::RenderEditorOverlay(const Mat4& matViewProj, i32_t selectedI
                 pDraw->AddText(ImVec2(screen.x + 8.f, screen.y - 9.f), IM_COL32_WHITE, name);
         }
     }
+}
+
+void CBush_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorld,
+    void* pAmbientOcclusionSRV)
+{
+    if (!m_pWorld)
+        return;
+
+    for (u32_t i = 0; i < static_cast<u32_t>(m_vecEntities.size()); ++i)
+    {
+        if (i >= m_vecData.size())
+            break;
+        const EntityID entity = m_vecEntities[i];
+        BushRuntimeData& data = m_vecData[i];
+        if (!data.bVisible || !data.pMeshRenderer ||
+            !m_pWorld->IsAlive(entity) ||
+            !m_pWorld->HasComponent<TransformComponent>(entity))
+        {
+            continue;
+        }
+
+        TransformComponent& transform = m_pWorld->GetComponent<TransformComponent>(entity);
+        data.pMeshRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
+        data.pMeshRenderer->UpdateCamera(matViewProj, vCameraWorld);
+        data.pMeshRenderer->UpdateTransform(transform.GetWorldMatrix());
+        data.pMeshRenderer->RenderFrustumCulled(matViewProj);
+    }
+}
+
+u32_t CBush_Manager::AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot,
+    const Mat4& matViewProj)
+{
+    if (!m_pWorld)
+        return 0;
+
+    u32_t appendedCount = 0;
+    for (u32_t i = 0; i < static_cast<u32_t>(m_vecEntities.size()); ++i)
+    {
+        if (i >= m_vecData.size())
+            break;
+        const EntityID entity = m_vecEntities[i];
+        BushRuntimeData& data = m_vecData[i];
+        if (!data.bVisible || !data.pMeshRenderer ||
+            !m_pWorld->IsAlive(entity) ||
+            !m_pWorld->HasComponent<TransformComponent>(entity))
+        {
+            continue;
+        }
+
+        TransformComponent& transform = m_pWorld->GetComponent<TransformComponent>(entity);
+        data.pMeshRenderer->UpdateTransform(transform.GetWorldMatrix());
+        appendedCount += data.pMeshRenderer->AppendRenderSnapshotMeshesFrustumCulled(
+            snapshot,
+            matViewProj);
+    }
+    return appendedCount;
 }
 
 i32_t CBush_Manager::Add_At(
@@ -342,6 +418,7 @@ void CBush_Manager::Set_RenderKind(u32_t iIndex, Winters::Map::eBushRenderKind r
 
     m_vecData[iIndex].renderKind = renderKind;
     Sync_FxComponent(iIndex);
+    Sync_MeshRenderer(iIndex);
 }
 
 void CBush_Manager::Get_VisualSize(u32_t iIndex, f32_t& outWidth, f32_t& outHeight, f32_t& outScale) const
@@ -365,7 +442,11 @@ void CBush_Manager::Set_VisualSize(u32_t iIndex, f32_t width, f32_t height, f32_
     m_vecData[iIndex].width = (std::max)(0.1f, width);
     m_vecData[iIndex].height = (std::max)(0.1f, height);
     m_vecData[iIndex].scale = (std::max)(0.01f, scale);
+    const EntityID entity = m_vecEntities[iIndex];
+    if (m_pWorld && m_pWorld->HasComponent<TransformComponent>(entity))
+        m_pWorld->GetComponent<TransformComponent>(entity).SetScale(m_vecData[iIndex].scale);
     Sync_FxComponent(iIndex);
+    Sync_MeshRenderer(iIndex);
 }
 
 const char* CBush_Manager::Get_AssetPath(u32_t iIndex) const
@@ -378,8 +459,14 @@ void CBush_Manager::Set_AssetPath(u32_t iIndex, const char* pAssetPath)
     if (iIndex >= m_vecData.size())
         return;
 
-    m_vecData[iIndex].assetPath = pAssetPath ? pAssetPath : "";
+    const std::string assetPath = pAssetPath ? pAssetPath : "";
+    if (m_vecData[iIndex].assetPath != assetPath)
+    {
+        m_vecData[iIndex].assetPath = assetPath;
+        m_vecData[iIndex].pMeshRenderer.reset();
+    }
     Sync_FxComponent(iIndex);
+    Sync_MeshRenderer(iIndex);
 }
 
 bool_t CBush_Manager::Get_Visible(u32_t iIndex) const
@@ -394,6 +481,7 @@ void CBush_Manager::Set_Visible(u32_t iIndex, bool_t bVisible)
 
     m_vecData[iIndex].bVisible = bVisible;
     Sync_FxComponent(iIndex);
+    Sync_MeshRenderer(iIndex);
 }
 
 void CBush_Manager::Set_DefaultAssetPath(const char* pAssetPath)
@@ -414,9 +502,10 @@ EntityID CBush_Manager::Spawn_FromEntry(const Winters::Map::BushEntry& entry)
     const EntityID entity = m_pWorld->CreateEntity();
 
     auto& transform = m_pWorld->AddComponent<TransformComponent>(entity);
+    const f32_t visualScale = (entry.scale > 0.f) ? entry.scale : 1.f;
     transform.SetPosition({ entry.px, entry.py, entry.pz });
     transform.SetRotation({ 0.f, entry.yaw, 0.f });
-    transform.SetScale(entry.scale);
+    transform.SetScale(visualScale);
 
     ConcealmentVolumeComponent volume{};
     volume.center = { entry.px, entry.py, entry.pz };
@@ -430,13 +519,15 @@ EntityID CBush_Manager::Spawn_FromEntry(const Winters::Map::BushEntry& entry)
     data.renderKind = static_cast<Winters::Map::eBushRenderKind>(entry.renderKind);
     data.width = (entry.width > 0.f) ? entry.width : m_fDefaultWidth;
     data.height = (entry.height > 0.f) ? entry.height : m_fDefaultHeight;
-    data.scale = (entry.scale > 0.f) ? entry.scale : 1.f;
+    data.scale = visualScale;
     data.bVisible = entry.bVisible != 0u;
     data.assetPath = entry.assetPath;
 
     m_vecEntities.push_back(entity);
     m_vecData.push_back(std::move(data));
-    Sync_FxComponent(static_cast<u32_t>(m_vecEntities.size() - 1));
+    const u32_t index = static_cast<u32_t>(m_vecEntities.size() - 1);
+    Sync_FxComponent(index);
+    Sync_MeshRenderer(index);
     return entity;
 }
 
@@ -499,15 +590,22 @@ void CBush_Manager::Sync_FxComponent(u32_t iIndex)
     if (!m_pWorld->IsAlive(entity))
         return;
 
-    if (!m_pWorld->HasComponent<FxBillboardComponent>(entity))
-        m_pWorld->AddComponent<FxBillboardComponent>(entity);
-
-    FxBillboardComponent& fx = m_pWorld->GetComponent<FxBillboardComponent>(entity);
     const BushRuntimeData& data = m_vecData[iIndex];
     const bool_t bBillboard =
         data.renderKind == Winters::Map::eBushRenderKind::Billboard &&
         data.bVisible &&
         !data.assetPath.empty();
+    if (!bBillboard)
+    {
+        if (m_pWorld->HasComponent<FxBillboardComponent>(entity))
+            m_pWorld->RemoveComponent<FxBillboardComponent>(entity);
+        return;
+    }
+
+    if (!m_pWorld->HasComponent<FxBillboardComponent>(entity))
+        m_pWorld->AddComponent<FxBillboardComponent>(entity);
+
+    FxBillboardComponent& fx = m_pWorld->GetComponent<FxBillboardComponent>(entity);
 
     Vec3 pos{};
     f32_t yaw = 0.f;
@@ -532,7 +630,42 @@ void CBush_Manager::Sync_FxComponent(u32_t iIndex)
     fx.blendMode = eBlendPreset::AlphaBlend;
     fx.depthMode = eFxDepthMode::DepthTestWriteOn;
     fx.bPendingDelete = false;
-    fx.SetTexturePath(bBillboard ? WidenAsciiPath(data.assetPath) : std::wstring{});
+    fx.SetTexturePath(WidenAsciiPath(data.assetPath));
     fx.RefreshMaterialFromLegacyFields();
+}
+
+void CBush_Manager::Sync_MeshRenderer(u32_t iIndex)
+{
+    if (!m_pWorld || iIndex >= m_vecEntities.size() || iIndex >= m_vecData.size())
+        return;
+
+    BushRuntimeData& data = m_vecData[iIndex];
+    const bool_t bNeedsMesh =
+        data.renderKind == Winters::Map::eBushRenderKind::Mesh &&
+        data.bVisible &&
+        !data.assetPath.empty();
+    if (!bNeedsMesh)
+    {
+        data.pMeshRenderer.reset();
+        return;
+    }
+    if (data.pMeshRenderer)
+        return;
+
+    auto renderer = std::make_unique<ModelRenderer>();
+    if (!renderer->Initialize(data.assetPath, L"Shaders/Mesh3D.hlsl"))
+    {
+#if defined(_DEBUG)
+        char debugMessage[512]{};
+        sprintf_s(
+            debugMessage,
+            "[MapBush] mesh init failed index=%u path=%s\n",
+            iIndex,
+            data.assetPath.c_str());
+        OutputDebugStringA(debugMessage);
+#endif
+        return;
+    }
+    data.pMeshRenderer = std::move(renderer);
 }
 

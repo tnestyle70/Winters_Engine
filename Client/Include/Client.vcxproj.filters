@@ -154,6 +154,9 @@
     <Filter Include="05. UI\11. WfxEffectTool">
       <UniqueIdentifier>{1ed2e587-3b23-4be7-82d5-4e19bb6f3111}</UniqueIdentifier>
     </Filter>
+    <Filter Include="05. UI\12. ModelAnim">
+      <UniqueIdentifier>{7c3f2a91-58de-4b6a-9f21-c04a7e5d8b32}</UniqueIdentifier>
+    </Filter>
     <Filter Include="02. GameObject\02. FX\02. Beam">
       <UniqueIdentifier>{abf411cc-f85e-4591-9a28-abec7c0983c4}</UniqueIdentifier>
     </Filter>
@@ -322,24 +325,6 @@
     <Filter Include="05. UI\11. WfxEffectTool\00. AssetCatalog">
       <UniqueIdentifier>{c35914b0-cb3c-47b8-83d0-3c875057316e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="07. Shared">
-      <UniqueIdentifier>{80f0ac70-6d69-4f5a-89eb-c3bfc71211b1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="07. Shared\GameSim">
-      <UniqueIdentifier>{cd2557fc-dd5a-4c78-a32f-fcb402951601}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="07. Shared\GameSim\Champions">
-      <UniqueIdentifier>{fcf90442-3d80-4cb8-b7d7-2d07371db39f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="07. Shared\GameSim\Definitions">
-      <UniqueIdentifier>{7f48207b-0121-4c2f-9000-d97f77b9a083}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="07. Shared\GameSim\Registries">
-      <UniqueIdentifier>{2670f7ee-a860-45cd-9979-d50531607d97}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="07. Shared\GameSim\Systems">
-      <UniqueIdentifier>{36e7cbf5-207f-4a93-b33f-49e1402a3311}</UniqueIdentifier>
-    </Filter>
     <Filter Include="08. Dev">
       <UniqueIdentifier>{23cf47df-11a9-4599-8657-f91e96cf7e25}</UniqueIdentifier>
     </Filter>
@@ -441,6 +426,12 @@
     <ClInclude Include="..\Public\Scene\Scene_MainMenu.h">
       <Filter>01. Scene\01. MainMenu</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_Shop.h">
+      <Filter>01. Scene\01. MainMenu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_MyInfo.h">
+      <Filter>01. Scene\01. MainMenu</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\Scene\Scene_Editor.h">
       <Filter>01. Scene\06. Editor</Filter>
     </ClInclude>
@@ -474,6 +465,12 @@
     <ClInclude Include="..\Public\UI\AIDebugPanel.h">
       <Filter>05. UI\09. AIDebug</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\UI\AiTraceExport.h">
+      <Filter>05. UI\09. AIDebug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\ModelAnimPanel.h">
+      <Filter>05. UI\12. ModelAnim</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\UI\CombatDebugPanel.h">
       <Filter>05. UI\00. CombatDebug</Filter>
     </ClInclude>
@@ -494,6 +491,12 @@
     </ClInclude>
     <ClInclude Include="..\Public\UI\SkillTimingPanel.h">
       <Filter>05. UI\05. SkillTiming</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\AttackSpeedLab.h">
+      <Filter>05. UI\06. ChampionTuner</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\UI\StructureTunerPanel.h">
+      <Filter>05. UI\06. ChampionTuner</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\UI\ChampionTuner.h">
       <Filter>05. UI\06. ChampionTuner</Filter>
@@ -627,9 +630,6 @@
     <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Components.h">
       <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_FxPresets.h">
-      <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\GameObject\Champion\Annie\Annie_Registration.h">
       <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
     </ClInclude>
@@ -717,6 +717,9 @@
     <ClInclude Include="..\Public\Network\Client\EventApplier.h">
       <Filter>06. Network\Client\02. EventApplier</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Network\Client\PresentationMutation.h">
+      <Filter>06. Network\Client\02. EventApplier</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\Network\Client\SnapshotApplier.h">
       <Filter>06. Network\Client\03. SnapshotApplier</Filter>
     </ClInclude>
@@ -734,9 +737,6 @@
     </ClInclude>
     <ClInclude Include="..\Private\Network\Client\UdpClient.h">
       <Filter>06. Network\Client\98. UDPClientNetwork</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Engine\Public\FX\FxLifeCycle.h">
-      <Filter>02. GameObject\02. FX\05. LifeCycle</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\GameObject\FX\FxBillboardComponent.h">
       <Filter>02. GameObject\02. FX\03. Billboard</Filter>
@@ -822,6 +822,9 @@
     <ClInclude Include="..\Public\GamePlay\ChampionCatalog.h">
       <Filter>03. GamePlay\02. Champion\00. Catalog</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\GamePlay\ChampionSoundCatalog.h">
+      <Filter>03. GamePlay\02. Champion\00. Catalog</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\GamePlay\LoLMatchContextRuntime.h">
       <Filter>03. GamePlay</Filter>
     </ClInclude>
@@ -879,9 +882,13 @@
     <ClInclude Include="..\Public\Replay\ReplayLibrary.h">
       <Filter>12. Replay</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Replay\LocalMatchRecord.h">
+      <Filter>12. Replay</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\Replay\ReplayPlayer.h">
       <Filter>12. Replay</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\EngineSDK\inc\FX\FxLifeCycle.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\main.cpp">
@@ -923,6 +930,12 @@
     <ClCompile Include="..\Private\Scene\Scene_MainMenu.cpp">
       <Filter>01. Scene\01. MainMenu</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_Shop.cpp">
+      <Filter>01. Scene\01. MainMenu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Scene\Scene_MyInfo.cpp">
+      <Filter>01. Scene\01. MainMenu</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Scene\Scene_Editor.cpp">
       <Filter>01. Scene\06. Editor</Filter>
     </ClCompile>
@@ -956,6 +969,12 @@
     <ClCompile Include="..\Private\UI\AIDebugPanel.cpp">
       <Filter>05. UI\09. AIDebug</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\UI\AiTraceExport.cpp">
+      <Filter>05. UI\09. AIDebug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\ModelAnimPanel.cpp">
+      <Filter>05. UI\12. ModelAnim</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\UI\MapTunerPanel.cpp">
       <Filter>05. UI\01. MapTuner</Filter>
     </ClCompile>
@@ -973,6 +992,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\UI\SkillTimingPanel.cpp">
       <Filter>05. UI\05. SkillTiming</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\AttackSpeedLab.cpp">
+      <Filter>05. UI\06. ChampionTuner</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\UI\StructureTunerPanel.cpp">
+      <Filter>05. UI\06. ChampionTuner</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\UI\ChampionTuner.cpp">
       <Filter>05. UI\06. ChampionTuner</Filter>
@@ -1103,9 +1128,6 @@
     <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_Registration.cpp">
       <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_FxPresets.cpp">
-      <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
-    </ClCompile>
     <ClCompile Include="..\Private\GameObject\Champion\Annie\Annie_Skills.cpp">
       <Filter>02. GameObject\01. Champions\00. Champion\10. Annie</Filter>
     </ClCompile>
@@ -1168,6 +1190,12 @@
     </ClCompile>
     <ClCompile Include="..\Private\Network\Client\SnapshotApplier.cpp">
       <Filter>06. Network\Client\03. SnapshotApplier</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Network\Client\UdpClient.cpp">
+      <Filter>06. Network\Client\98. UDPClientNetwork</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Shared\Network\UdpReliabilityChannel.cpp">
+      <Filter>06. Network\Client\98. UDPClientNetwork</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Network\Client\NetworkEventTrace.cpp">
       <Filter>06. Network\Client\04. NetworkEventTrace</Filter>
@@ -1268,6 +1296,9 @@
     <ClCompile Include="..\Private\GamePlay\ChampionCatalog.cpp">
       <Filter>03. GamePlay\02. Champion\00. Catalog</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\GamePlay\ChampionSoundCatalog.cpp">
+      <Filter>03. GamePlay\02. Champion\00. Catalog</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\GamePlay\LoLMatchContextRuntime.cpp">
       <Filter>03. GamePlay</Filter>
     </ClCompile>
@@ -1316,152 +1347,18 @@
     <ClCompile Include="..\Private\GameMode\GameModeCatalog.cpp">
       <Filter>11. GameMode\01. Catalog</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Annie\AnnieGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Ashe\AsheGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Fiora\FioraGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Jax\JaxGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Kindred\KindredGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Viego\ViegoGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Yone\YoneGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Zed\ZedGameSim.cpp">
-      <Filter>07. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp">
-      <Filter>07. Shared\GameSim\Definitions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Definitions\MapSpawnPoints.cpp">
-      <Filter>07. Shared\GameSim\Definitions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp">
-      <Filter>07. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionGameData\ChampionGameDataDB.cpp">
-      <Filter>07. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Generated\ChampionGameData.generated.cpp">
-      <Filter>07. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\Reward\RewardRegistry.cpp">
-      <Filter>07. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp">
-      <Filter>07. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\Skin\SkinRegistry.cpp">
-      <Filter>07. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\JungleAI\JungleAISystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Buff\BuffSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIBrain.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatActionSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatFormula.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamagePipeline.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Death\DeathSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Experience\ExperienceSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Move\MoveSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Recall\RecallSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Rune\RuneSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Stat\StatSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp">
-      <Filter>07. Shared\GameSim\Systems</Filter>
-    </ClCompile>
     <ClCompile Include="..\Private\GameApp.cpp">
       <Filter>00. MainApp</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Replay\ReplayLibrary.cpp">
       <Filter>12. Replay</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Replay\LocalMatchRecord.cpp">
+      <Filter>12. Replay</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Replay\ReplayPlayer.cpp">
       <Filter>12. Replay</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Data\Generated\LoLVisualDefinitions.generated.cpp" />
   </ItemGroup>
 </Project>

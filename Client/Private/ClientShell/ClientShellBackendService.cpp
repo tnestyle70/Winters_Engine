@@ -78,11 +78,11 @@ void CClientShellBackendService::RequestInitialSync()
 	m_bInitialSyncRequested = true;
 	const u32_t uGeneration = m_uGeneration;
 
-	if (m_pProfileClient && !m_strUserID.empty())
+	// 자기 프로필은 JWT claims 기반 /profile/me — client가 user id를 보내지 않는다.
+	if (m_pProfileClient)
 	{
 		m_bProfileRequestInFlight = true;
-		m_pProfileClient->GetProfile(
-			m_strUserID,
+		m_pProfileClient->GetMyProfile(
 			[this, uGeneration](const Client::ProfileData& profile)
 			{
 				m_bProfileRequestInFlight = false;
@@ -95,38 +95,87 @@ void CClientShellBackendService::RequestInitialSync()
 			});
 	}
 
-	if (m_pShopClient)
-	{
-		m_bStoreRequestInFlight = true;
-		m_pShopClient->ListItems(
-			[this, uGeneration](const std::vector<Client::ShopItemData>& items)
-			{
-				m_bStoreRequestInFlight = false;
-				if (uGeneration == m_uGeneration)
-				{
-					CClientShellDataStore::Instance().ApplyStoreItems(items);
-					m_strStatus = items.empty() ? "Store sync returned no items" : "Store synced";
-				}
-				TryFinishDeferredReset();
-			});
-	}
+	// RP·상품·소유권은 storefront 하나의 원자 스냅샷 — items/inventory 조합 race 제거.
+	RequestStorefrontSync();
+}
 
-	if (m_pShopClient && !m_strUserID.empty())
-	{
-		m_bInventoryRequestInFlight = true;
-		m_pShopClient->GetInventory(
-			m_strUserID,
-			[this, uGeneration](const std::vector<Client::InventoryItemData>& items)
+void CClientShellBackendService::RequestStorefrontSync()
+{
+	if (!m_bConfigured || !m_pShopClient || m_bStoreRequestInFlight)
+		return;
+
+	m_bStoreRequestInFlight = true;
+	const u32_t uGeneration = m_uGeneration;
+	m_pShopClient->GetStorefront(
+		[this, uGeneration](const Client::StorefrontData& storefront)
+		{
+			m_bStoreRequestInFlight = false;
+			if (uGeneration == m_uGeneration)
 			{
-				m_bInventoryRequestInFlight = false;
-				if (uGeneration == m_uGeneration)
+				if (storefront.success)
 				{
-					CClientShellDataStore::Instance().ApplyInventoryItems(items);
-					m_strStatus = "Inventory synced";
+					CClientShellDataStore::Instance().ApplyStorefront(storefront);
+					m_strStatus = "Storefront synced";
 				}
-				TryFinishDeferredReset();
-			});
-	}
+				else
+				{
+					m_strStatus = storefront.error.empty()
+						? "Storefront sync failed"
+						: "Storefront sync failed: " + storefront.error;
+				}
+			}
+			TryFinishDeferredReset();
+		});
+}
+
+void CClientShellBackendService::RequestMatchHistory()
+{
+	if (!m_bConfigured || !m_pProfileClient)
+		return;
+
+	const u32_t uGeneration = m_uGeneration;
+	m_bProfileRequestInFlight = true;
+	m_pProfileClient->GetMyHistory(
+		[this, uGeneration](const std::vector<Client::MatchRecord>& records)
+		{
+			m_bProfileRequestInFlight = false;
+			if (uGeneration == m_uGeneration)
+				CClientShellDataStore::Instance().ApplyMatchHistory(records);
+			TryFinishDeferredReset();
+		});
+}
+
+void CClientShellBackendService::RequestReportMatchResult(bool_t bVictory)
+{
+	// 비회원/백엔드 미실행이면 보고하지 않는다 — 게임 흐름은 로컬 전적만으로 완결 (S035).
+	if (!m_bConfigured || !m_pProfileClient)
+		return;
+
+	const u32_t uGeneration = m_uGeneration;
+	m_bProfileRequestInFlight = true;
+	m_pProfileClient->ReportMyMatch(
+		bVictory,
+		[this, uGeneration](const Client::MatchReportResult& result)
+		{
+			m_bProfileRequestInFlight = false;
+			if (uGeneration == m_uGeneration)
+			{
+				if (result.success)
+				{
+					m_strStatus = "Match reported";
+					// MMR/RP가 바뀌었으니 다음 메인메뉴 진입 sync가 최신 값을 받도록
+					// 프로필/상점 재요청 래치를 푼다.
+					m_bInitialSyncRequested = false;
+				}
+				else
+				{
+					m_strStatus = result.error.empty()
+						? "Match report failed"
+						: "Match report failed: " + result.error;
+				}
+			}
+			TryFinishDeferredReset();
+		});
 }
 
 void CClientShellBackendService::RequestPurchase(const std::string& itemId)
@@ -262,7 +311,6 @@ bool_t CClientShellBackendService::HasInFlightRequests() const
 {
 	return m_bProfileRequestInFlight
 		|| m_bStoreRequestInFlight
-		|| m_bInventoryRequestInFlight
 		|| m_bPurchaseRequestInFlight
 		|| m_bMatchRequestInFlight;
 }
@@ -297,7 +345,6 @@ void CClientShellBackendService::DestroyClients()
 	m_pMatchClient.reset();
 	m_bProfileRequestInFlight = false;
 	m_bStoreRequestInFlight = false;
-	m_bInventoryRequestInFlight = false;
 	m_bPurchaseRequestInFlight = false;
 	m_bMatchRequestInFlight = false;
 	m_bResetAfterCallbacks = false;

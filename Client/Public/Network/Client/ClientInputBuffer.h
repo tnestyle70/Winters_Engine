@@ -12,6 +12,7 @@ public:
 
 	void Push(const GameCommandWire& wire);
 	void DropAcked(u32_t ackedSeq);
+	void Clear();
 	void ForEachAfter(u32_t ackedSeq, const std::function<void(const GameCommandWire&)>& fn) const;
 
 private:

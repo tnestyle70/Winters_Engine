@@ -1,4 +1,5 @@
 #include "Network/Client/ClientNetwork.h"
+#include "UdpClient.h"
 #include "Dev/SmokeLog.h"
 
 #include <cstring>
@@ -87,10 +88,25 @@ namespace
 }
 
 
-std::unique_ptr<CClientNetwork> CClientNetwork::Create()
+std::unique_ptr<CClientNetwork> CClientNetwork::Create(
+    eClientNetworkTransport transport)
 {
+    if (transport != eClientNetworkTransport::Tcp &&
+        transport != eClientNetworkTransport::Udp)
+    {
+        return nullptr;
+    }
     if (!EnsureWsaInit()) return nullptr;
-    return std::unique_ptr<CClientNetwork>(new CClientNetwork());
+
+    std::unique_ptr<CClientNetwork> network(new CClientNetwork());
+    network->m_eTransport = transport;
+    if (transport == eClientNetworkTransport::Udp)
+    {
+        network->m_pUdpClient = CUdpClient::Create();
+        if (!network->m_pUdpClient)
+            return nullptr;
+    }
+    return network;
 }
 
 CClientNetwork::~CClientNetwork()
@@ -101,7 +117,18 @@ CClientNetwork::~CClientNetwork()
 
 bool CClientNetwork::Connect(const char* host, u16_t port)
 {
-    if (m_bConnected) return true;
+    if (IsConnected()) return true;
+
+    if (m_eTransport == eClientNetworkTransport::Udp)
+    {
+        if (!m_pUdpClient)
+            return false;
+
+        // The empty ticket is an explicit development-only association
+        // contract. Authentication must replace it at the session boundary;
+        // this transport layer does not claim that it authenticates a player.
+        return m_pUdpClient->Connect(host, port);
+    }
 
     m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (m_socket == INVALID_SOCKET)
@@ -147,6 +174,13 @@ bool CClientNetwork::Connect(const char* host, u16_t port)
 
 void CClientNetwork::Disconnect()
 {
+    if (m_eTransport == eClientNetworkTransport::Udp)
+    {
+        if (m_pUdpClient)
+            m_pUdpClient->Disconnect();
+        return;
+    }
+
     if (!m_bRunning.exchange(false)) return;
     m_bConnected = false;
 
@@ -162,6 +196,37 @@ void CClientNetwork::Disconnect()
 
 bool CClientNetwork::Send(std::vector<u8_t> packet)
 {
+    if (m_eTransport == eClientNetworkTransport::Udp)
+    {
+        ParsedFrame frame{};
+        PacketHeader envelopeHeader{};
+        u32_t consumed = 0;
+        if (packet.size() < sizeof(PacketHeader) ||
+            packet.size() > sizeof(PacketHeader) + kMaxPacketPayloadSize)
+        {
+            return false;
+        }
+        std::memcpy(
+            &envelopeHeader,
+            packet.data(),
+            sizeof(envelopeHeader));
+        if (envelopeHeader.flags != PacketFlag_None ||
+            !TryExtractFrame(
+                packet.data(),
+                static_cast<u32_t>(packet.size()),
+                frame,
+                consumed) ||
+            consumed != static_cast<u32_t>(packet.size()))
+        {
+            return false;
+        }
+        return SendFrame(
+            frame.type,
+            frame.sequence,
+            frame.payload,
+            frame.payloadSize);
+    }
+
     if (!m_bConnected || m_socket == INVALID_SOCKET || packet.empty()) return false;
 
     //단순 blocking send(MVP - 동시 호출은 inputsystem 단일 thread 가정)
@@ -183,13 +248,50 @@ bool CClientNetwork::Send(std::vector<u8_t> packet)
     return true;
 }
 
+bool CClientNetwork::SendFrame(
+    ePacketType type,
+    u32_t applicationSequence,
+    const u8_t* payload,
+    u32_t payloadSize)
+{
+    if (!IsKnownPacketType(type) ||
+        IsTransportHandshakePacketType(type) ||
+        payloadSize > kMaxPacketPayloadSize ||
+        (payloadSize != 0 && !payload))
+    {
+        return false;
+    }
+
+    if (m_eTransport == eClientNetworkTransport::Udp)
+    {
+        (void)applicationSequence;
+        return m_pUdpClient &&
+            m_pUdpClient->Send(type, payload, payloadSize);
+    }
+
+    return Send(WrapEnvelope(
+        type,
+        applicationSequence,
+        payload,
+        payloadSize));
+}
+
 void CClientNetwork::SetFrameCallback(FrameCallback fn)
 {
     m_callback = std::move(fn);
+    if (m_pUdpClient)
+        m_pUdpClient->SetFrameCallback(m_callback);
 }
 
 void CClientNetwork::PumpReceivedFrames()
 {
+    if (m_eTransport == eClientNetworkTransport::Udp)
+    {
+        if (m_pUdpClient)
+            m_pUdpClient->PumpReceivedFrames();
+        return;
+    }
+
     if (!m_callback) return;
 
     std::vector<std::tuple<ePacketType, u32_t, std::vector<u8_t>>> drained;
@@ -199,6 +301,13 @@ void CClientNetwork::PumpReceivedFrames()
     }
     for (auto& [type, seq, payload] : drained)
         m_callback(type, seq, payload.data(), static_cast<u32_t>(payload.size()));
+}
+
+bool CClientNetwork::IsConnected() const
+{
+    if (m_eTransport == eClientNetworkTransport::Udp)
+        return m_pUdpClient && m_pUdpClient->IsConnected();
+    return m_bConnected.load(std::memory_order_relaxed);
 }
 
 void CClientNetwork::RecvThread()

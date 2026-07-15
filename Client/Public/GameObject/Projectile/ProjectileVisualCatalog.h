@@ -2,19 +2,21 @@
 
 #include "Defines.h"
 
+struct ReplicatedProjectilePresentationTag
+{
+};
+
 struct ProjectileVisualDesc
 {
     const char* pszSpawnCue = nullptr;
     const char* pszHitCue = nullptr;
     const char* pszAttachedCue = nullptr;
-    const wchar_t* pszFallbackSpawnTexture = nullptr;
-    const wchar_t* pszFallbackHitTexture = nullptr;
-    f32_t fFallbackSpawnWidth = 0.8f;
-    f32_t fFallbackSpawnHeight = 0.8f;
-    f32_t fFallbackHitWidth = 1.4f;
-    f32_t fFallbackHitHeight = 1.4f;
-    bool_t bUseGenericSpawnFallback = true;
-    bool_t bUseGenericHitFallback = true;
+    const char* pszBarrierCue = nullptr;
+    const char* pszTerrainCue = nullptr;
+    const char* pszExpireCue = nullptr;
+    f32_t fYawOffset = 0.f;
+    // 부착 큐(박힌 창 등)를 히트마다 랜덤 각도/오프셋으로 분산시킨다 (누적 시각화).
+    bool_t bAttachedCueRandomJitter = false;
 };
 
 namespace ProjectileVisualCatalog

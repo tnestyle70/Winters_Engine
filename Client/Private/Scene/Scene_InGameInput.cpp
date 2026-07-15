@@ -69,6 +69,8 @@
 #include "GameObject/Champion/Kalista/Kalista_Tuning.h"
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/KalistaBondComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
@@ -338,6 +340,26 @@ void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
     if (!HasPlayerRenderer())
         return;
 
+    const bool_t bKalistaCarried =
+        m_PlayerEntity != NULL_ENTITY &&
+        m_World.HasComponent<ReplicatedStateComponent>(m_PlayerEntity) &&
+        (m_World.GetComponent<ReplicatedStateComponent>(m_PlayerEntity).stateFlags &
+            kSnapshotStateKalistaCarriedFlag) != 0u;
+    if (bKalistaCarried)
+    {
+        outSkipGroundMove = true;
+        if (!bImGuiMouse && in.IsLButtonPressed() &&
+            m_pCommandSerializer && m_pNetworkView &&
+            m_pNetworkView->IsConnected())
+        {
+            const Vec3 launchTarget = ResolveMouseMapSurfacePos();
+            m_pCommandSerializer->SendKalistaFateCallLaunch(
+                *m_pNetworkView,
+                launchTarget);
+        }
+        return;
+    }
+
     if (IsPlayerStunned())
         return;
 
@@ -403,6 +425,41 @@ void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
                     kTrinketWardItemId,
                     wardPos,
                     WintersMath::DirectionXZ(origin, wardPos, Vec3{}));
+            }
+        }
+
+        if (in.IsKeyPressed('6') &&
+            IsNetworkAuthoritativeGameplay() &&
+            GetPlayerChampionId() == eChampion::KALISTA &&
+            m_PlayerEntity != NULL_ENTITY &&
+            GetHoveredEntity() != NULL_ENTITY &&
+            GetHoveredEntity() != m_PlayerEntity &&
+            GetHoveredTeam() == GetPlayerTeam() &&
+            m_World.HasComponent<InventoryComponent>(m_PlayerEntity) &&
+            m_World.GetComponent<InventoryComponent>(m_PlayerEntity)
+                .itemIds[kKalistaOathswornInventorySlot] ==
+                    kKalistaOathswornItemId &&
+            m_pCommandSerializer && m_pNetworkView && m_pEntityIdMap &&
+            m_pNetworkView->IsConnected())
+        {
+            const NetEntityId targetNet =
+                m_pEntityIdMap->ToNet(GetHoveredEntity());
+            if (targetNet != NULL_NET_ENTITY &&
+                m_World.HasComponent<TransformComponent>(GetHoveredEntity()))
+            {
+                const Vec3 targetPos =
+                    m_World.GetComponent<TransformComponent>(
+                        GetHoveredEntity()).GetPosition();
+                const Vec3 origin = m_pPlayerTransform
+                    ? m_pPlayerTransform->GetPosition()
+                    : targetPos;
+                ClearNetworkAttackIntent();
+                m_pCommandSerializer->SendUseItem(
+                    *m_pNetworkView,
+                    kKalistaOathswornItemId,
+                    targetPos,
+                    WintersMath::DirectionXZ(origin, targetPos, Vec3{}),
+                    targetNet);
             }
         }
 
@@ -596,6 +653,42 @@ void CScene_InGame::DriveNetworkAttackIntent(bool& outSkipGroundMove)
 
     outSkipGroundMove = true;
 
+    if (m_bAnnieTibbersCommandMode)
+    {
+        if (ResolveOwnedTibbersEntity() == NULL_ENTITY ||
+            !m_pCommandSerializer ||
+            !m_pNetworkView ||
+            !m_pEntityIdMap)
+        {
+            m_bAnnieTibbersCommandMode = false;
+            ClearNetworkAttackIntent();
+            outSkipGroundMove = false;
+            return;
+        }
+
+        const NetEntityId targetNet =
+            m_pEntityIdMap->ToNet(s_NetworkAttackTarget);
+        if (targetNet == NULL_NET_ENTITY)
+            return;
+
+        Vec3 targetPosition{};
+        if (m_World.HasComponent<TransformComponent>(s_NetworkAttackTarget))
+        {
+            targetPosition = m_World.GetComponent<TransformComponent>(
+                s_NetworkAttackTarget).GetPosition();
+        }
+        m_pCommandSerializer->SendCompanionCommand(
+            *m_pNetworkView,
+            targetNet,
+            targetPosition,
+            eCompanionCommandMode::Attack);
+        ClearNetworkAttackIntent();
+        return;
+    }
+
+    if (!GameplayStateQuery::CanAttack(m_World, m_PlayerEntity))
+        return;
+
     if (!m_bNetworkAuthoritativeGameplay ||
         !GameplayQuery::IsValidAttackTarget(
             m_World,
@@ -713,7 +806,7 @@ bool_t CScene_InGame::IsPlayerDead() const
     return false;
 }
 
-void CScene_InGame::ApplyPlayerDeathInputLock()
+void CScene_InGame::ResetLocalControlHandoffState()
 {
     if (m_bPingWheelActive)
     {
@@ -725,11 +818,19 @@ void CScene_InGame::ApplyPlayerDeathInputLock()
     ClearNetworkAttackIntent();
     ClearActiveSkillRuntime();
     ResetLocalSkillRuntimeState();
+    m_bAnnieTibbersCommandMode = false;
 
     m_bMoving = false;
     m_bDashActive = false;
     m_fDashElapsed = 0.f;
     m_DashTargetEntity = NULL_ENTITY;
+    m_bKalistaPassiveDashActive = false;
+    m_fKalistaPassiveDashElapsed = 0.f;
+    m_vKalistaPassiveDashStart = {};
+    m_vKalistaPassiveDashEnd = {};
+    m_bKalistaPassiveDashAnimActive = false;
+    m_uKalistaLastPassiveDashActionSeq = 0u;
+    m_bKalistaPassiveDashMoveCommandPending = false;
     m_bYasuoDashActive = false;
     m_fYasuoDashElapsed = 0.f;
     m_YasuoDashTargetEntity = NULL_ENTITY;
@@ -760,6 +861,11 @@ void CScene_InGame::ApplyPlayerDeathInputLock()
             Agent.iPathIndex = 0;
         }
     }
+}
+
+void CScene_InGame::ApplyPlayerDeathInputLock()
+{
+    ResetLocalControlHandoffState();
 }
 
 void CScene_InGame::RenderDeathScreenOverlay()

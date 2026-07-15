@@ -46,6 +46,14 @@
 #include "Manager/Navigation/MapWalkableBaker.h"
 #include "Manager/Navigation/Pathfinder.h"
 
+// S030: 게임 종료 산출물 저장 + 메인 메뉴 복귀
+#include "ClientShell/ClientShellSession.h"
+#include "ClientShell/ClientShellBackendService.h"
+#include "Replay/LocalMatchRecord.h"
+#include "Scene/Scene_MainMenu.h"
+#include "Scene/Scene_MyInfo.h"
+#include "UI/AiTraceExport.h"
+
 // [Phase T] UI Panels + DebugDrawSystem
 #include "UI/AIDebugPanel.h"
 #include "UI/CombatDebugPanel.h"
@@ -465,7 +473,21 @@ void CScene_InGame::SyncActorHUDStateToEngineUI()
             State.MaxMp = Stat.manaMax;
     }
 
-    State.bStunned = m_World.HasComponent<StunComponent>(Entity);
+    State.bStunned = false;
+    if (m_World.HasComponent<GameplayStateComponent>(Entity))
+    {
+        const auto& Gameplay =
+            m_World.GetComponent<GameplayStateComponent>(Entity);
+        constexpr u32_t kCrowdControlled =
+            kGameplayStateStunnedFlag |
+            kGameplayStateAirborneFlag |
+            kGameplayStateCannotMoveFlag;
+        State.bStunned = (Gameplay.stateFlags & kCrowdControlled) != 0u;
+    }
+    else
+    {
+        State.bStunned = m_World.HasComponent<StunComponent>(Entity);
+    }
     CGameInstance::Get()->UI_Set_ActorHUDState(&State);
 }
 
@@ -618,12 +640,16 @@ void CScene_InGame::SyncWorldHealthBarsToEngineUI()
     m_World.ForEach<ChampionComponent, TransformComponent>(
         [&](EntityID Entity, ChampionComponent& Champion, TransformComponent& Transform)
         {
+            if (UI::IsKalistaCarried(m_World, Entity))
+                return;
+
             Engine::UIWorldHealthBarDesc Bar{};
             Bar.Entity = Entity;
             Bar.Kind = Engine::UIWorldHealthBarKind::Character;
             Bar.vWorldPos = Transform.GetPosition();
             Bar.fCurrent = Champion.hp;
             Bar.fMaximum = Champion.maxHp;
+            Bar.fShield = (std::max)(0.f, Champion.shield);
             Bar.fManaCurrent = Champion.mana;
             Bar.fManaMaximum = Champion.maxMana;
             Bar.iTeam = ToLoLUITeamId(Champion.team);
@@ -657,6 +683,48 @@ void CScene_InGame::SyncWorldHealthBarsToEngineUI()
             Bar.fCurrent = Turret.hp;
             Bar.fMaximum = Turret.maxHp;
             Bar.iTeam = ToLoLUITeamId(Turret.team);
+            Bar.bDead = Bar.fCurrent <= 0.f;
+            ApplyHealthOverride(Entity, Bar.fCurrent, Bar.fMaximum, Bar.bDead);
+            Bars.push_back(Bar);
+        });
+
+    // 넥서스/억제기: TurretComponent가 없어 위 포탑 루프에 안 걸린다 — StructureComponent로 수집.
+    // 클라 포탑은 두 컴포넌트를 동시 보유하므로 이중 desc 방지를 위해 포탑은 건너뛴다 (S035).
+    m_World.ForEach<StructureComponent, TransformComponent>(
+        [&](EntityID Entity, StructureComponent& Structure, TransformComponent& Transform)
+        {
+            if (m_World.HasComponent<TurretComponent>(Entity))
+                return;
+
+            Engine::UIWorldHealthBarDesc Bar{};
+            Bar.Entity = Entity;
+            Bar.Kind = Engine::UIWorldHealthBarKind::Structure;
+            Bar.vWorldPos = Transform.GetPosition();
+            Bar.fCurrent = Structure.hp;
+            Bar.fMaximum = Structure.maxHp;
+            Bar.iTeam = ToLoLUITeamId(Structure.team);
+            Bar.bDead = Bar.fCurrent <= 0.f;
+            ApplyHealthOverride(Entity, Bar.fCurrent, Bar.fMaximum, Bar.bDead);
+            Bars.push_back(Bar);
+        });
+
+    // 정글몹: 에픽 4종(바론/드래곤/블루/레드)은 챔피언형 바(중립=적색 필),
+    // 소형 캠프는 미니언과 같은 Unit 기본 폭을 쓴다.
+    m_World.ForEach<JungleComponent, TransformComponent>(
+        [&](EntityID Entity, JungleComponent& Jungle, TransformComponent& Transform)
+        {
+            const bool_t bEpic = Jungle.subKind <=
+                static_cast<u32_t>(CJungle_Manager::eJungleSub::RedBuff);
+
+            Engine::UIWorldHealthBarDesc Bar{};
+            Bar.Entity = Entity;
+            Bar.Kind = bEpic
+                ? Engine::UIWorldHealthBarKind::Character
+                : Engine::UIWorldHealthBarKind::Unit;
+            Bar.vWorldPos = Transform.GetPosition();
+            Bar.fCurrent = Jungle.hp;
+            Bar.fMaximum = Jungle.maxHp;
+            Bar.iTeam = ToLoLUITeamId(eTeam::Neutral);
             Bar.bDead = Bar.fCurrent <= 0.f;
             ApplyHealthOverride(Entity, Bar.fCurrent, Bar.fMaximum, Bar.bDead);
             Bars.push_back(Bar);
@@ -719,11 +787,23 @@ void CScene_InGame::SyncNavigationControlStateToEngine()
                 Control.bThrottleRepath = bChasing;
             }
 
-            Control.bMovementBlocked = m_World.HasComponent<StunComponent>(Entity);
-            if (m_World.HasComponent<SlowComponent>(Entity))
+            if (m_World.HasComponent<GameplayStateComponent>(Entity))
             {
-                Control.fMoveSpeedMul =
-                    m_World.GetComponent<SlowComponent>(Entity).fMoveSpeedMul;
+                const auto& Gameplay =
+                    m_World.GetComponent<GameplayStateComponent>(Entity);
+                Control.bMovementBlocked =
+                    (Gameplay.stateFlags & kGameplayStateCannotMoveFlag) != 0u;
+                Control.fMoveSpeedMul = Gameplay.fMoveSpeedMul;
+            }
+            else
+            {
+                Control.bMovementBlocked =
+                    m_World.HasComponent<StunComponent>(Entity);
+                if (m_World.HasComponent<SlowComponent>(Entity))
+                {
+                    Control.fMoveSpeedMul =
+                        m_World.GetComponent<SlowComponent>(Entity).fMoveSpeedMul;
+                }
             }
         });
 }
@@ -740,6 +820,20 @@ void CScene_InGame::OnUpdate(f32_t dt)
 {
     WINTERS_PROFILE_SCOPE("Scene_InGame::OnUpdate");
 
+    PollGameEndAndSettings();
+    if (m_bReturnToMainMenuRequested)
+    {
+        m_bReturnToMainMenuRequested = false;
+        ChangeToMainMenuScene();
+        return;
+    }
+    if (m_bExitReplayToMyInfoRequested)
+    {
+        m_bExitReplayToMyInfoRequested = false;
+        ChangeToMyInfoScene();
+        return;
+    }
+
     CGameInstance::Get()->UI_Set_StatusPanelOpen(CInput::Get().IsKeyDown(VK_TAB));
 
     if (m_bNetworkAuthoritativeGameplay && m_bNetworkActorInterpolationEnabled)
@@ -755,6 +849,8 @@ void CScene_InGame::OnUpdate(f32_t dt)
     const u64_t appliedSnapshotTick = m_pSnapshotApplier
         ? m_pSnapshotApplier->GetLastAppliedServerTick()
         : 0ull;
+    if (appliedSnapshotTick != 0ull)
+        WINTERS_PROFILE_GAUGE("Net::LatestServerTick", appliedSnapshotTick);
     if (m_bNetworkAuthoritativeGameplay &&
         bNetworkActive &&
         appliedSnapshotTick != 0 &&
@@ -812,8 +908,6 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
     if (bNetworkActive || m_bReplayPlaybackMode)
         UpdateNetworkChampionLocomotion(dt);
-
-    ProjectGameplayActorsToMapSurface();
 
     m_MapTransform.SetRotation(m_vMapRotation);
 
@@ -903,7 +997,6 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
     const bool bActionLockedBefore = (m_fLastActionTimer > 0.f);
     if (m_fLastActionTimer > 0.f) m_fLastActionTimer -= dt;
-    if (m_fNetworkMoveInputLockTimer > 0.f) m_fNetworkMoveInputLockTimer -= dt;
 
     if (m_fEndTransitionTimer > 0.f)
     {
@@ -1019,7 +1112,11 @@ void CScene_InGame::OnUpdate(f32_t dt)
                 visualCtx.skillStage = m_ActiveSkill.stage;
                 visualCtx.pFxMeshRenderer = m_pFxMeshRenderer.get();
                 bool visualHandled = false;
-                if (d.castHookId != 0)
+                const bool suppressRivenVisualForLegacy =
+                    champ == eChampion::RIVEN &&
+                    d.castHookId != 0 &&
+                    CSkillHookRegistry::Instance().Has(d.castHookId);
+                if (d.castHookId != 0 && !suppressRivenVisualForLegacy)
                     visualHandled = CVisualHookRegistry::Instance().Dispatch(
                         d.castHookId, visualCtx);
 
@@ -1106,8 +1203,27 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
             }
 
-            if (d.visualRecoveryFrame > 0.f && curF >= d.visualRecoveryFrame)
+            const bool_t bReachedRecoveryFrame =
+                d.visualRecoveryFrame > 0.f && curF >= d.visualRecoveryFrame;
+            const bool_t bAnimationFinished = !pAnim->IsPlaying();
+            if (bReachedRecoveryFrame || bAnimationFinished)
+            {
+#if defined(_DEBUG)
+                if (bAnimationFinished && !bReachedRecoveryFrame)
+                {
+                    char trace[192]{};
+                    sprintf_s(
+                        trace,
+                        "[SkillRuntime] animation ended before recovery champ=%u slot=%u frame=%.2f recovery=%.2f\n",
+                        static_cast<u32_t>(m_ActiveSkill.champion),
+                        static_cast<u32_t>(m_ActiveSkill.slot),
+                        curF,
+                        d.visualRecoveryFrame);
+                    OutputDebugStringA(trace);
+                }
+#endif
                 ClearActiveSkillRuntime();
+            }
             else
                 m_ActiveSkill.prevFrame = curF;
         }
@@ -1214,4 +1330,67 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
 void CScene_InGame::OnLateUpdate(f32_t /*dt*/)
 {
+}
+
+void CScene_InGame::PollGameEndAndSettings()
+{
+    if (m_pEventApplier && !m_bGameEndActive)
+    {
+        u8_t winningTeam = 0u;
+        if (m_pEventApplier->ConsumeGameEndEvent(winningTeam))
+        {
+            m_bGameEndActive = true;
+            m_bLocalVictory = static_cast<u8_t>(m_PlayerTeam) == winningTeam;
+            // 정상 종료(넥서스 파괴) 저장 — 서버는 리플레이를 발행하고,
+            // 클라는 로컬 전적 + AI trace JSONL을 저장한다 (S030 저장 보증 1/3).
+            SaveEndOfMatchArtifacts(m_bLocalVictory ? "victory" : "defeat");
+        }
+    }
+
+    // S031 잔여: 인게임 기어 설정창(UI_ConsumeMainMenuRequest)은 Engine UI 배선 후 연결.
+}
+
+void CScene_InGame::SaveEndOfMatchArtifacts(const char* pResultLabel)
+{
+    // 리플레이 재생은 관전이므로 전적/trace를 남기지 않는다.
+    if (m_bEndOfMatchArtifactsSaved || m_bReplayPlaybackMode)
+        return;
+    m_bEndOfMatchArtifactsSaved = true;
+
+    Winters::LocalMatchRecord record{};
+    record.strUser = CClientShellSession::Instance().GetDisplayName();
+    record.strResult = pResultLabel ? pResultLabel : "unknown";
+    record.uEndTick = m_pSnapshotApplier
+        ? m_pSnapshotApplier->GetLastAppliedServerTick()
+        : 0ull;
+    Winters::AppendLocalMatchRecord(record);
+
+    // 온라인 계정이면 매치결과를 백엔드에 보고 (MMR/RP 반영, S035).
+    // 비회원/백엔드 미실행이면 서비스 내부 게이트가 조용히 스킵 — 게임 흐름 비차단.
+    // "aborted"(강제 이탈)는 보고하지 않는다.
+    if (record.strResult == "victory" || record.strResult == "defeat")
+    {
+        CClientShellBackendService::Instance().RequestReportMatchResult(
+            record.strResult == "victory");
+    }
+
+    std::string strTracePath;
+    Winters::ExportAiDecisionTraceJsonl(m_World, strTracePath);
+}
+
+void CScene_InGame::ChangeToMainMenuScene()
+{
+    if (m_bUsingSharedNetwork)
+        CGameSessionClient::Instance().Disconnect();
+
+    CGameInstance::Get()->Change_Scene(
+        static_cast<uint32_t>(eSceneID::MainMenu),
+        CScene_MainMenu::Create());
+}
+
+void CScene_InGame::ChangeToMyInfoScene()
+{
+    CGameInstance::Get()->Change_Scene(
+        static_cast<uint32_t>(eSceneID::MyInfo),
+        CScene_MyInfo::Create());
 }

@@ -3,6 +3,16 @@
 #include "Network/Client/EventApplier.h"
 #include "Network/Client/SnapshotApplier.h"
 
+#pragma push_macro("min")
+#pragma push_macro("max")
+#undef min
+#undef max
+#include "Shared/Schemas/Generated/cpp/Event_generated.h"
+#include "Shared/Schemas/Generated/cpp/Snapshot_generated.h"
+#include <flatbuffers/flatbuffers.h>
+#pragma pop_macro("max")
+#pragma pop_macro("min")
+
 #include <filesystem>
 #include <fstream>
 #include <utility>
@@ -10,11 +20,18 @@
 namespace
 {
 	constexpr u32_t kMaxReplayPayloadBytes = 16u * 1024u * 1024u;
+	constexpr u32_t kMaxReplayRecordCount = 4u * 1024u * 1024u;
 
-	bool_t IsValidReplayRecordType(u8_t type)
+	bool_t IsReplayFlatBufferPayloadValid(
+		Winters::Replay::eReplayRecordType recordType,
+		const std::vector<u8_t>& payload)
 	{
-		return type == static_cast<u8_t>(Winters::Replay::eReplayRecordType::Snapshot) ||
-			type == static_cast<u8_t>(Winters::Replay::eReplayRecordType::Event);
+		flatbuffers::Verifier verifier(payload.data(), payload.size());
+		if (recordType == Winters::Replay::eReplayRecordType::Snapshot)
+			return Shared::Schema::VerifySnapshotBuffer(verifier);
+		if (recordType == Winters::Replay::eReplayRecordType::Event)
+			return Shared::Schema::VerifyEventPacketBuffer(verifier);
+		return true;
 	}
 }
 
@@ -24,7 +41,17 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 {
 	outError.clear();
 
-	std::ifstream in(std::filesystem::path(path), std::ios::binary);
+	const std::filesystem::path replayPath(path);
+	std::error_code fileSizeError;
+	const std::uintmax_t fileSize =
+		std::filesystem::file_size(replayPath, fileSizeError);
+	if (fileSizeError || fileSize < Winters::Replay::kReplayHeaderSize)
+	{
+		outError = "invalid replay file size";
+		return nullptr;
+	}
+
+	std::ifstream in(replayPath, std::ios::binary);
 	if (!in)
 	{
 		outError = "failed to open replay file";
@@ -40,14 +67,32 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 	}
 
 	if (!Winters::Replay::IsReplayMagic(player->m_Header) ||
-		player->m_Header.version != Winters::Replay::kReplayVersion ||
+		!Winters::Replay::IsSupportedReplayVersion(player->m_Header.version) ||
 		player->m_Header.headerSize != Winters::Replay::kReplayHeaderSize)
 	{
 		outError = "invalid replay header";
 		return nullptr;
 	}
+	const std::uintmax_t minimumRecordBytes =
+		static_cast<std::uintmax_t>(Winters::Replay::kReplayRecordHeaderSize) + 1u;
+	const std::uintmax_t maximumRecordsFromFile =
+		(fileSize - Winters::Replay::kReplayHeaderSize) / minimumRecordBytes;
+	if (player->m_Header.recordCount == 0u ||
+		player->m_Header.recordCount > kMaxReplayRecordCount ||
+		player->m_Header.recordCount > maximumRecordsFromFile ||
+		player->m_Header.snapshotCount > player->m_Header.recordCount ||
+		player->m_Header.eventCount > player->m_Header.recordCount ||
+		player->m_Header.snapshotCount + player->m_Header.eventCount >
+			player->m_Header.recordCount)
+	{
+		outError = "invalid replay record counts";
+		return nullptr;
+	}
 
 	player->m_Records.reserve(player->m_Header.recordCount);
+	u32_t snapshotCount = 0u;
+	u32_t eventCount = 0u;
+	u64_t previousTick = 0u;
 	for (u32_t i = 0; i < player->m_Header.recordCount; ++i)
 	{
 		ReplayRecord record{};
@@ -61,7 +106,9 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 		if (record.header.headerSize != Winters::Replay::kReplayRecordHeaderSize ||
 			record.header.payloadSize == 0 ||
 			record.header.payloadSize > kMaxReplayPayloadBytes ||
-			!IsValidReplayRecordType(record.header.type))
+			!Winters::Replay::IsReplayRecordTypeSupported(
+				player->m_Header.version,
+				record.header.type))
 		{
 			outError = "invalid replay record";
 			return nullptr;
@@ -76,6 +123,36 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 			outError = "failed to read replay payload";
 			return nullptr;
 		}
+		if (i > 0u && record.header.serverTick < previousTick)
+		{
+			outError = "non-monotonic replay requires branch-aware playback";
+			return nullptr;
+		}
+		previousTick = record.header.serverTick;
+
+		const auto recordType =
+			static_cast<Winters::Replay::eReplayRecordType>(record.header.type);
+		if (recordType == Winters::Replay::eReplayRecordType::Command &&
+			!Winters::Replay::IsReplayCommandPayloadSupported(
+				player->m_Header.version,
+				record.payload.data(),
+				record.header.payloadSize))
+		{
+			outError = "invalid replay command payload";
+			return nullptr;
+		}
+		if (!IsReplayFlatBufferPayloadValid(recordType, record.payload))
+		{
+			outError = recordType == Winters::Replay::eReplayRecordType::Snapshot
+				? "invalid replay snapshot payload"
+				: "invalid replay event payload";
+			return nullptr;
+		}
+
+		if (recordType == Winters::Replay::eReplayRecordType::Snapshot)
+			++snapshotCount;
+		else if (recordType == Winters::Replay::eReplayRecordType::Event)
+			++eventCount;
 
 		player->m_Records.emplace_back(std::move(record));
 	}
@@ -83,6 +160,19 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 	if (player->m_Records.empty())
 	{
 		outError = "replay has no records";
+		return nullptr;
+	}
+	if (in.peek() != std::char_traits<char>::eof())
+	{
+		outError = "replay has trailing bytes";
+		return nullptr;
+	}
+	if (snapshotCount != player->m_Header.snapshotCount ||
+		eventCount != player->m_Header.eventCount ||
+		player->m_Records.front().header.serverTick != player->m_Header.firstTick ||
+		player->m_Records.back().header.serverTick != player->m_Header.lastTick)
+	{
+		outError = "replay header summary mismatch";
 		return nullptr;
 	}
 

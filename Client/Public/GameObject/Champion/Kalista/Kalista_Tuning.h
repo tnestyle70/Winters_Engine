@@ -6,7 +6,7 @@ namespace Kalista
 {
     struct KalistaTuning
     {
-        f32_t baSpeed = 15.f;
+        f32_t baSpeed = 30.f;
         f32_t baMaxDist = 8.f;
         f32_t baRadius = 0.6f;
         f32_t baDamage = 70.f;
@@ -15,8 +15,8 @@ namespace Kalista
         f32_t baFlySpearGirthMul = 0.5f;
         f32_t baStuckSpearScale = 0.01f;
 
-        f32_t qSpeed = 9.f;
-        f32_t qMaxDist = 14.f;
+        f32_t qSpeed = 27.f;
+        f32_t qMaxDist = 16.5f;
         f32_t qRadius = 0.6f;
         f32_t qDamage = 70.f;
         f32_t qFlySpearScale = 0.015f;

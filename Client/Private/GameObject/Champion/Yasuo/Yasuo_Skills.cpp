@@ -27,8 +27,8 @@ namespace
     {
         if (pCommand)
         {
-            const Vec3 dir = WintersMath::NormalizeXZ(pCommand->direction);
-            if (dir.x != 0.f || dir.z != -1.f)
+            const Vec3 dir = WintersMath::NormalizeXZOrZero(pCommand->direction);
+            if (dir.x != 0.f || dir.z != 0.f)
                 return dir;
         }
 
@@ -40,6 +40,33 @@ namespace
         }
 
         return Vec3{ 0.f, 0.f, -1.f };
+    }
+
+    Vec3 ResolveEDashForward(CWorld& world, EntityID caster,
+        const CastSkillCommand* pCommand)
+    {
+        if (pCommand)
+        {
+            const Vec3 commandDirection =
+                WintersMath::NormalizeXZOrZero(pCommand->direction);
+            if (commandDirection.x != 0.f || commandDirection.z != 0.f)
+                return commandDirection;
+        }
+
+        const Vec3 fallback = ResolveCasterForward(world, caster, pCommand);
+        if (!pCommand ||
+            pCommand->targetEntityId == NULL_ENTITY ||
+            !world.HasComponent<TransformComponent>(caster) ||
+            !world.HasComponent<TransformComponent>(pCommand->targetEntityId))
+        {
+            return fallback;
+        }
+
+        const Vec3 casterPos =
+            world.GetComponent<TransformComponent>(caster).GetPosition();
+        const Vec3 targetPos = world.GetComponent<TransformComponent>(
+            pCommand->targetEntityId).GetPosition();
+        return WintersMath::DirectionXZ(casterPos, targetPos, fallback);
     }
 }
 
@@ -71,10 +98,9 @@ namespace Yasuo
         }
         else if (ys.qStackCount >= 2)
         {
-            YasuoFx::SpawnQTornado(world, ctx.pFxMeshRenderer,
+            YasuoFx::SpawnQTornado(world,
                 origin, forward,
-                tuning.qTornadoSpeed, tuning.qTornadoLifetime, tuning.qTornadoScale,
-                tuning.qTornadoColor);
+                tuning.qTornadoSpeed, tuning.qTornadoLifetime);
             CPendingHitSystem::Schedule(world,
                 ctx.casterEntity, ctx.casterTeam,
                 forward,
@@ -90,7 +116,7 @@ namespace Yasuo
         else
         {
             YasuoFx::SpawnQStraight(world, origin,
-                forward, tuning.qSpeed, tuning.qLifetime);
+                forward, tuning.qLifetime);
             YasuoFx::SpawnQBuildUp(world, ctx.casterEntity, 0.3f);
             CPendingHitSystem::Schedule(world,
                 ctx.casterEntity, ctx.casterTeam,
@@ -139,10 +165,22 @@ namespace Yasuo
         ys.bEActive = true;
         ys.eActiveTimer = 0.5f;
 
+        const Vec3 dashForward = ResolveEDashForward(
+            *ctx.pWorld, ctx.casterEntity, ctx.pCommand);
+
         if (ctx.startTargetDash)
             ctx.startTargetDash(target);
 
-        YasuoFx::SpawnEDashTrail(*ctx.pWorld, ctx.casterEntity, GetTuning().eDashDuration);
+        YasuoFx::SpawnEDashTrail(
+            *ctx.pWorld,
+            ctx.pFxMeshRenderer,
+            ctx.casterEntity,
+            dashForward,
+            GetTuning().eDashDuration);
+        YasuoFx::SpawnEDashTargetRing(
+            *ctx.pWorld,
+            target,
+            GetTuning().eTargetReuseDuration);
     }
 
     void OnCastAccepted_R(SkillHookContext& ctx)
@@ -163,13 +201,25 @@ namespace Yasuo
             ctx.startUltimateDash(airborne);
 
         const Vec3 vLandPos = world.GetComponent<TransformComponent>(airborne).m_LocalPosition;
-        YasuoFx::SpawnRLastBreath(world, ctx.pFxMeshRenderer,
+        YasuoFx::SpawnRLastBreath(world,
             vLandPos, ctx.casterEntity, tuning.rSequenceDuration);
     }
 }
 
 namespace Yasuo::Visual
 {
+    void OnPassiveShield_Visual(VisualHookContext& ctx)
+    {
+        if (!ctx.pWorld)
+            return;
+
+        YasuoFx::SpawnPassiveShield(
+            *ctx.pWorld,
+            ctx.pFxMeshRenderer,
+            ctx.casterEntity,
+            3.0f);
+    }
+
     void OnCastAccepted_Q_Visual(VisualHookContext& ctx)
     {
         if (!ctx.pWorld || !ctx.pCommand)
@@ -189,17 +239,14 @@ namespace Yasuo::Visual
         {
             YasuoFx::SpawnQTornado(
                 world,
-                ctx.pFxMeshRenderer,
                 origin,
                 forward,
                 tuning.qTornadoSpeed,
-                tuning.qTornadoLifetime,
-                tuning.qTornadoScale,
-                tuning.qTornadoColor);
+                tuning.qTornadoLifetime);
         }
         else
         {
-            YasuoFx::SpawnQStraight(world, origin, forward, tuning.qSpeed, tuning.qLifetime);
+            YasuoFx::SpawnQStraight(world, origin, forward, tuning.qLifetime);
             YasuoFx::SpawnQBuildUp(world, ctx.casterEntity, 0.3f);
         }
     }
@@ -207,6 +254,8 @@ namespace Yasuo::Visual
     void OnCastAccepted_W_Visual(VisualHookContext& ctx)
     {
         if (!ctx.pWorld || !ctx.pCommand)
+            return;
+        if (ctx.bAuthoritativeEvent)
             return;
 
         CWorld& world = *ctx.pWorld;
@@ -227,10 +276,22 @@ namespace Yasuo::Visual
 
     void OnCastAccepted_E_Visual(VisualHookContext& ctx)
     {
-        if (!ctx.pWorld)
+        if (!ctx.pWorld || !ctx.pCommand)
             return;
 
-        YasuoFx::SpawnEDashTrail(*ctx.pWorld, ctx.casterEntity, GetTuning().eDashDuration);
+        const EntityID target = ctx.pCommand->targetEntityId;
+        const Vec3 dashForward = ResolveEDashForward(
+            *ctx.pWorld, ctx.casterEntity, ctx.pCommand);
+        YasuoFx::SpawnEDashTrail(
+            *ctx.pWorld,
+            ctx.pFxMeshRenderer,
+            ctx.casterEntity,
+            dashForward,
+            GetTuning().eDashDuration);
+        YasuoFx::SpawnEDashTargetRing(
+            *ctx.pWorld,
+            target,
+            GetTuning().eTargetReuseDuration);
     }
 
     void OnCastAccepted_R_Visual(VisualHookContext& ctx)
@@ -250,7 +311,6 @@ namespace Yasuo::Visual
 
         YasuoFx::SpawnRLastBreath(
             world,
-            ctx.pFxMeshRenderer,
             landPos,
             ctx.casterEntity,
             tuning.rSequenceDuration);

@@ -23,6 +23,7 @@ struct KalistaProjectileComponent
     f32_t fRadius = 0.6f;
     f32_t fDamage = 70.f;
     EntityID ownerEntity = NULL_ENTITY;
+    EntityHandle targetHandle = NULL_ENTITY_HANDLE;
     eTeam ownerTeam = eTeam::Neutral;
     bool_t bHasHit = false;
     //hit시 적에게 박힌 창 spawn / Rend stack -> Renderer도 기존 OOP 구조 상속 받는 거
@@ -52,7 +53,8 @@ public:
         Engine::CFxStaticMeshRenderer* pRenderer = nullptr,
         f32_t fSpearScale = 0.005f,
         bool_t bApplyRendStack = true,
-        EntityID visualEntity = NULL_ENTITY);
+        EntityID visualEntity = NULL_ENTITY,
+        EntityID targetEntity = NULL_ENTITY);
 
 private:
     CKalistaProjectileSystem() = default;

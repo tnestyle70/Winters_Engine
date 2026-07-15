@@ -37,8 +37,7 @@ namespace
     static constexpr uint64_t kMinionAnimUpdateBudget = 3u;
     static constexpr f32_t kMinionScreenCullMargin = 48.f;
     static constexpr uint32_t kNetworkVisualBindBudgetPerFrame = 3u;
-    static constexpr u32_t kNetworkWarmRoleCount = 2u;
-    static constexpr u32_t kNetworkWarmPoolSizePerTeamAndRole = 9u;
+    static constexpr u32_t kNetworkWarmPoolSizeByRole[] = { 9u, 9u, 3u, 3u, 1u };
 
 	void OutputMinionDebug(const char* msg)
 	{
@@ -332,6 +331,17 @@ namespace
         const f32_t seconds = renderer.GetAnimationDurationSecondsByName(pKeyword);
         return (seconds > 0.01f) ? seconds : fallbackSeconds;
     }
+
+    f32_t ResolveMinionAttackCycleSeconds(const MinionStateComponent& state)
+    {
+        const f32_t windupSeconds = state.attackWindup > 0.01f
+            ? state.attackWindup
+            : 0.25f;
+        const f32_t recoverySeconds = state.attackRecovery > 0.01f
+            ? state.attackRecovery
+            : kMinionRecoverSeconds;
+        return windupSeconds + recoverySeconds;
+    }
 }
 
 // ?????????????????????????????????????????????????????????????
@@ -342,8 +352,14 @@ HRESULT CMinion_Manager::Initialize(CWorld* pWorld)
     // Phase 5-A ?꾩냽: m_pWorld ?щ컮?몃뵫??guard ?욎쑝濡?(Structure_Manager ? ?숈씪 ?댁쑀).
     m_pWorld = pWorld;
     if (m_bInitialized) return S_OK;
-    m_fSpawnTimer  = 0.f;
+    m_fSpawnTimer = 0.f;
     m_bInitialized = true;
+
+    constexpr size_t kExpectedConcurrentMinions = 72u;
+    m_vecEntities.reserve(kExpectedConcurrentMinions);
+    m_vecSpawnedThisTick.reserve(18u);
+    m_mapRenderers.reserve(kExpectedConcurrentMinions);
+    m_mapVisualStates.reserve(kExpectedConcurrentMinions);
 
     // ?⑥씠?ъ씤?멸? 鍮꾩뼱 ?덉쑝硫?湲곕낯媛??곸옱 (Stage1.dat 濡쒕뱶媛 ?ㅼ씠????뼱?)
     bool empty = true;
@@ -551,6 +567,22 @@ void CMinion_Manager::UpdateMinionVisual(
     if (m_pWorld && m_pWorld->HasComponent<ActionStateComponent>(entity))
         pAction = &m_pWorld->GetComponent<ActionStateComponent>(entity);
 
+    const bool_t bTibbers = ms.type == kGameSimMinionRoleTibbers;
+    const uint16_t actionId = pAction
+        ? pAction->actionId
+        : static_cast<uint16_t>(eActionStateId::None);
+    const uint32_t actionSeq = pAction ? pAction->sequence : 0u;
+    const bool_t bNetworkBasicAttack =
+        pAction &&
+        ms.current == MinionStateComponent::Attack &&
+        static_cast<eActionStateId>(actionId) == eActionStateId::BasicAttack &&
+        actionSeq != 0u &&
+        (visual.lastActionSeq != actionSeq || visual.lastAnimId != actionId);
+    const bool_t bLocalBasicAttack =
+        actionSeq == 0u &&
+        ms.current == MinionStateComponent::Attack &&
+        ms.bAttackAnimRequested;
+
     if (ms.current == MinionStateComponent::Dead)
     {
         if (visual.phase != eMinionVisualPhase::Death)
@@ -566,26 +598,46 @@ void CMinion_Manager::UpdateMinionVisual(
         return;
     }
 
-    const uint16_t actionId = pAction
-        ? pAction->actionId
-        : static_cast<uint16_t>(eActionStateId::None);
-    const uint32_t actionSeq = pAction ? pAction->sequence : 0u;
-    const ePoseStateId poseId = pPose
-        ? static_cast<ePoseStateId>(pPose->poseId)
-        : ePoseStateId::None;
-    const bool_t bNetworkBaseAnimation =
-        pPose &&
-        (poseId == ePoseStateId::Run ||
-            poseId == ePoseStateId::Idle);
-    const bool_t bNetworkBasicAttack =
-        pAction &&
-        static_cast<eActionStateId>(actionId) == eActionStateId::BasicAttack &&
-        actionSeq != 0u &&
-        (visual.lastActionSeq != actionSeq || visual.lastAnimId != actionId);
-    const bool_t bLocalBasicAttack =
-        actionSeq == 0u &&
-        ms.current == MinionStateComponent::Attack &&
-        ms.bAttackAnimRequested;
+    if (bTibbers && !visual.bSpawnPlayed)
+    {
+        visual.bSpawnPlayed = true;
+        if (!bNetworkBasicAttack &&
+            !bLocalBasicAttack &&
+            rc.pRenderer->HasAnimationByName("spawn"))
+        {
+            const f32_t spawnSeconds = ResolveMinionAnimationSeconds(
+                *rc.pRenderer,
+                "spawn",
+                0.8f);
+            rc.pRenderer->PlayAnimationByNameAdvanced(
+                "spawn",
+                false,
+                false,
+                1.f);
+            visual.phase = eMinionVisualPhase::Spawn;
+            visual.phaseTimer = spawnSeconds;
+            visual.baseState = kInvalidMinionVisualBaseState;
+            ms.visualState = MinionStateComponent::Idle;
+            return;
+        }
+    }
+
+    if (visual.phase == eMinionVisualPhase::Spawn)
+    {
+        if (bNetworkBasicAttack || bLocalBasicAttack)
+        {
+            visual.phase = eMinionVisualPhase::Base;
+            visual.baseState = kInvalidMinionVisualBaseState;
+        }
+        else
+        {
+            visual.phaseTimer -= fDeltaTime;
+            if (visual.phaseTimer > 0.f)
+                return;
+            visual.phase = eMinionVisualPhase::Base;
+            visual.baseState = kInvalidMinionVisualBaseState;
+        }
+    }
 
     if (bNetworkBasicAttack || bLocalBasicAttack)
     {
@@ -593,38 +645,58 @@ void CMinion_Manager::UpdateMinionVisual(
         visual.lastAnimId = actionId;
         ms.bAttackAnimRequested = false;
 
-        if (visual.phase == eMinionVisualPhase::Recover)
-        {
-            visual.bPendingAttack = true;
-            return;
-        }
+        const bool_t bAlternateAttackClip = actionSeq != 0u
+            ? ((actionSeq & 1u) == 0u)
+            : visual.bAlternateLocalAttack;
+        if (actionSeq == 0u)
+            visual.bAlternateLocalAttack = !visual.bAlternateLocalAttack;
 
-        if (rc.pRenderer->HasAnimationByName("attack"))
+        const char* pAttackKeyword = bTibbers
+            ? (bAlternateAttackClip ? "attack2" : "attack1")
+            : "attack";
+        if (rc.pRenderer->HasAnimationByName(pAttackKeyword))
         {
-            rc.pRenderer->PlayAnimationByNameAdvanced("attack", false, false, 1.f);
-            visual.phase = eMinionVisualPhase::Attack;
-            visual.phaseTimer = ResolveMinionAnimationSeconds(
+            const f32_t attackSeconds = ResolveMinionAnimationSeconds(
                 *rc.pRenderer,
-                "attack",
+                pAttackKeyword,
                 kFallbackMinionAttackSeconds);
+            const f32_t cycleSeconds = ResolveMinionAttackCycleSeconds(ms);
+            const f32_t playbackSpeed = attackSeconds / cycleSeconds;
+            const f32_t visualSeconds = cycleSeconds;
+
+            rc.pRenderer->PlayAnimationByNameAdvanced(pAttackKeyword,
+                false,
+                false,
+                playbackSpeed);
+            visual.phase = eMinionVisualPhase::Attack;
+            visual.phaseTimer = visualSeconds;
             visual.baseState = kInvalidMinionVisualBaseState;
             ms.visualState = MinionStateComponent::Attack;
             ms.animUpdateAccumulator = kMinionHighPriorityAnimUpdateInterval;
+
+#if defined(_DEBUG)
+            static u32_t s_minionAnimTraceCount = 0u;
+            if (s_minionAnimTraceCount < 128u)
+            {
+                char msg[256]{};
+                sprintf_s(msg,
+                    "[MinionAnim] entity=%u seq=%u direction=%s clip=%.3f cycle=%.3f speed=%.3f visual=%.3f\n",
+                    static_cast<u32_t>(entity),
+                    actionSeq,
+                    "forward",
+                    attackSeconds,
+                    cycleSeconds,
+                    playbackSpeed,
+                    visualSeconds);
+                OutputDebugStringA(msg);
+                ++s_minionAnimTraceCount;
+            }
+#endif
             return;
         }
 
         visual.phase = eMinionVisualPhase::Base;
         visual.baseState = kInvalidMinionVisualBaseState;
-    }
-
-    if (bNetworkBaseAnimation &&
-        (visual.phase == eMinionVisualPhase::Attack ||
-            visual.phase == eMinionVisualPhase::Recover))
-    {
-        visual.phase = eMinionVisualPhase::Base;
-        visual.phaseTimer = 0.f;
-        visual.baseState = kInvalidMinionVisualBaseState;
-        visual.bPendingAttack = false;
     }
 
     if (visual.phase == eMinionVisualPhase::Attack)
@@ -633,45 +705,6 @@ void CMinion_Manager::UpdateMinionVisual(
         if (visual.phaseTimer > 0.f)
             return;
 
-        if (rc.pRenderer->HasAnimationByName("attack"))
-        {
-            const f32_t attackSeconds = ResolveMinionAnimationSeconds(
-                *rc.pRenderer,
-                "attack",
-                kFallbackMinionAttackSeconds);
-            const f32_t reverseSpeed = attackSeconds / kMinionRecoverSeconds;
-            rc.pRenderer->PlayAnimationByNameAdvanced("attack", false, true, reverseSpeed);
-            visual.phase = eMinionVisualPhase::Recover;
-            visual.phaseTimer = kMinionRecoverSeconds;
-            return;
-        }
-
-        visual.phase = eMinionVisualPhase::Base;
-        visual.baseState = kInvalidMinionVisualBaseState;
-    }
-
-    if (visual.phase == eMinionVisualPhase::Recover)
-    {
-        visual.phaseTimer -= fDeltaTime;
-        if (visual.phaseTimer > 0.f)
-            return;
-
-        if (visual.bPendingAttack && rc.pRenderer->HasAnimationByName("attack"))
-        {
-            visual.bPendingAttack = false;
-            rc.pRenderer->PlayAnimationByNameAdvanced("attack", false, false, 1.f);
-            visual.phase = eMinionVisualPhase::Attack;
-            visual.phaseTimer = ResolveMinionAnimationSeconds(
-                *rc.pRenderer,
-                "attack",
-                kFallbackMinionAttackSeconds);
-            visual.baseState = kInvalidMinionVisualBaseState;
-            ms.visualState = MinionStateComponent::Attack;
-            ms.animUpdateAccumulator = kMinionHighPriorityAnimUpdateInterval;
-            return;
-        }
-
-        visual.bPendingAttack = false;
         visual.phase = eMinionVisualPhase::Base;
         visual.baseState = kInvalidMinionVisualBaseState;
     }
@@ -682,8 +715,20 @@ void CMinion_Manager::UpdateMinionVisual(
 
     if (visual.baseState != baseStateValue)
     {
-        const char* pBaseKeyword =
-            ResolveMinionBaseAnimationKeyword(*rc.pRenderer, baseState);
+        const char* pBaseKeyword = nullptr;
+        if (bTibbers)
+        {
+            if (IsMinionMoveVisualState(baseState))
+                pBaseKeyword = rc.pRenderer->HasAnimationByName("run") ? "run" : nullptr;
+            else if (rc.pRenderer->HasAnimationByName("idle1"))
+                pBaseKeyword = "idle1";
+            else if (rc.pRenderer->HasAnimationByName("idle"))
+                pBaseKeyword = "idle";
+        }
+        else
+        {
+            pBaseKeyword = ResolveMinionBaseAnimationKeyword(*rc.pRenderer, baseState);
+        }
         if (pBaseKeyword)
             rc.pRenderer->PlayAnimationByNameAdvanced(pBaseKeyword, true, false, 1.f);
 
@@ -716,9 +761,13 @@ void CMinion_Manager::TickVisuals(f32_t fDeltaTime, const Mat4* pViewProj)
         {
             if (!rc.bVisible || !rc.pRenderer)
                 return;
-            if (!UI::IsRenderableForLocal(*m_pWorld, id, localTeam, false))
+            const bool_t bTibbers = ms.type == kGameSimMinionRoleTibbers;
+            if (!bTibbers &&
+                !UI::IsRenderableForLocal(*m_pWorld, id, localTeam, false))
                 return;
-            if (pViewProj && !IsWorldPointNearScreen(*pViewProj, tf.GetPosition()))
+            if (!bTibbers &&
+                pViewProj &&
+                !IsWorldPointNearScreen(*pViewProj, tf.GetPosition()))
                 return;
 
             UpdateMinionVisual(id, ms, rc, fDeltaTime);
@@ -935,10 +984,6 @@ bool_t CMinion_Manager::Ensure_NetworkVisual(EntityID entity, eMinionType eType,
         return false;
     }
 
-    const u32_t animCount = pRenderer->GetAnimationCount();
-    if (animCount > 0)
-        pRenderer->PlayAnimationByName("run", true);
-
     const f32_t fVisualScale = (eType == eMinionType::Tibbers) ? kTibbersVisualScale : m_fVisualScale;
 
     if (!m_pWorld->HasComponent<TransformComponent>(entity))
@@ -1021,16 +1066,6 @@ bool_t CMinion_Manager::Ensure_NetworkVisual(EntityID entity, eMinionType eType,
     if (std::find(m_vecEntities.begin(), m_vecEntities.end(), entity) == m_vecEntities.end())
         m_vecEntities.push_back(entity);
 
-    char msg[384]{};
-    sprintf_s(msg,
-        "[MinionVisual] bind network entity=%u type=%u team=%u anims=%u skeleton=%d path=%s\n",
-        static_cast<u32_t>(entity),
-        static_cast<u32_t>(eType),
-        static_cast<u32_t>(eTeamParam),
-        animCount,
-        pRenderComponent->pRenderer->HasSkeleton() ? 1 : 0,
-        pPath);
-    OutputMinionDebug(msg);
     return true;
 }
 
@@ -1312,6 +1347,50 @@ void CMinion_Manager::DoSpawnWave()
 
 void CMinion_Manager::DEBUG_SpawnWaveNow() { DoSpawnWave(); }
 
+bool_t CMinion_Manager::PrewarmNextNetworkVisualResource(bool_t& bComplete)
+{
+    bComplete = false;
+
+    for (u32_t teamIndex = 0u;
+        teamIndex < static_cast<u32_t>(eMinionTeam::End);
+        ++teamIndex)
+    {
+        const eMinionTeam team = static_cast<eMinionTeam>(teamIndex);
+
+        for (u32_t typeIndex = 0u;
+            typeIndex < static_cast<u32_t>(eMinionType::End);
+            ++typeIndex)
+        {
+            auto& pool = m_vecNetworkRendererPool[teamIndex][typeIndex];
+            if (pool.size() >= kNetworkWarmPoolSizeByRole[typeIndex])
+                continue;
+
+            const eMinionType type = static_cast<eMinionType>(typeIndex);
+            const char* pPath = ResolveModelPath(type, team);
+            if (!pPath || !ModelRenderer::PrewarmModel(pPath))
+                return false;
+
+            std::unique_ptr<ModelRenderer> pRenderer(new ModelRenderer());
+            if (!pRenderer->Initialize(pPath, L"Shaders/Mesh3D.hlsl"))
+                return false;
+
+            const ClientData::MinionVisualDefinition* pVisual =
+                ClientData::FindMinionVisualDefinition(typeIndex, teamIndex);
+            if (pVisual && pVisual->textureAllMeshes.resourceRelativePath)
+            {
+                pRenderer->LoadTextureForAllMeshes(
+                    pVisual->textureAllMeshes.resourceRelativePath);
+            }
+
+            pool.push_back(std::move(pRenderer));
+            return true;
+        }
+    }
+
+    bComplete = true;
+    return true;
+}
+
 void CMinion_Manager::PrewarmNetworkVisualResources()
 {
     WINTERS_PROFILE_SCOPE("MinionVisual::Prewarm");
@@ -1339,11 +1418,9 @@ void CMinion_Manager::PrewarmNetworkVisualResources()
             }
 
             ++loadedCount;
-            if (typeIndex >= kNetworkWarmRoleCount)
-                continue;
-
             auto& pool = m_vecNetworkRendererPool[teamIndex][typeIndex];
-            while (pool.size() < kNetworkWarmPoolSizePerTeamAndRole)
+            const u32_t warmCapacity = kNetworkWarmPoolSizeByRole[typeIndex];
+            while (pool.size() < warmCapacity)
             {
                 WINTERS_PROFILE_SCOPE("MinionVisual::PrewarmRenderer");
                 std::unique_ptr<ModelRenderer> pRenderer(new ModelRenderer());
@@ -1352,6 +1429,12 @@ void CMinion_Manager::PrewarmNetworkVisualResources()
                     ++failedCount;
                     break;
                 }
+
+                const ClientData::MinionVisualDefinition* pVisual =
+                    ClientData::FindMinionVisualDefinition(typeIndex, teamIndex);
+                if (pVisual && pVisual->textureAllMeshes.resourceRelativePath)
+                    pRenderer->LoadTextureForAllMeshes(
+                        pVisual->textureAllMeshes.resourceRelativePath);
 
                 pool.push_back(std::move(pRenderer));
                 ++rendererCount;
@@ -1471,27 +1554,6 @@ uint32_t CMinion_Manager::ProcessQueueNetworkVisual(uint32_t maxCreates)
     WINTERS_PROFILE_COUNT("MinionVisual::Failed", failedCount);
     WINTERS_PROFILE_COUNT("MinionVisual::PoolHit", m_uNetworkPoolHitsThisFrame);
     WINTERS_PROFILE_COUNT("MinionVisual::ColdCreate", m_uNetworkColdCreatesThisFrame);
-
-#if defined(_DEBUG)
-    if (createdCount > 0u || failedCount > 0u)
-    {
-        static u32_t s_networkVisualBatchLogCount = 0u;
-        if (s_networkVisualBatchLogCount < 256u)
-        {
-            char msg[256]{};
-            sprintf_s(msg,
-                "[MinionVisualBatch] queue=%llu->%llu created=%u poolHit=%u coldCreate=%u failed=%u\n",
-                static_cast<unsigned long long>(queueBefore),
-                static_cast<unsigned long long>(m_deqPendingNetworkVisuals.size()),
-                createdCount,
-                m_uNetworkPoolHitsThisFrame,
-                m_uNetworkColdCreatesThisFrame,
-                failedCount);
-            OutputDebugStringA(msg);
-            ++s_networkVisualBatchLogCount;
-        }
-    }
-#endif
 
     return createdCount;
 }

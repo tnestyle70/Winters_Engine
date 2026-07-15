@@ -310,10 +310,8 @@ namespace Ezreal
 
 		void OnCastAccepted_E_Visual(VisualHookContext& ctx)
 		{
-			if (!ctx.pWorld || !ctx.pCommand)
-				return;
-
-			SpawnArcaneShiftVisual(*ctx.pWorld, ctx.casterEntity, *ctx.pCommand);
+			if (!ctx.bAuthoritativeEvent && ctx.pWorld && ctx.pCommand)
+				SpawnArcaneShiftVisual(*ctx.pWorld, ctx.casterEntity, *ctx.pCommand);
 		}
 
 		void OnCastFrame_BA_Visual(VisualHookContext& ctx)
@@ -321,7 +319,18 @@ namespace Ezreal
 			if (!ctx.pWorld || !ctx.pCommand)
 				return;
 
-			SpawnBasicAttackVisual(*ctx.pWorld, ctx.casterEntity, *ctx.pCommand);
+			if (ctx.bAuthoritativeEvent)
+			{
+				Fx::SpawnBACast(
+					*ctx.pWorld,
+					ctx.casterEntity,
+					GetMuzzlePos(*ctx.pWorld, ctx.casterEntity),
+					ctx.pCommand->direction);
+			}
+			else
+			{
+				SpawnBasicAttackVisual(*ctx.pWorld, ctx.casterEntity, *ctx.pCommand);
+			}
 		}
 
 		void OnCastFrame_Q_Visual(VisualHookContext& ctx)
@@ -329,8 +338,20 @@ namespace Ezreal
 			if (!ctx.pWorld || !ctx.pCommand)
 				return;
 
-			SpawnMysticShotVisual(*ctx.pWorld, ctx.pFxMeshRenderer,
-				ctx.casterEntity, *ctx.pCommand);
+			if (ctx.bAuthoritativeEvent)
+			{
+				Fx::SpawnQCast(
+					*ctx.pWorld,
+					ctx.pFxMeshRenderer,
+					ctx.casterEntity,
+					GetMuzzlePos(*ctx.pWorld, ctx.casterEntity),
+					ctx.pCommand->direction);
+			}
+			else
+			{
+				SpawnMysticShotVisual(*ctx.pWorld, ctx.pFxMeshRenderer,
+					ctx.casterEntity, *ctx.pCommand);
+			}
 		}
 
 		void OnCastFrame_W_Visual(VisualHookContext& ctx)
@@ -338,8 +359,20 @@ namespace Ezreal
 			if (!ctx.pWorld || !ctx.pCommand)
 				return;
 
-			SpawnEssenceFluxVisual(*ctx.pWorld, ctx.pFxMeshRenderer,
-				ctx.casterEntity, *ctx.pCommand);
+			if (ctx.bAuthoritativeEvent)
+			{
+				Fx::SpawnWCast(
+					*ctx.pWorld,
+					ctx.pFxMeshRenderer,
+					ctx.casterEntity,
+					GetMuzzlePos(*ctx.pWorld, ctx.casterEntity),
+					ctx.pCommand->direction);
+			}
+			else
+			{
+				SpawnEssenceFluxVisual(*ctx.pWorld, ctx.pFxMeshRenderer,
+					ctx.casterEntity, *ctx.pCommand);
+			}
 		}
 
 		void OnCastFrame_R_Visual(VisualHookContext& ctx)
@@ -347,8 +380,19 @@ namespace Ezreal
 			if (!ctx.pWorld || !ctx.pCommand)
 				return;
 
-			SpawnTrueshotBarrageVisual(*ctx.pWorld, ctx.pFxMeshRenderer,
-				ctx.casterEntity, *ctx.pCommand);
+			if (ctx.bAuthoritativeEvent)
+			{
+				Fx::SpawnRBow(
+					*ctx.pWorld,
+					ctx.pFxMeshRenderer,
+					ctx.casterEntity,
+					1.f);
+			}
+			else
+			{
+				SpawnTrueshotBarrageVisual(*ctx.pWorld, ctx.pFxMeshRenderer,
+					ctx.casterEntity, *ctx.pCommand);
+			}
 		}
 	}
 }

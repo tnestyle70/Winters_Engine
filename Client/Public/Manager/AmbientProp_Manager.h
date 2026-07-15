@@ -1,5 +1,5 @@
 #pragma once
-// AmbientProp_Manager.h — map11 앰비언트 프롭(새/오리) owner.
+// AmbientProp_Manager.h — map11 앰비언트 프롭(새/오리/반딧불) owner.
 // Stage 2: CScene_InGame이 직접 소유하던 m_AmbientProps(게임플레이 무관 장식)를
 // owner로 이관(CMinion_Manager 싱글톤 패턴). presentation 전용 — gameplay truth 아님.
 // 설계: .md/plan/refactor/17_INGAME_SCENE_STAGE2_OWNER_DESIGN.md
@@ -19,10 +19,9 @@ class CAmbientProp_Manager final
 public:
     ~CAmbientProp_Manager() = default;
 
-    // .wamb 로드 → 새/오리 렌더러 생성. 좌표는 LoL 공간이라 mapWorld/mapYaw로 변환하고,
+    // .wamb 로드 → 새/오리/반딧불 렌더러 생성. LoL 좌표를 canonical Stage 좌표로 변환하고,
     // 맵 표면 투영은 projectToSurface 콜백으로 위임받는다(MapNav/scene 결합 회피).
-    void Spawn(const Mat4& mapWorld, f32_t mapYaw,
-        const std::function<void(Vec3&)>& projectToSurface);
+    void Spawn(const std::function<void(Vec3&)>& projectToSurface);
     void Tick(f32_t dt);
     void Render(const Mat4& matViewProjection, const Vec3& cameraWorld);
     u32_t AppendRenderSnapshotMeshes(RenderWorldSnapshot& snapshot,

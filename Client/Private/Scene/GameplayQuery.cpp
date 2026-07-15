@@ -1,10 +1,12 @@
 #include "Scene/GameplayQuery.h"
+#include "Scene/RenderVisibilityFilter.h"
 
 #include "ECS/World.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/Components/VisionComponents.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -150,7 +152,8 @@ bool_t GameplayQuery::IsAttackTargetLocallySelectable(
         target == player ||
         !world.IsAlive(target) ||
         !world.HasComponent<TransformComponent>(target) ||
-        !world.HasComponent<TargetableTag>(target))
+        !world.HasComponent<TargetableTag>(target) ||
+        UI::IsKalistaCarried(world, target))
     {
         return false;
     }
@@ -160,6 +163,12 @@ bool_t GameplayQuery::IsAttackTargetLocallySelectable(
         const auto& health = world.GetComponent<HealthComponent>(target);
         if (health.bIsDead || health.fCurrent <= 0.f)
             return false;
+    }
+
+    if (!world.HasComponent<ViegoSoulComponent>(target) &&
+        !GameplayStateQuery::CanBeTargetedBy(world, player, target))
+    {
+        return false;
     }
 
     if (world.HasComponent<ViegoSoulComponent>(target))
@@ -196,6 +205,22 @@ f32_t GameplayQuery::ResolvePlayerAttackRange(
     eChampion playerChampion,
     f32_t fFallbackRange)
 {
+    if (player != NULL_ENTITY && world.HasComponent<FormOverrideComponent>(player))
+    {
+        const auto& form = world.GetComponent<FormOverrideComponent>(player);
+        const u8_t basicAttackSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+        if (form.bActive &&
+            form.skillChampion != eChampion::NONE &&
+            form.skillChampion != eChampion::END &&
+            (form.skillSlotMask & static_cast<u8_t>(1u << basicAttackSlot)) != 0u)
+        {
+            const StatComponent stolenStat =
+                ChampionGameDataDB::BuildStat(form.skillChampion);
+            if (stolenStat.attackRange > 0.f)
+                return stolenStat.attackRange;
+        }
+    }
+
     if (player != NULL_ENTITY && world.HasComponent<StatComponent>(player))
     {
         const auto& stat = world.GetComponent<StatComponent>(player);

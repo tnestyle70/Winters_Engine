@@ -26,6 +26,12 @@ struct FxCueContext
 	bool_t bOverrideLifetime = false;
 	bool_t bOverrideEndWorldPos = false;
 	bool_t bOverrideSize = false;
+	bool_t bOverrideScaleMultiplier = false;
+	Vec3 vScaleMultiplier{ 1.f, 1.f, 1.f };
+	// 메쉬 이미터의 부착 오프셋/회전에 더해지는 지터 (박힌 창 누적 분산용).
+	bool_t bApplyAttachJitter = false;
+	Vec3 vAttachOffsetJitter{};
+	Vec3 vRotationJitter{};
 	f32_t fLifetimeOverride = 0.f;
 	f32_t fWidthOverride = 1.f;
 	f32_t fHeightOverride = 1.f;

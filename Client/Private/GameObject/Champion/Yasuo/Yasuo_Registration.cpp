@@ -4,6 +4,7 @@
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/SkillRegistry.h"
 #include "GamePlay/VisualHookRegistry.h"
+#include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 
 #include <Windows.h>
 
@@ -14,6 +15,9 @@ namespace
     constexpr u32_t kYas_W_OnCastAccepted = MakeHookId(eChampion::YASUO, HookVariant::W_OnCastAccepted);
     constexpr u32_t kYas_E_OnCastAccepted = MakeHookId(eChampion::YASUO, HookVariant::E_OnCastAccepted);
     constexpr u32_t kYas_R_OnCastAccepted = MakeHookId(eChampion::YASUO, HookVariant::R_OnCastAccepted);
+    constexpr u32_t kYas_Passive_Shield = MakeHookId(
+        eChampion::YASUO,
+        GameplayHookVariant::Passive_Trigger);
 
     struct YasuoAutoRegister
     {
@@ -113,6 +117,9 @@ namespace
             CVisualHookRegistry::Instance().Register(
                 kYas_R_OnCastAccepted,
                 &Yasuo::Visual::OnCastAccepted_R_Visual);
+            CVisualHookRegistry::Instance().Register(
+                kYas_Passive_Shield,
+                &Yasuo::Visual::OnPassiveShield_Visual);
 
             CVisualHookRegistry::Instance().Register(kYas_Q_KeySwap, &Yasuo::Visual::OnKeySwap_Q);
             CSkillHookRegistry::Instance().Register(kYas_Q_OnCastAccepted, &Yasuo::OnCastAccepted_Q);

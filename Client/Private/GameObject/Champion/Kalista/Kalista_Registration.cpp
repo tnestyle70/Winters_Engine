@@ -81,7 +81,7 @@ namespace
                 s.slot = 1;
                 s.targetMode = eTargetMode::Direction;
                 s.cooldownSec = 0.2f;
-                s.rangeMax = 11.f;
+                s.rangeMax = 16.5f;
                 s.manaCost = 50.f;
                 s.animKey = "spell1";
                 s.lockDurationSec = 0.3f;
@@ -136,6 +136,15 @@ namespace
                 s.rangeMax = 0.f;
                 s.manaCost = 100.f;
                 s.animKey = "spell4_call";
+                s.stageCount = 2u;
+                s.stageWindowSec = 4.f;
+                s.stage2TargetMode = eTargetMode::Direction;
+                s.stage2AnimKey = "spell4_throw";
+                s.stage2LockSec = 0.45f;
+                s.stage2Rotate = eRotateMode::TowardsCursor;
+                s.stage2VisualCastFrame = 4.f;
+                s.stage2VisualRecoveryFrame = 10.f;
+                s.stage2VisualPlaySpeed = 1.f;
                 s.lockDurationSec = 0.5f;
                 s.bOneShot = true;
                 s.rotate = eRotateMode::None;
@@ -152,13 +161,15 @@ namespace
                 kKal_BA_Cast,
                 [](VisualHookContext& ctx)
                 {
-                    DispatchKalistaVisualHook(ctx, &Kalista::OnCastFrame_BA);
+                    if (!ctx.bAuthoritativeEvent)
+                        DispatchKalistaVisualHook(ctx, &Kalista::OnCastFrame_BA);
                 });
             CVisualHookRegistry::Instance().Register(
                 kKal_Q_Cast,
                 [](VisualHookContext& ctx)
                 {
-                    DispatchKalistaVisualHook(ctx, &Kalista::OnCastFrame_Q);
+                    if (!ctx.bAuthoritativeEvent)
+                        DispatchKalistaVisualHook(ctx, &Kalista::OnCastFrame_Q);
                 });
             CVisualHookRegistry::Instance().Register(
                 kKal_E_OnAccept,

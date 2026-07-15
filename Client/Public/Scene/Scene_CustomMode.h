@@ -3,6 +3,7 @@
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "IScene.h"
 #include "Replay/ReplayLibrary.h"
+#include "Scene/LobbyRosterHelpers.h"
 #include "UI/ImageScenePresenter.h"
 
 #include <memory>
@@ -42,6 +43,7 @@ private:
 	void SetBotLane(u8_t slotId, u8_t lane);
 	bool_t SetBotChampion(u8_t slotId, eChampion champion);
 	void RenderReplayPanel();
+	void RenderServerRequiredNotice();
 	void OpenReplay(const wstring_t& path);
 	void RenderRosterOverlay();
 	void RenderBotChampionButton(u8_t slotId, f32_t width, f32_t height);
@@ -51,6 +53,8 @@ private:
 	CImageScenePresenter m_ImageUI{};
 	bool_t m_bServerLobbyActive = false;
 	bool_t m_bSceneTransitionStarted = false;
+	eMatchLaunchRuntimeMode m_eMatchLaunchRuntimeMode =
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable;
 	u8_t m_SelectedSlotId = 0;
 	std::vector<ReplayListItem> m_vReplayItems;
 };

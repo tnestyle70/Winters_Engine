@@ -72,29 +72,6 @@ namespace Ashe
             return { 0.f, 0.f, 1.f };
         }
 
-        void PlayMovingCue(
-            CWorld& world,
-            Engine::CFxStaticMeshRenderer* pFxMeshRenderer,
-            const char* pszCueName,
-            const Vec3& origin,
-            const Vec3& forward,
-            f32_t speed,
-            f32_t lifetime)
-        {
-            if (!pszCueName)
-                return;
-
-            FxCueContext fx{};
-            fx.vWorldPos = origin;
-            fx.vForward = forward;
-            fx.vVelocity = { forward.x * speed, forward.y * speed, forward.z * speed };
-            fx.bOverrideVelocity = true;
-            fx.pFxMeshRenderer = pFxMeshRenderer;
-            fx.fLifetimeOverride = lifetime;
-            fx.bOverrideLifetime = true;
-            CFxCuePlayer::Play(world, pszCueName, fx);
-        }
-
         void PlayAttachedCue(
             CWorld& world,
             Engine::CFxStaticMeshRenderer* pFxMeshRenderer,
@@ -259,21 +236,10 @@ namespace Ashe
     {
         void OnCastFrame_BA_Visual(VisualHookContext& ctx)
         {
-            if (!ctx.pWorld || !ctx.pCommand) return;
-            const EntityID target = ctx.pCommand->targetEntityId;
-            const Vec3 forward = ResolveVisualForward(*ctx.pWorld, ctx.casterEntity, ctx.pCommand);
-            const Vec3 origin = GetMuzzlePos(*ctx.pWorld, ctx.casterEntity);
-
-            PlayMovingCue(*ctx.pWorld, ctx.pFxMeshRenderer,
-                VisualCue::kBAArrow, origin, forward,
-                VisualCue::kBAArrowSpeed, VisualCue::kBAArrowLifetime);
-            if (target != NULL_ENTITY)
-            {
-                PlayAttachedCue(*ctx.pWorld, ctx.pFxMeshRenderer,
-                    VisualCue::kBAHit, target,
-                    ResolveVisualPosition(*ctx.pWorld, target),
-                    forward, VisualCue::kBAArrowLifetime);
-            }
+            // The authoritative Ashe basic-attack projectile owns both the moving
+            // arrow and its impact cue. The cast-frame hook only exists so the
+            // shared hook id remains registered without spawning duplicate FX.
+            (void)ctx;
         }
 
         void OnCastFrame_Q_Visual(VisualHookContext& ctx)

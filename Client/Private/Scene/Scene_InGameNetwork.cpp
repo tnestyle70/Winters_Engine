@@ -46,6 +46,7 @@
 
 // [Phase T] UI Panels + DebugDrawSystem
 #include "UI/AIDebugPanel.h"
+#include "UI/AttackSpeedLab.h"
 #include "UI/CombatDebugPanel.h"
 #include "UI/MapTunerPanel.h"
 #include "UI/RenderDebug.h"
@@ -63,6 +64,7 @@
 
 #include "GameObject/ChampionDef.h"
 #include "GameObject/Champion/Zed/ZedFxPresets.h"
+#include "GameObject/Champion/Viego/Viego_FxPresets.h"
 #include "GameObject/Champion/Annie/Annie_Components.h"
 #include "GameObject/Champion/Ashe/Ashe_Components.h"
 #include "GameObject/Champion/Irelia/Irelia_Skills.h"
@@ -76,6 +78,7 @@
 #include "GameObject/ChampionSpawnService.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
+#include "GamePlay/ChampionSoundCatalog.h"
 #include "GamePlay/ChampionRegistry.h"
 #include "GamePlay/SkillHookRegistry.h"
 #include "GamePlay/SkillRegistry.h"
@@ -174,21 +177,6 @@ namespace
             id == eActionStateId::ViegoConsumeSoul;
     }
 
-    bool_t IsMoveBlockingNetworkAction(u16_t actionId)
-    {
-        switch (static_cast<eActionStateId>(actionId))
-        {
-        case eActionStateId::SkillQ:
-        case eActionStateId::SkillW:
-        case eActionStateId::SkillE:
-        case eActionStateId::SkillR:
-        case eActionStateId::ViegoConsumeSoul:
-            return true;
-        default:
-            return false;
-        }
-    }
-
     u8_t NetworkActionToSkillSlot(u16_t actionId)
     {
         switch (static_cast<eActionStateId>(actionId))
@@ -205,6 +193,112 @@ namespace
         default:
             return static_cast<u8_t>(eSkillSlot::BasicAttack);
         }
+    }
+
+    // 챔피언 액션/사망 사운드 — ChampionSoundCatalog 에 매핑된 슬롯만 재생
+    void PlayNetworkChampionSound(eChampion champion, eChampionSoundSlot slot)
+    {
+        CChampionSoundCatalog& catalog = CChampionSoundCatalog::Instance();
+        const std::wstring* pKey = catalog.Find(champion, slot);
+        if (!pKey)
+        {
+            // 카탈로그 미스는 무음으로 삼켜지면 배선 결함과 구분 불가 — bounded 진단 로그.
+            static int s_missLogBudget = 16;
+            if (s_missLogBudget > 0)
+            {
+                --s_missLogBudget;
+                char buffer[128]{};
+                sprintf_s(buffer,
+                    "[Sound] champion sound catalog miss champion=%u slot=%u\n",
+                    static_cast<unsigned>(champion), static_cast<unsigned>(slot));
+                OutputDebugStringA(buffer);
+            }
+            return;
+        }
+        CGameInstance::Get()->PlayEffect(*pKey, catalog.GetVolume());
+    }
+
+    void PlayNetworkChampionActionSound(eChampion champion, u16_t actionId)
+    {
+        switch (static_cast<eActionStateId>(actionId))
+        {
+        case eActionStateId::BasicAttack:
+            PlayNetworkChampionSound(champion, eChampionSoundSlot::BasicAttack);
+            break;
+        case eActionStateId::SkillQ:
+            PlayNetworkChampionSound(champion, eChampionSoundSlot::SkillQ);
+            break;
+        case eActionStateId::SkillW:
+            PlayNetworkChampionSound(champion, eChampionSoundSlot::SkillW);
+            break;
+        case eActionStateId::SkillE:
+            PlayNetworkChampionSound(champion, eChampionSoundSlot::SkillE);
+            break;
+        case eActionStateId::SkillR:
+            PlayNetworkChampionSound(champion, eChampionSoundSlot::SkillR);
+            break;
+        default:
+            // Recall/DeathStart/ViegoConsumeSoul — 사망은 사망 게이트에서 재생
+            break;
+        }
+    }
+
+    bool_t IsValidPresentationChampion(eChampion champion)
+    {
+        return champion != eChampion::NONE && champion != eChampion::END;
+    }
+
+    eChampion ResolveBasePresentationChampion(
+        CWorld& world,
+        EntityID entity,
+        eChampion baseChampion)
+    {
+        if (world.HasComponent<FormOverrideComponent>(entity))
+        {
+            const auto& form = world.GetComponent<FormOverrideComponent>(entity);
+            if (form.bActive && IsValidPresentationChampion(form.visualChampion))
+                return form.visualChampion;
+        }
+        return baseChampion;
+    }
+
+    eChampion ResolveActionPresentationChampion(
+        CWorld& world,
+        EntityID entity,
+        eChampion baseChampion,
+        const ActionStateComponent& action)
+    {
+        if (baseChampion == eChampion::SYLAS &&
+            IsValidPresentationChampion(action.sourceChampion) &&
+            action.sourceChampion != eChampion::SYLAS &&
+            static_cast<eActionStateId>(action.actionId) == eActionStateId::SkillR)
+        {
+            return eChampion::SYLAS;
+        }
+
+        if (IsValidPresentationChampion(action.sourceChampion))
+            return action.sourceChampion;
+
+        if (static_cast<eActionStateId>(action.actionId) ==
+            eActionStateId::ViegoConsumeSoul)
+        {
+            return eChampion::VIEGO;
+        }
+
+        if (world.HasComponent<FormOverrideComponent>(entity))
+        {
+            const auto& form = world.GetComponent<FormOverrideComponent>(entity);
+            const u8_t slot = NetworkActionToSkillSlot(action.actionId);
+            if (form.bActive &&
+                IsValidPresentationChampion(form.skillChampion) &&
+                slot < 8u &&
+                (form.skillSlotMask & static_cast<u8_t>(1u << slot)) != 0u)
+            {
+                return form.skillChampion;
+            }
+        }
+
+        return baseChampion;
     }
 
     const SkillDef* FindNetworkSkillDef(eChampion champion, u16_t actionId)
@@ -278,10 +372,18 @@ namespace
         u16_t actionId,
         u8_t stage,
         const RenderComponent& render,
-        const std::string& animName)
+        const std::string& animName,
+        f32_t fAttackSpeedScale,
+        f32_t fAnimCorrectionScale)
     {
+        if (!std::isfinite(fAttackSpeedScale) || fAttackSpeedScale <= 0.01f)
+            fAttackSpeedScale = 1.f;
+        if (!std::isfinite(fAnimCorrectionScale) || fAnimCorrectionScale <= 0.01f)
+            fAnimCorrectionScale = 1.f;
+
         const f32_t lockDurationSec =
             ResolveNetworkActionLockDurationSec(champion, pDef, actionId, stage);
+        const f32_t scaledLockDurationSec = lockDurationSec / fAttackSpeedScale;
         const bool_t bLoopAction =
             champion == eChampion::JAX &&
             static_cast<eActionStateId>(actionId) == eActionStateId::SkillE &&
@@ -290,21 +392,23 @@ namespace
             !render.pRenderer ||
             animName.empty())
         {
-            return lockDurationSec;
+            return scaledLockDurationSec;
         }
 
         const f32_t animDurationSec =
             render.pRenderer->GetAnimationDurationSecondsByName(animName);
         if (!std::isfinite(animDurationSec) || animDurationSec <= 0.01f)
-            return lockDurationSec;
+            return scaledLockDurationSec;
 
-        const f32_t playSpeed =
-            ResolveNetworkActionPlaySpeed(champion, pDef, actionId, stage);
-        const f32_t visualDurationSec = animDurationSec / playSpeed;
+        const f32_t effectivePlaySpeed =
+            ResolveNetworkActionPlaySpeed(champion, pDef, actionId, stage) *
+            fAttackSpeedScale *
+            fAnimCorrectionScale;
+        const f32_t visualDurationSec = animDurationSec / effectivePlaySpeed;
         if (!std::isfinite(visualDurationSec) || visualDurationSec <= 0.01f)
-            return lockDurationSec;
+            return scaledLockDurationSec;
 
-        return (std::min)(lockDurationSec, visualDurationSec);
+        return (std::min)(scaledLockDurationSec, visualDurationSec);
     }
 
     std::string ResolveNetworkAnimName(const ChampionDef& championDef, const char* pAnimKey)
@@ -399,7 +503,7 @@ namespace
         if (pAnimator &&
             pAnimator->IsPlaying() &&
             pCurrentAnim &&
-            pCurrentAnim->GetName() == animName)
+            pCurrentAnim->GetName().find(animName) != std::string::npos)
         {
             return;
         }
@@ -465,8 +569,18 @@ void CScene_InGame::InitializeNetworkSession()
         }
         else
         {
-            m_pNetwork = CClientNetwork::Create();
-            m_pNetworkView = m_pNetwork.get();
+            const CGameSessionClient::ServerEndpoint endpoint =
+                CGameSessionClient::ResolveServerEndpoint();
+            if (!endpoint.bTransportValid)
+            {
+                Winters::DevSmoke::Log(
+                    "[Scene_InGame] invalid --net-transport; expected tcp or udp; network disabled.\n");
+            }
+            else
+            {
+                m_pNetwork = CClientNetwork::Create(endpoint.transport);
+                m_pNetworkView = m_pNetwork.get();
+            }
         }
     }
 
@@ -475,14 +589,22 @@ void CScene_InGame::InitializeNetworkSession()
     m_pCommandSerializer = CCommandSerializer::Create();
 
     if (m_pSnapshotApplier)
+        m_pSnapshotApplier->SetEventApplier(m_pEventApplier.get());
+
+    if (m_pSnapshotApplier)
     {
         m_pSnapshotApplier->SetOnNewEntityCallback(
             [this](u32_t netId, u8_t championId, u8_t team) -> EntityID
             {
                 (void)netId;
-                return SpawnChampionEntity(
-                    static_cast<eChampion>(championId),
+                const eChampion champion =
+                    static_cast<eChampion>(championId);
+                const EntityID entity = SpawnChampionEntity(
+                    champion,
                     static_cast<eTeam>(team));
+                if (entity != NULL_ENTITY)
+                    AssignPureECSChampionAlias(champion, entity);
+                return entity;
             });
         //viego soul callback function
         m_pSnapshotApplier->SetOnChampionVisualChangedCallback(
@@ -495,23 +617,52 @@ void CScene_InGame::InitializeNetworkSession()
                     m_NetworkChampionMoveGraceSec,
                     m_NetworkChampionMoving
                 };
-                if (CChampionSpawnService::AttachVisual(
-                        spawnContext,
-                        entity,
-                        static_cast<eChampion>(championId)) &&
-                    entity == m_PlayerEntity)
-                {
+                const bool_t bAttached = CChampionSpawnService::AttachVisual(
+                    spawnContext,
+                    entity,
+                    static_cast<eChampion>(championId));
+                if (!bAttached)
+                    return;
+
+                m_NetworkActionAnimStates.erase(entity);
+                if (entity == m_PlayerEntity)
                     BindPlayerToECSChampion(entity);
+
+                if (championId == static_cast<u8_t>(eChampion::VIEGO) &&
+                    m_pEventApplier)
+                {
+                    m_pEventApplier->RetryCurrentActionVisual(
+                        m_World,
+                        entity,
+                        static_cast<u16_t>(eActionStateId::SkillR));
                 }
             });
         m_pSnapshotApplier->SetOnRemoveEntityCallback(
             [this](EntityID entity)
             {
+                Viego::Fx::StopSoulIdle(m_World, entity);
+                if (entity == m_PlayerEntity)
+                {
+                    m_PlayerEntity = NULL_ENTITY;
+                    m_pPlayerRenderer = nullptr;
+                    m_pPlayerTransform = nullptr;
+                }
+                ClearPureECSChampionAlias(entity);
+                UI::CAttackSpeedLab::OnEntityRemoved(m_World, entity);
                 m_ChampionRenderers.erase(entity);
                 m_NetworkChampionPrevPos.erase(entity);
                 m_NetworkChampionMoveGraceSec.erase(entity);
                 m_NetworkChampionMoving.erase(entity);
                 m_NetworkActorInterpStates.erase(entity);
+                m_NetworkActionAnimStates.erase(entity);
+            });
+        m_pSnapshotApplier->SetOnTimelineRebase(
+            [this](
+                const SnapshotTimelineState& previous,
+                const SnapshotTimelineState& next,
+                u64_t serverTick)
+            {
+                RebaseNetworkTimeline(previous, next, serverTick);
             });
         m_pSnapshotApplier->SetOnAuthoritativeSnapshot(
             [this](
@@ -532,7 +683,7 @@ void CScene_InGame::InitializeNetworkSession()
     if (bDisableLiveNetwork)
         return;
 
-    if (!m_pNetworkView || !m_pSnapshotApplier || !m_pEventApplier || !m_pEntityIdMap)
+    if (!m_pSnapshotApplier || !m_pEventApplier || !m_pEntityIdMap)
         return;
 
     CGameSessionClient::FrameCallback frameHandler =
@@ -584,10 +735,7 @@ void CScene_InGame::InitializeNetworkSession()
                     bindSessionId,
                     static_cast<u32_t>(localNetEntity));
                 if (localNetEntity != NULL_ENTITY)
-                {
-                    m_PlayerEntity = localNetEntity;
-                    BindPlayerToECSChampion(m_PlayerEntity);
-                }
+                    ApplyAuthoritativePlayerNetId(bindNetId);
             }
             else if (type == ePacketType::Snapshot)
             {
@@ -601,6 +749,8 @@ void CScene_InGame::InitializeNetworkSession()
                     ++s_snapshotLogCount;
                 }
                 snapshotApplier.OnSnapshot(m_World, entityMap, payload, len);
+                ApplyAuthoritativePlayerNetId(
+                    snapshotApplier.GetLocalNetId());
             }
             else if (type == ePacketType::Event)
             {
@@ -609,35 +759,69 @@ void CScene_InGame::InitializeNetworkSession()
         };
 
     if (m_bUsingSharedNetwork)
+    {
         CGameSessionClient::Instance().SetGameFrameCallback(std::move(frameHandler));
-    else
+        Winters::DevSmoke::Log("[Scene] callbacks registered (snapshot/event/cmd/network)\n");
+    }
+    else if (m_pNetworkView)
+    {
         m_pNetworkView->SetFrameCallback(std::move(frameHandler));
-    Winters::DevSmoke::Log("[Scene] callbacks registered (snapshot/event/cmd/network)\n");
+        Winters::DevSmoke::Log("[Scene] callbacks registered (snapshot/event/cmd/network)\n");
+    }
 
     if (bUseNetworkRoster)
     {
-        Winters::DevSmoke::Log(m_bUsingSharedNetwork
-            ? "[Scene_InGame] Reusing BanPick TCP session.\n"
-            : "[Scene_InGame] Network roster active without shared session; local roster only.\n");
+        if (m_bUsingSharedNetwork)
+        {
+            const char* pTransportName =
+                m_pNetworkView->GetTransport() == eClientNetworkTransport::Udp
+                    ? "UDP"
+                    : "TCP";
+            Winters::DevSmoke::Log(
+                "[Scene_InGame] Reusing BanPick %s session.\n",
+                pTransportName);
+        }
+        else
+        {
+            Winters::DevSmoke::Log(
+                "[Scene_InGame] Network roster active without shared session; local roster only.\n");
+        }
     }
     else
     {
+        if (!m_pNetworkView)
+        {
+            Winters::DevSmoke::Log(
+                "[Scene_InGame] Network transport unavailable; running local-only mode.\n");
+            return;
+        }
+
         const CGameSessionClient::ServerEndpoint endpoint =
             CGameSessionClient::ResolveServerEndpoint();
+        if (!endpoint.bTransportValid)
+        {
+            Winters::DevSmoke::Log(
+                "[Scene_InGame] invalid --net-transport; expected tcp or udp; network disabled.\n");
+            return;
+        }
+        const char* pTransportName =
+            endpoint.transport == eClientNetworkTransport::Udp ? "udp" : "tcp";
         if (m_pNetworkView->Connect(endpoint.host.c_str(), endpoint.port))
         {
             Winters::DevSmoke::Log(
-                "[Scene_InGame] Connected to Winters server host=%s port=%u source=%s.\n",
+                "[Scene_InGame] Connected to Winters server host=%s port=%u transport=%s source=%s.\n",
                 endpoint.host.c_str(),
                 static_cast<u32_t>(endpoint.port),
+                pTransportName,
                 endpoint.bFromCommandLine ? "command-line" : "default");
         }
         else
         {
             Winters::DevSmoke::Log(
-                "[Scene_InGame] Server not reachable host=%s port=%u; running local-only mode.\n",
+                "[Scene_InGame] Server not reachable host=%s port=%u transport=%s; running local-only mode.\n",
                 endpoint.host.c_str(),
-                static_cast<u32_t>(endpoint.port));
+                static_cast<u32_t>(endpoint.port),
+                pTransportName);
         }
     }
 }
@@ -833,13 +1017,23 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                 m_World.HasComponent<ActionStateComponent>(e)
                 ? &m_World.GetComponent<ActionStateComponent>(e)
                 : nullptr;
+            // 사운드 게이트용 — 재생성(리와인드/재접속/비주얼 스왑) 직후 첫 틱은
+            // stale 액션/사망 상태가 새 시퀀스처럼 보이므로 무음 래치한다
+            const bool_t bFirstAnimStateObservation =
+                m_NetworkActionAnimStates.find(e) == m_NetworkActionAnimStates.end();
             NetworkActionAnimationState& actionState = m_NetworkActionAnimStates[e];
+            const u64_t serverTick = m_pSnapshotApplier
+                ? m_pSnapshotApplier->GetLastAppliedServerTick()
+                : 0u;
             const bool_t bMoveBlockedByNetworkAction =
                 pAction &&
                 pAction->sequence != 0u &&
-                IsMoveBlockingNetworkAction(pAction->actionId) &&
-                (actionState.bActionActive ||
-                    actionState.actionSeq != pAction->sequence);
+                pAction->movePolicy != eSkillActionMovePolicy::Allow &&
+                serverTick < pAction->lockEndTick;
+            const bool_t bMoveBlockedByGameplayState =
+                m_World.HasComponent<GameplayStateComponent>(e) &&
+                (m_World.GetComponent<GameplayStateComponent>(e).stateFlags &
+                    kGameplayStateCannotMoveFlag) != 0u;
 
             const f32_t dx = pos.x - prevIt->second.x;
             const f32_t dz = pos.z - prevIt->second.z;
@@ -858,20 +1052,30 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                 if (moveGrace < 0.f)
                     moveGrace = 0.f;
             }
-            if (bMoveBlockedByNetworkAction)
+            if (bMoveBlockedByNetworkAction || bMoveBlockedByGameplayState)
                 moveGrace = 0.f;
 
-            bPositionMoving = !bMoveBlockedByNetworkAction && (moveGrace > 0.f);
+            bPositionMoving =
+                !bMoveBlockedByNetworkAction &&
+                !bMoveBlockedByGameplayState &&
+                (moveGrace > 0.f);
             const bool_t bPoseRequestsIdle =
                 pPose && pPose->poseId == static_cast<u16_t>(ePoseStateId::Idle);
             const bool_t bPoseRequestsDeath =
                 pPose && pPose->poseId == static_cast<u16_t>(ePoseStateId::Dead);
-            if (bPoseRequestsDeath)
+            const bool_t bOathswornRitual =
+                m_World.HasComponent<ReplicatedStateComponent>(e) &&
+                (m_World.GetComponent<ReplicatedStateComponent>(e).stateFlags &
+                    kSnapshotStateKalistaOathswornRitualFlag) != 0u;
+            const bool_t bDeathPresentation =
+                bPoseRequestsDeath || bOathswornRitual;
+            if (bDeathPresentation)
                 moveGrace = 0.f;
 
             bool_t bMoving =
-                !bPoseRequestsDeath &&
+                !bDeathPresentation &&
                 !bMoveBlockedByNetworkAction &&
+                !bMoveBlockedByGameplayState &&
                 (bServerMoving || bPositionMoving);
             if (bPoseRequestsIdle && !bServerMoving && !bPositionMoving)
                 bMoving = false;
@@ -881,7 +1085,7 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             if (e == m_PlayerEntity)
                 m_bMoving = bMoving;
 
-            if (bPoseRequestsDeath)
+            if (bDeathPresentation)
             {
                 const u32_t deathSeq = pAction &&
                     pAction->actionId == static_cast<u16_t>(eActionStateId::DeathStart)
@@ -892,7 +1096,9 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                     actionState = {};
                     actionState.baseSeq = deathSeq;
 
-                    const ChampionDef* cd = FindClientChampionDef(champ.id);
+                    const eChampion deathChampion =
+                        ResolveBasePresentationChampion(m_World, e, champ.id);
+                    const ChampionDef* cd = FindClientChampionDef(deathChampion);
                     if (cd)
                     {
                         const std::string deathAnim = ResolveNetworkDeathAnimName(*cd);
@@ -902,6 +1108,9 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                             rc.pRenderer->PlayAnimationByName(deathAnim, false);
                         }
                     }
+                    // Kalista 서약 의식은 사망 애니만 재사용하므로 실제 Dead 포즈에서만 재생
+                    if (!bFirstAnimStateObservation && bPoseRequestsDeath)
+                        PlayNetworkChampionSound(deathChampion, eChampionSoundSlot::Death);
                 }
 
                 m_NetworkChampionMoving[e] = false;
@@ -914,25 +1123,56 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                 {
                     if (actionState.actionSeq != pAction->sequence)
                     {
-                        const SkillDef* pSkillDef = FindNetworkSkillDef(champ.id, pAction->actionId);
+                        const eChampion actionChampion =
+                            ResolveActionPresentationChampion(
+                                m_World,
+                                e,
+                                champ.id,
+                                *pAction);
+                        const SkillDef* pSkillDef =
+                            FindNetworkSkillDef(actionChampion, pAction->actionId);
                         const std::string actionAnimName =
-                            ResolveNetworkActionAnimName(champ.id, pSkillDef, *pAction);
+                            ResolveNetworkActionAnimName(
+                                actionChampion,
+                                pSkillDef,
+                                *pAction);
+                        const u32_t prevSoundActionSeq = actionState.actionSeq;
                         actionState = {};
                         actionState.actionSeq = pAction->sequence;
                         actionState.actionId = pAction->actionId;
+                        // 시퀀스 전진 시에만 재생 — UDP 레인 스큐로 컴포넌트가
+                        // 과거 시퀀스로 회귀했다 복구될 때의 이중 재생 방지
+                        if (!bFirstAnimStateObservation &&
+                            pAction->sequence > prevSoundActionSeq)
+                        {
+                            PlayNetworkChampionActionSound(actionChampion, pAction->actionId);
+                        }
+                        UI::AttackSpeedPlaybackScales attackSpeedScales{};
+                        const bool_t bBasicAttackPresentation =
+                            UI::IsAttackSpeedPlaybackAction(
+                                pAction->actionId,
+                                pAction->sourceSlot);
+                        if (bBasicAttackPresentation)
+                        {
+                            attackSpeedScales =
+                                UI::ResolveAttackSpeedPlaybackScales(m_World, e);
+                        }
                         actionState.actionRemainingSec =
                             ResolveNetworkActionDurationSec(
-                                champ.id,
+                                actionChampion,
                                 pSkillDef,
                                 pAction->actionId,
                                 pAction->stage,
                                 rc,
-                                actionAnimName);
+                                actionAnimName,
+                                attackSpeedScales.fAttackSpeedScale,
+                                attackSpeedScales.fAnimCorrectionScale);
                         actionState.transitionDurationSec =
                             pSkillDef ? pSkillDef->endTransitionDuration : 0.f;
                         if (pSkillDef)
                         {
-                            const ChampionDef* pChampionDef = FindClientChampionDef(champ.id);
+                            const ChampionDef* pChampionDef =
+                                FindClientChampionDef(actionChampion);
                             if (pChampionDef)
                             {
                                 actionState.transitionIdleAnim =
@@ -953,11 +1193,18 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                             }
                         }
                         actionState.bLoopAction =
-                            ShouldLoopNetworkAction(champ.id, pAction->actionId, pAction->stage);
+                            ShouldLoopNetworkAction(
+                                actionChampion,
+                                pAction->actionId,
+                                pAction->stage);
                         actionState.bActionActive = true;
                         actionState.bBaseAnimationPending = !actionState.bLoopAction;
                         actionState.bPassiveDashTriggered = false;
-                        PlayLoopNetworkActionIfNeeded(champ.id, pSkillDef, *pAction, rc);
+                        PlayLoopNetworkActionIfNeeded(
+                            actionChampion,
+                            pSkillDef,
+                            *pAction,
+                            rc);
                     }
                 }
                 else if (pPose && actionState.baseSeq != static_cast<u32_t>(pPose->startTick))
@@ -996,9 +1243,19 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
                 actionState.bDesiredMoving = bMoving;
                 if (actionState.bLoopAction && pAction)
                 {
+                    const eChampion actionChampion =
+                        ResolveActionPresentationChampion(
+                            m_World,
+                            e,
+                            champ.id,
+                            *pAction);
                     const SkillDef* pLoopSkillDef =
-                        FindNetworkSkillDef(champ.id, pAction->actionId);
-                    PlayLoopNetworkActionIfNeeded(champ.id, pLoopSkillDef, *pAction, rc);
+                        FindNetworkSkillDef(actionChampion, pAction->actionId);
+                    PlayLoopNetworkActionIfNeeded(
+                        actionChampion,
+                        pLoopSkillDef,
+                        *pAction,
+                        rc);
                 }
 
                 actionState.actionRemainingSec -= dt;
@@ -1090,7 +1347,9 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
 
             if (actionState.bBaseAnimationPending)
             {
-                const ChampionDef* cd = FindClientChampionDef(champ.id);
+                const eChampion visualChampion =
+                    ResolveBasePresentationChampion(m_World, e, champ.id);
+                const ChampionDef* cd = FindClientChampionDef(visualChampion);
                 if (!cd)
                     return;
 
@@ -1109,7 +1368,9 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             bool_t& bWasMoving = m_NetworkChampionMoving[e];
             if (!actionState.bBaseAnimationInitialized)
             {
-                const ChampionDef* cd = FindClientChampionDef(champ.id);
+                const eChampion visualChampion =
+                    ResolveBasePresentationChampion(m_World, e, champ.id);
+                const ChampionDef* cd = FindClientChampionDef(visualChampion);
                 if (!cd || !cd->animPrefix || !cd->idleAnimKey || !cd->runAnimKey)
                     return;
 
@@ -1125,7 +1386,9 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             if (bWasMoving == bMoving)
                 return;
 
-            const ChampionDef* cd = FindClientChampionDef(champ.id);
+            const eChampion visualChampion =
+                ResolveBasePresentationChampion(m_World, e, champ.id);
+            const ChampionDef* cd = FindClientChampionDef(visualChampion);
             if (!cd || !cd->animPrefix || !cd->idleAnimKey || !cd->runAnimKey)
                 return;
 
@@ -1135,6 +1398,61 @@ void CScene_InGame::UpdateNetworkChampionLocomotion(f32_t dt)
             rc.pRenderer->PlayAnimationByName(animName, true);
             bWasMoving = bMoving;
         });
+}
+
+bool_t CScene_InGame::ApplyAuthoritativePlayerNetId(NetEntityId netId)
+{
+    if (netId == NULL_NET_ENTITY || !m_pEntityIdMap)
+        return false;
+
+    const EntityID nextPlayer = m_pEntityIdMap->FromNet(netId);
+    if (nextPlayer == NULL_ENTITY ||
+        !m_World.IsAlive(nextPlayer) ||
+        !m_World.HasComponent<ChampionComponent>(nextPlayer))
+    {
+        return false;
+    }
+
+    if (m_pNetworkView)
+        m_pNetworkView->SetMyNetEntityId(netId);
+
+    if (nextPlayer == m_PlayerEntity)
+    {
+        if (!m_World.HasComponent<LocalPlayerTag>(nextPlayer))
+            m_World.AddComponent<LocalPlayerTag>(nextPlayer);
+        if (!m_pPlayerRenderer || !m_pPlayerTransform)
+            BindPlayerToECSChampion(nextPlayer);
+        return true;
+    }
+
+    const EntityID previousPlayer = m_PlayerEntity;
+    ResetLocalControlHandoffState();
+    m_NetworkMovePredictions.clear();
+    m_uLastAckedMovePredictionSeq = 0u;
+
+    const auto InvalidateNetworkAnimationState = [this](EntityID entity)
+    {
+        if (entity == NULL_ENTITY)
+            return;
+        m_NetworkActionAnimStates.erase(entity);
+        m_NetworkChampionMoving.erase(entity);
+    };
+    InvalidateNetworkAnimationState(previousPlayer);
+    InvalidateNetworkAnimationState(nextPlayer);
+
+    if (previousPlayer != NULL_ENTITY &&
+        m_World.IsAlive(previousPlayer) &&
+        m_World.HasComponent<LocalPlayerTag>(previousPlayer))
+    {
+        m_World.RemoveComponent<LocalPlayerTag>(previousPlayer);
+    }
+    if (!m_World.HasComponent<LocalPlayerTag>(nextPlayer))
+        m_World.AddComponent<LocalPlayerTag>(nextPlayer);
+
+    m_PlayerEntity = nextPlayer;
+    BindPlayerToECSChampion(nextPlayer);
+    SyncActorHUDStateToEngineUI();
+    return true;
 }
 
 void CScene_InGame::OnAuthoritativeSnapshot(
@@ -1148,10 +1466,64 @@ void CScene_InGame::OnAuthoritativeSnapshot(
 
     PruneAckedNetworkMovePredictions(lastAckedCommandSeq);
 
-    WINTERS_PROFILE_COUNT("Net::ServerTick", serverTick);
-    WINTERS_PROFILE_COUNT("Net::LastAckedSeq", lastAckedCommandSeq);
-    WINTERS_PROFILE_COUNT("Prediction::PendingMoves",
+    WINTERS_PROFILE_GAUGE("Net::SnapshotAppliedTick", serverTick);
+    WINTERS_PROFILE_COUNT("Net::SnapshotsApplied", 1u);
+    WINTERS_PROFILE_GAUGE("Net::LastAckedSeq", lastAckedCommandSeq);
+    WINTERS_PROFILE_GAUGE("Prediction::PendingMoves",
         static_cast<u64_t>(m_NetworkMovePredictions.size()));
+}
+
+void CScene_InGame::RebaseNetworkTimeline(
+    const SnapshotTimelineState& previous,
+    const SnapshotTimelineState& next,
+    u64_t serverTick)
+{
+    if (m_pEventApplier && m_pEntityIdMap)
+        m_pEventApplier->RebaseTimeline(m_World, *m_pEntityIdMap);
+
+    // The incoming snapshot is a full authoritative base for another branch.
+    // Never interpolate or predict from transforms/commands captured before it.
+    m_NetworkActorInterpStates.clear();
+    m_uNetworkActorInterpSnapshotTick = serverTick;
+    m_NetworkMovePredictions.clear();
+    m_uLastAckedMovePredictionSeq = 0u;
+    m_NetworkActionAnimStates.clear();
+    m_NetworkChampionPrevPos.clear();
+    m_NetworkChampionMoveGraceSec.clear();
+    m_NetworkChampionMoving.clear();
+
+    if (m_OutlinedHoverEntity != NULL_ENTITY)
+        SetEntityHoverOutline(m_OutlinedHoverEntity, false);
+    m_HoveredEntity = NULL_ENTITY;
+    m_OutlinedHoverEntity = NULL_ENTITY;
+    m_HoveredTeam = eTeam::TEAM_END;
+
+    PreemptAction("timeline-rebase");
+    m_bKalistaPassiveDashActive = false;
+    m_fKalistaPassiveDashElapsed = 0.f;
+    m_uKalistaLastPassiveDashActionSeq = 0u;
+    m_bYasuoDashActive = false;
+    m_fYasuoDashElapsed = 0.f;
+    m_YasuoDashTargetEntity = NULL_ENTITY;
+    m_bYasuoRActive = false;
+    m_fYasuoRElapsed = 0.f;
+    m_YasuoRTarget = NULL_ENTITY;
+    m_iYasuoRHitsFired = 0;
+    m_fYasuoRPrevHitTime = 0.f;
+
+    char message[256]{};
+    sprintf_s(
+        message,
+        "[TimelineRebase] tick=%llu epoch=%llu->%llu branch=%llu->%llu toolRevision=%llu paused=%u speed=%.3f\n",
+        static_cast<unsigned long long>(serverTick),
+        static_cast<unsigned long long>(previous.timelineEpoch),
+        static_cast<unsigned long long>(next.timelineEpoch),
+        static_cast<unsigned long long>(previous.branchId),
+        static_cast<unsigned long long>(next.branchId),
+        static_cast<unsigned long long>(next.toolRevision),
+        next.simPaused ? 1u : 0u,
+        next.simSpeedMul);
+    OutputDebugStringA(message);
 }
 
 void CScene_InGame::RecordNetworkMovePrediction(

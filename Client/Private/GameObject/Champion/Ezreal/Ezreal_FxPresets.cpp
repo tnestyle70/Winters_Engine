@@ -104,10 +104,27 @@ namespace
 
 namespace Ezreal::Fx
 {
+	void SpawnBACast(CWorld& world, EntityID owner, const Vec3& origin, const Vec3& dir)
+	{
+		PlayAttachedCue(world, kCueBACast, nullptr, owner, origin, dir);
+	}
+
+	void SpawnQCast(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
+		EntityID owner, const Vec3& origin, const Vec3& dir)
+	{
+		PlayAttachedCue(world, kCueQCast, pRenderer, owner, origin, dir);
+	}
+
+	void SpawnWCast(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
+		EntityID owner, const Vec3& origin, const Vec3& dir)
+	{
+		PlayAttachedCue(world, kCueWCast, pRenderer, owner, origin, dir);
+	}
+
 	void SpawnBAProjectile(CWorld& world, EntityID owner, const Vec3& origin,
 		const Vec3& dir, f32_t fLifetime)
 	{
-		PlayAttachedCue(world, kCueBACast, nullptr, owner, origin, dir);
+		SpawnBACast(world, owner, origin, dir);
 		PlayMovingCue(world, kCueBAProjectile, nullptr, origin, dir, fLifetime, 20.f);
 	}
 
@@ -115,7 +132,7 @@ namespace Ezreal::Fx
 		EntityID owner, const Vec3& origin, const Vec3& dir,
 		f32_t fLifetime, f32_t fSpeed)
 	{
-		PlayAttachedCue(world, kCueQCast, pRenderer, owner, origin, dir);
+		SpawnQCast(world, pRenderer, owner, origin, dir);
 		PlayMovingCue(world, kCueQProjectile, pRenderer, origin, dir, fLifetime, fSpeed);
 	}
 
@@ -123,7 +140,7 @@ namespace Ezreal::Fx
 		EntityID owner, const Vec3& origin, const Vec3& dir,
 		f32_t fLifetime, f32_t fSpeed)
 	{
-		PlayAttachedCue(world, kCueWCast, pRenderer, owner, origin, dir);
+		SpawnWCast(world, pRenderer, owner, origin, dir);
 		PlayMovingCue(world, kCueWProjectile, pRenderer, origin, dir, fLifetime, fSpeed);
 	}
 

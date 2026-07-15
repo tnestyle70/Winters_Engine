@@ -1,6 +1,7 @@
 #include "Scene/Scene_CustomMode.h"
 
 #include "Core/CInput.h"
+#include "Dev/SmokeLog.h"
 #include "GameInstance.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/LoLMatchContextRuntime.h"
@@ -65,12 +66,22 @@ bool CScene_CustomMode::OnEnter()
 		720);
 	m_vReplayItems = CReplayLibrary::ListLocalReplays();
 
-	m_bServerLobbyActive = CGameSessionClient::Instance().Connect();
-	if (!m_bServerLobbyActive)
+	const bool_t bServerConnected = CGameSessionClient::Instance().Connect();
+	m_eMatchLaunchRuntimeMode = ResolveMatchLaunchRuntimeMode(bServerConnected);
+	m_bServerLobbyActive =
+		m_eMatchLaunchRuntimeMode == eMatchLaunchRuntimeMode::ServerConnected;
+	if (CanLaunchLocalGameplay(m_eMatchLaunchRuntimeMode))
 	{
 		MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
 		InitializeLocalCustomRoom(context);
 		m_SelectedSlotId = context.MySlotId;
+		Winters::DevSmoke::Log(
+			"[CustomMode] explicit local-only smoke mode enabled\n");
+	}
+	else if (!m_bServerLobbyActive)
+	{
+		Winters::DevSmoke::Log(
+			"[CustomMode] server required; local gameplay launch blocked\n");
 	}
 	return true;
 }
@@ -78,6 +89,8 @@ bool CScene_CustomMode::OnEnter()
 void CScene_CustomMode::OnExit()
 {
 	m_ImageUI.Shutdown();
+	m_eMatchLaunchRuntimeMode =
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable;
 }
 
 void CScene_CustomMode::OnUpdate(f32_t /*dt*/)
@@ -129,15 +142,23 @@ void CScene_CustomMode::OnRender()
 
 void CScene_CustomMode::OnImGui()
 {
-	RenderRosterOverlay();
+	if (m_eMatchLaunchRuntimeMode ==
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+	{
+		RenderServerRequiredNotice();
+	}
+	else
+	{
+		RenderRosterOverlay();
+	}
 	RenderReplayPanel();
 }
 
 void CScene_CustomMode::HandleInput()
 {
-	if (m_bServerLobbyActive)
+	if (m_eMatchLaunchRuntimeMode == eMatchLaunchRuntimeMode::ServerConnected)
 		HandleServerInput();
-	else
+	else if (CanLaunchLocalGameplay(m_eMatchLaunchRuntimeMode))
 		HandleLocalInput();
 }
 
@@ -171,7 +192,9 @@ void CScene_CustomMode::HandleLocalInput()
 
 void CScene_CustomMode::ChangeToChampionSelectScene()
 {
-	if (m_bSceneTransitionStarted)
+	if (m_bSceneTransitionStarted ||
+		m_eMatchLaunchRuntimeMode ==
+			eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
 		return;
 
 	m_bSceneTransitionStarted = true;
@@ -182,7 +205,12 @@ void CScene_CustomMode::ChangeToChampionSelectScene()
 
 void CScene_CustomMode::StartMatchLoadingScene()
 {
-	if (m_bSceneTransitionStarted)
+	if (m_bSceneTransitionStarted ||
+		m_eMatchLaunchRuntimeMode ==
+			eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+		return;
+	if (m_eMatchLaunchRuntimeMode == eMatchLaunchRuntimeMode::ServerConnected &&
+		!CGameSessionClient::Instance().IsConnected())
 		return;
 
 	m_bSceneTransitionStarted = true;
@@ -229,6 +257,36 @@ void CScene_CustomMode::RenderReplayPanel()
 	ImGui::End();
 }
 
+void CScene_CustomMode::RenderServerRequiredNotice()
+{
+	ImGuiIO& io = ImGui::GetIO();
+	const ImVec2 windowSize(520.f, 150.f);
+	ImGui::SetNextWindowPos(
+		ImVec2(
+			(io.DisplaySize.x - windowSize.x) * 0.5f,
+			(io.DisplaySize.y - windowSize.y) * 0.5f),
+		ImGuiCond_Always);
+	ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+	constexpr ImGuiWindowFlags flags =
+		ImGuiWindowFlags_NoCollapse |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoSavedSettings;
+
+	if (ImGui::Begin("Server Required", nullptr, flags))
+	{
+		ImGui::TextWrapped(
+			"WintersServer is not connected. Start the server, then reopen "
+			"Custom Mode. Local gameplay is disabled in the normal client.");
+		ImGui::Spacing();
+		ImGui::TextDisabled(
+			"Developer-only local smoke: --local-only-smoke");
+		ImGui::TextDisabled("Replay playback remains available below.");
+	}
+	ImGui::End();
+}
+
 void CScene_CustomMode::OpenReplay(const wstring_t& path)
 {
 	if (m_bSceneTransitionStarted)
@@ -270,6 +328,12 @@ bool_t CScene_CustomMode::IsGamePlayClicked() const
 
 bool_t CScene_CustomMode::AddBotToFirstEmptySlot(u32_t beginSlot, u32_t endSlot)
 {
+	if (m_eMatchLaunchRuntimeMode ==
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+	{
+		return false;
+	}
+
 	if (m_bServerLobbyActive)
 	{
 		CGameSessionClient& session = CGameSessionClient::Instance();
@@ -304,7 +368,9 @@ bool_t CScene_CustomMode::AddBotToFirstEmptySlot(u32_t beginSlot, u32_t endSlot)
 
 bool_t CScene_CustomMode::JoinSlot(u8_t slotId)
 {
-	if (slotId >= kGameRosterSlotCount)
+	if (slotId >= kGameRosterSlotCount ||
+		m_eMatchLaunchRuntimeMode ==
+			eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
 		return false;
 
 	m_SelectedSlotId = slotId;
@@ -321,6 +387,12 @@ bool_t CScene_CustomMode::JoinSlot(u8_t slotId)
 
 bool_t CScene_CustomMode::RemoveBotAndCompactTeam(u32_t beginSlot, u32_t endSlot, u8_t slotId)
 {
+	if (m_eMatchLaunchRuntimeMode ==
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+	{
+		return false;
+	}
+
 	if (m_bServerLobbyActive)
 		return SendBotRemoval(slotId);
 
@@ -382,6 +454,12 @@ bool_t CScene_CustomMode::CompactLocalBotRemoval(MatchContext& context, u32_t be
 
 void CScene_CustomMode::SetBotLane(u8_t slotId, u8_t lane)
 {
+	if (m_eMatchLaunchRuntimeMode ==
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+	{
+		return;
+	}
+
 	if (m_bServerLobbyActive)
 	{
 		CGameSessionClient::Instance().SendLobbyCommand(
@@ -400,6 +478,11 @@ bool_t CScene_CustomMode::SetBotChampion(u8_t slotId, eChampion champion)
 {
 	if (slotId >= kGameRosterSlotCount || !IsRosterChampionSupported(champion))
 		return false;
+	if (m_eMatchLaunchRuntimeMode ==
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+	{
+		return false;
+	}
 
 	if (m_bServerLobbyActive)
 	{

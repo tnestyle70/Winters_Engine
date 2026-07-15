@@ -2,7 +2,7 @@
 
 #include "Defines.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
-#include "Shared/Network/PacketEnvelope.h"
+#include "Shared/Network/PacketType.h"
 
 #include <functional>
 #include <memory>
@@ -10,6 +10,7 @@
 #include <vector>
 
 class CClientNetwork;
+enum class eClientNetworkTransport : u8_t;
 namespace Shared::Schema { enum class LobbyCommandKind : uint8_t; }
 
 class CGameSessionClient final
@@ -21,7 +22,9 @@ public:
 	{
 		std::string host = "127.0.0.1";
 		u16_t port = 9000;
+		eClientNetworkTransport transport{};
 		bool_t bFromCommandLine = false;
+		bool_t bTransportValid = true;
 	};
 
 	static CGameSessionClient& Instance();

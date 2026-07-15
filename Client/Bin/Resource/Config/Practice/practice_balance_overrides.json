@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "profileName": "Designer Scratch",
+  "scope": "current-player",
+  "overrides": [
+    {
+      "slot": "Q",
+      "param": "BaseDamage",
+      "value": 100.0
+    },
+    {
+      "slot": "Q",
+      "param": "DamagePerRank",
+      "value": 25.0
+    }
+  ]
+}

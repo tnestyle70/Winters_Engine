@@ -2,8 +2,8 @@
 #include "Network/Client/CommandSerializer.h"
 
 #include "Dev/SmokeLog.h"
-#include "Shared/Network/PacketEnvelope.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
+#include "Shared/GameSim/Components/KalistaBondComponent.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 
 #ifndef WIN32_LEAN_AND_MEAN
@@ -23,6 +23,11 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+
+static_assert(
+    static_cast<u16_t>(ePracticeOperation::Count) ==
+    static_cast<u16_t>(Shared::Schema::PracticeOperation::MAX) + 1u,
+    "ePracticeOperation and Command.fbs PracticeOperation must stay append-only and aligned.");
 
 namespace
 {
@@ -50,6 +55,10 @@ namespace
             return "AIDebugControl";
         case eCommandKind::Flash:
             return "Flash";
+        case eCommandKind::CompanionCommand:
+            return "CompanionCommand";
+        case eCommandKind::PracticeControl:
+            return "PracticeControl";
         default:
             return "None";
         }
@@ -234,7 +243,7 @@ void CCommandSerializer::SendBuyItem(CClientNetwork& net, u16_t itemId)
 }
 
 void CCommandSerializer::SendUseItem(CClientNetwork& net, u16_t itemId,
-    const Vec3& groundPos, const Vec3& direction)
+    const Vec3& groundPos, const Vec3& direction, NetEntityId targetNet)
 {
     if (itemId == 0 || !IsValidMoveGroundPos(groundPos))
         return;
@@ -244,6 +253,7 @@ void CCommandSerializer::SendUseItem(CClientNetwork& net, u16_t itemId,
     wire.clientTick = m_clientTick++;
     wire.sequenceNum = m_nextSequenceNum++;
     wire.itemId = itemId;
+    wire.targetNet = targetNet;
     wire.groundPos = groundPos;
     wire.direction = WintersMath::NormalizeXZ(direction, Vec3{}, 0.0001f);
 
@@ -275,6 +285,75 @@ void CCommandSerializer::SendFlash(CClientNetwork& net, const Vec3& groundPos,
     wire.direction = WintersMath::NormalizeXZ(direction, Vec3{}, 0.0001f);
 
     SendSingle(net, wire);
+}
+
+void CCommandSerializer::SendCompanionCommand(
+    CClientNetwork& net,
+    NetEntityId targetNet,
+    const Vec3& groundPos,
+    eCompanionCommandMode mode)
+{
+    if (mode == eCompanionCommandMode::Move &&
+        !IsValidMoveGroundPos(groundPos))
+    {
+        return;
+    }
+
+    GameCommandWire wire{};
+    wire.kind = eCommandKind::CompanionCommand;
+    wire.clientTick = m_clientTick++;
+    wire.sequenceNum = m_nextSequenceNum++;
+    wire.targetNet = targetNet;
+    wire.groundPos = groundPos;
+    wire.itemId = static_cast<u16_t>(mode);
+    SendSingle(net, wire);
+}
+
+u32_t CCommandSerializer::SendPracticeControl(
+    CClientNetwork& net,
+    ePracticeOperation operation,
+    f32_t value,
+    u32_t flags,
+    u8_t slot,
+    const Vec3& groundPos,
+    NetEntityId targetNet)
+{
+    if (operation == ePracticeOperation::None ||
+        !std::isfinite(value) ||
+        !IsValidMoveGroundPos(groundPos))
+    {
+        return 0u;
+    }
+
+    GameCommandWire wire{};
+    wire.kind = eCommandKind::PracticeControl;
+    wire.clientTick = m_clientTick++;
+    wire.sequenceNum = m_nextSequenceNum++;
+    wire.slot = slot;
+    wire.targetNet = targetNet;
+    wire.groundPos = groundPos;
+    wire.practiceOperation = operation;
+    wire.practiceValue = value;
+    wire.practiceFlags = flags;
+    SendSingle(net, wire);
+    return wire.sequenceNum;
+}
+
+u32_t CCommandSerializer::SendKalistaFateCallLaunch(
+    CClientNetwork& net,
+    const Vec3& groundPos)
+{
+    if (!IsValidMoveGroundPos(groundPos))
+        return 0u;
+
+    GameCommandWire wire{};
+    wire.kind = eCommandKind::Move;
+    wire.clientTick = m_clientTick++;
+    wire.sequenceNum = m_nextSequenceNum++;
+    wire.groundPos = groundPos;
+    wire.itemId = kKalistaFateCallLaunchCommandMarker;
+    SendSingle(net, wire);
+    return wire.sequenceNum;
 }
 
 void CCommandSerializer::SendAIDebugControl(CClientNetwork& net, NetEntityId targetNet,
@@ -388,12 +467,11 @@ void CCommandSerializer::SendSingle(CClientNetwork& net, GameCommandWire& wire)
         ++s_sendSingleLogCount;
     }
 
-    auto packet = WrapEnvelope(
+    net.SendFrame(
         ePacketType::CommandBatch,
         wire.sequenceNum,
         payload.data(),
         static_cast<u32_t>(payload.size()));
-    net.Send(std::move(packet));
 }
 
 std::vector<u8_t> CCommandSerializer::BuildCommandBatch(const std::vector<GameCommandWire>&wires)
@@ -439,7 +517,10 @@ std::vector<u8_t> CCommandSerializer::BuildCommandBatch(const std::vector<GameCo
             &ground,
             &direction,
             wire.itemId,
-            0));
+            0,
+            static_cast<Shared::Schema::PracticeOperation>(wire.practiceOperation),
+            wire.practiceValue,
+            wire.practiceFlags));
     }
 
     const u64_t timestampMs = static_cast<u64_t>(

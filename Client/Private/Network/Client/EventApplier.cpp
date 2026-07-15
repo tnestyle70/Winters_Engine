@@ -8,19 +8,21 @@
 #undef min
 #undef max
 #include "Shared/Schemas/Generated/cpp/Event_generated.h"
+#include "Shared/Schemas/Generated/cpp/Snapshot_generated.h"
 #include <flatbuffers/flatbuffers.h>
 #pragma pop_macro("max")
 #pragma pop_macro("min")
 
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
+#include "Map/MapDataFormats.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/RenderComponent.h"
 #include "GameObject/ChampionDef.h"
-#include "GameObject/FX/FxBillboardComponent.h"
 #include "GameObject/FX/FxCuePlayer.h"
+#include "GameObject/FX/FxBillboardComponent.h"
 #include "GameObject/FX/FxMeshComponent.h"
-#include "GameObject/FX/FxSystem.h"
+#include "GameObject/Champion/Yasuo/YasuoFxPresets.h"
 #include "GameObject/Projectile/ProjectileKind.h"
 #include "GameObject/Projectile/ProjectileVisualCatalog.h"
 #include "GamePlay/ChampionCatalog.h"
@@ -35,21 +37,19 @@
 #include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Feedback/GameplayFeedback.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "UI/AttackSpeedLab.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace
 {
-    constexpr const wchar_t* kTurretTopBeamTexture =
-        L"Texture/Object/Turret/particles/TurretTopBeam.png";
-    constexpr const wchar_t* kEffectTexture = L"Texture/FX/Kalista/common_global_indicator_ring_bright.png";
-    constexpr const wchar_t* kDamageTexture = L"Texture/FX/Kalista/common_color-hit-physical.png";
-
     // Kill, destroy, and objective event presentation.
     constexpr u8_t kKillFeedObjectActor = 1;
     constexpr u8_t kKillFeedObjectStructure = 2;
@@ -249,6 +249,16 @@ namespace
         }
     }
 
+    const char* ResolveRivenQAnimKey(u8_t stage)
+    {
+        switch (stage)
+        {
+        case 3: return "spell1c";
+        case 2: return "spell1b";
+        default: return "spell1a";
+        }
+    }
+
     f32_t ResolveReplicatedActionPlaySpeed(
         eChampion champion,
         u8_t slot,
@@ -442,6 +452,46 @@ namespace
         return h;
     }
 
+    bool_t TryAdvanceMutation(
+        PresentationMutationStamp& current,
+        const PresentationMutationStamp& candidate)
+    {
+        if (!IsNewerPresentationMutation(candidate, current))
+            return false;
+        current = candidate;
+        return true;
+    }
+
+    PresentationMutationStamp MakeEventMutation(
+        u64_t uServerTick,
+        u32_t uEventOrdinal,
+        ePresentationMutationPhase ePhase)
+    {
+        return PresentationMutationStamp{
+            uServerTick,
+            uEventOrdinal,
+            ePhase,
+            true };
+    }
+
+    PresentationMutationStamp MakeSnapshotMutation(u64_t uServerTick)
+    {
+        return PresentationMutationStamp{
+            uServerTick,
+            (std::numeric_limits<u32_t>::max)(),
+            ePresentationMutationPhase::SnapshotTruth,
+            true };
+    }
+
+    f32_t RemainingTickLifetimeSec(u64_t uNowTick, u64_t uExpireTick)
+    {
+        constexpr f32_t kTicksPerSecond = 30.f;
+        const u64_t uRemainingTicks = uExpireTick > uNowTick
+            ? uExpireTick - uNowTick
+            : 0u;
+        return static_cast<f32_t>(uRemainingTicks) / kTicksPerSecond;
+    }
+
     EntityID ResolveLiveEntity(CWorld& world, EntityIdMap& entityMap, NetEntityId netId)
     {
         if (netId == NULL_NET_ENTITY)
@@ -460,36 +510,16 @@ namespace
             world.DestroyEntity(entity);
     }
 
-    void SpawnTurretTopBeam(CWorld& world, EntityID ownerEntity, const Vec3& fallbackPos)
+    bool_t HasLiveVisualEntity(
+        CWorld& world,
+        const std::vector<EntityID>& entities)
     {
-        // No .wfx asset exists for this cue yet, so use the runtime billboard path.
-        Vec3 pos = fallbackPos;
-        EntityID attachTo = NULL_ENTITY;
-        if (ownerEntity != NULL_ENTITY && world.HasComponent<TransformComponent>(ownerEntity))
+        for (EntityID entity : entities)
         {
-            const Vec3 ownerPos = world.GetComponent<TransformComponent>(ownerEntity).GetPosition();
-            pos = { ownerPos.x, ownerPos.y + 4.0f, ownerPos.z };
-            attachTo = ownerEntity;
+            if (entity != NULL_ENTITY && world.IsAlive(entity))
+                return true;
         }
-
-        FxBillboardComponent fx{};
-        fx.vWorldPos = pos;
-        fx.attachTo = attachTo;
-        fx.vAttachOffset = { 0.f, 4.0f, 0.f };
-        fx.texturePath = kTurretTopBeamTexture;
-        fx.fWidth = 1.8f;
-        fx.fHeight = 1.8f;
-        fx.fLifetime = 0.22f;
-        fx.fFadeOut = 0.14f;
-        fx.iAtlasCols = 2;
-        fx.iAtlasRows = 2;
-        fx.iAtlasFrameCount = 4;
-        fx.fAtlasFps = 18.f;
-        fx.bAtlasLoop = false;
-        fx.vColor = { 1.25f, 1.15f, 0.95f, 1.f };
-        fx.blendMode = eBlendPreset::Additive;
-        fx.fAlphaClip = 0.02f;
-        CFxSystem::Spawn(world, fx);
+        return false;
     }
 
 }
@@ -497,6 +527,61 @@ namespace
 std::unique_ptr<CEventApplier> CEventApplier::Create()
 {
     return std::unique_ptr<CEventApplier>(new CEventApplier());
+}
+
+void CEventApplier::RebaseTimeline(
+    CWorld& world,
+    EntityIdMap& entityMap)
+{
+    for (EntityHandle entity : m_timelineVisualEntities)
+    {
+        if (world.IsAlive(entity))
+            world.DestroyEntity(entity);
+    }
+    for (const auto& [projectileNet, visuals] : m_projectileVisualEntities)
+    {
+        for (EntityID entity : visuals)
+            DestroyEntityIfAlive(world, entity);
+        const EntityID projectileEntity = entityMap.FromNet(projectileNet);
+        if (projectileEntity != NULL_ENTITY &&
+            world.IsAlive(projectileEntity) &&
+            world.HasComponent<ReplicatedProjectilePresentationTag>(projectileEntity))
+        {
+            world.DestroyEntity(projectileEntity);
+        }
+        entityMap.Unbind(projectileNet);
+    }
+    for (const auto& entry : m_ezrealFluxVisualEntities)
+    {
+        for (EntityID entity : entry.second)
+            DestroyEntityIfAlive(world, entity);
+    }
+    for (const auto& [_, entity] : m_yasuoWindWallAnchors)
+        DestroyEntityIfAlive(world, entity);
+    for (const auto& [_, visuals] : m_yasuoWindWallVisualEntities)
+    {
+        for (EntityID entity : visuals)
+            DestroyEntityIfAlive(world, entity);
+    }
+
+    m_timelineVisualEntities.clear();
+    m_projectileVisualEntities.clear();
+    m_ezrealFluxVisualEntities.clear();
+    m_ezrealFluxExpireTicks.clear();
+    m_yasuoWindWallAnchors.clear();
+    m_yasuoWindWallVisualEntities.clear();
+    m_yasuoWindWallExpireTicks.clear();
+    m_lastActionSeq.clear();
+    m_seenEffectCueKeys.clear();
+    m_seenKillFeedKeys.clear();
+    m_snapshotProjectileNetIds.clear();
+    m_snapshotEzrealFluxKeys.clear();
+    m_snapshotYasuoWindWallKeys.clear();
+    m_seenProjectileHitCueKeys.clear();
+    m_projectileMutationStamps.clear();
+    m_ezrealFluxMutationStamps.clear();
+    m_reconcileServerTick = 0u;
+    m_bReconcileFullSnapshot = false;
 }
 
 void CEventApplier::OnEvent(
@@ -508,9 +593,27 @@ void CEventApplier::OnEvent(
     if (!payload || len == 0)
         return;
 
+    if (m_timelineVisualEntities.size() > 4096u)
+    {
+        m_timelineVisualEntities.erase(
+            std::remove_if(
+                m_timelineVisualEntities.begin(),
+                m_timelineVisualEntities.end(),
+                [&](EntityHandle entity) { return !world.IsAlive(entity); }),
+            m_timelineVisualEntities.end());
+    }
+
     flatbuffers::Verifier verifier(payload, len);
     if (!Shared::Schema::VerifyEventPacketBuffer(verifier))
     {
+        static u32_t s_eventVerifyFailLogCount = 0;
+        if (s_eventVerifyFailLogCount < 8)
+        {
+            char msg[128]{};
+            sprintf_s(msg, "[EventApplier] invalid EventPacket buffer len=%u\n", len);
+            OutputDebugStringA(msg);
+            ++s_eventVerifyFailLogCount;
+        }
         return;
     }
 
@@ -526,13 +629,28 @@ void CEventApplier::OnEvent(
         ApplyActionStart(world, entityMap, packet->actionStart());
         break;
     case Shared::Schema::EventKind::ProjectileSpawn:
-        ApplyProjectileSpawn(world, entityMap, packet->projectile(), packet->serverTick());
+        ApplyProjectileSpawn(
+            world,
+            entityMap,
+            packet->projectile(),
+            packet->serverTick(),
+            packet->eventOrdinal());
         break;
     case Shared::Schema::EventKind::ProjectileHit:
-        ApplyProjectileHit(world, entityMap, packet->projectileHit());
+        ApplyProjectileHit(
+            world,
+            entityMap,
+            packet->projectileHit(),
+            packet->serverTick(),
+            packet->eventOrdinal());
         break;
     case Shared::Schema::EventKind::EffectTrigger:
-        ApplyEffectTrigger(world, entityMap, packet->effect());
+        ApplyEffectTrigger(
+            world,
+            entityMap,
+            packet->effect(),
+            packet->serverTick(),
+            packet->eventOrdinal());
         break;
     case Shared::Schema::EventKind::Damage:
         ApplyDamage(world, entityMap, packet->damage());
@@ -564,165 +682,174 @@ void CEventApplier::ApplyActionStart(
         IsNewerActionSeq(ev->actionSeq(), previousPlayedSeq);
     action.actionId = ev->actionId();
     action.startTick = ev->startTick();
+    action.lockEndTick = ev->lockEndTick();
     action.sequence = ev->actionSeq();
+    action.commandSequence = ev->commandSeq();
+    action.sourceChampion = static_cast<eChampion>(ev->sourceChampionId());
+    action.sourceSlot = ev->sourceSlot();
     action.stage = actionStage;
+    action.movePolicy = static_cast<eSkillActionMovePolicy>(ev->movePolicy());
     if (!bShouldPlay)
         return;
     m_lastActionSeq[ev->netId()] = ev->actionSeq();
     PlayReplicatedActionVisual(world, entity, ev->actionId(), actionStage);
 }
 
+bool_t CEventApplier::RetryCurrentActionVisual(
+    CWorld& world,
+    EntityID entity,
+    u16_t expectedActionId)
+{
+    if (entity == NULL_ENTITY ||
+        !world.HasComponent<ReplicatedActionComponent>(entity))
+    {
+        return false;
+    }
+
+    const auto& action = world.GetComponent<ReplicatedActionComponent>(entity);
+    if (action.sequence == 0u || action.actionId != expectedActionId)
+        return false;
+
+    return PlayReplicatedActionVisual(
+        world,
+        entity,
+        action.actionId,
+        action.stage == 0u ? 1u : action.stage);
+}
+
 void CEventApplier::ApplyProjectileSpawn(
     CWorld& world,
     EntityIdMap& entityMap,
     const Shared::Schema::ProjectileSpawnEvent* ev,
-    u64_t serverTick)
+    u64_t serverTick,
+    u32_t uEventOrdinal)
+{
+    if (!ev)
+        return;
+
+    const Vec3 pos{ ev->startX(), ev->startY(), ev->startZ() };
+    if (ev->netId() == NULL_NET_ENTITY)
+    {
+        const ProjectileVisualDesc& visual =
+            ProjectileVisualCatalog::Resolve(ev->kind());
+        if (visual.pszSpawnCue)
+        {
+            Vec3 dir = WintersMath::Normalize3D(
+                Vec3{ ev->dirX(), ev->dirY(), ev->dirZ() });
+            if (dir.x == 0.f && dir.y == 0.f && dir.z == 0.f)
+                dir = { 0.f, 0.f, 1.f };
+            FxCueContext fx{};
+            fx.vWorldPos = pos;
+            fx.vForward = dir;
+            fx.vVelocity = {
+                dir.x * ev->speed(),
+                dir.y * ev->speed(),
+                dir.z * ev->speed() };
+            fx.bOverrideVelocity = true;
+            fx.bOverrideLifetime = true;
+            fx.fLifetimeOverride =
+                ev->speed() > 0.01f && ev->maxDist() > 0.f
+                    ? ev->maxDist() / ev->speed()
+                    : 1.f;
+            fx.pFxMeshRenderer = m_pFxMeshRenderer;
+            std::vector<EntityID> spawned;
+            CFxCuePlayer::PlayAll(world, visual.pszSpawnCue, fx, &spawned);
+            for (EntityID entity : spawned)
+                m_timelineVisualEntities.push_back(world.GetEntityHandle(entity));
+        }
+        return;
+    }
+
+    if (!TryAdvanceMutation(
+            m_projectileMutationStamps[ev->netId()],
+            MakeEventMutation(
+                serverTick,
+                uEventOrdinal,
+                ePresentationMutationPhase::SpawnOrMark)))
+    {
+        return;
+    }
+
+    EnsureProjectilePresentation(
+        world,
+        entityMap,
+        ev->netId(),
+        ev->kind(),
+        pos,
+        Vec3{ ev->dirX(), ev->dirY(), ev->dirZ() },
+        ev->speed(),
+        ev->maxDist());
+}
+
+void CEventApplier::ApplyProjectileHit(
+    CWorld& world,
+    EntityIdMap& entityMap,
+    const Shared::Schema::ProjectileHitEvent* ev,
+    u64_t serverTick,
+    u32_t uEventOrdinal)
 {
     if (!ev)
         return;
 
     const u64_t cueKey = BuildCueKey(
         ev->netId(),
-        ev->ownerNet(),
+        ev->targetNet(),
         ev->kind(),
         serverTick,
-        0u);
-
-    if (m_seenProjectileCueKeys.size() > 4096u)
-        m_seenProjectileCueKeys.clear();
-
-    if (!m_seenProjectileCueKeys.insert(cueKey).second)
-        return;
-
-    const EntityID ownerEntity = ResolveLiveEntity(world, entityMap, ev->ownerNet());
-    const bool_t bStructureProjectile = ProjectileVisualCatalog::IsStructureProjectileKind(ev->kind());
-
-    const Vec3 pos{ ev->startX(), ev->startY(), ev->startZ() };
-    if (bStructureProjectile)
-        SpawnTurretTopBeam(world, ownerEntity, pos);
-    const Vec3 dir = WintersMath::Normalize3D(Vec3{ ev->dirX(), ev->dirY(), ev->dirZ() });
-    const Vec3 velocity{
-        dir.x * ev->speed(),
-        dir.y * ev->speed(),
-        dir.z * ev->speed()
-    };
-
-    const f32_t lifetime = (ev->speed() > 0.01f && ev->maxDist() > 0.f)
-        ? ev->maxDist() / ev->speed()
-        : 1.0f;
-    const ProjectileVisualDesc& visual = ProjectileVisualCatalog::Resolve(ev->kind());
-    std::vector<EntityID> projectileVisualEntities;
-    bool_t bPlayedProjectileWfxCue = false;
-    if (visual.pszSpawnCue)
-    {
-        FxCueContext fx{};
-        fx.vWorldPos = pos;
-        fx.vForward = dir;
-        fx.vVelocity = velocity;
-        fx.bOverrideVelocity = true;
-        fx.fLifetimeOverride = lifetime;
-        fx.bOverrideLifetime = true;
-        fx.pFxMeshRenderer = m_pFxMeshRenderer;
-
-        std::vector<EntityID> spawnedCueEntities;
-        bPlayedProjectileWfxCue =
-            CFxCuePlayer::PlayAll(world, visual.pszSpawnCue, fx, &spawnedCueEntities) != NULL_ENTITY;
-        projectileVisualEntities.insert(
-            projectileVisualEntities.end(),
-            spawnedCueEntities.begin(),
-            spawnedCueEntities.end());
-
-        if (bStructureProjectile && bPlayedProjectileWfxCue)
-        {
-            bool_t bSpawnedMesh = false;
-            for (EntityID spawned : spawnedCueEntities)
-            {
-                if (spawned != NULL_ENTITY && world.HasComponent<FxMeshComponent>(spawned))
-                {
-                    bSpawnedMesh = true;
-                    break;
-                }
-            }
-
-            if (!bSpawnedMesh)
-            {
-                for (EntityID spawned : spawnedCueEntities)
-                {
-                    DestroyEntityIfAlive(world, spawned);
-                }
-
-                bPlayedProjectileWfxCue = false;
-            }
-        }
-    }
-
-    const bool_t bShouldSpawnGenericProjectile =
-        !bStructureProjectile &&
-        visual.bUseGenericSpawnFallback &&
-        visual.pszFallbackSpawnTexture != nullptr &&
-        (!visual.pszSpawnCue || !bPlayedProjectileWfxCue);
-
-    if (ev->netId() == NULL_NET_ENTITY)
-    {
-        if (bShouldSpawnGenericProjectile)
-            SpawnBillboard(world, pos, velocity,
-                visual.pszFallbackSpawnTexture,
-                visual.fFallbackSpawnWidth,
-                visual.fFallbackSpawnHeight,
-                lifetime);
-        return;
-    }
-
-    EntityID entity = ResolveLiveEntity(world, entityMap, ev->netId());
-    if (entity == NULL_ENTITY)
-    {
-        entity = world.CreateEntity();
-        entityMap.Bind(ev->netId(), entity);
-    }
-
-    if (!world.HasComponent<TransformComponent>(entity))
-        world.AddComponent<TransformComponent>(entity, TransformComponent{});
-    world.GetComponent<TransformComponent>(entity).SetPosition(pos);
-    // The network entity tracks projectile truth; the sprite is a transient visual.
-    if (bShouldSpawnGenericProjectile)
-    {
-        const EntityID visualEntity = SpawnBillboard(world, pos, velocity,
-            visual.pszFallbackSpawnTexture,
-            visual.fFallbackSpawnWidth,
-            visual.fFallbackSpawnHeight,
-            lifetime);
-        if (visualEntity != NULL_ENTITY)
-            projectileVisualEntities.push_back(visualEntity);
-    }
-
-    if (!projectileVisualEntities.empty())
-    {
-        DestroyProjectileVisuals(world, ev->netId());
-        m_projectileVisualEntities[ev->netId()] = std::move(projectileVisualEntities);
-    }
-}
-
-void CEventApplier::ApplyProjectileHit(
-    CWorld& world,
-    EntityIdMap& entityMap,
-    const Shared::Schema::ProjectileHitEvent* ev)
-{
-    if (!ev)
+        ev->contactOrdinal());
+    if (m_seenProjectileHitCueKeys.size() > 4096u)
+        m_seenProjectileHitCueKeys.clear();
+    if (!m_seenProjectileHitCueKeys.insert(cueKey).second)
         return;
 
     const Vec3 pos{ ev->posX(), ev->posY(), ev->posZ() };
     const ProjectileVisualDesc& visual = ProjectileVisualCatalog::Resolve(ev->kind());
-    bool_t bPlayedWfxCue = false;
-    if (visual.pszHitCue)
+    const char* pszContactCue = nullptr;
+    switch (ev->contactReason())
+    {
+    case Shared::Schema::ProjectileContactReason::None:
+        pszContactCue = ev->targetNet() != NULL_NET_ENTITY
+            ? visual.pszHitCue
+            : visual.pszExpireCue;
+        break;
+    case Shared::Schema::ProjectileContactReason::UnitHit:
+        pszContactCue = visual.pszHitCue;
+        break;
+    case Shared::Schema::ProjectileContactReason::Barrier:
+        pszContactCue = visual.pszBarrierCue;
+        break;
+    case Shared::Schema::ProjectileContactReason::Terrain:
+        pszContactCue = visual.pszTerrainCue;
+        break;
+    case Shared::Schema::ProjectileContactReason::RangeExpired:
+    case Shared::Schema::ProjectileContactReason::SourceInvalid:
+    case Shared::Schema::ProjectileContactReason::TargetInvalid:
+    case Shared::Schema::ProjectileContactReason::InvalidTrajectory:
+    case Shared::Schema::ProjectileContactReason::HitLimit:
+        pszContactCue = visual.pszExpireCue;
+        break;
+    default:
+        break;
+    }
+
+    if (pszContactCue)
     {
         FxCueContext fx{};
         fx.vWorldPos = pos;
         fx.vForward = { 0.f, 0.f, 1.f };
         fx.pFxMeshRenderer = m_pFxMeshRenderer;
-        bPlayedWfxCue = CFxCuePlayer::Play(world, visual.pszHitCue, fx) != NULL_ENTITY;
+        std::vector<EntityID> spawned;
+        CFxCuePlayer::PlayAll(world, pszContactCue, fx, &spawned);
+        for (EntityID entity : spawned)
+            m_timelineVisualEntities.push_back(world.GetEntityHandle(entity));
     }
 
-    if (visual.pszAttachedCue)
+    if (visual.pszAttachedCue &&
+        (ev->contactReason() ==
+                Shared::Schema::ProjectileContactReason::UnitHit ||
+            (ev->contactReason() ==
+                Shared::Schema::ProjectileContactReason::None &&
+                ev->targetNet() != NULL_NET_ENTITY)))
     {
         EntityID attachTo = NULL_ENTITY;
         if (ev->targetNet() != NULL_NET_ENTITY)
@@ -734,28 +861,156 @@ void CEventApplier::ApplyProjectileHit(
             fx.vWorldPos = pos;
             fx.attachTo = attachTo;
             fx.pFxMeshRenderer = m_pFxMeshRenderer;
-            bPlayedWfxCue = CFxCuePlayer::Play(world, visual.pszAttachedCue, fx) != NULL_ENTITY || bPlayedWfxCue;
+            if (visual.bAttachedCueRandomJitter)
+            {
+                // 히트마다 다른 각도/위치 (박힌 창 누적 분산 — 레거시
+                // KalistaFx::SpawnESpearStuck 의 밴드와 동일: yaw 0~2π,
+                // 틸트 ±0.3rad, 오프셋 XZ ±0.3 / Y +0~1).
+                fx.bApplyAttachJitter = true;
+                fx.vRotationJitter = {
+                    (static_cast<f32_t>(rand()) / RAND_MAX - 0.5f) * 0.6f,
+                    (static_cast<f32_t>(rand()) / RAND_MAX) * 6.2832f,
+                    (static_cast<f32_t>(rand()) / RAND_MAX - 0.5f) * 0.6f };
+                fx.vAttachOffsetJitter = {
+                    (static_cast<f32_t>(rand()) / RAND_MAX - 0.5f) * 0.6f,
+                    (static_cast<f32_t>(rand()) / RAND_MAX),
+                    (static_cast<f32_t>(rand()) / RAND_MAX - 0.5f) * 0.6f };
+            }
+            std::vector<EntityID> spawned;
+            CFxCuePlayer::PlayAll(
+                world, visual.pszAttachedCue, fx, &spawned);
+            for (EntityID entity : spawned)
+                m_timelineVisualEntities.push_back(world.GetEntityHandle(entity));
         }
     }
 
-    if (!bPlayedWfxCue &&
-        visual.bUseGenericHitFallback &&
-        visual.pszFallbackHitTexture)
+    bool_t bApplyTerminalMutation = true;
+    if (ev->bDestroyed() && ev->netId() != NULL_NET_ENTITY)
     {
-        SpawnBillboard(world, pos, Vec3{},
-            visual.pszFallbackHitTexture,
-            visual.fFallbackHitWidth,
-            visual.fFallbackHitHeight,
-            0.35f);
+        bApplyTerminalMutation = TryAdvanceMutation(
+            m_projectileMutationStamps[ev->netId()],
+            MakeEventMutation(
+                serverTick,
+                uEventOrdinal,
+                ePresentationMutationPhase::ContactOrClear));
     }
 
-    if (ev->bDestroyed() && ev->netId() != NULL_NET_ENTITY)
+    if (ev->bDestroyed() &&
+        ev->netId() != NULL_NET_ENTITY &&
+        bApplyTerminalMutation)
     {
         DestroyProjectileVisuals(world, ev->netId());
         const EntityID entity = ResolveLiveEntity(world, entityMap, ev->netId());
         DestroyEntityIfAlive(world, entity);
         entityMap.Unbind(ev->netId());
     }
+}
+
+EntityID CEventApplier::EnsureProjectilePresentation(
+    CWorld& world,
+    EntityIdMap& entityMap,
+    NetEntityId uProjectileNet,
+    u16_t uProjectileKind,
+    const Vec3& vPosition,
+    const Vec3& vDirection,
+    f32_t fSpeed,
+    f32_t fRemainingDistance)
+{
+    if (uProjectileNet == NULL_NET_ENTITY)
+        return NULL_ENTITY;
+
+    EntityID entity = ResolveLiveEntity(world, entityMap, uProjectileNet);
+    if (entity == NULL_ENTITY)
+    {
+        entity = world.CreateEntity();
+        entityMap.Bind(uProjectileNet, entity);
+    }
+
+    if (!world.HasComponent<TransformComponent>(entity))
+        world.AddComponent<TransformComponent>(entity, TransformComponent{});
+    if (!world.HasComponent<ReplicatedProjectilePresentationTag>(entity))
+    {
+        world.AddComponent<ReplicatedProjectilePresentationTag>(
+            entity,
+            ReplicatedProjectilePresentationTag{});
+    }
+
+    Vec3 direction = WintersMath::Normalize3D(vDirection);
+    if (direction.x == 0.f && direction.y == 0.f && direction.z == 0.f)
+        direction = { 0.f, 0.f, 1.f };
+    const ProjectileVisualDesc& visual =
+        ProjectileVisualCatalog::Resolve(uProjectileKind);
+    const f32_t yaw =
+        WintersMath::YawFromDirectionXZ(direction) + visual.fYawOffset;
+
+    TransformComponent& transform = world.GetComponent<TransformComponent>(entity);
+    transform.SetPosition(vPosition);
+    const Vec3 rotation = transform.GetRotation();
+    transform.SetRotation({ rotation.x, yaw, rotation.z });
+
+    auto visualIt = m_projectileVisualEntities.find(uProjectileNet);
+    if (visualIt != m_projectileVisualEntities.end() &&
+        !visualIt->second.empty() &&
+        !HasLiveVisualEntity(world, visualIt->second))
+    {
+        m_projectileVisualEntities.erase(visualIt);
+        visualIt = m_projectileVisualEntities.end();
+    }
+    if (visualIt == m_projectileVisualEntities.end())
+    {
+        auto [insertedIt, _] = m_projectileVisualEntities.try_emplace(
+            uProjectileNet,
+            std::vector<EntityID>{});
+        visualIt = insertedIt;
+
+        if (visual.pszSpawnCue)
+        {
+            const f32_t lifetime =
+                fSpeed > 0.01f && fRemainingDistance > 0.f
+                    ? (std::max)(0.05f, fRemainingDistance / fSpeed)
+                    : 1.f;
+            FxCueContext fx{};
+            fx.vWorldPos = vPosition;
+            fx.vForward = direction;
+            fx.vVelocity = {};
+            fx.attachTo = entity;
+            fx.bOverrideVelocity = true;
+            fx.bOverrideLifetime = true;
+            fx.fLifetimeOverride = lifetime;
+            fx.pFxMeshRenderer = m_pFxMeshRenderer;
+            CFxCuePlayer::PlayAll(
+                world,
+                visual.pszSpawnCue,
+                fx,
+                &visualIt->second);
+        }
+    }
+
+    for (EntityID visualEntity : visualIt->second)
+    {
+        if (!world.IsAlive(visualEntity))
+            continue;
+        if (world.HasComponent<FxMeshComponent>(visualEntity))
+        {
+            FxMeshComponent& mesh =
+                world.GetComponent<FxMeshComponent>(visualEntity);
+            mesh.vWorldPos = vPosition;
+            mesh.vVelocity = {};
+            mesh.attachTo = entity;
+            mesh.vRotation.y = yaw;
+        }
+        if (world.HasComponent<FxBillboardComponent>(visualEntity))
+        {
+            FxBillboardComponent& billboard =
+                world.GetComponent<FxBillboardComponent>(visualEntity);
+            billboard.vWorldPos = vPosition;
+            billboard.vVelocity = {};
+            billboard.attachTo = entity;
+            billboard.fYaw = yaw;
+        }
+    }
+
+    return entity;
 }
 
 void CEventApplier::DestroyProjectileVisuals(CWorld& world, NetEntityId projectileNet)
@@ -771,16 +1026,401 @@ void CEventApplier::DestroyProjectileVisuals(CWorld& world, NetEntityId projecti
     m_projectileVisualEntities.erase(it);
 }
 
+void CEventApplier::DestroyEzrealFluxVisuals(CWorld& world, u64_t relationKey)
+{
+    auto it = m_ezrealFluxVisualEntities.find(relationKey);
+    if (it != m_ezrealFluxVisualEntities.end())
+    {
+        for (EntityID visualEntity : it->second)
+            DestroyEntityIfAlive(world, visualEntity);
+        m_ezrealFluxVisualEntities.erase(it);
+    }
+    m_ezrealFluxExpireTicks.erase(relationKey);
+}
+
+void CEventApplier::DestroyYasuoWindWallVisuals(
+    CWorld& world,
+    u64_t wallKey)
+{
+    const auto visualIt = m_yasuoWindWallVisualEntities.find(wallKey);
+    if (visualIt != m_yasuoWindWallVisualEntities.end())
+    {
+        for (EntityID visualEntity : visualIt->second)
+            DestroyEntityIfAlive(world, visualEntity);
+        m_yasuoWindWallVisualEntities.erase(visualIt);
+    }
+
+    const auto anchorIt = m_yasuoWindWallAnchors.find(wallKey);
+    if (anchorIt != m_yasuoWindWallAnchors.end())
+    {
+        DestroyEntityIfAlive(world, anchorIt->second);
+        m_yasuoWindWallAnchors.erase(anchorIt);
+    }
+    m_yasuoWindWallExpireTicks.erase(wallKey);
+}
+
+void CEventApplier::BeginSnapshotReconciliation(
+    u64_t uServerTick,
+    bool_t bFullSnapshot)
+{
+    m_reconcileServerTick = uServerTick;
+    m_bReconcileFullSnapshot = bFullSnapshot;
+    m_snapshotProjectileNetIds.clear();
+    m_snapshotEzrealFluxKeys.clear();
+    m_snapshotYasuoWindWallKeys.clear();
+}
+
+void CEventApplier::UpsertProjectileSnapshot(
+    CWorld& world,
+    EntityIdMap& entityMap,
+    NetEntityId uProjectileNet,
+    u16_t uProjectileKind,
+    const Vec3& vPosition,
+    const Vec3& vDirection,
+    f32_t fSpeed,
+    f32_t fMaxDistance,
+    f32_t fTraveledDistance)
+{
+    if (uProjectileNet == NULL_NET_ENTITY)
+        return;
+
+    m_snapshotProjectileNetIds.insert(uProjectileNet);
+    if (!TryAdvanceMutation(
+            m_projectileMutationStamps[uProjectileNet],
+            MakeSnapshotMutation(m_reconcileServerTick)))
+    {
+        return;
+    }
+
+    EnsureProjectilePresentation(
+        world,
+        entityMap,
+        uProjectileNet,
+        uProjectileKind,
+        vPosition,
+        vDirection,
+        fSpeed,
+        (std::max)(0.f, fMaxDistance - fTraveledDistance));
+}
+
+void CEventApplier::UpsertEzrealFluxSnapshot(
+    CWorld& world,
+    EntityIdMap& entityMap,
+    NetEntityId uSourceNet,
+    NetEntityId uTargetNet,
+    u64_t uExpireTick)
+{
+    if (uSourceNet == NULL_NET_ENTITY || uTargetNet == NULL_NET_ENTITY)
+        return;
+
+    const u64_t relationKey =
+        (static_cast<u64_t>(uSourceNet) << 32u) |
+        static_cast<u64_t>(uTargetNet);
+    m_snapshotEzrealFluxKeys.insert(relationKey);
+    if (!TryAdvanceMutation(
+            m_ezrealFluxMutationStamps[relationKey],
+            MakeSnapshotMutation(m_reconcileServerTick)))
+    {
+        return;
+    }
+
+    if (uExpireTick <= m_reconcileServerTick)
+    {
+        DestroyEzrealFluxVisuals(world, relationKey);
+        return;
+    }
+
+    const EntityID target = ResolveLiveEntity(world, entityMap, uTargetNet);
+    if (target == NULL_ENTITY)
+        return;
+
+    Vec3 position{};
+    if (world.HasComponent<TransformComponent>(target))
+        position = world.GetComponent<TransformComponent>(target).GetPosition();
+
+    const auto expireIt = m_ezrealFluxExpireTicks.find(relationKey);
+    const auto visualIt = m_ezrealFluxVisualEntities.find(relationKey);
+    const bool_t bNeedsRefresh =
+        expireIt == m_ezrealFluxExpireTicks.end() ||
+        expireIt->second != uExpireTick ||
+        visualIt == m_ezrealFluxVisualEntities.end() ||
+        (visualIt != m_ezrealFluxVisualEntities.end() &&
+            !visualIt->second.empty() &&
+            !HasLiveVisualEntity(world, visualIt->second));
+    if (bNeedsRefresh)
+    {
+        DestroyEzrealFluxVisuals(world, relationKey);
+        FxCueContext fx{};
+        fx.vWorldPos = position;
+        fx.vForward = { 0.f, 0.f, 1.f };
+        fx.attachTo = target;
+        fx.bOverrideLifetime = true;
+        fx.fLifetimeOverride = RemainingTickLifetimeSec(
+            m_reconcileServerTick,
+            uExpireTick);
+        fx.pFxMeshRenderer = m_pFxMeshRenderer;
+        std::vector<EntityID> spawned;
+        CFxCuePlayer::PlayAll(world, "Ezreal.W.Mark", fx, &spawned);
+        m_ezrealFluxVisualEntities[relationKey] = std::move(spawned);
+        m_ezrealFluxExpireTicks[relationKey] = uExpireTick;
+        return;
+    }
+
+    for (EntityID visualEntity : visualIt->second)
+    {
+        if (!world.IsAlive(visualEntity))
+            continue;
+        if (world.HasComponent<FxMeshComponent>(visualEntity))
+        {
+            FxMeshComponent& mesh =
+                world.GetComponent<FxMeshComponent>(visualEntity);
+            mesh.attachTo = target;
+            mesh.vWorldPos = position;
+        }
+        if (world.HasComponent<FxBillboardComponent>(visualEntity))
+        {
+            FxBillboardComponent& billboard =
+                world.GetComponent<FxBillboardComponent>(visualEntity);
+            billboard.attachTo = target;
+            billboard.vWorldPos = position;
+        }
+    }
+}
+
+void CEventApplier::UpsertYasuoWindWallSnapshot(
+    CWorld& world,
+    NetEntityId uSourceNet,
+    u64_t uSpawnTick,
+    const Vec3& vCenter,
+    const Vec3& vDirection,
+    f32_t fHalfLength,
+    f32_t fHalfThickness,
+    u64_t uExpireTick)
+{
+    const u64_t wallKey = BuildCueKey(
+        uSourceNet,
+        0u,
+        static_cast<u32_t>(
+            Shared::Schema::GameplayStateKind::YasuoWindWall),
+        uSpawnTick,
+        0u);
+    m_snapshotYasuoWindWallKeys.insert(wallKey);
+
+    if (uExpireTick <= m_reconcileServerTick)
+    {
+        DestroyYasuoWindWallVisuals(world, wallKey);
+        return;
+    }
+
+    Vec3 direction = WintersMath::Normalize3D(vDirection);
+    if (direction.x == 0.f && direction.y == 0.f && direction.z == 0.f)
+        direction = { 0.f, 0.f, 1.f };
+    const f32_t yaw = WintersMath::YawFromDirectionXZ(direction);
+
+    const auto expireIt = m_yasuoWindWallExpireTicks.find(wallKey);
+    const auto anchorIt = m_yasuoWindWallAnchors.find(wallKey);
+    const auto visualIt = m_yasuoWindWallVisualEntities.find(wallKey);
+    const bool_t bNeedsRefresh =
+        expireIt == m_yasuoWindWallExpireTicks.end() ||
+        expireIt->second != uExpireTick ||
+        anchorIt == m_yasuoWindWallAnchors.end() ||
+        !world.IsAlive(anchorIt->second) ||
+        (visualIt != m_yasuoWindWallVisualEntities.end() &&
+            !visualIt->second.empty() &&
+            !HasLiveVisualEntity(world, visualIt->second));
+
+    EntityID anchor = NULL_ENTITY;
+    if (bNeedsRefresh)
+    {
+        DestroyYasuoWindWallVisuals(world, wallKey);
+        anchor = world.CreateEntity();
+        world.AddComponent<TransformComponent>(anchor, TransformComponent{});
+        m_yasuoWindWallAnchors[wallKey] = anchor;
+        m_yasuoWindWallExpireTicks[wallKey] = uExpireTick;
+
+        std::vector<EntityID> visuals;
+        YasuoFx::SpawnWWindWall(
+            world,
+            m_pFxMeshRenderer,
+            vCenter,
+            direction,
+            RemainingTickLifetimeSec(m_reconcileServerTick, uExpireTick),
+            (std::max)(0.f, 2.f * fHalfLength),
+            (std::max)(0.f, 2.f * fHalfThickness),
+            0.01f,
+            anchor,
+            &visuals);
+        m_yasuoWindWallVisualEntities[wallKey] = std::move(visuals);
+    }
+    else
+    {
+        anchor = anchorIt->second;
+    }
+
+    TransformComponent& transform =
+        world.GetComponent<TransformComponent>(anchor);
+    transform.SetPosition(vCenter);
+    const Vec3 rotation = transform.GetRotation();
+    transform.SetRotation({ rotation.x, yaw, rotation.z });
+
+    for (EntityID visualEntity : m_yasuoWindWallVisualEntities[wallKey])
+    {
+        if (!world.IsAlive(visualEntity))
+            continue;
+        if (world.HasComponent<FxMeshComponent>(visualEntity))
+        {
+            FxMeshComponent& mesh =
+                world.GetComponent<FxMeshComponent>(visualEntity);
+            mesh.attachTo = anchor;
+            mesh.vWorldPos = vCenter;
+            mesh.vRotation.y = yaw;
+        }
+        if (world.HasComponent<FxBillboardComponent>(visualEntity))
+        {
+            FxBillboardComponent& billboard =
+                world.GetComponent<FxBillboardComponent>(visualEntity);
+            billboard.attachTo = anchor;
+            billboard.vWorldPos = vCenter;
+            billboard.fYaw = yaw;
+        }
+    }
+}
+
+void CEventApplier::EndSnapshotReconciliation(
+    CWorld& world,
+    EntityIdMap& entityMap)
+{
+    if (!m_bReconcileFullSnapshot)
+        return;
+
+    const PresentationMutationStamp snapshotMutation =
+        MakeSnapshotMutation(m_reconcileServerTick);
+
+    std::vector<NetEntityId> staleProjectiles;
+    staleProjectiles.reserve(m_projectileVisualEntities.size());
+    for (const auto& [projectileNet, _] : m_projectileVisualEntities)
+    {
+        if (m_snapshotProjectileNetIds.find(projectileNet) !=
+            m_snapshotProjectileNetIds.end())
+        {
+            continue;
+        }
+        if (TryAdvanceMutation(
+                m_projectileMutationStamps[projectileNet],
+                snapshotMutation))
+        {
+            staleProjectiles.push_back(projectileNet);
+        }
+    }
+    for (NetEntityId projectileNet : staleProjectiles)
+    {
+        DestroyProjectileVisuals(world, projectileNet);
+        const EntityID entity = entityMap.FromNet(projectileNet);
+        if (entity != NULL_ENTITY &&
+            world.IsAlive(entity) &&
+            world.HasComponent<ReplicatedProjectilePresentationTag>(entity))
+        {
+            world.DestroyEntity(entity);
+        }
+        entityMap.Unbind(projectileNet);
+    }
+
+    std::vector<u64_t> staleFluxKeys;
+    staleFluxKeys.reserve(m_ezrealFluxVisualEntities.size());
+    for (const auto& [relationKey, _] : m_ezrealFluxVisualEntities)
+    {
+        if (m_snapshotEzrealFluxKeys.find(relationKey) !=
+            m_snapshotEzrealFluxKeys.end())
+        {
+            continue;
+        }
+        if (TryAdvanceMutation(
+                m_ezrealFluxMutationStamps[relationKey],
+                snapshotMutation))
+        {
+            staleFluxKeys.push_back(relationKey);
+        }
+    }
+    for (u64_t relationKey : staleFluxKeys)
+        DestroyEzrealFluxVisuals(world, relationKey);
+
+    std::vector<u64_t> staleWallKeys;
+    staleWallKeys.reserve(m_yasuoWindWallAnchors.size());
+    for (const auto& [wallKey, _] : m_yasuoWindWallAnchors)
+    {
+        if (m_snapshotYasuoWindWallKeys.find(wallKey) ==
+            m_snapshotYasuoWindWallKeys.end())
+        {
+            staleWallKeys.push_back(wallKey);
+        }
+    }
+    for (u64_t wallKey : staleWallKeys)
+        DestroyYasuoWindWallVisuals(world, wallKey);
+}
+
 void CEventApplier::ApplyEffectTrigger(
     CWorld& world,
     EntityIdMap& entityMap,
-    const Shared::Schema::EffectTriggerEvent* ev)
+    const Shared::Schema::EffectTriggerEvent* ev,
+    u64_t uServerTick,
+    u32_t uEventOrdinal)
 {
     if (!ev)
         return;
 
     const u32_t effectId = ev->effectId();
-    if (effectId == kGlobalEffectFlashBlink)
+    if (effectId == kGlobalGameEndEffect)
+    {
+        // 넥서스 파괴 게임 종료 — 엔티티 해석 없이 latch만 세운다 (S030).
+        m_bGameEndPending = true;
+        m_uGameEndWinningTeam = static_cast<u8_t>(ev->flags());
+
+        // 패배 팀 넥서스 파괴 버스트 — 파괴 서브메시 스왑과 같은 순간에 재생.
+        // 스테이지 비주얼과 스냅샷 생성 넥서스가 공존할 수 있으므로
+        // 서버 바운드(ServerIdComponent) 엔티티를 우선해 한 번만 재생한다.
+        const eTeam losingTeam =
+            m_uGameEndWinningTeam == 0u ? eTeam::Red : eTeam::Blue;
+        EntityID burstNexus = NULL_ENTITY;
+        bool_t bBurstNexusBound = false;
+        world.ForEach<StructureComponent, TransformComponent>(
+            [&](EntityID e, StructureComponent& structure, TransformComponent&)
+            {
+                if (structure.kind !=
+                        static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus) ||
+                    structure.team != losingTeam)
+                {
+                    return;
+                }
+                const bool_t bBound =
+                    world.HasComponent<ServerIdComponent>(e) &&
+                    world.GetComponent<ServerIdComponent>(e).serverEntityId != 0u;
+                if (burstNexus == NULL_ENTITY || (bBound && !bBurstNexusBound))
+                {
+                    burstNexus = e;
+                    bBurstNexusBound = bBound;
+                }
+            });
+        if (burstNexus != NULL_ENTITY)
+        {
+            FxCueContext fx{};
+            fx.vWorldPos =
+                world.GetComponent<TransformComponent>(burstNexus).GetPosition();
+            fx.pFxMeshRenderer = m_pFxMeshRenderer;
+            std::vector<EntityID> spawned;
+            CFxCuePlayer::PlayAll(
+                world,
+                losingTeam == eTeam::Blue
+                    ? "Structure.Destruction.Blue"
+                    : "Structure.Destruction.Red",
+                fx,
+                &spawned);
+            for (EntityID fxEntity : spawned)
+                m_timelineVisualEntities.push_back(world.GetEntityHandle(fxEntity));
+        }
+        return;
+    }
+
+    if (effectId == kEzrealEffectArcaneShiftBlink)
     {
         const Vec3 origin{ ev->posX(), ev->posY(), ev->posZ() };
         const Vec3 delta{ ev->dirX(), ev->dirY(), ev->dirZ() };
@@ -789,6 +1429,108 @@ void CEventApplier::ApplyEffectTrigger(
             ? static_cast<f32_t>(ev->durationMs()) / 1000.f
             : 0.4f;
         Ezreal::Fx::SpawnEFlash(world, origin, dest, lifetime);
+        return;
+    }
+
+    if (effectId == kEzrealEffectEssenceFluxMark ||
+        effectId == kEzrealEffectEssenceFluxDetonate ||
+        effectId == kEzrealEffectEssenceFluxClear)
+    {
+        const u64_t cueKey = BuildCueKey(
+            ev->effectId(),
+            ev->sourceNet(),
+            ev->targetNet(),
+            ev->startTick(),
+            ev->flags());
+        if (m_seenEffectCueKeys.size() > 4096u)
+            m_seenEffectCueKeys.clear();
+        const bool_t bFirstCue = m_seenEffectCueKeys.insert(cueKey).second;
+
+        const u64_t relationKey =
+            (static_cast<u64_t>(ev->sourceNet()) << 32u) |
+            static_cast<u64_t>(ev->targetNet());
+        const ePresentationMutationPhase ePhase =
+            effectId == kEzrealEffectEssenceFluxMark
+                ? ePresentationMutationPhase::SpawnOrMark
+                : ePresentationMutationPhase::ContactOrClear;
+        const bool_t bApplyRelationMutation = TryAdvanceMutation(
+            m_ezrealFluxMutationStamps[relationKey],
+            MakeEventMutation(
+                uServerTick,
+                uEventOrdinal,
+                ePhase));
+
+        EntityID target = NULL_ENTITY;
+        if (ev->targetNet() != NULL_NET_ENTITY)
+            target = ResolveLiveEntity(world, entityMap, ev->targetNet());
+        Vec3 pos{ ev->posX(), ev->posY(), ev->posZ() };
+        if (target != NULL_ENTITY && world.HasComponent<TransformComponent>(target))
+            pos = world.GetComponent<TransformComponent>(target).GetPosition();
+
+        if (effectId == kEzrealEffectEssenceFluxMark)
+        {
+            if (!bApplyRelationMutation || target == NULL_ENTITY)
+                return;
+
+            const u64_t uStartTick = ev->startTick() != 0u
+                ? ev->startTick()
+                : uServerTick;
+            const u64_t uDurationTicks = ev->durationMs() > 0u
+                ? (static_cast<u64_t>(ev->durationMs()) * 30u + 999u) / 1000u
+                : 120u;
+            const u64_t uExpireTick = uStartTick + uDurationTicks;
+            const auto expireIt = m_ezrealFluxExpireTicks.find(relationKey);
+            if (expireIt != m_ezrealFluxExpireTicks.end() &&
+                expireIt->second == uExpireTick &&
+                m_ezrealFluxVisualEntities.find(relationKey) !=
+                    m_ezrealFluxVisualEntities.end())
+            {
+                return;
+            }
+
+            DestroyEzrealFluxVisuals(world, relationKey);
+            FxCueContext fx{};
+            fx.vWorldPos = pos;
+            fx.vForward = { 0.f, 0.f, 1.f };
+            fx.attachTo = target;
+            fx.fLifetimeOverride = ev->durationMs() > 0u
+                ? static_cast<f32_t>(ev->durationMs()) / 1000.f
+                : 4.f;
+            fx.bOverrideLifetime = true;
+            fx.pFxMeshRenderer = m_pFxMeshRenderer;
+
+            std::vector<EntityID> spawned;
+            CFxCuePlayer::PlayAll(world, "Ezreal.W.Mark", fx, &spawned);
+            m_ezrealFluxVisualEntities[relationKey] = std::move(spawned);
+            m_ezrealFluxExpireTicks[relationKey] = uExpireTick;
+        }
+        else if (effectId == kEzrealEffectEssenceFluxDetonate)
+        {
+            if (bApplyRelationMutation)
+            {
+                DestroyEzrealFluxVisuals(world, relationKey);
+                m_ezrealFluxExpireTicks.erase(relationKey);
+            }
+            if (bFirstCue)
+            {
+                FxCueContext fx{};
+                fx.vWorldPos = pos;
+                fx.vForward = { 0.f, 0.f, 1.f };
+                fx.attachTo = target;
+                fx.pFxMeshRenderer = m_pFxMeshRenderer;
+                std::vector<EntityID> spawned;
+                CFxCuePlayer::PlayAll(
+                    world, "Ezreal.W.Detonate", fx, &spawned);
+                for (EntityID entity : spawned)
+                    m_timelineVisualEntities.push_back(
+                        world.GetEntityHandle(entity));
+            }
+        }
+        else if (bApplyRelationMutation)
+        {
+            DestroyEzrealFluxVisuals(world, relationKey);
+            m_ezrealFluxExpireTicks.erase(relationKey);
+        }
         return;
     }
 
@@ -923,6 +1665,7 @@ void CEventApplier::ApplyEffectTrigger(
         ctx.pCommand = &command;
         ctx.skillStage = skillStage;
         ctx.pFxMeshRenderer = m_pFxMeshRenderer;
+        ctx.bAuthoritativeEvent = true;
 
         const bool_t bVisualHandled =
             CVisualHookRegistry::Instance().Dispatch(effectId, ctx);
@@ -955,9 +1698,6 @@ void CEventApplier::ApplyEffectTrigger(
             return;
     }
 
-    const f32_t lifetime = ev->durationMs() > 0
-        ? static_cast<f32_t>(ev->durationMs()) / 1000.f
-        : 0.75f;
     if (const char* pszCueName = ResolveEffectTriggerCue(hookChampion, hookSlot, skillStage))
     {
         FxCueContext fx{};
@@ -965,20 +1705,11 @@ void CEventApplier::ApplyEffectTrigger(
         fx.vForward = WintersMath::Normalize3D(Vec3{ ev->dirX(), ev->dirY(), ev->dirZ() });
         fx.attachTo = bKeepEventPosition ? NULL_ENTITY : attachTo;
         fx.pFxMeshRenderer = m_pFxMeshRenderer;
-        // Named champion cues keep per-emitter lifetimes from .wfx assets.
-        if (CFxCuePlayer::Play(world, pszCueName, fx) != NULL_ENTITY)
-            return;
+        std::vector<EntityID> spawned;
+        CFxCuePlayer::PlayAll(world, pszCueName, fx, &spawned);
+        for (EntityID entity : spawned)
+            m_timelineVisualEntities.push_back(world.GetEntityHandle(entity));
     }
-
-    SpawnBillboard(
-        world,
-        pos,
-        Vec3{},
-        kEffectTexture,
-        1.6f,
-        1.6f,
-        lifetime,
-        bKeepEventPosition ? NULL_ENTITY : attachTo);
 }
 
 void CEventApplier::ApplyDamage(
@@ -1017,8 +1748,6 @@ void CEventApplier::ApplyDamage(
             CGameInstance::Get()->UI_RecordMatchContextUnitKill();
     }
 
-    if (!IsMinionEntity(world, source) && !IsMinionEntity(world, target))
-        SpawnBillboard(world, pos, Vec3{}, kDamageTexture, 1.0f, 1.0f, 0.25f, target);
 }
 
 void CEventApplier::ApplyKillFeed(
@@ -1055,6 +1784,31 @@ void CEventApplier::ApplyKillFeed(
     const bool_t bSourceAlly = sourceTeam == localTeam;
     const bool_t bTargetAlly = targetTeam == localTeam;
 
+    // 포탑/억제기 파괴 순간 연출 — 구조물 엔티티는 사망 후에도 ECS 에 남으므로 위치 해석 가능.
+    if (objectKind == kKillFeedObjectStructure || objectKind == kKillFeedObjectObjective)
+    {
+        const EntityID structureEntity =
+            ResolveLiveEntity(world, entityMap, ev->targetNet());
+        if (structureEntity != NULL_ENTITY &&
+            world.HasComponent<TransformComponent>(structureEntity))
+        {
+            FxCueContext fx{};
+            fx.vWorldPos =
+                world.GetComponent<TransformComponent>(structureEntity).GetPosition();
+            fx.pFxMeshRenderer = m_pFxMeshRenderer;
+            std::vector<EntityID> spawned;
+            CFxCuePlayer::PlayAll(
+                world,
+                targetTeam == eTeam::Blue
+                    ? "Structure.Destruction.Blue"
+                    : "Structure.Destruction.Red",
+                fx,
+                &spawned);
+            for (EntityID fxEntity : spawned)
+                m_timelineVisualEntities.push_back(world.GetEntityHandle(fxEntity));
+        }
+    }
+
     if (objectKind == kKillFeedObjectActor)
     {
         const EntityID localEntity = FindLocalPlayerEntity(world);
@@ -1086,7 +1840,7 @@ void CEventApplier::ApplyKillFeed(
         pMessage);
 }
 
-void CEventApplier::PlayReplicatedActionVisual(
+bool_t CEventApplier::PlayReplicatedActionVisual(
     CWorld& world,
     EntityID entity,
     u16_t actionId,
@@ -1095,15 +1849,27 @@ void CEventApplier::PlayReplicatedActionVisual(
     if (!world.HasComponent<RenderComponent>(entity) ||
         !world.HasComponent<ChampionComponent>(entity))
     {
-        return;
+        return false;
     }
     auto& render = world.GetComponent<RenderComponent>(entity);
     if (!render.pRenderer)
-        return;
+        return false;
     const auto& champion = world.GetComponent<ChampionComponent>(entity);
     eChampion animationChampion = champion.id;
+    u8_t replicatedSourceSlot = SlotFromReplicatedAction(actionId);
+    if (world.HasComponent<ReplicatedActionComponent>(entity))
+    {
+        const auto& action = world.GetComponent<ReplicatedActionComponent>(entity);
+        replicatedSourceSlot = action.sourceSlot;
+        if (action.sourceChampion != eChampion::NONE &&
+            action.sourceChampion != eChampion::END)
+        {
+            animationChampion = action.sourceChampion;
+        }
+    }
     const u8_t actionSlot = SlotFromReplicatedAction(actionId);
-    if (world.HasComponent<FormOverrideComponent>(entity))
+    if (animationChampion == champion.id &&
+        world.HasComponent<FormOverrideComponent>(entity))
     {
         const auto& form = world.GetComponent<FormOverrideComponent>(entity);
         if (form.bActive &&
@@ -1127,7 +1893,7 @@ void CEventApplier::PlayReplicatedActionVisual(
 
     const ChampionDef* cd = FindClientChampionDefForEvent(animationChampion);
     if (!cd)
-        return;
+        return false;
     std::string animName;
     const auto id = static_cast<eReplicatedActionId>(actionId);
     switch (id)
@@ -1159,6 +1925,11 @@ void CEventApplier::PlayReplicatedActionVisual(
         {
             pAnimKey = ResolveYasuoQAnimKey(actionStage);
         }
+        else if (animationChampion == eChampion::RIVEN &&
+            id == eReplicatedActionId::SkillQ)
+        {
+            pAnimKey = ResolveRivenQAnimKey(actionStage);
+        }
         else if (def)
         {
             pAnimKey = (bStage2 && def->stage2AnimKey)
@@ -1177,6 +1948,8 @@ void CEventApplier::PlayReplicatedActionVisual(
     }
     if (!animName.empty())
     {
+        const bool_t bBasicAttackPresentation =
+            UI::IsAttackSpeedPlaybackAction(actionId, replicatedSourceSlot);
         f32_t playSpeed = 1.f;
         if (id == eReplicatedActionId::BasicAttack ||
             id == eReplicatedActionId::SkillQ ||
@@ -1192,6 +1965,16 @@ void CEventApplier::PlayReplicatedActionVisual(
                 actionSlot,
                 actionStage,
                 def);
+
+            // BA 모션은 복제된 최종 공속 / canonical base 비율로 재생하고,
+            // AttackSpeedLab('8' 키)의 per-entity 시각 보정값을 그 위에 곱한다.
+            if (bBasicAttackPresentation)
+            {
+                const UI::AttackSpeedPlaybackScales scales =
+                    UI::ResolveAttackSpeedPlaybackScales(world, entity);
+                playSpeed *= scales.fAttackSpeedScale *
+                    scales.fAnimCorrectionScale;
+            }
         }
         const bool_t bPlayed = render.pRenderer->PlayAnimationByNameAdvanced(
             animName.c_str(),
@@ -1216,24 +1999,8 @@ void CEventApplier::PlayReplicatedActionVisual(
             }
         }
 #endif
+        return bPlayed;
     }
-}
 
-EntityID CEventApplier::SpawnBillboard(CWorld& world, const Vec3& pos, const Vec3& velocity,
-    const wchar_t* texturePath, f32_t width, f32_t height, f32_t lifetime,
-    EntityID attachTo)
-{
-    FxBillboardComponent fx{};
-    fx.vWorldPos = pos;
-    fx.vVelocity = velocity;
-    fx.attachTo = attachTo;
-    fx.vAttachOffset = { 0.f, 1.f, 0.f };
-    fx.texturePath = texturePath;
-    fx.fWidth = width;
-    fx.fHeight = height;
-    fx.fLifetime = lifetime;
-    fx.fFadeOut = lifetime * 0.35f;
-    fx.bBillboard = true;
-    fx.blendMode = eBlendPreset::AlphaBlend;
-    return CFxSystem::Spawn(world, fx);
+    return false;
 }

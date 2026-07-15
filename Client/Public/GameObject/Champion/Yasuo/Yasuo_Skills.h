@@ -17,6 +17,7 @@ namespace Yasuo
         void OnCastAccepted_W_Visual(VisualHookContext& ctx);
         void OnCastAccepted_E_Visual(VisualHookContext& ctx);
         void OnCastAccepted_R_Visual(VisualHookContext& ctx);
+        void OnPassiveShield_Visual(VisualHookContext& ctx);
     }
 }
 

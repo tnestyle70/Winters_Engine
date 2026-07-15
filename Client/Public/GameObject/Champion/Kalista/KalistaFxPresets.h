@@ -4,6 +4,7 @@
 #include "ECS/Entity.h"
 
 class CWorld;
+class CFxSystem;
 
 namespace Engine
 {
@@ -12,6 +13,8 @@ namespace Engine
 
 namespace KalistaFx
 {
+    bool_t PreloadWSentinelTextures(CFxSystem& fxSystem);
+
     EntityID SpawnQSpear(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
         const Vec3& vOrigin, const Vec3& vForward,
         f32_t fSpeed, f32_t fLifetime, f32_t fScale);
@@ -26,7 +29,8 @@ namespace KalistaFx
     void SpawnEExplode(CWorld& world, EntityID target, f32_t fLifetime);
 
     void SpawnWSentinelIdle(CWorld& world, EntityID sentinel,
-        const Vec3& vForward, f32_t fLifetime,
+        const Vec3& vForward, f32_t fLifetime, f32_t fSightRange,
+        u8_t iOwnerTeam,
         EntityID* pOutAvatarFx = nullptr,
         EntityID* pOutConeFx = nullptr);
 }

@@ -1,5 +1,8 @@
 #include "Scene/Scene_BanPick.h"
 
+#include "ClientShell/ClientShellBackendService.h"
+#include "ClientShell/ClientShellDataStore.h"
+#include "ClientShell/ClientShellSession.h"
 #include "Core/CInput.h"
 #include "Dev/SmokeLog.h"
 #include "GameInstance.h"
@@ -26,6 +29,11 @@
 #include <utility>
 
 #include <Windows.h>
+
+#pragma push_macro("new")
+#undef new
+#include <imgui.h>
+#pragma pop_macro("new")
 
 namespace
 {
@@ -265,6 +273,20 @@ namespace
 			context.MyNetId != 0 &&
 			context.MySlotId < kGameRosterSlotCount;
 	}
+
+	bool_t IsUnownedOnlineChampion(const std::string& contentKey)
+	{
+		const CClientShellSession& session = CClientShellSession::Instance();
+		if (!session.IsAuthenticated() || session.IsOfflineAccount())
+			return false;
+
+		const CClientShellDataStore& store = CClientShellDataStore::Instance();
+		if (!store.IsInitialSyncReady())
+			return false;
+
+		const ShellStoreItem* pItem = store.FindStoreItemByContentKey(contentKey);
+		return pItem && pItem->strItemType == "champion" && !pItem->bOwned;
+	}
 }
 
 std::unique_ptr<CScene_BanPick> CScene_BanPick::Create()
@@ -285,6 +307,11 @@ bool CScene_BanPick::OnEnter()
 		1555,
 		861);
 	BuildChampionCells();
+	if (CClientShellSession::Instance().IsAuthenticated() &&
+		!CClientShellSession::Instance().IsOfflineAccount())
+	{
+		CClientShellBackendService::Instance().RequestStorefrontSync();
+	}
 
 	const BanPickSmokeOptions smokeOptions = ParseBanPickSmokeOptions();
 	m_ServerSmoke.bEnabled = smokeOptions.bEnabled;
@@ -306,7 +333,10 @@ bool CScene_BanPick::OnEnter()
 		Winters::DevSmoke::Log("%s", msg);
 	}
 
-	m_bServerLobbyActive = CGameSessionClient::Instance().Connect();
+	const bool_t bServerConnected = CGameSessionClient::Instance().Connect();
+	m_eMatchLaunchRuntimeMode = ResolveMatchLaunchRuntimeMode(bServerConnected);
+	m_bServerLobbyActive =
+		m_eMatchLaunchRuntimeMode == eMatchLaunchRuntimeMode::ServerConnected;
 	if (m_bServerLobbyActive)
 	{
 		if (!m_ServerSmoke.bEnabled)
@@ -318,23 +348,34 @@ bool CScene_BanPick::OnEnter()
 		return true;
 	}
 
-	MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
-	if (context.MySessionId == 0 || context.MySlotId == kInvalidGameRosterSlot)
-		InitializeLocalCustomRoom(context);
-
-	if (m_ServerSmoke.bEnabled)
+	if (CanLaunchLocalGameplay(m_eMatchLaunchRuntimeMode))
 	{
-		JoinLocalPlayerSlot(context, m_ServerSmoke.slotId);
-		AssignChampionToSlot(context, m_ServerSmoke.slotId, m_ServerSmoke.champion);
-		FinalizeRosterForStart(context);
-		m_SelectedSlotId = m_ServerSmoke.slotId;
-	}
-	else
-	{
-		m_SelectedSlotId = context.MySlotId < kGameRosterSlotCount ? context.MySlotId : 0;
+		MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
+		if (context.MySessionId == 0 || context.MySlotId == kInvalidGameRosterSlot)
+			InitializeLocalCustomRoom(context);
+
+		if (m_ServerSmoke.bEnabled)
+		{
+			JoinLocalPlayerSlot(context, m_ServerSmoke.slotId);
+			AssignChampionToSlot(context, m_ServerSmoke.slotId, m_ServerSmoke.champion);
+			FinalizeRosterForStart(context);
+			m_SelectedSlotId = m_ServerSmoke.slotId;
+		}
+		else
+		{
+			m_SelectedSlotId = context.MySlotId < kGameRosterSlotCount
+				? context.MySlotId
+				: 0;
+		}
+
+		Winters::DevSmoke::Log(
+			"[BanPick] explicit local-only smoke champion select mode\n");
+		return true;
 	}
 
-	Winters::DevSmoke::Log("[BanPick] local champion select mode\n");
+	m_SelectedSlotId = kInvalidGameRosterSlot;
+	Winters::DevSmoke::Log(
+		"[BanPick] server required; local gameplay launch blocked\n");
 	return true;
 }
 
@@ -342,14 +383,23 @@ void CScene_BanPick::OnExit()
 {
 	m_ChampionCells.clear();
 	m_ImageUI.Shutdown();
+	m_eMatchLaunchRuntimeMode =
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable;
 }
 
 void CScene_BanPick::OnUpdate(f32_t dt)
 {
+	CClientShellBackendService::Instance().ProcessCallbacks();
+
 	if (m_bSceneTransitionStarted)
 		return;
+	if (m_eMatchLaunchRuntimeMode ==
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+	{
+		return;
+	}
 
-	if (!m_bServerLobbyActive)
+	if (CanLaunchLocalGameplay(m_eMatchLaunchRuntimeMode))
 	{
 		HandleChampionSelectInput();
 		if (m_ServerSmoke.bEnabled &&
@@ -416,20 +466,58 @@ void CScene_BanPick::OnRender()
 		return;
 
 	m_ImageUI.DrawBackground();
-	RenderChampionGridAndRosterOverlay();
+	if (m_eMatchLaunchRuntimeMode !=
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+	{
+		RenderChampionGridAndRosterOverlay();
+	}
 	m_ImageUI.End();
 }
 
 void CScene_BanPick::OnImGui()
 {
+	if (m_eMatchLaunchRuntimeMode ==
+		eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+	{
+		RenderServerRequiredNotice();
+	}
 }
 
 void CScene_BanPick::HandleChampionSelectInput()
 {
-	if (m_bServerLobbyActive)
+	if (m_eMatchLaunchRuntimeMode == eMatchLaunchRuntimeMode::ServerConnected)
 		HandleServerChampionSelectInput();
-	else
+	else if (CanLaunchLocalGameplay(m_eMatchLaunchRuntimeMode))
 		HandleLocalChampionSelectInput();
+}
+
+void CScene_BanPick::RenderServerRequiredNotice()
+{
+	ImGuiIO& io = ImGui::GetIO();
+	const ImVec2 windowSize(520.f, 130.f);
+	ImGui::SetNextWindowPos(
+		ImVec2(
+			(io.DisplaySize.x - windowSize.x) * 0.5f,
+			(io.DisplaySize.y - windowSize.y) * 0.5f),
+		ImGuiCond_Always);
+	ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+	constexpr ImGuiWindowFlags flags =
+		ImGuiWindowFlags_NoCollapse |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoSavedSettings;
+
+	if (ImGui::Begin("Server Required##BanPick", nullptr, flags))
+	{
+		ImGui::TextWrapped(
+			"WintersServer is not connected. Champion select and game start "
+			"are blocked in the normal client.");
+		ImGui::Spacing();
+		ImGui::TextDisabled(
+			"Developer-only local smoke: --local-only-smoke");
+	}
+	ImGui::End();
 }
 
 void CScene_BanPick::HandleServerChampionSelectInput()
@@ -568,6 +656,8 @@ void CScene_BanPick::RenderChampionGridAndRosterOverlay()
 				cell.rect,
 				Vec4(1.f, 1.f, 1.f, 1.f));
 		}
+		if (IsUnownedOnlineChampion(cell.strContentKey))
+			m_ImageUI.DrawSourceRect(cell.rect, Vec4(0.f, 0.f, 0.f, 0.68f));
 		m_ImageUI.DrawSourceRectOutline(cell.rect, Vec4(0.68f, 0.52f, 0.18f, 0.78f), 1.f);
 
 		if (cell.champion == selectedSlotChampion || cell.champion == m_SelectedChampion)
@@ -621,7 +711,8 @@ void CScene_BanPick::BuildChampionCells()
 
 	for (u32_t i = 0; i < static_cast<u32_t>(champions.size()); ++i)
 	{
-		const eChampion champion = champions[i].id;
+		const ChampionCatalogEntry& catalogEntry = champions[i];
+		const eChampion champion = catalogEntry.id;
 		if (!IsRosterChampionSupported(champion))
 			continue;
 
@@ -631,6 +722,8 @@ void CScene_BanPick::BuildChampionCells()
 
 		ChampionCell cell{};
 		cell.champion = champion;
+		if (catalogEntry.contentKey)
+			cell.strContentKey = catalogEntry.contentKey;
 		cell.rect = ImageSourceRect{
 			kChampionGridLeft + static_cast<f32_t>(col) * kChampionPitchX,
 			kChampionGridTop + static_cast<f32_t>(row) * kChampionPitchY,
@@ -653,7 +746,12 @@ void CScene_BanPick::BuildChampionCells()
 
 void CScene_BanPick::StartMatchLoadingScene()
 {
-	if (m_bSceneTransitionStarted)
+	if (m_bSceneTransitionStarted ||
+		m_eMatchLaunchRuntimeMode ==
+			eMatchLaunchRuntimeMode::ServerRequiredUnavailable)
+		return;
+	if (m_eMatchLaunchRuntimeMode == eMatchLaunchRuntimeMode::ServerConnected &&
+		!CGameSessionClient::Instance().IsConnected())
 		return;
 
 	m_bSceneTransitionStarted = true;

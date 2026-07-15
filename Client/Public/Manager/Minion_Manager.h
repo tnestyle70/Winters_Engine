@@ -43,6 +43,7 @@ public:
 
     void    OnImGui_Tuner();
     void    DEBUG_SpawnWaveNow();
+    bool_t PrewarmNextNetworkVisualResource(bool_t& bComplete);
     void PrewarmNetworkVisualResources();
 
     static void GetWayPoints(eMinionTeam eTeam, eMinionWay eWay,
@@ -94,9 +95,9 @@ private:
 private:
     enum class eMinionVisualPhase : uint8_t
     {
+        Spawn,
         Base,
         Attack,
-        Recover,
         Death
     };
 
@@ -107,7 +108,8 @@ private:
         uint16_t lastAnimId = 0;
         uint8_t baseState = 0xff;
         f32_t phaseTimer = 0.f;
-        bool_t bPendingAttack = false;
+        bool_t bAlternateLocalAttack = false;
+        bool_t bSpawnPlayed = false;
     };
 
     struct NetworkVisualRequest

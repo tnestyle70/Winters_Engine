@@ -11,10 +11,13 @@ CClientShellDataStore& CClientShellDataStore::Instance()
 void CClientShellDataStore::Reset()
 {
 	m_bSeeded = false;
+	m_bInitialSyncReady = false;
+	m_uStorefrontRevision = 0;
 	m_Profile = {};
 	m_LobbyState = {};
 	m_vecStoreItems.clear();
 	m_vecFriends.clear();
+	m_vecMatchHistory.clear();
 }
 
 void CClientShellDataStore::SeedOfflineDefaults(const CClientShellSession& session)
@@ -36,9 +39,9 @@ void CClientShellDataStore::SeedOfflineDefaults(const CClientShellSession& sessi
 	m_LobbyState.bMatchReady = false;
 
 	m_vecStoreItems = {
-		{ "skin_irelia_frost", "Frost Irelia", "Offline test skin", "Skin", 520, false },
-		{ "skin_yasuo_night", "Night Yasuo", "Offline test skin", "Skin", 750, false },
-		{ "boost_xp_1d", "XP Boost 1 Day", "Offline account boost", "Boost", 290, false },
+		{ "skin_irelia_frost", "Frost Irelia", "Offline test skin", "Skin", "", "", 520, false },
+		{ "skin_yasuo_night", "Night Yasuo", "Offline test skin", "Skin", "", "", 750, false },
+		{ "boost_xp_1d", "XP Boost 1 Day", "Offline account boost", "Boost", "", "", 290, false },
 	};
 
 	m_vecFriends = {
@@ -47,6 +50,7 @@ void CClientShellDataStore::SeedOfflineDefaults(const CClientShellSession& sessi
 		{ "friend_003", "ShaderBox", eFriendPresence::Away, "Tuning FX" },
 	};
 
+	++m_uStorefrontRevision;
 	m_bSeeded = true;
 }
 
@@ -63,6 +67,43 @@ void CClientShellDataStore::ApplyProfileData(const Client::ProfileData& profile)
 	m_Profile.iWins = profile.wins;
 	m_Profile.iLosses = profile.losses;
 	m_Profile.iMMR = profile.mmr;
+}
+
+void CClientShellDataStore::ApplyStorefront(const Client::StorefrontData& storefront)
+{
+	if (!storefront.success)
+		return;
+
+	// RP·상품·소유권을 하나의 스냅샷으로 통째 교체한다 (부분 갱신 race 금지).
+	std::vector<ShellStoreItem> vecNextItems;
+	vecNextItems.reserve(storefront.items.size());
+	for (const Client::ShopItemData& source : storefront.items)
+	{
+		ShellStoreItem item{};
+		item.strItemID = source.id;
+		item.strName = source.name;
+		item.strItemType = source.itemType;
+		item.strProductKey = source.productKey;
+		item.strContentKey = source.contentKey;
+		item.iPriceRP = static_cast<i32_t>(source.price);
+		item.bOwned = source.owned;
+		vecNextItems.push_back(std::move(item));
+	}
+
+	m_vecStoreItems = std::move(vecNextItems);
+	m_Profile.iRP = static_cast<i32_t>(storefront.balanceRP);
+	m_bInitialSyncReady = true;
+	++m_uStorefrontRevision;
+}
+
+const ShellStoreItem* CClientShellDataStore::FindStoreItemByContentKey(const std::string& strContentKey) const
+{
+	for (const ShellStoreItem& item : m_vecStoreItems)
+	{
+		if (item.strContentKey == strContentKey)
+			return &item;
+	}
+	return nullptr;
 }
 
 void CClientShellDataStore::ApplyStoreItems(const std::vector<Client::ShopItemData>& items)
@@ -86,10 +127,12 @@ void CClientShellDataStore::ApplyStoreItems(const std::vector<Client::ShopItemDa
 	}
 
 	m_vecStoreItems = std::move(vecNextItems);
+	++m_uStorefrontRevision;
 }
 
 void CClientShellDataStore::ApplyInventoryItems(const std::vector<Client::InventoryItemData>& items)
 {
+	bool_t bChanged = false;
 	for (const Client::InventoryItemData& source : items)
 	{
 		if (source.itemId.empty())
@@ -101,7 +144,11 @@ void CClientShellDataStore::ApplyInventoryItems(const std::vector<Client::Invent
 			if (item.strItemID != source.itemId)
 				continue;
 
-			item.bOwned = true;
+			if (!item.bOwned)
+			{
+				item.bOwned = true;
+				bChanged = true;
+			}
 			bFound = true;
 			break;
 		}
@@ -114,8 +161,12 @@ void CClientShellDataStore::ApplyInventoryItems(const std::vector<Client::Invent
 			item.strItemType = source.itemType;
 			item.bOwned = true;
 			m_vecStoreItems.push_back(std::move(item));
+			bChanged = true;
 		}
 	}
+
+	if (bChanged)
+		++m_uStorefrontRevision;
 }
 
 bool_t CClientShellDataStore::ApplyPurchaseResult(
@@ -132,9 +183,17 @@ bool_t CClientShellDataStore::ApplyPurchaseResult(
 	MarkStoreItemOwned(itemId);
 	if (result.remainingCoins >= 0)
 		m_Profile.iRP = static_cast<i32_t>(result.remainingCoins);
+	++m_uStorefrontRevision;
 
-	outStatus = "Purchase complete";
+	outStatus = result.status == "already_owned"
+		? "이미 구매한 상품입니다."
+		: "구매 완료";
 	return true;
+}
+
+void CClientShellDataStore::ApplyMatchHistory(const std::vector<Client::MatchRecord>& records)
+{
+	m_vecMatchHistory = records;
 }
 
 bool_t CClientShellDataStore::PurchaseOfflineItem(const std::string& itemId, std::string& outStatus)
@@ -146,7 +205,7 @@ bool_t CClientShellDataStore::PurchaseOfflineItem(const std::string& itemId, std
 
 		if (item.bOwned)
 		{
-			outStatus = "Already owned";
+			outStatus = "이미 구매한 상품입니다.";
 			return false;
 		}
 
@@ -158,6 +217,7 @@ bool_t CClientShellDataStore::PurchaseOfflineItem(const std::string& itemId, std
 
 		m_Profile.iRP -= item.iPriceRP;
 		item.bOwned = true;
+		++m_uStorefrontRevision;
 		outStatus = "Purchased " + item.strName;
 		return true;
 	}

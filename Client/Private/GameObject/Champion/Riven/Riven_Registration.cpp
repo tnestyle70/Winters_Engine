@@ -47,6 +47,18 @@ namespace
                 }
                 else
                 {
+                    if (slot == static_cast<u8_t>(eSkillSlot::R))
+                    {
+                        s.targetMode = eTargetMode::Self;
+                        s.stageCount = 2u;
+                        s.stage2TargetMode = eTargetMode::Direction;
+                        s.stage2AnimKey = "spell4b";
+                        s.stage2LockSec = 0.6f;
+                        s.stage2Rotate = eRotateMode::TowardsCursor;
+                        s.stageWindowSec = 15.f;
+                        s.stage2VisualCastFrame = 6.f;
+                        s.stage2VisualRecoveryFrame = 14.f;
+                    }
                     s.castHookId = ResolveRivenCastHook(slot);
                 }
 

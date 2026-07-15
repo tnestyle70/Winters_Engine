@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <limits>
 #include <string>
 #include <Windows.h>
 
@@ -63,10 +64,12 @@ namespace Kalista
             EntityID caster, eTeam casterTeam, const Vec3& origin,
             const Vec3& forward, f32_t speed, f32_t maxDist, f32_t radius,
             f32_t damage, const Vec3& flyScale, f32_t stuckScale,
-            bool_t bApplyRendStack)
+            bool_t bApplyRendStack, EntityID targetEntity = NULL_ENTITY)
         {
             const Vec3 dir = WintersMath::NormalizeXZ(forward);
-            const f32_t lifetime = (speed > 0.01f) ? (maxDist / speed + 0.1f) : 0.1f;
+            const f32_t lifetime = targetEntity != NULL_ENTITY
+                ? (std::numeric_limits<f32_t>::max)()
+                : ((speed > 0.01f) ? (maxDist / speed + 0.1f) : 0.1f);
             const EntityID flyId = KalistaFx::SpawnQSpear(world, pRenderer,
                 origin, dir, speed, lifetime, flyScale);
 
@@ -75,7 +78,7 @@ namespace Kalista
                 speed, maxDist, radius, damage,
                 caster, casterTeam,
                 pRenderer, stuckScale, bApplyRendStack,
-                flyId);
+                flyId, targetEntity);
         }
     }
 
@@ -101,18 +104,7 @@ namespace Kalista
             origin, forward,
             tuning.baSpeed, tuning.baMaxDist, tuning.baRadius, tuning.baDamage,
             flyScale, tuning.baStuckSpearScale,
-            false);
-
-        if (ctx.pCommand->targetEntityId != NULL_ENTITY)
-        {
-            CKalistaRendSystem::AddStack(
-                *ctx.pWorld,
-                ctx.pCommand->targetEntityId,
-                ctx.casterEntity,
-                ctx.casterTeam,
-                ctx.pFxMeshRenderer,
-                tuning.baStuckSpearScale);
-        }
+            true, ctx.pCommand->targetEntityId);
     }
 
     void OnCastFrame_Q(SkillHookContext& ctx)

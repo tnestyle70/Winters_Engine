@@ -5,25 +5,31 @@
 
 namespace
 {
-	constexpr eChampion kChampionCatalogOrder[] =
+	struct ChampionCatalogSeed
 	{
-		eChampion::EZREAL,
-		eChampion::FIORA,
-		eChampion::JAX,
-		eChampion::KINDRED,
-		eChampion::LEESIN,
-		eChampion::MASTERYI,
-		eChampion::ANNIE,
-		eChampion::ASHE,
-		eChampion::YONE,
-		eChampion::IRELIA,
-		eChampion::YASUO,
-		eChampion::KALISTA,
-		eChampion::SYLAS,
-		eChampion::VIEGO,
-		eChampion::GAREN,
-		eChampion::ZED,
-		eChampion::RIVEN,
+		eChampion id;
+		const char* contentKey;
+	};
+
+	constexpr ChampionCatalogSeed kChampionCatalogSeeds[] =
+	{
+		{ eChampion::EZREAL,   "champion.ezreal" },
+		{ eChampion::FIORA,    "champion.fiora" },
+		{ eChampion::JAX,      "champion.jax" },
+		{ eChampion::KINDRED,  "champion.kindred" },
+		{ eChampion::LEESIN,   "champion.leesin" },
+		{ eChampion::MASTERYI, "champion.masteryi" },
+		{ eChampion::ANNIE,    "champion.annie" },
+		{ eChampion::ASHE,     "champion.ashe" },
+		{ eChampion::YONE,     "champion.yone" },
+		{ eChampion::IRELIA,   "champion.irelia" },
+		{ eChampion::YASUO,    "champion.yasuo" },
+		{ eChampion::KALISTA,  "champion.kalista" },
+		{ eChampion::SYLAS,    "champion.sylas" },
+		{ eChampion::VIEGO,    "champion.viego" },
+		{ eChampion::GAREN,    "champion.garen" },
+		{ eChampion::ZED,      "champion.zed" },
+		{ eChampion::RIVEN,    "champion.riven" },
 	};
 }
 
@@ -53,6 +59,7 @@ void CChampionCatalog::RebuildFromRegistry()
 			entry.bPlayable = true;
 			entry.bBotAllowed = true;
 			entry.displayName = def.displayName ? def.displayName : GetChampionDisplayName(id);
+			entry.contentKey = ContentKey(id);
 			m_Entries.push_back(entry);
 		});
 
@@ -83,6 +90,19 @@ const ChampionCatalogEntry* CChampionCatalog::Find(eChampion id) const
 	return nullptr;
 }
 
+const ChampionCatalogEntry* CChampionCatalog::FindByContentKey(const std::string& contentKey) const
+{
+	if (contentKey.empty())
+		return nullptr;
+
+	for (const ChampionCatalogEntry& entry : m_Entries)
+	{
+		if (entry.contentKey && contentKey == entry.contentKey)
+			return &entry;
+	}
+	return nullptr;
+}
+
 bool_t CChampionCatalog::IsSelectable(eChampion id) const
 {
 	const ChampionCatalogEntry* pEntry = Find(id);
@@ -108,11 +128,21 @@ bool_t CChampionCatalog::IsValidChampionDef(const ChampionDef& def)
 
 i32_t CChampionCatalog::SortKey(eChampion id)
 {
-	constexpr u32_t count = static_cast<u32_t>(sizeof(kChampionCatalogOrder) / sizeof(kChampionCatalogOrder[0]));
+	constexpr u32_t count = static_cast<u32_t>(sizeof(kChampionCatalogSeeds) / sizeof(kChampionCatalogSeeds[0]));
 	for (u32_t i = 0; i < count; ++i)
 	{
-		if (kChampionCatalogOrder[i] == id)
+		if (kChampionCatalogSeeds[i].id == id)
 			return static_cast<i32_t>(i);
 	}
 	return 1000 + static_cast<i32_t>(id);
+}
+
+const char* CChampionCatalog::ContentKey(eChampion id)
+{
+	for (const ChampionCatalogSeed& seed : kChampionCatalogSeeds)
+	{
+		if (seed.id == id)
+			return seed.contentKey;
+	}
+	return nullptr;
 }

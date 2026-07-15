@@ -188,8 +188,18 @@ namespace
     }
 }
 
+void CScene_InGame::AdoptPreparedMapSurfaceSampler(
+    unique_ptr<Engine::CMapSurfaceSampler> sampler)
+{
+    if (sampler && sampler->IsReady())
+        m_pMapSurfaceSampler = std::move(sampler);
+}
+
 void CScene_InGame::InitializeMapSurfaceSampler(bool_t bMapLoaded, const wchar_t* pSurfaceMeshPath)
 {
+    if (bMapLoaded && m_pMapSurfaceSampler && m_pMapSurfaceSampler->IsReady())
+        return;
+
     m_pMapSurfaceSampler.reset();
     if (!bMapLoaded)
         return;
@@ -543,10 +553,27 @@ void CScene_InGame::ProjectGameplayActorsToMapSurface()
     if (!m_pMapSurfaceSampler)
         return;
 
+    const auto isForcedMotion = [&](EntityID entity)
+    {
+        if (m_World.HasComponent<ForcedMotionComponent>(entity))
+            return true;
+        if (m_World.HasComponent<ReplicatedStateComponent>(entity) &&
+            m_World.GetComponent<ReplicatedStateComponent>(entity).forcedMotionKind !=
+                static_cast<u8_t>(eForcedMotionKind::None))
+        {
+            return true;
+        }
+        return m_World.HasComponent<GameplayStateComponent>(entity) &&
+            (m_World.GetComponent<GameplayStateComponent>(entity).stateFlags &
+                kGameplayStateAirborneFlag) != 0u;
+    };
+
     m_World.ForEach<ChampionComponent, TransformComponent>(
         function<void(EntityID, ChampionComponent&, TransformComponent&)>(
             [&](EntityID entity, ChampionComponent&, TransformComponent& tf)
             {
+                if (isForcedMotion(entity))
+                    return;
                 Vec3 pos = tf.GetPosition();
                 if (!TryProjectToMapSurface(pos, 0.05f))
                     return;
@@ -561,9 +588,10 @@ void CScene_InGame::ProjectGameplayActorsToMapSurface()
 
     m_World.ForEach<MinionStateComponent, TransformComponent>(
         function<void(EntityID, MinionStateComponent&, TransformComponent&)>(
-            [&](EntityID, MinionStateComponent& state, TransformComponent& tf)
+            [&](EntityID entity, MinionStateComponent& state, TransformComponent& tf)
             {
-                if (state.current == MinionStateComponent::Dead)
+                if (state.current == MinionStateComponent::Dead ||
+                    isForcedMotion(entity))
                     return;
 
                 Vec3 pos = tf.GetPosition();

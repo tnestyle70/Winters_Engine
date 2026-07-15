@@ -673,7 +673,7 @@ namespace
         def.spawnPositionX = 24.f;
         def.spawnPositionY = 1.f;
         def.spawnPositionZ = 0.f;
-        def.spawnScale = 0.01f;
+        def.spawnScale = 0.015f;
         return def;
     }
 
@@ -1010,7 +1010,21 @@ namespace
         def.team = eTeam::Blue;
         def.mesh.resourceRelativePath = "Texture/Object/Turret/turret_textured.wmesh";
         def.shader.runtimePath = L"Shaders/Mesh3D.hlsl";
-        def.submeshStateCount = static_cast<u8_t>(0u);
+        def.submeshStateCount = static_cast<u8_t>(7u);
+        def.submeshStates[0].submeshIndex = 1u;
+        def.submeshStates[0].bVisibleWhenDestroyed = true;
+        def.submeshStates[1].submeshIndex = 2u;
+        def.submeshStates[1].bVisibleWhenDestroyed = true;
+        def.submeshStates[2].submeshIndex = 3u;
+        def.submeshStates[2].bVisibleWhenDestroyed = true;
+        def.submeshStates[3].submeshIndex = 4u;
+        def.submeshStates[3].bVisibleWhenDestroyed = true;
+        def.submeshStates[4].submeshIndex = 5u;
+        def.submeshStates[4].bVisibleWhenDestroyed = true;
+        def.submeshStates[5].submeshIndex = 6u;
+        def.submeshStates[5].bVisibleWhenDestroyed = true;
+        def.submeshStates[6].submeshIndex = 7u;
+        def.submeshStates[6].bVisibleWhenDestroyed = true;
         return def;
     }
 
@@ -1022,7 +1036,21 @@ namespace
         def.team = eTeam::Red;
         def.mesh.resourceRelativePath = "Texture/Object/Turret/turret_red_textured.wmesh";
         def.shader.runtimePath = L"Shaders/Mesh3D.hlsl";
-        def.submeshStateCount = static_cast<u8_t>(0u);
+        def.submeshStateCount = static_cast<u8_t>(7u);
+        def.submeshStates[0].submeshIndex = 1u;
+        def.submeshStates[0].bVisibleWhenDestroyed = true;
+        def.submeshStates[1].submeshIndex = 2u;
+        def.submeshStates[1].bVisibleWhenDestroyed = true;
+        def.submeshStates[2].submeshIndex = 3u;
+        def.submeshStates[2].bVisibleWhenDestroyed = true;
+        def.submeshStates[3].submeshIndex = 4u;
+        def.submeshStates[3].bVisibleWhenDestroyed = true;
+        def.submeshStates[4].submeshIndex = 5u;
+        def.submeshStates[4].bVisibleWhenDestroyed = true;
+        def.submeshStates[5].submeshIndex = 6u;
+        def.submeshStates[5].bVisibleWhenDestroyed = true;
+        def.submeshStates[6].submeshIndex = 7u;
+        def.submeshStates[6].bVisibleWhenDestroyed = true;
         return def;
     }
 
@@ -1033,11 +1061,13 @@ namespace
         def.subKind = 0u;
         def.mesh.resourceRelativePath = "Texture/Object/Jungle/Baron/baron_textured.wmesh";
         def.shader.runtimePath = L"Shaders/Mesh3D.hlsl";
-        def.textureOverrideCount = static_cast<u8_t>(2u);
+        def.textureOverrideCount = static_cast<u8_t>(3u);
         def.textureOverrides[0].meshIndex = 0u;
         def.textureOverrides[0].resourceRelativePath = L"Texture/Object/Jungle/Baron/sru_baron_tx_cm.png";
         def.textureOverrides[1].meshIndex = 1u;
         def.textureOverrides[1].resourceRelativePath = L"Texture/Object/Jungle/Baron/sru_baron_tx_cm.png";
+        def.textureOverrides[2].meshIndex = 2u;
+        def.textureOverrides[2].resourceRelativePath = L"Texture/Object/Jungle/Baron/baron_base_tx_cm.png";
         return def;
     }
 
@@ -1048,6 +1078,7 @@ namespace
         def.subKind = 1u;
         def.mesh.resourceRelativePath = "Texture/Object/Jungle/Dragon/air/dragon_air_textured.wmesh";
         def.shader.runtimePath = L"Shaders/Mesh3D.hlsl";
+        def.visualScaleMultiplier = 1.5f;
         def.textureOverrideCount = static_cast<u8_t>(0u);
         return def;
     }
@@ -1285,6 +1316,17 @@ namespace
         return def;
     }
 
+    ClientData::AmbientPropVisualDefinition MakeAmbientPropVisual_AMBIENT_CHEMTECH_FIREFLY()
+    {
+        ClientData::AmbientPropVisualDefinition def{};
+        def.key = 0x1B263B6Cu;
+        def.kind = 2u;
+        def.mesh.resourceRelativePath = "Texture/MAP/Map11_Rebuild/cooked/ambient/chemtech_firefly_animated/chemtech_firefly_animated.wmesh";
+        def.shader.runtimePath = L"Shaders/Mesh3D.hlsl";
+        def.idleAnimation = "firefly_fairy_idle";
+        return def;
+    }
+
     ClientData::MapRuntimeVisualDefinition MakeMapRuntimeVisual()
     {
         ClientData::MapRuntimeVisualDefinition def{};
@@ -1331,24 +1373,6 @@ namespace
         def.key = 0x8D288869u;
         def.mesh.resourceRelativePath = "Texture/FX/Kalista/fbx/kalista_base_q_mis_spear.fbx";
         def.texture.resourceRelativePath = L"Texture/FX/Kalista/kalista_base_q_mis_glow_color.png";
-        return def;
-    }
-
-    ClientData::FxMeshPreloadVisualDefinition MakeFxMeshPreloadVisual_FX_YASUO_Q_TORNADO_BLADE()
-    {
-        ClientData::FxMeshPreloadVisualDefinition def{};
-        def.key = 0xCC05B450u;
-        def.mesh.resourceRelativePath = "Texture/FX/Yasuo/fbx/yasuo_base_q_tornado_blade_cas.fbx";
-        def.texture.resourceRelativePath = L"Texture/FX/Yasuo/color_yasuo_base_e_tonado_blend.png";
-        return def;
-    }
-
-    ClientData::FxMeshPreloadVisualDefinition MakeFxMeshPreloadVisual_FX_YASUO_R_SWORD_WIND()
-    {
-        ClientData::FxMeshPreloadVisualDefinition def{};
-        def.key = 0x06B15A5Bu;
-        def.mesh.resourceRelativePath = "Texture/FX/Yasuo/fbx/yasuo_base_r_sword_wind2.fbx";
-        def.texture.resourceRelativePath = L"Texture/FX/Yasuo/color_yasuo_r_sword_glow.png";
         return def;
     }
 
@@ -1463,6 +1487,7 @@ namespace
     {
         MakeAmbientPropVisual_AMBIENT_SRU_BIRD(),
         MakeAmbientPropVisual_AMBIENT_SRU_DUCK(),
+        MakeAmbientPropVisual_AMBIENT_CHEMTECH_FIREFLY(),
     };
 
     const ClientData::AmbientPropVisualPack kAmbientPropVisualPack =
@@ -1480,8 +1505,6 @@ namespace
         MakeFxMeshPreloadVisual_FX_IRELIA_E_BLADE(),
         MakeFxMeshPreloadVisual_FX_KALISTA_E_SPEAR_HOLD(),
         MakeFxMeshPreloadVisual_FX_KALISTA_Q_SPEAR(),
-        MakeFxMeshPreloadVisual_FX_YASUO_Q_TORNADO_BLADE(),
-        MakeFxMeshPreloadVisual_FX_YASUO_R_SWORD_WIND(),
         MakeFxMeshPreloadVisual_FX_YASUO_W_WINDWALL(),
     };
 

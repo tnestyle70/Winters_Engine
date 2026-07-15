@@ -10,7 +10,6 @@
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "GameObject/FX/FxCuePlayer.h"
 #include "GameObject/FX/FxMeshComponent.h"
-#include "GameObject/FX/FxMeshSystem.h"
 #include "GameObject/FX/FxRibbonComponent.h"
 #include "GamePlay/VisualHookRegistry.h"
 #include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
@@ -29,8 +28,6 @@ namespace
     {
         EntityID sword1Id = NULL_ENTITY;
         EntityID sword2Id = NULL_ENTITY;
-        EntityID wSpinFxId = NULL_ENTITY;
-        IreliaFx::IreliaWHoldFxIds wHoldFxIds{};
         std::vector<EntityID> wHoldCueIds{};
         std::vector<EntityID> wAimCueIds{};
         bool_t bWHoldCueActive = false;
@@ -172,12 +169,6 @@ namespace Irelia
     {
         ClearFxIdList(world, state.wHoldCueIds);
         ClearFxIdList(world, state.wAimCueIds);
-        MarkBillboardPendingDelete(world, state.wHoldFxIds.spinFxID);
-        MarkBillboardPendingDelete(world, state.wHoldFxIds.shieldFxID);
-        MarkBillboardPendingDelete(world, state.wHoldFxIds.glowFxID);
-        MarkBillboardPendingDelete(world, state.wHoldFxIds.blockFxID);
-        state.wHoldFxIds = IreliaFx::IreliaWHoldFxIds{};
-        state.wSpinFxId = NULL_ENTITY;
         state.bWHoldCueActive = false;
     }
 
@@ -196,7 +187,7 @@ namespace Irelia
         };
     }
 
-    bool_t SpawnWHoldCueOrLegacy(CWorld& world, EntityID caster, IreliaLocalState& state,
+    bool_t PlayWHoldCue(CWorld& world, EntityID caster, IreliaLocalState& state,
         f32_t lifetime, const Vec3& forward)
     {
         FxCueContext hold{};
@@ -206,18 +197,13 @@ namespace Irelia
         hold.bOverrideLifetime = true;
         hold.fLifetimeOverride = lifetime;
 
-        if (CFxCuePlayer::PlayAll(world, "Irelia.W.Spin", hold, &state.wHoldCueIds) != NULL_ENTITY)
-        {
-            state.bWHoldCueActive = false;
-            return true;
-        }
-
-        state.wHoldFxIds = IreliaFx::SpawnWSpinLayers(world, caster, lifetime);
-        state.wSpinFxId = state.wHoldFxIds.spinFxID;
-        return false;
+        const bool_t bPlayed =
+            CFxCuePlayer::PlayAll(world, "Irelia.W.Spin", hold, &state.wHoldCueIds) != NULL_ENTITY;
+        state.bWHoldCueActive = false;
+        return bPlayed;
     }
 
-    bool_t SpawnWReleaseCueOrLegacy(CWorld& world, EntityID caster, const Vec3& forward)
+    bool_t PlayWReleaseCue(CWorld& world, EntityID caster, const Vec3& forward)
     {
         const IreliaTuning& t = GetTuning();
         Vec3 start = ResolveOrigin(world, caster);
@@ -235,24 +221,10 @@ namespace Irelia
         release.bOverrideLifetime = true;
         release.fLifetimeOverride = t.wLayerLifetime;
 
-        if (CFxCuePlayer::Play(world, "Irelia.W.Stage2Slash", release) != NULL_ENTITY)
-            return true;
-
-        constexpr f32_t kForwardDist = 2.0f;
-        const Vec3 attachOffset{
-            forward.x * kForwardDist,
-            1.0f,
-            forward.z * kForwardDist
-        };
-        IreliaFx::SpawnWStage2Slash(world, caster, forward);
-        IreliaFx::SpawnWReleaseLayers(world, caster,
-            t.wLayerLifetime, t.wLayerSize,
-            t.wLayerBladesColor, t.wLayerGlowColor,
-            attachOffset);
-        return false;
+        return CFxCuePlayer::Play(world, "Irelia.W.Stage2Slash", release) != NULL_ENTITY;
     }
 
-    bool_t SpawnTargetMarkCueOrLegacy(CWorld& world, EntityID target, f32_t lifetime)
+    bool_t PlayTargetMarkCue(CWorld& world, EntityID target, f32_t lifetime)
     {
         if (target == NULL_ENTITY || !world.HasComponent<TransformComponent>(target))
             return false;
@@ -263,11 +235,7 @@ namespace Irelia
         mark.bOverrideLifetime = true;
         mark.fLifetimeOverride = lifetime;
 
-        if (CFxCuePlayer::PlayAll(world, "Irelia.Target.Mark", mark, nullptr) != NULL_ENTITY)
-            return true;
-
-        IreliaFx::SpawnStunMark(world, target, lifetime);
-        return false;
+        return CFxCuePlayer::PlayAll(world, "Irelia.Target.Mark", mark, nullptr) != NULL_ENTITY;
     }
 
     void ApplyEConnectHitTargets(CWorld& world,
@@ -317,45 +285,42 @@ namespace Irelia
                             world.AddComponent<StunComponent>(target, stun);
                     }
 
-                    SpawnTargetMarkCueOrLegacy(world, target, stunSeconds);
+                    PlayTargetMarkCue(world, target, stunSeconds);
                 }));
     }
 
-    bool_t SpawnRPulseCueOrLegacy(CWorld& world, const Vec3& origin, const Vec3& forward,
+    bool_t PlayRPulseCue(CWorld& world, const Vec3& origin, const Vec3& forward,
         f32_t speed, f32_t lifetime,
         f32_t width, f32_t height,
         f32_t yOffset, f32_t fwdOffset, f32_t yawOffset,
         std::vector<EntityID>* pOutSpawned)
     {
+        (void)lifetime;
+        (void)width;
+        (void)height;
+        (void)yOffset;
+        (void)fwdOffset;
+        (void)yawOffset;
+
         FxCueContext fx{};
         fx.vWorldPos = origin;
         fx.vForward = forward;
         fx.bOverrideVelocity = true;
         fx.vVelocity = { forward.x * speed, 0.f, forward.z * speed };
 
-        if (CFxCuePlayer::PlayAll(world, "Irelia.R.Pulse", fx, pOutSpawned) != NULL_ENTITY)
-            return true;
-
-        const EntityID fallbackId = IreliaFx::SpawnRPulse(world,
-            origin, forward, speed, lifetime,
-            width, height, yOffset, fwdOffset, yawOffset);
-        if (fallbackId != NULL_ENTITY && pOutSpawned)
-            pOutSpawned->push_back(fallbackId);
-        return fallbackId != NULL_ENTITY;
+        return CFxCuePlayer::PlayAll(world, "Irelia.R.Pulse", fx, pOutSpawned) != NULL_ENTITY;
     }
 
-    bool_t SpawnRHitCueOrLegacy(CWorld& world, const Vec3& hitPos,
+    bool_t PlayRHitCue(CWorld& world, const Vec3& hitPos,
         const Vec3& forward, f32_t lifetime)
     {
+        (void)lifetime;
+
         FxCueContext fx{};
         fx.vWorldPos = hitPos;
         fx.vForward = forward;
 
-        if (CFxCuePlayer::Play(world, "Irelia.R.Hit", fx) != NULL_ENTITY)
-            return true;
-
-        IreliaFx::SpawnRHitLayers(world, hitPos, forward, lifetime);
-        return false;
+        return CFxCuePlayer::Play(world, "Irelia.R.Hit", fx) != NULL_ENTITY;
     }
 
     bool_t SpawnRWallCue(CWorld& world, const Vec3& wallPos, const Vec3& forward)
@@ -415,25 +380,15 @@ namespace Irelia
         s_stateByCaster.clear();
     }
 
-    bool_t SpawnEConnectCueOrLegacy(
+    bool_t PlayEConnectCue(
         CWorld& world,
         Engine::CFxStaticMeshRenderer* pFxMeshRenderer,
         const Vec3& p1,
         const Vec3& p2,
         const IreliaTuning& t)
     {
-        const f32_t dx = p2.x - p1.x;
-        const f32_t dz = p2.z - p1.z;
-        const f32_t dist = std::sqrtf(dx * dx + dz * dz);
-        const f32_t len = (dist > 0.1f) ? dist : 1.f;
-        const Vec3 forward = WintersMath::NormalizeXZOrZero(Vec3{ dx, 0.f, dz });
-
-        char dbg[224]{};
-        sprintf_s(dbg,
-            "[Irelia E Connect] start=(%.2f,%.2f,%.2f) end=(%.2f,%.2f,%.2f) len=%.2f\n",
-            p1.x, p1.y, p1.z,
-            p2.x, p2.y, p2.z,
-            dist);
+        const Vec3 forward = WintersMath::NormalizeXZOrZero(Vec3{
+            p2.x - p1.x, 0.f, p2.z - p1.z });
 
         FxCueContext fx{};
         fx.vWorldPos = p1;
@@ -444,45 +399,17 @@ namespace Irelia
         fx.bOverrideLifetime = true;
         fx.fLifetimeOverride = t.fEConnectLifetime;
 
-        if (CFxCuePlayer::Play(world, "Irelia.E.Connect", fx) != NULL_ENTITY)
-        {
-            FxCueContext pop = fx;
-            pop.bOverrideEndWorldPos = false;
-            pop.bOverrideLifetime = false;
-            pop.vWorldPos = p1;
-            CFxCuePlayer::Play(world, "Irelia.E.ConnectPop", pop);
-            pop.vWorldPos = p2;
-            CFxCuePlayer::Play(world, "Irelia.E.ConnectPop", pop);
-            return true;
-        }
+        if (CFxCuePlayer::Play(world, "Irelia.E.Connect", fx) == NULL_ENTITY)
+            return false;
 
-        if (pFxMeshRenderer)
-        {
-            const Vec3 mid{ (p1.x + p2.x) * 0.5f, (p1.y + p2.y) * 0.5f, (p1.z + p2.z) * 0.5f };
-            const f32_t beamYaw = std::atan2f(dx, dz);
-
-            FxMeshComponent beam{};
-            beam.vWorldPos = { mid.x, mid.y, mid.z };
-            beam.vRotation = { 0.f, beamYaw + t.beamYawOffset, 0.f };
-            beam.modelPath = "Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx";
-            beam.texturePath = L"Texture/FX/Irelia/irelia_base_e_beam_mult.png";
-            const f32_t fxScale = t.beamMeshBaseScale;
-            beam.vScale = {
-                fxScale * t.beamGirth,
-                fxScale * t.beamGirth,
-                fxScale * len * t.beamScaleAxis
-            };
-            beam.vColor = { 0.78f, 0.88f, 2.35f, 0.88f };
-            beam.blendMode = eBlendPreset::Additive;
-            beam.bDepthWrite = false;
-            beam.fFadeIn = 0.02f;
-            beam.fFadeOut = 0.28f;
-            beam.fLifetime = 0.46f;
-            CFxMeshSystem::Spawn(world, pFxMeshRenderer, beam);
-        }
-
-        IreliaFx::SpawnECloseLayers(world, p1, p2, t.fEConnectLifetime);
-        return false;
+        FxCueContext pop = fx;
+        pop.bOverrideEndWorldPos = false;
+        pop.bOverrideLifetime = false;
+        pop.vWorldPos = p1;
+        CFxCuePlayer::Play(world, "Irelia.E.ConnectPop", pop);
+        pop.vWorldPos = p2;
+        CFxCuePlayer::Play(world, "Irelia.E.ConnectPop", pop);
+        return true;
     }
 
     void OnCastAccepted_Q(SkillHookContext& ctx)
@@ -537,14 +464,14 @@ namespace Irelia
         if (ctx.skillStage >= 2)
         {
             ClearWHoldFx(*ctx.pWorld, state);
-            SpawnWReleaseCueOrLegacy(*ctx.pWorld, ctx.casterEntity, forward);
+            PlayWReleaseCue(*ctx.pWorld, ctx.casterEntity, forward);
             return;
         }
 
         ClearWHoldFx(*ctx.pWorld, state);
         const f32_t lifetime =
             (ctx.pDef && ctx.pDef->stageWindowSec > 0.f) ? ctx.pDef->stageWindowSec + 0.5f : 4.5f;
-        SpawnWHoldCueOrLegacy(*ctx.pWorld, ctx.casterEntity, state, lifetime, forward);
+        PlayWHoldCue(*ctx.pWorld, ctx.casterEntity, state, lifetime, forward);
     }
 
     void OnCastAccepted_E(SkillHookContext& ctx)
@@ -581,7 +508,7 @@ namespace Irelia
                     ctx.pWorld->GetComponent<IreliaBladeComponent>(state.sword1Id).vWorldPos;
                 const Vec3 p2 =
                     ctx.pWorld->GetComponent<IreliaBladeComponent>(state.sword2Id).vWorldPos;
-                SpawnEConnectCueOrLegacy(*ctx.pWorld, ctx.pFxMeshRenderer, p1, p2, t);
+                PlayEConnectCue(*ctx.pWorld, ctx.pFxMeshRenderer, p1, p2, t);
                 ApplyEConnectHitTargets(*ctx.pWorld,
                     ctx.casterEntity,
                     ctx.casterTeam,
@@ -664,7 +591,7 @@ namespace Irelia
                 const f32_t lifetime = t.waveMaxDist / rSpeed + 0.1f;
 
                 ClearRPulseFx(*ctx.pWorld, state);
-                SpawnRPulseCueOrLegacy(*ctx.pWorld,
+                PlayRPulseCue(*ctx.pWorld,
                     origin,
                     forward,
                     rSpeed,
@@ -681,10 +608,10 @@ namespace Irelia
             if (ctx.skillStage == 2)
             {
                 ClearRPulseFx(*ctx.pWorld, state);
-                SpawnTargetMarkCueOrLegacy(*ctx.pWorld,
+                PlayTargetMarkCue(*ctx.pWorld,
                     ctx.pCommand ? ctx.pCommand->targetEntityId : NULL_ENTITY,
                     1.5f);
-                SpawnRHitCueOrLegacy(*ctx.pWorld, eventPos, forward, 0.45f);
+                PlayRHitCue(*ctx.pWorld, eventPos, forward, 0.45f);
                 SpawnRWallCue(*ctx.pWorld, eventPos, forward);
 
                 const Vec3 bladeRot{ t.bladePitch, t.bladeYaw, t.bladeRoll };
@@ -713,7 +640,7 @@ namespace Irelia
 
             if (ctx.skillStage == 4)
             {
-                SpawnTargetMarkCueOrLegacy(*ctx.pWorld,
+                PlayTargetMarkCue(*ctx.pWorld,
                     ctx.pCommand ? ctx.pCommand->targetEntityId : NULL_ENTITY,
                     1.5f);
             }
@@ -783,7 +710,7 @@ namespace Irelia
                     const IreliaTuning& t = GetTuning();
                     const Vec3 p1 = world.GetComponent<IreliaBladeComponent>(state.sword1Id).vWorldPos;
                     const Vec3 p2 = world.GetComponent<IreliaBladeComponent>(state.sword2Id).vWorldPos;
-                    SpawnEConnectCueOrLegacy(world, pFxMeshRenderer, p1, p2, t);
+                    PlayEConnectCue(world, pFxMeshRenderer, p1, p2, t);
                     ApplyEConnectHitTargets(world,
                         casterEntity,
                         casterTeam,

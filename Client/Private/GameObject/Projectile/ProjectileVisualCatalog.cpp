@@ -1,93 +1,78 @@
 #include "GameObject/Projectile/ProjectileVisualCatalog.h"
 
 #include "GameObject/Projectile/ProjectileKind.h"
+#include "WintersMath.h"
 
 namespace
 {
     constexpr u16_t kStructureProjectileKind = 100;
 
-    constexpr const wchar_t* kGenericProjectileTexture =
-        L"Texture/FX/Kalista/common_glowring_blue.png";
-    constexpr const wchar_t* kGenericProjectileHitTexture =
-        L"Texture/FX/Kalista/common_fire-sphere32.png";
-    constexpr const wchar_t* kEzrealQHitTexture =
-        L"Texture/Character/Ezreal/particles/ezreal_base_q_hit_spark.png";
+    constexpr ProjectileVisualDesc kNoProjectileVisual{};
 
-    constexpr ProjectileVisualDesc kGenericProjectileVisual{
-        nullptr, nullptr, nullptr,
-        kGenericProjectileTexture, kGenericProjectileHitTexture,
-        0.8f, 0.8f, 1.4f, 1.4f,
-        true, true
+    constexpr ProjectileVisualDesc kYasuoTornadoVisual{
+        nullptr, nullptr, "Yasuo.Q.TornadoHit"
     };
 
-    constexpr ProjectileVisualDesc kNoSpawnGenericHitVisual{
-        nullptr, nullptr, nullptr,
-        nullptr, kGenericProjectileHitTexture,
-        0.8f, 0.8f, 1.4f, 1.4f,
-        false, true
+    constexpr ProjectileVisualDesc kEzrealBasicAttackVisual{
+        "Ezreal.BA.Projectile", "Ezreal.Q.Hit", nullptr
     };
 
     constexpr ProjectileVisualDesc kEzrealMysticShotVisual{
-        nullptr, "Ezreal.Q.Hit", nullptr,
-        nullptr, kEzrealQHitTexture,
-        0.8f, 0.8f, 1.4f, 1.4f,
-        false, true
+        "Ezreal.Q.Projectile", "Ezreal.Q.Hit", nullptr
+    };
+
+    constexpr ProjectileVisualDesc kEzrealEssenceFluxVisual{
+        "Ezreal.W.Projectile", nullptr, nullptr
+    };
+
+    constexpr ProjectileVisualDesc kEzrealGlobalBeamVisual{
+        "Ezreal.R.Missile", "Ezreal.R.Hit", nullptr
+    };
+
+    constexpr ProjectileVisualDesc kEzrealArcaneShiftBoltVisual{
+        "Ezreal.E.Projectile", "Ezreal.E.Hit", nullptr
+    };
+
+    constexpr ProjectileVisualDesc kKalistaBasicAttackVisual{
+        "Kalista.BA.Projectile", nullptr, "Kalista.Rend.Spear", nullptr, nullptr, nullptr,
+        WintersMath::kPi, true
+    };
+
+    constexpr ProjectileVisualDesc kKalistaPierceVisual{
+        "Kalista.Q.Projectile", nullptr, "Kalista.Rend.Spear", nullptr, nullptr, nullptr,
+        WintersMath::kPi, true
     };
 
     constexpr ProjectileVisualDesc kLeeSinQVisual{
-        "LeeSin.Q.Projectile", "LeeSin.Q.Hit", "LeeSin.Q.Mark",
-        kGenericProjectileTexture, kGenericProjectileHitTexture,
-        0.8f, 0.8f, 1.4f, 1.4f,
-        true, true
-    };
-
-    constexpr ProjectileVisualDesc kSylasChainVisual{
-        nullptr, nullptr, nullptr,
-        nullptr, nullptr,
-        0.8f, 0.8f, 1.4f, 1.4f,
-        false, false
+        "LeeSin.Q.Projectile", "LeeSin.Q.Hit", "LeeSin.Q.Mark" 
     };
 
     constexpr ProjectileVisualDesc kZedShurikenVisual{
-        "Zed.Q.Projectile", "Zed.Q.Hit", nullptr,
-        kGenericProjectileTexture, kGenericProjectileHitTexture,
-        0.8f, 0.8f, 1.4f, 1.4f,
-        true, true
+        "Zed.Q.Projectile", "Zed.Q.Hit", nullptr
+    };
+
+    constexpr ProjectileVisualDesc kAsheBasicAttackVisual{
+        "Ashe.BA.Arrow", nullptr, "Ashe.BA.Hit" 
     };
 
     constexpr ProjectileVisualDesc kAsheVolleyArrowVisual{
-        "Ashe.W.Arrow", "Ashe.W.Hit", nullptr,
-        kGenericProjectileTexture, kGenericProjectileHitTexture,
-        0.8f, 0.8f, 1.4f, 1.4f,
-        true, true
+        "Ashe.W.Arrow", "Ashe.W.Hit", nullptr
     };
 
     constexpr ProjectileVisualDesc kAsheCrystalArrowVisual{
-        "Ashe.R.Arrow", "Ashe.R.Hit", nullptr,
-        kGenericProjectileTexture, kGenericProjectileHitTexture,
-        1.1f, 1.1f, 1.8f, 1.8f,
-        true, true
+        "Ashe.R.Arrow", "Ashe.R.Hit", nullptr
     };
 
     constexpr ProjectileVisualDesc kStructureProjectileVisual{
-        "Turret.Projectile.Red", "Turret.Projectile.Hit.Red", nullptr,
-        nullptr, nullptr,
-        0.8f, 0.8f, 1.4f, 1.4f,
-        false, false
+        "Turret.Projectile.Red", "Turret.Projectile.Hit.Red", nullptr
     };
 
     constexpr ProjectileVisualDesc kMinionRangedBlueVisual{
-        "Minion.Ranged.Projectile.Blue", nullptr, nullptr,
-        nullptr, nullptr,
-        0.42f, 0.42f, 0.62f, 0.62f,
-        false, false
+        "Minion.Ranged.Projectile.Blue", nullptr, nullptr
     };
 
     constexpr ProjectileVisualDesc kMinionRangedRedVisual{
-        "Minion.Ranged.Projectile.Red", nullptr, nullptr,
-        nullptr, nullptr,
-        0.42f, 0.42f, 0.62f, 0.62f,
-        false, false
+        "Minion.Ranged.Projectile.Red", nullptr, nullptr
     };
 }
 
@@ -101,17 +86,32 @@ namespace ProjectileVisualCatalog
         switch (static_cast<eProjectileKind>(kind))
         {
         case eProjectileKind::Wind:
-        case eProjectileKind::Tornado:
         case eProjectileKind::EQRing:
-            return kNoSpawnGenericHitVisual;
+            return kNoProjectileVisual;
+        case eProjectileKind::Tornado:
+            return kYasuoTornadoVisual;
+        case eProjectileKind::EzrealBasicAttack:
+            return kEzrealBasicAttackVisual;
         case eProjectileKind::MysticShot:
             return kEzrealMysticShotVisual;
+        case eProjectileKind::EssenceFlux:
+            return kEzrealEssenceFluxVisual;
+        case eProjectileKind::GlobalBeam:
+            return kEzrealGlobalBeamVisual;
+        case eProjectileKind::ArcaneShiftBolt:
+            return kEzrealArcaneShiftBoltVisual;
+        case eProjectileKind::KalistaBasicAttack:
+            return kKalistaBasicAttackVisual;
+        case eProjectileKind::KalistaPierce:
+            return kKalistaPierceVisual;
         case eProjectileKind::LeeSinQ:
             return kLeeSinQVisual;
         case eProjectileKind::SylasChain:
-            return kSylasChainVisual;
+            return kNoProjectileVisual;
         case eProjectileKind::ZedShuriken:
             return kZedShurikenVisual;
+        case eProjectileKind::AsheBasicAttack:
+            return kAsheBasicAttackVisual;
         case eProjectileKind::AsheVolleyArrow:
             return kAsheVolleyArrowVisual;
         case eProjectileKind::AsheCrystalArrow:
@@ -121,7 +121,7 @@ namespace ProjectileVisualCatalog
         case eProjectileKind::MinionRangedBasicRed:
             return kMinionRangedRedVisual;
         default:
-            return kGenericProjectileVisual;
+            return kNoProjectileVisual;
         }
     }
 

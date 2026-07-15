@@ -28,9 +28,14 @@ private:
 
 	bool_t LaunchSelectedProduct();
 	void ChangeToLogin();
+	void ChangeToShop();
+	void ChangeToMyInfo();
 
 	std::string m_strStatus{};
 	CImageScenePresenter m_ImageUI{};
+	std::unique_ptr<Engine::CTexture> m_pMyInfoPortrait{};
 	bool_t m_bPlayRequested = false;
 	bool_t m_bLogoutRequested = false;
+	bool_t m_bShopRequested = false;
+	bool_t m_bMyInfoRequested = false;
 };

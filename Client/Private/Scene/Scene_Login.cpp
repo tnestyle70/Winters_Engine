@@ -10,6 +10,11 @@
 
 #include <Windows.h>
 
+#pragma push_macro("new")
+#undef new
+#include <imgui.h>
+#pragma pop_macro("new")
+
 namespace
 {
 	constexpr const char* AUTH_SERVICE_URL = "http://127.0.0.1:8081";
@@ -26,9 +31,11 @@ bool CScene_Login::OnEnter()
 	m_pAuthClient = Client::CAuthClient::Create(AUTH_SERVICE_URL);
 	strcpy_s(m_szEmail, sizeof(m_szEmail), "dev@winters.local");
 	m_szPassword[0] = '\0';
+	m_szLoginID[0] = '\0';
 	m_strStatus = "Login";
 	m_bOfflineLoginRequested = false;
 	m_bLoginInFlight = false;
+	m_bShowRegisterPrompt = false;
 	m_ImageUI.Initialize(
 		L"Texture/UI/Login1.png",
 		2301,
@@ -59,7 +66,12 @@ void CScene_Login::OnUpdate(f32_t /*dt*/)
 		m_pAuthClient->ProcessCallbacks();
 
 	if (!m_bLoginInFlight && m_ImageUI.WasSourceRectClicked(kLoginArrowRect))
-		RequestOfflineLogin();
+	{
+		if (m_szLoginID[0] == '\0')
+			m_strStatus = "아이디를 입력하세요";
+		else
+			RequestIdLogin();
+	}
 
 	if (m_bOfflineLoginRequested)
 	{
@@ -78,7 +90,50 @@ void CScene_Login::OnRender()
 }
 
 void CScene_Login::OnImGui()
-{}
+{
+	const ImGuiViewport* pViewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(
+		ImVec2(pViewport->WorkPos.x + pViewport->WorkSize.x * 0.5f,
+			pViewport->WorkPos.y + pViewport->WorkSize.y * 0.62f),
+		ImGuiCond_Once,
+		ImVec2(0.5f, 0.5f));
+	ImGui::SetNextWindowSize(ImVec2(380.f, 0.f), ImGuiCond_Once);
+	if (!ImGui::Begin("계정 로그인", nullptr, ImGuiWindowFlags_NoCollapse))
+	{
+		ImGui::End();
+		return;
+	}
+
+	ImGui::TextUnformatted("아이디");
+	ImGui::SetNextItemWidth(-1.f);
+	const bool_t bEnterPressed = ImGui::InputText(
+		"##login_id", m_szLoginID, sizeof(m_szLoginID),
+		ImGuiInputTextFlags_EnterReturnsTrue);
+
+	ImGui::BeginDisabled(m_bLoginInFlight || m_szLoginID[0] == '\0');
+	if (ImGui::Button("로그인", ImVec2(120.f, 0.f)) || (bEnterPressed && !m_bLoginInFlight && m_szLoginID[0] != '\0'))
+		RequestIdLogin();
+
+	// 회원가입은 404 유도와 무관하게 항상 노출한다.
+	ImGui::SameLine();
+	if (ImGui::Button("회원 가입", ImVec2(120.f, 0.f)))
+		RequestIdRegister();
+	ImGui::EndDisabled();
+
+	// 비회원 입장은 백엔드 없이 오프라인 계정으로 바로 시작한다.
+	ImGui::BeginDisabled(m_bLoginInFlight);
+	if (ImGui::Button("비회원으로 시작", ImVec2(-1.f, 0.f)))
+		RequestOfflineLogin();
+	ImGui::EndDisabled();
+
+	if (!m_strStatus.empty())
+	{
+		ImGui::Spacing();
+		ImGui::TextWrapped("%s", m_strStatus.c_str());
+	}
+
+	ImGui::End();
+}
 
 void CScene_Login::RequestOfflineLogin()
 {
@@ -133,6 +188,88 @@ void CScene_Login::HandleOnlineLoginResult(const std::string& email, const Clien
 
 	m_strStatus = "Login successful";
 	m_bOfflineLoginRequested = true;
+}
+
+void CScene_Login::RequestIdLogin()
+{
+	if (!m_pAuthClient || m_bLoginInFlight || m_szLoginID[0] == '\0')
+		return;
+
+	m_bLoginInFlight = true;
+	m_bShowRegisterPrompt = false;
+	m_strStatus = "로그인 중...";
+
+	m_pAuthClient->LoginByID(
+		m_szLoginID,
+		[this](const Client::AuthResult& result)
+		{
+			HandleIdAuthResult(result);
+		});
+}
+
+void CScene_Login::RequestIdRegister()
+{
+	if (!m_pAuthClient || m_bLoginInFlight || m_szLoginID[0] == '\0')
+		return;
+
+	m_bLoginInFlight = true;
+	m_bRegisterInFlight = true;
+	m_strStatus = "회원 가입 중...";
+
+	m_pAuthClient->RegisterByID(
+		m_szLoginID,
+		[this](const Client::AuthResult& result)
+		{
+			HandleIdAuthResult(result);
+		});
+}
+
+void CScene_Login::HandleIdAuthResult(const Client::AuthResult& result)
+{
+	m_bLoginInFlight = false;
+	const bool_t bWasRegister = m_bRegisterInFlight;
+	m_bRegisterInFlight = false;
+
+	if (result.success)
+	{
+		// 회원가입 성공은 자동 입장하지 않는다 — 문구를 보여주고
+		// 사용자가 로그인 버튼으로 명시적으로 입장한다.
+		if (bWasRegister)
+		{
+			m_strStatus = "회원가입 성공했습니다. 로그인 버튼으로 입장하세요.";
+			m_bShowRegisterPrompt = false;
+			return;
+		}
+
+		CClientShellSession::Instance().SetAuthenticatedAccount(
+			result.userID,
+			result.displayName,
+			result.accessToken);
+
+		m_strStatus = "로그인 성공";
+		m_bShowRegisterPrompt = false;
+		m_bOfflineLoginRequested = true;
+		return;
+	}
+
+	// DB에 없는 회원 → 회원 가입 유도 (Services /auth/id/login 404 계약).
+	if (result.statusCode == 404)
+	{
+		m_bShowRegisterPrompt = true;
+		m_strStatus = "존재하지 않는 회원입니다. 회원 가입을 하세요";
+		return;
+	}
+
+	if (result.statusCode == 409)
+	{
+		m_bShowRegisterPrompt = false;
+		m_strStatus = "이미 존재하는 아이디입니다. 로그인을 사용하세요";
+		return;
+	}
+
+	m_strStatus = result.error.empty()
+		? "로그인 실패 (백엔드 서비스 상태를 확인하세요)"
+		: "로그인 실패: " + result.error;
 }
 
 void CScene_Login::ChangeToMainMenu()

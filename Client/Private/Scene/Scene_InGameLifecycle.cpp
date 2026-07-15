@@ -13,8 +13,10 @@
 #include <Windows.h>
 #include "Scene/GameplayQuery.h"
 #include "Scene/InGameRosterSpawner.h"
+#include "Scene/LobbyRosterHelpers.h"
 #include "Scene/RenderVisibilityFilter.h"
 #include "Scene/Scene_InGame.h"
+#include "UI/AttackSpeedLab.h"
 #include "Scene/Scene_InGameInternal.h"
 #include "Scene/Scene_Editor.h"
 #include "Manager/Structure_Manager.h"
@@ -79,6 +81,7 @@
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
+#include "GameObject/Champion/Viego/Viego_FxPresets.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
 #include "GamePlay/ChampionRegistry.h"
@@ -206,146 +209,6 @@ namespace
             : visual.baseMapSurface.resourceRelativePath;
     }
 
-    void SeedPracticeBushesForBootstrap(CWorld& world)
-    {
-        struct BushSeed
-        {
-            Vec3 center;
-            f32_t radius;
-            u32_t bushId;
-        };
-
-        static const BushSeed kBushes[] = {
-            { { -45.f, 0.f,  60.f }, 5.f, 1 },
-            { { -55.f, 0.f,  45.f }, 4.f, 1 },
-            { { -30.f, 0.f,  90.f }, 5.f, 2 },
-            { { -10.f, 0.f,  10.f }, 4.f, 3 },
-            { {  10.f, 0.f, -10.f }, 4.f, 4 },
-            { {  45.f, 0.f, -60.f }, 5.f, 5 },
-            { {  55.f, 0.f, -45.f }, 4.f, 5 },
-            { {  30.f, 0.f, -90.f }, 5.f, 6 },
-            { { -30.f, 0.f,  30.f }, 4.f, 7 },
-            { {  30.f, 0.f, -30.f }, 4.f, 8 },
-            { { -60.f, 0.f,   0.f }, 4.f, 9 },
-            { {  60.f, 0.f,   0.f }, 4.f, 10 },
-        };
-
-        for (const BushSeed& bush : kBushes)
-        {
-            const EntityID entity = world.CreateEntity();
-            ConcealmentVolumeComponent component{};
-            component.center = bush.center;
-            component.radius = bush.radius;
-            component.volumeId = bush.bushId;
-            world.AddComponent<ConcealmentVolumeComponent>(entity, component);
-        }
-    }
-
-    struct MapBrushVolumeRecord
-    {
-        u32_t bushId = 0;
-        f32_t worldX = 0.f;
-        f32_t worldZ = 0.f;
-        f32_t radius = 0.f;
-    };
-
-    bool_t SeedMap11BrushesFromBinaryForBootstrap(CWorld& world)
-    {
-        const ClientData::MapRuntimeVisualDefinition& visual =
-            ClientData::GetMapRuntimeVisualDefinition();
-        wchar_t resolvedPath[MAX_PATH]{};
-        if (!visual.brushVolumeBinary.resourceRelativePath ||
-            !WintersResolveContentPath(visual.brushVolumeBinary.resourceRelativePath, resolvedPath, MAX_PATH))
-        {
-            return false;
-        }
-
-        FILE* fp = nullptr;
-        if (_wfopen_s(&fp, resolvedPath, L"rb") != 0 || !fp)
-            return false;
-
-        constexpr u32_t kBrushVolumeMagic = 0x48534257u; // 'WBSH'
-        u32_t header[4]{};
-        if (fread(header, sizeof(header), 1, fp) != 1 ||
-            header[0] != kBrushVolumeMagic ||
-            header[1] != 1u ||
-            header[2] == 0u ||
-            header[2] > 4096u)
-        {
-            fclose(fp);
-            return false;
-        }
-
-        u32_t iSeeded = 0;
-        for (u32_t i = 0; i < header[2]; ++i)
-        {
-            MapBrushVolumeRecord record{};
-            if (fread(&record, sizeof(record), 1, fp) != 1)
-                break;
-            if (record.radius <= 0.f)
-                continue;
-
-            const EntityID entity = world.CreateEntity();
-            ConcealmentVolumeComponent component{};
-            component.center = { record.worldX, 0.f, record.worldZ };
-            component.radius = record.radius;
-            component.volumeId = record.bushId;
-            world.AddComponent<ConcealmentVolumeComponent>(entity, component);
-            ++iSeeded;
-        }
-
-        fclose(fp);
-        return iSeeded > 0;
-    }
-
-    bool_t SeedMap11BrushesFromResourceForBootstrap(CWorld& world)
-    {
-        const ClientData::MapRuntimeVisualDefinition& visual =
-            ClientData::GetMapRuntimeVisualDefinition();
-        wchar_t resolvedPath[MAX_PATH]{};
-        if (!visual.brushVolumeCsv.resourceRelativePath ||
-            !WintersResolveContentPath(visual.brushVolumeCsv.resourceRelativePath, resolvedPath, MAX_PATH))
-        {
-            return false;
-        }
-
-        FILE* fp = nullptr;
-        if (_wfopen_s(&fp, resolvedPath, L"rt") != 0 || !fp)
-        {
-            return false;
-        }
-
-        u32_t iSeeded = 0;
-        char line[256]{};
-        while (fgets(line, static_cast<int>(sizeof(line)), fp))
-        {
-            if (line[0] == '\0' || line[0] == '#' || line[0] == '\n' || line[0] == '\r')
-                continue;
-
-            u32_t bushId = 0;
-            f32_t x = 0.f;
-            f32_t z = 0.f;
-            f32_t radius = 0.f;
-            if (sscanf_s(line, " %u , %f , %f , %f", &bushId, &x, &z, &radius) != 4)
-                continue;
-
-            if (radius <= 0.f)
-                continue;
-
-            const EntityID entity = world.CreateEntity();
-            ConcealmentVolumeComponent component{};
-            component.center = { x, 0.f, z };
-            component.radius = radius;
-            component.volumeId = bushId;
-            world.AddComponent<ConcealmentVolumeComponent>(entity, component);
-            ++iSeeded;
-        }
-
-        fclose(fp);
-
-        return iSeeded > 0;
-    }
-
     void SendServerInGameReady()
     {
         MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
@@ -374,8 +237,39 @@ namespace
 	}
 }
 
+const char* CScene_InGame::GetSelectedMapMeshPath()
+{
+    return SelectMapMeshPath();
+}
+
+const wchar_t* CScene_InGame::GetSelectedMapSurfacePath()
+{
+    return SelectMapSurfacePath();
+}
+
+void CScene_InGame::ConfigureDefaultMapTransform(CTransform& transform)
+{
+    transform.SetPosition(0.f, 0.f, 0.f);
+    transform.SetScale({ -0.01f, 0.01f, 0.01f });
+    transform.SetRotation({ 0.f, DirectX::XMConvertToRadians(-135.f), 0.f });
+}
+
+void CScene_InGame::AdoptPreparedFxMeshRenderer(
+    unique_ptr<Engine::CFxStaticMeshRenderer> renderer)
+{
+    if (renderer)
+        m_pFxMeshRenderer = std::move(renderer);
+}
+
+void CScene_InGame::AdoptPreparedFxSystem(unique_ptr<CFxSystem> fxSystem)
+{
+    if (fxSystem)
+        m_pFxSystem = std::move(fxSystem);
+}
+
 bool CScene_InGame::OnEnter()
 {
+    UI::CAttackSpeedLab::ResetRuntime();
     const MatchContext& gameContext = Client::CLoLMatchContextRuntime::Instance().Context();
     Winters::DevSmoke::Log(
         "[InGameBootstrap] enter useNetworkRoster=%u selected=%u mySlot=%u sid=%u net=%u\n",
@@ -436,8 +330,22 @@ bool CScene_InGame::OnEnter()
     wchar_t stagePath[MAX_PATH] = {};
     if (CMapDataIO::Get_StagePathW(1, stagePath, MAX_PATH))
     {
-        CMapDataIO::Load_Stage(stagePath);
-        Winters::DevSmoke::Log("[InGameBootstrap] Stage1 loaded\n");
+        const HRESULT hrStage = CMapDataIO::Load_Stage(stagePath);
+        if (SUCCEEDED(hrStage))
+        {
+            Winters::DevSmoke::Log("[InGameBootstrap] Stage1 loaded\n");
+        }
+        else
+        {
+            char msg[384]{};
+            sprintf_s(msg, "[InGameBootstrap] Stage1 load FAILED hr=0x%08X path=%ls\n",
+                static_cast<unsigned>(hrStage), stagePath);
+            OutputDebugStringA(msg);
+        }
+    }
+    else
+    {
+        OutputDebugStringA("[InGameBootstrap] Stage1 path resolve FAILED\n");
     }
 
     BootstrapChampionModules();
@@ -454,16 +362,19 @@ bool CScene_InGame::OnEnter()
     else
     {
         Winters::DevSmoke::Log("[InGameBootstrap] map init begin\n");
-        bMapInit = m_Map.Initialize(SelectMapMeshPath(), L"Shaders/Mesh3D.hlsl");
+        bMapInit = m_Map.Initialize(GetSelectedMapMeshPath(), L"Shaders/Mesh3D.hlsl");
         Winters::DevSmoke::Log("[InGameBootstrap] map init done ok=%u\n", bMapInit ? 1u : 0u);
     }
-    m_MapTransform.SetPosition(0.f, 0.f, 0.f);
-    m_MapTransform.SetScale({ -0.01f, 0.01f, 0.01f });
-    m_MapTransform.SetRotation(m_vMapRotation);
-    InitializeMapSurfaceSampler(bMapInit, SelectMapSurfacePath());
+    ConfigureDefaultMapTransform(m_MapTransform);
+    m_vMapRotation = m_MapTransform.GetRotation();
+    InitializeMapSurfaceSampler(bMapInit, GetSelectedMapSurfacePath());
+    for (u32_t i = 0; i < CBush_Manager::Get()->Get_Count(); ++i)
+    {
+        Vec3 position = CBush_Manager::Get()->Get_Position(i);
+        if (TryProjectToMapSurface(position, 0.02f))
+            CBush_Manager::Get()->Set_Position(i, position);
+    }
     CAmbientProp_Manager::Get()->Spawn(
-        m_MapTransform.GetWorldMatrix(),
-        m_vMapRotation.y,
         [this](Vec3& pos) { (void)TryProjectToMapSurface(pos, 0.02f); });
 
     Winters::DevSmoke::Log("[InGameBootstrap] CreateECSEntities begin\n");
@@ -492,6 +403,12 @@ bool CScene_InGame::OnEnter()
 
     CGameInstance::Get()->UI_Bind_World(&m_World);
     Client::RegisterLoLUIContent(*CGameInstance::Get());
+    for (u32_t i = 0u; i < kGameRosterSlotCount; ++i)
+    {
+        const GameRosterSlot& slot = gameContext.Roster[i];
+        if (IsSlotOccupied(slot))
+            (void)UI::CMinimapPanel::PrewarmChampionPortrait(slot.champion);
+    }
     CGameInstance::Get()->UI_Set_InGameBuyItemCallback(&UI_SendBuyItemCommand, this);
     CGameInstance::Get()->UI_Set_LevelSkillCallback(&UI_SendLevelSkillCommand, this);
 
@@ -646,6 +563,12 @@ bool CScene_InGame::OnEnter()
                 m_pSSAOPass->SetRadius(1.1f);
                 m_pSSAOPass->SetIntensity(1.25f);
             }
+            m_pPostFxPass = Engine::CPostFxPass::Create(
+                pRhiDevice,
+                g_iWinSizeX,
+                g_iWinSizeY);
+            if (m_pPostFxPass)
+                m_pPostFxPass->SetEnabled(false);
             m_pFogOfWarRenderer = CFogOfWarRenderer::Create(
                 pRhiDevice, Engine::CVisionSystem::FOW_TEX_DIM);
         }
@@ -656,20 +579,26 @@ bool CScene_InGame::OnEnter()
         CGameInstance* pGI = CGameInstance::Get();
         IRHIDevice* pRhiDevice = pGI->Get_RHIDevice();
 
-        m_pFxSystem = CFxSystem::Create(
-            pRhiDevice,
-            pGI->Get_BlendStateCache());
+        if (!m_pFxSystem)
+        {
+            m_pFxSystem = CFxSystem::Create(
+                pRhiDevice,
+                pGI->Get_BlendStateCache());
+        }
         m_pFxBeamSystem = CFxBeamSystem::Create(
             pRhiDevice,
             pGI->Get_BlendStateCache());
 
-        m_pFxMeshRenderer = Engine::CFxStaticMeshRenderer::Create(
-            pRhiDevice,
-            pGI->Get_MeshShader(),
-            pGI->Get_MeshPipeline(),
-            pGI->Get_FxMeshShader(),
-            pGI->Get_FxMeshPipeline(),
-            pGI->Get_BlendStateCache());
+        if (!m_pFxMeshRenderer)
+        {
+            m_pFxMeshRenderer = Engine::CFxStaticMeshRenderer::Create(
+                pRhiDevice,
+                pGI->Get_MeshShader(),
+                pGI->Get_MeshPipeline(),
+                pGI->Get_FxMeshShader(),
+                pGI->Get_FxMeshPipeline(),
+                pGI->Get_BlendStateCache());
+        }
         if (m_pEventApplier)
             m_pEventApplier->SetFxMeshRenderer(m_pFxMeshRenderer.get());
         m_pFxMeshSystem = CFxMeshSystem::Create(m_pFxMeshRenderer.get());
@@ -709,7 +638,6 @@ bool CScene_InGame::OnEnter()
         static_cast<u32_t>(m_PlayerEntity),
         static_cast<u32_t>(GetPlayerChampionId()));
 
-
     if (m_bReplayPlaybackMode)
     {
         std::string error;
@@ -717,14 +645,20 @@ bool CScene_InGame::OnEnter()
         if (!m_pReplayPlayer)
         {
             m_strReplayStatus = error.empty() ? "Replay load failed" : error;
+            CGameInstance::Get()->SetLoadingCursorMode(false);
             return true;
         }
 
         m_strReplayStatus = "Replay loaded";
+        CGameInstance::Get()->SetLoadingCursorMode(false);
         return true;
     }
 
     SendServerInGameReady();
+    // Loading scenes intentionally keep the responsive native cursor visible
+    // through all synchronous bootstrap work. Switch back only after the client
+    // has completed its final ready/replay step and can render the next frame.
+    CGameInstance::Get()->SetLoadingCursorMode(false);
     return true;
 }
 
@@ -753,6 +687,22 @@ void CScene_InGame::AssignPureECSChampionAlias(eChampion id, EntityID entity)
     default:
         break;
     }
+}
+
+void CScene_InGame::ClearPureECSChampionAlias(EntityID entity)
+{
+    if (m_SylasEntity == entity)
+        m_SylasEntity = NULL_ENTITY;
+    if (m_FioraEntity == entity)
+        m_FioraEntity = NULL_ENTITY;
+    if (m_JaxEntity == entity)
+        m_JaxEntity = NULL_ENTITY;
+    if (m_AnnieEntity == entity)
+        m_AnnieEntity = NULL_ENTITY;
+    if (m_AsheEntity == entity)
+        m_AsheEntity = NULL_ENTITY;
+    if (m_YoneEntity == entity)
+        m_YoneEntity = NULL_ENTITY;
 }
 
 void CScene_InGame::CreateMapEntity()
@@ -820,6 +770,16 @@ void CScene_InGame::BindPlayerToECSChampion(EntityID entity)
         // 네트워크 경로에서도 로컬 플레이어 팀이 채워지도록 설정한다.
         // (이전엔 로스터 경로에서만 대입되어 Red 진영 클라가 Blue 기본값에 머물렀다.)
         m_PlayerTeam = champion.team;
+    }
+    if (m_World.HasComponent<FormOverrideComponent>(entity))
+    {
+        const auto& form = m_World.GetComponent<FormOverrideComponent>(entity);
+        if (form.bActive &&
+            form.visualChampion != eChampion::NONE &&
+            form.visualChampion != eChampion::END)
+        {
+            championId = form.visualChampion;
+        }
     }
 
     const ChampionDef* cd = FindClientChampionDef(championId);
@@ -927,6 +887,12 @@ EntityID CScene_InGame::SpawnChampionEntity(eChampion champion, eTeam team)
 
 void CScene_InGame::OnExit()
 {
+    Viego::Fx::StopAllSoulIdle(m_World);
+
+    // ESC 강제 종료/메인 메뉴 이탈 포함 — 종료 산출물이 없으면 aborted로 저장
+    // (S030 저장 보증 3/3; 정상 종료 시에는 이미 저장되어 no-op).
+    SaveEndOfMatchArtifacts("aborted");
+
     CGameInstance::Get()->UI_Set_StatusPanelOpen(false);
     CGameInstance::Get()->UI_Set_PingWheel(false, 0.f, 0.f, 0.f, 0.f);
     m_bPingWheelActive = false;
@@ -973,6 +939,7 @@ void CScene_InGame::OnExit()
     m_NetworkActorInterpStates.clear();
     m_uNetworkActorInterpSnapshotTick = 0;
     m_NetworkActionAnimStates.clear();
+    m_pPostFxPass.reset();
     m_pSSAOPass.reset();
     m_pNormalPass.reset();
     m_pFogOfWarRenderer.reset();

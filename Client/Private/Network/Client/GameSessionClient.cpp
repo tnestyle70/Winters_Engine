@@ -1,7 +1,6 @@
 ﻿#include "Network/Client/ClientNetwork.h"
 #include "Network/Client/GameSessionClient.h"
 #include "Dev/SmokeLog.h"
-#include "Shared/Network/PacketEnvelope.h"
 
 #pragma push_macro("min")
 #pragma push_macro("max")
@@ -102,6 +101,41 @@ namespace
 		return ReadCommandLineTextValue(L"/server:");
 	}
 
+	bool ParseClientNetworkTransport(
+		eClientNetworkTransport& outTransport,
+		bool_t& outSpecified)
+	{
+		outTransport = eClientNetworkTransport::Tcp;
+		outSpecified = false;
+
+		const wchar_t* pPrefix = nullptr;
+		if (FindCommandLineValue(L"--net-transport="))
+			pPrefix = L"--net-transport=";
+		else if (FindCommandLineValue(L"/net-transport:"))
+			pPrefix = L"/net-transport:";
+		if (!pPrefix)
+			return true;
+
+		outSpecified = true;
+		const std::string value = ReadCommandLineTextValue(pPrefix);
+		if (_stricmp(value.c_str(), "tcp") == 0)
+		{
+			outTransport = eClientNetworkTransport::Tcp;
+			return true;
+		}
+		if (_stricmp(value.c_str(), "udp") == 0)
+		{
+			outTransport = eClientNetworkTransport::Udp;
+			return true;
+		}
+		return false;
+	}
+
+	const char* GetClientNetworkTransportName(eClientNetworkTransport transport)
+	{
+		return transport == eClientNetworkTransport::Udp ? "udp" : "tcp";
+	}
+
 	u16_t ParseServerPortOverride(bool_t& outOverridden)
 	{
 		const wchar_t* pValue = FindCommandLineValue(L"--server-port=");
@@ -200,6 +234,13 @@ CGameSessionClient::ServerEndpoint CGameSessionClient::ResolveServerEndpoint()
 	endpoint.port = ParseServerPortOverride(bPortOverridden);
 	endpoint.bFromCommandLine = endpoint.bFromCommandLine || bPortOverridden;
 
+	bool_t bTransportSpecified = false;
+	endpoint.bTransportValid = ParseClientNetworkTransport(
+		endpoint.transport,
+		bTransportSpecified);
+	endpoint.bFromCommandLine =
+		endpoint.bFromCommandLine || bTransportSpecified;
+
 	return endpoint;
 }
 
@@ -209,6 +250,12 @@ bool CGameSessionClient::Connect(const char* host, u16_t port)
 		return true;
 
 	const ServerEndpoint endpoint = ResolveServerEndpoint();
+	if (!endpoint.bTransportValid)
+	{
+		Winters::DevSmoke::Log(
+			"[GameSessionClient] invalid --net-transport; expected tcp or udp\n");
+		return false;
+	}
 	const char* pConnectHost = (host && host[0] != '\0') ? host : endpoint.host.c_str();
 	const u16_t connectPort = port != 0 ? port : endpoint.port;
 
@@ -218,7 +265,7 @@ bool CGameSessionClient::Connect(const char* host, u16_t port)
 	m_uGameStartCount = 0;
 	m_lastHelloPayload.clear();
 
-	m_pNetwork = CClientNetwork::Create();
+	m_pNetwork = CClientNetwork::Create(endpoint.transport);
 	if (!m_pNetwork)
 		return false;
 
@@ -229,15 +276,18 @@ bool CGameSessionClient::Connect(const char* host, u16_t port)
 		});
 
 	const bool_t bLocalEndpoint = IsLocalEndpoint(pConnectHost, connectPort);
-	const int attempts = bLocalEndpoint ? 20 : 1;
+	const int attempts = endpoint.transport == eClientNetworkTransport::Udp
+		? 1
+		: (bLocalEndpoint ? 20 : 1);
 	for (int attempt = 1; attempt <= attempts; ++attempt)
 	{
 		if (m_pNetwork->Connect(pConnectHost, connectPort))
 		{
 			Winters::DevSmoke::Log(
-				"[GameSessionClient] connected to lobby server host=%s port=%u attempt=%d source=%s\n",
+				"[GameSessionClient] connected to lobby server host=%s port=%u transport=%s attempt=%d source=%s\n",
 				pConnectHost ? pConnectHost : "-",
 				static_cast<u32_t>(connectPort),
+				GetClientNetworkTransportName(endpoint.transport),
 				attempt,
 				endpoint.bFromCommandLine ? "command-line" : "default");
 			return true;
@@ -250,9 +300,10 @@ bool CGameSessionClient::Connect(const char* host, u16_t port)
 	if (!m_pNetwork->IsConnected())
 	{
 		Winters::DevSmoke::Log(
-			"[GameSessionClient] connect failed host=%s port=%u attempts=%d source=%s\n",
+			"[GameSessionClient] connect failed host=%s port=%u transport=%s attempts=%d source=%s\n",
 			pConnectHost ? pConnectHost : "-",
 			static_cast<u32_t>(connectPort),
+			GetClientNetworkTransportName(endpoint.transport),
 			attempts,
 			endpoint.bFromCommandLine ? "command-line" : "default");
 		m_pNetwork.reset();
@@ -326,13 +377,12 @@ bool CGameSessionClient::SendLobbyCommand(
 	fbb.Finish(command);
 	auto payload = fbb.Release();
 
-	auto packet = WrapEnvelope(
+	const u32_t sequence = m_nextLobbySequence++;
+	if (!m_pNetwork->SendFrame(
 		ePacketType::LobbyCommand,
-		m_nextLobbySequence++,
+		sequence,
 		payload.data(),
-		static_cast<u32_t>(payload.size()));
-
-	if (!m_pNetwork->Send(std::move(packet)))
+		static_cast<u32_t>(payload.size())))
 	{
 		m_strLastLobbyMessage = "client reject: send failed";
 		return false;
@@ -500,35 +550,42 @@ void CGameSessionClient::OnHello(const u8_t* payload, u32_t len)
 	if (!hello)
 		return;
 
+	const u32_t helloSessionId = hello->sessionId();
+	const u32_t helloNetId = hello->yourNetId();
+	const eChampion helloChampion =
+		static_cast<eChampion>(hello->championId());
+
 	m_lobbyContext.bUseNetworkRoster = true;
-	m_lobbyContext.MySessionId = hello->sessionId();
-	if (hello->yourNetId() != 0)
-		m_lobbyContext.MyNetId = hello->yourNetId();
-	if (hello->championId() != static_cast<u8_t>(eChampion::END))
-		m_lobbyContext.SelectedChampion = static_cast<eChampion>(hello->championId());
+	m_lobbyContext.MySessionId = helloSessionId;
+	if (helloNetId != 0u)
+		m_lobbyContext.MyNetId = helloNetId;
+	if (helloChampion != eChampion::END)
+		m_lobbyContext.SelectedChampion = helloChampion;
 	m_lobbyContext.MyTeam = hello->team();
 
 	for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
 	{
 		const GameRosterSlot& slot = m_lobbyContext.Roster[i];
-		if (!slot.bHuman)
+		const bool_t bNetMatch =
+			helloNetId != 0u && slot.netId == helloNetId;
+		const bool_t bSessionFallback =
+			helloNetId == 0u &&
+			helloSessionId != 0u &&
+			slot.bHuman &&
+			slot.sessionId == helloSessionId;
+		if (!bNetMatch && !bSessionFallback)
 			continue;
-		if ((m_lobbyContext.MySessionId != 0 && slot.sessionId == m_lobbyContext.MySessionId) ||
-			(m_lobbyContext.MyNetId != 0 && slot.netId == m_lobbyContext.MyNetId))
-		{
-			m_lobbyContext.MySlotId = slot.slotId;
-			m_lobbyContext.MyTeam = slot.team;
-			m_lobbyContext.SelectedChampion = slot.champion;
-			if (slot.netId != 0)
-				m_lobbyContext.MyNetId = slot.netId;
-			break;
-		}
+
+		m_lobbyContext.MySlotId = slot.slotId;
+		if (helloNetId == 0u && slot.netId != 0u)
+			m_lobbyContext.MyNetId = slot.netId;
+		break;
 	}
 
 	if (m_pNetwork)
 	{
-		m_pNetwork->SetMySessionId(hello->sessionId());
-		if (hello->yourNetId() != 0)
-			m_pNetwork->SetMyNetEntityId(hello->yourNetId());
+		m_pNetwork->SetMySessionId(helloSessionId);
+		if (helloNetId != 0u)
+			m_pNetwork->SetMyNetEntityId(helloNetId);
 	}
 }

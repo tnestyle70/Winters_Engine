@@ -22,6 +22,9 @@ out/
 /Client/Bin/Debug*/
 /Client/Bin/Release*/
 **/[Bb]in/[Ii]ntermediate/
+**/Bin/CodexVerify/
+**/Bin/CodexPostFx/
+/.md/build/evidence/
 
 # Compiled and intermediate files
 *.exe

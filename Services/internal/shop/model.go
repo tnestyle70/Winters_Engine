@@ -27,8 +27,27 @@ type PurchaseRequest struct {
 }
 
 type PurchaseResponse struct {
-	Status         string `json:"status"`
+	Status         string `json:"status"` // "purchased" | "already_owned"
 	RemainingCoins int64  `json:"remaining_coins"`
+	Owned          bool   `json:"owned"`
+}
+
+// StorefrontItem/StorefrontResponse: one atomic account view
+// (wallet balance + champion products + ownership) for the meta RP shop.
+type StorefrontItem struct {
+	ItemID      uuid.UUID `json:"item_id"`
+	ProductKey  string    `json:"product_key"`
+	ContentKey  string    `json:"content_key"`
+	DisplayName string    `json:"display_name"`
+	PriceRP     int64     `json:"price_rp"`
+	Owned       bool      `json:"owned"`
+	SortOrder   int       `json:"sort_order"`
+}
+
+type StorefrontResponse struct {
+	CurrencyCode string           `json:"currency_code"`
+	BalanceRP    int64            `json:"balance_rp"`
+	Items        []StorefrontItem `json:"items"`
 }
 
 type ItemPurchasedEvent struct {

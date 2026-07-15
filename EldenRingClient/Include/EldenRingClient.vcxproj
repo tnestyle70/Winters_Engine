@@ -83,7 +83,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;UNICODE;_UNICODE;NDEBUG;_WINDOWS;NOMINMAX;WINTERS_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;UNICODE;_UNICODE;NDEBUG;_WINDOWS;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>

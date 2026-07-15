@@ -9,9 +9,11 @@ import (
 )
 
 type TokenPair struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	ExpiresAt    int64  `json:"expires_at"`
+	UserID       uuid.UUID `json:"user_id"`
+	DisplayName  string    `json:"display_name"`
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	ExpiresAt    int64     `json:"expires_at"`
 }
 
 type Claims struct {
@@ -68,6 +70,8 @@ func (m *JWTManager) GenerateTokenPair(userId uuid.UUID, username string) (*Toke
 	}
 
 	return &TokenPair{
+		UserID:       userId,
+		DisplayName:  username,
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 		ExpiresAt:    now.Add(m.accessTTL).Unix(),

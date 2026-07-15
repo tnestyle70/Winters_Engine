@@ -19,6 +19,12 @@ type Config struct {
 	ProfilePort string
 	PaymentPort string
 	ShopPort    string
+
+	// WINTERS_DEV_AUTH_ENABLED=true enables passwordless /auth/id/* endpoints
+	// (local development only; default off).
+	DevAuthEnabled bool
+	// WINTERS_ACCOUNT_POLICY_PATH points at Data/Account/AccountEconomyPolicy.json.
+	AccountPolicyPath string
 }
 
 type DatabaseConfig struct {
@@ -85,6 +91,9 @@ func Load() (*Config, error) {
 		ProfilePort: getEnv("PROFILE_PORT", "8084"),
 		PaymentPort: getEnv("PAYMENT_PORT", "8085"),
 		ShopPort:    getEnv("SHOP_PORT", "8086"),
+
+		DevAuthEnabled:    getEnv("WINTERS_DEV_AUTH_ENABLED", "false") == "true",
+		AccountPolicyPath: getEnv("WINTERS_ACCOUNT_POLICY_PATH", "../Data/Account/AccountEconomyPolicy.json"),
 	}, nil
 }
 

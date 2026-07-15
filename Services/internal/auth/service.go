@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/google/uuid"
@@ -15,12 +16,19 @@ import (
 )
 
 type Service struct {
-	repo   *Repository
-	jwtMgr *jwtauth.JWTManager
+	repo              *Repository
+	jwtMgr            *jwtauth.JWTManager
+	startingBalanceRP int64
+	idAuthEnabled     bool
 }
 
-func NewService(repo *Repository, jwtMgr *jwtauth.JWTManager) *Service {
-	return &Service{repo: repo, jwtMgr: jwtMgr}
+func NewService(repo *Repository, jwtMgr *jwtauth.JWTManager, startingBalanceRP int64, idAuthEnabled bool) *Service {
+	return &Service{
+		repo:              repo,
+		jwtMgr:            jwtMgr,
+		startingBalanceRP: startingBalanceRP,
+		idAuthEnabled:     idAuthEnabled,
+	}
 }
 
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (*jwtauth.TokenPair, error) {
@@ -57,6 +65,57 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*jwtauth.TokenPa
 	}
 	slog.Info("user logged in", "user_id", user.ID)
 	return s.issueTokens(ctx, user.ID, user.Username)
+}
+
+// RegisterByID creates a new passwordless local-ID account.
+// Returns ErrAlreadyExists (409) when the ID is already registered.
+func (s *Service) RegisterByID(ctx context.Context, req IdAuthRequest) (*jwtauth.TokenPair, error) {
+	loginID, err := s.normalizeLoginID(req.LoginID)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.repo.CreateIdentityAccount(
+		ctx, ProviderLocalID, strings.ToLower(loginID), loginID, s.startingBalanceRP)
+	if err != nil {
+		if errors.Is(err, apperr.ErrAlreadyExists) {
+			return nil, fmt.Errorf("%w: id already registered", apperr.ErrAlreadyExists)
+		}
+		return nil, fmt.Errorf("create id account: %w", err)
+	}
+	slog.Info("id account registered", "user_id", user.ID, "login_id", loginID)
+	return s.issueTokens(ctx, user.ID, user.Username)
+}
+
+// LoginByID restores an existing local-ID account.
+// Returns ErrNotFound (404) when the ID has never been registered.
+func (s *Service) LoginByID(ctx context.Context, req IdAuthRequest) (*jwtauth.TokenPair, error) {
+	loginID, err := s.normalizeLoginID(req.LoginID)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.repo.FindByIdentity(ctx, ProviderLocalID, strings.ToLower(loginID))
+	if err != nil {
+		if errors.Is(err, apperr.ErrNotFound) {
+			return nil, fmt.Errorf("%w: unknown id", apperr.ErrNotFound)
+		}
+		return nil, err
+	}
+	slog.Info("id account logged in", "user_id", user.ID)
+	return s.issueTokens(ctx, user.ID, user.Username)
+}
+
+func (s *Service) normalizeLoginID(raw string) (string, error) {
+	if !s.idAuthEnabled {
+		return "", fmt.Errorf("%w: id auth is disabled", apperr.ErrUnauthorized)
+	}
+	loginID := strings.TrimSpace(raw)
+	if utf8.RuneCountInString(loginID) < 1 || utf8.RuneCountInString(loginID) > 32 {
+		return "", fmt.Errorf("%w: id must be 1-32 characters", apperr.ErrInvalidInput)
+	}
+	if strings.ContainsAny(loginID, " \t\r\n") {
+		return "", fmt.Errorf("%w: id must not contain whitespace", apperr.ErrInvalidInput)
+	}
+	return loginID, nil
 }
 
 func (s *Service) Refresh(ctx context.Context, req RefreshRequest) (*jwtauth.TokenPair, error) {

@@ -74,8 +74,14 @@ __pycache__/
 !Engine/ThirdPartyLib/**/Lib/
 !Engine/ThirdPartyLib/**/Lib/**
 
-# Runtime Resource is restored separately
-/Client/Bin/Resource/
+# Runtime Resource is restored separately. Small authored runtime configs may opt in.
+/Client/Bin/Resource/*
+!/Client/Bin/Resource/Config/
+/Client/Bin/Resource/Config/*
+!/Client/Bin/Resource/Config/Practice/
+/Client/Bin/Resource/Config/Practice/*
+!/Client/Bin/Resource/Config/Practice/practice_balance_overrides.json
+!/Client/Bin/Resource/Config/Practice/attack_speed_tuning.json
 /Client/Bin/Resource.zip
 
 # Local external extraction/decoding tools

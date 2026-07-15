@@ -23,9 +23,26 @@ func NewHandler(svc *Service) *Handler {
 func (h *Handler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Get("/items", h.ListItems)
+	r.Get("/storefront", h.GetStorefront)
 	r.Post("/purchase", h.Purchase)
 	r.Get("/inventory/{user_id}", h.GetInventory)
 	return r
+}
+
+// GetStorefront returns the caller's atomic storefront snapshot.
+// Identity comes from JWT claims only — never from the request.
+func (h *Handler) GetStorefront(w http.ResponseWriter, r *http.Request) {
+	claims := middleware.GetClaims(r.Context())
+	if claims == nil {
+		response.Error(w, http.StatusUnauthorized, "missing claims")
+		return
+	}
+	resp, err := h.svc.GetStorefront(r.Context(), claims.UserID)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	response.JSON(w, http.StatusOK, resp)
 }
 
 func (h *Handler) ListItems(w http.ResponseWriter, r *http.Request) {

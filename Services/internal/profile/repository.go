@@ -131,3 +131,49 @@ func (r *Repository) UpdatePlayerStats(ctx context.Context, userId uuid.UUID, p 
 func (r *Repository) InvalidateCache(ctx context.Context, userId uuid.UUID) error {
 	return r.rdb.Del(ctx, profileCachePrefix+userId.String()).Err()
 }
+
+// ReportMatch applies one finished match atomically: history row + player_stats
+// (wins/losses/mmr) + RP wallet credit, then invalidates the profile cache (S035).
+func (r *Repository) ReportMatch(ctx context.Context, userId, matchID uuid.UUID, p MatchCompletedPlayer, rpReward int64) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin report match: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if _, err := tx.Exec(ctx,
+		`INSERT INTO match_history (user_id, match_id, result, kills, deaths, assists, mmr_change)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		userId, matchID, p.Result, p.Kills, p.Deaths, p.Assists, p.MMRChange); err != nil {
+		return fmt.Errorf("insert match history: %w", err)
+	}
+
+	winAdd, lossAdd := 0, 0
+	if p.Result == "win" {
+		winAdd = 1
+	} else if p.Result == "loss" {
+		lossAdd = 1
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE player_stats
+		 SET wins = wins + $2, losses = losses + $3,
+		     mmr = GREATEST(0, mmr + $4), updated_at = NOW()
+		 WHERE user_id = $1`,
+		userId, winAdd, lossAdd, p.MMRChange); err != nil {
+		return fmt.Errorf("update player_stats: %w", err)
+	}
+
+	if _, err := tx.Exec(ctx,
+		`UPDATE wallets SET balance = balance + $2, updated_at = NOW()
+		 WHERE user_id = $1`,
+		userId, rpReward); err != nil {
+		return fmt.Errorf("credit wallet: %w", err)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit report match: %w", err)
+	}
+
+	r.InvalidateCache(ctx, userId)
+	return nil
+}

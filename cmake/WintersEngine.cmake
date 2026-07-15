@@ -90,7 +90,7 @@ target_compile_definitions(WintersEngine PRIVATE
     _UNICODE
     _WINDOWS
     _USRDLL
-    WINTERS_PROFILING
+    $<$<CONFIG:Debug>:WINTERS_PROFILING>
     $<$<CONFIG:Debug>:_DEBUG>
     $<$<CONFIG:Release>:NDEBUG>
 )

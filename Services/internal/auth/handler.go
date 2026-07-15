@@ -22,6 +22,8 @@ func (h *Handler) Routes() chi.Router {
 	r := chi.NewRouter()
 	r.Post("/register", h.Register)
 	r.Post("/login", h.Login)
+	r.Post("/id/register", h.RegisterByID)
+	r.Post("/id/login", h.LoginByID)
 	r.Post("/refresh", h.Refresh)
 	r.Post("/logout", h.Logout)
 	return r
@@ -48,6 +50,34 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	tokens, err := h.svc.Login(r.Context(), req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	response.JSON(w, http.StatusOK, tokens)
+}
+
+func (h *Handler) RegisterByID(w http.ResponseWriter, r *http.Request) {
+	var req IdAuthRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	tokens, err := h.svc.RegisterByID(r.Context(), req)
+	if err != nil {
+		handleError(w, err)
+		return
+	}
+	response.JSON(w, http.StatusCreated, tokens)
+}
+
+func (h *Handler) LoginByID(w http.ResponseWriter, r *http.Request) {
+	var req IdAuthRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.Error(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	tokens, err := h.svc.LoginByID(r.Context(), req)
 	if err != nil {
 		handleError(w, err)
 		return

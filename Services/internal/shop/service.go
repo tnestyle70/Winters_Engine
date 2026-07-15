@@ -24,10 +24,17 @@ func (s *Service) ListItems(ctx context.Context) ([]ShopItem, error) {
 	return s.repo.ListItems(ctx)
 }
 
+func (s *Service) GetStorefront(ctx context.Context, userId uuid.UUID) (*StorefrontResponse, error) {
+	return s.repo.GetStorefront(ctx, userId)
+}
+
 func (s *Service) Purchase(ctx context.Context, userId, itemId uuid.UUID) (*PurchaseResponse, error) {
-	resp, err := s.repo.Purchase(ctx, userId, itemId)
+	resp, err := s.repo.PurchaseChampion(ctx, userId, itemId)
 	if err != nil {
 		return nil, err
+	}
+	if resp.Status != "purchased" {
+		return resp, nil
 	}
 
 	event := ItemPurchasedEvent{

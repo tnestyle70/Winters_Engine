@@ -53,6 +53,7 @@ func main() {
 		sr.Get("/items", handler.ListItems)
 		sr.Group(func(r chi.Router) {
 			r.Use(middleware.JWTAuth(jwtMgr))
+			r.Get("/storefront", handler.GetStorefront)
 			r.Post("/purchase", handler.Purchase)
 			r.Get("/inventory/{user_id}", handler.GetInventory)
 		})

@@ -26,6 +26,13 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+// IdAuthRequest is the passwordless local-ID login/register request.
+// The ID is an external identity mapped to users.id via
+// (provider='local_id', provider_subject=lower(login_id)).
+type IdAuthRequest struct {
+	LoginID string `json:"login_id"`
+}
+
 type RefreshRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }

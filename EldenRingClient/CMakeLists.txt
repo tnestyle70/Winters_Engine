@@ -39,7 +39,7 @@ target_compile_definitions(WintersElden PRIVATE
     _UNICODE
     _WINDOWS
     NOMINMAX
-    WINTERS_PROFILING
+    $<$<CONFIG:Debug>:WINTERS_PROFILING>
     $<$<CONFIG:Debug>:_DEBUG>
     $<$<CONFIG:Debug>:WINTERS_ENABLE_NON_AI_DEBUG_STRING=1>
     $<$<CONFIG:Release>:NDEBUG>

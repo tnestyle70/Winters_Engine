@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"winters-backend/internal/auth"
+	"winters-backend/pkg/accountpolicy"
 	jwtauth "winters-backend/pkg/auth"
 	"winters-backend/pkg/cache"
 	"winters-backend/pkg/config"
@@ -44,9 +45,15 @@ func main() {
 	}
 	defer rdb.Close()
 
+	policy, err := accountpolicy.Load(cfg.AccountPolicyPath)
+	if err != nil {
+		slog.Error("failed to load account economy policy", "error", err)
+		os.Exit(1)
+	}
+
 	jwtMgr := jwtauth.NewJWTManager(cfg.JWT.AccessSecret, cfg.JWT.RefreshSecret, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
 	repo := auth.NewRepository(db, rdb)
-	svc := auth.NewService(repo, jwtMgr)
+	svc := auth.NewService(repo, jwtMgr, policy.StartingBalance, cfg.DevAuthEnabled)
 	handler := auth.NewHandler(svc)
 
 	r := chi.NewRouter()

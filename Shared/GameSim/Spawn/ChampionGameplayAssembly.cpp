@@ -20,8 +20,8 @@
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
 #include "Shared/GameSim/Systems/Stat/StatSystem.h"
 
-#include "ECS/Components/TransformComponent.h"
-#include "ECS/World.h"
+#include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
 

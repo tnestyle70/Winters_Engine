@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ECS/Entity.h"
+#include "Shared/GameSim/Core/Ecs/Entity.h"
 #include "Shared/GameSim/Definitions/ChampionStatsDef.h"
 #include "Shared/GameSim/Definitions/SpawnLoadoutPolicyDef.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"

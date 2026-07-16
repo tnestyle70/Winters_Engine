@@ -180,6 +180,7 @@ void CGameRoom::Phase_CheckGameEnd(TickContext& tc)
 
 	m_bGameEnded = true;
 	const u8_t winningTeam = losingTeam == 0u ? 1u : 0u;
+	m_winningTeam = winningTeam;
 
 	ReplicatedEventComponent event{};
 	event.kind = eReplicatedEventKind::EffectTrigger;

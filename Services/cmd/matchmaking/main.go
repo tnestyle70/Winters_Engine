@@ -15,6 +15,7 @@ import (
 	"winters-backend/pkg/cache"
 	"winters-backend/pkg/config"
 	"winters-backend/pkg/database"
+	"winters-backend/pkg/matchticket"
 	"winters-backend/pkg/messaging"
 	"winters-backend/pkg/middleware"
 )
@@ -45,10 +46,26 @@ func main() {
 	}
 	defer rdb.Close()
 
-	writer := messaging.NewWriter(cfg.Kafka.Brokers, messaging.TopicMatchEvents)
+	writer := messaging.NewWriter(cfg.Kafka.Brokers, messaging.TopicMatchEvents, cfg.Kafka.UseTLS)
 	defer writer.Close()
 
-	svc := matchmaking.NewService(db, rdb, writer)
+	ticketSigner, err := matchticket.NewSigner(
+		cfg.GameSession.TicketSecret,
+		cfg.GameSession.TicketTTL)
+	if err != nil {
+		slog.Error("failed to configure match tickets", "error", err)
+		os.Exit(1)
+	}
+	svc := matchmaking.NewService(
+		db,
+		rdb,
+		writer,
+		ticketSigner,
+		matchmaking.GameAllocation{
+			Host:      cfg.GameSession.Host,
+			Port:      cfg.GameSession.Port,
+			Transport: cfg.GameSession.Transport,
+		})
 	handler := matchmaking.NewHandler(svc)
 
 	go svc.RunMatcher(ctx)

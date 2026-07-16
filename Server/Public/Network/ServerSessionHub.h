@@ -4,6 +4,7 @@
 #include "WintersTypes.h"
 
 #include <memory>
+#include <string>
 
 class CGameRoom;
 class CUdpIocpCore;
@@ -35,6 +36,15 @@ struct ServerSessionHubMetrics
     u64_t ingressOverflowDisconnects = 0;
     u64_t rejectedOutboundFrames = 0;
     u64_t inFlightOutboundCalls = 0;
+};
+
+struct ServerSessionIdentity
+{
+    std::string matchID;
+    std::string userID;
+    std::string gameSessionID;
+    u64_t expiresAtUnix = 0;
+    bool_t bAuthenticated = false;
 };
 
 // Owns transport-neutral logical session identity and the UDP callback/tick
@@ -81,6 +91,9 @@ public:
     void FlagSuspicious(u32_t sessionId);
     bool IsSuspicious(u32_t sessionId) const;
     bool IsSessionActive(u32_t sessionId) const;
+    bool TryGetAuthenticatedIdentity(
+        u32_t sessionId,
+        ServerSessionIdentity& outIdentity) const;
     bool IsIngressOpen() const;
 
     // Called by CGameRoom::Tick before m_stateMutex is acquired. UDP callbacks

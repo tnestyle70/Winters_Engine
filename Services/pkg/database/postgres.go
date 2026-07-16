@@ -11,12 +11,7 @@ import (
 )
 
 func NewPool(ctx context.Context, cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
-	connStr := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable",
-		cfg.Host, cfg.Port, cfg.User, cfg.DBName)
-	if cfg.Password != "" {
-		connStr += " password=" + cfg.Password
-	}
-	poolCfg, err := pgxpool.ParseConfig(connStr)
+	poolCfg, err := pgxpool.ParseConfig(cfg.DSN())
 	if err != nil {
 		return nil, fmt.Errorf("parse pool config: %w", err)
 	}

@@ -1,8 +1,8 @@
 package shop
 
 import (
-	"time"
 	"github.com/google/uuid"
+	"time"
 )
 
 type ShopItem struct {

@@ -58,6 +58,12 @@ MatchStatus CMatchClient::ParseResponse(const HttpResponse & resp)
         auto data = j["data"];
         result.status = data.value("status", "");
         result.matchId = data.value("match_id", "");
+        result.gameSessionId = data.value("game_session_id", "");
+        result.host = data.value("host", "");
+        result.port = data.value("port", 0);
+        result.transport = data.value("transport", "");
+        result.playerTicket = data.value("player_ticket", "");
+        result.expiresAt = data.value("expires_at", 0ll);
     }
     catch (const json::exception& e)
     {

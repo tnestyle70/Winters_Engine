@@ -24,7 +24,9 @@ public:
 		u16_t port = 9000;
 		eClientNetworkTransport transport{};
 		bool_t bFromCommandLine = false;
+		bool_t bFromMatchAssignment = false;
 		bool_t bTransportValid = true;
+		std::vector<u8_t> connectTicket{};
 	};
 
 	static CGameSessionClient& Instance();

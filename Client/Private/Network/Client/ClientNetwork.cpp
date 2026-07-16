@@ -115,7 +115,10 @@ CClientNetwork::~CClientNetwork()
     ReleaseWsa();
 }
 
-bool CClientNetwork::Connect(const char* host, u16_t port)
+bool CClientNetwork::Connect(
+    const char* host,
+    u16_t port,
+    std::span<const u8_t> connectTicket)
 {
     if (IsConnected()) return true;
 
@@ -124,11 +127,11 @@ bool CClientNetwork::Connect(const char* host, u16_t port)
         if (!m_pUdpClient)
             return false;
 
-        // The empty ticket is an explicit development-only association
-        // contract. Authentication must replace it at the session boundary;
-        // this transport layer does not claim that it authenticates a player.
-        return m_pUdpClient->Connect(host, port);
+        return m_pUdpClient->Connect(host, port, connectTicket, 3'000u);
     }
+
+    if (!connectTicket.empty())
+        return false;
 
     m_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (m_socket == INVALID_SOCKET)

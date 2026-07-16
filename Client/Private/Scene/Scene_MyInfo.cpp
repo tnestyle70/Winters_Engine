@@ -2,6 +2,7 @@
 
 #include "ClientShell/ClientShellBackendService.h"
 #include "ClientShell/ClientShellDataStore.h"
+#include "ClientShell/ClientShellSession.h"
 #include "GameInstance.h"
 #include "Replay/LocalMatchRecord.h"
 #include "Scene/Scene_InGame.h"
@@ -32,23 +33,34 @@ bool CScene_MyInfo::OnEnter()
 
 	m_bBackRequested = false;
 	m_bSceneTransitionStarted = false;
-	m_vReplayItems = CReplayLibrary::ListLocalReplays();
+	ReloadReplayItems();
 	ReloadLocalMatchRecords();
 
-	CClientShellBackendService::Instance().RequestMatchHistory();
+	CClientShellBackendService& backend = CClientShellBackendService::Instance();
+	m_uObservedReplayLibraryRevision = backend.GetReplayLibraryRevision();
+	backend.RequestMatchHistory();
+	backend.RequestReplayLibrary();
 	return true;
 }
 
 void CScene_MyInfo::OnExit()
 {
 	m_ImageUI.Shutdown();
-	m_vReplayItems.clear();
+	m_vAccountReplayItems.clear();
+	m_vDebugReplayItems.clear();
 	m_vLocalMatchRecords.clear();
 }
 
 void CScene_MyInfo::OnUpdate(f32_t /*dt*/)
 {
 	CClientShellBackendService::Instance().ProcessCallbacks();
+	const u32_t replayRevision =
+		CClientShellBackendService::Instance().GetReplayLibraryRevision();
+	if (m_uObservedReplayLibraryRevision != replayRevision)
+	{
+		m_uObservedReplayLibraryRevision = replayRevision;
+		ReloadReplayItems();
+	}
 
 	if (m_ImageUI.WasSourceRectClicked(kBackButtonRect))
 		m_bBackRequested = true;
@@ -135,31 +147,106 @@ void CScene_MyInfo::OnImGui()
 	if (ImGui::Begin("리플레이", nullptr, ImGuiWindowFlags_NoCollapse))
 	{
 		if (ImGui::Button("새로고침"))
-			m_vReplayItems = CReplayLibrary::ListLocalReplays();
-
-		if (m_vReplayItems.empty())
 		{
-			ImGui::TextUnformatted("저장된 리플레이가 없습니다 (Replay/*.wrpl)");
+			ReloadReplayItems();
+			CClientShellBackendService::Instance().RequestReplayLibrary();
 		}
-		else
+
+		if (ImGui::BeginTabBar("ReplayLibraryTabs"))
 		{
-			for (const ReplayListItem& item : m_vReplayItems)
+			if (ImGui::BeginTabItem("Cloud / account"))
 			{
-				ImGui::PushID(item.path.c_str());
-				ImGui::TextUnformatted(item.displayName.c_str());
-				ImGui::SameLine();
-				if (ImGui::Button("재생"))
-					OpenReplay(item.path);
-				ImGui::PopID();
+				DrawCloudReplayItems();
+				ImGui::EndTabItem();
 			}
+
+			if (ImGui::BeginTabItem("내 리플레이"))
+			{
+				DrawReplayItems(
+					m_vAccountReplayItems,
+					"현재 계정에 다운로드된 리플레이가 없습니다");
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("로컬/디버그"))
+			{
+				ImGui::TextDisabled("개발 경로 Replay/*.wrpl — 계정 라이브러리와 분리됨");
+				DrawReplayItems(
+					m_vDebugReplayItems,
+					"로컬 디버그 리플레이가 없습니다");
+				ImGui::EndTabItem();
+			}
+			ImGui::EndTabBar();
 		}
 	}
 	ImGui::End();
 }
 
+void CScene_MyInfo::DrawCloudReplayItems()
+{
+	CClientShellBackendService& backend = CClientShellBackendService::Instance();
+	if (!backend.IsConfigured())
+	{
+		ImGui::TextDisabled("Cloud replays require an online account.");
+		return;
+	}
+	if (backend.IsReplayRequestInFlight())
+		ImGui::TextDisabled("Syncing or downloading...");
+
+	const std::vector<Client::CloudReplayItem>& items =
+		backend.GetCloudReplayItems();
+	if (items.empty())
+	{
+		ImGui::TextUnformatted("No cloud replay is available for this account.");
+		return;
+	}
+
+	for (const Client::CloudReplayItem& item : items)
+	{
+		ImGui::PushID(item.replayId.c_str());
+		ImGui::Text("match %s | %.2f MiB | v%d",
+			item.matchId.c_str(),
+			static_cast<double>(item.sizeBytes) / (1024.0 * 1024.0),
+			item.formatVersion);
+		ImGui::SameLine();
+		if (!backend.IsReplayRequestInFlight() && ImGui::Button("Download"))
+			backend.RequestReplayDownload(item);
+		ImGui::PopID();
+	}
+}
+
 void CScene_MyInfo::ReloadLocalMatchRecords()
 {
-	m_vLocalMatchRecords = Winters::LoadLocalMatchRecordSummaries();
+	m_vLocalMatchRecords = Winters::LoadLocalMatchRecordSummaries(
+		CClientShellSession::Instance().GetUserID());
+}
+
+void CScene_MyInfo::ReloadReplayItems()
+{
+	const std::string& strUserID = CClientShellSession::Instance().GetUserID();
+	m_vAccountReplayItems = CReplayLibrary::ListAccountReplayCache(strUserID);
+	m_vDebugReplayItems = CReplayLibrary::ListLocalDebugReplays();
+}
+
+void CScene_MyInfo::DrawReplayItems(
+	const std::vector<ReplayListItem>& items,
+	const char* pEmptyText)
+{
+	if (items.empty())
+	{
+		ImGui::TextUnformatted(pEmptyText);
+		return;
+	}
+
+	for (const ReplayListItem& item : items)
+	{
+		ImGui::PushID(item.path.c_str());
+		ImGui::TextUnformatted(item.displayName.c_str());
+		ImGui::SameLine();
+		if (ImGui::Button("재생"))
+			OpenReplay(item.path);
+		ImGui::PopID();
+	}
 }
 
 void CScene_MyInfo::OpenReplay(const wstring_t& path)

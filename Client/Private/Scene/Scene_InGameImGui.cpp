@@ -208,6 +208,10 @@ void CScene_InGame::UpdateReplayPlayback(f32_t dt)
     {
         ProjectGameplayActorsToMapSurface();
     }
+
+    const std::string& playbackError = m_pReplayPlayer->GetPlaybackError();
+    if (!playbackError.empty())
+        m_strReplayStatus = playbackError;
 }
 
 bool_t CScene_InGame::SendStopReplayRequest()

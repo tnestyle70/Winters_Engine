@@ -40,9 +40,6 @@
     <Filter Include="01. Network\01. Session\Session">
       <UniqueIdentifier>{4ad5fd4f-640e-4ff7-b235-de2697a00b3a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="02. Game\06. ServerEntry">
-      <UniqueIdentifier>{ff80e0b1-3138-4b3e-9a19-494e9f00fdb1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="02. Game\07. Replay">
       <UniqueIdentifier>{069e34a5-0d19-40ce-822f-fe81ca644493}</UniqueIdentifier>
     </Filter>
@@ -63,24 +60,6 @@
     </Filter>
     <Filter Include="02. Game\10. ServerEntry">
       <UniqueIdentifier>{0d365187-c296-40e6-9df2-160d0fd4a735}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="04. Shared">
-      <UniqueIdentifier>{85f1f886-471c-459d-9924-f2a618ad3f47}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="04. Shared\GameSim">
-      <UniqueIdentifier>{b55d49c9-045d-4d1e-912d-9e76bb93c99b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="04. Shared\GameSim\Champions">
-      <UniqueIdentifier>{f28b61a8-32ed-4a36-b6a1-82d6540c01a9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="04. Shared\GameSim\Definitions">
-      <UniqueIdentifier>{792799e8-6917-4fb5-bfbc-b0697559148d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="04. Shared\GameSim\Registries">
-      <UniqueIdentifier>{8a14121f-3a29-4fb5-9787-df7f34b7db46}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="04. Shared\GameSim\Systems">
-      <UniqueIdentifier>{38b54c89-7d80-4b19-825d-8160c112de06}</UniqueIdentifier>
     </Filter>
     <Filter Include="02. Game\00. GameRoom\00. Tick">
       <UniqueIdentifier>{21249159-74fd-413c-a785-4e814fa4f476}</UniqueIdentifier>
@@ -114,6 +93,18 @@
     </Filter>
     <Filter Include="02. Game\00. GameRoom\10. WorldBootstrap">
       <UniqueIdentifier>{49f51a4e-7e48-4b7b-8de9-f3a090d06063}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Data">
+      <UniqueIdentifier>{5fbb6353-a7c8-4b67-82ea-03780a8cf9c2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Data\00. Generated">
+      <UniqueIdentifier>{24cbaee0-1e96-47c5-a004-0b7ffd9e54fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="02. Game\11. Factory">
+      <UniqueIdentifier>{453de71a-9e20-4a20-b6e1-41b07a01c3f4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="04. Data\01. ThirdParty">
+      <UniqueIdentifier>{990092fc-5423-4470-aa51-29408d4beaa2}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -171,153 +162,6 @@
     <ClCompile Include="..\Private\Game\ServerEntry.cpp">
       <Filter>02. Game\10. ServerEntry</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Annie\AnnieGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Ashe\AsheGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Fiora\FioraGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Irelia\IreliaGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Jax\JaxGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Kalista\KalistaGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Kindred\KindredGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\LeeSin\LeeSinGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Sylas\SylasGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\MasterYi\MasterYiGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Riven\RivenGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Viego\ViegoGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Yasuo\YasuoGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Yone\YoneGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Champions\Zed\ZedGameSim.cpp">
-      <Filter>04. Shared\GameSim\Champions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Definitions\ChampionRuntimeDefaults.cpp">
-      <Filter>04. Shared\GameSim\Definitions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Definitions\MapSpawnPoints.cpp">
-      <Filter>04. Shared\GameSim\Definitions</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionStats\ChampionStatsRegistry.cpp">
-      <Filter>04. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\ChampionGameData\ChampionGameDataDB.cpp">
-      <Filter>04. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Generated\ChampionGameData.generated.cpp">
-      <Filter>04. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\Reward\RewardRegistry.cpp">
-      <Filter>04. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\SkillScaling\SkillScalingRegistry.cpp">
-      <Filter>04. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Registries\Skin\SkinRegistry.cpp">
-      <Filter>04. Shared\GameSim\Registries</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\AreaAura\AreaAuraSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\AttackChase\AttackChaseSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\JungleAI\JungleAISystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Buff\BuffSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIPolicy.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAIBrain.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ChampionAI\ChampionAISystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatActionSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Combat\CombatFormula.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\CommandExecutor\CommandExecutor.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamagePipeline.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Damage\DamageQueueSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Death\DeathSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Experience\ExperienceSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\GameplayStateQuery\GameplayStateQuery.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Move\MoveSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Recall\RecallSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Rune\RuneSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillCooldown\SkillCooldownSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SkillRank\SkillRankSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\Stat\StatSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\StatusEffect\StatusEffectSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\Shared\GameSim\Systems\WaypointPatrol\WaypointPatrolSystem.cpp">
-      <Filter>04. Shared\GameSim\Systems</Filter>
-    </ClCompile>
     <ClCompile Include="..\Private\Game\GameRoomTick.cpp">
       <Filter>02. Game\00. GameRoom\00. Tick</Filter>
     </ClCompile>
@@ -368,6 +212,18 @@
     </ClCompile>
     <ClCompile Include="..\Private\Game\WorldBootstrap.cpp">
       <Filter>02. Game\00. GameRoom\10. WorldBootstrap</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Data\Generated\LoLGameplayDefinitions.generated.cpp">
+      <Filter>04. Data\00. Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Data\RuntimeGameplayDefinitionOverlay.cpp">
+      <Filter>04. Data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\Factory\ChampionSimComponentTable.cpp">
+      <Filter>02. Game\11. Factory</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Game\Factory\ServerChampionEntityFactory.cpp">
+      <Filter>02. Game\11. Factory</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -445,6 +301,21 @@
     </ClInclude>
     <ClInclude Include="..\Public\Game\ServerEntry.h">
       <Filter>02. Game\10. ServerEntry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Data\RuntimeGameplayDefinitionOverlay.h">
+      <Filter>04. Data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Game\Factory\ChampionSimComponentTable.h">
+      <Filter>02. Game\11. Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Game\Factory\ServerChampionEntityFactory.h">
+      <Filter>02. Game\11. Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Data\LoLGameplayDefinitionPack.h">
+      <Filter>04. Data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Data\ThirdParty\json.hpp">
+      <Filter>04. Data\01. ThirdParty</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

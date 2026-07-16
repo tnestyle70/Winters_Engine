@@ -131,31 +131,6 @@ void CProfileClient::GetMyHistory(HistoryCallback callback)
 		});
 }
 
-void CProfileClient::ReportMyMatch(bool_t bVictory, MatchReportCallback callback)
-{
-	json body;
-	body["result"] = bVictory ? "win" : "loss";
-	m_pHttp->AsyncPost("/profile/me/matches", body.dump(), [callback](const HttpResponse& resp) {
-		MatchReportResult result;
-		try
-		{
-			auto j = json::parse(resp.body);
-			if (!resp.success)
-			{
-				result.error = j.value("error", "report failed");
-				callback(result);
-				return;
-			}
-			auto data = j["data"];
-			result.success = true;
-			result.mmrChange = data.value("mmr_change", 0);
-			result.rpReward = data.value("rp_reward", 0);
-		}
-		catch (const json::exception& e) { result.error = e.what(); }
-		callback(result);
-		});
-}
-
 void CProfileClient::ProcessCallbacks()
 {
 	m_pHttp->ProcessCallbacks();

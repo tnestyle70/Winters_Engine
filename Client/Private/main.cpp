@@ -9,8 +9,10 @@
 #include "WintersEngine.h"
 #include "GameApp.h"
 #include "Defines.h"
+#include "Replay/ReplayPlayer.h"
 #include <cstdlib>
 #include <cwchar>
+#include <string>
 
 extern "C"
 {
@@ -86,6 +88,24 @@ namespace
 
         return eEngineRHIBackend::DX11;
     }
+
+	std::wstring ParseReplayIndexSmokePath()
+	{
+		const wchar_t* pValue = FindCommandLineValue(L"--replay-index-smoke=");
+		if (!pValue || *pValue == L'\0')
+			return {};
+
+		const bool_t bQuoted = *pValue == L'"';
+		if (bQuoted)
+			++pValue;
+		const wchar_t* pEnd = pValue;
+		while (*pEnd != L'\0' &&
+			(bQuoted ? *pEnd != L'"' : (*pEnd != L' ' && *pEnd != L'\t')))
+		{
+			++pEnd;
+		}
+		return std::wstring(pValue, pEnd);
+	}
 }
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
@@ -94,6 +114,22 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
     //종료 직전 미해제 힙 블록을 Output 창에 덤프
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
+
+	const std::wstring replayIndexSmokePath = ParseReplayIndexSmokePath();
+	if (!replayIndexSmokePath.empty())
+	{
+		std::string error;
+		const auto player = CReplayPlayer::LoadFromFile(replayIndexSmokePath, error);
+		if (!player)
+		{
+			const std::string message =
+				"[ReplayIndexSmoke] FAIL: " + error + "\n";
+			::OutputDebugStringA(message.c_str());
+			return 2;
+		}
+		::OutputDebugStringA("[ReplayIndexSmoke] PASS\n");
+		return 0;
+	}
 
     CGameApp gameApp;
 

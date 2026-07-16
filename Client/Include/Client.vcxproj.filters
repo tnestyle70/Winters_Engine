@@ -358,38 +358,8 @@
     <Filter Include="01. Scene\05. InGame\00. GameplayQuery">
       <UniqueIdentifier>{4bbacb36-9c4a-4b4e-99f5-841f318035be}</UniqueIdentifier>
     </Filter>
-    <Filter Include="01. Scene\05. InGame\01. CombatInput">
-      <UniqueIdentifier>{c6844894-5126-4099-b08d-a5d119c033bc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Scene\05. InGame\02. Render">
-      <UniqueIdentifier>{86b5fb4b-ab50-4fbd-a173-3fa40873db42}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Scene\05. InGame\04. Network">
-      <UniqueIdentifier>{85afbeb7-4874-45a1-bf2e-9a0ab6808faa}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Scene\05. InGame\05. Bootstrap">
-      <UniqueIdentifier>{8051b35e-5c15-4b29-acdf-7fd160ba025e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Scene\05. InGame\06. ChampionState">
-      <UniqueIdentifier>{89aff615-6fc4-4982-ad3d-de9c1af77d38}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Scene\05. InGame\07. Debug">
-      <UniqueIdentifier>{2ee13d08-0a28-439c-8eb7-e4d30c20206a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Scene\05. InGame\08. Lifecycle">
-      <UniqueIdentifier>{9e351a43-9266-4471-b1a5-aca9cd349057}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Scene\05. InGame\09. PlayerControl">
-      <UniqueIdentifier>{b8c276e8-9cdc-41ac-981b-ad6b4a70547b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Scene\05. InGame\10. PlayerTransform">
-      <UniqueIdentifier>{228e19a3-6415-4360-b1d8-21c3a5dfcc31}</UniqueIdentifier>
-    </Filter>
     <Filter Include="01. Scene\05. InGame\12. RosterSpawner">
       <UniqueIdentifier>{4eba5dd2-1ff5-4b2a-9c2f-6d50b162436c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Scene\05. InGame\13. SkillDispatch">
-      <UniqueIdentifier>{92c2e27b-d33d-4208-979e-a12893061667}</UniqueIdentifier>
     </Filter>
     <Filter Include="01. Scene\05. InGame\14. RenderVisibilityFilter">
       <UniqueIdentifier>{15b29367-92c2-4eb6-b19d-3ac9ab143925}</UniqueIdentifier>
@@ -402,6 +372,12 @@
     </Filter>
     <Filter Include="12. Replay">
       <UniqueIdentifier>{4cd0d01a-1f95-4cd2-a79d-ddb000ebed65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Data">
+      <UniqueIdentifier>{505bb00e-cf30-429d-9bb4-5bf70fb3560a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="07. Data\00. Generated">
+      <UniqueIdentifier>{bd2c3aa1-a842-4eee-b2c2-c9a680f7e224}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -888,7 +864,48 @@
     <ClInclude Include="..\Public\Replay\ReplayPlayer.h">
       <Filter>12. Replay</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\EngineSDK\inc\FX\FxLifeCycle.h" />
+    <ClInclude Include="..\..\EngineSDK\inc\FX\FxLifeCycle.h">
+      <Filter>02. GameObject\02. FX\05. LifeCycle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Data\LoLVisualDefinitionPack.h">
+      <Filter>07. Data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\ChampionVisualData.h">
+      <Filter>02. GameObject\01. Champions\01. Def</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\KalistaSentinelVisualComponent.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\03. Kalista</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\Champion\Kindred\MasterYiSkills.h">
+      <Filter>02. GameObject\01. Champions\00. Champion\14. Kindred</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxAnchorResolver.h">
+      <Filter>02. GameObject\02. FX\07. FxSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\FX\FxPresetStyle.h">
+      <Filter>02. GameObject\02. FX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\SkillDefVisualDataAdapter.h">
+      <Filter>02. GameObject\04. Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\SkillVisualData.h">
+      <Filter>02. GameObject\04. Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\GameObject\VisualEventData.h">
+      <Filter>02. GameObject\04. Skill</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\CommandSerializer.h">
+      <Filter>06. Network\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\SnapshotApplier.h">
+      <Filter>06. Network\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\json.hpp">
+      <Filter>06. Network\Backend</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Scene\Scene_GameSelect.h">
+      <Filter>01. Scene</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\main.cpp">
@@ -1359,6 +1376,8 @@
     <ClCompile Include="..\Private\Replay\ReplayPlayer.cpp">
       <Filter>12. Replay</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\Data\Generated\LoLVisualDefinitions.generated.cpp" />
+    <ClCompile Include="..\Private\Data\Generated\LoLVisualDefinitions.generated.cpp">
+      <Filter>07. Data\00. Generated</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

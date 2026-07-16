@@ -1,8 +1,8 @@
 package payment
 
 import (
-	"time"
 	"github.com/google/uuid"
+	"time"
 )
 
 type ChargeRequest struct {

@@ -67,7 +67,7 @@ public:
         u64_t acceptedTick, u64_t recvTimeMs, u64_t clientTimestampMs);
     void OnLobbyCommand(u32_t sessionId, const Shared::Schema::LobbyCommand* command);
 
-    EntityID OnSessionJoin(u32_t sessionId);
+    EntityID OnSessionJoin(u32_t sessionId, bool_t* pOutAccepted = nullptr);
     void OnSessionLeave(u32_t sessionId);
     bool DebugSetHealthByNetId(NetEntityId netId, f32_t value);
 
@@ -311,6 +311,18 @@ private:
 
     std::vector<u32_t> m_sessionIds;
     CSessionBinding m_sessionBinding;
+
+    struct AuthenticatedMatchParticipant
+    {
+        u32_t sessionId = 0u;
+        u8_t team = 0xFFu;
+    };
+    std::string m_matchID;
+    std::string m_gameSessionID;
+    std::unordered_map<u32_t, std::string> m_userIDBySession;
+    std::unordered_map<std::string, AuthenticatedMatchParticipant>
+        m_authenticatedParticipants;
+    u8_t m_winningTeam = 0xFFu;
     std::unordered_map<EntityID, u32_t> m_lastBroadcastActionSeq;
     std::unordered_map<u32_t, u32_t> m_lastSimCommandSeqBySession;
 

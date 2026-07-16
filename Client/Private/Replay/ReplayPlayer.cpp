@@ -89,13 +89,13 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 		return nullptr;
 	}
 
-	player->m_Records.reserve(player->m_Header.recordCount);
+	player->m_RecordIndex.reserve(player->m_Header.recordCount);
 	u32_t snapshotCount = 0u;
 	u32_t eventCount = 0u;
 	u64_t previousTick = 0u;
 	for (u32_t i = 0; i < player->m_Header.recordCount; ++i)
 	{
-		ReplayRecord record{};
+		ReplayRecordIndex record{};
 		in.read(reinterpret_cast<char*>(&record.header), sizeof(record.header));
 		if (!in.good())
 		{
@@ -114,10 +114,18 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 			return nullptr;
 		}
 
-		record.payload.resize(record.header.payloadSize);
+		const std::streampos payloadPosition = in.tellg();
+		if (payloadPosition == std::streampos(-1))
+		{
+			outError = "failed to locate replay payload";
+			return nullptr;
+		}
+		record.payloadOffset = static_cast<u64_t>(
+			static_cast<std::streamoff>(payloadPosition));
+		player->m_PayloadScratch.resize(record.header.payloadSize);
 		in.read(
-			reinterpret_cast<char*>(record.payload.data()),
-			static_cast<std::streamsize>(record.payload.size()));
+			reinterpret_cast<char*>(player->m_PayloadScratch.data()),
+			static_cast<std::streamsize>(player->m_PayloadScratch.size()));
 		if (!in.good())
 		{
 			outError = "failed to read replay payload";
@@ -135,13 +143,14 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 		if (recordType == Winters::Replay::eReplayRecordType::Command &&
 			!Winters::Replay::IsReplayCommandPayloadSupported(
 				player->m_Header.version,
-				record.payload.data(),
+				player->m_PayloadScratch.data(),
 				record.header.payloadSize))
 		{
 			outError = "invalid replay command payload";
 			return nullptr;
 		}
-		if (!IsReplayFlatBufferPayloadValid(recordType, record.payload))
+		if (!IsReplayFlatBufferPayloadValid(
+			recordType, player->m_PayloadScratch))
 		{
 			outError = recordType == Winters::Replay::eReplayRecordType::Snapshot
 				? "invalid replay snapshot payload"
@@ -154,10 +163,10 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 		else if (recordType == Winters::Replay::eReplayRecordType::Event)
 			++eventCount;
 
-		player->m_Records.emplace_back(std::move(record));
+		player->m_RecordIndex.emplace_back(record);
 	}
 
-	if (player->m_Records.empty())
+	if (player->m_RecordIndex.empty())
 	{
 		outError = "replay has no records";
 		return nullptr;
@@ -169,8 +178,8 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 	}
 	if (snapshotCount != player->m_Header.snapshotCount ||
 		eventCount != player->m_Header.eventCount ||
-		player->m_Records.front().header.serverTick != player->m_Header.firstTick ||
-		player->m_Records.back().header.serverTick != player->m_Header.lastTick)
+		player->m_RecordIndex.front().header.serverTick != player->m_Header.firstTick ||
+		player->m_RecordIndex.back().header.serverTick != player->m_Header.lastTick)
 	{
 		outError = "replay header summary mismatch";
 		return nullptr;
@@ -179,6 +188,9 @@ std::unique_ptr<CReplayPlayer> CReplayPlayer::LoadFromFile(
 	player->m_iCurrentTick = player->m_Header.firstTick;
 	player->m_fPlayheadTick = static_cast<double>(player->m_Header.firstTick);
 	player->m_strDisplayName = std::filesystem::path(path).filename().string();
+	player->m_PayloadScratch.clear();
+	player->m_Stream = std::move(in);
+	player->m_Stream.clear();
 	return player;
 }
 
@@ -198,7 +210,7 @@ bool_t CReplayPlayer::Update(
 	CSnapshotApplier& snapshotApplier,
 	CEventApplier& eventApplier)
 {
-	if (m_bPaused || m_bFinished || m_Records.empty())
+	if (m_bPaused || m_bFinished || m_RecordIndex.empty())
 		return false;
 
 	if (dt > 0.f)
@@ -209,15 +221,15 @@ bool_t CReplayPlayer::Update(
 		targetTick = m_Header.firstTick;
 
 	bool_t bApplied = false;
-	while (m_iNextRecord < m_Records.size() &&
-		m_Records[m_iNextRecord].header.serverTick <= targetTick)
+	while (m_iNextRecord < m_RecordIndex.size() &&
+		m_RecordIndex[m_iNextRecord].header.serverTick <= targetTick)
 	{
-		const u64_t tick = m_Records[m_iNextRecord].header.serverTick;
+		const u64_t tick = m_RecordIndex[m_iNextRecord].header.serverTick;
 		const size_t begin = m_iNextRecord;
 		size_t end = begin;
 
-		while (end < m_Records.size() &&
-			m_Records[end].header.serverTick == tick)
+		while (end < m_RecordIndex.size() &&
+			m_RecordIndex[end].header.serverTick == tick)
 		{
 			++end;
 		}
@@ -229,12 +241,14 @@ bool_t CReplayPlayer::Update(
 			entityMap,
 			snapshotApplier,
 			eventApplier) || bApplied;
+		if (!m_strPlaybackError.empty())
+			return bApplied;
 
 		m_iCurrentTick = tick;
 		m_iNextRecord = end;
 	}
 
-	if (m_iNextRecord >= m_Records.size())
+	if (m_iNextRecord >= m_RecordIndex.size())
 		m_bFinished = true;
 
 	return bApplied;
@@ -252,37 +266,79 @@ bool_t CReplayPlayer::ApplyTickGroup(
 
 	for (size_t i = begin; i < end; ++i)
 	{
-		const ReplayRecord& record = m_Records[i];
+		const ReplayRecordIndex& record = m_RecordIndex[i];
 		if (static_cast<Winters::Replay::eReplayRecordType>(record.header.type) !=
 			Winters::Replay::eReplayRecordType::Snapshot)
 		{
 			continue;
 		}
+		if (!ReadPayload(record))
+			return bApplied;
 
 		snapshotApplier.OnSnapshot(
 			world,
 			entityMap,
-			record.payload.data(),
-			static_cast<u32_t>(record.payload.size()));
+			m_PayloadScratch.data(),
+			static_cast<u32_t>(m_PayloadScratch.size()));
 		bApplied = true;
 	}
 
 	for (size_t i = begin; i < end; ++i)
 	{
-		const ReplayRecord& record = m_Records[i];
+		const ReplayRecordIndex& record = m_RecordIndex[i];
 		if (static_cast<Winters::Replay::eReplayRecordType>(record.header.type) !=
 			Winters::Replay::eReplayRecordType::Event)
 		{
 			continue;
 		}
+		if (!ReadPayload(record))
+			return bApplied;
 
 		eventApplier.OnEvent(
 			world,
 			entityMap,
-			record.payload.data(),
-			static_cast<u32_t>(record.payload.size()));
+			m_PayloadScratch.data(),
+			static_cast<u32_t>(m_PayloadScratch.size()));
 		bApplied = true;
 	}
 
 	return bApplied;
+}
+
+bool_t CReplayPlayer::ReadPayload(const ReplayRecordIndex& record)
+{
+	m_Stream.clear();
+	m_Stream.seekg(static_cast<std::streamoff>(record.payloadOffset), std::ios::beg);
+	if (!m_Stream.good())
+	{
+		SetPlaybackError("failed to seek replay payload");
+		return false;
+	}
+
+	m_PayloadScratch.resize(record.header.payloadSize);
+	m_Stream.read(
+		reinterpret_cast<char*>(m_PayloadScratch.data()),
+		static_cast<std::streamsize>(m_PayloadScratch.size()));
+	if (!m_Stream.good())
+	{
+		SetPlaybackError("failed to read replay payload");
+		return false;
+	}
+
+	const auto recordType =
+		static_cast<Winters::Replay::eReplayRecordType>(record.header.type);
+	if (!IsReplayFlatBufferPayloadValid(recordType, m_PayloadScratch))
+	{
+		SetPlaybackError(recordType == Winters::Replay::eReplayRecordType::Snapshot
+			? "replay snapshot changed after validation"
+			: "replay event changed after validation");
+		return false;
+	}
+	return true;
+}
+
+void CReplayPlayer::SetPlaybackError(const char* error)
+{
+	m_strPlaybackError = error ? error : "replay playback failed";
+	m_bFinished = true;
 }

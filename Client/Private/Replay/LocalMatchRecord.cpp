@@ -1,4 +1,5 @@
 #include "Replay/LocalMatchRecord.h"
+#include "Replay/ReplayLibrary.h"
 
 #pragma push_macro("new")
 #undef new
@@ -12,8 +13,6 @@
 
 namespace
 {
-	constexpr const char* kLocalMatchHistoryPath = "Replay/LocalMatchHistory.jsonl";
-
 	std::string MakeUtcTimestamp()
 	{
 		const std::time_t now = std::time(nullptr);
@@ -30,16 +29,28 @@ namespace Winters
 {
 	bool_t AppendLocalMatchRecord(const LocalMatchRecord& record)
 	{
-		std::error_code ec;
-		std::filesystem::create_directories("Replay", ec);
+		if (!CReplayLibrary::IsSafeAccountKey(record.strUserID))
+			return false;
 
-		std::ofstream stream(kLocalMatchHistoryPath, std::ios::app);
+		const std::filesystem::path accountDirectory(
+			CReplayLibrary::GetAccountDataDirectory(record.strUserID));
+		if (accountDirectory.empty())
+			return false;
+
+		std::error_code ec;
+		std::filesystem::create_directories(accountDirectory, ec);
+		if (ec)
+			return false;
+
+		std::ofstream stream(accountDirectory / L"MatchHistory.jsonl", std::ios::app);
 		if (!stream.is_open())
 			return false;
 
 		nlohmann::json recordJson;
 		recordJson["utc"] = MakeUtcTimestamp();
-		recordJson["user"] = record.strUser;
+		recordJson["user_id"] = record.strUserID;
+		recordJson["display_name"] = record.strDisplayName;
+		recordJson["match_id"] = record.strMatchID;
 		recordJson["result"] = record.strResult;
 		recordJson["end_tick"] = record.uEndTick;
 
@@ -47,11 +58,19 @@ namespace Winters
 		return stream.good();
 	}
 
-	std::vector<std::string> LoadLocalMatchRecordSummaries()
+	std::vector<std::string> LoadLocalMatchRecordSummaries(
+		const std::string& strUserID)
 	{
 		std::vector<std::string> summaries;
+		if (!CReplayLibrary::IsSafeAccountKey(strUserID))
+			return summaries;
 
-		std::ifstream stream(kLocalMatchHistoryPath);
+		const std::filesystem::path accountDirectory(
+			CReplayLibrary::GetAccountDataDirectory(strUserID));
+		if (accountDirectory.empty())
+			return summaries;
+
+		std::ifstream stream(accountDirectory / L"MatchHistory.jsonl");
 		if (!stream.is_open())
 			return summaries;
 
@@ -64,11 +83,15 @@ namespace Winters
 			try
 			{
 				const nlohmann::json recordJson = nlohmann::json::parse(strLine);
-				char szBuffer[192]{};
-				sprintf_s(szBuffer, sizeof(szBuffer), "[%s] %s - %s (tick %llu)",
+				if (recordJson.value("user_id", std::string{}) != strUserID)
+					continue;
+
+				char szBuffer[256]{};
+				sprintf_s(szBuffer, sizeof(szBuffer), "[%s] %s - %s (match %s, tick %llu)",
 					recordJson.value("utc", std::string{}).c_str(),
-					recordJson.value("user", std::string{}).c_str(),
+					recordJson.value("display_name", std::string{}).c_str(),
 					recordJson.value("result", std::string{}).c_str(),
+					recordJson.value("match_id", std::string{"local"}).c_str(),
 					static_cast<unsigned long long>(recordJson.value("end_tick", 0ull)));
 				summaries.emplace_back(szBuffer);
 			}

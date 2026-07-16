@@ -7,6 +7,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <string_view>
 
 class CReplayRecorder final
 {
@@ -27,6 +28,7 @@ public:
 
 	bool_t SaveToFile(const wstring_t& path, std::string& outError);
 	wstring_t MakeDefaultPath() const;
+	wstring_t MakeMatchPendingPath(std::string_view matchID) const;
 
 	bool_t IsEmpty() const { return m_iRecordCount == 0u; }
 	bool_t HasWriteFailure() const { return m_bWriteFailed; }

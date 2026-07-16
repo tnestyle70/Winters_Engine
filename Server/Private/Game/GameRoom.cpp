@@ -436,8 +436,6 @@ void CGameRoom::InitializeServerSimSystems()
     m_pSpatialSystem = Engine::CSpatialHashSystem::Create();
     m_pTurretAI = GameplayTurret::CTurretAISystem::Create();
 
-    RegisterDefaultChampionSkillScalingTables();
-
     // 활성 정의 팩의 경제 값으로 보상/XP 레지스트리 재적재 (팩 미장착 시 ctor 기본값 유지).
     if (const EconomyGameplayDef* pEconomy =
         ServerData::GetActiveLoLGameplayDefinitionPack().FindEconomy())
@@ -492,6 +490,11 @@ void CGameRoom::ResetMatchStateLocked()
     m_pReplayRecorder = CReplayRecorder::Create(m_roomId, 30);
     m_bReplayFinalized = false;
     m_bGameEnded = false;
+    m_matchID.clear();
+    m_gameSessionID.clear();
+    m_userIDBySession.clear();
+    m_authenticatedParticipants.clear();
+    m_winningTeam = 0xFFu;
 
     m_pSpatialSystem = Engine::CSpatialHashSystem::Create();
     m_pTurretAI = GameplayTurret::CTurretAISystem::Create();

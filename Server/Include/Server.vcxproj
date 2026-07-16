@@ -103,6 +103,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Private\Backend\ReplayUploadQueue.cpp" />
     <ClCompile Include="..\Private\Data\Generated\LoLGameplayDefinitions.generated.cpp" />
     <ClCompile Include="..\Private\Data\RuntimeGameplayDefinitionOverlay.cpp" />
     <ClCompile Include="..\Private\Game\Factory\ChampionSimComponentTable.cpp" />
@@ -144,6 +145,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Security\LagCompensation.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Public\Backend\ReplayUploadQueue.h" />
     <ClInclude Include="..\Public\Game\CommandIngress.h" />
     <ClInclude Include="..\Public\Game\GameRoom.h" />
     <ClInclude Include="..\Public\Game\LobbyAuthority.h" />
@@ -172,6 +174,8 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Network\Session_Manager.h" />
     <ClInclude Include="..\Public\Network\UdpIocpCore.h" />
     <ClInclude Include="..\Public\Security\LagCompensation.h" />
+    <ClInclude Include="..\Private\Data\LoLGameplayDefinitionPack.h" />
+    <ClInclude Include="..\Private\Data\ThirdParty\json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Engine\Include\Engine.vcxproj">

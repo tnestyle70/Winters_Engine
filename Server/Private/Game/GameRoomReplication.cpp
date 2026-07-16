@@ -1,5 +1,6 @@
 #include "Game/GameRoom.h"
 
+#include "Backend/ReplayUploadQueue.h"
 #include "Game/ReplicationEmitter.h"
 #include "Game/ReplayRecorder.h"
 #include "Game/SnapshotBuilder.h"
@@ -7,6 +8,7 @@
 
 #include <Windows.h>
 
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -28,7 +30,9 @@ void CGameRoom::FinalizeReplayRecorder()
     }
 
     std::string error;
-    const wstring_t path = m_pReplayRecorder->MakeDefaultPath();
+    const wstring_t path = m_matchID.empty()
+        ? m_pReplayRecorder->MakeDefaultPath()
+        : m_pReplayRecorder->MakeMatchPendingPath(m_matchID);
     if (m_pReplayRecorder->SaveToFile(path, error))
     {
         m_bReplayFinalized = true;
@@ -42,6 +46,53 @@ void CGameRoom::FinalizeReplayRecorder()
         const wstring_t msg = ss.str();
         OutputDebugStringW(msg.c_str());
         std::wcout << msg;
+
+        bool_t bHasCompleteRoster = !m_authenticatedParticipants.empty();
+        ReplayUploadArtifact artifact{};
+        artifact.path = path;
+        artifact.matchID = m_matchID;
+        artifact.formatVersion = Winters::Replay::kReplayVersion;
+        artifact.tickRate = m_pReplayRecorder->GetTickRate();
+        artifact.recordCount = m_pReplayRecorder->GetRecordCount();
+        artifact.snapshotCount = m_pReplayRecorder->GetSnapshotCount();
+        artifact.eventCount = m_pReplayRecorder->GetEventCount();
+        artifact.commandCount = m_pReplayRecorder->GetCommandCount();
+        artifact.firstTick = m_pReplayRecorder->GetFirstTick();
+        artifact.lastTick = m_pReplayRecorder->GetLastTick();
+        for (const auto& [userID, participant] : m_authenticatedParticipants)
+        {
+            if (participant.team == 0xFFu || m_winningTeam == 0xFFu)
+            {
+                bHasCompleteRoster = false;
+                break;
+            }
+            ReplayUploadParticipant uploadParticipant{};
+            uploadParticipant.userID = userID;
+            uploadParticipant.result = participant.team == m_winningTeam
+                ? "win"
+                : "loss";
+            artifact.participants.push_back(std::move(uploadParticipant));
+        }
+
+        std::error_code sizeError;
+        artifact.sizeBytes = std::filesystem::file_size(path, sizeError);
+        if (!artifact.matchID.empty() && bHasCompleteRoster && !sizeError)
+        {
+            if (!CReplayUploadQueue::Instance().Enqueue(std::move(artifact)))
+            {
+                const char* uploadMessage =
+                    "[ReplayUpload] artifact retained locally: queue disabled or full\n";
+                OutputDebugStringA(uploadMessage);
+                std::cout << uploadMessage;
+            }
+        }
+        else if (!artifact.matchID.empty())
+        {
+            const char* uploadMessage =
+                "[ReplayUpload] artifact retained locally: match result or roster incomplete\n";
+            OutputDebugStringA(uploadMessage);
+            std::cout << uploadMessage;
+        }
         return;
     }
 

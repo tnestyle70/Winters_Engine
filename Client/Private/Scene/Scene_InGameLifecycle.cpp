@@ -363,6 +363,15 @@ bool CScene_InGame::OnEnter()
     {
         Winters::DevSmoke::Log("[InGameBootstrap] map init begin\n");
         bMapInit = m_Map.Initialize(GetSelectedMapMeshPath(), L"Shaders/Mesh3D.hlsl");
+        if (bMapInit)
+        {
+            const bool_t bGrassTintReady = m_Map.SetGrassTintMaterialByName(
+                "Maps/KitPieces/SRX/Base/Models/LevelProp/Materials/VertexDeform_inst",
+                L"Texture/MAP/output/textures/assets/maps/info/map11/grasstint_srx.png");
+            Winters::DevSmoke::Log(
+                "[InGameBootstrap] map grass tint ready=%u\n",
+                bGrassTintReady ? 1u : 0u);
+        }
         Winters::DevSmoke::Log("[InGameBootstrap] map init done ok=%u\n", bMapInit ? 1u : 0u);
     }
     ConfigureDefaultMapTransform(m_MapTransform);

@@ -28,12 +28,17 @@ private:
 	CScene_MyInfo& operator=(const CScene_MyInfo&) = delete;
 
 	void ReloadLocalMatchRecords();
+	void ReloadReplayItems();
+	void DrawCloudReplayItems();
+	void DrawReplayItems(const std::vector<ReplayListItem>& items, const char* pEmptyText);
 	void OpenReplay(const wstring_t& path);
 	void ChangeToMainMenu();
 
 	CImageScenePresenter m_ImageUI{};
-	std::vector<ReplayListItem> m_vReplayItems{};
+	std::vector<ReplayListItem> m_vAccountReplayItems{};
+	std::vector<ReplayListItem> m_vDebugReplayItems{};
 	std::vector<std::string> m_vLocalMatchRecords{};
 	bool_t m_bBackRequested = false;
 	bool_t m_bSceneTransitionStarted = false;
+	u32_t m_uObservedReplayLibraryRevision = 0u;
 };

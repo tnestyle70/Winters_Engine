@@ -1,5 +1,7 @@
 ﻿#include "Network/Client/ClientNetwork.h"
 #include "Network/Client/GameSessionClient.h"
+
+#include "ClientShell/ClientShellSession.h"
 #include "Dev/SmokeLog.h"
 
 #pragma push_macro("min")
@@ -223,6 +225,24 @@ CGameSessionClient::ServerEndpoint CGameSessionClient::ResolveServerEndpoint()
 	endpoint.host = kDefaultServerHost;
 	endpoint.port = kDefaultServerPort;
 
+	const CClientShellSession& shellSession = CClientShellSession::Instance();
+	if (shellSession.HasMatchAssignment())
+	{
+		const MatchAssignment& assignment = shellSession.GetMatchAssignment();
+		endpoint.host = assignment.strHost;
+		endpoint.port = static_cast<u16_t>(assignment.iPort);
+		endpoint.bFromMatchAssignment = true;
+		endpoint.connectTicket.assign(
+			assignment.strPlayerTicket.begin(),
+			assignment.strPlayerTicket.end());
+		if (assignment.strTransport == "udp")
+			endpoint.transport = eClientNetworkTransport::Udp;
+		else if (assignment.strTransport == "tcp")
+			endpoint.transport = eClientNetworkTransport::Tcp;
+		else
+			endpoint.bTransportValid = false;
+	}
+
 	const std::string hostOverride = FindServerHostOverride();
 	if (!hostOverride.empty())
 	{
@@ -231,13 +251,21 @@ CGameSessionClient::ServerEndpoint CGameSessionClient::ResolveServerEndpoint()
 	}
 
 	bool_t bPortOverridden = false;
-	endpoint.port = ParseServerPortOverride(bPortOverridden);
+	const u16_t parsedPort = ParseServerPortOverride(bPortOverridden);
+	if (bPortOverridden || !endpoint.bFromMatchAssignment)
+		endpoint.port = parsedPort;
 	endpoint.bFromCommandLine = endpoint.bFromCommandLine || bPortOverridden;
 
 	bool_t bTransportSpecified = false;
-	endpoint.bTransportValid = ParseClientNetworkTransport(
-		endpoint.transport,
+	eClientNetworkTransport parsedTransport = eClientNetworkTransport::Tcp;
+	const bool_t bTransportValid = ParseClientNetworkTransport(
+		parsedTransport,
 		bTransportSpecified);
+	if (bTransportSpecified || !endpoint.bFromMatchAssignment)
+	{
+		endpoint.transport = parsedTransport;
+		endpoint.bTransportValid = bTransportValid;
+	}
 	endpoint.bFromCommandLine =
 		endpoint.bFromCommandLine || bTransportSpecified;
 
@@ -281,7 +309,10 @@ bool CGameSessionClient::Connect(const char* host, u16_t port)
 		: (bLocalEndpoint ? 20 : 1);
 	for (int attempt = 1; attempt <= attempts; ++attempt)
 	{
-		if (m_pNetwork->Connect(pConnectHost, connectPort))
+		if (m_pNetwork->Connect(
+			pConnectHost,
+			connectPort,
+			endpoint.connectTicket))
 		{
 			Winters::DevSmoke::Log(
 				"[GameSessionClient] connected to lobby server host=%s port=%u transport=%s attempt=%d source=%s\n",

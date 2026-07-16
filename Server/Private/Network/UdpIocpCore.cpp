@@ -242,6 +242,7 @@ struct CUdpIocpCore::Impl
         int endpointLength = 0;
         bool confirmed = false;
         bool activationPublished = false;
+        UdpAuthenticatedIdentity identity{};
         u32_t acceptPacketSequence = 0u;
         u64_t lastReceiveMs = 0;
         std::array<LaneState, kPacketLaneCount> lanes{};
@@ -591,9 +592,12 @@ struct CUdpIocpCore::Impl
             validator = ticketValidator;
         }
         bool ticketAccepted = false;
+        UdpAuthenticatedIdentity identity{};
         try
         {
-            ticketAccepted = validator && validator(connectPayload.ticket);
+            ticketAccepted = validator &&
+                validator(connectPayload.ticket, identity) &&
+                identity.bAuthenticated;
         }
         catch (...)
         {
@@ -653,6 +657,7 @@ struct CUdpIocpCore::Impl
                 peer->cookie = connectPayload.cookie;
                 peer->endpoint = endpoint;
                 peer->endpointLength = endpointLength;
+                peer->identity = std::move(identity);
                 peer->lastReceiveMs = NowMs();
                 peers.emplace(connectionId, peer);
             }
@@ -741,7 +746,11 @@ struct CUdpIocpCore::Impl
             try
             {
                 if (callback)
-                    callback(peer->connectionId, peer->generation, true);
+                    callback(
+                        peer->connectionId,
+                        peer->generation,
+                        true,
+                        peer->identity);
             }
             catch (...)
             {
@@ -1380,7 +1389,13 @@ struct CUdpIocpCore::Impl
             completionPort = nullptr;
         }
 
-        std::vector<std::pair<u64_t, u32_t>> disconnected;
+        struct DisconnectedPeer
+        {
+            u64_t connectionId = 0;
+            u32_t generation = 0;
+            UdpAuthenticatedIdentity identity{};
+        };
+        std::vector<DisconnectedPeer> disconnected;
         {
             std::lock_guard registryLock(peerMutex);
             disconnected.reserve(peers.size());
@@ -1388,7 +1403,13 @@ struct CUdpIocpCore::Impl
             {
                 std::lock_guard peerLock(peer->mutex);
                 if (peer->confirmed)
-                    disconnected.emplace_back(connectionId, peer->generation);
+                {
+                    disconnected.push_back(DisconnectedPeer{
+                        connectionId,
+                        peer->generation,
+                        peer->identity,
+                    });
+                }
             }
             peers.clear();
         }
@@ -1399,11 +1420,15 @@ struct CUdpIocpCore::Impl
         }
         if (callback)
         {
-            for (const auto& [connectionId, generation] : disconnected)
+            for (const DisconnectedPeer& peer : disconnected)
             {
                 try
                 {
-                    callback(connectionId, generation, false);
+                    callback(
+                        peer.connectionId,
+                        peer.generation,
+                        false,
+                        peer.identity);
                 }
                 catch (...)
                 {
@@ -1629,7 +1654,11 @@ struct CUdpIocpCore::Impl
         {
             try
             {
-                callback(peer->connectionId, peer->generation, false);
+                callback(
+                    peer->connectionId,
+                    peer->generation,
+                    false,
+                    peer->identity);
             }
             catch (...)
             {

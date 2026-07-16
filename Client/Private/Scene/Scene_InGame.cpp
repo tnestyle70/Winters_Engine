@@ -48,7 +48,6 @@
 
 // S030: 게임 종료 산출물 저장 + 메인 메뉴 복귀
 #include "ClientShell/ClientShellSession.h"
-#include "ClientShell/ClientShellBackendService.h"
 #include "Replay/LocalMatchRecord.h"
 #include "Scene/Scene_MainMenu.h"
 #include "Scene/Scene_MyInfo.h"
@@ -1358,21 +1357,18 @@ void CScene_InGame::SaveEndOfMatchArtifacts(const char* pResultLabel)
     m_bEndOfMatchArtifactsSaved = true;
 
     Winters::LocalMatchRecord record{};
-    record.strUser = CClientShellSession::Instance().GetDisplayName();
+    record.strUserID = CClientShellSession::Instance().GetUserID();
+    record.strDisplayName = CClientShellSession::Instance().GetDisplayName();
+    if (CClientShellSession::Instance().HasMatchAssignment())
+    {
+        record.strMatchID = CClientShellSession::Instance()
+            .GetMatchAssignment().strMatchID;
+    }
     record.strResult = pResultLabel ? pResultLabel : "unknown";
     record.uEndTick = m_pSnapshotApplier
         ? m_pSnapshotApplier->GetLastAppliedServerTick()
         : 0ull;
     Winters::AppendLocalMatchRecord(record);
-
-    // 온라인 계정이면 매치결과를 백엔드에 보고 (MMR/RP 반영, S035).
-    // 비회원/백엔드 미실행이면 서비스 내부 게이트가 조용히 스킵 — 게임 흐름 비차단.
-    // "aborted"(강제 이탈)는 보고하지 않는다.
-    if (record.strResult == "victory" || record.strResult == "defeat")
-    {
-        CClientShellBackendService::Instance().RequestReportMatchResult(
-            record.strResult == "victory");
-    }
 
     std::string strTracePath;
     Winters::ExportAiDecisionTraceJsonl(m_World, strTracePath);

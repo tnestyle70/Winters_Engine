@@ -35,18 +35,14 @@ func (c *Consumer) handleMessage(ctx context.Context, msg kafka.Message) error {
 	}
 
 	for _, p := range event.Players {
-		if err := c.repo.InsertMatchHistory(ctx, p.UserID, event.MatchID, p); err != nil {
-			slog.Error("insert match record", "user_id", p.UserID, "error", err)
-			continue
+		rpReward := int64(0)
+		if p.Result == "win" {
+			rpReward = 150
+		} else if p.Result == "loss" {
+			rpReward = 75
 		}
-
-		if err := c.repo.UpdatePlayerStats(ctx, p.UserID, p); err != nil {
-			slog.Error("update player stats", "user_id", p.UserID, "error", err)
-			continue
-		}
-
-		if err := c.repo.InvalidateCache(ctx, p.UserID); err != nil {
-			slog.Warn("invalidate cache", "user_id", p.UserID, "error", err)
+		if err := c.repo.ReportMatch(ctx, p.UserID, event.MatchID, p, rpReward); err != nil {
+			return err
 		}
 	}
 

@@ -3,6 +3,7 @@
 #include "Defines.h"
 #include "Shared/Replay/ReplayFormat.h"
 
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -35,14 +36,15 @@ public:
 	u64_t GetCurrentTick() const { return m_iCurrentTick; }
 	u64_t GetFirstTick() const { return m_Header.firstTick; }
 	u64_t GetLastTick() const { return m_Header.lastTick; }
-	u32_t GetRecordCount() const { return static_cast<u32_t>(m_Records.size()); }
+	u32_t GetRecordCount() const { return static_cast<u32_t>(m_RecordIndex.size()); }
 	const std::string& GetDisplayName() const { return m_strDisplayName; }
+	const std::string& GetPlaybackError() const { return m_strPlaybackError; }
 
 private:
-	struct ReplayRecord
+	struct ReplayRecordIndex
 	{
 		Winters::Replay::ReplayRecordHeader header{};
-		std::vector<u8_t> payload{};
+		u64_t payloadOffset = 0;
 	};
 
 	CReplayPlayer() = default;
@@ -54,9 +56,13 @@ private:
 		EntityIdMap& entityMap,
 		CSnapshotApplier& snapshotApplier,
 		CEventApplier& eventApplier);
+	bool_t ReadPayload(const ReplayRecordIndex& record);
+	void SetPlaybackError(const char* error);
 
 	Winters::Replay::ReplayFileHeader m_Header{};
-	std::vector<ReplayRecord> m_Records{};
+	std::ifstream m_Stream{};
+	std::vector<ReplayRecordIndex> m_RecordIndex{};
+	std::vector<u8_t> m_PayloadScratch{};
 	size_t m_iNextRecord = 0;
 	double m_fPlayheadTick = 0.0;
 	f32_t m_fTickRate = 30.f;
@@ -65,4 +71,5 @@ private:
 	bool_t m_bPaused = false;
 	bool_t m_bFinished = false;
 	std::string m_strDisplayName;
+	std::string m_strPlaybackError;
 };

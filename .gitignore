@@ -98,3 +98,20 @@ GEMINI.md
 
 # Local service secrets
 Services/.env
+
+# Runtime captures and generated replay evidence
+/Replay/*.wrpl
+/Replay/*.wrpl.*
+/Replay/AITrace/
+/Replay/LocalMatchHistory.jsonl
+/Profiles/*.json
+/tmp/
+
+# Terraform local state, real inputs, and provider cache
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+/infra/aws/terraform.tfvars
+/infra/aws/backend.hcl

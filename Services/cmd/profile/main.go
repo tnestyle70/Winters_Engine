@@ -47,7 +47,7 @@ func main() {
 
 	repo := profile.NewRepository(db, rdb)
 
-	reader := messaging.NewReader(cfg.Kafka.Brokers, messaging.TopicMatchEvents, "profile-consumer")
+	reader := messaging.NewReader(cfg.Kafka.Brokers, messaging.TopicMatchEvents, "profile-consumer", cfg.Kafka.UseTLS)
 	defer reader.Close()
 	consumer := profile.NewConsumer(repo, reader)
 	go consumer.Start(ctx)

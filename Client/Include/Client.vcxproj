@@ -241,6 +241,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Network\Backend\MatchClient.cpp" />
     <ClCompile Include="..\Private\Network\Backend\PaymentClient.cpp" />
     <ClCompile Include="..\Private\Network\Backend\ProfileClient.cpp" />
+    <ClCompile Include="..\Private\Network\Backend\ReplayClient.cpp" />
     <ClCompile Include="..\Private\Replay\LocalMatchRecord.cpp" />
     <ClCompile Include="..\Private\Replay\ReplayLibrary.cpp" />
     <ClCompile Include="..\Private\Replay\ReplayPlayer.cpp" />
@@ -412,6 +413,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Network\Backend\MatchClient.h" />
     <ClInclude Include="..\Public\Network\Backend\PaymentClient.h" />
     <ClInclude Include="..\Public\Network\Backend\ProfileClient.h" />
+    <ClInclude Include="..\Public\Network\Backend\ReplayClient.h" />
     <ClInclude Include="..\Public\Replay\LocalMatchRecord.h" />
     <ClInclude Include="..\Public\Replay\ReplayLibrary.h" />
     <ClInclude Include="..\Public\Replay\ReplayPlayer.h" />
@@ -447,6 +449,19 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\UI\MinimapPanel.h" />
     <ClInclude Include="..\Public\UI\RenderDebug.h" />
     <ClInclude Include="..\Public\UI\SkillTimingPanel.h" />
+    <ClInclude Include="..\Private\Data\LoLVisualDefinitionPack.h" />
+    <ClInclude Include="..\Public\GameObject\ChampionVisualData.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Kalista\KalistaSentinelVisualComponent.h" />
+    <ClInclude Include="..\Public\GameObject\Champion\Kindred\MasterYiSkills.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxAnchorResolver.h" />
+    <ClInclude Include="..\Public\GameObject\FX\FxPresetStyle.h" />
+    <ClInclude Include="..\Public\GameObject\SkillDefVisualDataAdapter.h" />
+    <ClInclude Include="..\Public\GameObject\SkillVisualData.h" />
+    <ClInclude Include="..\Public\GameObject\VisualEventData.h" />
+    <ClInclude Include="..\Public\Network\Backend\CommandSerializer.h" />
+    <ClInclude Include="..\Public\Network\Backend\SnapshotApplier.h" />
+    <ClInclude Include="..\Public\Network\Backend\json.hpp" />
+    <ClInclude Include="..\Public\Scene\Scene_GameSelect.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Shared\GameSim\Include\GameSim.vcxproj">

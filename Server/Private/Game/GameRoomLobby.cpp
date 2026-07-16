@@ -55,9 +55,47 @@ void CGameRoom::OnLobbyCommand(
     ApplyLobbyAuthorityResult(result);
 }
 
-EntityID CGameRoom::OnSessionJoin(u32_t sessionId)
+EntityID CGameRoom::OnSessionJoin(u32_t sessionId, bool_t* pOutAccepted)
 {
     std::lock_guard stateLock(m_stateMutex);
+    if (pOutAccepted)
+        *pOutAccepted = true;
+
+    ServerSessionIdentity identity{};
+    if (CServerSessionHub::Instance().TryGetAuthenticatedIdentity(
+        sessionId,
+        identity))
+    {
+        if ((!m_matchID.empty() && m_matchID != identity.matchID) ||
+            (!m_gameSessionID.empty() &&
+                m_gameSessionID != identity.gameSessionID))
+        {
+            if (pOutAccepted)
+                *pOutAccepted = false;
+            return NULL_ENTITY;
+        }
+
+        const auto participant = m_authenticatedParticipants.find(
+            identity.userID);
+        if (participant != m_authenticatedParticipants.end() &&
+            participant->second.sessionId != sessionId &&
+            CServerSessionHub::Instance().IsSessionActive(
+                participant->second.sessionId))
+        {
+            if (pOutAccepted)
+                *pOutAccepted = false;
+            return NULL_ENTITY;
+        }
+
+        if (m_matchID.empty())
+            m_matchID = identity.matchID;
+        if (m_gameSessionID.empty())
+            m_gameSessionID = identity.gameSessionID;
+        m_userIDBySession[sessionId] = identity.userID;
+        AuthenticatedMatchParticipant& authenticated =
+            m_authenticatedParticipants[identity.userID];
+        authenticated.sessionId = sessionId;
+    }
 
     EntityID boundEntity = NULL_ENTITY;
     if (m_sessionBinding.TryGet(sessionId, boundEntity) && boundEntity != NULL_ENTITY)
@@ -134,6 +172,7 @@ void CGameRoom::OnSessionLeave(u32_t sessionId)
     std::lock_guard stateLock(m_stateMutex);
 
     m_sessionBinding.Unbind(sessionId);
+    m_userIDBySession.erase(sessionId);
     m_sessionIds.erase(
         std::remove(m_sessionIds.begin(), m_sessionIds.end(), sessionId),
         m_sessionIds.end());
@@ -180,6 +219,13 @@ void CGameRoom::ApplyLobbyAuthorityResult(const LobbyAuthorityResult& result)
         for (u32_t i = 0; i < slotCount; ++i)
         {
             const LobbySlotState& slot = pSlots[i];
+            const auto user = m_userIDBySession.find(slot.sessionId);
+            if (user != m_userIDBySession.end())
+            {
+                auto participant = m_authenticatedParticipants.find(user->second);
+                if (participant != m_authenticatedParticipants.end())
+                    participant->second.team = slot.team;
+            }
             if (slot.bHuman && slot.sessionId != 0)
                 SendHelloToSessionLocked(slot.sessionId, slot.netId, slot.champion, slot.team);
         }

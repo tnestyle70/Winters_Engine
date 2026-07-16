@@ -90,6 +90,8 @@ public:
 	void SetAmbientOcclusionSRV(void* pNativeSRV);
 	void SetMaterialOverrideColor(const Vec4& color, bool_t bEnabled);
 	void ClearMaterialOverrideColor();
+	bool_t SetGrassTintMaterialByName(const std::string& materialName,
+		const std::wstring& grassTintTexturePath);
 	void SetHoverOutline(const Vec4& color, f32_t fIntensity = 1.f);
 	void ClearHoverOutline();
 
@@ -116,6 +118,8 @@ public:
 	Vec3 GetLocalAABBMax() const;
 
 private:
+	void UpdateObjectConstants(bool_t bUseGrassTint);
+
 	struct Impl;
 	Impl* m_pImpl = nullptr;
 };

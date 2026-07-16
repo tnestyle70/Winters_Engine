@@ -16,6 +16,7 @@
 #include "Resource/Skeleton.h"
 #include "Resource/Animation.h"
 #include "Resource/Animator.h"
+#include "AssetFormat/Common/Hash.h"
 
 #include <cmath>
 #include <cstdio>
@@ -201,6 +202,9 @@ struct ModelRenderer::Impl
     bool_t                              bMaterialOverrideEnabled = false;
     Vec4                                vMaterialOverrideColor{ 0.f, 0.f, 0.f, 0.f };
     Vec4                                vMaterialOverrideParams{ 0.f, 0.f, 0.f, 0.f };
+    VisibilityMask                     grassTintMaterialMask{};
+    bool_t                              bHasGrassTintMaterials = false;
+    unique_ptr<CTexture>                pGrassTintTexture;
     Mat4                                matWorld{};
     bool_t                              bHasWorldMatrix = false;
     bool_t                              bYawTraceEnabled = false;
@@ -367,21 +371,7 @@ void ModelRenderer::UpdateTransform(const Mat4& matWorld)
     m_pImpl->matWorld = matWorld;
     m_pImpl->bHasWorldMatrix = true;
 
-    IRHIDevice* pDevice = CGameInstance::Get()->Get_RHIDevice();
-    auto* pContext = GetNativeDX11Context(pDevice);
-    if (!pContext)
-        return;
-
-    CBPerObject data{};
-    data.world = matWorld.m;
-    const DirectX::XMMATRIX worldMatrix = matWorld.ToXMMATRIX();
-    DirectX::XMStoreFloat4x4(&data.worldInvTranspose,
-        DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, worldMatrix)));
-    data.materialOverrideColor = m_pImpl->bMaterialOverrideEnabled
-        ? m_pImpl->vMaterialOverrideColor.ToXMFLOAT4()
-        : DirectX::XMFLOAT4{ 0.f, 0.f, 0.f, 0.f };
-    data.vMaterialOverrideParams = m_pImpl->vMaterialOverrideParams.ToXMFLOAT4();
-    m_pImpl->cbPerObject.Update(pContext, data);
+    UpdateObjectConstants(false);
 
     if (m_pImpl->bYawTraceEnabled)
     {
@@ -455,6 +445,29 @@ void ModelRenderer::UpdateTransform(const Mat4& matWorld)
             }
         }
     }
+}
+
+void ModelRenderer::UpdateObjectConstants(bool_t bUseGrassTint)
+{
+    if (!m_pImpl || !m_pImpl->bReady)
+        return;
+
+    IRHIDevice* pDevice = CGameInstance::Get()->Get_RHIDevice();
+    auto* pContext = GetNativeDX11Context(pDevice);
+    if (!pContext)
+        return;
+
+    CBPerObject data{};
+    data.world = m_pImpl->matWorld.m;
+    const DirectX::XMMATRIX worldMatrix = m_pImpl->matWorld.ToXMMATRIX();
+    DirectX::XMStoreFloat4x4(&data.worldInvTranspose,
+        DirectX::XMMatrixTranspose(DirectX::XMMatrixInverse(nullptr, worldMatrix)));
+    data.materialOverrideColor = m_pImpl->bMaterialOverrideEnabled
+        ? m_pImpl->vMaterialOverrideColor.ToXMFLOAT4()
+        : DirectX::XMFLOAT4{ 0.f, 0.f, 0.f, 0.f };
+    data.vMaterialOverrideParams = m_pImpl->vMaterialOverrideParams.ToXMFLOAT4();
+    data.bUseGrassTint = bUseGrassTint ? 1u : 0u;
+    m_pImpl->cbPerObject.Update(pContext, data);
 }
 
 void ModelRenderer::UpdateCamera(const Mat4& matViewProj)
@@ -534,6 +547,55 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
         m_pImpl->vMaterialOverrideColor.w > 0.001f &&
         m_pImpl->vMaterialOverrideColor.w < 0.999f;
 
+    VisibilityMask standardMask{};
+    VisibilityMask grassTintMask{};
+    bool_t bHasStandardSubmeshes = false;
+    bool_t bHasGrassTintSubmeshes = false;
+    if (m_pImpl->bHasGrassTintMaterials)
+    {
+        const u32_t submeshCount = m_pImpl->pSharedModel->GetMeshCount();
+        for (u32_t i = 0; i < submeshCount; ++i)
+        {
+            if (!IsSubmeshVisible(mask, i))
+                continue;
+
+            const bool_t bGrassTint =
+                IsSubmeshVisible(m_pImpl->grassTintMaterialMask, i);
+            SetSubmeshVisible(bGrassTint ? grassTintMask : standardMask, i, true);
+            bHasGrassTintSubmeshes = bHasGrassTintSubmeshes || bGrassTint;
+            bHasStandardSubmeshes = bHasStandardSubmeshes || !bGrassTint;
+        }
+    }
+
+    auto RenderMaterialPasses = [&]()
+    {
+        if (!bHasGrassTintSubmeshes)
+        {
+            if (m_pImpl->bHasGrassTintMaterials)
+                UpdateObjectConstants(false);
+            m_pImpl->cbPerObject.Bind(pContext, 1);
+            m_pImpl->pSharedModel->RenderWithMask(pDevice, mask);
+            return;
+        }
+
+        if (bHasStandardSubmeshes)
+        {
+            UpdateObjectConstants(false);
+            m_pImpl->cbPerObject.Bind(pContext, 1);
+            m_pImpl->pSharedModel->RenderWithMask(pDevice, standardMask);
+        }
+
+        m_pImpl->pGrassTintTexture->Bind(pDevice, 6);
+        UpdateObjectConstants(true);
+        m_pImpl->cbPerObject.Bind(pContext, 1);
+        m_pImpl->pSharedModel->RenderWithMask(pDevice, grassTintMask);
+
+        ID3D11ShaderResourceView* pNullSRV = nullptr;
+        ID3D11SamplerState* pNullSampler = nullptr;
+        pContext->PSSetShaderResources(6, 1, &pNullSRV);
+        pContext->PSSetSamplers(6, 1, &pNullSampler);
+    };
+
     // ── 스키닝 렌더링 ──
     const bool_t bUseSkinnedPath =
         !m_pImpl->bForceStaticMeshPath &&
@@ -570,11 +632,10 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
         if (pAmbientOcclusionSRV)
             pContext->PSSetShaderResources(5, 1, &pAmbientOcclusionSRV);
 
-        m_pImpl->cbPerObject.Bind(pContext, 1);
         m_pImpl->bonesSRV.BindVS(pContext, 8);
 
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        m_pImpl->pSharedModel->RenderWithMask(pDevice, mask);
+        RenderMaterialPasses();
         if (pAmbientOcclusionSRV)
         {
             ID3D11ShaderResourceView* pNullSRV = nullptr;
@@ -607,10 +668,8 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
     if (pAmbientOcclusionSRV)
         pContext->PSSetShaderResources(5, 1, &pAmbientOcclusionSRV);
 
-    m_pImpl->cbPerObject.Bind(pContext, 1);
-
     pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    m_pImpl->pSharedModel->RenderWithMask(pDevice, mask);
+    RenderMaterialPasses();
     if (pAmbientOcclusionSRV)
     {
         ID3D11ShaderResourceView* pNullSRV = nullptr;
@@ -1000,6 +1059,52 @@ void ModelRenderer::ClearMaterialOverrideColor()
     m_pImpl->bMaterialOverrideEnabled = false;
 }
 
+bool_t ModelRenderer::SetGrassTintMaterialByName(
+    const std::string& materialName,
+    const std::wstring& grassTintTexturePath)
+{
+    if (!m_pImpl || !m_pImpl->pSharedModel || materialName.empty() ||
+        grassTintTexturePath.empty())
+    {
+        return false;
+    }
+
+    const u64_t materialHash = Winters::Asset::FNV1a(materialName.c_str());
+    bool_t bMatched = false;
+    const auto& submeshes = m_pImpl->pSharedModel->GetSubmeshInfos();
+    for (u32_t i = 0; i < static_cast<u32_t>(submeshes.size()); ++i)
+    {
+        if (submeshes[i].materialHash != materialHash)
+            continue;
+
+        SetSubmeshVisible(m_pImpl->grassTintMaterialMask, i, true);
+        bMatched = true;
+    }
+    if (!bMatched)
+    {
+        OutputDebugStringA(("[ModelRenderer] Grass-tint material not found: " +
+            materialName + "\n").c_str());
+        return false;
+    }
+
+    IRHIDevice* pDevice = CGameInstance::Get()->Get_RHIDevice();
+    auto pGrassTintTexture = CTexture::Create(
+        pDevice,
+        grassTintTexturePath,
+        eTexSamplerMode::Clamp,
+        eTexColorSpace::ShaderLocalSRGB);
+    if (!pGrassTintTexture)
+    {
+        OutputDebugStringA("[ModelRenderer] Grass-tint texture load failed\n");
+        m_pImpl->grassTintMaterialMask.fill(0ull);
+        return false;
+    }
+
+    m_pImpl->pGrassTintTexture = move(pGrassTintTexture);
+    m_pImpl->bHasGrassTintMaterials = true;
+    return true;
+}
+
 void ModelRenderer::SetHoverOutline(const Vec4& color, f32_t fIntensity)
 {
     if (!m_pImpl)
@@ -1088,6 +1193,9 @@ void ModelRenderer::Shutdown()
         m_pImpl->bMaterialOverrideEnabled = false;
         m_pImpl->vMaterialOverrideColor = Vec4{ 0.f, 0.f, 0.f, 0.f };
         m_pImpl->vMaterialOverrideParams = Vec4{ 0.f, 0.f, 0.f, 0.f };
+        m_pImpl->grassTintMaterialMask.fill(0ull);
+        m_pImpl->bHasGrassTintMaterials = false;
+        m_pImpl->pGrassTintTexture.reset();
         m_pImpl->m_vLocalAABBMin = { FLT_MAX, FLT_MAX, FLT_MAX };
         m_pImpl->m_vLocalAABBMax = { -FLT_MAX, -FLT_MAX, -FLT_MAX };
         m_pImpl->m_bAABBValid = false;

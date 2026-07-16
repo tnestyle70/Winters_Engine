@@ -112,7 +112,8 @@ public:
     void    Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
         f32_t fLifetime);
     void Push_KillFeedBanner(u8_t iSourceActorContentId, u8_t iTargetActorContentId,
-        u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage);
+        u8_t iObjectKind, u8_t iTargetTeam,
+        bool_t bSourceAlly, const char* pMessage);
     void RecordMatchContextActorKill(u8_t iSourceTeam, u8_t iTargetTeam,
         bool_t bLocalSource, bool_t bLocalTarget);
     void RecordMatchContextUnitKill();
@@ -161,6 +162,7 @@ private:
         u8_t iSourceActorContentId = 0;
         u8_t iTargetActorContentId = 0;
         u8_t iObjectKind = 0;
+        u8_t iTargetTeam = 255u;
         bool_t bSourceAlly = false;
         f32_t fAge = 0.f;
         f32_t fLifetime = 3.f;
@@ -299,6 +301,7 @@ private:
     void    DrawKillFeedCircleImage(ImDrawList* pDraw, const ImVec2& vCenter,
         f32_t fRadius, void* pSRV, ImU32 iTintColor, ImU32 iBorderColor);
     void*   FindOrLoadKillFeedPortrait(u8_t iActorContentId);
+    void*   FindOrLoadKillFeedObjectIcon(u8_t iObjectKind, u8_t iTargetTeam);
     void    ResetMatchContextHUDStats();
     void    LoadPingWheelAssets();
     ePingWheelDirection ResolvePingWheelDirection() const;
@@ -486,6 +489,10 @@ private:
     std::vector<WorldTextFloater> m_WorldTextFloaters;
     std::vector<KillFeedBanner> m_KillFeedBanners;
     std::vector<KillFeedPortraitCache> m_KillFeedPortraits;
+    void* m_pSRV_KillFeedTowerBlue = nullptr;
+    void* m_pSRV_KillFeedTowerRed = nullptr;
+    void* m_pSRV_KillFeedInhibitorBlue = nullptr;
+    void* m_pSRV_KillFeedInhibitorRed = nullptr;
     std::vector<MapPingMarker> m_MapPingMarkers;
     MatchContextHUDState m_MatchContextHUD{};
     bool_t  m_bShowMatchContextHUD = true;

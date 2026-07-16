@@ -531,13 +531,15 @@ void CGameInstance::UI_Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
 }
 
 void CGameInstance::UI_Push_KillFeedBanner(u8_t iSourceActorId,
-	u8_t iTargetActorId, u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage)
+	u8_t iTargetActorId, u8_t iObjectKind, u8_t iTargetTeam,
+	bool_t bSourceAlly, const char* pMessage)
 {
 	if (m_pUI_Manager)
 		m_pUI_Manager->Push_KillFeedBanner(
 			iSourceActorId,
 			iTargetActorId,
 			iObjectKind,
+			iTargetTeam,
 			bSourceAlly,
 			pMessage
 		);

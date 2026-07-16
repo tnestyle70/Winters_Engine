@@ -127,7 +127,8 @@ public: // UI
         f32_t fLifetime);
     //Kill, Slay, Destroy Log
     void UI_Push_KillFeedBanner(u8_t iSourceActorId, u8_t iTargetActorId,
-        u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage);
+        u8_t iObjectKind, u8_t iTargetTeam,
+        bool_t bSourceAlly, const char* pMessage);
     void UI_RecordMatchContextActorKill(u8_t iSourceTeam, u8_t iTargetTeam,
         bool_t bLocalSource, bool_t bLocalTarget);
     void UI_RecordMatchContextUnitKill();

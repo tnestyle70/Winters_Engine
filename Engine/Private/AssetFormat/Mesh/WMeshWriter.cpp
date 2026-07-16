@@ -355,9 +355,36 @@ namespace Winters::Asset
         if (!pScene || pScene->mNumMeshes == 0)
             return false;
 
-        const std::vector<uint32_t> meshIndices = CollectMeshIndicesForWrite(
+        std::vector<uint32_t> meshIndices = CollectMeshIndicesForWrite(
             pScene,
             opt.bIncludeLayerOverlays);
+
+        if (opt.pExcludedMaterialNames && !opt.pExcludedMaterialNames->empty())
+        {
+            const size_t before = meshIndices.size();
+            meshIndices.erase(
+                std::remove_if(meshIndices.begin(), meshIndices.end(),
+                    [&](uint32_t meshIndex)
+                    {
+                        const aiMesh* pMesh = pScene->mMeshes[meshIndex];
+                        if (!pMesh || pMesh->mMaterialIndex >= pScene->mNumMaterials)
+                            return false;
+
+                        aiString materialName;
+                        pScene->mMaterials[pMesh->mMaterialIndex]->Get(
+                            AI_MATKEY_NAME,
+                            materialName);
+                        return opt.pExcludedMaterialNames->count(materialName.C_Str()) > 0;
+                    }),
+                meshIndices.end());
+
+            char msg[224]{};
+            sprintf_s(msg,
+                "[WMeshWriter] Material filter kept=%zu skipped=%zu\n",
+                meshIndices.size(),
+                before - meshIndices.size());
+            OutputDebugStringA(msg);
+        }
         if (meshIndices.empty())
             return false;
 

@@ -113,9 +113,6 @@
     <Filter Include="05. ECS\02. Components\01. Transform">
       <UniqueIdentifier>{6b306798-b8a0-46e7-a286-395de9e78150}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\02. Components\02. Gameplay">
-      <UniqueIdentifier>{5056d726-6039-4799-8f69-cb217260de59}</UniqueIdentifier>
-    </Filter>
     <Filter Include="05. ECS\02. Components\03. MeshGroupVisibility">
       <UniqueIdentifier>{57d6bbd1-ba0f-4c59-b805-6ac98e35853f}</UniqueIdentifier>
     </Filter>
@@ -149,32 +146,14 @@
     <Filter Include="05. ECS\03. Systems\02. Entity">
       <UniqueIdentifier>{0804ae34-7990-40d0-bcca-826af2c29d16}</UniqueIdentifier>
     </Filter>
-    <Filter Include="05. ECS\03. Systems\03. Collision">
-      <UniqueIdentifier>{f49d228e-38df-4f9d-a763-dcf62eecf75a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\03. Systems\01. UnitFlow\00. AI">
-      <UniqueIdentifier>{9554e630-692f-4788-80d1-91a2cf88cee4}</UniqueIdentifier>
-    </Filter>
     <Filter Include="05. ECS\03. Systems\01. UnitFlow\01. NavigationThrottle">
       <UniqueIdentifier>{c980d8f2-6181-4188-87c7-7f5bf86fcdc6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\03. Systems\01. UnitFlow\02. Separation">
-      <UniqueIdentifier>{a7338edc-7231-473a-b049-dd3a6052d61b}</UniqueIdentifier>
     </Filter>
     <Filter Include="05. ECS\03. Systems\04. Vision">
       <UniqueIdentifier>{24da531b-2c19-49f8-b2e6-2049dd6eb2e2}</UniqueIdentifier>
     </Filter>
     <Filter Include="05. ECS\03. Systems\06. Navigation">
       <UniqueIdentifier>{e42365d5-a6b0-48fe-85a6-5fb140753d2f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\03. Systems\07. Structure">
-      <UniqueIdentifier>{f15f4fd6-5280-4d26-8336-83b68eac5b09}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\03. Systems\07. Structure\00. AI">
-      <UniqueIdentifier>{0f236708-4b27-4c74-b5d8-b585691ae59e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\03. Systems\07. Structure\01. Projectile">
-      <UniqueIdentifier>{9cb37582-3728-48e2-9d57-6b144658469c}</UniqueIdentifier>
     </Filter>
     <Filter Include="05. ECS\03. Systems\08. StatusEffect">
       <UniqueIdentifier>{7c25e899-b407-45bb-8fb1-6b6e9e43c515}</UniqueIdentifier>
@@ -253,9 +232,6 @@
     </Filter>
     <Filter Include="01. Runtime\01. WintersEngine">
       <UniqueIdentifier>{F1300003-0000-0000-0000-000000000003}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="01. Runtime\03. MatchContext">
-      <UniqueIdentifier>{cad0ac76-0bc8-4d94-a3f9-ddecb2ae6a7d}</UniqueIdentifier>
     </Filter>
     <Filter Include="04. Resource">
       <UniqueIdentifier>{F1600001-0000-0000-0000-000000000001}</UniqueIdentifier>
@@ -344,9 +320,6 @@
     <Filter Include="00. Core\06. Profiler\00. CPU">
       <UniqueIdentifier>{4f723a01-9d87-4deb-a9bf-a37a06c3bdd2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="00. Core\06. Profiler\01. GPU">
-      <UniqueIdentifier>{5902e31c-6915-49f7-a4c0-32b9d8b6f225}</UniqueIdentifier>
-    </Filter>
     <Filter Include="01. Runtime\04. Scene">
       <UniqueIdentifier>{5b724e25-9810-4483-8cae-fdcf45d8bbbb}</UniqueIdentifier>
     </Filter>
@@ -370,6 +343,21 @@
     </Filter>
     <Filter Include="02. RHI\02. DX12">
       <UniqueIdentifier>{5b05cabc-747c-48f4-8506-b40fe7cd98ca}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\10. Exec">
+      <UniqueIdentifier>{f45e707b-77a1-4398-8c39-22a36f37f8a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. FX\11. Graph">
+      <UniqueIdentifier>{67ef6c75-de97-43f0-8b27-a67c8549e65a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="12. Cinematic">
+      <UniqueIdentifier>{8df1d33a-c6d2-44ba-b21b-767293965cef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="13. Physics3D">
+      <UniqueIdentifier>{b2e9f303-fe12-4d54-af1a-77fa66dd876a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="14. World">
+      <UniqueIdentifier>{2679cf3b-8a38-438d-80cb-8b75394a119c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <!-- ── 공개 API 헤더 → Include 필터 ────────────────────── -->
@@ -883,6 +871,42 @@
     <ClInclude Include="..\Private\RHI\DX12\DX12Device.h">
       <Filter>02. RHI\02. DX12</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Cinematic\CSequenceAsset.h">
+      <Filter>12. Cinematic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Cinematic\CSequencePlayer.h">
+      <Filter>12. Cinematic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Cinematic\ISeqBindingResolver.h">
+      <Filter>12. Cinematic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Cinematic\ISeqEventSink.h">
+      <Filter>12. Cinematic</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\Exec\FxExecPlan.h">
+      <Filter>03. Renderer\05. FX\10. Exec</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\Exec\FxParticlePool.h">
+      <Filter>03. Renderer\05. FX\10. Exec</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\Graph\FxGraph.h">
+      <Filter>03. Renderer\05. FX\11. Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\FX\Graph\FxGraphValidator.h">
+      <Filter>03. Renderer\05. FX\11. Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Physics3D\HitVolume.h">
+      <Filter>13. Physics3D</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\World\AssetStreamingSystem.h">
+      <Filter>14. World</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\World\WorldPartitionSystem.h">
+      <Filter>14. World</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\World\WorldPartitionTypes.h">
+      <Filter>14. World</Filter>
+    </ClInclude>
   </ItemGroup>
   <!-- ── 소스 파일 → 기능별 필터 ──────────────────────── -->
   <ItemGroup>
@@ -1291,30 +1315,35 @@
     <ClCompile Include="..\Private\RHI\DX12\DX12Device.cpp">
       <Filter>02. RHI\02. DX12</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\Public\Cinematic\CSequenceAsset.h" />
-    <ClInclude Include="..\Public\Cinematic\CSequencePlayer.h" />
-    <ClInclude Include="..\Public\Cinematic\ISeqBindingResolver.h" />
-    <ClInclude Include="..\Public\Cinematic\ISeqEventSink.h" />
-    <ClInclude Include="..\Public\FX\Exec\FxExecPlan.h" />
-    <ClInclude Include="..\Public\FX\Exec\FxParticlePool.h" />
-    <ClInclude Include="..\Public\FX\Graph\FxGraph.h" />
-    <ClInclude Include="..\Public\FX\Graph\FxGraphValidator.h" />
-    <ClInclude Include="..\Public\Physics3D\HitVolume.h" />
-    <ClInclude Include="..\Public\World\AssetStreamingSystem.h" />
-    <ClInclude Include="..\Public\World\WorldPartitionSystem.h" />
-    <ClInclude Include="..\Public\World\WorldPartitionTypes.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\Private\Cinematic\CSequenceAsset.cpp" />
-    <ClCompile Include="..\Private\Cinematic\CSequencePlayer.cpp" />
-    <ClCompile Include="..\Private\FX\Exec\FxExecPlan.cpp" />
-    <ClCompile Include="..\Private\FX\Exec\FxParticlePool.cpp" />
-    <ClCompile Include="..\Private\FX\Graph\FxGraph.cpp" />
-    <ClCompile Include="..\Private\FX\Graph\FxGraphValidator.cpp" />
-    <ClCompile Include="..\Private\Physics3D\HitVolume.cpp" />
-    <ClCompile Include="..\Private\World\AssetStreamingSystem.cpp" />
-    <ClCompile Include="..\Private\World\WorldPartitionSystem.cpp" />
+    <ClCompile Include="..\Private\Cinematic\CSequenceAsset.cpp">
+      <Filter>12. Cinematic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Cinematic\CSequencePlayer.cpp">
+      <Filter>12. Cinematic</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\FX\Exec\FxExecPlan.cpp">
+      <Filter>03. Renderer\05. FX\10. Exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\FX\Exec\FxParticlePool.cpp">
+      <Filter>03. Renderer\05. FX\10. Exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\FX\Graph\FxGraph.cpp">
+      <Filter>03. Renderer\05. FX\11. Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\FX\Graph\FxGraphValidator.cpp">
+      <Filter>03. Renderer\05. FX\11. Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Physics3D\HitVolume.cpp">
+      <Filter>13. Physics3D</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\World\AssetStreamingSystem.cpp">
+      <Filter>14. World</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\World\WorldPartitionSystem.cpp">
+      <Filter>14. World</Filter>
+    </ClCompile>
+    <ClCompile Include="..\External\imgui\backends\imgui_impl_dx12.cpp">
+      <Filter>10. Editor\Imgui</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

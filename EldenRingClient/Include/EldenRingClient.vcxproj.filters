@@ -19,17 +19,11 @@
     <Filter Include="03. Render\00. Settings">
       <UniqueIdentifier>{28cbb3c6-a857-463d-a01d-29d57b94fb63}</UniqueIdentifier>
     </Filter>
-    <Filter Include="04. Asset">
-      <UniqueIdentifier>{191ab5f1-d5f4-4b5f-a771-bf85d07434da}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. Tool">
-      <UniqueIdentifier>{230e665e-632f-4bd7-9631-3eb3706b351c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="98. Build">
       <UniqueIdentifier>{7175f834-a277-4c01-8627-41d3f02088f7}</UniqueIdentifier>
     </Filter>
-    <Filter Include="99. Defines">
-      <UniqueIdentifier>{63290058-2559-4dec-b650-243ed02a6662}</UniqueIdentifier>
+    <Filter Include="02. Scene\01. LimgraveShowcase">
+      <UniqueIdentifier>{11570c9f-f892-4fdb-a3e7-ffa7fb1ebcc7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -45,6 +39,9 @@
     <ClCompile Include="..\Private\EldenRingRHITestCubeRenderer.cpp">
       <Filter>03. Render</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\EldenLimgraveShowcaseScene.cpp">
+      <Filter>02. Scene\01. LimgraveShowcase</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Public\EldenRingApp.h">
@@ -58,6 +55,9 @@
     </ClInclude>
     <ClInclude Include="..\Public\EldenRingRHITestCubeRenderer.h">
       <Filter>03. Render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\EldenLimgraveShowcaseScene.h">
+      <Filter>02. Scene\01. LimgraveShowcase</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

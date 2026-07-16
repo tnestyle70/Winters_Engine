@@ -26,6 +26,8 @@ cbuffer CBPerObject : register(b1)
     row_major matrix g_matWorldInvTranspose;
     float4 g_vMaterialOverrideColor;
     float4 g_vMaterialOverrideParams;
+    uint g_bUseGrassTint;
+    uint3 g_vObjectPad;
 };
 
 // 1024+ bone rigs (Elden Ring bosses): bone palette moved from a cbuffer to a
@@ -38,7 +40,9 @@ StructuredBuffer<SkinBoneMatrix> g_BoneMatrices : register(t8);
 
 Texture2D g_DiffuseMap : register(t0);
 Texture2D g_AmbientOcclusionMap : register(t5);
+Texture2D g_GrassTintMap : register(t6);
 SamplerState g_Sampler : register(s0);
+SamplerState g_GrassTintSampler : register(s6);
 
 struct VS_INPUT
 {
@@ -56,7 +60,13 @@ struct PS_INPUT
     float3 vNormal : NORMAL;
     float2 vTexCoord : TEXCOORD0;
     float3 vWorldPos : TEXCOORD1;
+    float2 vGrassTintUV : TEXCOORD2;
 };
+
+float2 ResolveGrassTintUV(float3 localPosition)
+{
+    return saturate(float2(localPosition.x, -localPosition.z) / 15000.f);
+}
 
 float3 SrgbToLinearApprox(float3 color)
 {
@@ -168,13 +178,20 @@ PS_INPUT VS(VS_INPUT input)
     output.vNormal = normalize(mul(float4(skinnedNormal, 0.0f), g_matWorldInvTranspose).xyz);
     output.vTexCoord = input.vTexCoord;
     output.vWorldPos = worldPos.xyz;
+    output.vGrassTintUV = ResolveGrassTintUV(skinned.xyz);
 
     return output;
 }
 
 float4 PS(PS_INPUT input) : SV_TARGET
 {
-    const float4 texColor = g_DiffuseMap.Sample(g_Sampler, input.vTexCoord);
+    float4 texColor = g_DiffuseMap.Sample(g_Sampler, input.vTexCoord);
+    if (g_bUseGrassTint != 0u)
+    {
+        const float3 grassTint =
+            g_GrassTintMap.Sample(g_GrassTintSampler, input.vGrassTintUV).rgb;
+        texColor.rgb = saturate(texColor.rgb * grassTint * 2.f);
+    }
     clip(texColor.a - 0.05f);
     if (g_vMaterialOverrideColor.a >= 0.999f)
         return float4(g_vMaterialOverrideColor.rgb, texColor.a);

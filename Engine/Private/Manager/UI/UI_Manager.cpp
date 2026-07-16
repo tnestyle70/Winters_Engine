@@ -68,6 +68,14 @@ namespace
     constexpr const wchar_t* kPathHUDLayoutFallback = L"Client/Bin/Resource/UI/hud_irelia_layout.json";
     constexpr const wchar_t* kPathInGameShopReference = L"Resource/Texture/UI/상점1.png";
     constexpr const wchar_t* kPathStatusPanel = L"Resource/Texture/UI/StatusPannel_final.png";
+    constexpr const wchar_t* kPathKillFeedTowerBlue =
+        L"Resource/Texture/UI/InGameUI/minimap_tower_blue.png";
+    constexpr const wchar_t* kPathKillFeedTowerRed =
+        L"Resource/Texture/UI/InGameUI/minimap_tower_red.png";
+    constexpr const wchar_t* kPathKillFeedInhibitorBlue =
+        L"Resource/Texture/UI/InGameUI/minimap_inhibitor_blue.png";
+    constexpr const wchar_t* kPathKillFeedInhibitorRed =
+        L"Resource/Texture/UI/InGameUI/minimap_inhibitor_red.png";
     constexpr u8_t kUITeamBlue = 0u;
     constexpr u8_t kUITeamRed = 1u;
     constexpr u8_t kUIInvalidTeam = 255u;
@@ -980,6 +988,10 @@ void CUI_Manager::Shutdown()
     ReleaseStatusPanelSpellIconCache();
     for (KillFeedPortraitCache& Portrait : m_KillFeedPortraits)
         ReleaseSRV(Portrait.pSRV);
+    ReleaseSRV(m_pSRV_KillFeedTowerBlue);
+    ReleaseSRV(m_pSRV_KillFeedTowerRed);
+    ReleaseSRV(m_pSRV_KillFeedInhibitorBlue);
+    ReleaseSRV(m_pSRV_KillFeedInhibitorRed);
     m_KillFeedPortraits.clear();
     m_KillFeedBanners.clear();
     m_InGameShopAtlasManifest.ForEachTexture(
@@ -2752,7 +2764,7 @@ void CUI_Manager::Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
 }
 
 void CUI_Manager::Push_KillFeedBanner(u8_t iSourceActorContentId, u8_t iTargetActorContentId,
-    u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage)
+    u8_t iObjectKind, u8_t iTargetTeam, bool_t bSourceAlly, const char* pMessage)
 {
     if (!pMessage || pMessage[0] == '\0')
         return;
@@ -2764,6 +2776,7 @@ void CUI_Manager::Push_KillFeedBanner(u8_t iSourceActorContentId, u8_t iTargetAc
     banner.iSourceActorContentId = iSourceActorContentId;
     banner.iTargetActorContentId = iTargetActorContentId;
     banner.iObjectKind = iObjectKind;
+    banner.iTargetTeam = iTargetTeam;
     banner.bSourceAlly = bSourceAlly;
     banner.strMessage = pMessage;
     m_KillFeedBanners.push_back(banner);
@@ -2917,6 +2930,45 @@ void* CUI_Manager::FindOrLoadKillFeedPortrait(u8_t iActorContentId)
     return pSRV;
 }
 
+void* CUI_Manager::FindOrLoadKillFeedObjectIcon(
+    u8_t iObjectKind, u8_t iTargetTeam)
+{
+    void** ppSRV = nullptr;
+    const wchar_t* pPath = nullptr;
+    if (iObjectKind == kKillFeedObjectStructure)
+    {
+        if (iTargetTeam == kUITeamBlue)
+        {
+            ppSRV = &m_pSRV_KillFeedTowerBlue;
+            pPath = kPathKillFeedTowerBlue;
+        }
+        else if (iTargetTeam == kUITeamRed)
+        {
+            ppSRV = &m_pSRV_KillFeedTowerRed;
+            pPath = kPathKillFeedTowerRed;
+        }
+    }
+    else if (iObjectKind == kKillFeedObjectObjective)
+    {
+        if (iTargetTeam == kUITeamBlue)
+        {
+            ppSRV = &m_pSRV_KillFeedInhibitorBlue;
+            pPath = kPathKillFeedInhibitorBlue;
+        }
+        else if (iTargetTeam == kUITeamRed)
+        {
+            ppSRV = &m_pSRV_KillFeedInhibitorRed;
+            pPath = kPathKillFeedInhibitorRed;
+        }
+    }
+
+    if (!ppSRV || !pPath)
+        return nullptr;
+    if (!*ppSRV)
+        (void)Load_TextureSRV(pPath, ppSRV);
+    return *ppSRV;
+}
+
 void CUI_Manager::DrawKillFeedCircleImage(ImDrawList* pDraw, const ImVec2& vCenter,
     f32_t fRadius, void* pSRV, ImU32 iTintColor, ImU32 iBorderColor)
 {
@@ -3041,16 +3093,34 @@ void CUI_Manager::DrawKillFeedBanners(ImDrawList* pDraw, f32_t fDeltaTime)
             continue;
         }
 
+        if (banner.iObjectKind == kKillFeedObjectStructure ||
+            banner.iObjectKind == kKillFeedObjectObjective)
+        {
+            if (void* pObjectIcon = FindOrLoadKillFeedObjectIcon(
+                    banner.iObjectKind,
+                    banner.iTargetTeam))
+            {
+                DrawKillFeedCircleImage(
+                    pDraw,
+                    targetCenter,
+                    kRadius,
+                    pObjectIcon,
+                    tintColor,
+                    banner.bSourceAlly ? enemyColor : allyColor);
+                continue;
+            }
+        }
+
         const char* pLabel = nullptr;
         ImU32 badgeColor = neutralColor;
         switch (banner.iObjectKind)
         {
         case kKillFeedObjectStructure:
-            pLabel = "Structure";
+            pLabel = "Tower";
             badgeColor = banner.bSourceAlly ? enemyColor : allyColor;
             break;
         case kKillFeedObjectObjective:
-            pLabel = "Objective";
+            pLabel = "Inhibitor";
             badgeColor = banner.bSourceAlly ? enemyColor : allyColor;
             break;
         case kKillFeedObjectDragon:

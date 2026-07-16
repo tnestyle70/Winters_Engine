@@ -88,6 +88,50 @@ function Convert-Static([string]$SourcePath) {
     }
 }
 
+function Convert-Map([string]$SourcePath) {
+    $source = Get-FullPath $SourcePath
+    if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+        Write-Output "[SKIP] $source not found"
+        $script:FAIL++
+        return
+    }
+
+    $dir = Split-Path -Parent $source
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($source)
+    $visualMesh = Join-Path $dir "$base.wmesh"
+    $visualMat = Join-Path $dir "$base.wmat"
+    $surfaceMesh = Join-Path $dir "${base}_surface.wmesh"
+    $surfaceMat = Join-Path $dir "${base}_surface.wmat"
+    if (Test-OutputsCurrent $source @($visualMesh, $visualMat, $surfaceMesh, $surfaceMat)) {
+        Write-Output "[UP-TO-DATE] $source"
+        return
+    }
+
+    $foliageMaterial = "Maps/KitPieces/SRX/Base/Models/LevelProp/Materials/VertexDeform_inst"
+    $foliageTexture = "Texture/MAP/output/textures/assets/maps/kitpieces/srx/textures/sru_brush.png"
+    $materialRemap = "$foliageMaterial=$foliageTexture"
+
+    if (-not (Invoke-Converter @(
+        "mesh", $source,
+        "--pretransform",
+        "--material-remap", $materialRemap,
+        "-o", $visualMesh))) {
+        $script:FAIL++
+        return
+    }
+
+    if (-not (Invoke-Converter @(
+        "mesh", $source,
+        "--pretransform",
+        "--exclude-material", $foliageMaterial,
+        "-o", $surfaceMesh))) {
+        $script:FAIL++
+        return
+    }
+
+    $script:OK++
+}
+
 function Convert-SkinnedModel([string]$ModelPath) {
     $model = Get-FullPath $ModelPath
     if (-not (Test-Path -LiteralPath $model -PathType Leaf)) {
@@ -211,6 +255,16 @@ function Convert-Objects([string]$ObjRoot) {
 
 $championsOnly = $Mode -ieq "champions"
 $minionsOnly = $Mode -ieq "minions"
+$mapsOnly = $Mode -ieq "maps"
+
+if ($mapsOnly) {
+    Convert-Map (Join-Path $ResourceSrc "MAP\output\sr_base_flip.glb")
+    Write-Output "OK=$script:OK FAIL=$script:FAIL"
+    if ($script:FAIL -gt 0) {
+        exit 1
+    }
+    exit 0
+}
 
 if ($minionsOnly) {
     Convert-Minions (Join-Path $ResourceSrc "Object")
@@ -227,9 +281,9 @@ if (Test-Path -LiteralPath $LegacyCharSrc -PathType Container) {
 }
 
 if (-not $championsOnly) {
-    Convert-Static (Join-Path $ResourceSrc "MAP\output\sr_base_flip.glb")
+    Convert-Map (Join-Path $ResourceSrc "MAP\output\sr_base_flip.glb")
     if (Test-Path -LiteralPath (Join-Path $LegacyResourceSrc "MAP") -PathType Container) {
-        Convert-Static (Join-Path $LegacyResourceSrc "MAP\output\sr_base_flip.glb")
+        Convert-Map (Join-Path $LegacyResourceSrc "MAP\output\sr_base_flip.glb")
     }
 
     Convert-Objects (Join-Path $ResourceSrc "Object")

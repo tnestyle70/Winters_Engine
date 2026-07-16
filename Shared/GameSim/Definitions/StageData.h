@@ -118,4 +118,66 @@ namespace Winters::Map
         std::fclose(pFile);
         return true;
     }
+
+    inline bool_t WriteStageBlockCount(FILE* pFile, u32_t count)
+    {
+        return pFile && std::fwrite(&count, sizeof(u32_t), 1, pFile) == 1;
+    }
+
+    template <typename T>
+    inline bool_t WriteStageEntries(FILE* pFile, const std::vector<T>& entries)
+    {
+        for (const T& entry : entries)
+        {
+            if (std::fwrite(&entry, sizeof(T), 1, pFile) != 1)
+                return false;
+        }
+
+        return true;
+    }
+
+    // 로더와 대칭인 라이터. header를 보존해 로드→세이브 왕복 시 바이트 동일을 보장한다.
+    // (블록 존재 여부는 로더와 동일하게 header.version 기준으로 결정)
+    inline bool_t SaveStageDataToFile(const wchar_t* pAbsPath, const StageData& data)
+    {
+        if (!pAbsPath)
+            return false;
+
+        StageHeader header = data.header;
+        if (header.magic != STAGE_MAGIC ||
+            header.version < STAGE_VERSION_MIN_COMPAT ||
+            header.version > STAGE_VERSION)
+        {
+            header = {};
+            header.magic = STAGE_MAGIC;
+            header.version = STAGE_VERSION;
+        }
+
+        FILE* pFile = nullptr;
+        if (_wfopen_s(&pFile, pAbsPath, L"wb") != 0 || !pFile)
+            return false;
+
+        bool_t bOk = std::fwrite(&header, sizeof(StageHeader), 1, pFile) == 1;
+
+        bOk = bOk && WriteStageBlockCount(pFile, static_cast<u32_t>(data.structures.size()));
+        bOk = bOk && WriteStageEntries(pFile, data.structures);
+
+        bOk = bOk && WriteStageBlockCount(pFile, static_cast<u32_t>(data.jungles.size()));
+        bOk = bOk && WriteStageEntries(pFile, data.jungles);
+
+        if (header.version >= 4)
+        {
+            bOk = bOk && WriteStageBlockCount(pFile, static_cast<u32_t>(data.minionWaypoints.size()));
+            bOk = bOk && WriteStageEntries(pFile, data.minionWaypoints);
+        }
+
+        if (header.version >= 5)
+        {
+            bOk = bOk && WriteStageBlockCount(pFile, static_cast<u32_t>(data.bushes.size()));
+            bOk = bOk && WriteStageEntries(pFile, data.bushes);
+        }
+
+        std::fclose(pFile);
+        return bOk;
+    }
 }

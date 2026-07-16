@@ -99,6 +99,25 @@ SKILL_EFFECT_PARAM_IDS = {
 }
 
 SKILL_EFFECT_PARAM_MAX = 16
+DAMAGE_TYPES = {
+    "Physical": "Physical",
+    "Magic": "Magic",
+    "True": "True",
+}
+DAMAGE_FLAGS = {
+    "CanCrit": "DamageFlag_CanCrit",
+    "CanLifesteal": "DamageFlag_CanLifesteal",
+    "OnHit": "DamageFlag_OnHit",
+}
+DAMAGE_RANK_FIELDS = (
+    "flatByRank",
+    "totalAdRatioByRank",
+    "bonusAdRatioByRank",
+    "apRatioByRank",
+    "targetMaxHpRatioByRank",
+    "targetMissingHpRatioByRank",
+)
+
 SUMMON_POLICY_PARAM_IDS = {
     "durationSec": "DurationSec",
     "moveSpeed": "MoveSpeed",
@@ -490,6 +509,51 @@ def validate_item_stat_number(value: float, path: str) -> float:
     return value
 
 
+def normalize_damage_formula(source: object, path: str) -> dict | None:
+    if source is None:
+        return None
+    source = require_object(source, path)
+    damage_type = source.get("type", "Physical")
+    if damage_type not in DAMAGE_TYPES:
+        fail(f"{path}.type must be one of {sorted(DAMAGE_TYPES)}")
+
+    flags_source = require_array(source.get("flags", []), f"{path}.flags")
+    flags = []
+    for index, flag in enumerate(flags_source):
+        if flag not in DAMAGE_FLAGS:
+            fail(f"{path}.flags[{index}] must be one of {sorted(DAMAGE_FLAGS)}")
+        if flag in flags:
+            fail(f"{path}.flags contains duplicate {flag}")
+        flags.append(flag)
+
+    rank_count = 0
+    normalized: dict[str, object] = {
+        "type": damage_type,
+        "cppType": DAMAGE_TYPES[damage_type],
+        "flags": flags,
+        "cppFlags": [DAMAGE_FLAGS[flag] for flag in flags],
+    }
+    for field in DAMAGE_RANK_FIELDS:
+        values_source = require_array(source.get(field, []), f"{path}.{field}")
+        if values_source:
+            if rank_count == 0:
+                rank_count = len(values_source)
+            elif len(values_source) != rank_count:
+                fail(f"{path}.{field} rank count mismatch")
+        normalized[field] = [
+            legacy.as_float(value, f"{path}.{field}[{index}]")
+            for index, value in enumerate(values_source)
+        ]
+
+    if rank_count < 1 or rank_count > 5:
+        fail(f"{path} must define 1..5 ranked values")
+    for field in DAMAGE_RANK_FIELDS:
+        if not normalized[field]:
+            normalized[field] = [0.0] * rank_count
+    normalized["rankCount"] = rank_count
+    return normalized
+
+
 def normalize_items_root(root: dict) -> dict:
     root = require_object(root, "items")
 
@@ -526,7 +590,20 @@ def normalize_items_root(root: dict) -> dict:
             if key in stats_source
         }
 
-        records.append({"itemId": item_id, "price": price, "name": name, "stats": stats})
+        on_hit_damage = normalize_damage_formula(
+            item.get("onHitDamage"),
+            f"items[{index}].onHitDamage",
+        )
+
+        records.append(
+            {
+                "itemId": item_id,
+                "price": price,
+                "name": name,
+                "stats": stats,
+                "onHitDamage": on_hit_damage,
+            }
+        )
 
     if not records:
         fail("items[] must not be empty")
@@ -972,6 +1049,12 @@ def normalize_skill_effect_root(root: dict, valid_skill_keys: set[str]) -> dict:
     root = require_object(root, "skillEffect")
     records = []
     seen_keys = set()
+    required_variant_params = {
+        "skill.yasuo.q": {"baseDamage", "tornadoDamage", "dashAreaDamage"},
+        "skill.kalista.e": {"baseDamage", "damagePerSpear"},
+        "skill.leesin.q": {"baseDamage"},
+        "skill.ezreal.r": {"nonEpicBaseDamage", "nonEpicDamagePerRank"},
+    }
 
     for index, item in enumerate(require_array(root.get("skillEffects", []), "skillEffects")):
         item = require_object(item, f"skillEffects[{index}]")
@@ -1013,6 +1096,13 @@ def normalize_skill_effect_root(root: dict, valid_skill_keys: set[str]) -> dict:
         if len(params) > SKILL_EFFECT_PARAM_MAX:
             fail(f"skillEffects[{index}] has too many params: {len(params)} > {SKILL_EFFECT_PARAM_MAX}")
 
+        missing_variant_params = required_variant_params.get(key, set()) - seen_params
+        if missing_variant_params:
+            fail(
+                f"skillEffects[{index}] is missing required damage variant params: "
+                f"{sorted(missing_variant_params)}"
+            )
+
         summon_source = require_object(item.get("summonPolicy", {}), f"skillEffects[{index}].summonPolicy")
         summon_params = []
         seen_summon_params = set()
@@ -1045,7 +1135,23 @@ def normalize_skill_effect_root(root: dict, valid_skill_keys: set[str]) -> dict:
                 f"{len(summon_params)} > {SUMMON_POLICY_PARAM_MAX}"
             )
 
-        records.append({"key": key, "params": params, "summonPolicyParams": summon_params})
+        if "damage" not in item:
+            fail(f"skillEffects[{index}].damage is required")
+        records.append(
+            {
+                "key": key,
+                "params": params,
+                "summonPolicyParams": summon_params,
+                "damage": normalize_damage_formula(
+                    item["damage"],
+                    f"skillEffects[{index}].damage",
+                ),
+            }
+        )
+
+    missing_keys = sorted(valid_skill_keys - seen_keys)
+    if missing_keys:
+        fail(f"missing skill effect definitions: {missing_keys}")
 
     return {
         "schemaVersion": legacy.as_int(root.get("schemaVersion", 1), "skillEffect.schemaVersion"),
@@ -1060,6 +1166,7 @@ def apply_skill_effect_params(skills: list[dict], skill_effect_data: dict) -> No
         record = by_key.get(skill["canonicalKey"], {})
         skill["effectParams"] = record.get("params", [])
         skill["summonPolicyParams"] = record.get("summonPolicyParams", [])
+        skill["damageFormula"] = record.get("damage")
 
 
 def compute_definition_pack_hash(
@@ -1207,8 +1314,8 @@ def server_skill_json(record: dict, champion_ids: dict[str, int]) -> dict:
         "ownerChampionDefId": champion_ids[record["ownerKey"]],
         "slot": record["slot"],
         "target": {"shape": record["targetShape"], "resolvePolicy": record["resolvePolicy"]},
-        "cost": {"mana": record["manaCost"]},
-        "cooldown": {"seconds": record["cooldownSec"]},
+        "cost": {"manaByRank": record["manaCostByRank"]},
+        "cooldown": {"secondsByRank": record["cooldownSecByRank"]},
         "range": {"maximum": record["rangeMax"]},
         "stage": {
             "count": record["stageCount"],
@@ -1225,6 +1332,9 @@ def server_skill_json(record: dict, champion_ids: dict[str, int]) -> dict:
             ],
         },
     }
+
+    if record.get("damageFormula") is not None:
+        result["effect"]["damage"] = damage_formula_json(record["damageFormula"])
 
     summon_policy_params = record.get("summonPolicyParams", [])
     if summon_policy_params:
@@ -1276,20 +1386,30 @@ def normalize_client_visual_root(root: dict, valid_champions: dict[str, str], va
             stages = []
             for stage_index, stage in enumerate(require_array(skill.get("stages", []), f"{skill_key}.stages")):
                 stage = require_object(stage, f"{skill_key}.stages[{stage_index}]")
+                stage_path = f"{skill_key}.stages[{stage_index}]"
+                playback_speed = legacy.as_float(
+                    stage.get("animationPlaybackSpeed", 1.0),
+                    f"{stage_path}.animationPlaybackSpeed",
+                )
+                cast_frame = legacy.as_float(
+                    stage.get("castFrame", 0.0),
+                    f"{stage_path}.castFrame",
+                )
+                recovery_frame = legacy.as_float(
+                    stage.get("recoveryFrame", 0.0),
+                    f"{stage_path}.recoveryFrame",
+                )
+                if playback_speed <= 0.0:
+                    fail(f"{stage_path}.animationPlaybackSpeed must be positive")
+                if cast_frame < 0.0:
+                    fail(f"{stage_path}.castFrame must be non-negative")
+                if recovery_frame < cast_frame:
+                    fail(f"{stage_path}.recoveryFrame must be >= castFrame")
                 stages.append(
                     {
-                        "animationPlaybackSpeed": legacy.as_float(
-                            stage.get("animationPlaybackSpeed", 1.0),
-                            f"{skill_key}.stages[{stage_index}].animationPlaybackSpeed",
-                        ),
-                        "castFrame": legacy.as_float(
-                            stage.get("castFrame", 0.0),
-                            f"{skill_key}.stages[{stage_index}].castFrame",
-                        ),
-                        "recoveryFrame": legacy.as_float(
-                            stage.get("recoveryFrame", 0.0),
-                            f"{skill_key}.stages[{stage_index}].recoveryFrame",
-                        ),
+                        "animationPlaybackSpeed": playback_speed,
+                        "castFrame": cast_frame,
+                        "recoveryFrame": recovery_frame,
                     }
                 )
             if not stages:
@@ -1305,6 +1425,10 @@ def normalize_client_visual_root(root: dict, valid_champions: dict[str, str], va
                     "stages": stages,
                 }
             )
+
+        missing_slots = set(range(len(SLOT_NAMES))) - seen_slots
+        if missing_slots:
+            fail(f"{key}.skills is missing slots: {sorted(missing_slots)}")
 
         champions.append(
             {
@@ -1361,7 +1485,30 @@ def skill_effect_json(record: dict) -> dict:
             param["id"]: param["value"]
             for param in summon_policy_params
         }
+    if record.get("damage") is not None:
+        result["damage"] = damage_formula_json(record["damage"])
     return result
+
+
+def damage_formula_json(formula: dict) -> dict:
+    return {
+        "type": formula["type"],
+        "flags": formula["flags"],
+        **{field: formula[field] for field in DAMAGE_RANK_FIELDS},
+    }
+
+
+def emit_damage_formula_cpp(lines: list[str], target: str, formula: dict | None) -> None:
+    if formula is None:
+        return
+    lines.append(f"        {target}.bValid = true;")
+    lines.append(f"        {target}.rankCount = {formula['rankCount']}u;")
+    lines.append(f"        {target}.type = eDamageType::{formula['cppType']};")
+    flag_expression = " | ".join(formula["cppFlags"]) if formula["cppFlags"] else "DamageFlag_None"
+    lines.append(f"        {target}.flags = {flag_expression};")
+    for field in DAMAGE_RANK_FIELDS:
+        for index, value in enumerate(formula[field]):
+            lines.append(f"        {target}.{field}[{index}] = {cpp_float(value)};")
 
 
 def manifest_json(data: dict, champions: list[dict], skills: list[dict], spells: list[dict], build_hash: int) -> dict:
@@ -1966,6 +2113,7 @@ def append_items_cpp(lines: list[str], item_data: dict) -> None:
         )
         for key, value in record["stats"].items():
             lines.append(f"        def.stats.{key} = {cpp_float(value)};")
+        emit_damage_formula_cpp(lines, "def.onHitDamage", record.get("onHitDamage"))
         lines.extend(
             [
                 f"        def.displayName = {cpp_string(record['name'])};",
@@ -2060,6 +2208,8 @@ def emit_cpp(
                 f"        def.legacySkillId = {record['skillId']}u;",
                 "        def.target.bValid = true;",
                 f"        def.target.resolvePolicy = eTargetResolvePolicy::{record['resolvePolicy']};",
+                f"        def.cost.rankCount = {len(record['manaCostByRank'])}u;",
+                f"        def.cooldown.rankCount = {len(record['cooldownSecByRank'])}u;",
                 f"        def.cost.manaCost = {cpp_float(record['manaCost'])};",
                 f"        def.cooldown.cooldownSec = {cpp_float(record['cooldownSec'])};",
                 f"        def.range.rangeMax = {cpp_float(record['rangeMax'])};",
@@ -2070,6 +2220,11 @@ def emit_cpp(
                 f"        def.effect.replicatedCueId = {record['visualCueId']}u;",
             ]
         )
+        for rank, value in enumerate(record["manaCostByRank"]):
+            lines.append(f"        def.cost.manaCostByRank[{rank}] = {cpp_float(value)};")
+        for rank, value in enumerate(record["cooldownSecByRank"]):
+            lines.append(f"        def.cooldown.cooldownSecByRank[{rank}] = {cpp_float(value)};")
+        emit_damage_formula_cpp(lines, "def.effect.damage", record.get("damageFormula"))
         effect_params = record.get("effectParams", [])
         if effect_params:
             lines.append(f"        def.effect.paramCount = static_cast<u8_t>({len(effect_params)}u);")

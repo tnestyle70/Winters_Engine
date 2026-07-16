@@ -1,8 +1,38 @@
 {
   "schemaVersion": 1,
   "dataVersion": 1,
-  "buildHash": 276254117,
+  "buildHash": 2392782607,
   "skillEffects": [
+    {
+      "key": "skill.annie.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
+      }
+    },
     {
       "key": "skill.annie.e",
       "params": {
@@ -11,6 +41,52 @@
         "shieldArmorPerRank": 5.0,
         "shieldBaseAmount": 50.0,
         "shieldDurationSec": 3.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -19,6 +95,52 @@
         "baseDamage": 80.0,
         "damagePerRank": 35.0,
         "stunDurationSec": 1.25
+      },
+      "damage": {
+        "type": "Magic",
+        "flags": [],
+        "flatByRank": [
+          115.0,
+          150.0,
+          185.0,
+          220.0,
+          255.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -43,6 +165,40 @@
         "radius": 0.9,
         "roleType": 4.0,
         "sightRange": 14.0
+      },
+      "damage": {
+        "type": "Magic",
+        "flags": [],
+        "flatByRank": [
+          225.0,
+          300.0,
+          375.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -53,6 +209,52 @@
         "halfAngleCos": 0.76604444,
         "range": 6.0,
         "stunDurationSec": 1.25
+      },
+      "damage": {
+        "type": "Magic",
+        "flags": [],
+        "flatByRank": [
+          115.0,
+          160.0,
+          205.0,
+          250.0,
+          295.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -60,15 +262,141 @@
       "params": {
         "radius": 0.35,
         "speed": 18.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.ashe.e",
+      "params": {
+        "radius": 10.0,
+        "range": 400.0,
+        "speed": 24.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
       "key": "skill.ashe.q",
       "params": {
         "baseDamage": 20.0,
-        "effectDurationSec": 4.0,
+        "effectDurationSec": 5.0,
         "maxStacks": 4.0,
         "slowDurationSec": 1.5
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          20.0,
+          20.0,
+          20.0,
+          20.0,
+          20.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -77,7 +405,41 @@
         "baseDamage": 250.0,
         "range": 200.0,
         "speed": 20.0,
-        "stunDurationSec": 2.0
+        "stunDurationSec": 3.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          250.0,
+          250.0,
+          250.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -88,6 +450,52 @@
         "range": 12.0,
         "slowDurationSec": 1.5,
         "speed": 24.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          45.0,
+          45.0,
+          45.0,
+          45.0,
+          45.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -97,6 +505,32 @@
         "maxStacks": 5.0,
         "speed": 20.0,
         "stackWindowSec": 6.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -106,11 +540,56 @@
         "baseDamage": 80.0,
         "bonusAdRatio": 0.6,
         "castTimeSec": 0.25,
-        "cooldownReductionPerRank": 3.0,
         "damagePerRank": 50.0,
         "halfWidth": 0.5,
         "radius": 7.5,
         "speed": 20.0
+      },
+      "damage": {
+        "type": "Magic",
+        "flags": [],
+        "flatByRank": [
+          80.0,
+          130.0,
+          180.0,
+          230.0,
+          280.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.6,
+          0.6,
+          0.6,
+          0.6,
+          0.6
+        ],
+        "apRatioByRank": [
+          0.75,
+          0.75,
+          0.75,
+          0.75,
+          0.75
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -119,13 +598,59 @@
         "apRatio": 0.4,
         "baseDamage": 20.0,
         "castTimeSec": 0.25,
-        "cooldownReductionPerRank": 0.25,
         "cooldownRefundSec": 1.5,
         "damagePerRank": 25.0,
         "halfWidth": 0.6,
-        "manaCostPerRank": 3.0,
         "speed": 20.0,
         "totalAdRatio": 1.3
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          20.0,
+          45.0,
+          70.0,
+          95.0,
+          120.0
+        ],
+        "totalAdRatioByRank": [
+          1.3,
+          1.3,
+          1.3,
+          1.3,
+          1.3
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.4,
+          0.4,
+          0.4,
+          0.4,
+          0.4
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -135,12 +660,45 @@
         "baseDamage": 350.0,
         "bonusAdRatio": 1.0,
         "castTimeSec": 1.0,
-        "cooldownReductionPerRank": 15.0,
         "damagePerRank": 200.0,
         "halfWidth": 1.6,
         "nonEpicBaseDamage": 150.0,
         "nonEpicDamagePerRank": 75.0,
         "speed": 20.0
+      },
+      "damage": {
+        "type": "Magic",
+        "flags": [],
+        "flatByRank": [
+          350.0,
+          550.0,
+          750.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "apRatioByRank": [
+          1.1,
+          1.1,
+          1.1
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -155,6 +713,82 @@
         "manaRestoreFlat": 60.0,
         "markDurationSec": 4.0,
         "speed": 17.0
+      },
+      "damage": {
+        "type": "Magic",
+        "flags": [],
+        "flatByRank": [
+          80.0,
+          135.0,
+          190.0,
+          245.0,
+          300.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "apRatioByRank": [
+          0.9,
+          0.9,
+          0.9,
+          0.9,
+          0.9
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.fiora.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -163,6 +797,54 @@
         "baseDamage": 30.0,
         "effectDurationSec": 5.0,
         "maxStacks": 2.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          30.0,
+          30.0,
+          30.0,
+          30.0,
+          30.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -173,12 +855,94 @@
         "dashDurationSec": 0.25,
         "radius": 1.0,
         "range": 4.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          70.0,
+          70.0,
+          70.0,
+          70.0,
+          70.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
       "key": "skill.fiora.r",
       "params": {
         "baseDamage": 80.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          80.0,
+          80.0,
+          80.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -188,6 +952,182 @@
         "radius": 0.8,
         "range": 6.0,
         "slowDurationSec": 1.5
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.garen.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.garen.e",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.garen.q",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -196,6 +1136,120 @@
         "baseDamage": 150.0,
         "damagePerRank": 150.0,
         "missingHealthDamageRatio": 0.25
+      },
+      "damage": {
+        "type": "True",
+        "flags": [],
+        "flatByRank": [
+          150.0,
+          300.0,
+          450.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.25,
+          0.25,
+          0.25
+        ]
+      }
+    },
+    {
+      "key": "skill.garen.w",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.irelia.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -205,6 +1259,52 @@
         "damagePerRank": 30.0,
         "radius": 1.5,
         "stunDurationSec": 0.75
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          100.0,
+          130.0,
+          160.0,
+          190.0,
+          220.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -214,6 +1314,52 @@
         "damagePerRank": 25.0,
         "dashDurationSec": 0.25,
         "gap": 1.35
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          70.0,
+          95.0,
+          120.0,
+          145.0,
+          170.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -228,6 +1374,40 @@
         "rectWidth": 7.5,
         "slowDurationSec": 0.5,
         "speed": 15.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          250.0,
+          250.0,
+          250.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -237,6 +1417,82 @@
         "damagePerRank": 40.0,
         "halfWidth": 2.2,
         "range": 6.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          70.0,
+          110.0,
+          150.0,
+          190.0,
+          230.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.jax.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -245,6 +1501,52 @@
         "baseDamage": 60.0,
         "radius": 2.2,
         "stunDurationSec": 1.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          60.0,
+          60.0,
+          60.0,
+          60.0,
+          60.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -253,6 +1555,52 @@
         "baseDamage": 70.0,
         "dashDurationSec": 0.22,
         "gap": 1.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          70.0,
+          70.0,
+          70.0,
+          70.0,
+          70.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -261,6 +1609,42 @@
         "baseDamage": 70.0,
         "effectDurationSec": 8.0,
         "maxStacks": 3.0
+      },
+      "damage": {
+        "type": "Magic",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          70.0,
+          70.0,
+          70.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -268,14 +1652,140 @@
       "params": {
         "baseDamage": 45.0,
         "effectDurationSec": 5.0
+      },
+      "damage": {
+        "type": "Magic",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          45.0,
+          45.0,
+          45.0,
+          45.0,
+          45.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.kalista.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
       "key": "skill.kalista.e",
       "params": {
+        "baseDamage": 20.0,
+        "damagePerSpear": 30.0,
         "moveSpeedMul": 0.55,
         "slowDurationSec": 2.0,
         "stunDurationSec": 1.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          20.0,
+          20.0,
+          20.0,
+          20.0,
+          20.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -284,6 +1794,54 @@
         "baseDamage": 70.0,
         "radius": 0.6,
         "speed": 27.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          70.0,
+          70.0,
+          70.0,
+          70.0,
+          70.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -293,6 +1851,40 @@
         "dashDurationSec": 0.45,
         "effectDurationSec": 4.0,
         "radius": 2.5
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -306,6 +1898,82 @@
         "moveSpeed": 3.5,
         "radius": 0.45,
         "sightRange": 10.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.kindred.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -316,6 +1984,104 @@
         "maxStacks": 3.0,
         "moveSpeedMul": 0.65,
         "slowDurationSec": 1.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.kindred.q",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -326,6 +2092,40 @@
         "healBaseAmount": 250.0,
         "minHealthAmount": 1.0,
         "radius": 6.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -335,6 +2135,82 @@
         "effectDurationSec": 4.0,
         "radius": 4.0,
         "tickIntervalSec": 0.6
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          35.0,
+          35.0,
+          35.0,
+          35.0,
+          35.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.leesin.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -343,6 +2219,52 @@
         "moveSpeedMul": 0.6,
         "radius": 3.5,
         "slowDurationSec": 1.5
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -352,6 +2274,54 @@
         "dashDurationSec": 0.18,
         "gap": 1.0,
         "markDurationSec": 3.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          55.0,
+          80.0,
+          105.0,
+          130.0,
+          155.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -359,6 +2329,40 @@
       "params": {
         "airborneDurationSec": 1.0,
         "baseDamage": 150.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          150.0,
+          150.0,
+          150.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -368,6 +2372,182 @@
         "gap": 0.25,
         "shieldBaseAmount": 80.0,
         "shieldDurationSec": 3.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.masteryi.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.masteryi.e",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.masteryi.q",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -376,6 +2556,120 @@
         "bonusAttackSpeed": 0.25,
         "effectDurationSec": 7.0,
         "moveSpeedMul": 1.35
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.masteryi.w",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.riven.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -383,6 +2677,52 @@
       "params": {
         "shieldBaseAmount": 70.0,
         "shieldDurationSec": 3.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -391,6 +2731,52 @@
         "airborneDurationSec": 0.75,
         "radius": 2.25,
         "stackWindowSec": 4.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -402,6 +2788,40 @@
         "effectDurationSec": 15.0,
         "halfAngleCos": 0.70710678,
         "range": 10.5
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          100.0,
+          150.0,
+          200.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -409,6 +2829,82 @@
       "params": {
         "radius": 2.5,
         "stunDurationSec": 0.75
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.sylas.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -425,6 +2921,102 @@
         "slowDurationSec": 1.0,
         "speed": 26.0,
         "targetDashDurationSec": 0.22
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          65.0,
+          90.0,
+          115.0,
+          140.0,
+          165.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.sylas.q",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -432,6 +3024,120 @@
       "params": {
         "effectDurationSec": 45.0,
         "range": 10.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.sylas.w",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.viego.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -441,6 +3147,52 @@
         "radius": 6.0,
         "refreshDurationSec": 0.25,
         "tickIntervalSec": 0.1
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -448,6 +3200,54 @@
       "params": {
         "baseDamage": 65.0,
         "radius": 0.9
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          65.0,
+          65.0,
+          65.0,
+          65.0,
+          65.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -458,6 +3258,40 @@
         "moveSpeedMul": 0.6,
         "radius": 2.0,
         "slowDurationSec": 1.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          150.0,
+          150.0,
+          150.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -467,6 +3301,82 @@
         "dashDurationSec": 0.26,
         "radius": 0.75,
         "stunDurationSec": 0.75
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          55.0,
+          55.0,
+          55.0,
+          55.0,
+          55.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.yasuo.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -478,6 +3388,52 @@
         "effectDurationSec": 0.5,
         "gap": 0.75,
         "markDurationSec": 10.0
+      },
+      "damage": {
+        "type": "Magic",
+        "flags": [],
+        "flatByRank": [
+          80.0,
+          80.0,
+          80.0,
+          80.0,
+          80.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -495,6 +3451,54 @@
         "tornadoDurationSec": 1.5,
         "tornadoRadius": 2.25,
         "tornadoSpeed": 18.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          60.0,
+          60.0,
+          60.0,
+          60.0,
+          60.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -503,6 +3507,40 @@
         "airborneDurationSec": 1.0,
         "baseDamage": 200.0,
         "gap": 1.1
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          200.0,
+          200.0,
+          200.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -513,6 +3551,82 @@
         "rectLength": 1.6,
         "rectLengthPerRank": 0.35,
         "rectWidth": 0.5
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.yone.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -521,6 +3635,52 @@
         "dashDistance": 4.0,
         "dashDurationSec": 0.25,
         "effectDurationSec": 5.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -528,6 +3688,54 @@
       "params": {
         "baseDamage": 75.0,
         "radius": 0.85
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "OnHit"
+        ],
+        "flatByRank": [
+          75.0,
+          75.0,
+          75.0,
+          75.0,
+          75.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -539,6 +3747,40 @@
         "dashDurationSec": 0.16,
         "gap": 0.75,
         "radius": 1.7
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          150.0,
+          150.0,
+          150.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -546,6 +3788,82 @@
       "params": {
         "baseDamage": 65.0,
         "radius": 1.5
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          65.0,
+          65.0,
+          65.0,
+          65.0,
+          65.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "key": "skill.zed.basic_attack",
+      "params": {},
+      "damage": {
+        "type": "Physical",
+        "flags": [
+          "CanCrit",
+          "CanLifesteal",
+          "OnHit"
+        ],
+        "flatByRank": [
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          1.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0
+        ]
       }
     },
     {
@@ -556,6 +3874,52 @@
         "moveSpeedMul": 0.6,
         "radius": 2.75,
         "slowDurationSec": 1.5
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          65.0,
+          85.0,
+          105.0,
+          125.0,
+          145.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -565,6 +3929,52 @@
         "damagePerRank": 25.0,
         "radius": 0.45,
         "speed": 24.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          70.0,
+          95.0,
+          120.0,
+          145.0,
+          170.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -575,12 +3985,92 @@
         "markDurationSec": 3.0,
         "missingHealthDamageRatio": 0.3,
         "vanishDurationSec": 0.75
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.3,
+          0.3,
+          0.3
+        ]
       }
     },
     {
       "key": "skill.zed.w",
       "params": {
         "effectDurationSec": 5.0
+      },
+      "damage": {
+        "type": "Physical",
+        "flags": [],
+        "flatByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "totalAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "bonusAdRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "apRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMaxHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "targetMissingHpRatioByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       }
     }
   ]

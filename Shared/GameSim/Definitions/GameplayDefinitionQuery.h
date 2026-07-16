@@ -2,11 +2,13 @@
 
 #include "Shared/GameSim/Core/Ecs/Entity.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/SkillAtomData.h"
 #include "WintersTypes.h"
 
 class CWorld;
+struct DamageRequest;
 struct ChampionGameplayDef;
 struct SkillGameplayDef;
 struct TickContext;
@@ -61,6 +63,18 @@ namespace GameplayDefinitionQuery
         u8_t slot,
         eSkillEffectParamId param,
         f32_t fallbackValue = 0.f);
+
+    bool_t BuildSkillDamageRequest(
+        CWorld& world,
+        EntityID source,
+        EntityID target,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        u8_t rank,
+        eTeam sourceTeam,
+        eDamageSourceKind sourceKind,
+        DamageRequest& outRequest);
 
     f32_t ResolveSummonPolicyParam(
         CWorld& world,

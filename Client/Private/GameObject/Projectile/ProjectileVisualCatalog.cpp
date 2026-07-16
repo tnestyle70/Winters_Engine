@@ -26,7 +26,8 @@ namespace
     };
 
     constexpr ProjectileVisualDesc kEzrealGlobalBeamVisual{
-        "Ezreal.R.Missile", "Ezreal.R.Hit", nullptr
+        "Ezreal.R.Missile", "Ezreal.R.Hit", nullptr, nullptr, nullptr, nullptr,
+        WintersMath::kPi
     };
 
     constexpr ProjectileVisualDesc kEzrealArcaneShiftBoltVisual{
@@ -52,15 +53,23 @@ namespace
     };
 
     constexpr ProjectileVisualDesc kAsheBasicAttackVisual{
-        "Ashe.BA.Arrow", nullptr, "Ashe.BA.Hit" 
+        "Ashe.BA.Arrow", nullptr, "Ashe.BA.Hit", nullptr, nullptr, nullptr,
+        -WintersMath::kPi * 0.5f
     };
 
     constexpr ProjectileVisualDesc kAsheVolleyArrowVisual{
-        "Ashe.W.Arrow", "Ashe.W.Hit", nullptr
+        "Ashe.W.Arrow", "Ashe.W.Hit", nullptr, nullptr, nullptr, nullptr,
+        -WintersMath::kPi * 0.5f
+    };
+
+    constexpr ProjectileVisualDesc kAsheHawkshotVisual{
+        "Ashe.E.Hawkshot", nullptr, nullptr, nullptr, nullptr, nullptr,
+        -WintersMath::kPi * 0.5f
     };
 
     constexpr ProjectileVisualDesc kAsheCrystalArrowVisual{
-        "Ashe.R.Arrow", "Ashe.R.Hit", nullptr
+        "Ashe.R.Arrow", "Ashe.R.Hit", nullptr, nullptr, nullptr, nullptr,
+        -WintersMath::kPi * 0.5f
     };
 
     constexpr ProjectileVisualDesc kStructureProjectileVisual{
@@ -114,6 +123,8 @@ namespace ProjectileVisualCatalog
             return kAsheBasicAttackVisual;
         case eProjectileKind::AsheVolleyArrow:
             return kAsheVolleyArrowVisual;
+        case eProjectileKind::AsheHawkshot:
+            return kAsheHawkshotVisual;
         case eProjectileKind::AsheCrystalArrow:
             return kAsheCrystalArrowVisual;
         case eProjectileKind::MinionRangedBasicBlue:

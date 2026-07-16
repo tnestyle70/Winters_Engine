@@ -51,6 +51,7 @@
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
 #include "Shared/GameSim/Systems/SpellbookFormOverride/SpellbookFormOverrideSystem.h"
 //Viego Spawn
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
@@ -1525,7 +1526,30 @@ namespace
         projectile.speed = 24.f;
         projectile.maxDistance = range;
         projectile.hitRadius = 0.55f;
-        projectile.damage = 55.f + static_cast<f32_t>(rank - 1u) * 25.f;
+
+        DamageRequest damage{};
+        if (!GameplayDefinitionQuery::BuildSkillDamageRequest(
+                world,
+                cmd.issuerEntity,
+                NULL_ENTITY,
+                tc,
+                champion,
+                cmd.slot,
+                rank,
+                projectile.sourceTeam,
+                eDamageSourceKind::Skill,
+                damage))
+        {
+            return NULL_ENTITY;
+        }
+        projectile.damage = damage.flatAmount;
+        projectile.totalAdRatio = damage.adRatioOverride;
+        projectile.bonusAdRatio = damage.bonusAdRatioOverride;
+        projectile.apRatio = damage.apRatioOverride;
+        projectile.damageType = damage.type;
+        projectile.damageSourceKind = damage.eSourceKind;
+        projectile.sourceSlot = damage.iSourceSlot;
+        projectile.damageFlags = damage.flags;
 
         const EntityID projectileEntity = world.CreateEntity();
         world.AddComponent<SkillProjectileComponent>(projectileEntity, projectile);
@@ -1641,7 +1665,7 @@ namespace
         const f32_t effectiveRange =
             kConsumeRange + GameplayStateQuery::ResolveGameplayRadius(world, cmd.issuerEntity) +
             GameplayStateQuery::ResolveGameplayRadius(world, cmd.targetEntity);
-        //Argument�?entity�?받기 ?�문??winters math�?�??�!! -> ?�로 빼야 ?�는 걸까?
+        // Entity-based distance stays inside GameSim and avoids renderer math types.
         if (DistanceSqXZ(world, cmd.issuerEntity, cmd.targetEntity) >
             effectiveRange * effectiveRange)
         {
@@ -3137,26 +3161,16 @@ void CDefaultCommandExecutor::HandleLevelSkill(CWorld& world, const TickContext&
             pProgressionRank = &viego.originalSkillRanks;
     }
     auto& progressionRank = *pProgressionRank;
-    const u8_t maxRank = (cmd.slot == 4)
-        ? 3
-        : ((cmd.slot >= 1 && cmd.slot <= 3) ? 5 : 0);
-    if (maxRank == 0)
-        return;
-    if (progressionRank.pointsAvailable == 0)
-        return;
-    if (progressionRank.ranks[cmd.slot] >= maxRank)
-        return;
     const u8_t championLevel = world.HasComponent<ChampionComponent>(cmd.issuerEntity)
         ? world.GetComponent<ChampionComponent>(cmd.issuerEntity).level
-        : 1;
-    const u8_t requiredLevel = (cmd.slot == 4)
-        ? static_cast<u8_t>((progressionRank.ranks[cmd.slot] == 0) ? 6 : ((progressionRank.ranks[cmd.slot] == 1) ? 11 : 16))
-        : static_cast<u8_t>(1 + progressionRank.ranks[cmd.slot] * 2);
-    if (championLevel < requiredLevel)
+        : 1u;
+    if (!CSkillRankSystem::TryLevelSkill(
+            progressionRank,
+            championLevel,
+            cmd.slot))
+    {
         return;
-
-    ++progressionRank.ranks[cmd.slot];
-    --progressionRank.pointsAvailable;
+    }
     if (pProgressionRank != &rank)
         rank.pointsAvailable = progressionRank.pointsAvailable;
 }

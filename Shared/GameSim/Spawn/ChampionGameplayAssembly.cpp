@@ -58,7 +58,12 @@ namespace
             championLevel,
             static_cast<u8_t>(sizeof(kLevelOrder) / sizeof(kLevelOrder[0])));
         for (u8_t i = 0; i < count && ranks.pointsAvailable > 0u; ++i)
-            CSkillRankSystem::TryLevelSkill(ranks, kLevelOrder[i]);
+        {
+            CSkillRankSystem::TryLevelSkill(
+                ranks,
+                static_cast<u8_t>(i + 1u),
+                kLevelOrder[i]);
+        }
     }
 }
 

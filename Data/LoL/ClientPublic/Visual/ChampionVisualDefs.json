@@ -11,8 +11,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.25,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -22,8 +22,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.2,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 8.0,
+              "recoveryFrame": 18.0
             }
           ]
         },
@@ -34,12 +34,12 @@
             {
               "animationPlaybackSpeed": 1.0,
               "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "recoveryFrame": 7.0
             },
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -49,13 +49,13 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.05,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 8.0,
+              "recoveryFrame": 18.0
             },
             {
               "animationPlaybackSpeed": 1.05,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 5.0,
+              "recoveryFrame": 13.0
             }
           ]
         },
@@ -65,8 +65,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 7.0,
+              "recoveryFrame": 30.0
             }
           ]
         }
@@ -143,8 +143,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -154,8 +154,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 2.8,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -204,8 +204,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -215,8 +215,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -226,8 +226,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 8.0
             }
           ]
         },
@@ -237,8 +237,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 12.0,
+              "recoveryFrame": 60.0
             }
           ]
         },
@@ -248,8 +248,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 24.0,
+              "recoveryFrame": 36.0
             }
           ]
         }
@@ -265,8 +265,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -276,8 +276,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -287,13 +287,13 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 8.0
             },
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 5.0
             }
           ]
         },
@@ -303,8 +303,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -314,8 +314,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 18.0,
+              "recoveryFrame": 30.0
             }
           ]
         }
@@ -331,8 +331,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -342,8 +342,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -353,8 +353,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -364,8 +364,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 3.0,
+              "recoveryFrame": 8.0
             }
           ]
         },
@@ -375,8 +375,13 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
+            },
+            {
+              "animationPlaybackSpeed": 1.0,
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         }
@@ -392,8 +397,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -403,8 +408,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -414,8 +419,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -425,8 +430,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -436,8 +441,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 16.0,
+              "recoveryFrame": 24.0
             }
           ]
         }
@@ -453,8 +458,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -464,8 +469,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -475,8 +480,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 18.0
             }
           ]
         },
@@ -486,8 +491,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 8.0
             }
           ]
         },
@@ -497,8 +502,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 18.0,
+              "recoveryFrame": 36.0
             }
           ]
         }
@@ -514,8 +519,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -525,8 +530,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -536,8 +541,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 8.0
             }
           ]
         },
@@ -547,13 +552,13 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 48.0
             },
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -563,8 +568,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         }
@@ -580,8 +585,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -591,13 +596,13 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             },
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -607,13 +612,13 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             },
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -623,13 +628,13 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             },
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -639,8 +644,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         }
@@ -656,8 +661,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -667,8 +672,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -678,8 +683,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -689,8 +694,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -700,8 +705,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         }
@@ -717,8 +722,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -728,8 +733,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -739,8 +744,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -750,8 +755,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -761,8 +766,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         }
@@ -778,8 +783,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -789,8 +794,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 5.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -800,8 +805,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 5.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -811,8 +816,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 8.0
             }
           ]
         },
@@ -822,8 +827,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 12.0,
+              "recoveryFrame": 24.0
             }
           ]
         }
@@ -839,8 +844,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 5.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -850,8 +855,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 8.0
             }
           ]
         },
@@ -861,8 +866,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -872,8 +877,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 1.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -883,8 +888,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 12.0,
+              "recoveryFrame": 22.0
             }
           ]
         }
@@ -900,8 +905,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -911,8 +916,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 5.0,
+              "recoveryFrame": 11.0
             }
           ]
         },
@@ -923,12 +928,12 @@
             {
               "animationPlaybackSpeed": 1.0,
               "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "recoveryFrame": 7.0
             },
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -938,8 +943,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 14.0
             }
           ]
         },
@@ -949,8 +954,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 10.0,
+              "recoveryFrame": 18.0
             }
           ]
         }
@@ -966,8 +971,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 0.85,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 5.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -977,8 +982,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 0.85,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 10.0
             }
           ]
         },
@@ -988,8 +993,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 0.85,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 5.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -999,8 +1004,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 6.0,
+              "recoveryFrame": 14.0
             },
             {
               "animationPlaybackSpeed": 1.0,
@@ -1015,8 +1020,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 12.0,
+              "recoveryFrame": 24.0
             }
           ]
         }
@@ -1032,8 +1037,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -1043,8 +1048,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -1054,8 +1059,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -1065,13 +1070,13 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             },
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         },
@@ -1081,8 +1086,8 @@
           "stages": [
             {
               "animationPlaybackSpeed": 1.0,
-              "castFrame": 0.0,
-              "recoveryFrame": 0.0
+              "castFrame": 4.0,
+              "recoveryFrame": 12.0
             }
           ]
         }

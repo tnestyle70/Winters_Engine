@@ -1,0 +1,22 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Fiora.BA.Hit",
+  "emitters": [
+    {
+      "name": "ba_hit_spark",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_hit_spark_yellow.png",
+      "lifetime": 0.40,
+      "fade_in": 0.01,
+      "fade_out": 0.18,
+      "width": 1.40,
+      "height": 1.40,
+      "color": [1.10, 0.95, 0.45, 1.00],
+      "attach_offset": [0.00, 1.00, 0.00],
+      "billboard": true
+    }
+  ]
+}

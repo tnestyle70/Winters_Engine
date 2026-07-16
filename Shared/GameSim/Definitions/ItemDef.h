@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Shared/GameSim/Definitions/DamageTypes.h"
 #include "WintersTypes.h"
 
 #include <cstddef>
@@ -32,6 +33,7 @@ struct ItemDef
     u16_t price = 0;
     ItemStatModifier stats{};
     const char* displayName = nullptr;
+    DamageFormulaDef onHitDamage{};
 };
 
 class CItemRegistry final

@@ -172,11 +172,14 @@ namespace ChampionGameDataDB
         return 0.f;
     }
 
-    f32_t ResolveSkillCooldown(eChampion champion, u8_t slot)
+    f32_t ResolveSkillCooldown(eChampion champion, u8_t slot, u8_t rank)
     {
         if (const ChampionGameDataSkill* pSkill = FindSkill(champion, slot))
         {
-            return pSkill->cooldownSec;
+            const u8_t count = std::clamp<u8_t>(
+                pSkill->rankCount, 1u, kSkillRankValueMax);
+            const u8_t sanitizedRank = std::clamp<u8_t>(rank, 1u, count);
+            return pSkill->cooldownSecByRank[sanitizedRank - 1u];
         }
 
         if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))

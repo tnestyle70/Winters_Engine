@@ -2,6 +2,7 @@
 
 #include "LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/ChampionStatsDef.h"
+#include "Shared/GameSim/Definitions/SkillAtomData.h"
 #include "SkillTypes.h"
 #include "WintersTypes.h"
 
@@ -21,6 +22,10 @@ struct ChampionGameDataSkill
     eTargetMode targetMode = eTargetMode::Self;
     u8_t stageCount = 1;
     f32_t stageWindowSec = 0.f;
+    u8_t rankCount = 1;
+    f32_t cooldownSecByRank[kSkillRankValueMax]{};
+    f32_t manaCostByRank[kSkillRankValueMax]{};
+    // Legacy client fallback only.
     f32_t cooldownSec = 0.f;
     f32_t rangeMax = 0.f;
     f32_t manaCost = 0.f;

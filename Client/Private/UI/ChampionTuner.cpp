@@ -52,7 +52,7 @@ namespace
 		eSkillEffectParamId id = eSkillEffectParamId::None;
 	};
 
-	constexpr std::array<ParamOption, 14> kParamOptions =
+	constexpr std::array<ParamOption, 55> kParamOptions =
 	{
 		ParamOption{ "BaseDamage", eSkillEffectParamId::BaseDamage },
 		ParamOption{ "DamagePerRank", eSkillEffectParamId::DamagePerRank },
@@ -62,12 +62,53 @@ namespace
 		ParamOption{ "StunDurationSec", eSkillEffectParamId::StunDurationSec },
 		ParamOption{ "SlowDurationSec", eSkillEffectParamId::SlowDurationSec },
 		ParamOption{ "AirborneDurationSec", eSkillEffectParamId::AirborneDurationSec },
+		ParamOption{ "MarkDurationSec", eSkillEffectParamId::MarkDurationSec },
+		ParamOption{ "StackWindowSec", eSkillEffectParamId::StackWindowSec },
+		ParamOption{ "Gap", eSkillEffectParamId::Gap },
 		ParamOption{ "DashDistance", eSkillEffectParamId::DashDistance },
 		ParamOption{ "DashDurationSec", eSkillEffectParamId::DashDurationSec },
+		ParamOption{ "TargetDashDurationSec", eSkillEffectParamId::TargetDashDurationSec },
+		ParamOption{ "HalfAngleCos", eSkillEffectParamId::HalfAngleCos },
 		ParamOption{ "Radius", eSkillEffectParamId::Radius },
+		ParamOption{ "ShieldDurationSec", eSkillEffectParamId::ShieldDurationSec },
+		ParamOption{ "ShieldBaseAmount", eSkillEffectParamId::ShieldBaseAmount },
+		ParamOption{ "ShieldAmountPerRank", eSkillEffectParamId::ShieldAmountPerRank },
+		ParamOption{ "ShieldArmorPerRank", eSkillEffectParamId::ShieldArmorPerRank },
+		ParamOption{ "DashDelaySec", eSkillEffectParamId::DashDelaySec },
 		ParamOption{ "EffectDurationSec", eSkillEffectParamId::EffectDurationSec },
+		ParamOption{ "TickIntervalSec", eSkillEffectParamId::TickIntervalSec },
+		ParamOption{ "RefreshDurationSec", eSkillEffectParamId::RefreshDurationSec },
+		ParamOption{ "VanishDurationSec", eSkillEffectParamId::VanishDurationSec },
+		ParamOption{ "MissingHealthDamageRatio", eSkillEffectParamId::MissingHealthDamageRatio },
+		ParamOption{ "MinHealthAmount", eSkillEffectParamId::MinHealthAmount },
+		ParamOption{ "HealBaseAmount", eSkillEffectParamId::HealBaseAmount },
+		ParamOption{ "HealAmountPerRank", eSkillEffectParamId::HealAmountPerRank },
+		ParamOption{ "RectLength", eSkillEffectParamId::RectLength },
+		ParamOption{ "RectWidth", eSkillEffectParamId::RectWidth },
+		ParamOption{ "HalfWidth", eSkillEffectParamId::HalfWidth },
+		ParamOption{ "DisarmDurationSec", eSkillEffectParamId::DisarmDurationSec },
+		ParamOption{ "TornadoSpeed", eSkillEffectParamId::TornadoSpeed },
+		ParamOption{ "TornadoDurationSec", eSkillEffectParamId::TornadoDurationSec },
+		ParamOption{ "TornadoRadius", eSkillEffectParamId::TornadoRadius },
+		ParamOption{ "TornadoDamage", eSkillEffectParamId::TornadoDamage },
+		ParamOption{ "DashAreaRadius", eSkillEffectParamId::DashAreaRadius },
+		ParamOption{ "DashAreaDamage", eSkillEffectParamId::DashAreaDamage },
 		ParamOption{ "BonusAd", eSkillEffectParamId::BonusAd },
 		ParamOption{ "BonusAttackSpeed", eSkillEffectParamId::BonusAttackSpeed },
+		ParamOption{ "TotalAdRatio", eSkillEffectParamId::TotalAdRatio },
+		ParamOption{ "BonusAdRatio", eSkillEffectParamId::BonusAdRatio },
+		ParamOption{ "ApRatio", eSkillEffectParamId::ApRatio },
+		ParamOption{ "NonEpicBaseDamage", eSkillEffectParamId::NonEpicBaseDamage },
+		ParamOption{ "NonEpicDamagePerRank", eSkillEffectParamId::NonEpicDamagePerRank },
+		ParamOption{ "CooldownRefundSec", eSkillEffectParamId::CooldownRefundSec },
+		ParamOption{ "ManaRestoreFlat", eSkillEffectParamId::ManaRestoreFlat },
+		ParamOption{ "CastTimeSec", eSkillEffectParamId::CastTimeSec },
+		ParamOption{ "ManaCostPerRank", eSkillEffectParamId::ManaCostPerRank },
+		ParamOption{ "CooldownReductionPerRank", eSkillEffectParamId::CooldownReductionPerRank },
+		ParamOption{ "MaxStacks", eSkillEffectParamId::MaxStacks },
+		ParamOption{ "RectLengthPerRank", eSkillEffectParamId::RectLengthPerRank },
+		ParamOption{ "FormationDelaySec", eSkillEffectParamId::FormationDelaySec },
+		ParamOption{ "DamagePerSpear", eSkillEffectParamId::DamagePerSpear },
 	};
 
 	struct StatOption
@@ -796,6 +837,13 @@ namespace
 
 	void RenderOverrideTable(CScene_InGame* pScene, PracticeToolState& state)
 	{
+		ImGui::TextWrapped(
+			"Effect overrides are temporary scalar/variant parameters. Ranked damage formulas "
+			"are canonical in ServerPrivate/Gameplay/SkillEffectGameplayDefs.json and are "
+			"applied through the server definition reload path.");
+		ImGui::TextWrapped(
+			"Practice JSON is a session draft. Release truth changes only after canonical JSON "
+			"validation, codegen, SimLab, and build succeed.");
 		if (ImGui::InputText("JSON Path", state.path, std::size(state.path)))
 			state.resolvedPath.clear();
 		ImGui::InputText("Profile", state.profileName, std::size(state.profileName));
@@ -971,7 +1019,7 @@ namespace
 				ePracticeOperation::ReloadGameplayDefinitions,
 				0.f, 0u, 0u, {}, NULL_NET_ENTITY);
 			state.status =
-				"Definition reload requested: champions.json / SkillEffectGameplayDefs.json / SummonerSpellGameplayDefs.json";
+				"Definition reload requested: champions / skill effects / spells / economy / items / spawns";
 		}
 		ImGui::EndDisabled();
 		ImGui::SameLine();
@@ -1453,6 +1501,8 @@ namespace UI
 				{
 					const Client::LoLShopEditorEntryView view =
 						Client::GetLoLShopEditorEntry(entry);
+					if (!view.bRegistered)
+						continue;
 					char optionLabel[96]{};
 					std::snprintf(optionLabel, sizeof(optionLabel), "%u %s",
 						static_cast<u32_t>(view.iItemId),
@@ -1536,12 +1586,40 @@ namespace UI
 		if (ImGui::CollapsingHeader("Shop Layout"))
 		{
 			ImGui::TextDisabled(
-				"Client-side shop arrangement. Purchases stay server-validated by item id.");
+				"Every PNG in Resource/Texture/UI/Items is listed. Purchases stay server-validated by ItemDef.");
+			ImGui::TextDisabled(
+				"Edit Resource/UI/Lua/itemshop_catalog.lua for exact x/y/order/section placement.");
+
+			static char shopFilter[96]{};
+			ImGui::SetNextItemWidth(260.f);
+			ImGui::InputText("Filter##ShopCatalog", shopFilter, sizeof(shopFilter));
+			if (ImGui::Button("Rescan Item PNG Folder"))
+			{
+				Client::ReloadLoLShopEditorCatalog();
+				Client::ReapplyLoLShopItems(*CGameInstance::Get());
+				state.status = "Item PNG folder rescanned and Lua shop reloaded.";
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Reload Lua Layout"))
+			{
+				CGameInstance::Get()->UI_Reload_Lua();
+				state.status = "itemshop_catalog.lua reloaded.";
+			}
 
 			const u32_t entryCount = Client::GetLoLShopEditorEntryCount();
+			ImGui::Text("Catalog: %u PNG assets", entryCount);
+			ImGui::BeginChild("ShopCatalogEntries", ImVec2(0.f, 360.f), true);
 			for (u32_t index = 0u; index < entryCount; ++index)
 			{
 				const Client::LoLShopEditorEntryView view = Client::GetLoLShopEditorEntry(index);
+				const char* assetKey = view.pAssetKey ? view.pAssetKey : "";
+				const char* displayName = view.pDisplayName ? view.pDisplayName : assetKey;
+				if (shopFilter[0] != '\0' &&
+					std::strstr(assetKey, shopFilter) == nullptr &&
+					std::strstr(displayName, shopFilter) == nullptr)
+				{
+					continue;
+				}
 				ImGui::PushID(static_cast<int>(index) + 12000);
 				if (ImGui::ArrowButton("##ShopUp", ImGuiDir_Up))
 					Client::MoveLoLShopEditorEntry(index, true);
@@ -1553,11 +1631,21 @@ namespace UI
 				if (ImGui::Checkbox("##ShopEnabled", &bEnabled))
 					Client::SetLoLShopEditorEntryEnabled(index, bEnabled);
 				ImGui::SameLine();
-				ImGui::Text("%u  %s",
+				ImGui::Text("%u  [%s]  %s  (%s, %u gold)",
 					static_cast<u32_t>(view.iItemId),
-					view.pDisplayName ? view.pDisplayName : "?");
+					view.bRegistered ? "server" : "resource",
+					displayName,
+					view.pSection ? view.pSection : "resource",
+					static_cast<u32_t>(view.iPrice));
+				if (view.bRegistered)
+				{
+					ImGui::SameLine();
+					if (ImGui::SmallButton("Balance"))
+						state.sheetItemId = view.iItemId;
+				}
 				ImGui::PopID();
 			}
+			ImGui::EndChild();
 
 			if (ImGui::Button("Apply Shop Layout"))
 			{

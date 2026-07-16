@@ -24,7 +24,7 @@ namespace
             ChampionDef cd{};
             cd.id = eChampion::ASHE;
             cd.animPrefix = "ashe_";
-            cd.idleAnimKey = "Idle1";
+            cd.idleAnimKey = "idle1";
             cd.runAnimKey = "run";
             cd.basicAttackKey = "attack1";
             cd.basicAttackRange = 6.0f;

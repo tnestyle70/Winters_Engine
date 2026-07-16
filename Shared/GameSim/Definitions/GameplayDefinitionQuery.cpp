@@ -1,6 +1,7 @@
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
 #include "Shared/GameSim/Components/SkillLoadoutComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
@@ -276,26 +277,17 @@ namespace GameplayDefinitionQuery
     {
         if (const SkillGameplayDef* skill = FindSkill(world, entity, tc, fallbackChampion, slot))
         {
-            // world-aware 오버로드 경유: practice 오버라이드(op 10)가 CooldownReductionPerRank 를
-            // 보낼 때 수락-후-무시되던 데드존 수정. 오버라이드 없으면 팩 effect 값 그대로.
-            const f32_t reductionPerRank = ResolveSkillEffectParam(
-                world,
-                entity,
-                tc,
-                fallbackChampion,
-                slot,
-                eSkillEffectParamId::CooldownReductionPerRank,
-                0.f);
-            const f32_t rankIndex = static_cast<f32_t>(
-                ResolveSkillRankForScaling(world, entity, slot) - 1u);
-            return (std::max)(
-                0.f,
-                skill->cooldown.cooldownSec - reductionPerRank * rankIndex);
+            const u8_t rank = ResolveSkillRankForScaling(world, entity, slot);
+            const u8_t count = std::clamp<u8_t>(
+                skill->cooldown.rankCount, 1u, kSkillRankValueMax);
+            const u8_t index = static_cast<u8_t>(std::clamp<u8_t>(rank, 1u, count) - 1u);
+            return (std::max)(0.f, skill->cooldown.cooldownSecByRank[index]);
         }
 
         return ChampionGameDataDB::ResolveSkillCooldown(
             ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "skill-cooldown", slot),
-            slot);
+            slot,
+            ResolveSkillRankForScaling(world, entity, slot));
     }
 
     f32_t ResolveSkillManaCost(
@@ -312,18 +304,11 @@ namespace GameplayDefinitionQuery
             fallbackChampion,
             slot))
         {
-            // world-aware 오버로드 경유: ManaCostPerRank practice 오버라이드 데드존 수정 (위 쿨다운과 동일).
-            const f32_t perRank = ResolveSkillEffectParam(
-                world,
-                entity,
-                tc,
-                fallbackChampion,
-                slot,
-                eSkillEffectParamId::ManaCostPerRank,
-                0.f);
-            const f32_t rankIndex = static_cast<f32_t>(
-                ResolveSkillRankForScaling(world, entity, slot) - 1u);
-            return (std::max)(0.f, skill->cost.manaCost + perRank * rankIndex);
+            const u8_t rank = ResolveSkillRankForScaling(world, entity, slot);
+            const u8_t count = std::clamp<u8_t>(
+                skill->cost.rankCount, 1u, kSkillRankValueMax);
+            const u8_t index = static_cast<u8_t>(std::clamp<u8_t>(rank, 1u, count) - 1u);
+            return (std::max)(0.f, skill->cost.manaCostByRank[index]);
         }
 
         return 0.f;
@@ -363,6 +348,50 @@ namespace GameplayDefinitionQuery
         }
 
         return fallbackValue;
+    }
+
+    bool_t BuildSkillDamageRequest(
+        CWorld& world,
+        EntityID source,
+        EntityID target,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        u8_t rank,
+        eTeam sourceTeam,
+        eDamageSourceKind sourceKind,
+        DamageRequest& outRequest)
+    {
+        const SkillGameplayDef* skill =
+            FindSkill(world, source, tc, fallbackChampion, slot);
+        if (!skill || !skill->effect.damage.bValid)
+            return false;
+
+        const DamageFormulaDef& formula = skill->effect.damage;
+        outRequest = {};
+        outRequest.source = source;
+        outRequest.target = target;
+        outRequest.sourceTeam = sourceTeam;
+        outRequest.type = formula.type;
+        outRequest.flatAmount = ResolveDamageFormulaRankedValue(
+            formula, formula.flatByRank, rank);
+        outRequest.adRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.totalAdRatioByRank, rank);
+        outRequest.bonusAdRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.bonusAdRatioByRank, rank);
+        outRequest.apRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.apRatioByRank, rank);
+        outRequest.targetMaxHpRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.targetMaxHpRatioByRank, rank);
+        outRequest.targetMissingHpRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.targetMissingHpRatioByRank, rank);
+        outRequest.skillId = static_cast<u16_t>(
+            (static_cast<u32_t>(fallbackChampion) << 8u) | slot);
+        outRequest.rank = rank > 0u ? rank : 1u;
+        outRequest.iSourceSlot = slot;
+        outRequest.eSourceKind = sourceKind;
+        outRequest.flags = formula.flags;
+        return true;
     }
 
     f32_t ResolveSummonPolicyParam(

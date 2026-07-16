@@ -202,7 +202,6 @@ namespace
 
     void RegisterAllChampionHooks()
     {
-        RegisterDefaultChampionSkillScalingTables();
         // 서버 GameRoom 초기화와 동일하게 경제 정의를 레지스트리에 반영 (값 동일 = 골든 불변).
         if (const EconomyGameplayDef* pEconomy =
             ServerData::GetLoLGameplayDefinitionPack().FindEconomy())
@@ -4797,7 +4796,10 @@ namespace
         world.GetComponent<TransformComponent>(target).SetPosition(targetPos);
 
         auto& ranks = world.GetComponent<SkillRankComponent>(yone);
-        if (!CSkillRankSystem::TryLevelSkill(ranks, static_cast<u8_t>(eSkillSlot::E)))
+        if (!CSkillRankSystem::TryLevelSkill(
+                ranks,
+                1u,
+                static_cast<u8_t>(eSkillSlot::E)))
         {
             std::printf("[SimLab][YoneE] FAIL: could not learn E\n");
             return false;
@@ -5522,6 +5524,219 @@ namespace
 
         std::printf(
             "[SimLab][ItemMoveSpeed] PASS: BuyItem -> dirty stat -> 0.01 world scale\n");
+        return true;
+    }
+
+    bool_t RunGameplayFormulaDataDrivenProbe()
+    {
+        const GameplayDefinitionPack& pack =
+            ServerData::GetLoLGameplayDefinitionPack();
+        if (pack.championCount != 17u || pack.skillCount != 85u)
+        {
+            std::printf(
+                "[SimLab][FormulaData] FAIL: pack coverage champions=%zu skills=%zu\n",
+                pack.championCount,
+                pack.skillCount);
+            return false;
+        }
+
+        for (std::size_t championIndex = 0u;
+            championIndex < pack.championCount;
+            ++championIndex)
+        {
+            const ChampionGameplayDef& champion = pack.champions[championIndex];
+            for (u8_t slot = 0u; slot < kChampionSkillSlotCount; ++slot)
+            {
+                const SkillGameplayDef* pSkill = pack.FindSkill(champion.skillLoadout[slot]);
+                const u8_t expectedRankCount = slot == static_cast<u8_t>(eSkillSlot::BasicAttack)
+                    ? 1u
+                    : (slot == static_cast<u8_t>(eSkillSlot::R) ? 3u : 5u);
+                if (!pSkill ||
+                    !pSkill->effect.damage.bValid ||
+                    pSkill->effect.damage.rankCount != expectedRankCount ||
+                    pSkill->cost.rankCount != expectedRankCount ||
+                    pSkill->cooldown.rankCount != expectedRankCount)
+                {
+                    std::printf(
+                        "[SimLab][FormulaData] FAIL: champion=%u slot=%u missing/invalid ranked definition\n",
+                        static_cast<unsigned>(champion.legacyChampion),
+                        static_cast<unsigned>(slot));
+                    return false;
+                }
+
+                if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+                {
+                    const DamageFormulaDef& damage = pSkill->effect.damage;
+                    const u32_t requiredFlags = DamageFlag_CanCrit |
+                        DamageFlag_CanLifesteal |
+                        DamageFlag_OnHit;
+                    if (damage.type != eDamageType::Physical ||
+                        damage.totalAdRatioByRank[0] != 1.f ||
+                        (damage.flags & requiredFlags) != requiredFlags)
+                    {
+                        std::printf(
+                            "[SimLab][FormulaData] FAIL: champion=%u basic attack formula contract\n",
+                            static_cast<unsigned>(champion.legacyChampion));
+                        return false;
+                    }
+                }
+            }
+        }
+
+        CWorld world;
+        DeterministicRng rng(2026071601ull);
+        EntityIdMap entityMap;
+        FlatWalkable walkable;
+        const EntityID source = SpawnChampion(
+            world, entityMap, eChampion::EZREAL,
+            static_cast<u8_t>(eTeam::Blue), 0u);
+        const EntityID target = SpawnChampion(
+            world, entityMap, eChampion::GAREN,
+            static_cast<u8_t>(eTeam::Red), 5u);
+        TickContext tc = MakeProbeTickContext(1ull, rng, entityMap, walkable);
+        DamageRequest request{};
+        if (!GameplayDefinitionQuery::BuildSkillDamageRequest(
+                world,
+                source,
+                target,
+                tc,
+                eChampion::EZREAL,
+                static_cast<u8_t>(eSkillSlot::Q),
+                3u,
+                eTeam::Blue,
+                eDamageSourceKind::Skill,
+                request) ||
+            std::fabs(request.flatAmount - 70.f) > 0.001f ||
+            std::fabs(request.adRatioOverride - 1.3f) > 0.001f ||
+            std::fabs(request.apRatioOverride - 0.4f) > 0.001f ||
+            request.type != eDamageType::Physical ||
+            (request.flags & DamageFlag_OnHit) == 0u)
+        {
+            std::printf(
+                "[SimLab][FormulaData] FAIL: Ezreal Q rank-3 request was not built from the pack\n");
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][FormulaData] PASS: 17 champions, 85 skills, ranked costs/cooldowns/damage\n");
+        return true;
+    }
+
+    bool_t RunBladeOfTheRuinedKingProbe()
+    {
+        CWorld world;
+        DeterministicRng rng(2026071602ull);
+        EntityIdMap entityMap;
+        FlatWalkable walkable;
+        const EntityID source = SpawnChampion(
+            world, entityMap, eChampion::JAX,
+            static_cast<u8_t>(eTeam::Blue), 0u);
+        const EntityID target = SpawnChampion(
+            world, entityMap, eChampion::GAREN,
+            static_cast<u8_t>(eTeam::Red), 5u);
+
+        auto& inventory = world.GetComponent<InventoryComponent>(source);
+        inventory.itemIds[0] = 3153u;
+        inventory.count = 1u;
+
+        auto& sourceStat = world.GetComponent<StatComponent>(source);
+        sourceStat.baseAd = 100.f;
+        sourceStat.bonusAd = 0.f;
+        sourceStat.ad = 100.f;
+        sourceStat.lifesteal = 0.20f;
+        sourceStat.critChance = 0.f;
+        sourceStat.bDirty = false;
+        auto& sourceHealth = world.GetComponent<HealthComponent>(source);
+        sourceHealth.fMaximum = 1000.f;
+        sourceHealth.fCurrent = 500.f;
+
+        auto& targetStat = world.GetComponent<StatComponent>(target);
+        targetStat.baseArmor = 0.f;
+        targetStat.bonusArmor = 0.f;
+        targetStat.armor = 0.f;
+        targetStat.bDirty = false;
+        auto& targetHealth = world.GetComponent<HealthComponent>(target);
+        targetHealth.fMaximum = 1000.f;
+        targetHealth.fCurrent = 1000.f;
+
+        DamageRequest request{};
+        request.source = source;
+        request.target = target;
+        request.sourceTeam = eTeam::Blue;
+        request.type = eDamageType::Physical;
+        request.flatAmount = 100.f;
+        request.flags = DamageFlag_CanLifesteal | DamageFlag_OnHit;
+        request.eSourceKind = eDamageSourceKind::BasicAttack;
+        request.iSourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+        request.skillId = static_cast<u16_t>(
+            static_cast<u16_t>(eChampion::JAX) << 8u);
+        EnqueueDamageRequest(world, request);
+
+        TickContext tc = MakeProbeTickContext(1ull, rng, entityMap, walkable);
+        CDamageQueueSystem::Execute(world, tc);
+        if (std::fabs(targetHealth.fCurrent - 800.f) > 0.001f ||
+            std::fabs(sourceHealth.fCurrent - 540.f) > 0.001f)
+        {
+            std::printf(
+                "[SimLab][BORK] FAIL: targetHp=%.3f sourceHp=%.3f expected 800/540\n",
+                targetHealth.fCurrent,
+                sourceHealth.fCurrent);
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][BORK] PASS: one 10%% max-HP on-hit and post-mitigation lifesteal\n");
+        return true;
+    }
+
+    bool_t RunSkillRankGateProbe()
+    {
+        SkillRankComponent ranks{};
+        ranks.pointsAvailable = 1u;
+        if (!CSkillRankSystem::TryLevelSkill(
+                ranks, 1u, static_cast<u8_t>(eSkillSlot::Q)))
+        {
+            std::printf("[SimLab][SkillRank] FAIL: Q rank 1 rejected at level 1\n");
+            return false;
+        }
+
+        ranks.pointsAvailable = 1u;
+        if (CSkillRankSystem::TryLevelSkill(
+                ranks, 2u, static_cast<u8_t>(eSkillSlot::Q)) ||
+            ranks.pointsAvailable != 1u ||
+            !CSkillRankSystem::TryLevelSkill(
+                ranks, 3u, static_cast<u8_t>(eSkillSlot::Q)))
+        {
+            std::printf("[SimLab][SkillRank] FAIL: Q 1/3 level gate or point preservation\n");
+            return false;
+        }
+
+        ranks.pointsAvailable = 1u;
+        if (CSkillRankSystem::TryLevelSkill(
+                ranks, 5u, static_cast<u8_t>(eSkillSlot::R)) ||
+            !CSkillRankSystem::TryLevelSkill(
+                ranks, 6u, static_cast<u8_t>(eSkillSlot::R)))
+        {
+            std::printf("[SimLab][SkillRank] FAIL: R rank 1 level-6 gate\n");
+            return false;
+        }
+        ranks.pointsAvailable = 1u;
+        if (!CSkillRankSystem::TryLevelSkill(
+                ranks, 11u, static_cast<u8_t>(eSkillSlot::R)))
+        {
+            std::printf("[SimLab][SkillRank] FAIL: R rank 2 level-11 gate\n");
+            return false;
+        }
+        ranks.pointsAvailable = 1u;
+        if (!CSkillRankSystem::TryLevelSkill(
+                ranks, 16u, static_cast<u8_t>(eSkillSlot::R)))
+        {
+            std::printf("[SimLab][SkillRank] FAIL: R rank 3 level-16 gate\n");
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][SkillRank] PASS: Q/W/E 1/3/... and R 6/11/16 gates\n");
         return true;
     }
 
@@ -9523,6 +9738,13 @@ int main(int argc, char** argv)
     const MatchResult runB = RunMatch(seed, tickCount);
     const MatchResult runC = RunMatch(seed + 1, tickCount);
 
+    const bool_t bGameplayFormulaDataDrivenProbePass =
+        RunGameplayFormulaDataDrivenProbe();
+    const bool_t bBladeOfTheRuinedKingProbePass =
+        RunBladeOfTheRuinedKingProbe();
+    const bool_t bSkillRankGateProbePass =
+        RunSkillRankGateProbe();
+
     bool bPass = bServerAuthoritativeStatusProbePass &&
         bServerAuthoritativeShieldProbePass &&
         bSylasUltimateCoverageProbePass &&
@@ -9539,6 +9761,9 @@ int main(int argc, char** argv)
         bActionMovePolicyProbePass &&
         bPracticeDefinitionOverlayProbePass &&
         bItemMoveSpeedScaleProbePass &&
+        bGameplayFormulaDataDrivenProbePass &&
+        bBladeOfTheRuinedKingProbePass &&
+        bSkillRankGateProbePass &&
         bAttackSpeedLabMatrixProbePass &&
         bAuthoredNavGridProbePass &&
         bKeyframeTransactionalFailureProbePass &&

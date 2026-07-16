@@ -16,13 +16,19 @@ namespace Client
     struct LoLShopEditorEntryView
     {
         u16_t iItemId = 0u;
+        u16_t iPrice = 0u;
+        const char* pAssetKey = nullptr;
+        const char* pSection = nullptr;
         const char* pDisplayName = nullptr;
         bool_t bEnabled = true;
+        bool_t bRegistered = false;
+        bool_t bPurchasable = false;
     };
 
     u32_t GetLoLShopEditorEntryCount();
     LoLShopEditorEntryView GetLoLShopEditorEntry(u32_t Index);
     void SetLoLShopEditorEntryEnabled(u32_t Index, bool_t bEnabled);
     bool_t MoveLoLShopEditorEntry(u32_t Index, bool_t bMoveUp);
+    void ReloadLoLShopEditorCatalog();
     void ReapplyLoLShopItems(Engine::CGameInstance& GameInstance);
 }

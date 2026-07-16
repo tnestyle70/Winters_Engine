@@ -12,9 +12,7 @@
 #include "GameObject/ChampionDef.h"
 #include "Shared/GameSim/Definitions/ChampionStatsDef.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
-#include "Shared/GameSim/Definitions/SkillScalingTable.h"
 #include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
-#include "Shared/GameSim/Registries/SkillScaling/SkillScalingRegistry.h"
 #include "Shared/GameSim/Systems/Buff/BuffSystem.h"
 #include "Shared/GameSim/Systems/Damage/Damage.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
@@ -68,12 +66,6 @@ namespace
         stats.armorPerLevel = 4.f;
         CChampionStatsRegistry::Instance().Add(eChampion::EZREAL, stats);
 
-        SkillScalingTable scaling{};
-        scaling.skillId = 1201;
-        scaling.damage[0] = 0.f;
-        scaling.adRatio[0] = 1.f;
-        CSkillScalingRegistry::Instance().Add(1201, scaling);
-
         EntityID source = world.CreateEntity();
         EntityID target = world.CreateEntity();
 
@@ -117,13 +109,13 @@ namespace
         SkillRankComponent ranks{};
         CSkillRankSystem::SyncPointsForLevel(ranks, 18);
         for (u8_t i = 0; i < 5; ++i)
-            (void)CSkillRankSystem::TryLevelSkill(ranks, 1);
+            (void)CSkillRankSystem::TryLevelSkill(ranks, 18u, 1u);
         for (u8_t i = 0; i < 5; ++i)
-            (void)CSkillRankSystem::TryLevelSkill(ranks, 2);
+            (void)CSkillRankSystem::TryLevelSkill(ranks, 18u, 2u);
         for (u8_t i = 0; i < 5; ++i)
-            (void)CSkillRankSystem::TryLevelSkill(ranks, 3);
+            (void)CSkillRankSystem::TryLevelSkill(ranks, 18u, 3u);
         for (u8_t i = 0; i < 3; ++i)
-            (void)CSkillRankSystem::TryLevelSkill(ranks, 4);
+            (void)CSkillRankSystem::TryLevelSkill(ranks, 18u, 4u);
 
         TickContext tick{};
         DamageRequest request{};

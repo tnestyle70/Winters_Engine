@@ -1836,6 +1836,7 @@ void CEventApplier::ApplyKillFeed(
         ev->sourceChampion(),
         ev->targetChampion(),
         objectKind,
+        ev->targetTeam(),
         bSourceAlly,
         pMessage);
 }

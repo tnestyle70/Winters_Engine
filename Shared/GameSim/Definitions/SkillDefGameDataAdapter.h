@@ -68,7 +68,11 @@ namespace SkillDefAdapters
         data.target.shape[0] = ToTargetShape(def.targetMode);
         data.target.shape[1] = ToTargetShape(def.stage2TargetMode);
         data.target.resolvePolicy = ToTargetResolvePolicy(def.targetMode);
+        data.cost.rankCount = 1u;
+        data.cost.manaCostByRank[0] = def.manaCost;
         data.cost.manaCost = def.manaCost;
+        data.cooldown.rankCount = 1u;
+        data.cooldown.cooldownSecByRank[0] = def.cooldownSec;
         data.cooldown.cooldownSec = def.cooldownSec;
         data.range.rangeMax = def.rangeMax;
         data.stage.stageCount = ClampSkillStageCount(def.stageCount);
@@ -89,6 +93,9 @@ namespace SkillDefAdapters
         data.targetMode = def.targetMode;
         data.stageCount = ClampSkillStageCount(def.stageCount);
         data.stageWindowSec = def.stageWindowSec;
+        data.rankCount = 1u;
+        data.cooldownSecByRank[0] = def.cooldownSec;
+        data.manaCostByRank[0] = def.manaCost;
         data.cooldownSec = def.cooldownSec;
         data.rangeMax = def.rangeMax;
         data.manaCost = def.manaCost;

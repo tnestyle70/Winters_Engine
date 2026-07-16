@@ -24,6 +24,7 @@
 #include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedPoseComponent.h"
 #include "Shared/GameSim/Components/ReplicatedStateComponent.h"
+#include "Shared/GameSim/Components/ProjectileKindComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Components/RuneComponent.h"
@@ -1751,6 +1752,26 @@ void CSnapshotApplier::OnSnapshot(
                 world.AddComponent<ReplicatedProjectilePresentationTag>(
                     e,
                     ReplicatedProjectilePresentationTag{});
+            }
+            if (es->projectileKind() ==
+                static_cast<u16_t>(eProjectileKind::AsheHawkshot))
+            {
+                SpatialAgentComponent spatial{};
+                spatial.kind = eSpatialKind::Sensor;
+                spatial.team = es->team();
+                spatial.radius = 0.25f;
+                if (world.HasComponent<SpatialAgentComponent>(e))
+                    world.GetComponent<SpatialAgentComponent>(e) = spatial;
+                else
+                    world.AddComponent<SpatialAgentComponent>(e, spatial);
+
+                VisionSourceComponent vision{};
+                vision.sightRange = (std::max)(0.f, es->projectileRadius());
+                vision.bFlying = true;
+                if (world.HasComponent<VisionSourceComponent>(e))
+                    world.GetComponent<VisionSourceComponent>(e) = vision;
+                else
+                    world.AddComponent<VisionSourceComponent>(e, vision);
             }
             if (m_pEventApplier)
             {

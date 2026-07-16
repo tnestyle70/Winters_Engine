@@ -1,0 +1,37 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Fiora.E.Buff",
+  "emitters": [
+    {
+      "name": "e_buff",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_buff_mult_yellow.png",
+      "lifetime": 5.00,
+      "fade_in": 0.05,
+      "fade_out": 0.50,
+      "width": 1.60,
+      "height": 1.60,
+      "color": [1.00, 0.85, 0.30, 0.90],
+      "attach_offset": [0.00, 1.30, 0.00],
+      "billboard": true
+    },
+    {
+      "name": "e_sword_glow",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_sword_glow.png",
+      "lifetime": 5.00,
+      "fade_in": 0.05,
+      "fade_out": 0.50,
+      "width": 0.70,
+      "height": 2.20,
+      "color": [1.20, 0.95, 0.35, 0.78],
+      "attach_offset": [0.00, 1.15, 0.15],
+      "billboard": true
+    }
+  ]
+}

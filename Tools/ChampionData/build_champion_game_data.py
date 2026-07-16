@@ -10,6 +10,7 @@ from pathlib import Path
 
 SKILL_SLOT_COUNT = 5
 SKILL_STAGE_MAX = 2
+SKILL_RANK_VALUE_MAX = 5
 STAT_FIELDS = {
     "baseHp": 600.0,
     "hpPerLevel": 100.0,
@@ -85,6 +86,31 @@ def normalize_stage(stage: dict, path: str) -> dict:
     }
 
 
+def normalize_rank_values(
+        skill: dict,
+        field: str,
+        slot: int,
+        path: str,
+        default: float) -> list[float]:
+    expected_count = 1 if slot == 0 else (3 if slot == 4 else 5)
+    array_field = f"{field}ByRank"
+    if array_field in skill:
+        source = skill[array_field]
+        if not isinstance(source, list) or len(source) != expected_count:
+            fail(f"{path}.{array_field} must contain {expected_count} values")
+        values = [
+            as_float(value, f"{path}.{array_field}[{index}]")
+            for index, value in enumerate(source)
+        ]
+    else:
+        value = as_float(skill.get(field, default), f"{path}.{field}")
+        values = [value] * expected_count
+
+    if any(value < 0.0 for value in values):
+        fail(f"{path}.{array_field} values must be non-negative")
+    return values
+
+
 def normalize_skill(skill: dict, champion: str, index: int) -> dict:
     path = f"champions[{champion}].skills[{index}]"
     if not isinstance(skill, dict):
@@ -107,14 +133,21 @@ def normalize_skill(skill: dict, champion: str, index: int) -> dict:
         source = raw_stages[stage_index] if stage_index < len(raw_stages) else {}
         stages.append(normalize_stage(source, f"{path}.stages[{stage_index}]"))
 
+    cooldown_by_rank = normalize_rank_values(
+        skill, "cooldownSec", slot, path, 0.0)
+    mana_by_rank = normalize_rank_values(
+        skill, "manaCost", slot, path, 0.0)
+
     return {
         "slot": slot,
         "targetMode": as_enum_name(skill.get("targetMode", "Self"), f"{path}.targetMode"),
         "stageCount": stage_count,
         "stageWindowSec": as_float(skill.get("stageWindowSec", 0.0), f"{path}.stageWindowSec"),
-        "cooldownSec": as_float(skill.get("cooldownSec", 0.0), f"{path}.cooldownSec"),
+        "cooldownSec": cooldown_by_rank[0],
+        "cooldownSecByRank": cooldown_by_rank,
         "rangeMax": as_float(skill.get("rangeMax", 0.0), f"{path}.rangeMax"),
-        "manaCost": as_float(skill.get("manaCost", 0.0), f"{path}.manaCost"),
+        "manaCost": mana_by_rank[0],
+        "manaCostByRank": mana_by_rank,
         "skillId": as_int(skill.get("skillId", 0), f"{path}.skillId"),
         "scalingTableId": as_int(skill.get("scalingTableId", 0), f"{path}.scalingTableId"),
         "gameplayPolicyId": as_int(skill.get("gameplayPolicyId", 0), f"{path}.gameplayPolicyId"),
@@ -248,6 +281,11 @@ def append_skill(lines: list[str], skill: dict) -> None:
     lines.append(f"        skill{slot}.targetMode = {enum_value('eTargetMode', skill['targetMode'])};")
     lines.append(f"        skill{slot}.stageCount = {skill['stageCount']}u;")
     lines.append(f"        skill{slot}.stageWindowSec = {cpp_float(skill['stageWindowSec'])};")
+    lines.append(f"        skill{slot}.rankCount = {len(skill['cooldownSecByRank'])}u;")
+    for rank, value in enumerate(skill["cooldownSecByRank"]):
+        lines.append(f"        skill{slot}.cooldownSecByRank[{rank}] = {cpp_float(value)};")
+    for rank, value in enumerate(skill["manaCostByRank"]):
+        lines.append(f"        skill{slot}.manaCostByRank[{rank}] = {cpp_float(value)};")
     lines.append(f"        skill{slot}.cooldownSec = {cpp_float(skill['cooldownSec'])};")
     lines.append(f"        skill{slot}.rangeMax = {cpp_float(skill['rangeMax'])};")
     lines.append(f"        skill{slot}.manaCost = {cpp_float(skill['manaCost'])};")

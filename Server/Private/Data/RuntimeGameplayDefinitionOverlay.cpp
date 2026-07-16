@@ -362,6 +362,198 @@ namespace
         return true;
     }
 
+    template <size_t N>
+    bool_t TryOverlayRankValues(
+        const json& node,
+        const char* arrayField,
+        const char* scalarField,
+        u8_t expectedCount,
+        f32_t maxValue,
+        f32_t (&outValues)[N],
+        std::string& outError)
+    {
+        if (expectedCount == 0u || expectedCount > N)
+        {
+            outError = std::string(arrayField) + " invalid rank count";
+            return false;
+        }
+
+        if (node.contains(arrayField))
+        {
+            const json& values = node[arrayField];
+            if (!values.is_array() || values.size() != expectedCount)
+            {
+                outError = std::string(arrayField) + " rank count mismatch";
+                return false;
+            }
+            for (u8_t index = 0u; index < expectedCount; ++index)
+            {
+                if (!values[index].is_number())
+                {
+                    outError = std::string(arrayField) + " contains a non-number";
+                    return false;
+                }
+                const f32_t value = values[index].get<f32_t>();
+                if (!std::isfinite(value) || value < 0.f || value > maxValue)
+                {
+                    outError = std::string(arrayField) + " value out of range";
+                    return false;
+                }
+                outValues[index] = value;
+            }
+            return true;
+        }
+
+        if (!node.contains(scalarField) || !node[scalarField].is_number())
+        {
+            outError = std::string(arrayField) + " or " + scalarField + " missing";
+            return false;
+        }
+        const f32_t value = node[scalarField].get<f32_t>();
+        if (!std::isfinite(value) || value < 0.f || value > maxValue)
+        {
+            outError = std::string(scalarField) + " out of range";
+            return false;
+        }
+        for (u8_t index = 0u; index < expectedCount; ++index)
+            outValues[index] = value;
+        return true;
+    }
+
+    bool_t HasOnlyKnownKeys(
+        const json& object,
+        const char* const* knownKeys,
+        std::size_t knownKeyCount,
+        std::string& outUnknownKey);
+
+    bool_t TryParseDamageFormula(
+        const json& node,
+        const std::string& path,
+        DamageFormulaDef& outFormula,
+        std::string& outError)
+    {
+        if (!node.is_object())
+        {
+            outError = path + " must be an object";
+            return false;
+        }
+
+        static constexpr const char* kKnownKeys[] =
+        {
+            "type", "flags", "flatByRank", "totalAdRatioByRank",
+            "bonusAdRatioByRank", "apRatioByRank", "targetMaxHpRatioByRank",
+            "targetMissingHpRatioByRank",
+        };
+        std::string unknownKey;
+        if (!HasOnlyKnownKeys(node, kKnownKeys,
+                sizeof(kKnownKeys) / sizeof(kKnownKeys[0]), unknownKey))
+        {
+            outError = path + " unknown field: " + unknownKey;
+            return false;
+        }
+
+        const std::string type = node.value("type", std::string{});
+        eDamageType damageType = eDamageType::Physical;
+        if (type == "Magic")
+            damageType = eDamageType::Magic;
+        else if (type == "True")
+            damageType = eDamageType::True;
+        else if (type != "Physical")
+        {
+            outError = path + ".type invalid";
+            return false;
+        }
+
+        if (!node.contains("flags") || !node["flags"].is_array())
+        {
+            outError = path + ".flags must be an array";
+            return false;
+        }
+        u32_t flags = DamageFlag_None;
+        for (const json& flagNode : node["flags"])
+        {
+            if (!flagNode.is_string())
+            {
+                outError = path + ".flags contains a non-string";
+                return false;
+            }
+            const std::string flag = flagNode.get<std::string>();
+            if (flag == "CanCrit")
+                flags |= DamageFlag_CanCrit;
+            else if (flag == "CanLifesteal")
+                flags |= DamageFlag_CanLifesteal;
+            else if (flag == "OnHit")
+                flags |= DamageFlag_OnHit;
+            else
+            {
+                outError = path + ".flags invalid value: " + flag;
+                return false;
+            }
+        }
+
+        struct RankedField
+        {
+            const char* name;
+            f32_t (DamageFormulaDef::*values)[DamageFormulaDef::kMaxRank];
+        };
+        static constexpr RankedField kFields[] =
+        {
+            { "flatByRank", &DamageFormulaDef::flatByRank },
+            { "totalAdRatioByRank", &DamageFormulaDef::totalAdRatioByRank },
+            { "bonusAdRatioByRank", &DamageFormulaDef::bonusAdRatioByRank },
+            { "apRatioByRank", &DamageFormulaDef::apRatioByRank },
+            { "targetMaxHpRatioByRank", &DamageFormulaDef::targetMaxHpRatioByRank },
+            { "targetMissingHpRatioByRank", &DamageFormulaDef::targetMissingHpRatioByRank },
+        };
+
+        DamageFormulaDef parsed{};
+        u8_t rankCount = 0u;
+        for (const RankedField& field : kFields)
+        {
+            if (!node.contains(field.name) || !node[field.name].is_array())
+            {
+                outError = path + "." + field.name + " must be an array";
+                return false;
+            }
+            const json& values = node[field.name];
+            if (values.empty() || values.size() > DamageFormulaDef::kMaxRank)
+            {
+                outError = path + "." + field.name + " rank count out of range";
+                return false;
+            }
+            if (rankCount == 0u)
+                rankCount = static_cast<u8_t>(values.size());
+            else if (values.size() != rankCount)
+            {
+                outError = path + "." + field.name + " rank count mismatch";
+                return false;
+            }
+            f32_t* target = parsed.*(field.values);
+            for (u8_t index = 0u; index < rankCount; ++index)
+            {
+                if (!values[index].is_number())
+                {
+                    outError = path + "." + field.name + " contains a non-number";
+                    return false;
+                }
+                const f32_t value = values[index].get<f32_t>();
+                if (!std::isfinite(value) || value < -1000000.f || value > 1000000.f)
+                {
+                    outError = path + "." + field.name + " value out of range";
+                    return false;
+                }
+                target[index] = value;
+            }
+        }
+
+        parsed.bValid = true;
+        parsed.rankCount = rankCount;
+        parsed.type = damageType;
+        parsed.flags = flags;
+        outFormula = parsed;
+        return true;
+    }
+
     // 필드가 있으면 정수 도메인 검증 후 덮어쓰고, 없으면 소성값 유지.
     bool_t TryOverlayUnsigned(
         const json& node,
@@ -527,14 +719,27 @@ namespace
 
                 // 수치 필드만 오버레이. 구조 필드(targetMode/stageCount/skillId 등)는 무시 = 코드젠 소관.
                 std::string fieldError;
-                if (!TryOverlayNumber(skillEntry, "cooldownSec", 0.f, 3600.f, pSkill->cooldown.cooldownSec, fieldError) ||
-                    !TryOverlayNumber(skillEntry, "manaCost", 0.f, 1000000.f, pSkill->cost.manaCost, fieldError) ||
+                const u8_t expectedRankCount = slot == static_cast<u32_t>(eSkillSlot::BasicAttack)
+                    ? 1u
+                    : (slot == static_cast<u32_t>(eSkillSlot::R) ? 3u : 5u);
+                if (!TryOverlayRankValues(
+                        skillEntry, "cooldownSecByRank", "cooldownSec",
+                        expectedRankCount, 3600.f,
+                        pSkill->cooldown.cooldownSecByRank, fieldError) ||
+                    !TryOverlayRankValues(
+                        skillEntry, "manaCostByRank", "manaCost",
+                        expectedRankCount, 1000000.f,
+                        pSkill->cost.manaCostByRank, fieldError) ||
                     !TryOverlayNumber(skillEntry, "rangeMax", 0.f, 1000000.f, pSkill->range.rangeMax, fieldError) ||
                     !TryOverlayNumber(skillEntry, "stageWindowSec", 0.f, 60.f, pSkill->stage.stageWindowSec, fieldError))
                 {
                     outError = name + ".skills[" + std::to_string(slot) + "] " + fieldError;
                     return false;
                 }
+                pSkill->cooldown.rankCount = expectedRankCount;
+                pSkill->cost.rankCount = expectedRankCount;
+                pSkill->cooldown.cooldownSec = pSkill->cooldown.cooldownSecByRank[0];
+                pSkill->cost.manaCost = pSkill->cost.manaCostByRank[0];
 
                 if (skillEntry.contains("stages") && skillEntry["stages"].is_array())
                 {
@@ -684,6 +889,16 @@ namespace
                 policy.bValid = policy.paramCount > 0;
                 pSkill->summonPolicy = policy;
             }
+
+            if (!entry.contains("damage"))
+            {
+                outError = key + ".damage missing";
+                return false;
+            }
+            DamageFormulaDef damage{};
+            if (!TryParseDamageFormula(entry["damage"], key + ".damage", damage, outError))
+                return false;
+            pSkill->effect.damage = damage;
         }
 
         return true;
@@ -1074,7 +1289,7 @@ namespace
             // name 은 구조(표시) 소관이라 허용하되 무시한다.
             static constexpr const char* kKnownItemKeys[] =
             {
-                "itemId", "price", "stats", "name",
+                "itemId", "price", "stats", "onHitDamage", "name",
             };
             if (!HasOnlyKnownKeys(entry, kKnownItemKeys,
                 sizeof(kKnownItemKeys) / sizeof(kKnownItemKeys[0]), unknownKey))
@@ -1152,6 +1367,19 @@ namespace
                     }
                     pItem->stats.*(pField->member) = value;
                 }
+            }
+            if (entry.contains("onHitDamage"))
+            {
+                DamageFormulaDef damage{};
+                if (!TryParseDamageFormula(
+                        entry["onHitDamage"],
+                        "items[" + std::to_string(itemId) + "].onHitDamage",
+                        damage,
+                        outError))
+                {
+                    return false;
+                }
+                pItem->onHitDamage = damage;
             }
         }
 

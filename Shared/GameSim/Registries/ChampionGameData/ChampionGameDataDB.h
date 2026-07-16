@@ -16,7 +16,7 @@ namespace ChampionGameDataDB
     StatComponent BuildStat(eChampion champion, u8_t level = 1);
 
     f32_t ResolveSkillRange(eChampion champion, u8_t slot);
-    f32_t ResolveSkillCooldown(eChampion champion, u8_t slot);
+    f32_t ResolveSkillCooldown(eChampion champion, u8_t slot, u8_t rank = 1u);
     ChampionSkillTimingDefaults ResolveSkillTiming(eChampion champion, u8_t slot, u8_t stage = 1);
     ChampionBasicAttackTimingDefaults ResolveBasicAttackTiming(eChampion champion);
 

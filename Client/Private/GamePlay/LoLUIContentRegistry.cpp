@@ -6,9 +6,14 @@
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
+#include <filesystem>
 #include <iterator>
+#include <limits>
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -317,20 +322,134 @@ namespace Client
 
         struct RuntimeShopEntry
         {
-            const LoLShopCatalogEntry* pEntry = nullptr;
+            u16_t iItemId = 0u;
+            std::string strAssetKey;
+            std::string strSection;
+            std::wstring strIconPath;
+            std::string strIconSprite;
             bool_t bEnabled = true;
         };
 
+        u16_t ParseItemId(const std::string& AssetKey)
+        {
+            u32_t value = 0u;
+            bool_t bHasDigit = false;
+            for (char character : AssetKey)
+            {
+                if (character < '0' || character > '9')
+                    break;
+                bHasDigit = true;
+                value = value * 10u + static_cast<u32_t>(character - '0');
+                if (value > (std::numeric_limits<u16_t>::max)())
+                    return 0u;
+            }
+            return bHasDigit ? static_cast<u16_t>(value) : 0u;
+        }
+
+        std::string ResolveShopSection(const std::string& AssetKey)
+        {
+            if (AssetKey.find("doran") != std::string::npos ||
+                AssetKey.find("support") != std::string::npos)
+                return "starter";
+            if (AssetKey.find("_t1_") != std::string::npos)
+                return "basic";
+            if (AssetKey.find("_t2_") != std::string::npos)
+                return "epic";
+            if (AssetKey.find("_t3_") != std::string::npos ||
+                AssetKey.find("_t4_") != std::string::npos)
+                return "legendary";
+            return "resource";
+        }
+
+        RuntimeShopEntry MakeRuntimeShopEntry(
+            u16_t ItemId, const std::string& AssetKey, bool_t bEnabled)
+        {
+            RuntimeShopEntry entry{};
+            entry.iItemId = ItemId;
+            entry.strAssetKey = AssetKey;
+            entry.strSection = ResolveShopSection(AssetKey);
+            entry.strIconPath =
+                L"Resource/Texture/UI/Items/" +
+                std::wstring(AssetKey.begin(), AssetKey.end());
+            entry.strIconSprite = "item:" + AssetKey;
+            entry.bEnabled = bEnabled;
+            return entry;
+        }
+
+        std::vector<RuntimeShopEntry> BuildRuntimeShopCatalog()
+        {
+            std::vector<RuntimeShopEntry> catalog;
+            std::unordered_set<std::string> assetKeys;
+            catalog.reserve(std::size(kLoLShopCatalog) + 384u);
+
+            for (const LoLShopCatalogEntry& entry : kLoLShopCatalog)
+            {
+                catalog.push_back(MakeRuntimeShopEntry(
+                    entry.iItemId,
+                    entry.pAssetKey ? entry.pAssetKey : "",
+                    true));
+                assetKeys.insert(catalog.back().strAssetKey);
+            }
+
+            const std::filesystem::path candidates[] =
+            {
+                std::filesystem::path(L"Resource/Texture/UI/Items"),
+                std::filesystem::path(L"Client/Bin/Resource/Texture/UI/Items"),
+            };
+            std::filesystem::path itemDirectory;
+            for (const std::filesystem::path& candidate : candidates)
+            {
+                std::error_code existsError;
+                if (std::filesystem::is_directory(candidate, existsError))
+                {
+                    itemDirectory = candidate;
+                    break;
+                }
+            }
+
+            std::vector<RuntimeShopEntry> discovered;
+            std::error_code iterateError;
+            for (std::filesystem::directory_iterator it(itemDirectory, iterateError), end;
+                 !iterateError && it != end;
+                 it.increment(iterateError))
+            {
+                std::error_code typeError;
+                if (!it->is_regular_file(typeError))
+                    continue;
+
+                std::string extension = it->path().extension().string();
+                std::transform(extension.begin(), extension.end(), extension.begin(),
+                    [](unsigned char value) { return static_cast<char>(std::tolower(value)); });
+                if (extension != ".png")
+                    continue;
+
+                const std::string assetKey = it->path().filename().string();
+                if (assetKey.empty() || !assetKeys.insert(assetKey).second)
+                    continue;
+                discovered.push_back(MakeRuntimeShopEntry(
+                    ParseItemId(assetKey), assetKey, true));
+            }
+
+            std::sort(discovered.begin(), discovered.end(),
+                [](const RuntimeShopEntry& left, const RuntimeShopEntry& right)
+                {
+                    if (left.strSection != right.strSection)
+                        return left.strSection < right.strSection;
+                    if (left.iItemId != right.iItemId)
+                        return left.iItemId < right.iItemId;
+                    return left.strAssetKey < right.strAssetKey;
+                });
+            catalog.insert(
+                catalog.end(),
+                std::make_move_iterator(discovered.begin()),
+                std::make_move_iterator(discovered.end()));
+            return catalog;
+        }
+
         std::vector<RuntimeShopEntry>& GetRuntimeShopCatalog()
         {
-            static std::vector<RuntimeShopEntry> s_Catalog = []
-            {
-                std::vector<RuntimeShopEntry> catalog;
-                catalog.reserve(std::size(kLoLShopCatalog));
-                for (const LoLShopCatalogEntry& entry : kLoLShopCatalog)
-                    catalog.push_back({ &entry, true });
-                return catalog;
-            }();
+            static std::vector<RuntimeShopEntry> s_Catalog =
+                BuildRuntimeShopCatalog();
             return s_Catalog;
         }
 
@@ -343,19 +462,19 @@ namespace Client
             const u32_t kItemCount = static_cast<u32_t>(Catalog.size());
             StatTextStorage.reserve(kItemCount);
             StatLineStorage.reserve(kItemCount);
-            Items.reserve(kItemCount + 1u);
+            Items.reserve(kItemCount);
 
             for (u32_t Index = 0u; Index < kItemCount; ++Index)
             {
                 if (!Catalog[Index].bEnabled)
                     continue;
 
-                const LoLShopCatalogEntry& Entry = *Catalog[Index].pEntry;
+                const RuntimeShopEntry& Entry = Catalog[Index];
                 const ItemDef* pItem = CItemRegistry::Instance().Find(Entry.iItemId);
-                if (!pItem)
-                    continue;
-
-                StatTextStorage.push_back(BuildItemStatLines(pItem->stats));
+                if (pItem)
+                    StatTextStorage.push_back(BuildItemStatLines(pItem->stats));
+                else
+                    StatTextStorage.push_back({ "Resource only - add a server ItemDef to enable purchase" });
                 const std::vector<std::string>& Lines = StatTextStorage.back();
 
                 std::vector<const char*>& LinePointers = StatLineStorage.emplace_back();
@@ -364,33 +483,20 @@ namespace Client
                     LinePointers.push_back(Line.c_str());
 
                 Engine::UIShopItemAssetDesc Desc{};
-                Desc.iItemId = pItem->itemId;
-                Desc.iPrice = pItem->price;
+                Desc.iItemId = Entry.iItemId;
+                Desc.iPrice = pItem ? pItem->price : 0u;
                 Desc.iOrder = Index;
-                Desc.pAssetKey = Entry.pAssetKey;
-                Desc.pSection = Entry.pSection;
-                Desc.pDisplayName = pItem->displayName;
-                Desc.pIconPath = Entry.pIconPath;
-                Desc.pIconSprite = Entry.pIconSprite;
+                Desc.pAssetKey = Entry.strAssetKey.c_str();
+                Desc.pSection = Entry.strSection.c_str();
+                Desc.pDisplayName = pItem ? pItem->displayName : Entry.strAssetKey.c_str();
+                Desc.pIconPath = Entry.strIconPath.c_str();
+                Desc.pIconSprite = Entry.strIconSprite.c_str();
                 Desc.pStatLines = LinePointers.empty() ? nullptr : LinePointers.data();
                 Desc.iStatLineCount = static_cast<u32_t>(LinePointers.size());
                 Desc.bEnabled = true;
-                Desc.bPurchasable = true;
+                Desc.bPurchasable = pItem != nullptr && Entry.iItemId != 0u;
                 Items.push_back(Desc);
             }
-
-            Engine::UIShopItemAssetDesc OathswornItem{};
-            OathswornItem.iItemId = 3599u;
-            OathswornItem.iPrice = 0u;
-            OathswornItem.iOrder = kItemCount;
-            OathswornItem.pAssetKey = "3599_kalistapassiveitem.png";
-            OathswornItem.pSection = "utility";
-            OathswornItem.pDisplayName = "Black Spear";
-            OathswornItem.pIconPath =
-                L"Resource/Texture/UI/Items/3599_kalistapassiveitem.png";
-            OathswornItem.bEnabled = false;
-            OathswornItem.bPurchasable = false;
-            Items.push_back(OathswornItem);
 
             GameInstance.UI_Register_InGameShopItems(
                 Items.data(),
@@ -425,10 +531,16 @@ namespace Client
         if (Index >= Catalog.size())
             return View;
 
-        View.iItemId = Catalog[Index].pEntry->iItemId;
-        View.bEnabled = Catalog[Index].bEnabled;
+        const RuntimeShopEntry& Entry = Catalog[Index];
+        View.iItemId = Entry.iItemId;
+        View.pAssetKey = Entry.strAssetKey.c_str();
+        View.pSection = Entry.strSection.c_str();
+        View.bEnabled = Entry.bEnabled;
         const ItemDef* pItem = CItemRegistry::Instance().Find(View.iItemId);
-        View.pDisplayName = pItem ? pItem->displayName : Catalog[Index].pEntry->pAssetKey;
+        View.iPrice = pItem ? pItem->price : 0u;
+        View.pDisplayName = pItem ? pItem->displayName : Entry.strAssetKey.c_str();
+        View.bRegistered = pItem != nullptr;
+        View.bPurchasable = pItem != nullptr && View.iItemId != 0u;
         return View;
     }
 
@@ -452,6 +564,11 @@ namespace Client
         const u32_t Other = bMoveUp ? Index - 1u : Index + 1u;
         std::swap(Catalog[Index], Catalog[Other]);
         return true;
+    }
+
+    void ReloadLoLShopEditorCatalog()
+    {
+        GetRuntimeShopCatalog() = BuildRuntimeShopCatalog();
     }
 
     void ReapplyLoLShopItems(Engine::CGameInstance& GameInstance)

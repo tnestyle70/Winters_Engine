@@ -1,6 +1,9 @@
 #include "GamePlay/SkillRegistry.h"
 
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 #include "GameObject/SkillDefVisualDataAdapter.h"
+
+#include <cmath>
 
 namespace
 {
@@ -29,6 +32,28 @@ namespace
 
 		return def;
 	}
+
+	SkillDef ApplyAuthoredVisualTiming(eChampion champion, u8_t slot, SkillDef def)
+	{
+		const ClientData::ChampionVisualDefinition* pVisual =
+			ClientData::FindChampionVisualDefinition(champion);
+		if (!pVisual || slot >= ClientData::kVisualSkillSlotCount)
+			return def;
+
+		const ClientData::SkillVisualDefinition& skill = pVisual->skills[slot];
+		const ClientData::SkillVisualStageDef& stage1 = skill.stages[0];
+		def.visualPlaySpeed = stage1.animationPlaybackSpeed;
+		def.visualCastFrame = stage1.castFrame;
+		def.visualRecoveryFrame = stage1.recoveryFrame;
+		if (skill.stageCount >= 2u)
+		{
+			const ClientData::SkillVisualStageDef& stage2 = skill.stages[1];
+			def.stage2VisualPlaySpeed = stage2.animationPlaybackSpeed;
+			def.stage2VisualCastFrame = stage2.castFrame;
+			def.stage2VisualRecoveryFrame = stage2.recoveryFrame;
+		}
+		return def;
+	}
 }
 
 CSkillRegistry& CSkillRegistry::Instance()
@@ -40,7 +65,8 @@ CSkillRegistry& CSkillRegistry::Instance()
 void CSkillRegistry::Add(eChampion champ, u8_t slot, const SkillDef& def)
 {
 	const u32_t key = MakeSkillKey(champ, slot);
-	SkillDef legacy = ApplyVerificationTiming(def);
+	SkillDef legacy = ApplyVerificationTiming(
+		ApplyAuthoredVisualTiming(champ, slot, def));
 	const auto [it, inserted] = m_LegacyMap.try_emplace(key, legacy);
 	if (!inserted)
 	{
@@ -117,5 +143,46 @@ bool_t CSkillRegistry::ResolveVisualData(
 	}
 
 	outData = SkillDefAdapters::BuildChampionActionVisualData(*pDef);
+	return true;
+}
+
+bool_t CSkillRegistry::ApplyVisualTimingOverride(
+	eChampion champion,
+	u8_t slot,
+	u8_t stage,
+	f32_t playbackSpeed,
+	f32_t castFrame,
+	f32_t recoveryFrame)
+{
+	if (stage >= kSkillVisualStageMax ||
+		!std::isfinite(playbackSpeed) || playbackSpeed <= 0.01f ||
+		!std::isfinite(castFrame) || castFrame < 0.f ||
+		!std::isfinite(recoveryFrame) || recoveryFrame < castFrame)
+	{
+		return false;
+	}
+
+	const u32_t key = MakeSkillKey(champion, slot);
+	auto legacyIt = m_LegacyMap.find(key);
+	if (legacyIt == m_LegacyMap.end())
+		return false;
+
+	SkillDef& def = legacyIt->second;
+	if (stage == 0u)
+	{
+		def.visualPlaySpeed = playbackSpeed;
+		def.visualCastFrame = castFrame;
+		def.visualRecoveryFrame = recoveryFrame;
+	}
+	else
+	{
+		if (def.stageCount < 2u)
+			return false;
+		def.stage2VisualPlaySpeed = playbackSpeed;
+		def.stage2VisualCastFrame = castFrame;
+		def.stage2VisualRecoveryFrame = recoveryFrame;
+	}
+
+	m_VisualAtoms[key] = SkillDefAdapters::BuildSkillVisualData(def);
 	return true;
 }

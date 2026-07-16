@@ -347,7 +347,7 @@
   },
   "mapRuntime": {
     "baseMapMesh": "Texture/MAP/output/sr_base_flip.wmesh",
-    "baseMapSurface": "Texture/MAP/output/sr_base_flip.wmesh",
+    "baseMapSurface": "Texture/MAP/output/sr_base_flip_surface.wmesh",
     "fullLayerMapMesh": "Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh",
     "fullLayerMapSurface": "Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh",
     "brushVolumeCsv": "Texture/MAP/Map11_Rebuild/manifest/map11_brush_volumes.csv",
@@ -355,6 +355,11 @@
     "attackRangeTexture": "Texture/UI/UI_AttackRange.png"
   },
   "fxMeshPreloads": [
+    {
+      "key": "fx.ashe.base_arrow",
+      "mesh": "Texture/Character/Ashe/particles/fbx/ashe_base_aa_arrow.fbx",
+      "texture": "Texture/Character/Ashe/particles/ashe_base_aa_arrowtext.png"
+    },
     {
       "key": "fx.irelia.e_beam",
       "mesh": "Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx",

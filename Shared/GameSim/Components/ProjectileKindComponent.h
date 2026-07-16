@@ -18,6 +18,7 @@ enum class eProjectileKind : uint16_t
     KalistaBasicAttack = 16,
     KalistaPierce = 17,
     AsheBasicAttack = 18,
+    AsheHawkshot = 19,
     LeeSinQ = 20,
     KindredArrow = 21,
     SylasChain = 22,

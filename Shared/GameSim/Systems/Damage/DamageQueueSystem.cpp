@@ -5,6 +5,7 @@
 #include "Shared/GameSim/Components/ChampionAssistCredit.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Components/JungleAIComponent.h"
+#include "Shared/GameSim/Components/InventoryComponent.h"
 #include "Shared/GameSim/Components/MatchScore.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
@@ -22,6 +23,8 @@
 // Viego Soul Spawn
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionPack.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
+#include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
 
 namespace
@@ -41,6 +44,99 @@ namespace
                 static_cast<f32_t>(DeterministicTime::kTicksPerSecond) + 0.5f);
         }
         return kAssistCreditWindowTicks;
+    }
+
+    void AccumulateBasicAttackItemOnHit(CWorld& world, DamageRequest& request)
+    {
+        if (request.eSourceKind != eDamageSourceKind::BasicAttack ||
+            (request.flags & DamageFlag_OnHit) == 0u ||
+            request.source == NULL_ENTITY ||
+            !world.HasComponent<InventoryComponent>(request.source))
+        {
+            return;
+        }
+
+        const InventoryComponent& inventory =
+            world.GetComponent<InventoryComponent>(request.source);
+        for (u8_t index = 0u;
+            index < inventory.count && index < InventoryComponent::kMaxSlots;
+            ++index)
+        {
+            const ItemDef* item =
+                CItemRegistry::Instance().Find(inventory.itemIds[index]);
+            if (!item || !item->onHitDamage.bValid)
+                continue;
+
+            const DamageFormulaDef& formula = item->onHitDamage;
+            if (formula.type != request.type)
+                continue;
+
+            request.flatAmount += ResolveDamageFormulaRankedValue(
+                formula, formula.flatByRank, 1u);
+            request.adRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.totalAdRatioByRank, 1u);
+            request.bonusAdRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.bonusAdRatioByRank, 1u);
+            request.apRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.apRatioByRank, 1u);
+            request.targetMaxHpRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.targetMaxHpRatioByRank, 1u);
+            request.targetMissingHpRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.targetMissingHpRatioByRank, 1u);
+        }
+    }
+
+    bool_t UsesParamDrivenDamageVariant(eChampion champion, u8_t slot)
+    {
+        return
+            (champion == eChampion::YASUO && slot == static_cast<u8_t>(eSkillSlot::Q)) ||
+            (champion == eChampion::KALISTA && slot == static_cast<u8_t>(eSkillSlot::E)) ||
+            (champion == eChampion::LEESIN && slot == static_cast<u8_t>(eSkillSlot::Q)) ||
+            (champion == eChampion::EZREAL && slot == static_cast<u8_t>(eSkillSlot::R));
+    }
+
+    void ApplyDataDrivenSkillFormula(
+        CWorld& world,
+        const TickContext& tc,
+        DamageRequest& request)
+    {
+        if (request.eSourceKind == eDamageSourceKind::BasicAttack ||
+            request.eSourceKind == eDamageSourceKind::Item ||
+            request.skillId == 0u)
+        {
+            return;
+        }
+
+        const u8_t slot = request.iSourceSlot != 0u
+            ? request.iSourceSlot
+            : static_cast<u8_t>(request.skillId & 0xffu);
+        const u32_t championValue = static_cast<u32_t>(request.skillId >> 8u);
+        if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack) ||
+            championValue == 0u ||
+            championValue >= static_cast<u32_t>(eChampion::END))
+        {
+            return;
+        }
+
+        const eChampion champion = static_cast<eChampion>(championValue);
+        if (UsesParamDrivenDamageVariant(champion, slot))
+            return;
+
+        DamageRequest resolved{};
+        if (GameplayDefinitionQuery::BuildSkillDamageRequest(
+                world,
+                request.source,
+                request.target,
+                tc,
+                champion,
+                slot,
+                request.rank,
+                request.sourceTeam,
+                eDamageSourceKind::Skill,
+                resolved))
+        {
+            request = resolved;
+        }
     }
 
     bool_t IsYasuoPassiveShieldReady(CWorld& world, EntityID target)
@@ -419,7 +515,9 @@ void CDamageQueueSystem::Execute(CWorld& world, const TickContext& tc)
         if (!world.IsAlive(entity) || !world.HasComponent<DamageRequestComponent>(entity))
             continue;
 
-        const DamageRequest request = world.GetComponent<DamageRequestComponent>(entity);
+        DamageRequest request = world.GetComponent<DamageRequestComponent>(entity);
+        ApplyDataDrivenSkillFormula(world, tc, request);
+        AccumulateBasicAttackItemOnHit(world, request);
         const bool_t bYasuoPassiveShieldReady =
             IsYasuoPassiveShieldReady(world, request.target);
         const DamageResult result = ApplyDamageRequest(world, tc, request);

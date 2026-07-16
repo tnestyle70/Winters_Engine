@@ -7,7 +7,6 @@
 
 StatComponent BuildDefaultChampionStat(eChampion champion, u8_t level = 1);
 ChampionStatsDef BuildDefaultChampionStatsDef(eChampion champion);
-void RegisterDefaultChampionSkillScalingTables();
 f32_t GetDefaultChampionSkillRange(eChampion champion, u8_t slot);
 f32_t GetDefaultChampionSkillCooldown(eChampion champion, u8_t slot);
 

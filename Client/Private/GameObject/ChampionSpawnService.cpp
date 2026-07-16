@@ -35,7 +35,7 @@
 
 namespace
 {
-	// ?�록???�니 ?��? ?�제 모델 ?�립�??�치?��? ?�으�??�버�?출력?�로 ?�린??
+	// Report missing animation keys against the assembled runtime model.
 	void ValidateChampionAnimKeys(const ChampionDef& def, ModelRenderer& renderer)
 	{
 #if defined(_DEBUG)
@@ -187,7 +187,7 @@ ChampionSpawnResult CChampionSpawnService::Spawn(
 		if (s_spawnInitFailLogCount < 8)
 		{
 			char msg[512]{};
-			sprintf_s(msg, "[ChampionSpawn] FAILED champion=%u reason=renderer-init fbx=%ls\n",
+			sprintf_s(msg, "[ChampionSpawn] FAILED champion=%u reason=renderer-init fbx=%s\n",
 				static_cast<u32_t>(request.champion),
 				pDef->fbxPath);
 			OutputDebugStringA(msg);

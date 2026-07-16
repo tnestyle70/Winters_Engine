@@ -17,10 +17,6 @@ ChampionStatsDef BuildDefaultChampionStatsDef(eChampion champion)
     return ChampionGameDataDB::ResolveStats(champion);
 }
 
-void RegisterDefaultChampionSkillScalingTables()
-{
-}
-
 StatComponent BuildDefaultChampionStat(eChampion champion, u8_t level)
 {
     return ChampionGameDataDB::BuildStat(champion, level);

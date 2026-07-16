@@ -22,6 +22,13 @@ public:
 	bool_t ResolveGameData(eChampion champ, u8_t slot, ChampionGameDataSkill& outData) const;
 	bool_t ResolveSkillVisualData(eChampion champ, u8_t slot, SkillVisualData& outData) const;
 	bool_t ResolveVisualData(eChampion champ, u8_t slot, ChampionActionVisualData& outData) const;
+	bool_t ApplyVisualTimingOverride(
+		eChampion champion,
+		u8_t slot,
+		u8_t stage,
+		f32_t playbackSpeed,
+		f32_t castFrame,
+		f32_t recoveryFrame);
 
 	std::size_t Count() const { return m_GameAtoms.size(); }
 

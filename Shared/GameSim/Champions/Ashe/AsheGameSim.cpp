@@ -11,7 +11,9 @@
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
 #include "Shared/GameSim/Core/Ecs/TransformComponent.h"
+#include "Shared/GameSim/Core/Ecs/VisionComponents.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "WintersMath.h"
 
@@ -256,7 +258,64 @@ namespace
 
     void OnE(GameplayHookContext& ctx)
     {
-        std::cout << "[AsheSim] E hawkshot cue caster=" << ctx.casterEntity << "\n";
+        if (!ctx.pWorld)
+            return;
+
+        const f32_t projectileSpeed = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::Speed,
+            24.f);
+        const f32_t projectileRange = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::Range,
+            400.f);
+        const f32_t sightRange = ResolveAsheSkillEffectParam(
+            ctx,
+            eSkillSlot::E,
+            eSkillEffectParamId::Radius,
+            10.f);
+
+        const EntityID hawkshot = SpawnProjectile(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            ctx.casterTeam,
+            ResolveDirection(ctx),
+            eProjectileKind::AsheHawkshot,
+            projectileSpeed,
+            projectileRange,
+            sightRange,
+            0.f,
+            static_cast<u8_t>(eSkillSlot::E),
+            ctx.skillRank,
+            {});
+        if (hawkshot == NULL_ENTITY)
+            return;
+
+        auto& projectile =
+            ctx.pWorld->GetComponent<SkillProjectileComponent>(hawkshot);
+        projectile.targetKindMask = ProjectileTarget_None;
+        projectile.bCollidesWithTerrain = false;
+        projectile.bBlockedByProjectileBarriers = false;
+        projectile.bPersistAfterSourceDeath = true;
+        projectile.bApplyDamageOnHit = false;
+        projectile.bApplyOnHitStatus = false;
+
+        SpatialAgentComponent spatial{};
+        spatial.kind = eSpatialKind::Sensor;
+        spatial.team = static_cast<u8_t>(ctx.casterTeam);
+        spatial.radius = 0.25f;
+        ctx.pWorld->AddComponent<SpatialAgentComponent>(hawkshot, spatial);
+
+        VisionSourceComponent vision{};
+        vision.sightRange = sightRange;
+        vision.bFlying = true;
+        ctx.pWorld->AddComponent<VisionSourceComponent>(hawkshot, vision);
+
+        std::cout << "[AsheSim] E hawkshot caster=" << ctx.casterEntity
+            << " range=" << projectileRange
+            << " sight=" << sightRange << "\n";
     }
 
     void OnR(GameplayHookContext& ctx)
@@ -424,61 +483,88 @@ namespace AsheGameSim
             eSkillEffectParamId::Radius,
             0.35f);
 
-        SkillProjectileComponent projectile{};
-        projectile.sourceEntity = attacker;
-        projectile.targetEntity = target;
-        projectile.sourceHandle = world.GetEntityHandle(attacker);
-        projectile.targetHandle = world.GetEntityHandle(target);
-        projectile.sourceTeam = damageRequest.sourceTeam;
-        projectile.kind = eProjectileKind::AsheBasicAttack;
-        projectile.unitHitPolicy = eProjectileUnitHitPolicy::Destroy;
-        projectile.targetKindMask = ProjectileTarget_Champion |
+        SkillProjectileComponent baseProjectile{};
+        baseProjectile.sourceEntity = attacker;
+        baseProjectile.targetEntity = target;
+        baseProjectile.sourceHandle = world.GetEntityHandle(attacker);
+        baseProjectile.targetHandle = world.GetEntityHandle(target);
+        baseProjectile.sourceTeam = damageRequest.sourceTeam;
+        baseProjectile.kind = eProjectileKind::AsheBasicAttack;
+        baseProjectile.unitHitPolicy = eProjectileUnitHitPolicy::Destroy;
+        baseProjectile.targetKindMask = ProjectileTarget_Champion |
             ProjectileTarget_MinionOrSummon |
             ProjectileTarget_JungleMonster |
             ProjectileTarget_Structure;
-        projectile.bCollidesWithTerrain = false;
-        projectile.bPersistAfterSourceDeath = true;
-        projectile.bApplyDamageOnHit = true;
-        projectile.skillId = static_cast<u16_t>(
+        baseProjectile.bCollidesWithTerrain = false;
+        baseProjectile.bPersistAfterSourceDeath = true;
+        baseProjectile.bApplyDamageOnHit = true;
+        baseProjectile.skillId = static_cast<u16_t>(
             (static_cast<u32_t>(eChampion::ASHE) << 8) |
             static_cast<u8_t>(eSkillSlot::BasicAttack));
-        projectile.rank = damageRequest.rank;
-        projectile.currentPos = origin;
-        projectile.direction = WintersMath::DirectionXZ(
+        baseProjectile.rank = damageRequest.rank;
+        baseProjectile.currentPos = origin;
+        baseProjectile.direction = WintersMath::DirectionXZ(
             origin,
             targetPos,
             Vec3{ 0.f, 0.f, 1.f });
-        projectile.speed = projectileSpeed;
-        projectile.maxDistance = (std::numeric_limits<f32_t>::max)();
-        projectile.hitRadius = projectileRadius;
-        projectile.damage = damage;
-        projectile.totalAdRatio = damageRequest.adRatioOverride;
-        projectile.bonusAdRatio = damageRequest.bonusAdRatioOverride;
-        projectile.apRatio = damageRequest.apRatioOverride;
-        projectile.damageType = damageRequest.type;
-        projectile.damageSourceKind = eDamageSourceKind::BasicAttack;
-        projectile.sourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
-        projectile.damageFlags = damageRequest.flags;
-        projectile.bApplyOnHitStatus = true;
-        projectile.onHitStatus = GameplayStatus::MakeSlowDesc(
+        baseProjectile.speed = projectileSpeed;
+        baseProjectile.maxDistance = (std::numeric_limits<f32_t>::max)();
+        baseProjectile.hitRadius = projectileRadius;
+        baseProjectile.damage = damage;
+        baseProjectile.totalAdRatio = damageRequest.adRatioOverride;
+        baseProjectile.bonusAdRatio = damageRequest.bonusAdRatioOverride;
+        baseProjectile.apRatio = damageRequest.apRatioOverride;
+        baseProjectile.damageType = damageRequest.type;
+        baseProjectile.damageSourceKind = eDamageSourceKind::BasicAttack;
+        baseProjectile.sourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+        baseProjectile.damageFlags = damageRequest.flags;
+        baseProjectile.bApplyOnHitStatus = true;
+        baseProjectile.onHitStatus = GameplayStatus::MakeSlowDesc(
             attacker,
             eChampion::ASHE,
             eSkillSlot::BasicAttack,
             slowDurationSec,
             moveSpeedMul);
 
-        const EntityHandle projectileHandle = world.CreateEntityHandle();
-        if (!projectileHandle.IsValid())
-            return false;
+        constexpr u32_t kQArrowCount = 5u;
+        constexpr f32_t kQArrowCastWindowSec = 0.5f;
+        const u32_t arrowCount = state.bQActive ? kQArrowCount : 1u;
+        bool_t bSpawnedAny = false;
+        for (u32_t arrowIndex = 0u; arrowIndex < arrowCount; ++arrowIndex)
+        {
+            const EntityHandle projectileHandle = world.CreateEntityHandle();
+            if (!projectileHandle.IsValid())
+            {
+                if (arrowIndex == 0u)
+                    return false;
+                break;
+            }
 
-        const EntityID projectileEntity = projectileHandle.GetIndex();
-        world.AddComponent<SkillProjectileComponent>(
-            projectileEntity,
-            projectile);
-        TransformComponent transform{};
-        transform.SetPosition(origin);
-        world.AddComponent<TransformComponent>(projectileEntity, transform);
-        return true;
+            SkillProjectileComponent projectile = baseProjectile;
+            if (arrowCount > 1u)
+            {
+                projectile.fSpawnDelaySec =
+                    kQArrowCastWindowSec *
+                    static_cast<f32_t>(arrowIndex) /
+                    static_cast<f32_t>(kQArrowCount - 1u);
+            }
+            if (arrowIndex > 0u)
+            {
+                projectile.bApplyDamageOnHit = false;
+                projectile.bApplyOnHitStatus = false;
+                projectile.damage = 0.f;
+            }
+
+            const EntityID projectileEntity = projectileHandle.GetIndex();
+            world.AddComponent<SkillProjectileComponent>(
+                projectileEntity,
+                projectile);
+            TransformComponent transform{};
+            transform.SetPosition(origin);
+            world.AddComponent<TransformComponent>(projectileEntity, transform);
+            bSpawnedAny = true;
+        }
+        return bSpawnedAny;
     }
 
     bool_t HandleProjectileHit(

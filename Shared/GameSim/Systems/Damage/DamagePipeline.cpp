@@ -8,7 +8,6 @@
 #include "Shared/GameSim/Components/KindredSimComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
-#include "Shared/GameSim/Registries/SkillScaling/SkillScalingRegistry.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/Shield/ShieldSystem.h"
@@ -24,14 +23,6 @@
 
 namespace
 {
-    f32_t GetRankedValue(const f32_t values[SkillScalingTable::kMaxRank], u8_t rank)
-    {
-        const u8_t clampedRank = (rank == 0)
-            ? 1
-            : ((rank > SkillScalingTable::kMaxRank) ? SkillScalingTable::kMaxRank : rank);
-        return values[clampedRank - 1];
-    }
-
     bool_t TryGetTeam(CWorld& world, EntityID entity, eTeam& outTeam)
     {
         if (world.HasComponent<ChampionComponent>(entity))
@@ -138,16 +129,11 @@ namespace
 
     u32_t ResolveDamageFlags(const DamageRequest& req)
     {
-        u32_t flags = req.flags;
-        if (const SkillScalingTable* table = CSkillScalingRegistry::Instance().FindBySkillId(req.skillId))
-            flags |= table->flags;
-        return flags;
+        return req.flags;
     }
 
     eDamageType ResolveDamageType(const DamageRequest& req)
     {
-        if (const SkillScalingTable* table = CSkillScalingRegistry::Instance().FindBySkillId(req.skillId))
-            return table->damageType;
         return req.type;
     }
 
@@ -294,29 +280,12 @@ namespace
 
 f32_t BuildRawDamage(CWorld& world, const DamageRequest& req)
 {
-    const bool_t bHasExplicitFlat = (req.flatAmount != 0.f || req.amount != 0.f);
     f32_t flat = (req.flatAmount != 0.f) ? req.flatAmount : req.amount;
     f32_t totalAdRatio = req.adRatioOverride;
     f32_t bonusAdRatio = req.bonusAdRatioOverride;
     f32_t apRatio = req.apRatioOverride;
     f32_t targetMaxHpRatio = req.targetMaxHpRatioOverride;
     f32_t targetMissingHpRatio = req.targetMissingHpRatioOverride;
-
-    if (const SkillScalingTable* table = CSkillScalingRegistry::Instance().FindBySkillId(req.skillId))
-    {
-        if (!bHasExplicitFlat)
-            flat += GetRankedValue(table->damage, req.rank);
-        if (totalAdRatio == 0.f)
-            totalAdRatio = GetRankedValue(table->adRatio, req.rank);
-        if (bonusAdRatio == 0.f)
-            bonusAdRatio = GetRankedValue(table->bonusAdRatio, req.rank);
-        if (apRatio == 0.f)
-            apRatio = GetRankedValue(table->apRatio, req.rank);
-        if (targetMaxHpRatio == 0.f)
-            targetMaxHpRatio = GetRankedValue(table->targetMaxHpRatio, req.rank);
-        if (targetMissingHpRatio == 0.f)
-            targetMissingHpRatio = GetRankedValue(table->targetMissingHpRatio, req.rank);
-    }
 
     if (req.source != NULL_ENTITY && world.HasComponent<StatComponent>(req.source))
     {

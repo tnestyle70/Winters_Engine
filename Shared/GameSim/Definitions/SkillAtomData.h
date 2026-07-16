@@ -1,11 +1,13 @@
 #pragma once
 
 #include "LoLMatchContext.h"
+#include "Shared/GameSim/Definitions/DamageTypes.h"
 #include "SkillTypes.h"
 #include "WintersTypes.h"
 
 inline constexpr u8_t kSkillAtomStageMax = 2;
 inline constexpr u8_t kSkillEffectParamMax = 16;
+inline constexpr u8_t kSkillRankValueMax = 5;
 
 struct SkillSlotBinding
 {
@@ -24,11 +26,17 @@ struct SkillTargetSpec
 
 struct SkillCostSpec
 {
+    u8_t rankCount = 1;
+    f32_t manaCostByRank[kSkillRankValueMax]{};
+    // Legacy client SkillDef adapter only. Canonical gameplay pack uses the array above.
     f32_t manaCost = 0.f;
 };
 
 struct SkillCooldownSpec
 {
+    u8_t rankCount = 1;
+    f32_t cooldownSecByRank[kSkillRankValueMax]{};
+    // Legacy client SkillDef adapter only. Canonical gameplay pack uses the array above.
     f32_t cooldownSec = 0.f;
 };
 
@@ -144,6 +152,7 @@ struct SummonPolicyParam
 
 struct SkillEffectSpec
 {
+    DamageFormulaDef damage{};
     u16_t scalingTableId = 0;
     u32_t gameplayPolicyId = 0;
     u32_t replicatedCueId = 0;

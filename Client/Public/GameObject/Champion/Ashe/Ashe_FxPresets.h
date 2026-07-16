@@ -25,7 +25,6 @@ namespace Ashe::Fx
     void SpawnWVolleyMuzzle(CWorld& world, EntityID owner, f32_t fLifetime);
     void SpawnWVolleyMesh(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
         const Vec3& origin, const Vec3& dir, f32_t fLifetime);
-    void SpawnEHawkshot(CWorld& world, const Vec3& start, const Vec3& dest, f32_t fLifetime);
     void SpawnRCrystalCharge(CWorld& world, EntityID owner, f32_t fLifetime);
     void SpawnRCrystalArrow(CWorld& world, EntityID owner, const Vec3& origin, const Vec3& dir, f32_t fLifetime);
     void SpawnRCrystalArrowMesh(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,

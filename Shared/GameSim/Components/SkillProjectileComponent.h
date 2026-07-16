@@ -56,6 +56,7 @@ struct SkillProjectileComponent
 
     Vec3 currentPos{};
     Vec3 direction{ 0.f, 0.f, 1.f };
+    f32_t fSpawnDelaySec = 0.f;
     f32_t speed = 0.f;
     f32_t maxDistance = 0.f;
     f32_t traveledDistance = 0.f;

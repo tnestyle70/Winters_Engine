@@ -27,6 +27,7 @@
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/SpatialIndex.h"
 #include "ECS/Systems/SpatialHashSystem.h"
+#include "Manager/Navigation/MapSurfaceSampler.h"
 
 #include <algorithm>
 #include <cmath>
@@ -388,6 +389,14 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
                     m_entityMap.Unbind(event.projectileNetOverride);
                 }
             };
+
+        if (!projectile.bSpawned && projectile.fSpawnDelaySec > 0.f)
+        {
+            projectile.fSpawnDelaySec =
+                (std::max)(0.f, projectile.fSpawnDelaySec - tc.fDt);
+            if (projectile.fSpawnDelaySec > 0.f)
+                continue;
+        }
 
         if (projectile.sourceHandle.IsValid())
         {
@@ -762,6 +771,24 @@ void CGameRoom::Phase_ServerProjectiles(TickContext& tc)
             start.y + projectile.direction.y * step,
             start.z + projectile.direction.z * step
         };
+        if (projectile.kind == eProjectileKind::AsheHawkshot &&
+            m_pMapSurfaceSampler &&
+            m_pMapSurfaceSampler->IsReady() &&
+            (end.x < m_pMapSurfaceSampler->GetMinX() ||
+             end.x > m_pMapSurfaceSampler->GetMaxX() ||
+             end.z < m_pMapSurfaceSampler->GetMinZ() ||
+             end.z > m_pMapSurfaceSampler->GetMaxZ()))
+        {
+            EnqueueProjectileContact(
+                NULL_ENTITY,
+                start,
+                ProjectileContactReason::RangeExpired,
+                true);
+            LogSkillProjectileEvent(
+                "map_exit", entity, projectile, NULL_ENTITY, start);
+            m_world.DestroyEntity(entity);
+            continue;
+        }
         bool_t bBlockedByNavigation = false;
         if (projectile.bCollidesWithTerrain)
         {

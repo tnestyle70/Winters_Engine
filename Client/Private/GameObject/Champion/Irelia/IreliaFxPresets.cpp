@@ -343,9 +343,8 @@ void IreliaFx::SpawnRBladeFan(CWorld& world, Engine::CFxStaticMeshRenderer* pRen
         return;
 
     const Irelia::IreliaTuning& tuning = Irelia::GetTuning();
-    // The E blade FBX pivot sits below its placement origin. Match SpawnPlaced's
-    // ground lift so the R wall blades remain fully visible above terrain.
-    const f32_t bladeGroundY = vHitPos.y + 3.f;
+    // The authoritative R hit position is already resolved against the map surface.
+    const f32_t bladeGroundY = vHitPos.y;
     const f32_t fwdYaw = std::atan2f(forward.x, forward.z);
     const f32_t halfSpread = fSpreadRad * 0.5f;
     const f32_t leftYaw = fwdYaw - halfSpread;

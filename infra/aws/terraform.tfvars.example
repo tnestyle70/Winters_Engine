@@ -1,0 +1,19 @@
+project_name      = "winters"
+environment       = "dev"
+aws_region        = "ap-northeast-2"
+image_tag         = "replace-with-git-sha"
+deploy_services   = false
+desired_count     = 1
+monthly_budget_usd = 100
+alert_email       = ""
+
+# Cost-heavy option. Keep false until the monthly budget is approved.
+enable_msk   = false
+kafka_brokers = "broker-1.example.internal:9094,broker-2.example.internal:9094"
+
+# The stateful Windows game server is deployed separately on EC2/GameLift.
+game_server_host = "game-dev.example.com"
+game_server_port = 9000
+
+# Supply an ACM certificate ARN when a domain is ready.
+certificate_arn = ""

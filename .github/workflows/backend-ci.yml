@@ -1,0 +1,104 @@
+name: backend-ci
+
+on:
+  pull_request:
+    paths:
+      - "Services/**"
+      - "Client/**"
+      - "Server/**"
+      - "Shared/**"
+      - "infra/aws/**"
+      - ".github/workflows/backend-ci.yml"
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Services
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: winters
+          POSTGRES_PASSWORD: winters_dev_2026
+          POSTGRES_DB: winters_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U winters -d winters_ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: Services/go.mod
+          cache-dependency-path: Services/go.sum
+      - name: Format
+        run: test -z "$(gofmt -l .)"
+      - name: Unit tests
+        run: go test -race ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Migration idempotency
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: "5432"
+          DB_USER: winters
+          DB_PASSWORD: winters_dev_2026
+          DB_NAME: winters_ci
+          DB_SSL_MODE: disable
+        run: |
+          go run ./cmd/migrate
+          go run ./cmd/migrate
+          test "$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -Atc 'select count(*) from schema_migrations')" = "10"
+
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build every service image
+        run: |
+          for service in auth leaderboard matchmaking profile payment shop replay migrate; do
+            docker build --file Services/Dockerfile --build-arg SERVICE="$service" --tag "winters-$service:${GITHUB_SHA}" .
+          done
+
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+      - name: Format
+        run: terraform fmt -check -recursive infra/aws
+      - name: Validate
+        working-directory: infra/aws
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+  cpp:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: microsoft/setup-msbuild@v2
+      - name: Server Debug x64
+        run: msbuild Server/Include/Server.vcxproj /p:Configuration=Debug /p:Platform=x64 /m
+      - name: Replay client smoke target
+        run: msbuild Tools/Harness/ReplayClientSmoke.vcxproj /p:Configuration=Debug /p:Platform=x64 /m
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2

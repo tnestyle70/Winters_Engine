@@ -12,6 +12,9 @@
 - Hot Reload and Perforce integration start after the DataDriven ownership and cutover gates are complete.
 - Practice/balance tools stay on the normal in-game network path: Client UI sends typed commands, Server policy and GameSim own every gameplay mutation, and Snapshot/Event reports the result.
 - A practice balance overlay is temporary bounded session data, never canonical authoring data. Approved values return to JSON/sheet -> validate -> cook -> SimLab/build before release.
+- Canonical skill damage follows `ServerPrivate SkillEffectGameplayDefs.json -> codegen -> DamageFormulaDef -> DamageRequest -> DamagePipeline`; champion hooks may choose targets or variants but must not own a second copy of the same rank/scaling values.
+- Canonical item on-hit damage follows `ServerPrivate ItemGameplayDefs.json -> codegen -> ItemDef -> DamageQueueSystem -> DamagePipeline`; mixed damage types require separate requests rather than silently folding into the basic attack type.
+- Canonical animation playback/cast/recovery timing follows `ClientPublic ChampionVisualDefs.json -> codegen -> SkillRegistry`. Runtime timing panels may produce a review draft, but a draft is not release truth until merged and regenerated.
 
 ## Runtime Concurrency / Network Boundary
 

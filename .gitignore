@@ -76,6 +76,8 @@ __pycache__/
 !Engine/ThirdPartyLib/**/Bin/**
 !Engine/ThirdPartyLib/**/Lib/
 !Engine/ThirdPartyLib/**/Lib/**
+!/Shared/GameSim/Core/Debug/
+!/Shared/GameSim/Core/Debug/SimDebugOutput.h
 
 # Runtime Resource is restored separately. Small authored runtime configs may opt in.
 /Client/Bin/Resource/*

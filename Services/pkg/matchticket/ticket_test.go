@@ -45,7 +45,15 @@ func TestVerifyRejectsTampering(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tampered := ticket[:len(ticket)-1] + "A"
+	parts := strings.Split(ticket, ".")
+	signature := []byte(parts[2])
+	if signature[0] == 'A' {
+		signature[0] = 'B'
+	} else {
+		signature[0] = 'A'
+	}
+	parts[2] = string(signature)
+	tampered := strings.Join(parts, ".")
 	if _, err := signer.Verify(tampered); !errors.Is(err, ErrInvalidTicket) {
 		t.Fatalf("expected invalid ticket, got %v", err)
 	}

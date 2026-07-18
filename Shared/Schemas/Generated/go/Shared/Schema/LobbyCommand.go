@@ -113,8 +113,20 @@ func (rcv *LobbyCommand) MutateValue(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(14, n)
 }
 
+func (rcv *LobbyCommand) ChampionDefinitionKey() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *LobbyCommand) MutateChampionDefinitionKey(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(16, n)
+}
+
 func LobbyCommandStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(7)
 }
 func LobbyCommandAddKind(builder *flatbuffers.Builder, kind LobbyCommandKind) {
 	builder.PrependByteSlot(0, byte(kind), 0)
@@ -133,6 +145,9 @@ func LobbyCommandAddBotDifficulty(builder *flatbuffers.Builder, botDifficulty by
 }
 func LobbyCommandAddValue(builder *flatbuffers.Builder, value uint32) {
 	builder.PrependUint32Slot(5, value, 0)
+}
+func LobbyCommandAddChampionDefinitionKey(builder *flatbuffers.Builder, championDefinitionKey uint32) {
+	builder.PrependUint32Slot(6, championDefinitionKey, 0)
 }
 func LobbyCommandEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

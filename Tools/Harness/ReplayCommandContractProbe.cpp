@@ -106,8 +106,10 @@ int main()
     ReplayCommandPayload explicitCommand{};
     explicitCommand.sourceSessionId = 17u;
     explicitCommand.sequenceNum = 23u;
-    explicitCommand.kind = 12u;
-    explicitCommand.practiceOperation = 7u;
+    explicitCommand.kind = 13u;
+    explicitCommand.slot = 2u;
+    explicitCommand.itemId = 3157u;
+    explicitCommand.practiceFlags = 5u;
     explicitCommand.clientTick = 91u;
     SetReplayCommandDomain(
         explicitCommand,
@@ -151,7 +153,11 @@ int main()
         recorder->GetCommandCount() == 1u &&
         recorder->GetSnapshotCount() == 2u &&
         GetReplayCommandDomain(persistedCommand) ==
-            eReplayCommandDomain::AuthoringMutation;
+            eReplayCommandDomain::AuthoringMutation &&
+        persistedCommand.kind == 13u &&
+        persistedCommand.slot == 2u &&
+        persistedCommand.itemId == 3157u &&
+        persistedCommand.practiceFlags == 5u;
     input.close();
     std::error_code removeError;
     std::filesystem::remove(outputPath, removeError);
@@ -200,7 +206,7 @@ int main()
 
     std::printf(
         "[ReplayContract] %s: v1 read, v2 legacy-zero/domain, 60-byte ABI, "
-        "journal/resim outcomes, tool revision, paused snapshot pair, "
+        "reorder source/item/target, journal/resim outcomes, tool revision, paused snapshot pair, "
         "sealed publish retry\n",
         bPass ? "PASS" : "FAIL");
     return bPass ? 0 : 1;

@@ -159,7 +159,6 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Game\ServerAICommandProducer.h" />
     <ClInclude Include="..\Public\Game\ServerEntry.h" />
     <ClInclude Include="..\Public\Game\ServerMinionFlowField.h" />
-    <ClInclude Include="..\Public\Game\ServerMinionTuning.h" />
     <ClInclude Include="..\Public\Game\ServerMinionWaveRuntime.h" />
     <ClInclude Include="..\Public\Game\ServerProjectileAuthority.h" />
     <ClInclude Include="..\Public\Game\SessionBinding.h" />
@@ -190,8 +189,5 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
       <Project>{E5555555-5555-5555-5555-555555555555}</Project>
     </ProjectReference>
   </ItemGroup>
-  <Target Name="FlatcCodegen" BeforeTargets="ClCompile">
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\..\Shared\Schemas\run_codegen.bat&quot;" />
-  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

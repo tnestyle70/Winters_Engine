@@ -1,4 +1,5 @@
 #include "UI/AttackSpeedLab.h"
+#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 
 #include "ECS/World.h"
 #include "GameObject/ChampionDef.h"
@@ -11,7 +12,6 @@
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "WintersPaths.h"
@@ -149,7 +149,7 @@ namespace
 		if (std::isfinite(stat.attackSpeedRatio) && stat.attackSpeedRatio > 0.001f)
 			return stat.attackSpeedRatio;
 
-		const ChampionStatsDef canonical = ChampionGameDataDB::ResolveStats(champion);
+		const ChampionStatsDef canonical = BuildDefaultChampionStatsDef(champion);
 		if (std::isfinite(canonical.baseAttackSpeed) && canonical.baseAttackSpeed > 0.001f)
 			return canonical.baseAttackSpeed;
 		if (std::isfinite(canonical.attackSpeedRatio) && canonical.attackSpeedRatio > 0.001f)
@@ -162,7 +162,7 @@ namespace
 		LabEntry& entry = g_Lab.entries[SlotOf(champion)];
 		if (!entry.bSeeded)
 		{
-			const ChampionStatsDef stats = ChampionGameDataDB::ResolveStats(champion);
+			const ChampionStatsDef stats = BuildDefaultChampionStatsDef(champion);
 			const f32_t base =
 				std::isfinite(stats.baseAttackSpeed) && stats.baseAttackSpeed > 0.001f
 				? stats.baseAttackSpeed

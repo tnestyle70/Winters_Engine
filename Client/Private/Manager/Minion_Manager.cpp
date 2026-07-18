@@ -4,6 +4,7 @@
 #include "Map/MapDataFormats.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Definitions/MinionCombatDef.h"
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/RenderComponent.h"
@@ -16,7 +17,6 @@
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/PoseStateComponent.h"
-#include "Shared/GameSim/Definitions/MinionCombatDef.h"
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
@@ -1195,12 +1195,16 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     ms.team            = (eTeamParam == eMinionTeam::Blue) ? eTeam::Blue : eTeam::Red;
     ms.type            = static_cast<uint8_t>(eType);
     ms.lane            = static_cast<uint8_t>(eWay);
-    const MinionCombatDef combat = ResolveMinionCombatDef(ms.type);
-    ms.moveSpeed = combat.moveSpeed;
-    ms.attackRange = combat.attackRange;
-    ms.sightRange = combat.sightRange;
-    ms.attackDamage = combat.attackDamage;
-    ms.attackCooldownMax = combat.attackCooldownMax;
+    // This constructor is enabled only in the explicit local/offline smoke path.
+    // Network minions are created by Ensure_NetworkVisual and receive snapshot values.
+    const MinionCombatDef* pLocalCombat =
+        ClientData::FindLocalSmokeMinionCombatDefinition(ms.type);
+    const MinionCombatDef localCombat = pLocalCombat ? *pLocalCombat : MinionCombatDef{};
+    ms.moveSpeed = localCombat.moveSpeed;
+    ms.attackRange = localCombat.attackRange;
+    ms.sightRange = localCombat.sightRange;
+    ms.attackDamage = localCombat.attackDamage;
+    ms.attackCooldownMax = localCombat.attackCooldownMax;
 
     const u32_t scanSeed = (static_cast<u32_t>(id) * 1103515245u + 12345u) & 7u;
     ms.targetScanCooldown = 0.03f * static_cast<f32_t>(scanSeed);
@@ -1209,7 +1213,7 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     ms.animUpdateAccumulator = ResolveMinionAnimPhase(id, ms.animUpdateInterval);
 
     auto& hp = m_pWorld->AddComponent<HealthComponent>(id);
-    hp.fMaximum = hp.fCurrent = combat.maxHp;
+    hp.fMaximum = hp.fCurrent = localCombat.maxHp;
 
     //Velocity!
     auto& vel = m_pWorld->AddComponent<VelocityComponent>(id);

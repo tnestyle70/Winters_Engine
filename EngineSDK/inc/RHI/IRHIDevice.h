@@ -24,6 +24,11 @@ public:
     virtual void BeginFrame(f32_t r = 0.0f, f32_t g = 0.0f, f32_t b = 0.0f, f32_t a = 1.0f) = 0;
     virtual void EndFrame() = 0;
 
+    // GPU 패스 스코프: 주석 마커(RenderDoc/PIX 라벨) + WINTERS_PROFILING 시 패스별 타임스탬프.
+    // pName 은 static storage 리터럴이어야 하며(게이지 이름으로 그대로 저장) 중첩은 지원하지 않는다.
+    virtual void BeginGpuPass(const char* pName) { (void)pName; }
+    virtual void EndGpuPass() {}
+
     virtual IRHISwapChain* CreateSwapChain(const RHIWindowHandle& window) { (void)window; return nullptr; }
     virtual IRHISwapChain* CreateSwapChain(const RHISurfaceDesc& surface)
     {

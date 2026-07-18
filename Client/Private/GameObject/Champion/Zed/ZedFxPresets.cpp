@@ -1,6 +1,5 @@
 #include "GameObject/Champion/Zed/ZedFxPresets.h"
 
-#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "ECS/Components/RenderComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "ECS/World.h"
@@ -37,12 +36,19 @@ namespace
     struct ShadowCloneVisual
     {
         EntityID owner = NULL_ENTITY;
+        u8_t sourceSlot = 0u;
         std::unique_ptr<ModelRenderer> pRenderer{};
         f32_t fRemainingSec = 0.f;
+        bool_t bSwapAvailable = true;
     };
 
     std::unordered_map<EntityID, ShadowCloneVisual> s_shadowClones;
-    std::unordered_map<EntityID, EntityID> s_shadowCloneByOwner;
+    std::unordered_map<u64_t, EntityID> s_shadowCloneByOwnerAndSlot;
+
+    u64_t BuildShadowCloneKey(EntityID owner, u8_t sourceSlot)
+    {
+        return (static_cast<u64_t>(owner) << 8u) | static_cast<u64_t>(sourceSlot);
+    }
 
     Vec3 ResolveEntityPosition(CWorld& world, EntityID entity)
     {
@@ -58,7 +64,10 @@ namespace
         if (it != s_shadowClones.end())
         {
             if (it->second.owner != NULL_ENTITY)
-                s_shadowCloneByOwner.erase(it->second.owner);
+            {
+                s_shadowCloneByOwnerAndSlot.erase(
+                    BuildShadowCloneKey(it->second.owner, it->second.sourceSlot));
+            }
             s_shadowClones.erase(it);
         }
 
@@ -173,6 +182,7 @@ void ZedFx::SpawnRMark(CWorld& world, EntityID target, f32_t fLifetime)
 void ZedFx::SpawnShadowCloneModel(
     CWorld& world,
     EntityID owner,
+    u8_t sourceSlot,
     const Vec3& groundPos,
     const Vec3& direction,
     f32_t fDuration)
@@ -180,8 +190,9 @@ void ZedFx::SpawnShadowCloneModel(
     if (owner == NULL_ENTITY)
         return;
 
-    const auto oldIt = s_shadowCloneByOwner.find(owner);
-    if (oldIt != s_shadowCloneByOwner.end())
+    const u64_t cloneKey = BuildShadowCloneKey(owner, sourceSlot);
+    const auto oldIt = s_shadowCloneByOwnerAndSlot.find(cloneKey);
+    if (oldIt != s_shadowCloneByOwnerAndSlot.end())
         DestroyTrackedShadowClone(world, oldIt->second);
 
     const ChampionDef* pDef = FindChampionDef(eChampion::ZED);
@@ -227,29 +238,41 @@ void ZedFx::SpawnShadowCloneModel(
     render.bSceneManaged = false;
     world.AddComponent<RenderComponent>(shadowEntity, render);
 
-    ChampionComponent champion{};
-    champion.id = eChampion::ZED;
-    champion.team = world.HasComponent<ChampionComponent>(owner)
-        ? world.GetComponent<ChampionComponent>(owner).team
-        : eTeam::Neutral;
-    world.AddComponent<ChampionComponent>(shadowEntity, champion);
-
     ShadowCloneVisual visual{};
     visual.owner = owner;
+    visual.sourceSlot = sourceSlot;
     visual.pRenderer = std::move(pRenderer);
     visual.fRemainingSec = fDuration;
     s_shadowClones[shadowEntity] = std::move(visual);
-    s_shadowCloneByOwner[owner] = shadowEntity;
+    s_shadowCloneByOwnerAndSlot[cloneKey] = shadowEntity;
+}
+
+bool_t ZedFx::CanSwapToShadowClone(CWorld& world, EntityID owner, u8_t sourceSlot)
+{
+    const auto ownerIt = s_shadowCloneByOwnerAndSlot.find(
+        BuildShadowCloneKey(owner, sourceSlot));
+    if (ownerIt == s_shadowCloneByOwnerAndSlot.end())
+        return false;
+
+    const EntityID shadowEntity = ownerIt->second;
+    const auto shadowIt = s_shadowClones.find(shadowEntity);
+    return shadowEntity != NULL_ENTITY &&
+        world.IsAlive(shadowEntity) &&
+        world.HasComponent<TransformComponent>(shadowEntity) &&
+        shadowIt != s_shadowClones.end() &&
+        shadowIt->second.bSwapAvailable;
 }
 
 bool_t ZedFx::MoveShadowCloneModel(
     CWorld& world,
     EntityID owner,
+    u8_t sourceSlot,
     const Vec3& groundPos,
     const Vec3& direction)
 {
-    const auto it = s_shadowCloneByOwner.find(owner);
-    if (it == s_shadowCloneByOwner.end())
+    const auto it = s_shadowCloneByOwnerAndSlot.find(
+        BuildShadowCloneKey(owner, sourceSlot));
+    if (it == s_shadowCloneByOwnerAndSlot.end())
         return false;
 
     const EntityID shadowEntity = it->second;
@@ -267,6 +290,10 @@ bool_t ZedFx::MoveShadowCloneModel(
         transform.GetRotation().x,
         ResolveChampionVisualYawNear(eChampion::ZED, forward, transform.GetRotation().y),
         transform.GetRotation().z });
+
+    const auto shadowIt = s_shadowClones.find(shadowEntity);
+    if (shadowIt != s_shadowClones.end())
+        shadowIt->second.bSwapAvailable = false;
     return true;
 }
 

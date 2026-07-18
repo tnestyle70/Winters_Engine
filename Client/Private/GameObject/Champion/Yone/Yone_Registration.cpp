@@ -48,12 +48,8 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::YONE; s.slot = 0;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = 0.75f; s.rangeMax = 1.5f; s.manaCost = 0.f;
                 s.animKey = "attack1";
-                s.lockDurationSec = 0.9f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
-                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 0.85f;
+                s.bOneShot = true;
                 s.endTransitionIdleAnim = "attack1_toidle1";
                 s.endTransitionRunAnim = "attack1_towalk1";
                 s.endTransitionDuration = 0.18f;
@@ -63,12 +59,8 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::YONE; s.slot = 1;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = 4.f; s.rangeMax = 4.75f; s.manaCost = 0.f;
                 s.animKey = "spell1_a1";
-                s.lockDurationSec = 0.9f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 0.85f;
+                s.bOneShot = true;
                 s.endTransitionRunAnim = "spell1a_towalk1";
                 s.endTransitionDuration = 0.16f;
                 s.castHookId = kYon_Q_Cast;
@@ -77,41 +69,25 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::YONE; s.slot = 2;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = 16.f; s.rangeMax = 6.f; s.manaCost = 0.f;
                 s.animKey = "spell2";
-                s.lockDurationSec = 0.65f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kYon_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 2, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::YONE; s.slot = 3;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = 22.f; s.rangeMax = 4.f; s.manaCost = 0.f;
                 s.animKey = "spell3_bodyin";
-                s.stageCount = 2;
-                s.stage2TargetMode = eTargetMode::Direction;
                 s.stage2AnimKey = "spell3_out";
-                s.stage2LockSec = 0.50f;
-                s.stage2VisualPlaySpeed = 1.f;
-                s.lockDurationSec = 0.75f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kYon_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 3, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::YONE; s.slot = 4;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = 120.f; s.rangeMax = 10.f; s.manaCost = 0.f;
                 s.animKey = "spell4_in";
-                s.lockDurationSec = 1.2f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 12.f; s.visualRecoveryFrame = 24.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kYon_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::YONE, 4, s);
             }

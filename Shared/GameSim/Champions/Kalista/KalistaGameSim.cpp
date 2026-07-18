@@ -821,6 +821,9 @@ namespace
         action.sourceChampion = eChampion::KALISTA;
         action.sourceSlot = static_cast<u8_t>(eSkillSlot::R);
         action.movePolicy = GameplayDefinitionQuery::ResolveSkillActionMovePolicy(
+            world,
+            owner,
+            tc,
             eChampion::KALISTA,
             static_cast<u8_t>(eSkillSlot::R),
             2u);

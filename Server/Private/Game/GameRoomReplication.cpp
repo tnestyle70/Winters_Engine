@@ -187,7 +187,8 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
         const auto replaySnapshot = m_pSnapBuilder->Build(
             m_world, m_entityMap, tc.tickIndex,
             ResolveServerGameTimeMs(tc.tickIndex),
-            m_rng.GetState(), 0u, NULL_NET_ENTITY,
+            m_rng.GetState(), 0u, std::array<SkillCommandFeedback, 5u>{},
+            NULL_NET_ENTITY,
             m_timelineEpoch,
             m_timelineBranchId,
             m_toolRevision,
@@ -217,6 +218,11 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
         const auto ackIt = m_lastSimCommandSeqBySession.find(sid);
         const u32_t lastSimCommandSeq =
             (ackIt != m_lastSimCommandSeqBySession.end()) ? ackIt->second : 0u;
+        const auto feedbackIt = m_lastCommandFeedbackBySession.find(sid);
+        const std::array<SkillCommandFeedback, 5u> feedback =
+            feedbackIt != m_lastCommandFeedbackBySession.end()
+                ? feedbackIt->second
+                : std::array<SkillCommandFeedback, 5u>{};
 
         auto snapshot = m_pSnapBuilder->Build(
             m_world,
@@ -225,6 +231,7 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
             ResolveServerGameTimeMs(tc.tickIndex),
             m_rng.GetState(),
             lastSimCommandSeq,
+            feedback,
             m_entityMap.ToNet(controlledEntity),
             m_timelineEpoch,
             m_timelineBranchId,

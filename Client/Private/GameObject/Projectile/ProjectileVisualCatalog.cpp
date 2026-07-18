@@ -27,7 +27,7 @@ namespace
 
     constexpr ProjectileVisualDesc kEzrealGlobalBeamVisual{
         "Ezreal.R.Missile", "Ezreal.R.Hit", nullptr, nullptr, nullptr, nullptr,
-        WintersMath::kPi
+        WintersMath::kPi * 0.5f
     };
 
     constexpr ProjectileVisualDesc kEzrealArcaneShiftBoltVisual{
@@ -49,7 +49,8 @@ namespace
     };
 
     constexpr ProjectileVisualDesc kZedShurikenVisual{
-        "Zed.Q.Projectile", "Zed.Q.Hit", nullptr
+        "Zed.Q.Projectile", "Zed.Q.Hit", nullptr, nullptr, nullptr, nullptr,
+        0.f, false, true
     };
 
     constexpr ProjectileVisualDesc kAsheBasicAttackVisual{

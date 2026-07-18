@@ -20,6 +20,8 @@ namespace RivenFx
         Engine::CFxStaticMeshRenderer* pRenderer = nullptr);
     void SpawnRActivate(CWorld& world, EntityID owner, f32_t fLifetime,
         Engine::CFxStaticMeshRenderer* pRenderer = nullptr);
+    void SpawnRBlade(CWorld& world, EntityID owner, f32_t fDuration,
+        Engine::CFxStaticMeshRenderer* pRenderer = nullptr);
     void SpawnRWindSlash(CWorld& world, EntityID owner, f32_t fLifetime,
         Engine::CFxStaticMeshRenderer* pRenderer = nullptr);
 }

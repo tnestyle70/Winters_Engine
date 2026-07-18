@@ -12,7 +12,6 @@
 #include "GameObject/ChampionDef.h"
 #include "Shared/GameSim/Definitions/ChampionStatsDef.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Systems/Buff/BuffSystem.h"
 #include "Shared/GameSim/Systems/Damage/Damage.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
@@ -55,16 +54,6 @@ namespace
     void CompileSim2MilestonePaths()
     {
         CWorld world;
-
-        ChampionStatsDef stats{};
-        stats.championId = eChampion::EZREAL;
-        stats.baseHp = 600.f;
-        stats.hpPerLevel = 100.f;
-        stats.baseAd = 60.f;
-        stats.adPerLevel = 3.5f;
-        stats.baseArmor = 30.f;
-        stats.armorPerLevel = 4.f;
-        CChampionStatsRegistry::Instance().Add(eChampion::EZREAL, stats);
 
         EntityID source = world.CreateEntity();
         EntityID target = world.CreateEntity();

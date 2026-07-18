@@ -328,6 +328,9 @@ struct ChampionAIComponent
 	u8_t debugForcedDecisionCount = 0;
 	bool_t bDebugForceAction = false;
 	u8_t reservedTail[3]{};
+
+	f32_t midDefenseThreatHoldTimer = 0.f;
+	u8_t reservedMidDefenseAlignment[4]{};
 };
 
 static_assert(sizeof(ChampionAITuningParam) == 20u);
@@ -337,7 +340,7 @@ static_assert(offsetof(ChampionAIComponent, laneGoal) == 12u);
 static_assert(offsetof(ChampionAIComponent, decisionTimer) == 116u);
 static_assert(offsetof(ChampionAIComponent, debugLastCommandTarget) == 572u);
 static_assert(offsetof(ChampionAIComponent, nextCommandSequence) == 2900u);
-static_assert(sizeof(ChampionAIComponent) == 2928u);
+static_assert(sizeof(ChampionAIComponent) == 2936u);
 
 // Research capture is diagnostic evidence, not authoritative gameplay state.
 // Keep it outside ChampionAIComponent so checkpoint blobs do not retain a

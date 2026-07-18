@@ -8,7 +8,6 @@
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -174,7 +173,7 @@ namespace
     }
 
     // 매 틱 이동 클램프 반경은 서버 path 그리드 팽창 반경
-    // (ServerMinionTuning::kPathAgentRadius = 0.5f)을 넘지 않아야 한다 —
+    // authored path-agent radius를 넘지 않아야 한다 —
     // 계획은 0.5 로 통과하고 보행은 0.75 로 막히는 구조물 주변 죽은 링이
     // 챔피언 끼임의 원인. 챔피언 반경 0.75 는 전투/타게팅 전용으로 유지.
     constexpr f32_t kNavClearanceRadius = 0.5f;

@@ -3,8 +3,8 @@
 #include "GameRoomInternal.h"
 #include "GameRoomSmokeRoster.h"
 
-#include "Game/ServerMinionTuning.h"
 #include "Game/WalkabilityAuthority.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
 
 #include "Shared/GameSim/Components/WaypointPatrolComponent.h"
@@ -378,8 +378,8 @@ void CGameRoom::BuildServerPathNavGrid()
         m_pMinionLaneNavGrid.reset();
         return;
     }
-    m_pPathNavGrid = m_pNavGrid->BuildInflated(ServerMinionTuning::kPathAgentRadius);
-    m_pMinionLaneNavGrid = m_pNavGrid->BuildInflated(ServerMinionTuning::kMinionLaneClearanceRadius);
+    m_pPathNavGrid = m_pNavGrid->BuildInflated(ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathAgentRadius);
+    m_pMinionLaneNavGrid = m_pNavGrid->BuildInflated(ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.laneClearanceRadius);
 
     if (!m_pPathNavGrid || !m_pMinionLaneNavGrid)
     {

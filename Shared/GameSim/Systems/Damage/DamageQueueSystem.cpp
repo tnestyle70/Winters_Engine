@@ -18,8 +18,11 @@
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/Item/ItemEffectSystem.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/Shield/ShieldSystem.h"
+#include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
+#include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
 // Viego Soul Spawn
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionPack.h"
@@ -139,9 +142,16 @@ namespace
         }
     }
 
-    bool_t IsYasuoPassiveShieldReady(CWorld& world, EntityID target)
+    bool_t IsYasuoPassiveShieldReady(
+        CWorld& world,
+        const DamageRequest& request,
+        f32_t& outFlowBefore)
     {
+        outFlowBefore = 0.f;
+        const EntityID target = request.target;
         if (target == NULL_ENTITY ||
+            !YasuoGameSim::CanTriggerPassiveShieldFromSource(
+                world, request.source) ||
             !world.HasComponent<ChampionComponent>(target) ||
             !world.HasComponent<YasuoStateComponent>(target))
         {
@@ -152,6 +162,7 @@ namespace
             world.GetComponent<ChampionComponent>(target);
         const YasuoStateComponent& state =
             world.GetComponent<YasuoStateComponent>(target);
+        outFlowBefore = state.fPassiveFlow;
         return champion.id == eChampion::YASUO &&
             state.fPassiveShieldRemaining <= 0.f &&
             state.fPassiveFlowMax > 0.f &&
@@ -416,10 +427,14 @@ namespace
         // (클라이언트 파괴 배너/연출이 이 이벤트 하나에 걸려 있다).
         const bool_t bChampionSource =
             world.HasComponent<ChampionComponent>(request.source);
-        const bool_t bStructureKill =
+        const bool_t bMinionSource =
+            world.HasComponent<MinionComponent>(request.source) ||
+            world.HasComponent<MinionStateComponent>(request.source);
+        const bool_t bSupportedMinionTarget =
+            objectKind == eKillFeedObjectKind::Champion ||
             objectKind == eKillFeedObjectKind::Turret ||
             objectKind == eKillFeedObjectKind::Inhibitor;
-        if (!bChampionSource && !bStructureKill)
+        if (!bChampionSource && !(bMinionSource && bSupportedMinionTarget))
             return;
 
         ReplicatedEventComponent event{};
@@ -518,11 +533,26 @@ void CDamageQueueSystem::Execute(CWorld& world, const TickContext& tc)
         DamageRequest request = world.GetComponent<DamageRequestComponent>(entity);
         ApplyDataDrivenSkillFormula(world, tc, request);
         AccumulateBasicAttackItemOnHit(world, request);
+        ItemOnHitResolution itemOnHit{};
+        CItemEffectSystem::PrepareOnHitDamage(world, tc, request, itemOnHit);
+        f32_t yasuoFlowBefore = 0.f;
         const bool_t bYasuoPassiveShieldReady =
-            IsYasuoPassiveShieldReady(world, request.target);
-        const DamageResult result = ApplyDamageRequest(world, tc, request);
-        if (bYasuoPassiveShieldReady && result.bWasShielded)
+            IsYasuoPassiveShieldReady(world, request, yasuoFlowBefore);
+        const bool_t bFioraForcedCrit =
+            FioraGameSim::PrepareDamageRequest(world, request);
+        DamageResult result = ApplyDamageRequest(world, tc, request);
+        CItemEffectSystem::OnDamageLanded(
+            world, tc, request, itemOnHit, result.bApplied);
+        if (bFioraForcedCrit && result.finalAmount > 0.f)
+            result.bWasCrit = true;
+        FioraGameSim::OnDamageResolved(world, tc, request, result);
+        if (bYasuoPassiveShieldReady && result.bWasShielded &&
+            world.HasComponent<YasuoStateComponent>(request.target) &&
+            world.GetComponent<YasuoStateComponent>(request.target)
+                    .fPassiveFlow < yasuoFlowBefore)
+        {
             EnqueueYasuoPassiveShieldVisual(world, tc, request.target);
+        }
 
         if (result.finalAmount > 0.f && request.target != NULL_ENTITY)
         {

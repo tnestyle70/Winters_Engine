@@ -3,6 +3,8 @@
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionPack.h"
+#include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 
 namespace
 {
@@ -65,14 +67,18 @@ void CRuneSystem::Execute(CWorld& world, const TickContext& tc)
 void CRuneSystem::OnBasicAttackHitChampion(CWorld& world,
 	const TickContext& tc, EntityID source, EntityID target)
 {
-	(void)tc;
-
 	if (!AreEnemyChampions(world, source, target) ||
-		!HasRune(world, source, eRuneId::LethalTempo))
+		!HasRune(world, source, eRuneId::LethalTempo) ||
+		!tc.pDefinitions)
+		return;
+
+	const RuneGameplayDef* pRune =
+		tc.pDefinitions->FindRune(eRuneId::LethalTempo);
+	if (!pRune || !pRune->bEnabled)
 		return;
 
 	RuneRuntimeComponent& runtime = EnsureRuneRuntime(world, source);
-	if (runtime.iLethalTempoStacks >= RuneTuning::kLethalTempoMaxStacks)
+	if (runtime.iLethalTempoStacks >= pRune->maxStacks)
 		return;
 
 	++runtime.iLethalTempoStacks;

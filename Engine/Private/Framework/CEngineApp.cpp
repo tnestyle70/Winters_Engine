@@ -129,6 +129,8 @@ bool CEngineApp::Initialize(IWintersApp* pGameApp, const EngineConfig& config)
     m_uTargetFPS = config.targetFPS;
     m_bVSyncRequested = config.vsync;
     m_bPresentationVSync = ShouldUsePresentationVSync(config);
+    m_uRunSeconds = config.runSeconds;
+    m_bProfileCaptureOnExit = config.profileCaptureOnExit;
 
     if (config.vsync && m_uTargetFPS > 0u)
     {
@@ -377,6 +379,15 @@ int32 CEngineApp::Run()
             std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - runStart).count());
         WINTERS_PROFILE_GAUGE("Frame::WallUs", wallUs);
         WINTERS_PROFILE_GAUGE("Frame::RunElapsedUs", runElapsedUs);
+
+        // 무인 프로파일링 하네스: N초 경과 시 (옵션) 타임라인 캡처 후 자동 종료.
+        if (m_bRunning && m_uRunSeconds > 0u &&
+            runElapsedUs >= static_cast<uint64_t>(m_uRunSeconds) * 1000000ull)
+        {
+            if (m_bProfileCaptureOnExit)
+                bSaveProfilerJson = true;
+            m_bRunning = false;
+        }
 
         CGameInstance::Get()->Profiler_End();
         WINTERS_PROFILE_FRAME_MARK;

@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
-  "dataVersion": 1,
-  "buildHash": 2392782607,
+  "dataVersion": 2,
+  "sourcePatch": "16.14.1",
+  "sourceMapId": 11,
   "items": [
     {
       "itemId": 1001,
@@ -10,6 +11,20 @@
       "stats": {
         "flatMoveSpeed": 25.0
       },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1004,
+      "price": 200,
+      "name": "Faerie Charm",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1006,
+      "price": 300,
+      "name": "Rejuvenation Bead",
+      "stats": {},
       "onHitDamage": null
     },
     {
@@ -41,7 +56,7 @@
     },
     {
       "itemId": 1027,
-      "price": 400,
+      "price": 300,
       "name": "Sapphire Crystal",
       "stats": {
         "flatMana": 300.0
@@ -179,7 +194,7 @@
     },
     {
       "itemId": 1057,
-      "price": 900,
+      "price": 850,
       "name": "Negatron Cloak",
       "stats": {
         "flatMr": 45.0
@@ -196,6 +211,385 @@
       "onHitDamage": null
     },
     {
+      "itemId": 1082,
+      "price": 350,
+      "name": "Dark Seal",
+      "stats": {
+        "flatAp": 15.0,
+        "flatHealth": 50.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1083,
+      "price": 450,
+      "name": "Cull",
+      "stats": {
+        "flatAd": 7.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1086,
+      "price": 400,
+      "name": "Doran's Bow",
+      "stats": {
+        "flatAd": 8.0,
+        "bonusAttackSpeed": 0.15
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1101,
+      "price": 450,
+      "name": "Scorchclaw Pup",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1102,
+      "price": 450,
+      "name": "Gustwalker Hatchling",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1103,
+      "price": 450,
+      "name": "Mosstomper Seedling",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1105,
+      "price": 450,
+      "name": "Mosstomper Seedling",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1106,
+      "price": 450,
+      "name": "Gustwalker Hatchling",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1107,
+      "price": 450,
+      "name": "Scorchclaw Pup",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 1120,
+      "price": 450,
+      "name": "Doran's Helm",
+      "stats": {
+        "flatHealth": 150.0,
+        "flatArmor": 8.0,
+        "flatMr": 8.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2003,
+      "price": 50,
+      "name": "Health Potion",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2019,
+      "price": 1100,
+      "name": "Steel Sigil",
+      "stats": {
+        "flatAd": 15.0,
+        "flatArmor": 30.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2020,
+      "price": 1337,
+      "name": "The Brutalizer",
+      "stats": {
+        "flatAd": 25.0,
+        "abilityHaste": 10.0,
+        "lethality": 5.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2021,
+      "price": 1150,
+      "name": "Tunneler",
+      "stats": {
+        "flatAd": 15.0,
+        "flatHealth": 250.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2022,
+      "price": 250,
+      "name": "Glowing Mote",
+      "stats": {
+        "abilityHaste": 5.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2031,
+      "price": 150,
+      "name": "Refillable Potion",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2051,
+      "price": 950,
+      "name": "Guardian's Horn",
+      "stats": {
+        "flatHealth": 150.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2055,
+      "price": 75,
+      "name": "Control Ward",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2065,
+      "price": 2200,
+      "name": "Shurelya's Battlesong",
+      "stats": {
+        "flatAp": 50.0,
+        "abilityHaste": 15.0,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2138,
+      "price": 500,
+      "name": "Elixir of Iron",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2139,
+      "price": 500,
+      "name": "Elixir of Sorcery",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2140,
+      "price": 500,
+      "name": "Elixir of Wrath",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2141,
+      "price": 300,
+      "name": "Cappa Juice",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2420,
+      "price": 1600,
+      "name": "Seeker's Armguard",
+      "stats": {
+        "flatAp": 40.0,
+        "flatArmor": 25.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2501,
+      "price": 3300,
+      "name": "Overlord's Bloodmail",
+      "stats": {
+        "flatAd": 30.0,
+        "flatHealth": 550.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2502,
+      "price": 2800,
+      "name": "Unending Despair",
+      "stats": {
+        "flatHealth": 400.0,
+        "flatArmor": 50.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2503,
+      "price": 2800,
+      "name": "Blackfire Torch",
+      "stats": {
+        "flatAp": 80.0,
+        "flatMana": 600.0,
+        "abilityHaste": 20.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2504,
+      "price": 2900,
+      "name": "Kaenic Rookern",
+      "stats": {
+        "flatHealth": 400.0,
+        "flatMr": 80.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2508,
+      "price": 900,
+      "name": "Fated Ashes",
+      "stats": {
+        "flatAp": 30.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2510,
+      "price": 3100,
+      "name": "Dusk and Dawn",
+      "stats": {
+        "flatAp": 60.0,
+        "flatHealth": 300.0,
+        "bonusAttackSpeed": 0.2,
+        "abilityHaste": 20.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2512,
+      "price": 2650,
+      "name": "Fiendhunter Bolts",
+      "stats": {
+        "bonusAttackSpeed": 0.45,
+        "critChance": 0.25,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2517,
+      "price": 3100,
+      "name": "Endless Hunger",
+      "stats": {
+        "flatAd": 65.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2520,
+      "price": 3200,
+      "name": "Bastionbreaker",
+      "stats": {
+        "flatAd": 55.0,
+        "abilityHaste": 15.0,
+        "lethality": 22.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2522,
+      "price": 2800,
+      "name": "Actualizer",
+      "stats": {
+        "flatAp": 90.0,
+        "flatMana": 300.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2523,
+      "price": 2800,
+      "name": "Hexoptics C44",
+      "stats": {
+        "flatAd": 55.0,
+        "critChance": 0.25
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2524,
+      "price": 2300,
+      "name": "Bandlepipes",
+      "stats": {
+        "flatHealth": 200.0,
+        "flatArmor": 20.0,
+        "flatMr": 20.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2525,
+      "price": 2600,
+      "name": "Protoplasm Harness",
+      "stats": {
+        "flatHealth": 600.0,
+        "abilityHaste": 20.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 2526,
+      "price": 2250,
+      "name": "Whispering Circlet",
+      "stats": {
+        "flatHealth": 200.0,
+        "flatMana": 300.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3003,
+      "price": 2900,
+      "name": "Archangel's Staff",
+      "stats": {
+        "flatAp": 70.0,
+        "flatMana": 600.0,
+        "abilityHaste": 25.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3004,
+      "price": 2900,
+      "name": "Manamune",
+      "stats": {
+        "flatAd": 35.0,
+        "flatMana": 500.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null,
+      "manaflow": {
+        "rechargeSec": 8.0,
+        "maxCharges": 4,
+        "manaPerTrigger": 3,
+        "championMultiplier": 2,
+        "maxBonusMana": 360,
+        "transformItemId": 3042
+      },
+      "maxManaBonusAdRatio": 0.02
+    },
+    {
       "itemId": 3006,
       "price": 1100,
       "name": "Berserker's Greaves",
@@ -206,22 +600,148 @@
       "onHitDamage": null
     },
     {
+      "itemId": 3008,
+      "price": 1000,
+      "name": "Gluttonous Greaves",
+      "stats": {
+        "flatMoveSpeed": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3009,
+      "price": 1000,
+      "name": "Boots of Swiftness",
+      "stats": {
+        "flatMoveSpeed": 55.0
+      },
+      "onHitDamage": null
+    },
+    {
       "itemId": 3020,
       "price": 1100,
       "name": "Sorcerer's Shoes",
       "stats": {
-        "flatMoveSpeed": 45.0,
-        "flatMagicPen": 15.0
+        "flatMagicPen": 12.0,
+        "flatMoveSpeed": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3024,
+      "price": 900,
+      "name": "Glacial Buckler",
+      "stats": {
+        "flatMana": 300.0,
+        "flatArmor": 25.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3026,
+      "price": 3200,
+      "name": "Guardian Angel",
+      "stats": {
+        "flatAd": 55.0,
+        "flatArmor": 45.0
       },
       "onHitDamage": null
     },
     {
       "itemId": 3031,
-      "price": 3450,
+      "price": 3500,
       "name": "Infinity Edge",
       "stats": {
-        "flatAd": 65.0,
-        "critChance": 0.25
+        "flatAd": 75.0,
+        "critChance": 0.25,
+        "critDamageBonus": 0.3
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3032,
+      "price": 3100,
+      "name": "Yun Tal Wildarrows",
+      "stats": {
+        "flatAd": 50.0,
+        "bonusAttackSpeed": 0.4
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3033,
+      "price": 3000,
+      "name": "Mortal Reminder",
+      "stats": {
+        "flatAd": 35.0,
+        "critChance": 0.25,
+        "armorPenPercent": 0.3
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3035,
+      "price": 1450,
+      "name": "Last Whisper",
+      "stats": {
+        "flatAd": 20.0,
+        "armorPenPercent": 0.18
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3036,
+      "price": 3300,
+      "name": "Lord Dominik's Regards",
+      "stats": {
+        "flatAd": 35.0,
+        "critChance": 0.25,
+        "armorPenPercent": 0.35
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3041,
+      "price": 1500,
+      "name": "Mejai's Soulstealer",
+      "stats": {
+        "flatAp": 20.0,
+        "flatHealth": 100.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3042,
+      "price": 2900,
+      "name": "Muramana",
+      "stats": {
+        "flatAd": 35.0,
+        "flatMana": 1000.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null,
+      "maxManaBonusAdRatio": 0.02,
+      "purchasable": false
+    },
+    {
+      "itemId": 3044,
+      "price": 1100,
+      "name": "Phage",
+      "stats": {
+        "flatAd": 15.0,
+        "flatHealth": 200.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3046,
+      "price": 2650,
+      "name": "Phantom Dancer",
+      "stats": {
+        "bonusAttackSpeed": 0.65,
+        "critChance": 0.25,
+        "percentMoveSpeed": 0.1
       },
       "onHitDamage": null
     },
@@ -236,13 +756,104 @@
       "onHitDamage": null
     },
     {
+      "itemId": 3050,
+      "price": 2200,
+      "name": "Zeke's Convergence",
+      "stats": {
+        "flatHealth": 300.0,
+        "flatArmor": 25.0,
+        "flatMr": 25.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3051,
+      "price": 1200,
+      "name": "Hearthbound Axe",
+      "stats": {
+        "flatAd": 20.0,
+        "bonusAttackSpeed": 0.2
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3053,
+      "price": 3200,
+      "name": "Sterak's Gage",
+      "stats": {
+        "flatHealth": 400.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3057,
+      "price": 900,
+      "name": "Sheen",
+      "stats": {
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
       "itemId": 3065,
       "price": 2700,
       "name": "Spirit Visage",
       "stats": {
-        "flatHealth": 450.0,
+        "flatHealth": 400.0,
         "flatMr": 50.0,
         "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3066,
+      "price": 800,
+      "name": "Winged Moonplate",
+      "stats": {
+        "flatHealth": 200.0,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3067,
+      "price": 800,
+      "name": "Kindlegem",
+      "stats": {
+        "flatHealth": 200.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3068,
+      "price": 2700,
+      "name": "Sunfire Aegis",
+      "stats": {
+        "flatHealth": 350.0,
+        "flatArmor": 50.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3070,
+      "price": 400,
+      "name": "Tear of the Goddess",
+      "stats": {
+        "flatMana": 240.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3071,
+      "price": 3000,
+      "name": "Black Cleaver",
+      "stats": {
+        "flatAd": 40.0,
+        "flatHealth": 400.0,
+        "abilityHaste": 20.0
       },
       "onHitDamage": null
     },
@@ -257,14 +868,125 @@
       "onHitDamage": null
     },
     {
+      "itemId": 3073,
+      "price": 3000,
+      "name": "Experimental Hexplate",
+      "stats": {
+        "flatAd": 40.0,
+        "flatHealth": 450.0,
+        "bonusAttackSpeed": 0.2
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3074,
+      "price": 3300,
+      "name": "Ravenous Hydra",
+      "stats": {
+        "flatAd": 65.0,
+        "abilityHaste": 15.0,
+        "lifeSteal": 0.12
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3075,
+      "price": 2450,
+      "name": "Thornmail",
+      "stats": {
+        "flatHealth": 150.0,
+        "flatArmor": 75.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3076,
+      "price": 800,
+      "name": "Bramble Vest",
+      "stats": {
+        "flatArmor": 30.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3077,
+      "price": 1200,
+      "name": "Tiamat",
+      "stats": {
+        "flatAd": 20.0
+      },
+      "onHitDamage": null
+    },
+    {
       "itemId": 3078,
       "price": 3333,
       "name": "Trinity Force",
       "stats": {
-        "flatAd": 45.0,
-        "flatHealth": 300.0,
+        "flatAd": 36.0,
+        "flatHealth": 333.0,
         "bonusAttackSpeed": 0.3,
         "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3082,
+      "price": 1000,
+      "name": "Warden's Mail",
+      "stats": {
+        "flatArmor": 40.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3083,
+      "price": 3100,
+      "name": "Warmog's Armor",
+      "stats": {
+        "flatHealth": 1000.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3084,
+      "price": 3000,
+      "name": "Heartsteel",
+      "stats": {
+        "flatHealth": 900.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3085,
+      "price": 2650,
+      "name": "Runaan's Hurricane",
+      "stats": {
+        "bonusAttackSpeed": 0.4,
+        "critChance": 0.25,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3086,
+      "price": 1200,
+      "name": "Zeal",
+      "stats": {
+        "bonusAttackSpeed": 0.15,
+        "critChance": 0.15,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3087,
+      "price": 3000,
+      "name": "Statikk Shiv",
+      "stats": {
+        "flatAd": 45.0,
+        "flatAp": 45.0,
+        "bonusAttackSpeed": 0.3,
+        "percentMoveSpeed": 0.04
       },
       "onHitDamage": null
     },
@@ -278,8 +1000,103 @@
       "onHitDamage": null
     },
     {
+      "itemId": 3091,
+      "price": 2800,
+      "name": "Wit's End",
+      "stats": {
+        "flatMr": 45.0,
+        "bonusAttackSpeed": 0.5
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3094,
+      "price": 2650,
+      "name": "Rapid Firecannon",
+      "stats": {
+        "bonusAttackSpeed": 0.35,
+        "critChance": 0.25,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3097,
+      "price": 3200,
+      "name": "Stormrazor",
+      "stats": {
+        "flatAd": 50.0,
+        "bonusAttackSpeed": 0.2,
+        "critChance": 0.25
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3100,
+      "price": 2900,
+      "name": "Lich Bane",
+      "stats": {
+        "flatAp": 100.0,
+        "abilityHaste": 10.0,
+        "percentMoveSpeed": 0.06
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3102,
+      "price": 3000,
+      "name": "Banshee's Veil",
+      "stats": {
+        "flatAp": 105.0,
+        "flatMr": 40.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3107,
+      "price": 2300,
+      "name": "Redemption",
+      "stats": {
+        "flatAp": 30.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3108,
+      "price": 850,
+      "name": "Fiendish Codex",
+      "stats": {
+        "flatAp": 25.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3109,
+      "price": 2300,
+      "name": "Knight's Vow",
+      "stats": {
+        "flatHealth": 200.0,
+        "flatArmor": 40.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3110,
+      "price": 2500,
+      "name": "Frozen Heart",
+      "stats": {
+        "flatMana": 400.0,
+        "flatArmor": 75.0,
+        "abilityHaste": 20.0
+      },
+      "onHitDamage": null
+    },
+    {
       "itemId": 3111,
-      "price": 1200,
+      "price": 1250,
       "name": "Mercury's Treads",
       "stats": {
         "flatMr": 20.0,
@@ -288,9 +1105,240 @@
       "onHitDamage": null
     },
     {
-      "itemId": 3153,
+      "itemId": 3112,
+      "price": 950,
+      "name": "Guardian's Orb",
+      "stats": {
+        "flatAp": 50.0,
+        "flatHealth": 150.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3113,
+      "price": 900,
+      "name": "Aether Wisp",
+      "stats": {
+        "flatAp": 30.0,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3114,
+      "price": 600,
+      "name": "Forbidden Idol",
+      "stats": {},
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3115,
+      "price": 2900,
+      "name": "Nashor's Tooth",
+      "stats": {
+        "flatAp": 80.0,
+        "bonusAttackSpeed": 0.5,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3116,
+      "price": 2600,
+      "name": "Rylai's Crystal Scepter",
+      "stats": {
+        "flatAp": 65.0,
+        "flatHealth": 400.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3118,
+      "price": 2700,
+      "name": "Malignance",
+      "stats": {
+        "flatAp": 90.0,
+        "flatMana": 600.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3119,
+      "price": 2400,
+      "name": "Winter's Approach",
+      "stats": {
+        "flatHealth": 550.0,
+        "flatMana": 500.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3123,
+      "price": 800,
+      "name": "Executioner's Calling",
+      "stats": {
+        "flatAd": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3124,
       "price": 3000,
-      "name": "Blade of the Ruined King",
+      "name": "Guinsoo's Rageblade",
+      "stats": {
+        "flatAd": 30.0,
+        "flatAp": 30.0,
+        "bonusAttackSpeed": 0.25
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3133,
+      "price": 1050,
+      "name": "Caulfield's Warhammer",
+      "stats": {
+        "flatAd": 20.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3134,
+      "price": 1000,
+      "name": "Serrated Dirk",
+      "stats": {
+        "flatAd": 20.0,
+        "lethality": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3135,
+      "price": 3000,
+      "name": "Void Staff",
+      "stats": {
+        "flatAp": 95.0,
+        "magicPenPercent": 0.4
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3137,
+      "price": 3000,
+      "name": "Cryptbloom",
+      "stats": {
+        "flatAp": 75.0,
+        "abilityHaste": 20.0,
+        "magicPenPercent": 0.3
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3139,
+      "price": 3200,
+      "name": "Mercurial Scimitar",
+      "stats": {
+        "flatAd": 50.0,
+        "flatMr": 35.0,
+        "lifeSteal": 0.1
+      },
+      "onHitDamage": null,
+      "active": {
+        "kind": "Cleanse",
+        "cooldownSec": 90.0,
+        "durationSec": 0.0
+      }
+    },
+    {
+      "itemId": 3140,
+      "price": 1300,
+      "name": "Quicksilver Sash",
+      "stats": {
+        "flatMr": 30.0
+      },
+      "onHitDamage": null,
+      "active": {
+        "kind": "Cleanse",
+        "cooldownSec": 90.0,
+        "durationSec": 0.0
+      }
+    },
+    {
+      "itemId": 3142,
+      "price": 2800,
+      "name": "Youmuu's Ghostblade",
+      "stats": {
+        "flatAd": 55.0,
+        "percentMoveSpeed": 0.04,
+        "lethality": 18.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3143,
+      "price": 2700,
+      "name": "Randuin's Omen",
+      "stats": {
+        "flatHealth": 350.0,
+        "flatArmor": 75.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3144,
+      "price": 600,
+      "name": "Scout's Slingshot",
+      "stats": {
+        "bonusAttackSpeed": 0.2
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3145,
+      "price": 1100,
+      "name": "Hextech Alternator",
+      "stats": {
+        "flatAp": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3146,
+      "price": 3000,
+      "name": "Hextech Gunblade",
+      "stats": {
+        "flatAd": 40.0,
+        "flatAp": 80.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3147,
+      "price": 1300,
+      "name": "Haunting Guise",
+      "stats": {
+        "flatAp": 30.0,
+        "flatHealth": 200.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3152,
+      "price": 2650,
+      "name": "Hextech Rocketbelt",
+      "stats": {
+        "flatAp": 60.0,
+        "flatHealth": 350.0,
+        "abilityHaste": 20.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3153,
+      "price": 3200,
+      "name": "Blade of The Ruined King",
       "stats": {
         "flatAd": 40.0,
         "bonusAttackSpeed": 0.25,
@@ -323,6 +1371,27 @@
       }
     },
     {
+      "itemId": 3155,
+      "price": 1300,
+      "name": "Hexdrinker",
+      "stats": {
+        "flatAd": 25.0,
+        "flatMr": 25.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3156,
+      "price": 3100,
+      "name": "Maw of Malmortius",
+      "stats": {
+        "flatAd": 60.0,
+        "flatMr": 40.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
       "itemId": 3157,
       "price": 3250,
       "name": "Zhonya's Hourglass",
@@ -330,17 +1399,226 @@
         "flatAp": 105.0,
         "flatArmor": 50.0
       },
-      "onHitDamage": null
+      "onHitDamage": null,
+      "active": {
+        "kind": "Stasis",
+        "cooldownSec": 120.0,
+        "durationSec": 3.0
+      }
     },
     {
       "itemId": 3158,
-      "price": 950,
+      "price": 900,
       "name": "Ionian Boots of Lucidity",
       "stats": {
-        "abilityHaste": 15.0,
+        "abilityHaste": 10.0,
         "flatMoveSpeed": 45.0
       },
       "onHitDamage": null
+    },
+    {
+      "itemId": 3161,
+      "price": 3100,
+      "name": "Spear of Shojin",
+      "stats": {
+        "flatAd": 45.0,
+        "flatHealth": 450.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3165,
+      "price": 2850,
+      "name": "Morellonomicon",
+      "stats": {
+        "flatAp": 75.0,
+        "flatHealth": 350.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3168,
+      "price": 1000,
+      "name": "Immortal Path",
+      "stats": {
+        "flatMoveSpeed": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3170,
+      "price": 1000,
+      "name": "Swiftmarch",
+      "stats": {
+        "flatMoveSpeed": 65.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3171,
+      "price": 900,
+      "name": "Crimson Lucidity",
+      "stats": {
+        "abilityHaste": 20.0,
+        "flatMoveSpeed": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3172,
+      "price": 1100,
+      "name": "Gunmetal Greaves",
+      "stats": {
+        "bonusAttackSpeed": 0.4,
+        "flatMoveSpeed": 45.0,
+        "lifeSteal": 0.05
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3173,
+      "price": 1250,
+      "name": "Chainlaced Crushers",
+      "stats": {
+        "flatMr": 30.0,
+        "flatMoveSpeed": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3174,
+      "price": 1200,
+      "name": "Armored Advance",
+      "stats": {
+        "flatArmor": 35.0,
+        "flatMoveSpeed": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3175,
+      "price": 1100,
+      "name": "Spellslinger's Shoes",
+      "stats": {
+        "magicPenPercent": 0.08,
+        "flatMagicPen": 18.0,
+        "flatMoveSpeed": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3177,
+      "price": 950,
+      "name": "Guardian's Blade",
+      "stats": {
+        "flatAd": 30.0,
+        "flatHealth": 150.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3179,
+      "price": 2800,
+      "name": "Umbral Glaive",
+      "stats": {
+        "flatAd": 60.0,
+        "abilityHaste": 15.0,
+        "lethality": 18.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3181,
+      "price": 3000,
+      "name": "Hullbreaker",
+      "stats": {
+        "flatAd": 40.0,
+        "flatHealth": 500.0,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3184,
+      "price": 950,
+      "name": "Guardian's Hammer",
+      "stats": {
+        "flatAd": 25.0,
+        "flatHealth": 150.0,
+        "lifeSteal": 0.05
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3190,
+      "price": 2200,
+      "name": "Locket of the Iron Solari",
+      "stats": {
+        "flatHealth": 200.0,
+        "flatArmor": 30.0,
+        "flatMr": 30.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3211,
+      "price": 1250,
+      "name": "Spectre's Cowl",
+      "stats": {
+        "flatHealth": 200.0,
+        "flatMr": 35.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3222,
+      "price": 2300,
+      "name": "Mikael's Blessing",
+      "stats": {
+        "flatHealth": 250.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3302,
+      "price": 3000,
+      "name": "Terminus",
+      "stats": {
+        "flatAd": 30.0,
+        "bonusAttackSpeed": 0.35
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3504,
+      "price": 2200,
+      "name": "Ardent Censer",
+      "stats": {
+        "flatAp": 45.0,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3508,
+      "price": 3050,
+      "name": "Essence Reaver",
+      "stats": {
+        "flatAd": 50.0,
+        "critChance": 0.25,
+        "abilityHaste": 20.0
+      },
+      "onHitDamage": null,
+      "spellblade": {
+        "cooldownSec": 1.5,
+        "baseAdRatio": 1.25,
+        "critChanceFlatScale": 50.0,
+        "manaRestoreRatio": 0.5
+      }
     },
     {
       "itemId": 3742,
@@ -348,8 +1626,579 @@
       "name": "Dead Man's Plate",
       "stats": {
         "flatHealth": 350.0,
+        "flatArmor": 55.0,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3748,
+      "price": 3300,
+      "name": "Titanic Hydra",
+      "stats": {
+        "flatAd": 40.0,
+        "flatHealth": 600.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3801,
+      "price": 800,
+      "name": "Crystalline Bracer",
+      "stats": {
+        "flatHealth": 200.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3802,
+      "price": 1200,
+      "name": "Lost Chapter",
+      "stats": {
+        "flatAp": 40.0,
+        "flatMana": 300.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3803,
+      "price": 1300,
+      "name": "Catalyst of Aeons",
+      "stats": {
+        "flatHealth": 300.0,
+        "flatMana": 375.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3814,
+      "price": 3000,
+      "name": "Edge of Night",
+      "stats": {
+        "flatAd": 50.0,
+        "flatHealth": 250.0,
+        "lethality": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3865,
+      "price": 400,
+      "name": "World Atlas",
+      "stats": {
+        "flatHealth": 30.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3869,
+      "price": 400,
+      "name": "Celestial Opposition",
+      "stats": {
+        "flatHealth": 200.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3870,
+      "price": 400,
+      "name": "Dream Maker",
+      "stats": {
+        "flatHealth": 200.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3871,
+      "price": 400,
+      "name": "Zaz'Zak's Realmspike",
+      "stats": {
+        "flatHealth": 200.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3876,
+      "price": 400,
+      "name": "Solstice Sleigh",
+      "stats": {
+        "flatHealth": 200.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3877,
+      "price": 400,
+      "name": "Bloodsong",
+      "stats": {
+        "flatHealth": 200.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3916,
+      "price": 800,
+      "name": "Oblivion Orb",
+      "stats": {
+        "flatAp": 25.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4005,
+      "price": 2400,
+      "name": "Imperial Mandate",
+      "stats": {
+        "flatAp": 60.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4401,
+      "price": 2800,
+      "name": "Force of Nature",
+      "stats": {
+        "flatHealth": 400.0,
+        "flatMr": 55.0,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4628,
+      "price": 2700,
+      "name": "Horizon Focus",
+      "stats": {
+        "flatAp": 75.0,
+        "abilityHaste": 25.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4629,
+      "price": 3000,
+      "name": "Cosmic Drive",
+      "stats": {
+        "flatAp": 70.0,
+        "flatHealth": 350.0,
+        "abilityHaste": 25.0,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4630,
+      "price": 1100,
+      "name": "Blighting Jewel",
+      "stats": {
+        "flatAp": 25.0,
+        "magicPenPercent": 0.13
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4632,
+      "price": 1600,
+      "name": "Verdant Barrier",
+      "stats": {
+        "flatAp": 40.0,
+        "flatMr": 25.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4633,
+      "price": 3100,
+      "name": "Riftmaker",
+      "stats": {
+        "flatAp": 70.0,
+        "flatHealth": 350.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4642,
+      "price": 900,
+      "name": "Bandleglass Mirror",
+      "stats": {
+        "flatAp": 20.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4645,
+      "price": 3200,
+      "name": "Shadowflame",
+      "stats": {
+        "flatAp": 110.0,
+        "flatMagicPen": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 4646,
+      "price": 2800,
+      "name": "Stormsurge",
+      "stats": {
+        "flatAp": 90.0,
+        "percentMoveSpeed": 0.06,
+        "flatMagicPen": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6333,
+      "price": 3300,
+      "name": "Death's Dance",
+      "stats": {
+        "flatAd": 60.0,
+        "flatArmor": 50.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6609,
+      "price": 3000,
+      "name": "Chempunk Chainsword",
+      "stats": {
+        "flatAd": 45.0,
+        "flatHealth": 450.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6610,
+      "price": 3100,
+      "name": "Sundered Sky",
+      "stats": {
+        "flatAd": 45.0,
+        "flatHealth": 400.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null,
+      "lightshieldStrike": {
+        "cooldownSec": 5.0,
+        "critDamageMultiplier": 1.8,
+        "healBaseAdRatio": 1.0,
+        "healMissingHealthRatio": 0.06
+      }
+    },
+    {
+      "itemId": 6616,
+      "price": 2250,
+      "name": "Staff of Flowing Water",
+      "stats": {
+        "flatAp": 35.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6617,
+      "price": 2200,
+      "name": "Moonstone Renewer",
+      "stats": {
+        "flatAp": 25.0,
+        "flatHealth": 200.0,
+        "abilityHaste": 20.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6620,
+      "price": 2200,
+      "name": "Echoes of Helia",
+      "stats": {
+        "flatAp": 35.0,
+        "flatHealth": 200.0,
+        "abilityHaste": 20.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6621,
+      "price": 2500,
+      "name": "Dawncore",
+      "stats": {
+        "flatAp": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6631,
+      "price": 3300,
+      "name": "Stridebreaker",
+      "stats": {
+        "flatAd": 40.0,
+        "flatHealth": 450.0,
+        "bonusAttackSpeed": 0.25
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6653,
+      "price": 3000,
+      "name": "Liandry's Torment",
+      "stats": {
+        "flatAp": 60.0,
+        "flatHealth": 300.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6655,
+      "price": 2750,
+      "name": "Luden's Echo",
+      "stats": {
+        "flatAp": 100.0,
+        "flatMana": 600.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6657,
+      "price": 2600,
+      "name": "Rod of Ages",
+      "stats": {
+        "flatAp": 45.0,
+        "flatHealth": 350.0,
+        "flatMana": 500.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6660,
+      "price": 900,
+      "name": "Bami's Cinder",
+      "stats": {
+        "flatHealth": 150.0,
+        "abilityHaste": 5.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6662,
+      "price": 2900,
+      "name": "Iceborn Gauntlet",
+      "stats": {
+        "flatHealth": 300.0,
+        "flatArmor": 50.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6664,
+      "price": 2800,
+      "name": "Hollow Radiance",
+      "stats": {
+        "flatHealth": 400.0,
+        "flatMr": 40.0,
+        "abilityHaste": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6665,
+      "price": 3200,
+      "name": "Jak'Sho, The Protean",
+      "stats": {
+        "flatHealth": 350.0,
         "flatArmor": 45.0,
-        "flatMoveSpeed": 5.0
+        "flatMr": 45.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6670,
+      "price": 1300,
+      "name": "Noonquiver",
+      "stats": {
+        "flatAd": 15.0,
+        "critChance": 0.2
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6672,
+      "price": 3000,
+      "name": "Kraken Slayer",
+      "stats": {
+        "flatAd": 45.0,
+        "bonusAttackSpeed": 0.4,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6673,
+      "price": 3000,
+      "name": "Immortal Shieldbow",
+      "stats": {
+        "flatAd": 55.0,
+        "critChance": 0.25
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6675,
+      "price": 2650,
+      "name": "Navori Flickerblade",
+      "stats": {
+        "bonusAttackSpeed": 0.4,
+        "critChance": 0.25,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6676,
+      "price": 3000,
+      "name": "The Collector",
+      "stats": {
+        "flatAd": 50.0,
+        "critChance": 0.25,
+        "lethality": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6690,
+      "price": 775,
+      "name": "Rectrix",
+      "stats": {
+        "flatAd": 15.0,
+        "percentMoveSpeed": 0.04
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6692,
+      "price": 2900,
+      "name": "Eclipse",
+      "stats": {
+        "flatAd": 60.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6694,
+      "price": 3000,
+      "name": "Serylda's Grudge",
+      "stats": {
+        "flatAd": 45.0,
+        "abilityHaste": 15.0,
+        "armorPenPercent": 0.35
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6695,
+      "price": 2500,
+      "name": "Serpent's Fang",
+      "stats": {
+        "flatAd": 55.0,
+        "lethality": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6696,
+      "price": 2750,
+      "name": "Axiom Arc",
+      "stats": {
+        "flatAd": 55.0,
+        "abilityHaste": 20.0,
+        "lethality": 18.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6697,
+      "price": 2800,
+      "name": "Hubris",
+      "stats": {
+        "flatAd": 55.0,
+        "abilityHaste": 10.0,
+        "lethality": 18.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6698,
+      "price": 2850,
+      "name": "Profane Hydra",
+      "stats": {
+        "flatAd": 55.0,
+        "abilityHaste": 10.0,
+        "lethality": 18.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 6699,
+      "price": 3000,
+      "name": "Voltaic Cyclosword",
+      "stats": {
+        "flatAd": 55.0,
+        "abilityHaste": 10.0,
+        "lethality": 10.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 3340,
+      "price": 0,
+      "purchasable": false,
+      "name": "Stealth Ward",
+      "stats": {},
+      "onHitDamage": null,
+      "active": {
+        "kind": "Ward",
+        "cooldownSec": 0.0,
+        "durationSec": 0.0
+      }
+    },
+    {
+      "itemId": 3599,
+      "price": 0,
+      "purchasable": false,
+      "name": "Kalista's Black Spear",
+      "stats": {},
+      "onHitDamage": null,
+      "active": {
+        "kind": "KalistaOathsworn",
+        "cooldownSec": 0.0,
+        "durationSec": 0.0
+      }
+    },
+    {
+      "itemId": 8010,
+      "price": 2900,
+      "name": "Bloodletter's Curse",
+      "stats": {
+        "flatAp": 65.0,
+        "flatHealth": 400.0,
+        "abilityHaste": 15.0
+      },
+      "onHitDamage": null
+    },
+    {
+      "itemId": 8020,
+      "price": 2650,
+      "name": "Abyssal Mask",
+      "stats": {
+        "flatHealth": 350.0,
+        "flatMr": 45.0,
+        "abilityHaste": 15.0
       },
       "onHitDamage": null
     }

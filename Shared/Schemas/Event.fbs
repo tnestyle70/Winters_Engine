@@ -33,6 +33,7 @@ table DamageEvent {
     bWasCrit:bool;
     bKilled:bool;
     skillId:ushort;
+    flags:ushort;
 }
 
 table BuffApplyEvent {

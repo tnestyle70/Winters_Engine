@@ -1,4 +1,5 @@
 #include "RHI/DX11/DX11Shader.h"
+#include "Core/Profiler/RenderFrameStats.h"
 #include <cassert>
 
 // ─────────────────────────────────────────────────────────────────
@@ -64,6 +65,7 @@ bool DX11Shader::Load(ID3D11Device* device,
 
 void DX11Shader::Bind(ID3D11DeviceContext* context) const
 {
+    RenderFrameStats::AddBindShader();
     context->VSSetShader(m_pVS, nullptr, 0);
     context->PSSetShader(m_pPS, nullptr, 0);
 }

@@ -27,7 +27,6 @@ namespace SkillDefAdapters
         case eTargetMode::GroundTarget:
             return eTargetShape::Ground;
         case eTargetMode::Direction:
-        case eTargetMode::Conditional:
             return eTargetShape::Direction;
         case eTargetMode::Self:
         default:
@@ -37,9 +36,8 @@ namespace SkillDefAdapters
 
     inline eTargetResolvePolicy ToTargetResolvePolicy(eTargetMode mode)
     {
-        return mode == eTargetMode::Conditional
-            ? eTargetResolvePolicy::ChampionStateDependent
-            : eTargetResolvePolicy::Direct;
+        (void)mode;
+        return eTargetResolvePolicy::Direct;
     }
 
     inline eSkillFacingMode ToSkillFacingMode(eRotateMode mode)
@@ -64,6 +62,7 @@ namespace SkillDefAdapters
         data.slot.champion = def.champ;
         data.slot.slot = def.slot;
         data.slot.skillId = def.skillId;
+        data.input.activation = def.inputActivation;
         data.target.bValid = true;
         data.target.shape[0] = ToTargetShape(def.targetMode);
         data.target.shape[1] = ToTargetShape(def.stage2TargetMode);
@@ -79,9 +78,18 @@ namespace SkillDefAdapters
         data.stage.stageWindowSec = def.stageWindowSec;
         data.stage.lockDurationSec[0] = def.lockDurationSec;
         data.stage.lockDurationSec[1] = def.stage2LockSec;
+        data.stage.commandLockSec[0] = def.commandLockSec;
+        data.stage.commandLockSec[1] = def.stage2CommandLockSec;
+        data.stage.movePolicy[0] = def.movePolicy;
+        data.stage.movePolicy[1] = def.stage2MovePolicy;
+        data.stage.bCreatesActionState[0] = def.bCreatesActionState;
+        data.stage.bCreatesActionState[1] = def.bStage2CreatesActionState;
+        data.stage.bPresentationLoopWhileActive[0] = def.bPresentationLoopWhileActive;
+        data.stage.bPresentationLoopWhileActive[1] = def.bStage2PresentationLoopWhileActive;
         data.facing.mode[0] = ToSkillFacingMode(def.rotate);
         data.facing.mode[1] = ToSkillFacingMode(def.stage2Rotate);
         data.effect.scalingTableId = def.scalingTableId;
+        data.charge = def.charge;
         return data;
     }
 
@@ -90,6 +98,7 @@ namespace SkillDefAdapters
         ChampionGameDataSkill data{};
         data.bValid = true;
         data.slot = def.slot;
+        data.inputActivation = def.inputActivation;
         data.targetMode = def.targetMode;
         data.stageCount = ClampSkillStageCount(def.stageCount);
         data.stageWindowSec = def.stageWindowSec;
@@ -104,9 +113,21 @@ namespace SkillDefAdapters
 
         ChampionGameDataSkillStage& stage1 = data.stages[0];
         stage1.lockDurationSec = def.lockDurationSec;
+        stage1.targetMode = def.targetMode;
+        stage1.commandLockSec = def.commandLockSec;
+        stage1.movePolicy = def.movePolicy;
+        stage1.bCreatesActionState = def.bCreatesActionState;
+        stage1.bPresentationLoopWhileActive = def.bPresentationLoopWhileActive;
 
         ChampionGameDataSkillStage& stage2 = data.stages[1];
         stage2.lockDurationSec = def.stage2LockSec;
+        stage2.targetMode = def.stage2TargetMode;
+        stage2.commandLockSec = def.stage2CommandLockSec;
+        stage2.movePolicy = def.stage2MovePolicy;
+        stage2.bCreatesActionState = def.bStage2CreatesActionState;
+        stage2.bPresentationLoopWhileActive = def.bStage2PresentationLoopWhileActive;
+
+        data.charge = def.charge;
 
         return data;
     }

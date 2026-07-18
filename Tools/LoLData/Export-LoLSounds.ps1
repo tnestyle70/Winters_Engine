@@ -5,6 +5,9 @@ param(
     [string]$StageRoot = "Tools\Bin\Intermediate\LoLSoundBanks",
     [string]$OutputRoot = "Client\Bin\Resource\Sound\LoL",
     [switch]$Clean,
+    [switch]$SkipChampionSfx,
+    [switch]$SkipChampionVoices,
+    [string]$VoiceLocale = "ko_KR",
     [switch]$SkipMapBanks,
     [switch]$AllMapAudioBanks,
     [string[]]$MapBankNamePatterns = @(
@@ -126,6 +129,116 @@ function Convert-AudioBank {
     }
 }
 
+function Convert-WpkAudio {
+    param(
+        [string]$WpkPath,
+        [string]$WemStageRoot,
+        [string]$OutputDir,
+        [string]$Stem,
+        [string]$ProbePath,
+        [string]$VgmstreamPath,
+        [string]$StageRootPath,
+        [string]$OutputRootPath,
+        [switch]$Required
+    )
+
+    if (-not (Test-Path -LiteralPath $WpkPath)) {
+        return [ordered]@{
+            wpk = $WpkPath
+            stem = $Stem
+            status = "missing"
+            wemCount = 0
+            wavCount = 0
+        }
+    }
+
+    Assert-PathUnderRoot -Path $WemStageRoot -RootPath $StageRootPath
+    Assert-PathUnderRoot -Path $OutputDir -RootPath $OutputRootPath
+    if (Test-Path -LiteralPath $WemStageRoot) {
+        Remove-Item -LiteralPath $WemStageRoot -Recurse -Force
+    }
+
+    New-Item -ItemType Directory -Force -Path $WemStageRoot | Out-Null
+    New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+    Get-ChildItem -LiteralPath $OutputDir -File -Filter "${Stem}_*.wav" -ErrorAction SilentlyContinue |
+        Remove-Item -Force
+
+    $logPath = Join-Path $OutputDir "$Stem.vgmstream.log"
+    $logLines = New-Object System.Collections.Generic.List[string]
+    $extractCaptured = & $ProbePath wpk-extract $WpkPath $WemStageRoot 2>&1
+    $extractExitCode = $LASTEXITCODE
+    foreach ($line in $extractCaptured) {
+        $logLines.Add([string]$line)
+    }
+
+    if ($extractExitCode -ne 0) {
+        $logLines | Set-Content -LiteralPath $logPath -Encoding UTF8
+        if ($Required) {
+            throw "wpk-extract failed with exit code $extractExitCode for $WpkPath. See $logPath"
+        }
+
+        return [ordered]@{
+            wpk = $WpkPath
+            output = $OutputDir
+            stem = $Stem
+            status = "skipped"
+            reason = "wpk-extract-exit-$extractExitCode"
+            wemCount = 0
+            wavCount = 0
+            log = $logPath
+        }
+    }
+
+    $wemFiles = @(Get-ChildItem -LiteralPath $WemStageRoot -File -Filter "*.wem" | Sort-Object Name)
+    foreach ($wem in $wemFiles) {
+        $outputPath = Join-Path $OutputDir "${Stem}_$($wem.BaseName).wav"
+        $logLines.Add("=== $($wem.Name) ===")
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = "Continue"
+            $captured = & $VgmstreamPath -i -o $outputPath $wem.FullName 2>&1
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
+
+        foreach ($line in $captured) {
+            $logLines.Add([string]$line)
+        }
+
+        if ($exitCode -ne 0) {
+            $logLines | Set-Content -LiteralPath $logPath -Encoding UTF8
+            if ($Required) {
+                throw "vgmstream failed with exit code $exitCode for $($wem.FullName). See $logPath"
+            }
+
+            return [ordered]@{
+                wpk = $WpkPath
+                output = $OutputDir
+                stem = $Stem
+                status = "skipped"
+                reason = "vgmstream-exit-$exitCode"
+                wemCount = $wemFiles.Count
+                wavCount = @(Get-ChildItem -LiteralPath $OutputDir -File -Filter "${Stem}_*.wav").Count
+                log = $logPath
+            }
+        }
+    }
+
+    $logLines | Set-Content -LiteralPath $logPath -Encoding UTF8
+    $wavCount = @(Get-ChildItem -LiteralPath $OutputDir -File -Filter "${Stem}_*.wav").Count
+    return [ordered]@{
+        wpk = $WpkPath
+        output = $OutputDir
+        stem = $Stem
+        status = "converted"
+        wemCount = $wemFiles.Count
+        wavCount = $wavCount
+        log = $logPath
+    }
+}
+
 function Test-NamePattern {
     param(
         [string]$Name,
@@ -191,40 +304,90 @@ $champions = @(
 )
 
 $championResults = New-Object System.Collections.Generic.List[object]
+$voiceResults = New-Object System.Collections.Generic.List[object]
 $mapResults = New-Object System.Collections.Generic.List[object]
 $missing = New-Object System.Collections.Generic.List[object]
 
 foreach ($champion in $champions) {
     $name = [string]$champion.Name
     $asset = [string]$champion.Asset
-    $wadPath = Join-Path $leagueRootResolved "Game\DATA\FINAL\Champions\$name.wad.client"
     $stageChampionRoot = Join-Path $stageRootResolved "Champions\$name"
     $outputChampionRoot = Join-Path $outputRootResolved "Champions\$name"
-    $audioBankRelative = "assets/sounds/wwise2016/sfx/characters/$asset/skins/base/${asset}_base_sfx_audio.bnk"
-    $eventsBankRelative = "assets/sounds/wwise2016/sfx/characters/$asset/skins/base/${asset}_base_sfx_events.bnk"
 
-    if (-not (Test-Path -LiteralPath $wadPath)) {
-        $missing.Add([ordered]@{ type = "champion-wad"; champion = $name; path = $wadPath })
-        continue
+    if (-not $SkipChampionSfx) {
+        $wadPath = Join-Path $leagueRootResolved "Game\DATA\FINAL\Champions\$name.wad.client"
+        $audioBankRelative = "assets/sounds/wwise2016/sfx/characters/$asset/skins/base/${asset}_base_sfx_audio.bnk"
+        $eventsBankRelative = "assets/sounds/wwise2016/sfx/characters/$asset/skins/base/${asset}_base_sfx_events.bnk"
+
+        if (-not (Test-Path -LiteralPath $wadPath)) {
+            $missing.Add([ordered]@{ type = "champion-wad"; champion = $name; path = $wadPath })
+        }
+        else {
+            New-Item -ItemType Directory -Force -Path $stageChampionRoot | Out-Null
+            $extractLogPath = Join-Path $stageChampionRoot "$name.extract.log"
+            $extractOutput = & $probeExePath wad-extract $wadPath $stageChampionRoot $audioBankRelative $eventsBankRelative 2>&1
+            $exitCode = $LASTEXITCODE
+            $extractOutput | Set-Content -LiteralPath $extractLogPath -Encoding UTF8
+            if ($exitCode -ne 0) {
+                throw "wad-extract failed with exit code $exitCode for $wadPath. See $extractLogPath"
+            }
+
+            $audioBankPath = Join-Path $stageChampionRoot $audioBankRelative
+            $result = Convert-AudioBank -BankPath $audioBankPath -OutputDir $outputChampionRoot -Stem "${asset}_base_sfx" -VgmstreamPath $vgmstreamPath -Required
+            $result["champion"] = $name
+            $result["extractLog"] = $extractLogPath
+            $championResults.Add($result)
+
+            if ($result["status"] -ne "converted") {
+                $missing.Add([ordered]@{ type = "champion-audio-bank"; champion = $name; path = $audioBankPath })
+            }
+        }
     }
 
-    New-Item -ItemType Directory -Force -Path $stageChampionRoot | Out-Null
-    $extractLogPath = Join-Path $stageChampionRoot "$name.extract.log"
-    $extractOutput = & $probeExePath wad-extract $wadPath $stageChampionRoot $audioBankRelative $eventsBankRelative 2>&1
-    $exitCode = $LASTEXITCODE
-    $extractOutput | Set-Content -LiteralPath $extractLogPath -Encoding UTF8
-    if ($exitCode -ne 0) {
-        throw "wad-extract failed with exit code $exitCode for $wadPath. See $extractLogPath"
-    }
+    if (-not $SkipChampionVoices) {
+        $voiceWadPath = Join-Path $leagueRootResolved "Game\DATA\FINAL\Champions\$name.$VoiceLocale.wad.client"
+        $stageVoiceRoot = Join-Path $stageChampionRoot "Voice\$VoiceLocale"
+        $outputVoiceRoot = Join-Path $outputChampionRoot "Voice"
+        # Localized champion WADs retain en_us path hashes while replacing the chunk payload with localized audio.
+        $voiceWpkRelative = "assets/sounds/wwise2016/vo/en_us/characters/$asset/skins/base/${asset}_base_vo_audio.wpk"
+        $voiceEventsRelative = "assets/sounds/wwise2016/vo/en_us/characters/$asset/skins/base/${asset}_base_vo_events.bnk"
 
-    $audioBankPath = Join-Path $stageChampionRoot $audioBankRelative
-    $result = Convert-AudioBank -BankPath $audioBankPath -OutputDir $outputChampionRoot -Stem "${asset}_base_sfx" -VgmstreamPath $vgmstreamPath -Required
-    $result["champion"] = $name
-    $result["extractLog"] = $extractLogPath
-    $championResults.Add($result)
+        if (-not (Test-Path -LiteralPath $voiceWadPath)) {
+            $missing.Add([ordered]@{ type = "champion-voice-wad"; champion = $name; locale = $VoiceLocale; path = $voiceWadPath })
+        }
+        else {
+            New-Item -ItemType Directory -Force -Path $stageVoiceRoot | Out-Null
+            $voiceExtractLogPath = Join-Path $stageVoiceRoot "$name.$VoiceLocale.extract.log"
+            $voiceExtractOutput = & $probeExePath wad-extract $voiceWadPath $stageVoiceRoot $voiceWpkRelative $voiceEventsRelative 2>&1
+            $voiceExtractExitCode = $LASTEXITCODE
+            $voiceExtractOutput | Set-Content -LiteralPath $voiceExtractLogPath -Encoding UTF8
+            if ($voiceExtractExitCode -ne 0) {
+                throw "voice wad-extract failed with exit code $voiceExtractExitCode for $voiceWadPath. See $voiceExtractLogPath"
+            }
 
-    if ($result["status"] -ne "converted") {
-        $missing.Add([ordered]@{ type = "champion-audio-bank"; champion = $name; path = $audioBankPath })
+            $voiceWpkPath = Join-Path $stageVoiceRoot $voiceWpkRelative
+            $voiceStem = "${asset}_base_vo_$($VoiceLocale.ToLowerInvariant())"
+            $voiceResult = Convert-WpkAudio `
+                -WpkPath $voiceWpkPath `
+                -WemStageRoot (Join-Path $stageVoiceRoot "Wem") `
+                -OutputDir $outputVoiceRoot `
+                -Stem $voiceStem `
+                -ProbePath $probeExePath `
+                -VgmstreamPath $vgmstreamPath `
+                -StageRootPath $stageRootResolved `
+                -OutputRootPath $outputRootResolved `
+                -Required
+            $voiceResult["champion"] = $name
+            $voiceResult["locale"] = $VoiceLocale
+            $voiceResult["sourceWad"] = $voiceWadPath
+            $voiceResult["eventsBank"] = Join-Path $stageVoiceRoot $voiceEventsRelative
+            $voiceResult["extractLog"] = $voiceExtractLogPath
+            $voiceResults.Add($voiceResult)
+
+            if ($voiceResult["status"] -ne "converted") {
+                $missing.Add([ordered]@{ type = "champion-voice-audio"; champion = $name; locale = $VoiceLocale; path = $voiceWpkPath })
+            }
+        }
     }
 }
 
@@ -262,6 +425,11 @@ foreach ($result in $championResults) {
         ++$skippedCount
     }
 }
+foreach ($result in $voiceResults) {
+    if ($result["status"] -eq "skipped") {
+        ++$skippedCount
+    }
+}
 foreach ($result in $mapResults) {
     if ($result["status"] -eq "skipped") {
         ++$skippedCount
@@ -275,14 +443,21 @@ $report = [ordered]@{
     stageRoot = $stageRootResolved
     outputRoot = $outputRootResolved
     clean = [bool]$Clean
+    skipChampionSfx = [bool]$SkipChampionSfx
+    skipChampionVoices = [bool]$SkipChampionVoices
+    voiceLocale = $VoiceLocale
     championCount = $champions.Count
     championBankCount = $championResults.Count
+    championVoiceBankCount = $voiceResults.Count
+    championVoiceWemCount = ($voiceResults | ForEach-Object { [int]$_['wemCount'] } | Measure-Object -Sum).Sum
+    championVoiceWavCount = ($voiceResults | ForEach-Object { [int]$_['wavCount'] } | Measure-Object -Sum).Sum
     mapBankCount = $mapResults.Count
     wavCount = $wavCount
     skippedCount = $skippedCount
     missingCount = $missing.Count
     missing = $missing
     championResults = $championResults
+    voiceResults = $voiceResults
     mapResults = $mapResults
 }
 

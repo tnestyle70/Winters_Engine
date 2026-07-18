@@ -83,7 +83,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>IMGUI_API=__declspec(dllimport);WIN32;NDEBUG;_WINDOWS;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>IMGUI_API=__declspec(dllimport);WIN32;NDEBUG;_WINDOWS;NOMINMAX;WINTERS_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
@@ -115,6 +115,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Private\Data\Generated\LoLVisualDefinitions.generated.cpp" />
+    <ClCompile Include="..\Private\Data\RuntimeVisualDefinitionOverlay.cpp" />
     <ClCompile Include="..\Private\ClientShell\ClientShellBackendService.cpp" />
     <ClCompile Include="..\Private\ClientShell\ClientShellDataStore.cpp" />
     <ClCompile Include="..\Private\ClientShell\ClientShellSession.cpp" />
@@ -450,6 +451,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\UI\RenderDebug.h" />
     <ClInclude Include="..\Public\UI\SkillTimingPanel.h" />
     <ClInclude Include="..\Private\Data\LoLVisualDefinitionPack.h" />
+    <ClInclude Include="..\Private\Data\RuntimeVisualDefinitionOverlay.h" />
     <ClInclude Include="..\Public\GameObject\ChampionVisualData.h" />
     <ClInclude Include="..\Public\GameObject\Champion\Kalista\KalistaSentinelVisualComponent.h" />
     <ClInclude Include="..\Public\GameObject\Champion\Kindred\MasterYiSkills.h" />
@@ -468,8 +470,5 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
       <Project>{E5555555-5555-5555-5555-555555555555}</Project>
     </ProjectReference>
   </ItemGroup>
-  <Target Name="FlatcCodegen" BeforeTargets="ClCompile">
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\..\Shared\Schemas\run_codegen.bat&quot;" />
-  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

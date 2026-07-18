@@ -32,6 +32,11 @@ struct SkillCostSpec
     f32_t manaCost = 0.f;
 };
 
+struct SkillInputSpec
+{
+    eSkillInputActivation activation = eSkillInputActivation::Press;
+};
+
 struct SkillCooldownSpec
 {
     u8_t rankCount = 1;
@@ -49,8 +54,59 @@ struct SkillStageSpec
 {
     u8_t stageCount = 1;
     f32_t stageWindowSec = 0.f;
+    // Animation/presentation duration. Kept under the legacy field name until
+    // SkillDef visual timing is fully retired.
     f32_t lockDurationSec[kSkillAtomStageMax] = {};
+    // Server command/action lock. This is intentionally independent from the
+    // animation duration above.
+    f32_t commandLockSec[kSkillAtomStageMax] = {};
+    eSkillActionMovePolicy movePolicy[kSkillAtomStageMax] =
+    {
+        eSkillActionMovePolicy::Allow,
+        eSkillActionMovePolicy::Allow,
+    };
+    bool_t bCreatesActionState[kSkillAtomStageMax] = { true, true };
+    bool_t bPresentationLoopWhileActive[kSkillAtomStageMax] = {};
 };
+
+struct SkillChargeSpec
+{
+    bool_t bEnabled = false;
+    bool_t bAutoRelease = false;
+    u8_t reserved[2]{};
+    f32_t maxHoldSec = 0.f;
+    f32_t minRangeScale = 1.f;
+    f32_t maxRangeScale = 1.f;
+    f32_t minDamageScale = 1.f;
+    f32_t maxDamageScale = 1.f;
+    f32_t minStunSec = 0.f;
+    f32_t maxStunSec = 0.f;
+};
+
+inline f32_t ResolveSkillChargeRatio(
+    u64_t startTick,
+    u64_t maxReleaseTick,
+    u64_t currentTick)
+{
+    if (maxReleaseTick <= startTick || currentTick <= startTick)
+        return 0.f;
+    if (currentTick >= maxReleaseTick)
+        return 1.f;
+
+    return static_cast<f32_t>(currentTick - startTick) /
+        static_cast<f32_t>(maxReleaseTick - startTick);
+}
+
+inline f32_t ResolveSkillChargeValue(
+    f32_t minValue,
+    f32_t maxValue,
+    f32_t chargeRatio)
+{
+    const f32_t clampedRatio = chargeRatio < 0.f
+        ? 0.f
+        : (chargeRatio > 1.f ? 1.f : chargeRatio);
+    return minValue + (maxValue - minValue) * clampedRatio;
+}
 
 struct SkillFacingSpec
 {
@@ -119,6 +175,17 @@ enum class eSkillEffectParamId : u8_t
     RectLengthPerRank,
     FormationDelaySec,
     DamagePerSpear,
+    TargetHealthThresholdRatio,
+    AcquireRange,
+    LifetimeSec,
+    RespawnSec,
+    SideDotThreshold,
+    TargetMaxHpRatio,
+    ChallengeDurationSec,
+    HealDurationSec,
+    HealRadius,
+    HealIntervalSec,
+    HealAmount,
 };
 
 enum class eSummonPolicyParamId : u8_t
@@ -229,12 +296,14 @@ struct SkillGameAtomBundle
 {
     bool_t bValid = false;
     SkillSlotBinding slot{};
+    SkillInputSpec input{};
     SkillTargetSpec target{};
     SkillCostSpec cost{};
     SkillCooldownSpec cooldown{};
     SkillRangeSpec range{};
     SkillStageSpec stage{};
     SkillFacingSpec facing{};
+    SkillChargeSpec charge{};
     SkillEffectSpec effect{};
     SummonPolicySpec summonPolicy{};
 };

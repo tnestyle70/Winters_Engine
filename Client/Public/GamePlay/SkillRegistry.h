@@ -29,8 +29,9 @@ public:
 		f32_t playbackSpeed,
 		f32_t castFrame,
 		f32_t recoveryFrame);
+	bool_t AuditDataDrivenContracts() const;
 
-	std::size_t Count() const { return m_GameAtoms.size(); }
+	std::size_t Count() const { return m_LegacyMap.size(); }
 
 private:
 	CSkillRegistry() = default;
@@ -39,6 +40,5 @@ private:
 	CSkillRegistry& operator=(const CSkillRegistry&) = delete;
 
 	std::unordered_map<u32_t, SkillDef> m_LegacyMap{};
-	std::unordered_map<u32_t, SkillGameAtomBundle> m_GameAtoms{};
 	std::unordered_map<u32_t, SkillVisualData> m_VisualAtoms{};
 };

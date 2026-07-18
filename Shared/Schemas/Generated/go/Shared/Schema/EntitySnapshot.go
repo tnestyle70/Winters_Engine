@@ -1571,8 +1571,32 @@ func (rcv *EntitySnapshot) MutateProjectileTraveledDist(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(238, n)
 }
 
+func (rcv *EntitySnapshot) ChampionDefinitionKey() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(240))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateChampionDefinitionKey(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(240, n)
+}
+
+func (rcv *EntitySnapshot) SightRange() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(242))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateSightRange(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(242, n)
+}
+
 func EntitySnapshotStart(builder *flatbuffers.Builder) {
-	builder.StartObject(118)
+	builder.StartObject(120)
 }
 func EntitySnapshotAddNetId(builder *flatbuffers.Builder, netId uint32) {
 	builder.PrependUint32Slot(0, netId, 0)
@@ -1951,6 +1975,12 @@ func EntitySnapshotAddProjectileDirZ(builder *flatbuffers.Builder, projectileDir
 }
 func EntitySnapshotAddProjectileTraveledDist(builder *flatbuffers.Builder, projectileTraveledDist float32) {
 	builder.PrependFloat32Slot(117, projectileTraveledDist, 0.0)
+}
+func EntitySnapshotAddChampionDefinitionKey(builder *flatbuffers.Builder, championDefinitionKey uint32) {
+	builder.PrependUint32Slot(118, championDefinitionKey, 0)
+}
+func EntitySnapshotAddSightRange(builder *flatbuffers.Builder, sightRange float32) {
+	builder.PrependFloat32Slot(119, sightRange, 0.0)
 }
 func EntitySnapshotEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

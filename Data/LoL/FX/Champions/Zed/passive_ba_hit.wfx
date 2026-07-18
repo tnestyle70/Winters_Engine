@@ -1,0 +1,43 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Zed.PassiveBA.Hit",
+  "emitters": [
+    {
+      "name": "passive_circle_timer",
+      "render_type": "MeshParticle",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Zed/particles/fbx/common_circletimer.wmesh",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/render/common_circletimer.png",
+      "max_particles": 1,
+      "spawn_rate": 0.0,
+      "lifetime": 0.45,
+      "fade_in": 0.02,
+      "fade_out": 0.18,
+      "scale": [0.30, 0.30, 0.30],
+      "color": [0.18, 0.03, 0.04, 0.92],
+      "attach_offset": [0.0, 1.10, 0.0],
+      "world_yaw_spin_speed": 3.2,
+      "blockable_by_wind_wall": false
+    },
+    {
+      "name": "passive_hit_slash",
+      "render_type": "Billboard",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/zed_e_hitslash.png",
+      "max_particles": 1,
+      "spawn_rate": 0.0,
+      "lifetime": 0.34,
+      "width": 2.4,
+      "height": 2.4,
+      "color": [0.75, 0.08, 0.10, 0.95],
+      "attach_offset": [0.0, 1.10, 0.0],
+      "fade_in": 0.01,
+      "fade_out": 0.16,
+      "billboard": true,
+      "blockable_by_wind_wall": false
+    }
+  ]
+}

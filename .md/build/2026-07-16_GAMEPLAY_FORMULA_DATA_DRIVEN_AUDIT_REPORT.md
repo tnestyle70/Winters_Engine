@@ -1,6 +1,10 @@
+Session - Data Driven cutover 직전의 17개 챔피언 피해 공식·아이템·랭크·애니메이션 ownership을 수식과 카운트로 고정한다.
+좌표: 신규 좌표 후보 · 축: C7 · C8
+관련: 2026-07-16_GAMEPLAY_FORMULA_SKILL_ANIMATION_DATA_DRIVEN_REMEDIATION_PLAN.md · 2026-07-16_GAMEPLAY_FORMULA_SKILL_ANIMATION_DATA_DRIVEN_REMEDIATION_RESULT.md
+
 # Gameplay Formula / Data-Driven 전수 감사 보고서
 
-> 구현 완료 결과: `.md/build/2026-07-16_GAMEPLAY_FORMULA_DATA_DRIVEN_IMPLEMENTATION_REPORT.md`
+> 이 문서는 **2026-07-16 cutover 직전 baseline**이다. 현재 판결은 짝 `_RESULT`와 상세 구현 보고서를 따른다.
 
 작성일: 2026-07-16
 대상: 현재 Winters 서버 권위 GameSim, 정의 팩, 17개 챔피언, 34개 아이템, 인게임 밸런스/애니메이션 튜너
@@ -11,7 +15,7 @@
 
 정적 전수 카운트는 champion 17명, BA/Q/W/E/R slot 85개, skill effect entry 61개, item 34개다. 85개 slot의 `scalingTableId`는 모두 0이다.
 
-최종 판정은 **Data Driven 불합격(부분 통과)** 이다.
+이 baseline 시점의 판정은 **Data Driven 불합격(부분 통과)** 이다. 현재 상태 판정으로 읽지 않는다.
 
 | 영역 | 판정 | 실제 상태 |
 |---|---|---|

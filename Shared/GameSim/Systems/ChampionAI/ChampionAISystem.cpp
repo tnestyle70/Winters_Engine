@@ -53,6 +53,8 @@ namespace
     constexpr f32_t kChampionAIMidDefenseFormationSpacing = 1.75f;
     constexpr u32_t kChampionAIMidDefenseFormationSlots = 5u;
     constexpr f32_t kChampionAIMidDefenseReturnRadius = 11.f;
+    constexpr f32_t kChampionAIMidDefenseThreatRadius = 20.f;
+    constexpr f32_t kChampionAIMidDefenseThreatHoldSec = 6.f;
     constexpr u64_t kChampionAILastSeenMemoryTicks =
         5ull * DeterministicTime::kTicksPerSecond;
     constexpr u16_t kChampionAIRetreatBlockedMoveRecallTicks =
@@ -270,6 +272,53 @@ namespace
             });
 
         return bLost;
+    }
+
+    // 미드 방어선(앵커) 근방의 실제 위협(적 챔피언/미니언) 존재 여부.
+    // 포탑 상실 판정과 같은 전역 쿼리다(미니맵 근사) — 집결은 이벤트가
+    // 아니라 위협의 함수여야 래치가 영구화되지 않는다.
+    bool_t HasMidDefenseThreat(
+        CWorld& world,
+        eTeam team,
+        const Vec3& anchor)
+    {
+        const eTeam enemyTeam = EnemyTeam(team);
+        const f32_t radiusSq =
+            kChampionAIMidDefenseThreatRadius *
+            kChampionAIMidDefenseThreatRadius;
+        bool_t bThreat = false;
+
+        world.ForEach<ChampionComponent, TransformComponent>(
+            [&](EntityID e, ChampionComponent& champion, TransformComponent& transform)
+            {
+                if (bThreat ||
+                    champion.team != enemyTeam ||
+                    world.HasComponent<PracticeDummyTag>(e) ||
+                    !IsAliveTarget(world, e))
+                {
+                    return;
+                }
+
+                if (WintersMath::DistanceSqXZ(anchor, transform.GetPosition()) <= radiusSq)
+                    bThreat = true;
+            });
+        if (bThreat)
+            return true;
+
+        world.ForEach<MinionComponent, TransformComponent>(
+            [&](EntityID e, MinionComponent& minion, TransformComponent& transform)
+            {
+                if (bThreat ||
+                    minion.team != enemyTeam ||
+                    !IsAliveTarget(world, e))
+                {
+                    return;
+                }
+
+                if (WintersMath::DistanceSqXZ(anchor, transform.GetPosition()) <= radiusSq)
+                    bThreat = true;
+            });
+        return bThreat;
     }
 
     Vec3 ResolveMidDefenseAnchor(
@@ -2457,6 +2506,29 @@ namespace
                 return false;
             }
 
+            if (!world.HasComponent<InventoryComponent>(self))
+            {
+                SetChampionAIBlockReason(
+                    ai, eChampionAIDecisionBlockReason::StateBlocked);
+                return false;
+            }
+            const auto& inventory = world.GetComponent<InventoryComponent>(self);
+            u8_t wardSlot = InventoryComponent::kMaxSlots;
+            for (u8_t slot = 0u; slot < InventoryComponent::kMaxSlots; ++slot)
+            {
+                if (inventory.itemIds[slot] == kTrinketWardItemId)
+                {
+                    wardSlot = slot;
+                    break;
+                }
+            }
+            if (wardSlot >= InventoryComponent::kMaxSlots)
+            {
+                SetChampionAIBlockReason(
+                    ai, eChampionAIDecisionBlockReason::StateBlocked);
+                return false;
+            }
+
             Vec3 targetPos{};
             if (!TryGetPosition(world, target, targetPos))
             {
@@ -2466,7 +2538,7 @@ namespace
 
             const Vec3 wardPos = ResolveWardBehindTargetPosition(selfPos, targetPos);
             GameCommand cmd = MakeAICommand(ai, tc, self, eCommandKind::UseItem);
-            cmd.slot = step.slot;
+            cmd.slot = wardSlot;
             cmd.itemId = step.itemId;
             cmd.targetEntity = NULL_ENTITY;
             cmd.groundPos = wardPos;
@@ -3858,6 +3930,25 @@ namespace
             return;
         }
 
+        // 로테이션 중 조우 대응: 사거리 내 적 챔피언이나 스캔 내 적 미니언을
+        // 무시하고 지나치지 않는다 — 일반 레인 전투(교전/파밍)로 위임한다.
+        const bool_t bEnemyChampionInAttackRange =
+            ctx.enemyChampion != NULL_ENTITY &&
+            ctx.enemyDistance <= ctx.attackRange;
+        if (bEnemyChampionInAttackRange || ctx.enemyMinion != NULL_ENTITY)
+        {
+            ExecuteLaneCombat(
+                world,
+                tc,
+                self,
+                ai,
+                champion,
+                selfPos,
+                ctx,
+                outCommands);
+            return;
+        }
+
         SetChampionAIState(ai, eChampionAIState::GroupMidDefense);
         SetChampionAIIntent(ai, eChampionAIIntent::DefendMid, true);
         EmitMoveCommand(
@@ -4190,6 +4281,8 @@ void CChampionAISystem::Execute(
             ai.fDiveExtraBATimer = std::max(0.f, ai.fDiveExtraBATimer - tc.fDt);
             ai.fSkillCastCooldownTimer =
                 std::max(0.f, ai.fSkillCastCooldownTimer - tc.fDt);
+            ai.midDefenseThreatHoldTimer =
+                std::max(0.f, ai.midDefenseThreatHoldTimer - tc.fDt);
 
             const Vec3 selfPos = selfTf.GetPosition();
             const ChampionAIProfile& profile = GetChampionAIProfile(champion.id);
@@ -4380,14 +4473,45 @@ void CChampionAISystem::Execute(
                 }
             }
 
+            if (ai.bMidDefenseActive &&
+                ai.comboTarget == NULL_ENTITY &&
+                ai.divePhase == eChampionAIDivePhase::None)
+            {
+                if (HasMidDefenseThreat(world, champion.team, ctx.midDefenseAnchor))
+                {
+                    ai.midDefenseThreatHoldTimer =
+                        kChampionAIMidDefenseThreatHoldSec;
+                }
+                else if (ai.midDefenseThreatHoldTimer <= 0.f)
+                {
+                    // 위협이 사라진 방어 집결은 수명이 끝난다 — 홈 레인
+                    // 파밍/교전 루프로 복귀. 재집결은 위협 재감지가 연다.
+                    ai.bMidDefenseActive = false;
+                    ai.activeLane = ai.lane;
+                    SetChampionAIState(ai, eChampionAIState::MoveToOuterTurret);
+                    SetChampionAIIntent(ai, eChampionAIIntent::FarmMinion);
+
+                    ctx = BuildChampionAIContext(
+                        world,
+                        self,
+                        ai,
+                        champion,
+                        tc,
+                        selfPos);
+                    UpdateChampionAIDecisionEvidence(ai, tc, ctx, profile);
+                }
+            }
+
             if (!ai.bMidDefenseActive &&
                 (ctx.bAlliedOuterTurretLost || ctx.bMidLaneTurretLost) &&
                 ctx.bCanMove &&
                 ctx.enemyChampion == NULL_ENTITY &&
                 ai.comboTarget == NULL_ENTITY &&
-                ai.divePhase == eChampionAIDivePhase::None)
+                ai.divePhase == eChampionAIDivePhase::None &&
+                HasMidDefenseThreat(world, champion.team, ctx.midDefenseAnchor))
             {
                 ai.bMidDefenseActive = true;
+                ai.midDefenseThreatHoldTimer = kChampionAIMidDefenseThreatHoldSec;
                 ai.activeLane = kChampionAIMidLane;
                 ai.midDefenseAnchor = ctx.midDefenseAnchor;
                 SetChampionAIState(ai, eChampionAIState::GroupMidDefense);

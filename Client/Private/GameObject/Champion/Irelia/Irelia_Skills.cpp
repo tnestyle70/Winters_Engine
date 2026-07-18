@@ -199,7 +199,7 @@ namespace Irelia
 
         const bool_t bPlayed =
             CFxCuePlayer::PlayAll(world, "Irelia.W.Spin", hold, &state.wHoldCueIds) != NULL_ENTITY;
-        state.bWHoldCueActive = false;
+        state.bWHoldCueActive = bPlayed;
         return bPlayed;
     }
 
@@ -477,8 +477,6 @@ namespace Irelia
     void OnCastAccepted_E(SkillHookContext& ctx)
     {
         if (!ctx.pWorld || !ctx.pCommand || !ctx.pFxMeshRenderer)
-            return;
-        if (ctx.pCommand->resolvedTargetMode != static_cast<u8_t>(eTargetMode::GroundTarget))
             return;
 
         const IreliaTuning& t = GetTuning();

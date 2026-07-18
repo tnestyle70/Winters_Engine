@@ -2,9 +2,11 @@
 
 #include "ECS/Entity.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
+#include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "WintersTypes.h"
 
 #include <flatbuffers/flatbuffers.h>
+#include <array>
 #include <memory>
 
 class CWorld;
@@ -21,6 +23,7 @@ public:
         u64_t serverTimeMs,
         u64_t rngState,
         u32_t lastAckedSeq,
+        const std::array<SkillCommandFeedback, 5u>& commandFeedback,
         NetEntityId yourNetId,
         u64_t timelineEpoch,
         u64_t branchId,

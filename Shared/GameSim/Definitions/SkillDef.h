@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SkillCommand.h"
+#include "SkillAtomData.h"
 #include "SkillTypes.h"
 #include "WintersTypes.h"
 #include "LoLMatchContext.h"
@@ -11,6 +12,7 @@ struct SkillDef
 {
     eChampion   champ = eChampion::END;
     uint8_t     slot = 0;
+    eSkillInputActivation inputActivation = eSkillInputActivation::Press;
     eTargetMode targetMode = eTargetMode::Self;
 
     f32_t       cooldownSec = 0.f;
@@ -32,6 +34,16 @@ struct SkillDef
     eRotateMode stage2Rotate = eRotateMode::None;
     f32_t       stageWindowSec = 0.f;
 
+    f32_t       commandLockSec = 0.f;
+    f32_t       stage2CommandLockSec = 0.f;
+    eSkillActionMovePolicy movePolicy = eSkillActionMovePolicy::Allow;
+    eSkillActionMovePolicy stage2MovePolicy = eSkillActionMovePolicy::Allow;
+    bool_t      bCreatesActionState = true;
+    bool_t      bStage2CreatesActionState = true;
+    bool_t      bPresentationLoopWhileActive = false;
+    bool_t      bStage2PresentationLoopWhileActive = false;
+    SkillChargeSpec charge{};
+
     f32_t visualCastFrame = 0.f;
     f32_t visualRecoveryFrame = 0.f;
     f32_t stage2VisualCastFrame = 0.f;
@@ -52,8 +64,5 @@ struct SkillDef
     uint16_t skillId = 0;
     uint16_t scalingTableId = 0;
 };
-
-extern const SkillDef* const g_SkillTable;
-extern const uint32_t        g_SkillCount;
 
 const SkillDef* FindSkillDef(eChampion champ, uint8_t slot);

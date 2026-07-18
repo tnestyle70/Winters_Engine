@@ -232,6 +232,9 @@
     <Filter Include="06. Network\Backend\05. Http">
       <UniqueIdentifier>{e804f6f1-6934-47cf-9b2b-9bb96f87b3e1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="06. Network\Backend\06. Replay">
+      <UniqueIdentifier>{18617c75-552a-4457-bfff-4d7caf2b1ea0}</UniqueIdentifier>
+    </Filter>
     <Filter Include="02. GameObject\01. Champions\00. Champion">
       <UniqueIdentifier>{f5cbb6a3-2c9e-461e-af3e-bf21ec13b496}</UniqueIdentifier>
     </Filter>
@@ -831,6 +834,9 @@
     <ClInclude Include="..\Public\Network\Backend\CHttpClient.h">
       <Filter>06. Network\Backend\05. Http</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Network\Backend\ReplayClient.h">
+      <Filter>06. Network\Backend\06. Replay</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\GameObject\ChampionDef.h">
       <Filter>02. GameObject\01. Champions\01. Def</Filter>
     </ClInclude>
@@ -868,6 +874,9 @@
       <Filter>02. GameObject\02. FX\05. LifeCycle</Filter>
     </ClInclude>
     <ClInclude Include="..\Private\Data\LoLVisualDefinitionPack.h">
+      <Filter>07. Data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Private\Data\RuntimeVisualDefinitionOverlay.h">
       <Filter>07. Data</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\GameObject\ChampionVisualData.h">
@@ -1337,6 +1346,9 @@
     <ClCompile Include="..\Private\Network\Backend\AuthClient.cpp">
       <Filter>06. Network\Backend\00. Auth</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Network\Backend\ReplayClient.cpp">
+      <Filter>06. Network\Backend\06. Replay</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Network\Backend\CShopClient.cpp">
       <Filter>06. Network\Backend\01. Shop</Filter>
     </ClCompile>
@@ -1378,6 +1390,9 @@
     </ClCompile>
     <ClCompile Include="..\Private\Data\Generated\LoLVisualDefinitions.generated.cpp">
       <Filter>07. Data\00. Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Private\Data\RuntimeVisualDefinitionOverlay.cpp">
+      <Filter>07. Data</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

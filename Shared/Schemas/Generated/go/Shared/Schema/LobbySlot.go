@@ -173,8 +173,20 @@ func (rcv *LobbySlot) MutateLocked(n bool) bool {
 	return rcv._tab.MutateBoolSlot(24, n)
 }
 
+func (rcv *LobbySlot) ChampionDefinitionKey() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *LobbySlot) MutateChampionDefinitionKey(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(26, n)
+}
+
 func LobbySlotStart(builder *flatbuffers.Builder) {
-	builder.StartObject(11)
+	builder.StartObject(12)
 }
 func LobbySlotAddSlotId(builder *flatbuffers.Builder, slotId byte) {
 	builder.PrependByteSlot(0, slotId, 0)
@@ -208,6 +220,9 @@ func LobbySlotAddReady(builder *flatbuffers.Builder, ready bool) {
 }
 func LobbySlotAddLocked(builder *flatbuffers.Builder, locked bool) {
 	builder.PrependBoolSlot(10, locked, false)
+}
+func LobbySlotAddChampionDefinitionKey(builder *flatbuffers.Builder, championDefinitionKey uint32) {
+	builder.PrependUint32Slot(11, championDefinitionKey, 0)
 }
 func LobbySlotEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

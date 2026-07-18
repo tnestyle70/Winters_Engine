@@ -309,8 +309,100 @@ func (rcv *Snapshot) GameplayStatesLength() int {
 	return 0
 }
 
+func (rcv *Snapshot) LastCommandResultSeq() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(46))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateLastCommandResultSeq(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(46, n)
+}
+
+func (rcv *Snapshot) LastCommandResultState() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(48))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateLastCommandResultState(n byte) bool {
+	return rcv._tab.MutateByteSlot(48, n)
+}
+
+func (rcv *Snapshot) LastCommandResultReason() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(50))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateLastCommandResultReason(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(50, n)
+}
+
+func (rcv *Snapshot) AuthoritativeSkillSlot() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(52))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 255
+}
+
+func (rcv *Snapshot) MutateAuthoritativeSkillSlot(n byte) bool {
+	return rcv._tab.MutateByteSlot(52, n)
+}
+
+func (rcv *Snapshot) AuthoritativeSkillStage() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(54))
+	if o != 0 {
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateAuthoritativeSkillStage(n byte) bool {
+	return rcv._tab.MutateByteSlot(54, n)
+}
+
+func (rcv *Snapshot) StageWindowEndTick() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(56))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Snapshot) MutateStageWindowEndTick(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(56, n)
+}
+
+func (rcv *Snapshot) CommandResults(obj *CommandResultSnapshot, j int) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(58))
+	if o != 0 {
+		x := rcv._tab.Vector(o)
+		x += flatbuffers.UOffsetT(j) * 4
+		x = rcv._tab.Indirect(x)
+		obj.Init(rcv._tab.Bytes, x)
+		return true
+	}
+	return false
+}
+
+func (rcv *Snapshot) CommandResultsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(58))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
 func SnapshotStart(builder *flatbuffers.Builder) {
-	builder.StartObject(21)
+	builder.StartObject(28)
 }
 func SnapshotAddServerTick(builder *flatbuffers.Builder, serverTick uint64) {
 	builder.PrependUint64Slot(0, serverTick, 0)
@@ -379,6 +471,30 @@ func SnapshotAddGameplayStates(builder *flatbuffers.Builder, gameplayStates flat
 	builder.PrependUOffsetTSlot(20, flatbuffers.UOffsetT(gameplayStates), 0)
 }
 func SnapshotStartGameplayStatesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func SnapshotAddLastCommandResultSeq(builder *flatbuffers.Builder, lastCommandResultSeq uint32) {
+	builder.PrependUint32Slot(21, lastCommandResultSeq, 0)
+}
+func SnapshotAddLastCommandResultState(builder *flatbuffers.Builder, lastCommandResultState byte) {
+	builder.PrependByteSlot(22, lastCommandResultState, 0)
+}
+func SnapshotAddLastCommandResultReason(builder *flatbuffers.Builder, lastCommandResultReason uint16) {
+	builder.PrependUint16Slot(23, lastCommandResultReason, 0)
+}
+func SnapshotAddAuthoritativeSkillSlot(builder *flatbuffers.Builder, authoritativeSkillSlot byte) {
+	builder.PrependByteSlot(24, authoritativeSkillSlot, 255)
+}
+func SnapshotAddAuthoritativeSkillStage(builder *flatbuffers.Builder, authoritativeSkillStage byte) {
+	builder.PrependByteSlot(25, authoritativeSkillStage, 0)
+}
+func SnapshotAddStageWindowEndTick(builder *flatbuffers.Builder, stageWindowEndTick uint64) {
+	builder.PrependUint64Slot(26, stageWindowEndTick, 0)
+}
+func SnapshotAddCommandResults(builder *flatbuffers.Builder, commandResults flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(27, flatbuffers.UOffsetT(commandResults), 0)
+}
+func SnapshotStartCommandResultsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func SnapshotEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {

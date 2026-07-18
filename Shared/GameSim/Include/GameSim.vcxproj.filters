@@ -148,6 +148,9 @@
     <Filter Include="Systems\JungleAI">
       <UniqueIdentifier>{481cff2b-3e88-4681-a3b6-35bb5454a095}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Systems\Item">
+      <UniqueIdentifier>{59d74637-a40d-4d66-bdb3-3539420c684c}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Systems\Move">
       <UniqueIdentifier>{b735e271-2456-4c2a-9e48-c25475882df6}</UniqueIdentifier>
     </Filter>
@@ -270,12 +273,6 @@
     <ClCompile Include="..\Generated\ChampionGameData.generated.cpp">
       <Filter>Generated</Filter>
     </ClCompile>
-    <ClCompile Include="..\Registries\ChampionGameData\ChampionGameDataDB.cpp">
-      <Filter>Registries\ChampionGameData</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Registries\ChampionStats\ChampionStatsRegistry.cpp">
-      <Filter>Registries\ChampionStats</Filter>
-    </ClCompile>
     <ClCompile Include="..\Registries\Reward\RewardRegistry.cpp">
       <Filter>Registries\Reward</Filter>
     </ClCompile>
@@ -317,6 +314,9 @@
     </ClCompile>
     <ClCompile Include="..\Systems\Damage\DamageQueueSystem.cpp">
       <Filter>Systems\Damage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Item\ItemEffectSystem.cpp">
+      <Filter>Systems\Item</Filter>
     </ClCompile>
     <ClCompile Include="..\Systems\Death\DeathSystem.cpp">
       <Filter>Systems\Death</Filter>
@@ -486,6 +486,9 @@
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="..\Components\InventoryComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ItemRuntimeComponent.h">
       <Filter>Components</Filter>
     </ClInclude>
     <ClInclude Include="..\Components\IreliaSimComponent.h">
@@ -770,12 +773,6 @@
     <ClInclude Include="..\Generated\ChampionGameData.generated.h">
       <Filter>Generated</Filter>
     </ClInclude>
-    <ClInclude Include="..\Registries\ChampionGameData\ChampionGameDataDB.h">
-      <Filter>Registries\ChampionGameData</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Registries\ChampionStats\ChampionStatsRegistry.h">
-      <Filter>Registries\ChampionStats</Filter>
-    </ClInclude>
     <ClInclude Include="..\Registries\Reward\RewardRegistry.h">
       <Filter>Registries\Reward</Filter>
     </ClInclude>
@@ -827,6 +824,7 @@
     <ClInclude Include="..\Systems\CommandExecutor\ICommandExecutor.h">
       <Filter>Systems\CommandExecutor</Filter>
     </ClInclude>
+    <ClInclude Include="..\Components\SkillChargeStateComponent.h" />
     <ClInclude Include="..\Systems\Damage\Damage.h">
       <Filter>Systems\Damage</Filter>
     </ClInclude>
@@ -835,6 +833,9 @@
     </ClInclude>
     <ClInclude Include="..\Systems\Damage\DamageQueueSystem.h">
       <Filter>Systems\Damage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Item\ItemEffectSystem.h">
+      <Filter>Systems\Item</Filter>
     </ClInclude>
     <ClInclude Include="..\Systems\Death\DeathSystem.h">
       <Filter>Systems\Death</Filter>

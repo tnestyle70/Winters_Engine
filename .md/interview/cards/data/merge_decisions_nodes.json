@@ -1,0 +1,312 @@
+[
+ {
+  "target_id": "SIMD · 자동 벡터화 조건",
+  "action": "improve",
+  "field": "trap",
+  "codex_ref": "D1-08 · SIMD·정렬·부동소수점",
+  "new_text": "AVX-512는 클럭을 떨어뜨려 <b>전체가 느려질 수 있다</b>. 측정 필수. 결정론 심에선 하나 더 — FMA·fast-math·연산 순서 변화가 <b>결과 비트를 바꾼다</b>. Winters가 전 타깃에 /fp:precise를 고정한 이유다.",
+  "reason": "정본에 없던 '결정론 게임플레이 vs SIMD 재결합' 경계를 Codex가 정확히 짚음. Winters 골든 해시 회귀와 직결되는 실전 함정.",
+  "verified": "Server/Include/Server.vcxproj:56,83 · Shared/GameSim/Include/GameSim.vcxproj:54,73 (FloatingPointModel=Precise)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "TLS · 구현과 비용",
+  "action": "improve",
+  "field": "trap",
+  "codex_ref": "D3-09 · TLS·FLS",
+  "new_text": "<b>파이버는 스레드를 갈아탈 수 있다.</b> 파이버 코드에서 TLS를 쓰면 다른 스레드에서 깨어난 뒤 다른 값을 본다 — 파이버 시스템의 대표 함정. 해법은 <b>FLS(FlsAlloc)</b> — 파이버 전환을 따라가고 소멸 콜백까지 준다. Winters JobSystem·CPUProfiler가 실제로 쓴다.",
+  "reason": "정본은 함정만 제시하고 해법(FLS)이 없었다. Codex가 FLS를 파이버 대응물로 명시했고, 레포가 실제 FlsAlloc 사용 중이라 앵커까지 실재.",
+  "verified": "Engine/Private/Core/JobSystem.cpp:56,76 · Engine/Private/Core/Profiler/CPUProfiler.cpp:106,151 (FlsAlloc/FlsSetValue)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "MESI · 라인 핑퐁",
+  "action": "improve",
+  "field": "trap",
+  "codex_ref": "D1-06 · 캐시 일관성과 false sharing",
+  "new_text": "패딩·per-thread 샤딩은 공짜가 아니다 — <b>메모리를 늘리고 구조체 레이아웃(ABI)을 바꾼다</b>. HITM(경합 히트) 카운터로 실측한 뒤에만 적용하고, 못 재면 워커 로컬 누적 → 배치 병합이 안전한 기본값이다.",
+  "reason": "정본 trap이 비어 있었고, Codex의 '완화책의 대가 + HITM 실측 후 적용' 경계가 날카로움. 하드웨어 일반론이라 레포 검증 불필요.",
+  "verified": "N/A (완화책 대가·PMU HITM 일반론; 수치 주장 없음)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "프로세스 vs 스레드",
+  "action": "improve",
+  "field": "core",
+  "codex_ref": "D2-01 · 프로세스·스레드·fiber",
+  "new_text": "<b>프로세스 = 주소 공간 + 핸들 테이블 + 보안 컨텍스트</b>(격리 단위). <b>스레드 = 스택 + 레지스터 + TLS</b>(커널 스케줄 단위). <b>파이버 = 스택 + 레지스터뿐</b>(유저 모드 양보 단위) — 커널 스케줄링도 보호도 없어서, 블로킹 콜 하나가 스레드째 잡는다. 프로세스 스위치는 주소 공간이 바뀌어 TLB까지 날아간다.",
+  "reason": "사용자 주력 무기가 Fiber인데 정본 실행 단위 3분법에 파이버가 빠져 있었다. Codex의 '커널 스케줄링·보호 없음' 경계를 압축 이식. 05 W04(구현 좌표)와 상보, 중복 아님.",
+  "verified": "Engine/Public/Core/Fiber/FiberPool.h 존재 (파이버 실사용; API 성질 자체는 일반론)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "데드락 4조건",
+  "action": "improve",
+  "field": "trap",
+  "codex_ref": "D2-05 · deadlock·livelock·starvation",
+  "new_text": "락을 쥔 채 콜백/가상함수를 부르면 남의 락 순서를 모른 채 중첩된다 — 데드락의 최대 원인. 그리고 데드락이 전부가 아니다 — <b>라이브락</b>(서로 양보만 반복)과 <b>기아</b>는 4조건 밖에서 생기고, lock-free로 바꿔도 ABA·기아는 남는다. 타임아웃은 탐지지 해결이 아니다.",
+  "reason": "정본 D1~D3에 라이브락/기아/‘lock-free≠자동 해결’이 전무. Codex의 'timeout만 추가하면 해결됐다고 본다' 반례가 실전형. W01의 ABA는 엔티티 슬롯 맥락이라 별개.",
+  "verified": "N/A (동시성 일반론; 수치·경로 주장 없음)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "RAII 래퍼 · INVALID_HANDLE_VALUE 함정",
+  "action": "improve",
+  "field": "trap",
+  "codex_ref": "D3-01 · HANDLE·kernel object",
+  "new_text": "GetCurrentProcess/GetCurrentThread가 주는 <b>의사 핸들(pseudo handle)은 CloseHandle 대상이 아니다</b> — 다른 스레드에 넘기려면 DuplicateHandle로 실핸들을 만들어야 한다. 래퍼가 이 구분까지 타입에 박아야 완성이다.",
+  "reason": "정본 trap이 비어 있었고, Codex의 pseudo handle·DuplicateHandle 규칙이 INVALID_HANDLE_VALUE 함정과 정확히 같은 계열의 실전 함정.",
+  "verified": "N/A (Windows API 문서 수준 일반론)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "PE · IAT / EAT · 로더",
+  "action": "improve",
+  "field": "core",
+  "codex_ref": "D3-02 · PE·RVA·section",
+  "new_text": "DOS 스텁 → NT 헤더 → 섹션 테이블 → 섹션(.text/.data/.rdata/.reloc). <b>IAT</b>는 임포트 함수의 주소가 로드 시 채워지는 테이블 — 그래서 DLL 함수 호출은 <b>간접 점프 한 번</b>이 더 든다. 내부 주소는 전부 <b>RVA(VA − ImageBase)</b>다 — 파일 오프셋과 다르고(섹션 raw/virtual 매핑으로 변환), ASLR이 ImageBase를 실행마다 옮긴다. 덤프 주소를 심볼로 되돌릴 때 이 셈을 한다.",
+  "reason": "정본 PE 노드에 RVA≠파일 오프셋·ASLR이 없었다. 미니덤프 해석(같은 D3 체인)과 연결되는 개선.",
+  "verified": "N/A (PE 포맷 일반론)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "미니덤프 파이프라인",
+  "action": "improve",
+  "field": "a",
+  "codex_ref": "D2-12 · crash·dump·관측",
+  "new_text": "기본 미니덤프는 작지만 힙이 없어 객체 상태를 못 봅니다. <b>MiniDumpWithIndirectlyReferencedMemory</b> 정도가 크기와 정보의 절충입니다. 풀 덤프는 수 GB라 유저 배포엔 비현실적입니다. 결정론 심이 있으면 한 발 더 — 덤프에 <b>빌드 해시와 리플레이(시드·명령 저널)를 같이 보존</b>하면 크래시가 재현 가능한 리플레이로 바뀝니다. Winters 리플레이 포맷이 이미 외부 명령만 저널하고 봇은 결정론 재생성하는 구조입니다.",
+  "reason": "Codex의 'dump+build hash+replay seed 동반 보존'이 정본에 없던 관측 전략이고, Winters의 결정론 리플레이 인프라와 정확히 맞물린다.",
+  "verified": "Shared/Replay/ReplayFormat.h:63-66 ('Bot AI commands are NOT journaled - they regenerate deterministically') · Server/Private/Game/ReplayRecorder.cpp 존재",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "4단계 페이징 · TLB",
+  "action": "improve",
+  "field": "num",
+  "codex_ref": "D1-05 · 가상 메모리·TLB",
+  "new_text": "변환 = 메모리 4회\nTLB 미스 ≈ 수십~100+ cyc\nL1 dTLB ≈ 64엔트리 × 4KB = 256KB reach\n1GiB 워킹셋 = 4KB 페이지 262,144개 — reach의 4,096배",
+  "reason": "Codex의 '1GiB=262,144페이지'가 TLB reach 부족을 한 줄로 체감시키는 좋은 숫자. 산술 검증: 2^30/2^12=262,144, 262,144/64=4,096 — Codex 수치 정확.",
+  "verified": "N/A (산술 검증 완료)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "측정 없는 최적화 · roofline",
+  "action": "improve",
+  "field": "num",
+  "codex_ref": "D1-11 · Roofline·병목 측정",
+  "new_text": "상한 = min(피크 FLOPS, 대역폭 × 연산 집약도[FLOP/byte])\n상한 모델일 뿐 정확 예측 아님 — latency-bound 분기 코드는 별도",
+  "reason": "정본은 roofline 개념만 있고 수식이 없었다(num 공란). Codex의 min() 공식과 '상한 설명이지 exact prediction 아님' 경계가 정확.",
+  "verified": "N/A (roofline 표준 정의)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "I/O 4분면 · readiness vs completion",
+  "action": "improve",
+  "field": "trap",
+  "codex_ref": "D3-12 · Winsock readiness와 completion",
+  "new_text": "\"논블로킹이면 비동기\"가 가장 흔한 오해. 논블로킹은 <b>실패하고 즉시 돌아오는 것</b>이지 남이 대신 해주는 게 아니다. 둘째 고전 함정: 어느 모델이든 <b>recv 1회 ≠ 메시지 1개</b> — TCP는 경계 없는 바이트 스트림이라 length-prefix 프레이밍은 애플리케이션 몫이다(구현 좌표는 S05 FrameParser).",
+  "reason": "'recv 1회=패킷 1개' 오해는 06 D1~D3에 없던 최빈출 함정. 구현 상세는 05 S05가 소유하므로 06에는 개념 한 줄만 이식.",
+  "verified": "Server/Public/Network/FrameParser.h:29-30 (kMaxPayloadBytes 64KB / kMaxBufferBytes 256KB, length-prefix 절단)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "커널 경계 · syscall 비용",
+  "action": "improve",
+  "field": "trap",
+  "codex_ref": "D2-03 · user/kernel 경계",
+  "new_text": "배칭의 경계 — <b>저빈도 컨트롤 패스는 단순 동기 콜이 정답</b>이다. 배칭은 지연과 부분 완료 상태 관리를 사서 하는 것이라, 뜨겁지 않은 경로에 얹으면 복잡도만 남는다.",
+  "reason": "정본 trap 공란. Codex의 '언제 배칭이 틀리나'(저빈도 경로) 경계가 ⑤형 대가 서술로 유일하게 빠져 있던 조각.",
+  "verified": "N/A (설계 원칙; 수치 주장 없음)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "OoO · Tomasulo · ROB · 리네이밍",
+  "action": "improve",
+  "field": "num",
+  "codex_ref": "D1-02 · Out-of-order·분기 예측",
+  "new_text": "OoO 윈도우(ROB) ≈ 200~500+ 엔트리\nDRAM 미스 200~400cyc → 독립 명령이 그만큼 없으면 윈도우로 못 숨긴다",
+  "reason": "정본 num 공란. Codex '수백 개 instruction window'가 정확(스카이레이크 224~골든코브 512)하고, 기존 trap의 'OoO로 다 못 숨긴다' 주장에 숫자 근거를 붙인다.",
+  "verified": "N/A (공개 마이크로아키텍처 수치; 자릿수 '수백' 판정 일치)",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "✚ CPU↔GPU 경계 · PCIe와 readback 스톨",
+  "action": "add",
+  "codex_ref": "D1-10 · NUMA·PCIe·CPU/GPU 경계",
+  "new_item": {
+   "type": "node",
+   "name": "✚ CPU↔GPU 경계 · PCIe와 readback 스톨",
+   "nc": "D1-4 ⚑",
+   "core": "CPU와 GPU 사이는 캐시 계층이 아니라 <b>PCIe 버스</b>다 — 대역폭은 DRAM보다 낮고 지연은 자릿수로 크다. 매 프레임 작은 버퍼를 동기 map/readback으로 왕복하면 계산이 아니라 <b>대기</b>가 병목이 된다. 업로드는 링/스테이징으로 모으고, readback은 1~2프레임 늦게 받는 게 정석. → Winters DX11 버퍼 업데이트 경로",
+   "num": "PCIe 4.0 x16 ≈ 32GB/s (DRAM 대역폭보다 낮음)\n동기 readback = GPU 명령 큐 드레인 → µs~ms 스톨",
+   "q": "GPU 계산 결과를 CPU가 같은 프레임에 바로 읽으면 왜 느린가요?",
+   "a": "GPU는 수 프레임 분량의 명령을 큐에 쌓아 비동기로 소화하는데, 동기 readback은 그 큐가 빌 때까지 CPU를 세웁니다. 결과가 꼭 필요하면 스테이징 버퍼에 복사해 두고 1~2프레임 뒤에 읽어 파이프라인을 끊지 않습니다. 툴·초기화처럼 빈도가 낮은 경로는 단순 동기 경로(UpdateSubresource)가 오히려 맞습니다.",
+   "trap": "'GPU가 더 빠르니 GPU로 보내자'가 함정 — 전송+동기화 비용이 계산 이득을 먹으면 CPU에 남기는 게 답이다.",
+   "cf": []
+  },
+  "reason": "정본 76/178 전수 스캔에서 readback/staging/업로드 경계 주제 부재 확인. D1 스파인('이동이 계산보다 비싸진다')에 정확히 맞는 codex-only 주제이고 레포에 실재.",
+  "verified": "Engine/Private/RHI/DX11/CDX11Device.cpp:696 (Map WRITE_DISCARD), :706 (UpdateSubresource) — DX11 업로드 경로 실재",
+  "_group": "nodes_d13"
+ },
+ {
+  "target_id": "outbox 패턴 — 커밋-후-발행의 유실",
+  "codex_ref": "D9-11 · event·transactional outbox",
+  "action": "improve",
+  "field": "num",
+  "new_text": "보장 = at-least-once → 소비자 멱등 필수\nWinters 실증 양면: shop 결제는 커밋-후-발행(유실 창 실재 → 좌표 S15) / matchmaking은 match_events_outbox 실구현 — 같은 tx INSERT → 릴레이가 FOR UPDATE SKIP LOCKED로 한 행을 집어 발행 → published_at 기록, 실패 시 attempt_count 증가",
+  "reason": "Codex가 지목한 outbox 실구현이 레포에 커밋 상태로 실재 — 같은 레포에 반면교사(shop)와 정석(matchmaking)이 공존한다는 면접 최상급 소재. 참고: 05 S15 카드의 '마이그레이션 8개 전수에 outbox 테이블 0' 서술은 migrations 000009/000010 추가로 스테일해짐(05는 이번 범위 밖, 별도 갱신 필요).",
+  "verified": "Services/internal/matchmaking/service.go:303-345(publishNextOutbox, FOR UPDATE SKIP LOCKED, published_at, attempt_count) · Services/migrations/000010_harden_match_outbox.up.sql(존재) · git log 확인(커밋됨)",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "모방학습 BC — 분포 이탈 문제",
+  "codex_ref": "D10-09 · imitation·artifact bridge",
+  "action": "improve",
+  "field": "num",
+  "new_text": "오차 누적 BC O(εT²) vs DAgger O(εT) (Ross & Bagnell)\nPython 학습→C++ 런타임 브리지 = .wbc 아티팩트(67피처, SHADOW_ONLY)\n경계 검증 = SimLab --verify-ai-shadow-policy가 학습·런타임 결정 일치를 대조 — feature 순서·버전 어긋남은 조용한 버그라 기계 검증이 필수",
+  "reason": "BC 이론 노드에 빠져 있던 실전 함정(학습-런타임 아티팩트 경계의 silent mismatch)과 레포의 실재 검증 장치를 연결 — Codex의 artifact bridge 관점 중 레포 검증된 부분만 병합.",
+  "verified": "Tools/SimLab/main.cpp:9535(--verify-ai-shadow-policy <policy.wbc>) · Tools/AIResearch/tests/test_train_imitation_ranking_baseline.py:521(policy.wbc)",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "unordered_map — 버킷·체이닝·리해시",
+  "codex_ref": "D6-03 · hash table",
+  "action": "improve",
+  "field": "trap",
+  "new_text": "리해시돼도 원소의 주소는 안 변한다(노드 재연결이라 반복자만 죽음) — vector는 둘 다 죽는 것과 대비되는 포인트. 하나 더: 순회 순서는 구현·리해시에 따라 변하는 미지정 값이라, 권위 시뮬 로직이 이 순서에 기대는 순간 결정론이 깨진다 — Winters가 스냅샷·시스템 순회를 정렬 이터레이터로 못 박은 이유 → 좌표 S03.",
+  "reason": "Codex의 'iteration 순서를 결정론으로 사용' 함정은 정본 trap에 없던 날카로운 반례이고 레포 실코드(DeterministicEntityIterator)와 직결 — 기존 trap 유지 + 결정론 함정 추가, 상세는 S03 좌표로 위임.",
+  "verified": "Shared/GameSim/Systems/Stat/StatSystem.cpp 등 DeterministicEntityIterator 사용처 다수(grep) · .md/이력서/면접/05_NETWORK_IOCP_SNAPSHOT.md:113(SnapshotBuilder 정렬 순회)",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "이동 의미론과 rvalue — moved-from 계약",
+  "codex_ref": "D4-02 · value category·move",
+  "action": "improve",
+  "field": "num",
+  "new_text": "std::move = 코드 0줄짜리 캐스트, 런타임 비용 0\nmoved-from 계약: 유효(소멸·대입 가능) but 값 미지정\ntrivially copyable(int·POD 등 작은 값 타입)은 이동=복사 — 훔칠 간접 리소스가 없어 move가 이득이라는 가정이 틀리는 지점",
+  "reason": "Codex BOUNDARY의 '작은 trivially copyable은 move=copy'는 정본에 빠져 있던 '언제 틀리나' — 일반 지식이라 레포 검증 불요.",
+  "verified": "N/A",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "이진 탐색의 함정",
+  "codex_ref": "D6-09 · binary search·lower_bound",
+  "action": "improve",
+  "field": "trap",
+  "new_text": "루프 안에서 lo=mid로 두는 것 — hi-lo==1일 때 mid==lo라 무한 루프. 진행 보장은 lo=mid+1 쪽에서 나온다. 비교자도 함정: float에 epsilon 비교(a < b+ε)를 쓰면 추이성이 깨져 strict weak ordering 위반 — lower_bound가 엉뚱한 위치를 주고 std::sort는 크래시까지 간다. 허용 오차는 검색 후 판정 단계에서.",
+  "reason": "Codex NAIVE의 'epsilon comparator가 추이성을 깬다'는 정본에 없던 별개의 날카로운 함정(±1 지옥과 독립) — 게임 코드에서 실제 빈발하는 UB 사례.",
+  "verified": "N/A",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "minimax/알파베타와 무브 오더링",
+  "codex_ref": "D10-03 · iterative deepening·TT·ordering",
+  "action": "improve",
+  "field": "a",
+  "new_text": "지수 트리라 마지막 깊이 비용이 전체의 대부분이어서 얕은 반복의 오버헤드는 미미합니다. 대신 얕은 탐색의 최선수가 다음 깊이의 무브 오더링 힌트가 돼서 알파베타 컷이 극적으로 늘고, 시간이 다 되면 마지막 완료 깊이의 답을 쓰면 되니 시간 제어도 공짜로 얻습니다. 여기에 transposition table을 얹으면 수순만 다른 같은 국면의 재탐색까지 잘리는데, 엔트리에 값만이 아니라 탐색 깊이와 바운드 종류(exact/lower/upper)를 같이 저장해야 얕은 결과가 깊은 탐색을 오염시키지 않습니다. 해시 충돌·키 누락은 조용한 오답이라 고정 깊이 대조 감사로 잡고요.",
+  "reason": "정본 A는 iterative deepening까지만 — Codex의 TT(depth/bound 저장, 충돌은 조용한 오답 → 고정 깊이 감사)는 빠져 있던 심화 계층. 일반 지식 병합.",
+  "verified": "N/A",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "✚ 매치 티켓 — 서명이 신뢰 경계를 만든다",
+  "codex_ref": "D9-08 · 인증·ticket·trust boundary",
+  "action": "add",
+  "new_item": {
+   "type": "node",
+   "name": "✚ 매치 티켓 — 서명이 신뢰 경계를 만든다",
+   "nc": "D9 ⚑⚑",
+   "core": "클라가 제시하는 정체성·매치 배정은 <b>검증 없이는 전부 주장</b>일 뿐이다[C7]. 백엔드가 HMAC 서명한 단명 티켓(버전.페이로드.서명)을 발급하고, 게임 서버는 비밀키로 서명·만료만 검사하면 DB를 안 찌르고도 입장 자격을 판정한다 — 인증(누구냐)과 인가(이 매치에 들어올 자격)를 티켓 하나가 운반한다.",
+   "num": "Winters matchticket = HMAC 서명 + TTL 만료(ExpiresAt) + 버전 필드\n검증 = hmac.Equal 상수시간 비교 — 타이밍 부채널 차단\nclaims = matchID·userID·gameSessionID 바인딩",
+   "q": "세션 ID만 확인하고 입장시키면 안 되나요?",
+   "a": "세션 ID는 추측·탈취될 수 있는 값이라 그 자체로는 권한 증명이 아닙니다. 티켓은 백엔드만 아는 비밀키로 서명돼 위조가 안 되고, 만료가 짧아 재사용 창이 좁고, matchID와 userID가 묶여 있어 남의 매치에 못 끼어듭니다. 검증도 hmac.Equal 상수시간 비교로 해서 바이트 단위 응답 시간 차이로 서명을 추측하는 공격까지 막습니다. 그리고 개발용 스모크 토큰과 프로덕션 인증을 같은 보안 수준인 것처럼 말하지 않는 게 중요합니다.",
+   "trap": "서명 검증을 문자열 == 비교로 하는 것 — 일치 길이에 비례해 반환 시간이 달라져 서명이 한 바이트씩 새는 타이밍 부채널이 된다."
+  },
+  "reason": "D9에 인증/신뢰 경계 노드 부재, 05 좌표 카드에도 미커버(S11은 명령 anti-replay, S14는 서비스 분리) — 레포에 HMAC 티켓 실구현이 있어 add 요건 충족.",
+  "verified": "Services/pkg/matchticket/ticket.go:40-109(HMAC Signer·TTL·ExpiresAt·hmac.Equal:95·Version)",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "✚ 컬링 사다리 — frustum→LOD→occlusion",
+  "codex_ref": "D8-09 · frustum·occlusion·LOD",
+  "action": "add",
+  "new_item": {
+   "type": "node",
+   "name": "✚ 컬링 사다리 — frustum→LOD→occlusion",
+   "nc": "D8 ⚑⚑",
+   "core": "화면에 기여하지 않는 오브젝트는 CPU 제출·버텍스·픽셀 비용을 전부 낭비한다 — 컬링은 <b>싼 검사부터 사다리</b>로 적용한다[C6][C2]: frustum(평면 6개 vs AABB) → 거리/LOD → 필요할 때만 occlusion. Winters는 CPU frustum 컬링만, Hi-Z/occlusion 없음 — 쿼터뷰 소형 아레나에선 그 이상은 측정으로 정당화된 뒤다 → 좌표 W08.",
+   "num": "frustum 검사 = 평면 6개 × AABB, 오브젝트당 상수 비용\nWinters = ModelRenderer RenderFrustumCulled(CPU) — occlusion 미도입\nocclusion의 대가 = depth 계층/쿼리 비용 + 프레임 지연 쿼리의 popping",
+   "q": "occlusion culling까지 넣으면 더 빨라지지 않나요?",
+   "a": "occlusion은 공짜가 아닙니다. 가림 판정 자체가 depth 계층이나 쿼리 비용을 내고, 프레임 지연 쿼리는 popping을 만듭니다. 저희는 쿼터뷰 고정 카메라라 화면 밖 제거인 frustum이 이득의 대부분이고, 가림이 심한 실내 구조가 아니라서 occlusion은 측정으로 정당화되기 전까지 안 넣는 게 맞다고 봤습니다. 컬링은 '더 많이'가 아니라 '싼 것부터, 측정만큼'입니다.",
+   "trap": "정지 바운드로 컬링하는 것 — 애니메이션·스케일로 AABB가 갱신 안 되면 화면 안 오브젝트가 사라지는 false negative가 난다. 컬링 버그는 항상 바운드 갱신부터 의심."
+  },
+  "reason": "정본 D8에 컬링 노드 자체가 없음(그래픽스 단골 주제 공백). W08 좌표 카드는 프리패스 카드 안에서 한 줄 언급뿐 — 지식 노드로서 고아. 레포에 frustum 컬링 실재.",
+  "verified": "Engine/Public/Renderer/ModelRenderer.h:44,50,62(RenderFrustumCulled 계열) · 05 W08 카드 ③(컬링은 CPU frustum뿐, Hi-Z 없음)",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "✚ 동적 버퍼 갱신 — Map DISCARD/NO_OVERWRITE",
+  "codex_ref": "D8-03 · buffer update·upload",
+  "action": "add",
+  "new_item": {
+   "type": "node",
+   "name": "✚ 동적 버퍼 갱신 — Map DISCARD/NO_OVERWRITE",
+   "nc": "D8 ⚑⚑",
+   "core": "매 프레임 바뀌는 상수·버텍스 데이터는 GPU가 아직 읽는 중일 수 있다 — Map 플래그는 <b>동기화 정책 선언</b>이다[C3][C4]. DISCARD는 드라이버가 새 메모리를 몰래 발급(rename)해 스톨 없이 통째로 갈아타고, NO_OVERWRITE는 'GPU가 읽는 영역은 안 건드린다'는 맹세로 링버퍼 append를 가능케 한다. Winters DX11 경로도 DISCARD 갱신이 상수버퍼·FX·UI에 실재.",
+   "num": "DISCARD = 버퍼 전체 교체(rename) — 호출마다 드라이버 관리 비용\nNO_OVERWRITE = 링버퍼 순차 append, 랩어라운드 시점만 DISCARD로 리셋\nWinters 사용처 = DX11ConstantBuffer·UIRenderer·FogOfWar 등 20여 곳",
+   "q": "오브젝트마다 상수버퍼를 Map(DISCARD)하면 왜 느려지나요?",
+   "a": "DISCARD가 스톨은 피해 주지만 호출마다 드라이버가 rename 메모리를 관리하고 검증을 돌립니다. 수천 오브젝트면 그 CPU 비용이 draw call 비용과 같은 축으로 쌓입니다. 그래서 프레임 단위 상수는 한 버퍼에 모아 한 번 갱신하고, per-object 데이터는 큰 동적 버퍼에 NO_OVERWRITE로 이어 쓰거나 인스턴싱 버퍼로 묶습니다. '몇 바이트를 몇 번에 나눠 올리느냐'가 설계 변수입니다.",
+   "trap": "NO_OVERWRITE 맹세를 어기고 GPU가 읽는 영역을 덮는 것 — 검증 레이어도 못 잡는 간헐 화면 깨짐이 되고, 재현이 GPU 타이밍에 달려 디버깅 지옥이 된다."
+  },
+  "reason": "정본 D8은 draw call 검증 비용까지만 다루고 버퍼 업로드 동기화(DX11 단골 면접 주제)가 공백 — 레포에 DISCARD 실사용 다수.",
+  "verified": "Engine 내 D3D11_MAP_WRITE_DISCARD 22건(grep: Engine/Private/RHI/DX11/DX11ConstantBuffer.h · Engine/Private/Renderer/UIRenderer.cpp · FogOfWarRenderer.cpp 등)",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "✚ cbuffer 16B 패킹 — 이름이 같아도 레이아웃은 다르다",
+  "codex_ref": "D5-11 · shader compilation·reflection",
+  "action": "add",
+  "new_item": {
+   "type": "node",
+   "name": "✚ cbuffer 16B 패킹 — 이름이 같아도 레이아웃은 다르다",
+   "nc": "D8 ⚑⚑",
+   "core": "HLSL cbuffer는 <b>16바이트 벡터 단위로 패킹</b>되고 멤버가 16B 경계를 걸치면 다음 벡터로 밀린다 — C++ 미러 구조체가 이 규칙과 어긋나면 에러 없이 <b>조용히 틀린 값</b>이 GPU로 간다[C1][C8]. Winters는 셰이더 리플렉션 없이 명시 슬롯+수동 미러 구조체 방식 — 패킹 계약을 사람이 지키는 것이 곧 정합성이다.",
+   "num": "패킹 단위 = 16B(float4) — float3 뒤 float 하나는 붙지만, float 뒤 float3는 다음 벡터로 밀림\nC++ 대응 = 구조체를 16B 배수로 정렬하고 패딩을 명시\nWinters = D3DReflect 미사용(수동 바인딩) — 어긋남 검출은 RenderDoc 원시 바이트 확인",
+   "q": "셰이더 상수가 어긋나면 어떤 증상으로 나타나나요?",
+   "a": "크래시가 아니라 '약간 이상한 그림'으로 나옵니다. 특정 파라미터만 0이 되거나 옆 멤버 값이 섞여 들어와서, CPU 디버거로는 안 보이고 RenderDoc으로 상수버퍼 원시 바이트를 까 봐야 오프셋 밀림이 보입니다. float3 다음에 뭘 붙였는지, C++ 구조체에 패딩을 명시했는지가 단골 원인이고, 저희는 리플렉션 없는 수동 미러라 cbuffer를 바꾸면 양쪽을 같은 커밋에서 고치는 걸 규칙으로 합니다.",
+   "trap": "'변수 이름이 같으니 맞겠지' — 바인딩은 이름이 아니라 오프셋 계약이다. 리플렉션 없는 수동 미러에서는 cbuffer 수정 커밋에 C++ 구조체 diff가 반드시 따라붙어야 한다."
+  },
+  "reason": "정본 D5/D8 모두 셰이더-C++ 레이아웃 계약 노드 공백 — DX11 실무 단골 함정. Codex의 'reflection 사용' 부분은 레포 검증 실패(D3DReflect 0건)라 '리플렉션 없이 수동 계약'으로 사실 교정해 병합.",
+  "verified": "Shaders/Mesh3D.hlsl 등 cbuffer 실재(grep) · Engine/Private/RHI/DX11/DX11ConstantBuffer.h(수동 상수버퍼) · D3DReflect/ID3D11ShaderReflection grep 0건(리플렉션 미사용 확인)",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ },
+ {
+  "target_id": "✚ 재현 빌드 — vcxproj 소유권과 단일 리소스 루트",
+  "codex_ref": "D5-12 · MSBuild·vcxproj·재현 빌드",
+  "action": "add",
+  "new_item": {
+   "type": "node",
+   "name": "✚ 재현 빌드 — vcxproj 소유권과 단일 리소스 루트",
+   "nc": "D5 ⚑",
+   "core": "IDE에서 한 번 성공한 빌드는 재현 빌드가 아니다 — Debug/Release×플랫폼×클라/서버 조합마다 include·lib·리소스가 달라질 수 있어 <b>커맨드라인 빌드와 클린 상태가 기준</b>이다[C8][C3]. Winters 규칙: 컴파일 파일 등록의 소유자는 .vcxproj(+filters)이고 CMake 워크스페이스 맵은 브라우징용일 뿐, 런타임 리소스는 Client/Bin/Resource 단일 루트만 쓴다.",
+   "num": "레거시 타깃 소유자 = .vcxproj/.vcxproj.filters — CMake WintersWorkspaceMap은 소스 그룹 맵\n리소스 루트 = Client/Bin/Resource 단일 — per-config 복사 금지(AGENTS.md)\n빌드 진입 함정 = vcvars64 환경 필수(에디터 분리 빌드 실측)",
+   "q": "빌드가 내 머신에서만 되는 상황은 보통 뭐가 원인인가요?",
+   "a": "구성 조합마다 다른 상태를 IDE가 숨기고 있는 경우가 대부분입니다. 절대 경로 include, 한 구성에만 등록된 소스, 구성별로 복사해 둔 리소스가 3대 원인입니다. 그래서 파일 추가는 소유자인 vcxproj에 하고, 리소스는 단일 루트만 참조하게 강제하고, 검증은 IDE가 아니라 커맨드라인 빌드로 합니다. '어디서 빌드해도 같은 산출물'을 아키텍처 규칙과 같은 급의 계약으로 봅니다.",
+   "trap": "CMake 파일을 고치고 레거시 타깃에 파일이 추가됐다고 믿는 것 — 빌드 소유자가 아닌 파일 수정은 no-op이다(레포 gotcha 2026-05-28)."
+  },
+  "reason": "정본 D5는 링킹·CRT·LTO까지만 다루고 빌드 재현성 노드 공백 — W20(레이어 경계 강제)과는 다른 축(소유권·리소스 루트·클린 재현). 레포 규칙이 문서로 실재.",
+  "verified": "AGENTS.md:128(Client/Bin/Resource 단일 루트 규칙) · .claude/gotchas.md 2026-05-28 항목(vcxproj 소유권, CMake는 맵)",
+  "spoiler": false,
+  "_group": "nodes_d411"
+ }
+]

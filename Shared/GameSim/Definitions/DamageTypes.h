@@ -17,6 +17,8 @@ enum eDamageFlags : uint32_t
     DamageFlag_CanCrit = 1u << 0,
     DamageFlag_CanLifesteal = 1u << 1,
     DamageFlag_OnHit = 1u << 2,
+    DamageFlag_ShowCriticalIndicator = 1u << 3,
+    DamageFlag_ForceCrit = 1u << 4,
 };
 
 enum class eDamageSourceKind : uint8_t

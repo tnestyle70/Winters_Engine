@@ -1,7 +1,12 @@
-# Gameplay Formula / Skill Rank / Animation Data Driven 구현 결과 보고서
+Session - 감사 보고서와 교정 계획을 기준으로 현재 구현된 17개 챔피언의 BA/Q/W/E/R 공식, 아이템 온힛, 스킬 비용·쿨다운·랭크, 시각 타이밍을 검증 가능한 단일 데이터 경로로 이관했다.
+좌표: 신규 좌표 후보 · 축: C7 · C8
+관련: 2026-07-16_GAMEPLAY_FORMULA_SKILL_ANIMATION_DATA_DRIVEN_REMEDIATION_PLAN.md · 2026-07-16_GAMEPLAY_FORMULA_SKILL_ANIMATION_DATA_DRIVEN_REMEDIATION_RESULT.md
+
+# Gameplay Formula / Skill Rank / Animation Data Driven 상세 구현 보고서
 
 작성일: 2026-07-16
-Session - 감사 보고서와 교정 계획을 기준으로 현재 구현된 17개 챔피언의 BA/Q/W/E/R 공식, 아이템 온힛, 스킬 비용·쿨다운·랭크, 시각 타이밍을 검증 가능한 단일 데이터 경로로 이관했다.
+
+> v2의 세 항목 판결은 짝 `_RESULT`가 소유한다. 이 문서는 수식·구조·검증 로그를 보존하는 상세 근거다.
 
 ## 0. 최종 판정
 

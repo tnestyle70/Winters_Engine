@@ -386,7 +386,10 @@ namespace
             mesh.vScale.z *= (segmentLength > 0.001f) ? segmentLength : 1.f;
         }
         mesh.vRotation = emitter.vRotation;
-        if (vForward.x != 0.f || vForward.z != 0.f)
+        const bool_t bInheritsBoneRotation =
+            emitter.anchor.eAnchorType == eFxAnchorType::Bone &&
+            emitter.anchor.bInheritRotation;
+        if (!bInheritsBoneRotation && (vForward.x != 0.f || vForward.z != 0.f))
             mesh.vRotation.y += WintersMath::YawFromDirectionXZ(vForward);
         if (ctx.bApplyAttachJitter)
         {

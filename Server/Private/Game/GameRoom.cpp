@@ -1,6 +1,5 @@
 #include "Game/GameRoom.h"
 
-#include "Game/ServerMinionTuning.h"
 #include "Game/SnapshotBuilder.h"
 #include "Game/ReplayRecorder.h"
 #include "GameRoomSmokeRoster.h"
@@ -58,8 +57,6 @@
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 #include "Shared/GameSim/Definitions/StageData.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
@@ -193,6 +190,7 @@ namespace
         ai.bCanAttackChampion = false;
         ai.bPostComboBAAllowed = false;
         ai.bMidDefenseActive = false;
+        ai.midDefenseThreatHoldTimer = 0.f;
     }
 }
 
@@ -519,6 +517,7 @@ void CGameRoom::ResetMatchStateLocked()
     m_sessionBinding = CSessionBinding{};
     m_lastBroadcastActionSeq.clear();
     m_lastSimCommandSeqBySession.clear();
+    m_lastCommandFeedbackBySession.clear();
 
     m_bGameplayObjectsSpawned = false;
     m_serverMinionWaves.Clear();

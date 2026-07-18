@@ -20,8 +20,13 @@ public:
 	void PlayAnimation(CAnimation* pAnim, bool_t bLoop, f64_t dStartTime, f32_t fPlaySpeed);
 	void Stop();
 
-	const vector<XMFLOAT4X4>& GetFinalBoneMatrices() const { return m_vecFinalMatrices; }
-	const vector<XMFLOAT4X4>& GetGlobalBoneMatrices() const { return m_vecGlobalMatrices; }
+	const vector<XMFLOAT4X4>& GetFinalBoneMatrices() const { EnsurePoseEvaluated(); return m_vecFinalMatrices; }
+	const vector<XMFLOAT4X4>& GetGlobalBoneMatrices() const { EnsurePoseEvaluated(); return m_vecGlobalMatrices; }
+
+	// 지연 포즈 평가: Update 는 시간만 전진하고 dirty 를 남긴다. 포즈(Evaluate +
+	// ComputeFinalTransforms)는 소비 지점(본 업로드/본 질의)에서 프레임당 1회 계산되므로,
+	// 컬링돼 소비자가 없는 인스턴스는 포즈 비용이 0이다. Engine TU 전용 호출.
+	void EnsurePoseEvaluated() const;
 	i32_t FindBoneIndex(const string& strBoneName) const;
 	bool_t TryGetBoneGlobalTransform(const string& strBoneName, XMFLOAT4X4& outMatrix) const;
 	u32_t GetBoneCount() const;
@@ -51,7 +56,7 @@ public:
 	// SetPlaySpeedRawForTool(0.f) = 일시정지: Update가 시간을 0만큼 진행하되 포즈는
 	// 매 프레임 재평가하므로 SetCurrentTimeTicksForTool 스크럽이 즉시 반영된다.
 	void SetPlaySpeedRawForTool(f32_t fSpeed) { m_fPlaySpeed = fSpeed; }
-	void SetCurrentTimeTicksForTool(f64_t dTicks) { m_dCurrentTime = dTicks; }
+	void SetCurrentTimeTicksForTool(f64_t dTicks) { m_dCurrentTime = dTicks; m_bPoseDirty = true; }
 private:
 	CSkeleton* m_pSkeleton = nullptr;
 	CAnimation* m_pCurrentAnim = nullptr;
@@ -59,10 +64,13 @@ private:
 	bool_t m_bLoop = true;
 	bool_t m_bPlaying = false;
 	f32_t m_fPlaySpeed = 1.f;
-	vector<XMFLOAT4X4> m_vecLocalTransforms;
-	vector<XMFLOAT4X4> m_vecGlobalMatrices;
-	vector<XMFLOAT4X4> m_vecFinalMatrices;
-	vector<XMMATRIX> m_vecGlobalScratch;
+	// 포즈 저장소는 지연 평가 캐시 — const 질의 경로(TryGetBoneGlobalTransform 등)에서
+	// 갱신되므로 mutable.
+	mutable bool_t m_bPoseDirty = false;
+	mutable vector<XMFLOAT4X4> m_vecLocalTransforms;
+	mutable vector<XMFLOAT4X4> m_vecGlobalMatrices;
+	mutable vector<XMFLOAT4X4> m_vecFinalMatrices;
+	mutable vector<XMMATRIX> m_vecGlobalScratch;
 };
 
 NS_END

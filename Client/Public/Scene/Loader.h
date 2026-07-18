@@ -40,7 +40,6 @@ public:
 	eSceneID Get_NextSceneID() const { return m_eNextSceneID; }
 
 	unique_ptr<IScene> Build_NextScene();
-	static void Register_Blueprints_InGame();
 private:
 	CLoader() = default;
 

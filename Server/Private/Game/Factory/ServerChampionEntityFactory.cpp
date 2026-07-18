@@ -22,7 +22,6 @@
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
 #include "Shared/GameSim/Systems/Stat/StatSystem.h"
@@ -48,6 +47,19 @@ EntityID ServerEntityFactory::BuildChampionEntity(
     const SpawnObjectDefinitionPack& objectDefs = ServerData::GetActiveLoLSpawnObjectDefinitionPack();
     const GameplayDefinitionPack& definitions = ServerData::GetActiveLoLGameplayDefinitionPack();
     const ChampionGameplayDef* championDef = definitions.FindChampion(slot.champion);
+    if (!championDef)
+    {
+        static u32_t s_spawnPackMissLogCount = 0u;
+        if (s_spawnPackMissLogCount < 16u)
+        {
+            char msg[128]{};
+            sprintf_s(msg, "[Data] required champion definition missing champ=%u\n",
+                static_cast<u32_t>(slot.champion));
+            WintersOutputAIDebugStringA(msg);
+            ++s_spawnPackMissLogCount;
+        }
+        return NULL_ENTITY;
+    }
 
     ChampionAssemblyContext ctx{};
     ctx.champion = slot.champion;
@@ -60,30 +72,8 @@ EntityID ServerEntityFactory::BuildChampionEntity(
     // smoke/dummy=고정값 -> 기존 ResolveServerChampionMaxHpForSlot(slot, stat.hpMax)와 byte-identical.
     ctx.maxHpOverride = ResolveServerChampionMaxHpForSlot(slot, 0.f);
 
-    f32_t spatialRadius = 0.75f;
-    f32_t sightRange = 19.f;
-    if (championDef)
-    {
-        spatialRadius = championDef->stats.spatialRadius;
-        sightRange = championDef->stats.sightRange;
-    }
-    else
-    {
-        // 팩 miss 는 조용히 legacy 로 떨어지면 스키마 드리프트가 안 보인다 — bounded 진단.
-        static u32_t s_spawnPackMissLogCount = 0;
-        if (s_spawnPackMissLogCount < 16u)
-        {
-            char msg[128]{};
-            sprintf_s(msg,
-                "[Data] spawn pack miss champ=%u -> legacy stats\n",
-                static_cast<u32_t>(slot.champion));
-            WintersOutputAIDebugStringA(msg);
-            ++s_spawnPackMissLogCount;
-        }
-        ctx.fallbackStats = CChampionStatsRegistry::Instance().Resolve(slot.champion);
-        spatialRadius = ctx.fallbackStats.spatialRadius;
-        sightRange = ctx.fallbackStats.sightRange;
-    }
+    const f32_t spatialRadius = championDef->stats.spatialRadius;
+    const f32_t sightRange = championDef->stats.sightRange;
 
     const EntityID entity = ChampionGameplayAssembly::Build(world, ctx);
 

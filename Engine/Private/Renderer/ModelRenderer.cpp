@@ -18,6 +18,7 @@
 #include "Resource/Animator.h"
 #include "AssetFormat/Common/Hash.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -578,6 +579,11 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
             return;
         }
 
+        // Mesh3D/Skinned3D declare t6/s6 for every draw. Keep a valid read-only
+        // binding even while g_bUseGrassTint is false so the DX11 Debug Layer
+        // does not validate hundreds of standard map draws against null slots.
+        m_pImpl->pGrassTintTexture->Bind(pDevice, 6);
+
         if (bHasStandardSubmeshes)
         {
             UpdateObjectConstants(false);
@@ -585,15 +591,9 @@ void ModelRenderer::RenderWithVisibility(const VisibilityMask& mask)
             m_pImpl->pSharedModel->RenderWithMask(pDevice, standardMask);
         }
 
-        m_pImpl->pGrassTintTexture->Bind(pDevice, 6);
         UpdateObjectConstants(true);
         m_pImpl->cbPerObject.Bind(pContext, 1);
         m_pImpl->pSharedModel->RenderWithMask(pDevice, grassTintMask);
-
-        ID3D11ShaderResourceView* pNullSRV = nullptr;
-        ID3D11SamplerState* pNullSampler = nullptr;
-        pContext->PSSetShaderResources(6, 1, &pNullSRV);
-        pContext->PSSetSamplers(6, 1, &pNullSampler);
     };
 
     // ── 스키닝 렌더링 ──
@@ -912,6 +912,30 @@ f32_t ModelRenderer::GetAnimationDurationSecondsByName(const string& strKeyword)
     return static_cast<f32_t>(pAnim->GetDuration() / pAnim->GetTicksPerSecond());
 }
 
+f32_t ModelRenderer::GetAnimationTimeSecondsByFrameByName(
+    const string& strKeyword,
+    f32_t fFrame) const
+{
+    if (!m_pImpl || !m_pImpl->pSharedModel ||
+        !std::isfinite(fFrame) || fFrame < 0.f)
+    {
+        return 0.f;
+    }
+
+    const i32_t idx = m_pImpl->pSharedModel->FindAnimationIndex(strKeyword);
+    if (idx < 0)
+        return 0.f;
+
+    const auto* pAnim = m_pImpl->pSharedModel->GetAnimation((u32_t)idx);
+    if (!pAnim || pAnim->GetTicksPerSecond() <= 0.0)
+        return 0.f;
+
+    const f64_t frame = (std::min)(
+        static_cast<f64_t>(fFrame),
+        pAnim->GetDuration());
+    return static_cast<f32_t>(frame / pAnim->GetTicksPerSecond());
+}
+
 bool ModelRenderer::PlayAnimationByNameAdvanced(
     const string& strKeyword,
     bool bLoop,
@@ -1017,6 +1041,21 @@ bool ModelRenderer::TryResolveBoneWorldPosition(const string& strBoneName,
     const Vec3& vLocalOffset,
     Vec3& vOutWorldPos) const
 {
+    Mat4 matWorldRotation = Mat4::Identity();
+    return TryResolveBoneWorldPose(
+        strBoneName,
+        matEntityWorld,
+        vLocalOffset,
+        vOutWorldPos,
+        matWorldRotation);
+}
+
+bool ModelRenderer::TryResolveBoneWorldPose(const string& strBoneName,
+    const Mat4& matEntityWorld,
+    const Vec3& vLocalOffset,
+    Vec3& vOutWorldPos,
+    Mat4& matOutWorldRotation) const
+{
     if (strBoneName.empty() || !m_pImpl || !m_pImpl->pInstanceAnimator)
         return false;
 
@@ -1024,8 +1063,27 @@ bool ModelRenderer::TryResolveBoneWorldPosition(const string& strBoneName,
     if (!m_pImpl->pInstanceAnimator->TryGetBoneGlobalTransform(strBoneName, matBoneGlobal))
         return false;
 
-    const Mat4 matBoneLocal(matBoneGlobal);
-    vOutWorldPos = (matBoneLocal * matEntityWorld).TransformPoint(vLocalOffset);
+    const XMMATRIX matBoneWorld =
+        XMLoadFloat4x4(&matBoneGlobal) *
+        XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(&matEntityWorld.m));
+    const XMVECTOR vOffset = XMVectorSet(
+        vLocalOffset.x,
+        vLocalOffset.y,
+        vLocalOffset.z,
+        1.f);
+    XMStoreFloat3(
+        reinterpret_cast<XMFLOAT3*>(&vOutWorldPos),
+        XMVector3TransformCoord(vOffset, matBoneWorld));
+
+    XMVECTOR vScale{};
+    XMVECTOR vRotation{};
+    XMVECTOR vTranslation{};
+    if (!XMMatrixDecompose(&vScale, &vRotation, &vTranslation, matBoneWorld))
+        return false;
+
+    XMStoreFloat4x4(
+        reinterpret_cast<XMFLOAT4X4*>(&matOutWorldRotation.m),
+        XMMatrixRotationQuaternion(vRotation));
     return true;
 }
 

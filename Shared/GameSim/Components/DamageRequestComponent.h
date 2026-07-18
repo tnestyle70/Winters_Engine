@@ -23,6 +23,8 @@ struct DamageRequest
     f32_t apRatioOverride = 0.f;
     f32_t targetMaxHpRatioOverride = 0.f;
     f32_t targetMissingHpRatioOverride = 0.f;
+    f32_t critEligibleAmountOverride = 0.f;
+    f32_t critDamageMultiplierOverride = 0.f;
     u32_t flags = 0;
 };
 

@@ -26,6 +26,32 @@ namespace
         }
     }
 
+    SkillDef MakeGarenClientSkill(u8_t slot)
+    {
+        SkillDef def{};
+        def.champ = eChampion::GAREN;
+        def.slot = slot;
+        switch (static_cast<eSkillSlot>(slot))
+        {
+        case eSkillSlot::Q:
+            def.animKey = "garen_2013_spell1";
+            break;
+        case eSkillSlot::W:
+            def.animKey = "garen_2013_channel";
+            break;
+        case eSkillSlot::E:
+            def.animKey = "garen_base_spell3_0";
+            break;
+        case eSkillSlot::R:
+            def.animKey = "garen_2013_spell4";
+            break;
+        default:
+            def.animKey = "garen_2013_attack_01";
+            break;
+        }
+        return def;
+    }
+
     //?낆쓣 留뚮뱶??寃??쒕쾭??蹂대궪 臾댁뼵媛瑜??꾩넚?쒕떎???살씤 嫄멸퉴?
     void DispatchGarenVisualHook(VisualHookContext& visualCtx)
     {
@@ -46,11 +72,7 @@ namespace
         {
             for (u8_t slot = 0; slot < static_cast<u8_t>(eSkillSlot::SLOT_END); ++slot)
             {
-                const SkillDef* legacy = FindSkillDef(eChampion::GAREN, slot);
-                if (!legacy)
-                    continue;
-
-                SkillDef s = *legacy;
+                SkillDef s = MakeGarenClientSkill(slot);
                 s.castHookId = ResolveGarenCastHook(slot);
                 CSkillRegistry::Instance().Add(eChampion::GAREN, slot, s);
             }

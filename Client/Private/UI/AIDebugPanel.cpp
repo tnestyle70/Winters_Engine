@@ -1289,7 +1289,7 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 
 	if (ImGui::CollapsingHeader("Server Minions"))
 	{
-	ImGui::TextDisabled("Snapshot readout only. Server gameplay tuning lives in ServerMinionTuning.");
+	ImGui::TextDisabled("Snapshot readout only. Server gameplay tuning comes from the active definition pack.");
 
 	const CNavGrid* pMinionDebugGrid = pScene
 		? (pScene->GetPathNavGrid() ? pScene->GetPathNavGrid() : pScene->GetNavGrid())

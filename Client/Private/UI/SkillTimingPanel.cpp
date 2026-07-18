@@ -64,6 +64,7 @@ namespace
         root["version"] = 1;
         root["source"] = "Data/LoL/ClientPublic/Visual/ChampionVisualDefs.json";
         root["scope"] = "visual-only-debug-draft";
+        root["baseBuildHash"] = ClientData::GetLoLClientVisualDefinitionBuildHash();
         root["overrides"] = json::array();
 
         for (const eChampion champion : kChampions)

@@ -361,7 +361,8 @@ void CAttackChaseSystem::Execute(CWorld& world, const TickContext& tc,
                 }
                 outCommands.push_back(MakeBasicAttackCommand(
                     tc, entity, chase.target, chase.sequenceNum, selfPos, targetPos));
-                world.RemoveComponent<AttackChaseComponent>(entity);
+                if (!chase.bSustain)
+                    world.RemoveComponent<AttackChaseComponent>(entity);
             }
             continue;
         }

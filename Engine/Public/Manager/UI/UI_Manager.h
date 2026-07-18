@@ -106,14 +106,15 @@ public:
     void    Set_ShowMouseCursor(bool_t b) { m_bShowMouseCursor = b; }
     bool_t  Get_ShowMouseCursor() const { return m_bShowMouseCursor; }
     void    Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
-        u8_t iDamageType, bool_t bWasCrit, bool_t bKilled);
+        u8_t iDamageType, bool_t bWasCrit, bool_t bKilled,
+        bool_t bShowCriticalIndicator = false);
     void    Push_WorldText(const Vec3& vWorldPos, const char* pText,
         const Vec4& vColor, f32_t fLifetime);
     void    Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
         f32_t fLifetime);
     void Push_KillFeedBanner(u8_t iSourceActorContentId, u8_t iTargetActorContentId,
         u8_t iObjectKind, u8_t iTargetTeam,
-        bool_t bSourceAlly, const char* pMessage);
+        bool_t bSourceAlly, bool_t bSourceMinion, const char* pMessage);
     void RecordMatchContextActorKill(u8_t iSourceTeam, u8_t iTargetTeam,
         bool_t bLocalSource, bool_t bLocalTarget);
     void RecordMatchContextUnitKill();
@@ -133,6 +134,9 @@ public:
     void SetInGameGold(u32_t iGold) { m_iInGameGold = iGold; }
     void SetInGameBuyItemCallback(void(*pfn)(void*, u16_t), void* pUser);
     void SetLevelSkillCallback(void(*pfn)(void*, u8_t), void* pUser);
+    void SetInventoryReorderCallback(
+        void(*pfn)(void*, u8_t, u8_t, u16_t), void* pUser);
+    bool_t IsPointerOverActorInventory() const;
 
 private:
     struct DamageFloater
@@ -144,6 +148,7 @@ private:
         f32_t fXJitter = 0.f;
         u8_t iDamageType = 0;
         bool_t bWasCrit = false;
+        bool_t bShowCriticalIndicator = false;
         bool_t bKilled = false;
     };
     struct WorldTextFloater
@@ -164,6 +169,7 @@ private:
         u8_t iObjectKind = 0;
         u8_t iTargetTeam = 255u;
         bool_t bSourceAlly = false;
+        bool_t bSourceMinion = false;
         f32_t fAge = 0.f;
         f32_t fLifetime = 3.f;
         std::string strMessage;
@@ -389,6 +395,11 @@ private:
     void* m_pBuyItemUser = nullptr;
     void(*m_pfnLevelSkill)(void*, u8_t) = nullptr;
     void* m_pLevelSkillUser = nullptr;
+    void(*m_pfnInventoryReorder)(void*, u8_t, u8_t, u16_t) = nullptr;
+    void* m_pInventoryReorderUser = nullptr;
+    i8_t m_iInventoryDragSource = -1;
+    i8_t m_iInventoryDragHover = -1;
+    u16_t m_iInventoryDragItemId = 0u;
 
     // Phase B+ 확장 훅 (지금은 스텁 선언만)
     // void Draw_PlayerHUD();
@@ -439,6 +450,7 @@ private:
     void* m_pSRV_PingAssist = nullptr;
     void* m_pSRV_PingMissing = nullptr;
     void* m_pSRV_OffscreenPingAtlas = nullptr;
+    void* m_pSRV_StatsPanelAtlas = nullptr;
     eCursorMode               m_CursorMode = eCursorMode::Default;
     f32_t                     m_fCursorSize = 32.f;
     bool_t                    m_bShowMouseCursor = true;

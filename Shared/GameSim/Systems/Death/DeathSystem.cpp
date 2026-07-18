@@ -1,8 +1,10 @@
 #include "Shared/GameSim/Systems/Death/DeathSystem.h"
 
+#include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 
@@ -36,11 +38,25 @@ void CDeathSystem::Execute(CWorld& world, const TickContext& tc)
                     for (u8_t i = 0; i < 5; ++i)
                         skillState.slots[i].currentStage = 0;
                 }
+                if (world.HasComponent<SkillChargeStateComponent>(entity))
+                    world.RemoveComponent<SkillChargeStateComponent>(entity);
+
+                if (world.HasComponent<StructureComponent>(entity) &&
+                    world.HasComponent<TargetableTag>(entity))
+                {
+                    world.RemoveComponent<TargetableTag>(entity);
+                }
             }
         }
         else if (health.bIsDead)
         {
             health.bIsDead = false;
+
+            if (world.HasComponent<StructureComponent>(entity) &&
+                !world.HasComponent<TargetableTag>(entity))
+            {
+                world.AddComponent<TargetableTag>(entity);
+            }
         }
     }
 }

@@ -39,6 +39,8 @@ Cross-agent operating rules for Winters. Keep the behavioral core aligned with `
 ## Plan Document Placement
 - When asked for a design guide, implementation guide, handoff plan, or architecture plan, create a dated Markdown file under `.md/plan/YYYY-MM-DD_<TOPIC>.md` unless the user names a more specific plan subfolder.
 - Start the document with `Session - ...`, include current code evidence, ownership boundaries, staged direction, and verification/handoff notes.
+- Every session that authors, resumes, or applies a dated implementation plan must read and create or update the corresponding `*_PLAN.md` before source edits. Once implementation starts, the same session must create or update the same-name `*_RESULT.md` before handoff; chat-only plans and implementation-only handoffs are not complete.
+- Resume the existing plan/result pair for the same slice instead of creating a duplicate, and follow `.md/계획서작성규칙.md` for both files. `2026-07-18_IRELIA_E_UNIT_HIT_MARK_Q_RESET_RECALL_6S_PLAN.md` is the reference example for this mandatory session contract.
 - Keep `AGENTS.md` as the rule pointer only; put detailed design guidance in the dated plan document.
 
 ## Goal Operating Lens

@@ -74,8 +74,15 @@ namespace FxAnchor
         const FxAnchorDesc& anchor,
         const Vec3& vLegacyOffset,
         const Vec3& vCurrentWorldPos,
-        Vec3& vOutWorldPos)
+        Vec3& vOutWorldPos,
+        Mat4* pOutWorldRotation = nullptr,
+        bool_t* pOutInheritedRotation = nullptr)
     {
+        if (pOutWorldRotation)
+            *pOutWorldRotation = Mat4::Identity();
+        if (pOutInheritedRotation)
+            *pOutInheritedRotation = false;
+
         if (anchor.eAnchorType == eFxAnchorType::World)
         {
             vOutWorldPos = vCurrentWorldPos;
@@ -91,6 +98,21 @@ namespace FxAnchor
                 TransformComponent& tf = world.GetComponent<TransformComponent>(attachTo);
                 RenderComponent& rc = world.GetComponent<RenderComponent>(attachTo);
                 FlushTransformForFx(tf);
+
+                if (rc.pRenderer &&
+                    anchor.bInheritRotation &&
+                    pOutWorldRotation &&
+                    rc.pRenderer->TryResolveBoneWorldPose(
+                        anchor.strAnchorName,
+                        tf.GetWorldMatrix(),
+                        anchor.vAnchorOffset,
+                        vOutWorldPos,
+                        *pOutWorldRotation))
+                {
+                    if (pOutInheritedRotation)
+                        *pOutInheritedRotation = true;
+                    return true;
+                }
 
                 if (rc.pRenderer &&
                     rc.pRenderer->TryResolveBoneWorldPosition(

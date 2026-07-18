@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": 1,
+  "buildHash": 4237932526,
+  "runes": [
+    {
+      "key": "rune.lethal_tempo",
+      "definitionKey": 894950491,
+      "legacyRuneId": 1,
+      "enabled": true,
+      "maxStacks": 5
+    },
+    {
+      "key": "rune.electrocute",
+      "definitionKey": 3814596348,
+      "legacyRuneId": 2,
+      "enabled": false,
+      "maxStacks": 0
+    },
+    {
+      "key": "rune.adaptive_force",
+      "definitionKey": 1266416819,
+      "legacyRuneId": 3,
+      "enabled": false,
+      "maxStacks": 0
+    }
+  ]
+}

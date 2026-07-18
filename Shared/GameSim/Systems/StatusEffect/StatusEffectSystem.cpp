@@ -2,7 +2,10 @@
 
 #include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
+#include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
+#include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/AttackChaseComponent.h"
 #include "Shared/GameSim/Components/CombatActionComponent.h"
 #include "Shared/GameSim/Components/PoseActionStateHelpers.h"
@@ -19,6 +22,7 @@
 
 namespace
 {
+    constexpr f32_t kStatusExpiryEpsilonSec = 0.00001f;
     GameplayStateComponent& EnsureGameplayState(CWorld& world, EntityID entity)
     {
         if (!world.HasComponent<GameplayStateComponent>(entity))
@@ -61,7 +65,7 @@ namespace
         for (u8_t read = 0; read < effects.count; ++read)
         {
             if (effects.active[read].effectId == eStatusEffectId::None ||
-                effects.active[read].fRemainingSec <= 0.f)
+                effects.active[read].fRemainingSec <= kStatusExpiryEpsilonSec)
             {
                 continue;
             }
@@ -177,7 +181,8 @@ namespace
     {
         constexpr u32_t kInterruptingFlags =
             kGameplayStateStunnedFlag |
-            kGameplayStateAirborneFlag;
+            kGameplayStateAirborneFlag |
+            kGameplayStateInvulnerableFlag;
         if ((desc.stateFlags & kInterruptingFlags) == 0u)
             return;
 
@@ -187,6 +192,19 @@ namespace
             world.RemoveComponent<AttackChaseComponent>(target);
         if (world.HasComponent<RecallComponent>(target))
             world.RemoveComponent<RecallComponent>(target);
+        if (world.HasComponent<SkillChargeStateComponent>(target))
+        {
+            const SkillChargeStateComponent charge =
+                world.GetComponent<SkillChargeStateComponent>(target);
+            if (world.HasComponent<SkillStateComponent>(target) && charge.localSlot < 5u)
+            {
+                auto& slot =
+                    world.GetComponent<SkillStateComponent>(target).slots[charge.localSlot];
+                slot.currentStage = 0u;
+                slot.stageWindow = 0.f;
+            }
+            world.RemoveComponent<SkillChargeStateComponent>(target);
+        }
 
         if (world.HasComponent<ActionStateComponent>(target))
         {
@@ -211,6 +229,8 @@ namespace GameplayStatus
         EntityID target,
         const StatusEffectApplyDesc& desc)
     {
+        if (FioraGameSim::TryParryCrowdControl(world, target, desc, nullptr))
+            return false;
         return ApplyStatusEffectInternal(world, target, desc);
     }
 
@@ -220,6 +240,8 @@ namespace GameplayStatus
         const StatusEffectApplyDesc& desc,
         const TickContext& tc)
     {
+        if (FioraGameSim::TryParryCrowdControl(world, target, desc, &tc))
+            return false;
         if (!ApplyStatusEffectInternal(world, target, desc))
             return false;
 
@@ -476,6 +498,47 @@ namespace GameplayStatus
         }
         if (world.HasComponent<StatusEffectComponent>(entity))
             world.RemoveComponent<StatusEffectComponent>(entity);
+        if (world.HasComponent<StunComponent>(entity))
+            world.RemoveComponent<StunComponent>(entity);
+        if (world.HasComponent<SlowComponent>(entity))
+            world.RemoveComponent<SlowComponent>(entity);
+        if (world.HasComponent<DisarmComponent>(entity))
+            world.RemoveComponent<DisarmComponent>(entity);
+        RebuildGameplayState(world, entity);
+    }
+
+    void CleanseCrowdControlEffects(CWorld& world, EntityID entity)
+    {
+        if (entity == NULL_ENTITY || !world.IsAlive(entity))
+            return;
+
+        if (world.HasComponent<StatusEffectComponent>(entity))
+        {
+            StatusEffectComponent& effects =
+                world.GetComponent<StatusEffectComponent>(entity);
+            constexpr u32_t kCleanseFlags =
+                kGameplayStateStunnedFlag |
+                kGameplayStateSlowedFlag |
+                kGameplayStateDisarmedFlag;
+            u8_t write = 0u;
+            for (u8_t read = 0u; read < effects.count; ++read)
+            {
+                const StatusEffectInstance& effect = effects.active[read];
+                const bool_t bAirborne =
+                    (effect.stateFlags & kGameplayStateAirborneFlag) != 0u;
+                const bool_t bCleanse =
+                    !bAirborne && (effect.stateFlags & kCleanseFlags) != 0u;
+                if (bCleanse)
+                    continue;
+                if (write != read)
+                    effects.active[write] = effect;
+                ++write;
+            }
+            for (u8_t index = write; index < effects.count; ++index)
+                effects.active[index] = StatusEffectInstance{};
+            effects.count = write;
+        }
+
         if (world.HasComponent<StunComponent>(entity))
             world.RemoveComponent<StunComponent>(entity);
         if (world.HasComponent<SlowComponent>(entity))

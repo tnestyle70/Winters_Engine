@@ -17,10 +17,6 @@ public:
     void Render();
     void ImGui();
 
-    //Static Scene - Player 계정 정보 UI 오버레이 영속!
-    HRESULT Set_StaticScene(unique_ptr<IScene> pScene);
-    IScene* Get_StaticScene() const { return m_pStaticScene.get(); }
-
     IScene* Get_CurrentScene() const { return m_pCurrentScene.get(); }
     uint32_t Get_CurrentSceneID() const { return m_iCurrentSceneID; }
 
@@ -28,7 +24,6 @@ public:
 
 private://Convention Gotchas 반드시 {} 유니폼 초기화, 모든 변수 초기화!!
     unique_ptr<IScene> m_pCurrentScene = {nullptr};
-    unique_ptr<IScene> m_pStaticScene = { nullptr };
     uint32_t m_iCurrentSceneID = {0};
 };
 

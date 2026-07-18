@@ -8,7 +8,7 @@
       "render_type": "MeshParticle",
       "blend_mode": "AlphaBlend",
       "depth_mode": "DepthTestWriteOff",
-      "texture": "Client/Bin/Resource/Texture/Character/Riven/particles/riven_base_e_sheildmult.png",
+      "texture": "Client/Bin/Resource/Texture/Character/Riven/particles/riven_base_e_sheildmeshtext.png",
       "model": "Client/Bin/Resource/Texture/Character/Riven/particles/fbx/riven_base_e_shieldmesh01.fbx",
       "lifetime": 3.00,
       "fade_in": 0.04,
@@ -64,30 +64,6 @@
       "lifecycle": {
         "mode": "Timed",
         "stop_fade_out": 0.60,
-        "detach_on_stop": false,
-        "kill_when_anchor_invalid": true
-      }
-    },
-    {
-      "name": "E_ShieldMult",
-      "render_type": "Billboard",
-      "blend_mode": "Additive",
-      "depth_mode": "DepthTestWriteOff",
-      "texture": "Client/Bin/Resource/Texture/Character/Riven/particles/riven_base_e_sheildmult.png",
-      "lifetime": 3.00,
-      "start_delay": 0.03,
-      "fade_in": 0.05,
-      "fade_out": 0.68,
-      "width": 3.00,
-      "height": 3.00,
-      "color": [1.00, 1.00, 1.00, 0.78],
-      "attach_offset": [0.00, 1.18, 0.00],
-      "alpha_clip": 0.01,
-      "billboard": true,
-      "depth_write": false,
-      "lifecycle": {
-        "mode": "Timed",
-        "stop_fade_out": 0.68,
         "detach_on_stop": false,
         "kill_when_anchor_invalid": true
       }

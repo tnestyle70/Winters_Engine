@@ -1,4 +1,5 @@
 #include "Resource/Texture.h"
+#include "Core/Profiler/RenderFrameStats.h"
 #include "RHI/RHITypes.h"
 #include "WintersPaths.h"
 
@@ -71,6 +72,8 @@ void CTexture::Bind(IRHIDevice* pDevice, u32_t iSlot)
 	ID3D11DeviceContext* pContext = GetNativeDX11Context(pDevice);
 	if (!pContext)
 		return;
+
+	RenderFrameStats::AddBindTexture();
 
 	if (m_bMipsPending)
 		EnsureMipsOnBind(pDevice);

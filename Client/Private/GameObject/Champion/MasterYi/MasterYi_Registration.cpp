@@ -14,35 +14,13 @@ namespace
     constexpr u32_t kMasterYi_E_Cast = MakeHookId(eChampion::MASTERYI, HookVariant::E_CastFrame);
     constexpr u32_t kMasterYi_R_Cast = MakeHookId(eChampion::MASTERYI, HookVariant::R_CastFrame);
 
-    f32_t ResolveRange(u8_t slot)
-    {
-        switch (static_cast<eSkillSlot>(slot))
-        {
-        case eSkillSlot::BasicAttack: return 1.5f;
-        case eSkillSlot::Q: return 6.f;
-        case eSkillSlot::W:
-        case eSkillSlot::E:
-        case eSkillSlot::R:
-            return 0.f;
-        default: return 0.f;
-        }
-    }
-
-    void RegisterSkill(u8_t slot, eTargetMode targetMode, const char* animKey, u32_t hookId)
+void RegisterSkill(u8_t slot, const char* animKey, u32_t hookId)
     {
         SkillDef s{};
         s.champ = eChampion::MASTERYI;
         s.slot = slot;
-        s.targetMode = targetMode;
-        s.cooldownSec = 0.6f;
-        s.rangeMax = ResolveRange(slot);
         s.animKey = animKey;
-        s.lockDurationSec = 0.6f;
         s.bOneShot = true;
-        s.rotate = targetMode == eTargetMode::Self ? eRotateMode::None : eRotateMode::TowardsCursor;
-        s.visualCastFrame = 4.f;
-        s.visualRecoveryFrame = 12.f;
-        s.visualPlaySpeed = 1.f;
         s.castHookId = hookId;
         CSkillRegistry::Instance().Add(eChampion::MASTERYI, slot, s);
     }
@@ -68,11 +46,11 @@ namespace
             cd.displayName = "MasterYi";
             CChampionRegistry::Instance().Add(eChampion::MASTERYI, cd);
 
-            RegisterSkill(0, eTargetMode::UnitTarget, "skinned_mesh_masteryi_2013_attack1", kMasterYi_BA_Cast);
-            RegisterSkill(1, eTargetMode::UnitTarget, "skinned_mesh_masteryi_2013_attack2", kMasterYi_Q_Cast);
-            RegisterSkill(2, eTargetMode::Self, "skinned_mesh_masteryi_2013_spell2", kMasterYi_W_Cast);
-            RegisterSkill(3, eTargetMode::Self, "skinned_mesh_masteryi_spell3", kMasterYi_E_Cast);
-            RegisterSkill(4, eTargetMode::Self, "skinned_mesh_masteryi_2013_run_haste", kMasterYi_R_Cast);
+            RegisterSkill(0, "skinned_mesh_masteryi_2013_attack1", kMasterYi_BA_Cast);
+            RegisterSkill(1, "skinned_mesh_masteryi_2013_attack2", kMasterYi_Q_Cast);
+            RegisterSkill(2, "skinned_mesh_masteryi_2013_spell2", kMasterYi_W_Cast);
+            RegisterSkill(3, "skinned_mesh_masteryi_spell3", kMasterYi_E_Cast);
+            RegisterSkill(4, "skinned_mesh_masteryi_2013_run_haste", kMasterYi_R_Cast);
 
         }
     };

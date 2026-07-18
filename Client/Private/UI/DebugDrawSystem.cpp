@@ -172,6 +172,7 @@ namespace
         case eChampionAIState::Retreat: return "Retreat";
         case eChampionAIState::Recalling: return "Recalling";
         case eChampionAIState::Dead: return "Dead";
+        case eChampionAIState::GroupMidDefense: return "GroupMidDef";
         default: return "Unknown";
         }
     }
@@ -202,6 +203,7 @@ namespace
         case eChampionAIIntent::SiegeStructure: return "Siege";
         case eChampionAIIntent::Retreat: return "Retreat";
         case eChampionAIIntent::Recall: return "Recall";
+        case eChampionAIIntent::DefendMid: return "DefendMid";
         default: return "Unknown";
         }
     }

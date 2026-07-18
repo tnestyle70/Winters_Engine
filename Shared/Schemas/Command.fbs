@@ -13,7 +13,8 @@ enum CommandKind : ubyte {
     AIDebugControl = 9,
     Flash = 10,
     CompanionCommand = 11,
-    PracticeControl = 12
+    PracticeControl = 12,
+    ReorderItem = 13
 }
 
 enum PracticeOperation : ushort {

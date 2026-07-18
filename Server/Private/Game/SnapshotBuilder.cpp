@@ -1,6 +1,7 @@
 #include "Game/SnapshotBuilder.h"
 
 #include "Game/ServerProjectileAuthority.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 
 #include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Components/BuffComponent.h"
@@ -44,6 +45,14 @@
 
 namespace
 {
+    DefinitionKey ResolveSnapshotChampionDefinitionKey(u8_t legacyValue)
+    {
+        const ChampionGameplayDef* definition =
+            ServerData::GetActiveLoLGameplayDefinitionPack().FindChampion(
+                static_cast<eChampion>(legacyValue));
+        return definition ? definition->key : kInvalidDefinitionKey;
+    }
+
     bool_t IsMoveLockedBySnapshotAction(CWorld& world, EntityID entity, u64_t serverTick)
     {
         if (!world.HasComponent<ReplicatedActionComponent>(entity))
@@ -69,6 +78,7 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
     u64_t serverTimeMs,
     u64_t rngState,
     u32_t lastAckedSeq,
+    const std::array<SkillCommandFeedback, 5u>& commandFeedback,
     NetEntityId yourNetId,
     u64_t timelineEpoch,
     u64_t branchId,
@@ -130,6 +140,7 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         f32_t maxMana = 0.f;
         f32_t shield = 0.f;
         f32_t moveSpeed = 0.f;
+        f32_t sightRange = 0.f;
         f32_t ad = 0.f;
         f32_t ap = 0.f;
         f32_t armor = 0.f;
@@ -213,6 +224,9 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             statHash = stat.itemMaskHash ^ (stat.buffMaskHash * 16777619u);
         }
 
+        if (world.HasComponent<VisionSourceComponent>(entity))
+            sightRange = world.GetComponent<VisionSourceComponent>(entity).sightRange;
+
         if (world.HasComponent<ChampionComponent>(entity))
         {
             const auto& champion = world.GetComponent<ChampionComponent>(entity);
@@ -230,7 +244,9 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 maxMana = champion.maxMana;
             shield = (std::max)(0.f, champion.shield);
         }
-        if (world.HasComponent<YasuoStateComponent>(entity))
+        if (world.HasComponent<ChampionComponent>(entity) &&
+            world.GetComponent<ChampionComponent>(entity).id == eChampion::YASUO &&
+            world.HasComponent<YasuoStateComponent>(entity))
         {
             const auto& yasuoState = world.GetComponent<YasuoStateComponent>(entity);
             mana = yasuoState.fPassiveFlow;
@@ -943,7 +959,9 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             projectileDirection.x,
             projectileDirection.y,
             projectileDirection.z,
-            projectileTraveledDist));
+            projectileTraveledDist,
+            ResolveSnapshotChampionDefinitionKey(championId),
+            sightRange));
     }
 
     const auto entitiesOffset = fbb.CreateVector(snapshots);
@@ -1083,6 +1101,39 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
     }
     const auto gameplayStatesOffset = fbb.CreateVector(gameplayStates);
 
+    std::vector<flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>>
+        commandResults;
+    commandResults.reserve(commandFeedback.size());
+    const SkillCommandFeedback* pLatestFeedback = nullptr;
+    for (const SkillCommandFeedback& feedback : commandFeedback)
+    {
+        if (feedback.result.state == eCommandExecutionState::Unknown ||
+            feedback.result.commandSequence == 0u ||
+            feedback.authoritativeSkillSlot >= 5u)
+        {
+            continue;
+        }
+
+        commandResults.push_back(Shared::Schema::CreateCommandResultSnapshot(
+            fbb,
+            feedback.result.commandSequence,
+            static_cast<u8_t>(feedback.result.state),
+            static_cast<u16_t>(feedback.result.reason),
+            feedback.authoritativeSkillSlot,
+            feedback.authoritativeSkillStage,
+            feedback.stageWindowEndTick));
+        if (!pLatestFeedback ||
+            static_cast<i32_t>(feedback.result.commandSequence -
+                pLatestFeedback->result.commandSequence) > 0)
+        {
+            pLatestFeedback = &feedback;
+        }
+    }
+    const auto commandResultsOffset = fbb.CreateVector(commandResults);
+    const SkillCommandFeedback emptyFeedback{};
+    const SkillCommandFeedback& latestFeedback =
+        pLatestFeedback ? *pLatestFeedback : emptyFeedback;
+
     const auto snapshot = Shared::Schema::CreateSnapshot(
         fbb,
         serverTick,
@@ -1105,7 +1156,14 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         toolRevision,
         simPaused,
         simSpeedMul,
-        gameplayStatesOffset);
+        gameplayStatesOffset,
+        latestFeedback.result.commandSequence,
+        static_cast<u8_t>(latestFeedback.result.state),
+        static_cast<u16_t>(latestFeedback.result.reason),
+        latestFeedback.authoritativeSkillSlot,
+        latestFeedback.authoritativeSkillStage,
+        latestFeedback.stageWindowEndTick,
+        commandResultsOffset);
     // Finish writes the Snapshot root; Release returns the byte buffer for the server packet path.
     fbb.Finish(snapshot);
     return fbb.Release();

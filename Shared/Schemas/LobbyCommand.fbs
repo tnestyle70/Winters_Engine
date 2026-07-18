@@ -9,6 +9,7 @@ table LobbyCommand {
     championId:ubyte;
     botDifficulty:ubyte;
     value:uint;
+    championDefinitionKey:uint;
 }
 
 root_type LobbyCommand;

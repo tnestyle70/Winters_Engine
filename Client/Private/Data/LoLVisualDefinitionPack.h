@@ -3,7 +3,9 @@
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Definitions/DefinitionIds.h"
+#include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
+#include "Shared/GameSim/Definitions/MinionCombatDef.h"
 #include "WintersTypes.h"
 
 namespace ClientData
@@ -90,6 +92,7 @@ namespace ClientData
     {
         u32_t submeshIndex = 0u;
         bool_t bVisibleWhenDestroyed = false;
+        bool_t bVisibleWhenAlive = false;
     };
 
     struct StructureVisualDefinition
@@ -170,7 +173,28 @@ namespace ClientData
         u32_t entryCount = 0u;
     };
 
+    // ClientPublic projection used only for shop presentation. Purchase
+    // validation and gameplay item effects remain server-authoritative.
+    struct ShopItemPresentationDefinition
+    {
+        u16_t itemId = 0u;
+        u16_t price = 0u;
+        ItemStatModifier stats{};
+        const char* displayName = nullptr;
+    };
+
+    // Generated fallback for the explicit offline/local smoke path only.
+    // Network matches always consume the server snapshot values instead.
+    struct LocalSmokeMinionCombatDefinition
+    {
+        u8_t roleType = 0u;
+        MinionCombatDef combat{};
+    };
+
+    u32_t GetLoLClientVisualDefinitionBuildHash();
     const ChampionVisualDefinition* FindChampionVisualDefinition(eChampion champion);
+    const ChampionVisualDefinition* FindChampionVisualDefinition(DefinitionKey key);
+    eChampion ResolveChampionFromDefinitionKey(DefinitionKey key);
     f32_t ResolveChampionModelYawOffset(eChampion champion);
     const ChampionModelVisualPack& GetChampionModelVisualPack();
     const ChampionModelVisualDefinition* FindChampionModelVisualDefinition(eChampion champion);
@@ -182,4 +206,6 @@ namespace ClientData
     const AmbientPropVisualDefinition* FindAmbientPropVisualDefinition(u32_t kind);
     const MapRuntimeVisualDefinition& GetMapRuntimeVisualDefinition();
     const FxMeshPreloadVisualPack& GetFxMeshPreloadVisualPack();
+    const ShopItemPresentationDefinition* FindShopItemPresentationDefinition(u16_t itemId);
+    const MinionCombatDef* FindLocalSmokeMinionCombatDefinition(u8_t roleType);
 }

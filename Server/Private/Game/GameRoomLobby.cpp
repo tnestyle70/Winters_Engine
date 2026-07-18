@@ -1,10 +1,10 @@
 #include "Game/GameRoom.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 
 #include "GameRoomInternal.h"
 #include "Network/PacketDispatcher.h"
 #include "Network/ServerSessionHub.h"
 #include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/Schemas/Generated/cpp/Hello_generated.h"
 #include "Shared/Schemas/Generated/cpp/LobbyCommand_generated.h"
 #include "Shared/Schemas/Generated/cpp/LobbyState_generated.h"
@@ -18,6 +18,13 @@
 
 namespace
 {
+    DefinitionKey ResolveChampionDefinitionKey(eChampion champion)
+    {
+        const ChampionGameplayDef* definition =
+            ServerData::GetActiveLoLGameplayDefinitionPack().FindChampion(champion);
+        return definition ? definition->key : kInvalidDefinitionKey;
+    }
+
     Shared::Schema::LobbyPhase ToSchemaLobbyPhase(eRoomPhase phase)
     {
         switch (phase)
@@ -171,6 +178,13 @@ void CGameRoom::OnSessionLeave(u32_t sessionId)
 {
     std::lock_guard stateLock(m_stateMutex);
 
+    EntityID controlledEntity = NULL_ENTITY;
+    m_sessionBinding.TryGet(sessionId, controlledEntity);
+    if (controlledEntity != NULL_ENTITY &&
+        m_world.HasComponent<SkillChargeStateComponent>(controlledEntity))
+    {
+        m_world.RemoveComponent<SkillChargeStateComponent>(controlledEntity);
+    }
     m_sessionBinding.Unbind(sessionId);
     m_userIDBySession.erase(sessionId);
     m_sessionIds.erase(
@@ -317,7 +331,8 @@ void CGameRoom::BroadcastLobbyStateLocked()
             slot.botLane,
             0,
             slot.bReady,
-            slot.bLocked));
+            slot.bLocked,
+            ResolveChampionDefinitionKey(slot.champion)));
     }
 
     const auto slotVec = fbb.CreateVector(slots);
@@ -386,9 +401,10 @@ void CGameRoom::SendHelloToSessionLocked(
         ResolveServerGameTimeMs(m_tickIndex),
         static_cast<u8_t>(champion),
         team,
-        ChampionGameDataDB::GetBuildHash(),
         ServerData::GetActiveLoLGameplayDefinitionPack().manifest.uBuildHash,
-        ServerData::GetRuntimeGameplayDefinitionRevision());
+        ServerData::GetActiveLoLGameplayDefinitionPack().manifest.uBuildHash,
+        ServerData::GetRuntimeGameplayDefinitionRevision(),
+        ResolveChampionDefinitionKey(champion));
     fbb.Finish(hello);
     auto helloBuffer = fbb.Release();
 

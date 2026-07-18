@@ -1,6 +1,7 @@
 #include "Game/LobbyAuthority.h"
 
 #include "GameRoomSmokeRoster.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 #include "Shared/Schemas/Generated/cpp/LobbyCommand_generated.h"
 
@@ -11,6 +12,14 @@
 
 namespace
 {
+    eChampion ResolveCommandChampion(const Shared::Schema::LobbyCommand& command)
+    {
+        const ChampionGameplayDef* definition =
+            ServerData::GetActiveLoLGameplayDefinitionPack().FindChampion(
+                command.championDefinitionKey());
+        return definition ? definition->legacyChampion : eChampion::END;
+    }
+
     const char* GetLobbyCommandKindName(Shared::Schema::LobbyCommandKind kind)
     {
         switch (kind)
@@ -143,7 +152,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
             sessionId,
             command->kind(),
             command->slotId(),
-            static_cast<eChampion>(command->championId()),
+            ResolveCommandChampion(*command),
             "room is not in lobby phase"));
         IncrementRevision(result);
         return result;
@@ -162,7 +171,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "slot changes are only allowed in seat select"));
             break;
         }
@@ -176,7 +185,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "slot changes are only allowed in seat select"));
             break;
         }
@@ -190,17 +199,17 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "player champion pick is only allowed in champion select"));
             break;
         }
-        bChanged = TryPickChampion(sessionId, static_cast<eChampion>(command->championId()));
+        bChanged = TryPickChampion(sessionId, ResolveCommandChampion(*command));
         break;
     case Shared::Schema::LobbyCommandKind::SetBotChampion:
         bChanged = TrySetBotChampion(
             sessionId,
             command->slotId(),
-            static_cast<eChampion>(command->championId()));
+            ResolveCommandChampion(*command));
         break;
     case Shared::Schema::LobbyCommandKind::SetReady:
         if (TrySetReady(sessionId, command->value() != 0, result))
@@ -237,7 +246,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "room is not ready to advance"));
         }
         break;
@@ -247,7 +256,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
             sessionId,
             command->kind(),
             command->slotId(),
-            static_cast<eChampion>(command->championId()),
+            ResolveCommandChampion(*command),
             "unsupported lobby command"));
         break;
     }
@@ -261,7 +270,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "state changed"));
         }
     }
@@ -274,7 +283,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "no state change"));
         }
     }

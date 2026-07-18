@@ -24,6 +24,7 @@ namespace GameplayStateQuery
     eTeam ResolveEntityTeam(CWorld& world, EntityID entity);
     eGameplayTargetKind ResolveTargetKind(CWorld& world, EntityID entity);
     bool_t IsMobileCombatUnit(CWorld& world, EntityID entity);
+    bool_t ShouldApplyBasicAttackSegmentGate(CWorld& world, EntityID source);
     // 구조물 발밑은 스폰 시 내브그리드에서 carve 되어 목표 중심 세그먼트 검사가 항상 실패한다.
     // 공격 세그먼트 게이트(SegmentWalkableXZ)는 구조물 타겟을 면제한다. 사거리 검사는 유지.
     bool_t IsAttackSegmentGateExemptTarget(CWorld& world, EntityID target);

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 
@@ -14,12 +18,41 @@ import build_champion_game_data as legacy  # noqa: E402
 
 
 SLOT_NAMES = ("basic_attack", "q", "w", "e", "r")
+AI_SLOT_MAP = {
+    "BasicAttack": "BasicAttack",
+    "Q": "Q",
+    "W": "W",
+    "E": "E",
+    "R": "R",
+}
+AI_TARGET_MODES = {
+    "TargetEntity",
+    "AwayFromTarget",
+    "WardBehindTarget",
+    "LastOwnWard",
+    "SylasHijackTarget",
+    "SylasStolenUltimateTarget",
+}
+AI_PROFILE_FLOAT_FIELDS = (
+    "preferredRange",
+    "championScanRange",
+    "minionScanRange",
+    "structureScanRange",
+    "leashRange",
+    "aggression",
+    "kiteBias",
+    "retreatHpRatio",
+    "reengageHpRatio",
+    "minionPressureWeight",
+    "turretRiskWeight",
+    "lastHitWeight",
+    "siegeWeight",
+)
 TARGET_MAP = {
     "Self": ("Self", "Direct"),
     "UnitTarget": ("Unit", "Direct"),
     "GroundTarget": ("Ground", "Direct"),
     "Direction": ("Direction", "Direct"),
-    "Conditional": ("Self", "Contextual"),
 }
 
 RUNE_MAP = {
@@ -62,6 +95,17 @@ SKILL_EFFECT_PARAM_IDS = {
     "refreshDurationSec": "RefreshDurationSec",
     "vanishDurationSec": "VanishDurationSec",
     "missingHealthDamageRatio": "MissingHealthDamageRatio",
+    "targetHealthThresholdRatio": "TargetHealthThresholdRatio",
+    "acquireRange": "AcquireRange",
+    "lifetimeSec": "LifetimeSec",
+    "respawnSec": "RespawnSec",
+    "sideDotThreshold": "SideDotThreshold",
+    "targetMaxHpRatio": "TargetMaxHpRatio",
+    "challengeDurationSec": "ChallengeDurationSec",
+    "healDurationSec": "HealDurationSec",
+    "healRadius": "HealRadius",
+    "healIntervalSec": "HealIntervalSec",
+    "healAmount": "HealAmount",
     "minHealthAmount": "MinHealthAmount",
     "healBaseAmount": "HealBaseAmount",
     "healAmountPerRank": "HealAmountPerRank",
@@ -103,6 +147,13 @@ DAMAGE_TYPES = {
     "Physical": "Physical",
     "Magic": "Magic",
     "True": "True",
+}
+
+ITEM_ACTIVE_KIND_MAP = {
+    "Ward": "Ward",
+    "Stasis": "Stasis",
+    "Cleanse": "Cleanse",
+    "KalistaOathsworn": "KalistaOathsworn",
 }
 DAMAGE_FLAGS = {
     "CanCrit": "DamageFlag_CanCrit",
@@ -179,11 +230,16 @@ ITEM_STAT_FIELDS = (
     "flatMr",
     "bonusAttackSpeed",
     "critChance",
+    "critDamageBonus",
     "abilityHaste",
+    "percentMoveSpeed",
+    "armorPenPercent",
+    "bonusArmorPenPercent",
+    "lethality",
+    "magicPenPercent",
+    "flatMagicPen",
     "flatMoveSpeed",
     "lifeSteal",
-    "flatMagicPen",
-    "lethality",
 )
 
 
@@ -233,6 +289,26 @@ MINION_WAVE_RANGED_PROJECTILE_FIELDS = (
     ("forwardOffset", 0.45),
     ("spawnHeight", 0.85),
     ("maxDistancePadding", 2.0),
+)
+
+MINION_BEHAVIOR_FLOAT_FIELDS = (
+    ("pathAgentRadius", 0.0),
+    ("laneClearanceRadius", 0.0),
+    ("softSeparationRadiusScale", 0.0),
+    ("softSeparationWeight", 0.0),
+    ("defaultSeparationWeight", 0.0),
+    ("softSeparationMaxStep", 0.0),
+    ("lanePathRebuildIntervalSec", 0.0),
+    ("chasePathRebuildIntervalSec", 0.0),
+    ("pathTargetRefreshDistanceSq", 0.0),
+    ("pathWaypointArriveRadius", 0.0),
+    ("flowFieldProgressSlackSq", 0.0),
+    ("structureAcquireRangePadding", 0.0),
+    ("targetScanIntervalSec", 0.0),
+    ("attackExitRangePadding", 0.0),
+    ("meleeAttackWindupSec", 0.0),
+    ("rangedAttackWindupSec", 0.0),
+    ("attackRecoverySec", 0.0),
 )
 
 
@@ -352,7 +428,49 @@ def normalize_spawn_object_root(root: dict) -> dict:
             }
         )
 
+    behavior_source = require_object(root.get("minionBehavior", {}), "minionBehavior")
+    minion_behavior = normalize_float_fields(
+        behavior_source, MINION_BEHAVIOR_FLOAT_FIELDS, "minionBehavior")
+    for field, value in minion_behavior.items():
+        if value < 0.0:
+            fail(f"minionBehavior.{field} must be non-negative")
+    minion_behavior.update({
+        "pathBuildBudgetPerTick": legacy.as_int(
+            behavior_source.get("pathBuildBudgetPerTick"), "minionBehavior.pathBuildBudgetPerTick"),
+        "blockedFramesBeforeRepath": legacy.as_int(
+            behavior_source.get("blockedFramesBeforeRepath"), "minionBehavior.blockedFramesBeforeRepath"),
+        "flowFieldStallFramesBeforePathFallback": legacy.as_int(
+            behavior_source.get("flowFieldStallFramesBeforePathFallback"),
+            "minionBehavior.flowFieldStallFramesBeforePathFallback"),
+        "targetScanStaggerBuckets": legacy.as_int(
+            behavior_source.get("targetScanStaggerBuckets"), "minionBehavior.targetScanStaggerBuckets"),
+        "rangedRoleType": legacy.as_int(
+            behavior_source.get("rangedRoleType"), "minionBehavior.rangedRoleType"),
+    })
+    if minion_behavior["pathBuildBudgetPerTick"] < 1 or minion_behavior["targetScanStaggerBuckets"] < 1:
+        fail("minionBehavior budgets and stagger buckets must be >= 1")
+    for field in ("blockedFramesBeforeRepath", "flowFieldStallFramesBeforePathFallback", "rangedRoleType"):
+        if minion_behavior[field] < 0 or minion_behavior[field] > 255:
+            fail(f"minionBehavior.{field} must be in [0, 255]")
+
     minion_wave_source = require_object(root.get("minionWave", {}), "minionWave")
+    formation_slots = []
+    for index, raw_slot in enumerate(require_array(minion_wave_source.get("formationSlots", []), "minionWave.formationSlots")):
+        slot = require_object(raw_slot, f"minionWave.formationSlots[{index}]")
+        role_type = legacy.as_int(slot.get("roleType"), f"minionWave.formationSlots[{index}].roleType")
+        if role_type < 0 or role_type > 255:
+            fail(f"minionWave.formationSlots[{index}].roleType must be in [0, 255]")
+        formation_slots.append({
+            "roleType": role_type,
+            "forwardOffset": legacy.as_float(slot.get("forwardOffset"), f"minionWave.formationSlots[{index}].forwardOffset"),
+            "sideOffset": legacy.as_float(slot.get("sideOffset"), f"minionWave.formationSlots[{index}].sideOffset"),
+        })
+    if not formation_slots or len(formation_slots) > 6:
+        fail("minionWave.formationSlots must contain 1..6 entries")
+    siege_source = require_object(minion_wave_source.get("siegeSlot"), "minionWave.siegeSlot")
+    siege_role = legacy.as_int(siege_source.get("roleType"), "minionWave.siegeSlot.roleType")
+    if siege_role < 0 or siege_role > 255:
+        fail("minionWave.siegeSlot.roleType must be in [0, 255]")
     minion_wave = {
         "waveIntervalTicks": legacy.as_int(
             minion_wave_source.get("waveIntervalTicks", 900), "minionWave.waveIntervalTicks"),
@@ -373,6 +491,13 @@ def normalize_spawn_object_root(root: dict) -> dict:
         ),
         "corpseDeathTimerSec": legacy.as_float(
             minion_wave_source.get("corpseDeathTimerSec", 1.5), "minionWave.corpseDeathTimerSec"),
+        "startX": legacy.as_float(minion_wave_source.get("startX"), "minionWave.startX"),
+        "formationSlots": formation_slots,
+        "siegeSlot": {
+            "roleType": siege_role,
+            "forwardOffset": legacy.as_float(siege_source.get("forwardOffset"), "minionWave.siegeSlot.forwardOffset"),
+            "sideOffset": legacy.as_float(siege_source.get("sideOffset"), "minionWave.siegeSlot.sideOffset"),
+        },
     }
     if minion_wave["waveIntervalTicks"] < 1:
         fail("minionWave.waveIntervalTicks must be >= 1")
@@ -438,6 +563,7 @@ def normalize_spawn_object_root(root: dict) -> dict:
             "defaultMinion",
         ),
         "minions": sorted(minions, key=lambda item: item["roleType"]),
+        "minionBehavior": minion_behavior,
         "minionWave": minion_wave,
     }
 
@@ -507,6 +633,140 @@ def validate_item_stat_number(value: float, path: str) -> float:
     if value < -1_000_000.0 or value > 1_000_000.0:
         fail(f"{path} must be in [-1000000, 1000000]")
     return value
+
+
+def _resolve_local_schema_ref(root_schema: dict, reference: str) -> dict:
+    if not reference.startswith("#/"):
+        fail(f"unsupported non-local schema reference: {reference}")
+    current: object = root_schema
+    for raw_token in reference[2:].split("/"):
+        token = raw_token.replace("~1", "/").replace("~0", "~")
+        if not isinstance(current, dict) or token not in current:
+            fail(f"unresolved schema reference: {reference}")
+        current = current[token]
+    if not isinstance(current, dict):
+        fail(f"schema reference is not an object: {reference}")
+    return current
+
+
+def _schema_type_matches(value: object, expected: str) -> bool:
+    if expected == "object":
+        return isinstance(value, dict)
+    if expected == "array":
+        return isinstance(value, list)
+    if expected == "integer":
+        return isinstance(value, int) and not isinstance(value, bool)
+    if expected == "number":
+        return isinstance(value, (int, float)) and not isinstance(value, bool)
+    if expected == "string":
+        return isinstance(value, str)
+    if expected == "boolean":
+        return isinstance(value, bool)
+    fail(f"unsupported schema type: {expected}")
+
+
+def _validate_schema_value(
+        rule: dict,
+        root_schema: dict,
+        value: object,
+        path: str,
+        errors: list[str]) -> None:
+    if "$ref" in rule:
+        _validate_schema_value(
+            _resolve_local_schema_ref(root_schema, rule["$ref"]),
+            root_schema,
+            value,
+            path,
+            errors)
+
+    expected = rule.get("type")
+    if expected is not None and not _schema_type_matches(value, expected):
+        errors.append(f"{path} must be {expected}")
+        return
+
+    if "const" in rule and value != rule["const"]:
+        errors.append(f"{path} must equal {rule['const']!r}")
+    if "enum" in rule and value not in rule["enum"]:
+        errors.append(f"{path} must be one of {rule['enum']!r}")
+
+    if isinstance(value, dict):
+        properties = rule.get("properties", {})
+        for key in rule.get("required", []):
+            if key not in value:
+                errors.append(f"{path} missing required field: {key}")
+        for key, child_value in value.items():
+            child_rule = properties.get(key)
+            if child_rule is not None:
+                _validate_schema_value(
+                    child_rule, root_schema, child_value, f"{path}.{key}", errors)
+            elif rule.get("additionalProperties") is False:
+                errors.append(f"{path} unknown field: {key}")
+            elif isinstance(rule.get("additionalProperties"), dict):
+                _validate_schema_value(
+                    rule["additionalProperties"],
+                    root_schema,
+                    child_value,
+                    f"{path}.{key}",
+                    errors)
+
+    if isinstance(value, list):
+        if len(value) < rule.get("minItems", 0):
+            errors.append(f"{path} has too few entries")
+        if "maxItems" in rule and len(value) > rule["maxItems"]:
+            errors.append(f"{path} has too many entries")
+        item_rule = rule.get("items")
+        if isinstance(item_rule, dict):
+            for index, item in enumerate(value):
+                _validate_schema_value(
+                    item_rule, root_schema, item, f"{path}[{index}]", errors)
+
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if "minimum" in rule and value < rule["minimum"]:
+            errors.append(f"{path} is below minimum {rule['minimum']}")
+        if "maximum" in rule and value > rule["maximum"]:
+            errors.append(f"{path} is above maximum {rule['maximum']}")
+        if "exclusiveMinimum" in rule and value <= rule["exclusiveMinimum"]:
+            errors.append(
+                f"{path} must be greater than {rule['exclusiveMinimum']}")
+
+    if isinstance(value, str) and len(value) < rule.get("minLength", 0):
+        errors.append(f"{path} is shorter than minLength {rule['minLength']}")
+
+    for child_rule in rule.get("allOf", []):
+        _validate_schema_value(child_rule, root_schema, value, path, errors)
+
+    if "anyOf" in rule:
+        branch_errors = []
+        for child_rule in rule["anyOf"]:
+            candidate_errors: list[str] = []
+            _validate_schema_value(
+                child_rule, root_schema, value, path, candidate_errors)
+            branch_errors.append(candidate_errors)
+        if all(candidate_errors for candidate_errors in branch_errors):
+            errors.append(f"{path} does not satisfy anyOf")
+
+    if "if" in rule:
+        condition_errors: list[str] = []
+        _validate_schema_value(
+            rule["if"], root_schema, value, path, condition_errors)
+        selected_rule = rule.get("then") if not condition_errors else rule.get("else")
+        if isinstance(selected_rule, dict):
+            _validate_schema_value(
+                selected_rule, root_schema, value, path, errors)
+
+
+def validate_source_schema(workspace_root: Path, source: Path, value: object) -> None:
+    schema_path = workspace_root / "Data" / "LoL" / "Schemas" / (source.name + ".schema.json")
+    if not schema_path.exists():
+        fail(f"missing schema: {schema_path.relative_to(workspace_root)}")
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    if schema.get("$schema") != "https://json-schema.org/draft/2020-12/schema":
+        fail(f"unsupported schema declaration: {schema_path.name}")
+
+    errors: list[str] = []
+    _validate_schema_value(schema, schema, value, source.name, errors)
+    if errors:
+        fail(f"schema validation failed: {errors[0]}")
 
 
 def normalize_damage_formula(source: object, path: str) -> dict | None:
@@ -595,13 +855,138 @@ def normalize_items_root(root: dict) -> dict:
             f"items[{index}].onHitDamage",
         )
 
+        purchasable = item.get("purchasable", True)
+        if not isinstance(purchasable, bool):
+            fail(f"items[{index}].purchasable must be boolean")
+
+        spellblade = None
+        if item.get("spellblade") is not None:
+            source = require_object(item["spellblade"], f"items[{index}].spellblade")
+            spellblade = {
+                "cooldownSec": validate_item_stat_number(
+                    legacy.as_float(source.get("cooldownSec", 0.0),
+                                    f"items[{index}].spellblade.cooldownSec"),
+                    f"items[{index}].spellblade.cooldownSec"),
+                "baseAdRatio": validate_item_stat_number(
+                    legacy.as_float(source.get("baseAdRatio", 0.0),
+                                    f"items[{index}].spellblade.baseAdRatio"),
+                    f"items[{index}].spellblade.baseAdRatio"),
+                "critChanceFlatScale": validate_item_stat_number(
+                    legacy.as_float(source.get("critChanceFlatScale", 0.0),
+                                    f"items[{index}].spellblade.critChanceFlatScale"),
+                    f"items[{index}].spellblade.critChanceFlatScale"),
+                "manaRestoreRatio": validate_item_stat_number(
+                    legacy.as_float(source.get("manaRestoreRatio", 0.0),
+                                    f"items[{index}].spellblade.manaRestoreRatio"),
+                    f"items[{index}].spellblade.manaRestoreRatio"),
+            }
+            if any(value < 0.0 for value in spellblade.values()):
+                fail(f"items[{index}].spellblade values must be non-negative")
+
+        manaflow = None
+        if item.get("manaflow") is not None:
+            source = require_object(item["manaflow"], f"items[{index}].manaflow")
+            manaflow = {
+                "rechargeSec": legacy.as_float(
+                    source.get("rechargeSec", 0.0),
+                    f"items[{index}].manaflow.rechargeSec"),
+                "maxCharges": legacy.as_int(
+                    source.get("maxCharges", 0),
+                    f"items[{index}].manaflow.maxCharges"),
+                "manaPerTrigger": legacy.as_int(
+                    source.get("manaPerTrigger", 0),
+                    f"items[{index}].manaflow.manaPerTrigger"),
+                "championMultiplier": legacy.as_int(
+                    source.get("championMultiplier", 1),
+                    f"items[{index}].manaflow.championMultiplier"),
+                "maxBonusMana": legacy.as_int(
+                    source.get("maxBonusMana", 0),
+                    f"items[{index}].manaflow.maxBonusMana"),
+                "transformItemId": legacy.as_int(
+                    source.get("transformItemId", 0),
+                    f"items[{index}].manaflow.transformItemId"),
+            }
+            if manaflow["rechargeSec"] <= 0.0:
+                fail(f"items[{index}].manaflow.rechargeSec must be positive")
+            if manaflow["maxCharges"] < 1 or manaflow["maxCharges"] > 255:
+                fail(f"items[{index}].manaflow.maxCharges must be in [1, 255]")
+            if manaflow["championMultiplier"] < 1 or manaflow["championMultiplier"] > 255:
+                fail(f"items[{index}].manaflow.championMultiplier must be in [1, 255]")
+            for field in ("manaPerTrigger", "maxBonusMana", "transformItemId"):
+                if manaflow[field] < 1 or manaflow[field] > 65535:
+                    fail(f"items[{index}].manaflow.{field} must be in [1, 65535]")
+
+        lightshield_strike = None
+        if item.get("lightshieldStrike") is not None:
+            source = require_object(
+                item["lightshieldStrike"],
+                f"items[{index}].lightshieldStrike")
+            lightshield_strike = {
+                field: validate_item_stat_number(
+                    legacy.as_float(
+                        source.get(field, 0.0),
+                        f"items[{index}].lightshieldStrike.{field}"),
+                    f"items[{index}].lightshieldStrike.{field}")
+                for field in (
+                    "cooldownSec",
+                    "critDamageMultiplier",
+                    "healBaseAdRatio",
+                    "healMissingHealthRatio",
+                )
+            }
+            if lightshield_strike["cooldownSec"] <= 0.0:
+                fail(f"items[{index}].lightshieldStrike.cooldownSec must be positive")
+            if lightshield_strike["critDamageMultiplier"] < 1.0:
+                fail(f"items[{index}].lightshieldStrike.critDamageMultiplier must be >= 1")
+            if lightshield_strike["healBaseAdRatio"] < 0.0 or \
+                    lightshield_strike["healMissingHealthRatio"] < 0.0:
+                fail(f"items[{index}].lightshieldStrike heal ratios must be non-negative")
+
+        active = None
+        if item.get("active") is not None:
+            source = require_object(item["active"], f"items[{index}].active")
+            kind = source.get("kind")
+            if kind not in ITEM_ACTIVE_KIND_MAP:
+                fail(f"items[{index}].active.kind must be one of {sorted(ITEM_ACTIVE_KIND_MAP)}")
+            active = {
+                "kind": kind,
+                "cooldownSec": validate_item_stat_number(
+                    legacy.as_float(
+                        source.get("cooldownSec", 0.0),
+                        f"items[{index}].active.cooldownSec"),
+                    f"items[{index}].active.cooldownSec"),
+                "durationSec": validate_item_stat_number(
+                    legacy.as_float(
+                        source.get("durationSec", 0.0),
+                        f"items[{index}].active.durationSec"),
+                    f"items[{index}].active.durationSec"),
+            }
+            if active["cooldownSec"] < 0.0 or active["durationSec"] < 0.0:
+                fail(f"items[{index}].active cooldown/duration must be non-negative")
+            if kind == "Stasis" and active["durationSec"] <= 0.0:
+                fail(f"items[{index}].active Stasis durationSec must be positive")
+
+        max_mana_bonus_ad_ratio = validate_item_stat_number(
+            legacy.as_float(
+                item.get("maxManaBonusAdRatio", 0.0),
+                f"items[{index}].maxManaBonusAdRatio"),
+            f"items[{index}].maxManaBonusAdRatio")
+        if max_mana_bonus_ad_ratio < 0.0:
+            fail(f"items[{index}].maxManaBonusAdRatio must be non-negative")
+
         records.append(
             {
                 "itemId": item_id,
                 "price": price,
+                "purchasable": purchasable,
                 "name": name,
                 "stats": stats,
                 "onHitDamage": on_hit_damage,
+                "spellblade": spellblade,
+                "manaflow": manaflow,
+                "lightshieldStrike": lightshield_strike,
+                "active": active,
+                "maxManaBonusAdRatio": max_mana_bonus_ad_ratio,
             }
         )
 
@@ -611,7 +996,147 @@ def normalize_items_root(root: dict) -> dict:
     return {
         "schemaVersion": legacy.as_int(root.get("schemaVersion", 1), "items.schemaVersion"),
         "dataVersion": legacy.as_int(root.get("dataVersion", 1), "items.dataVersion"),
+        "sourcePatch": str(root.get("sourcePatch", "")),
+        "sourceMapId": legacy.as_int(root.get("sourceMapId", 0), "items.sourceMapId"),
         "items": sorted(records, key=lambda record: record["itemId"]),
+    }
+
+
+def normalize_rune_root(root: dict) -> dict:
+    records = []
+    seen_keys: set[str] = set()
+    seen_ids: set[int] = set()
+    for index, value in enumerate(require_array(root.get("runes", []), "runes")):
+        item = require_object(value, f"runes[{index}]")
+        key = item.get("key")
+        if not isinstance(key, str) or not key:
+            fail(f"runes[{index}].key must be a non-empty string")
+        legacy_id = legacy.as_int(item.get("legacyRuneId"), f"runes[{index}].legacyRuneId")
+        if not key.startswith("rune."):
+            fail(f"runes[{index}].key must start with rune.")
+        if key in seen_keys or legacy_id in seen_ids:
+            fail(f"duplicate rune key/id: {key}/{legacy_id}")
+        if legacy_id <= 0 or legacy_id > 255:
+            fail(f"runes[{index}].legacyRuneId must be in [1, 255]")
+        max_stacks = legacy.as_int(item.get("maxStacks", 0), f"runes[{index}].maxStacks")
+        if max_stacks < 0 or max_stacks > 255:
+            fail(f"runes[{index}].maxStacks must be in [0, 255]")
+        seen_keys.add(key)
+        seen_ids.add(legacy_id)
+        enabled = item.get("enabled", False)
+        if not isinstance(enabled, bool):
+            fail(f"runes[{index}].enabled must be a bool")
+        records.append(
+            {
+                "key": key,
+                "definitionKey": definition_key(key),
+                "legacyRuneId": legacy_id,
+                "enabled": enabled,
+                "maxStacks": max_stacks,
+            }
+        )
+    if not records:
+        fail("runes must not be empty")
+    return {
+        "schemaVersion": legacy.as_int(root.get("schemaVersion", 1), "runes.schemaVersion"),
+        "dataVersion": legacy.as_int(root.get("dataVersion", 1), "runes.dataVersion"),
+        "runes": sorted(records, key=lambda record: record["legacyRuneId"]),
+    }
+
+
+def normalize_ai_profile(value: object, path: str, valid_champions: set[str], allow_default: bool) -> dict:
+    item = require_object(value, path)
+    champion = item.get("champion")
+    allowed = {"END"} if allow_default else valid_champions
+    if champion not in allowed:
+        fail(f"{path}.champion must be one of {sorted(allowed)}")
+    result = {"champion": champion}
+    for field in AI_PROFILE_FLOAT_FIELDS:
+        number = legacy.as_float(item.get(field), f"{path}.{field}")
+        if number < 0.0 or number > 1_000_000.0:
+            fail(f"{path}.{field} must be in [0, 1000000]")
+        result[field] = number
+    for field in ("retreatHpRatio", "reengageHpRatio"):
+        if result[field] > 1.0:
+            fail(f"{path}.{field} must be in [0, 1]")
+    rules = []
+    for index, raw_rule in enumerate(require_array(item.get("skillRules", []), f"{path}.skillRules")):
+        rule = require_object(raw_rule, f"{path}.skillRules[{index}]")
+        slot = rule.get("slot")
+        if slot not in AI_SLOT_MAP:
+            fail(f"{path}.skillRules[{index}].slot must be one of {sorted(AI_SLOT_MAP)}")
+        min_range = legacy.as_float(rule.get("minRange"), f"{path}.skillRules[{index}].minRange")
+        score = legacy.as_float(rule.get("score"), f"{path}.skillRules[{index}].score")
+        if min_range < 0.0 or score < 0.0:
+            fail(f"{path}.skillRules[{index}] values must be non-negative")
+        rules.append({"slot": slot, "minRange": min_range, "score": score})
+    if len(rules) > 4:
+        fail(f"{path}.skillRules supports at most 4 entries")
+    result["skillRules"] = rules
+    return result
+
+
+def normalize_ai_root(root: dict, valid_champions: set[str]) -> dict:
+    root = require_object(root, "championAI")
+    default_profile = normalize_ai_profile(root.get("defaultProfile"), "defaultProfile", valid_champions, True)
+    profiles = []
+    seen = set()
+    for index, value in enumerate(require_array(root.get("profiles", []), "profiles")):
+        profile = normalize_ai_profile(value, f"profiles[{index}]", valid_champions, False)
+        champion = profile["champion"]
+        if champion in seen:
+            fail(f"duplicate AI profile: {champion}")
+        seen.add(champion)
+        profiles.append(profile)
+    if seen != valid_champions:
+        fail(f"AI profile coverage mismatch; missing={sorted(valid_champions - seen)}, extra={sorted(seen - valid_champions)}")
+
+    combos = []
+    combo_champions = set()
+    for index, raw_plan in enumerate(require_array(root.get("comboPlans", []), "comboPlans")):
+        plan = require_object(raw_plan, f"comboPlans[{index}]")
+        champion = plan.get("champion")
+        if champion != "END" and champion not in valid_champions:
+            fail(f"comboPlans[{index}].champion is invalid: {champion}")
+        if champion in combo_champions:
+            fail(f"duplicate AI combo plan: {champion}")
+        combo_champions.add(champion)
+        steps = []
+        for step_index, raw_step in enumerate(require_array(plan.get("steps", []), f"comboPlans[{index}].steps")):
+            step = require_object(raw_step, f"comboPlans[{index}].steps[{step_index}]")
+            slot = step.get("slot")
+            target_mode = step.get("targetMode", "TargetEntity")
+            if slot not in AI_SLOT_MAP:
+                fail(f"comboPlans[{index}].steps[{step_index}].slot is invalid")
+            if target_mode not in AI_TARGET_MODES:
+                fail(f"comboPlans[{index}].steps[{step_index}].targetMode is invalid")
+            normalized_step = {
+                "slot": slot,
+                "itemId": legacy.as_int(step.get("itemId", 0), f"comboPlans[{index}].steps[{step_index}].itemId"),
+                "minRange": legacy.as_float(step.get("minRange"), f"comboPlans[{index}].steps[{step_index}].minRange"),
+                "maxRange": legacy.as_float(step.get("maxRange"), f"comboPlans[{index}].steps[{step_index}].maxRange"),
+                "selfHpMinRatio": legacy.as_float(step.get("selfHpMinRatio"), f"comboPlans[{index}].steps[{step_index}].selfHpMinRatio"),
+                "enemyHpMaxRatio": legacy.as_float(step.get("enemyHpMaxRatio"), f"comboPlans[{index}].steps[{step_index}].enemyHpMaxRatio"),
+                "targetMode": target_mode,
+            }
+            if normalized_step["itemId"] < 0 or normalized_step["itemId"] > 65535:
+                fail(f"comboPlans[{index}].steps[{step_index}].itemId must be in [0, 65535]")
+            if normalized_step["minRange"] < 0.0 or normalized_step["maxRange"] < normalized_step["minRange"]:
+                fail(f"comboPlans[{index}].steps[{step_index}] range is invalid")
+            if not 0.0 <= normalized_step["selfHpMinRatio"] <= 1.0 or not 0.0 <= normalized_step["enemyHpMaxRatio"] <= 1.0:
+                fail(f"comboPlans[{index}].steps[{step_index}] HP ratios must be in [0, 1]")
+            steps.append(normalized_step)
+        if len(steps) > 10:
+            fail(f"comboPlans[{index}] supports at most 10 steps")
+        combos.append({"champion": champion, "steps": steps})
+    if "END" not in combo_champions:
+        fail("comboPlans must contain the END default plan")
+    return {
+        "schemaVersion": legacy.as_int(root.get("schemaVersion", 1), "championAI.schemaVersion"),
+        "dataVersion": legacy.as_int(root.get("dataVersion", 1), "championAI.dataVersion"),
+        "defaultProfile": default_profile,
+        "profiles": sorted(profiles, key=lambda item: item["champion"]),
+        "comboPlans": combos,
     }
 
 
@@ -675,11 +1200,18 @@ def normalize_object_visual_root(root: dict) -> dict:
                     f"structures[{index}].visibilityStates[{state_index}].visibleWhenDestroyed "
                     "must be a bool"
                 )
+            visible_when_alive = state.get("visibleWhenAlive", not visible_when_destroyed)
+            if not isinstance(visible_when_alive, bool):
+                fail(
+                    f"structures[{index}].visibilityStates[{state_index}].visibleWhenAlive "
+                    "must be a bool"
+                )
             states.append(
                 {
                     "name": str(state.get("name", "")),
                     "submeshIndex": submesh_index,
                     "visibleWhenDestroyed": visible_when_destroyed,
+                    "visibleWhenAlive": visible_when_alive,
                 }
             )
 
@@ -1175,7 +1707,12 @@ def compute_definition_pack_hash(
     spawn_object_data: dict,
     skill_effect_data: dict,
     economy_data: dict,
-    item_data: dict) -> int:
+    item_data: dict,
+    rune_data: dict,
+    ai_data: dict,
+    champion_visual_data: dict,
+    object_visual_data: dict,
+    champion_asset_visual_data: dict) -> int:
     stable = json.dumps(
         {
             "championGameplay": data,
@@ -1184,6 +1721,11 @@ def compute_definition_pack_hash(
             "skillEffectGameplay": skill_effect_data,
             "economyGameplay": economy_data,
             "itemGameplay": item_data,
+            "runeGameplay": rune_data,
+            "championAI": ai_data,
+            "championVisual": champion_visual_data,
+            "objectVisual": object_visual_data,
+            "championAssetVisual": champion_asset_visual_data,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -1251,9 +1793,23 @@ def make_records(data: dict, summoner_spell_data: dict) -> tuple[list[dict], lis
         champions.append({**champion, "canonicalKey": key, "definitionKey": definition_key(key)})
         for skill in champion["skills"]:
             skill_key = canonical_skill(champion["champion"], skill["slot"])
-            shape, policy = TARGET_MAP.get(skill["targetMode"], (None, None))
-            if shape is None:
-                fail(f"unsupported targetMode {skill['targetMode']} in {skill_key}")
+            target_shapes = []
+            target_policies = []
+            for stage_index, stage in enumerate(skill["stages"]):
+                target_mode = stage.get("targetMode", skill["targetMode"])
+                shape, policy = TARGET_MAP.get(target_mode, (None, None))
+                if shape is None:
+                    fail(
+                        f"unsupported targetMode {target_mode} in "
+                        f"{skill_key}.stages[{stage_index}]"
+                    )
+                target_shapes.append(shape)
+                target_policies.append(policy)
+            resolve_policy = (
+                "StageDependent"
+                if len(set(target_shapes)) > 1
+                else target_policies[0]
+            )
             skills.append(
                 {
                     **skill,
@@ -1261,8 +1817,9 @@ def make_records(data: dict, summoner_spell_data: dict) -> tuple[list[dict], lis
                     "ownerKey": key,
                     "canonicalKey": skill_key,
                     "definitionKey": definition_key(skill_key),
-                    "targetShape": shape,
-                    "resolvePolicy": policy,
+                    "targetShape": target_shapes[0],
+                    "targetShapes": target_shapes,
+                    "resolvePolicy": resolve_policy,
                 }
             )
 
@@ -1307,13 +1864,21 @@ def server_champion_json(record: dict, skill_ids: dict[str, int]) -> dict:
 
 
 def server_skill_json(record: dict, champion_ids: dict[str, int]) -> dict:
+    target = {
+        "shape": record["targetShape"],
+        "resolvePolicy": record["resolvePolicy"],
+    }
+    if len(set(record["targetShapes"])) > 1:
+        target["shapes"] = record["targetShapes"]
+
     result = {
         "key": record["canonicalKey"],
         "definitionKey": record["definitionKey"],
         "defId": record["defId"],
         "ownerChampionDefId": champion_ids[record["ownerKey"]],
         "slot": record["slot"],
-        "target": {"shape": record["targetShape"], "resolvePolicy": record["resolvePolicy"]},
+        "input": {"activation": record["activationMode"]},
+        "target": target,
         "cost": {"manaByRank": record["manaCostByRank"]},
         "cooldown": {"secondsByRank": record["cooldownSecByRank"]},
         "range": {"maximum": record["rangeMax"]},
@@ -1321,6 +1886,12 @@ def server_skill_json(record: dict, champion_ids: dict[str, int]) -> dict:
             "count": record["stageCount"],
             "windowSeconds": record["stageWindowSec"],
             "lockSeconds": [stage["lockDurationSec"] for stage in record["stages"]],
+            "commandLockSeconds": [stage["commandLockSec"] for stage in record["stages"]],
+            "movePolicies": [stage["movePolicy"] for stage in record["stages"]],
+            "createsActionState": [stage["createsActionState"] for stage in record["stages"]],
+            "presentationLoopWhileActive": [
+                stage["presentationLoopWhileActive"] for stage in record["stages"]
+            ],
         },
         "effect": {
             "scalingTableId": record["scalingTableId"],
@@ -1335,6 +1906,9 @@ def server_skill_json(record: dict, champion_ids: dict[str, int]) -> dict:
 
     if record.get("damageFormula") is not None:
         result["effect"]["damage"] = damage_formula_json(record["damageFormula"])
+
+    if record.get("charge") is not None:
+        result["charge"] = record["charge"]
 
     summon_policy_params = record.get("summonPolicyParams", [])
     if summon_policy_params:
@@ -1511,6 +2085,58 @@ def emit_damage_formula_cpp(lines: list[str], target: str, formula: dict | None)
             lines.append(f"        {target}.{field}[{index}] = {cpp_float(value)};")
 
 
+def emit_ai_profile_cpp(profile: dict, indent: str) -> list[str]:
+    lines = [f"{indent}ChampionAIProfile{{", f"{indent}    eChampion::{profile['champion']},"]
+    for field in AI_PROFILE_FLOAT_FIELDS:
+        lines.append(f"{indent}    {cpp_float(profile[field])},")
+    lines.append(f"{indent}    {{")
+    for rule in profile["skillRules"]:
+        lines.append(
+            f"{indent}        ChampionAISkillRule{{ static_cast<u8_t>(eSkillSlot::{AI_SLOT_MAP[rule['slot']]}), "
+            f"{cpp_float(rule['minRange'])}, {cpp_float(rule['score'])} }},"
+        )
+    lines.extend([f"{indent}    }},", f"{indent}    {len(profile['skillRules'])}u", f"{indent}}}"])
+    return lines
+
+
+def emit_ai_combo_cpp(plan: dict, indent: str) -> list[str]:
+    lines = [f"{indent}ChampionAIComboPlan{{", f"{indent}    {{"]
+    for step in plan["steps"]:
+        lines.append(
+            f"{indent}        ChampionAIComboStep{{ static_cast<u8_t>(eSkillSlot::{AI_SLOT_MAP[step['slot']]}), "
+            f"{step['itemId']}u, {cpp_float(step['minRange'])}, {cpp_float(step['maxRange'])}, "
+            f"{cpp_float(step['selfHpMinRatio'])}, {cpp_float(step['enemyHpMaxRatio'])}, "
+            f"static_cast<u8_t>(eChampionAIComboTargetMode::{step['targetMode']}) }},"
+        )
+    lines.extend([f"{indent}    }},", f"{indent}    {len(plan['steps'])}u", f"{indent}}}"])
+    return lines
+
+
+def emit_ai_inl(ai_data: dict) -> str:
+    default_combo = next(plan for plan in ai_data["comboPlans"] if plan["champion"] == "END")
+    overrides = [plan for plan in ai_data["comboPlans"] if plan["champion"] != "END"]
+    lines = ["// Generated by Tools/LoLData/Build-LoLDefinitionPack.py. Do not edit.", "namespace ChampionAIDataGenerated", "{"]
+    lines.append("    constexpr ChampionAIProfile kDefaultProfile =")
+    lines.extend(emit_ai_profile_cpp(ai_data["defaultProfile"], "    "))
+    lines[-1] += ";"
+    lines.extend(["", "    constexpr ChampionAIProfile kProfiles[] =", "    {"])
+    for profile in ai_data["profiles"]:
+        profile_lines = emit_ai_profile_cpp(profile, "        ")
+        profile_lines[-1] += ","
+        lines.extend(profile_lines)
+    lines.extend(["    };", "", "    struct ComboEntry", "    {", "        eChampion champion;", "        ChampionAIComboPlan plan;", "    };", "", "    constexpr ChampionAIComboPlan kDefaultComboPlan ="])
+    lines.extend(emit_ai_combo_cpp(default_combo, "    "))
+    lines[-1] += ";"
+    lines.extend(["", "    constexpr ComboEntry kComboPlans[] =", "    {"])
+    for plan in overrides:
+        lines.append(f"        ComboEntry{{ eChampion::{plan['champion']},")
+        combo_lines = emit_ai_combo_cpp(plan, "            ")
+        combo_lines[-1] += " },"
+        lines.extend(combo_lines)
+    lines.extend(["    };", "}", ""])
+    return "\n".join(lines)
+
+
 def manifest_json(data: dict, champions: list[dict], skills: list[dict], spells: list[dict], build_hash: int) -> dict:
     entries = []
     for kind, records in (("Champion", champions), ("Skill", skills), ("SummonerSpell", spells)):
@@ -1533,9 +2159,17 @@ def manifest_json(data: dict, champions: list[dict], skills: list[dict], spells:
     }
 
 
-def emit_client_visual_cpp(visual_data: dict, object_visual_data: dict, champion_asset_visual_data: dict) -> str:
+def emit_client_visual_cpp(
+    visual_data: dict,
+    object_visual_data: dict,
+    champion_asset_visual_data: dict,
+    spawn_object_data: dict,
+    item_data: dict,
+    build_hash: int,
+) -> str:
     lines = [
         '#include "Client/Private/Data/LoLVisualDefinitionPack.h"',
+        '#include "Client/Private/Data/RuntimeVisualDefinitionOverlay.h"',
         "",
         "namespace",
         "{",
@@ -1646,11 +2280,15 @@ def emit_client_visual_cpp(visual_data: dict, object_visual_data: dict, champion
         )
         for state_index, state in enumerate(record["visibilityStates"]):
             visible = "true" if state["visibleWhenDestroyed"] else "false"
+            visible_alive = "true" if state["visibleWhenAlive"] else "false"
             lines.append(
                 f"        def.submeshStates[{state_index}].submeshIndex = {state['submeshIndex']}u;"
             )
             lines.append(
                 f"        def.submeshStates[{state_index}].bVisibleWhenDestroyed = {visible};"
+            )
+            lines.append(
+                f"        def.submeshStates[{state_index}].bVisibleWhenAlive = {visible_alive};"
             )
         lines.extend(["        return def;", "    }", ""])
 
@@ -1759,6 +2397,40 @@ def emit_client_visual_cpp(visual_data: dict, object_visual_data: dict, champion
             ]
         )
 
+    for record in item_data["items"]:
+        lines.extend(
+            [
+                f"    ClientData::ShopItemPresentationDefinition MakeShopItem_{record['itemId']}()",
+                "    {",
+                "        ClientData::ShopItemPresentationDefinition def{};",
+                f"        def.itemId = {record['itemId']}u;",
+                f"        def.price = {record['price']}u;",
+            ]
+        )
+        for key, value in record["stats"].items():
+            lines.append(f"        def.stats.{key} = {cpp_float(value)};")
+        lines.extend(
+            [
+                f"        def.displayName = {cpp_string(record['name'])};",
+                "        return def;",
+                "    }",
+                "",
+            ]
+        )
+
+    for record in spawn_object_data["minions"]:
+        lines.extend(
+            [
+                f"    ClientData::LocalSmokeMinionCombatDefinition MakeLocalSmokeMinion_{record['roleType']}()",
+                "    {",
+                "        ClientData::LocalSmokeMinionCombatDefinition def{};",
+                f"        def.roleType = static_cast<u8_t>({record['roleType']}u);",
+            ]
+        )
+        for key, _ in MINION_FIELDS:
+            lines.append(f"        def.combat.{key} = {cpp_float(record[key])};")
+        lines.extend(["        return def;", "    }", ""])
+
     lines.extend(["    const ClientData::ChampionVisualDefinition kChampionVisuals[] =", "    {"])
     lines.extend(
         f"        MakeChampionVisual_{champion['champion']}(),"
@@ -1837,22 +2509,67 @@ def emit_client_visual_cpp(visual_data: dict, object_visual_data: dict, champion
             "        kFxMeshPreloadVisuals,",
             "        static_cast<u32_t>(sizeof(kFxMeshPreloadVisuals) / sizeof(kFxMeshPreloadVisuals[0]))",
             "    };",
+            "",
+            "    const ClientData::ShopItemPresentationDefinition kShopItemPresentations[] =",
+            "    {",
         ]
     )
+    lines.extend(
+        f"        MakeShopItem_{record['itemId']}(),"
+        for record in item_data["items"]
+    )
+    lines.extend(
+        [
+            "    };",
+            "",
+            "    const ClientData::LocalSmokeMinionCombatDefinition kLocalSmokeMinionCombatDefinitions[] =",
+            "    {",
+        ]
+    )
+    lines.extend(
+        f"        MakeLocalSmokeMinion_{record['roleType']}(),"
+        for record in spawn_object_data["minions"]
+    )
+    lines.extend(["    };"])
     lines.extend(
         [
             "}",
             "",
             "namespace ClientData",
             "{",
+            "    u32_t GetLoLClientVisualDefinitionBuildHash()",
+            "    {",
+            f"        return 0x{build_hash:08X}u;",
+            "    }",
+            "",
             "    const ChampionVisualDefinition* FindChampionVisualDefinition(eChampion champion)",
             "    {",
+            "        if (const ChampionVisualDefinition* runtime = FindRuntimeChampionVisualDefinition(champion))",
+            "            return runtime;",
             "        for (const ChampionVisualDefinition& definition : kChampionVisuals)",
             "        {",
             "            if (definition.legacyChampion == champion)",
             "                return &definition;",
             "        }",
             "        return nullptr;",
+            "    }",
+            "",
+            "    const ChampionVisualDefinition* FindChampionVisualDefinition(DefinitionKey key)",
+            "    {",
+            "        if (const ChampionVisualDefinition* runtime = FindRuntimeChampionVisualDefinition(key))",
+            "            return runtime;",
+            "        for (const ChampionVisualDefinition& definition : kChampionVisuals)",
+            "        {",
+            "            if (definition.key == key)",
+            "                return &definition;",
+            "        }",
+            "        return nullptr;",
+            "    }",
+            "",
+            "    eChampion ResolveChampionFromDefinitionKey(DefinitionKey key)",
+            "    {",
+            "        const ChampionVisualDefinition* definition = FindChampionVisualDefinition(key);",
+            "        return definition ? definition->legacyChampion : eChampion::END;",
             "    }",
             "",
             "    f32_t ResolveChampionModelYawOffset(eChampion champion)",
@@ -1863,11 +2580,15 @@ def emit_client_visual_cpp(visual_data: dict, object_visual_data: dict, champion
             "",
             "    const ChampionModelVisualPack& GetChampionModelVisualPack()",
             "    {",
+            "        if (const ChampionModelVisualPack* runtime = GetRuntimeChampionModelVisualPack())",
+            "            return *runtime;",
             "        return kChampionModelVisualPack;",
             "    }",
             "",
             "    const ChampionModelVisualDefinition* FindChampionModelVisualDefinition(eChampion champion)",
             "    {",
+            "        if (const ChampionModelVisualDefinition* runtime = FindRuntimeChampionModelVisualDefinition(champion))",
+            "            return runtime;",
             "        for (const ChampionModelVisualDefinition& definition : kChampionModelVisuals)",
             "        {",
             "            if (definition.champion == champion)",
@@ -1878,6 +2599,8 @@ def emit_client_visual_cpp(visual_data: dict, object_visual_data: dict, champion
             "",
             "    const ChampionUiVisualDefinition* FindChampionUiVisualDefinition(eChampion champion)",
             "    {",
+            "        if (const ChampionUiVisualDefinition* runtime = FindRuntimeChampionUiVisualDefinition(champion))",
+            "            return runtime;",
             "        for (const ChampionUiVisualDefinition& definition : kChampionUiVisuals)",
             "        {",
             "            if (definition.champion == champion)",
@@ -1929,6 +2652,26 @@ def emit_client_visual_cpp(visual_data: dict, object_visual_data: dict, champion
             "    const FxMeshPreloadVisualPack& GetFxMeshPreloadVisualPack()",
             "    {",
             "        return kFxMeshPreloadVisualPack;",
+            "    }",
+            "",
+            "    const ShopItemPresentationDefinition* FindShopItemPresentationDefinition(u16_t itemId)",
+            "    {",
+            "        for (const ShopItemPresentationDefinition& definition : kShopItemPresentations)",
+            "        {",
+            "            if (definition.itemId == itemId)",
+            "                return &definition;",
+            "        }",
+            "        return nullptr;",
+            "    }",
+            "",
+            "    const MinionCombatDef* FindLocalSmokeMinionCombatDefinition(u8_t roleType)",
+            "    {",
+            "        for (const LocalSmokeMinionCombatDefinition& definition : kLocalSmokeMinionCombatDefinitions)",
+            "        {",
+            "            if (definition.roleType == roleType)",
+            "                return &definition.combat;",
+            "        }",
+            "        return nullptr;",
             "    }",
             "",
             "    const MinionVisualDefinition* FindMinionVisualDefinition(u32_t type, u32_t team)",
@@ -2029,6 +2772,23 @@ def append_spawn_object_cpp(lines: list[str], spawn_object_data: dict) -> None:
     for record in spawn_object_data["minions"]:
         append_minion_def(lines, f"MakeMinionCombat_{record['roleType']}", record)
 
+    minion_behavior = spawn_object_data["minionBehavior"]
+    lines.extend(["    MinionBehaviorDef MakeMinionBehaviorDef()", "    {", "        MinionBehaviorDef def{};"])
+    for key, _ in MINION_BEHAVIOR_FLOAT_FIELDS:
+        lines.append(f"        def.{key} = {cpp_float(minion_behavior[key])};")
+    lines.extend(
+        [
+            f"        def.pathBuildBudgetPerTick = {minion_behavior['pathBuildBudgetPerTick']}u;",
+            f"        def.blockedFramesBeforeRepath = static_cast<u8_t>({minion_behavior['blockedFramesBeforeRepath']}u);",
+            f"        def.flowFieldStallFramesBeforePathFallback = static_cast<u8_t>({minion_behavior['flowFieldStallFramesBeforePathFallback']}u);",
+            f"        def.targetScanStaggerBuckets = {minion_behavior['targetScanStaggerBuckets']}u;",
+            f"        def.rangedRoleType = static_cast<u8_t>({minion_behavior['rangedRoleType']}u);",
+            "        return def;",
+            "    }",
+            "",
+        ]
+    )
+
     minion_wave = spawn_object_data["minionWave"]
     lines.extend(
         [
@@ -2042,12 +2802,27 @@ def append_spawn_object_cpp(lines: list[str], spawn_object_data: dict) -> None:
             f"        def.timeGrowthCapMinutes = {minion_wave['timeGrowthCapMinutes']}u;",
             f"        def.timeGrowthPerMinute = {cpp_float(minion_wave['timeGrowthPerMinute'])};",
             f"        def.corpseDeathTimerSec = {cpp_float(minion_wave['corpseDeathTimerSec'])};",
+            f"        def.startX = {cpp_float(minion_wave['startX'])};",
         ]
     )
     for key, _ in MINION_WAVE_RANGED_PROJECTILE_FIELDS:
         lines.append(
             f"        def.rangedProjectile.{key} = {cpp_float(minion_wave['rangedProjectile'][key])};")
-    lines.extend(["        return def;", "    }", ""])
+    for index, slot in enumerate(minion_wave["formationSlots"]):
+        lines.append(
+            f"        def.formationSlots[{index}] = MinionSpawnSlotDef{{ static_cast<u8_t>({slot['roleType']}u), "
+            f"{cpp_float(slot['forwardOffset'])}, {cpp_float(slot['sideOffset'])} }};")
+    siege_slot = minion_wave["siegeSlot"]
+    lines.extend(
+        [
+            f"        def.formationSlotCount = static_cast<u8_t>({len(minion_wave['formationSlots'])}u);",
+            f"        def.siegeSlot = MinionSpawnSlotDef{{ static_cast<u8_t>({siege_slot['roleType']}u), "
+            f"{cpp_float(siege_slot['forwardOffset'])}, {cpp_float(siege_slot['sideOffset'])} }};",
+            "        return def;",
+            "    }",
+            "",
+        ]
+    )
 
     lines.extend(["    const JungleCampGameDefEntry kJungleCamps[] =", "    {"])
     lines.extend(
@@ -2111,9 +2886,59 @@ def append_items_cpp(lines: list[str], item_data: dict) -> None:
                 f"        def.price = {record['price']}u;",
             ]
         )
+        if not record["purchasable"]:
+            lines.append("        def.bPurchasable = false;")
         for key, value in record["stats"].items():
             lines.append(f"        def.stats.{key} = {cpp_float(value)};")
         emit_damage_formula_cpp(lines, "def.onHitDamage", record.get("onHitDamage"))
+        spellblade = record.get("spellblade")
+        if spellblade:
+            lines.extend(
+                [
+                    "        def.spellblade.bValid = true;",
+                    f"        def.spellblade.cooldownSec = {cpp_float(spellblade['cooldownSec'])};",
+                    f"        def.spellblade.baseAdRatio = {cpp_float(spellblade['baseAdRatio'])};",
+                    f"        def.spellblade.critChanceFlatScale = {cpp_float(spellblade['critChanceFlatScale'])};",
+                    f"        def.spellblade.manaRestoreRatio = {cpp_float(spellblade['manaRestoreRatio'])};",
+                ]
+            )
+        manaflow = record.get("manaflow")
+        if manaflow:
+            lines.extend(
+                [
+                    "        def.manaflow.bValid = true;",
+                    f"        def.manaflow.rechargeSec = {cpp_float(manaflow['rechargeSec'])};",
+                    f"        def.manaflow.maxCharges = {manaflow['maxCharges']}u;",
+                    f"        def.manaflow.manaPerTrigger = {manaflow['manaPerTrigger']}u;",
+                    f"        def.manaflow.championMultiplier = {manaflow['championMultiplier']}u;",
+                    f"        def.manaflow.maxBonusMana = {manaflow['maxBonusMana']}u;",
+                    f"        def.manaflow.transformItemId = {manaflow['transformItemId']}u;",
+                ]
+            )
+        lightshield_strike = record.get("lightshieldStrike")
+        if lightshield_strike:
+            lines.extend(
+                [
+                    "        def.lightshieldStrike.bValid = true;",
+                    f"        def.lightshieldStrike.cooldownSec = {cpp_float(lightshield_strike['cooldownSec'])};",
+                    f"        def.lightshieldStrike.critDamageMultiplier = {cpp_float(lightshield_strike['critDamageMultiplier'])};",
+                    f"        def.lightshieldStrike.healBaseAdRatio = {cpp_float(lightshield_strike['healBaseAdRatio'])};",
+                    f"        def.lightshieldStrike.healMissingHealthRatio = {cpp_float(lightshield_strike['healMissingHealthRatio'])};",
+                ]
+            )
+        active = record.get("active")
+        if active:
+            lines.extend(
+                [
+                    "        def.active.bValid = true;",
+                    f"        def.active.kind = eItemActiveKind::{ITEM_ACTIVE_KIND_MAP[active['kind']]};",
+                    f"        def.active.cooldownSec = {cpp_float(active['cooldownSec'])};",
+                    f"        def.active.durationSec = {cpp_float(active['durationSec'])};",
+                ]
+            )
+        if record.get("maxManaBonusAdRatio", 0.0) != 0.0:
+            lines.append(
+                f"        def.maxManaBonusAdRatio = {cpp_float(record['maxManaBonusAdRatio'])};")
         lines.extend(
             [
                 f"        def.displayName = {cpp_string(record['name'])};",
@@ -2127,11 +2952,36 @@ def append_items_cpp(lines: list[str], item_data: dict) -> None:
     lines.extend(["    };", ""])
 
 
+def append_runes_cpp(lines: list[str], rune_data: dict) -> None:
+    for record in rune_data["runes"]:
+        lines.extend(
+            [
+                f"    RuneGameplayDef MakeRune_{record['legacyRuneId']}()",
+                "    {",
+                "        RuneGameplayDef def{};",
+                f"        def.key = 0x{record['definitionKey']:08X}u;",
+                f"        def.legacyRuneId = static_cast<eRuneId>({record['legacyRuneId']}u);",
+                f"        def.bEnabled = {'true' if record['enabled'] else 'false'};",
+                f"        def.maxStacks = {record['maxStacks']}u;",
+                "        return def;",
+                "    }",
+                "",
+            ]
+        )
+    lines.extend(["    const RuneGameplayDef kRuneDefs[] =", "    {"])
+    lines.extend(
+        f"        MakeRune_{record['legacyRuneId']}(),"
+        for record in rune_data["runes"]
+    )
+    lines.extend(["    };", ""])
+
+
 def emit_cpp(
     data: dict,
     spawn_object_data: dict,
     economy_data: dict,
     item_data: dict,
+    rune_data: dict,
     champions: list[dict],
     skills: list[dict],
     spells: list[dict],
@@ -2163,6 +3013,10 @@ def emit_cpp(
             ]
         )
         for field, value in record["stats"].items():
+            if field == "resourceKind":
+                lines.append(
+                    f"        def.stats.resourceKind = eChampionResourceKind::{value};")
+                continue
             lines.append(f"        def.stats.{field} = {cpp_float(value)};")
         for slot in range(5):
             lines.append(
@@ -2191,11 +3045,6 @@ def emit_cpp(
 
     for record in skills:
         function_name = f"{record['ownerChampion']}_{SLOT_NAMES[record['slot']]}".upper()
-        facing = "None"
-        if record["targetShape"] == "Unit":
-            facing = "TowardsTarget"
-        elif record["targetShape"] in ("Ground", "Direction"):
-            facing = "TowardsCommandDirection"
         lines.extend(
             [
                 f"    SkillGameplayDef MakeSkill_{function_name}()",
@@ -2206,6 +3055,7 @@ def emit_cpp(
                 f"        def.ownerChampionId.value = {champion_ids[record['ownerKey']]}u;",
                 f"        def.slot = {record['slot']}u;",
                 f"        def.legacySkillId = {record['skillId']}u;",
+                f"        def.input.activation = eSkillInputActivation::{record['activationMode']};",
                 "        def.target.bValid = true;",
                 f"        def.target.resolvePolicy = eTargetResolvePolicy::{record['resolvePolicy']};",
                 f"        def.cost.rankCount = {len(record['manaCostByRank'])}u;",
@@ -2248,10 +3098,35 @@ def emit_cpp(
                 lines.append(
                     f"        def.summonPolicy.params[{param_index}].value = {cpp_float(param['value'])};"
                 )
+        charge = record.get("charge")
+        if charge is not None:
+            lines.append("        def.charge.bEnabled = true;")
+            lines.append(
+                f"        def.charge.bAutoRelease = {'true' if charge['autoRelease'] else 'false'};")
+            lines.append(f"        def.charge.maxHoldSec = {cpp_float(charge['maxHoldSec'])};")
+            lines.append(f"        def.charge.minRangeScale = {cpp_float(charge['rangeScale'][0])};")
+            lines.append(f"        def.charge.maxRangeScale = {cpp_float(charge['rangeScale'][1])};")
+            lines.append(f"        def.charge.minDamageScale = {cpp_float(charge['damageScale'][0])};")
+            lines.append(f"        def.charge.maxDamageScale = {cpp_float(charge['damageScale'][1])};")
+            lines.append(f"        def.charge.minStunSec = {cpp_float(charge['stunSeconds'][0])};")
+            lines.append(f"        def.charge.maxStunSec = {cpp_float(charge['stunSeconds'][1])};")
         for stage_index, stage in enumerate(record["stages"]):
-            lines.append(f"        def.target.shape[{stage_index}] = eTargetShape::{record['targetShape']};")
+            target_shape = record["targetShapes"][stage_index]
+            lines.append(f"        def.target.shape[{stage_index}] = eTargetShape::{target_shape};")
             lines.append(f"        def.stage.lockDurationSec[{stage_index}] = {cpp_float(stage['lockDurationSec'])};")
-            lines.append(f"        def.facing.mode[{stage_index}] = eSkillFacingMode::{facing};")
+            lines.append(f"        def.stage.commandLockSec[{stage_index}] = {cpp_float(stage['commandLockSec'])};")
+            lines.append(
+                f"        def.stage.movePolicy[{stage_index}] = "
+                f"eSkillActionMovePolicy::{stage['movePolicy']};")
+            lines.append(
+                f"        def.stage.bCreatesActionState[{stage_index}] = "
+                f"{'true' if stage['createsActionState'] else 'false'};")
+            lines.append(
+                f"        def.stage.bPresentationLoopWhileActive[{stage_index}] = "
+                f"{'true' if stage['presentationLoopWhileActive'] else 'false'};")
+            lines.append(
+                f"        def.facing.mode[{stage_index}] = "
+                f"eSkillFacingMode::{stage['facingMode']};")
         lines.extend(["        return def;", "    }", ""])
 
     for record in spells:
@@ -2276,6 +3151,7 @@ def emit_cpp(
     append_spawn_object_cpp(lines, spawn_object_data)
     append_economy_cpp(lines, economy_data)
     append_items_cpp(lines, item_data)
+    append_runes_cpp(lines, rune_data)
 
     lines.extend(["    const ChampionGameplayDef kChampions[] =", "    {"])
     lines.extend(f"        MakeChampion_{record['champion']}()," for record in champions)
@@ -2308,6 +3184,8 @@ def emit_cpp(
             "            &economyDef,",
             "            kItemDefs,",
             "            sizeof(kItemDefs) / sizeof(kItemDefs[0]),",
+            "            kRuneDefs,",
+            "            sizeof(kRuneDefs) / sizeof(kRuneDefs[0]),",
             "        };",
             "        return pack;",
             "    }",
@@ -2326,6 +3204,7 @@ def emit_cpp(
             "            MakeDefaultMinionCombat(),",
             "            kMinions,",
             "            sizeof(kMinions) / sizeof(kMinions[0]),",
+            "            MakeMinionBehaviorDef(),",
             "            MakeMinionWaveDef(),",
             "        };",
             "        return pack;",
@@ -2341,11 +3220,222 @@ def json_text(value: object) -> str:
     return json.dumps(value, ensure_ascii=True, indent=2, sort_keys=False) + "\n"
 
 
+def canonical_source_table(root: Path) -> dict[str, Path]:
+    relative_paths = (
+        "Data/Gameplay/ChampionGameData/champions.json",
+        "Data/LoL/ServerPrivate/Gameplay/SummonerSpellGameplayDefs.json",
+        "Data/LoL/ServerPrivate/Gameplay/SpawnObjectGameplayDefs.json",
+        "Data/LoL/ServerPrivate/Gameplay/SkillEffectGameplayDefs.json",
+        "Data/LoL/ServerPrivate/Gameplay/EconomyGameplayDefs.json",
+        "Data/LoL/ServerPrivate/Gameplay/ItemGameplayDefs.json",
+        "Data/LoL/ServerPrivate/Gameplay/RuneGameplayDefs.json",
+        "Data/LoL/ServerPrivate/AI/ChampionAIGameplayDefs.json",
+        "Data/LoL/ClientPublic/Visual/ChampionVisualDefs.json",
+        "Data/LoL/ClientPublic/Visual/ObjectVisualDefs.json",
+        "Data/LoL/ClientPublic/Visual/ChampionAssetVisualDefs.json",
+    )
+    return {relative_path: root / Path(relative_path) for relative_path in relative_paths}
+
+
+def parse_draft_build_hash(value: object) -> int:
+    if isinstance(value, bool):
+        fail("draft.baseBuildHash must be an unsigned 32-bit integer or hexadecimal string")
+    if isinstance(value, int):
+        parsed = value
+    elif isinstance(value, str):
+        try:
+            parsed = int(value, 0)
+        except ValueError:
+            fail("draft.baseBuildHash must be an unsigned 32-bit integer or hexadecimal string")
+    else:
+        fail("draft.baseBuildHash must be an unsigned 32-bit integer or hexadecimal string")
+    if parsed < 0 or parsed > 0xFFFFFFFF:
+        fail("draft.baseBuildHash is outside the unsigned 32-bit range")
+    return parsed
+
+
+def require_draft_base_hash(draft: dict, expected_build_hash: int) -> None:
+    if "baseBuildHash" not in draft:
+        fail("draft.baseBuildHash is required")
+    actual_build_hash = parse_draft_build_hash(draft["baseBuildHash"])
+    if actual_build_hash != expected_build_hash:
+        fail(
+            "stale draft: baseBuildHash "
+            f"0x{actual_build_hash:08X} does not match active 0x{expected_build_hash:08X}"
+        )
+
+
+def decode_json_pointer(path: object) -> list[str]:
+    if not isinstance(path, str) or not path.startswith("/"):
+        fail("draft edit path must be a non-empty JSON Pointer")
+    return [token.replace("~1", "/").replace("~0", "~") for token in path[1:].split("/")]
+
+
+def resolve_existing_child(container: object, token: str, path: str) -> object:
+    if isinstance(container, dict):
+        if token not in container:
+            fail(f"draft edit path does not exist: {path}")
+        return container[token]
+    if isinstance(container, list):
+        if not token.isdigit():
+            fail(f"draft array index must be numeric: {path}")
+        index = int(token)
+        if index >= len(container):
+            fail(f"draft array index is out of range: {path}")
+        return container[index]
+    fail(f"draft edit traverses a scalar value: {path}")
+
+
+def apply_json_pointer_edit(document: object, path: object, value: object) -> None:
+    tokens = decode_json_pointer(path)
+    if tokens[0] in {"schemaVersion", "dataVersion", "buildHash"}:
+        fail(f"draft cannot edit metadata field: {tokens[0]}")
+    cursor = document
+    for index, token in enumerate(tokens[:-1]):
+        cursor = resolve_existing_child(cursor, token, "/" + "/".join(tokens[: index + 1]))
+    last = tokens[-1]
+    if isinstance(cursor, dict):
+        if last not in cursor:
+            fail(f"draft edit path does not exist: {path}")
+        cursor[last] = copy.deepcopy(value)
+        return
+    if isinstance(cursor, list):
+        if not last.isdigit() or int(last) >= len(cursor):
+            fail(f"draft array index is out of range: {path}")
+        cursor[int(last)] = copy.deepcopy(value)
+        return
+    fail(f"draft edit parent is a scalar value: {path}")
+
+
+def find_definition_nodes(value: object, definition_key_value: object) -> list[dict]:
+    matches: list[dict] = []
+    if isinstance(value, dict):
+        if value.get("key") == definition_key_value or value.get("definitionKey") == definition_key_value:
+            matches.append(value)
+        for child in value.values():
+            matches.extend(find_definition_nodes(child, definition_key_value))
+    elif isinstance(value, list):
+        for child in value:
+            matches.extend(find_definition_nodes(child, definition_key_value))
+    return matches
+
+
+def apply_row_draft(document: dict, draft: dict) -> None:
+    definition_key_value = draft.get("definitionKey")
+    field = draft.get("field")
+    if not isinstance(definition_key_value, (str, int)) or isinstance(definition_key_value, bool):
+        fail("draft.definitionKey must be a string or integer")
+    if not isinstance(field, str) or not field or field.startswith(".") or field.endswith("."):
+        fail("draft.field must be a dotted field path")
+    matches = find_definition_nodes(document, definition_key_value)
+    if len(matches) != 1:
+        fail(f"draft.definitionKey must resolve exactly once; found {len(matches)}")
+    pointer = "/" + "/".join(field.split("."))
+    if "index" in draft:
+        index = draft["index"]
+        if isinstance(index, bool) or not isinstance(index, int) or index < 0:
+            fail("draft.index must be a non-negative integer")
+        pointer += f"/{index}"
+    apply_json_pointer_edit(matches[0], pointer, draft.get("value"))
+
+
+def apply_visual_timing_overrides(document: dict, overrides: object) -> None:
+    champion_records = require_array(document.get("champions"), "ChampionVisualDefs.champions")
+    champion_lookup = {
+        str(record.get("key", "")).removeprefix("champion.").lower(): record
+        for record in champion_records
+        if isinstance(record, dict)
+    }
+    slot_names = {"ba": "basic_attack", "q": "q", "w": "w", "e": "e", "r": "r"}
+    seen: set[tuple[str, str]] = set()
+    for index, raw_override in enumerate(require_array(overrides, "draft.overrides")):
+        override = require_object(raw_override, f"draft.overrides[{index}]")
+        if set(override) != {"champion", "slot", "stages"}:
+            fail(f"draft.overrides[{index}] must contain only champion, slot and stages")
+        champion_name = str(override["champion"]).lower()
+        slot_name = str(override["slot"]).lower()
+        if champion_name not in champion_lookup or slot_name not in slot_names:
+            fail(f"draft.overrides[{index}] references an unknown champion or slot")
+        identity = (champion_name, slot_name)
+        if identity in seen:
+            fail(f"draft.overrides[{index}] duplicates {champion_name}.{slot_name}")
+        seen.add(identity)
+        skill_key = f"skill.{champion_name}.{slot_names[slot_name]}"
+        skills = require_array(champion_lookup[champion_name].get("skills"), f"{champion_name}.skills")
+        matches = [skill for skill in skills if isinstance(skill, dict) and skill.get("key") == skill_key]
+        if len(matches) != 1:
+            fail(f"draft override skill must resolve exactly once: {skill_key}")
+        matches[0]["stages"] = copy.deepcopy(override["stages"])
+
+
+def apply_draft_to_document(draft: dict, source_relative: str, original: dict) -> dict:
+    result = copy.deepcopy(original)
+    modes = [
+        "document" in draft,
+        "edits" in draft,
+        "overrides" in draft,
+        all(key in draft for key in ("definitionKey", "field", "value")),
+    ]
+    if sum(modes) != 1:
+        fail("draft must contain exactly one of document, edits, overrides, or a definition row")
+    if "document" in draft:
+        result = copy.deepcopy(require_object(draft["document"], "draft.document"))
+    elif "edits" in draft:
+        for index, raw_edit in enumerate(require_array(draft["edits"], "draft.edits")):
+            edit = require_object(raw_edit, f"draft.edits[{index}]")
+            if set(edit) != {"path", "value"}:
+                fail(f"draft.edits[{index}] must contain only path and value")
+            apply_json_pointer_edit(result, edit["path"], edit["value"])
+    elif "overrides" in draft:
+        if source_relative != "Data/LoL/ClientPublic/Visual/ChampionVisualDefs.json":
+            fail("draft.overrides is supported only for ChampionVisualDefs.json")
+        apply_visual_timing_overrides(result, draft["overrides"])
+    else:
+        apply_row_draft(result, draft)
+    return result
+
+
+def diff_json_paths(before: object, after: object, path: str = "") -> set[str]:
+    if type(before) is not type(after):
+        return {path or "/"}
+    if isinstance(before, dict):
+        if set(before) != set(after):
+            return {path or "/"}
+        result: set[str] = set()
+        for key in before:
+            result.update(diff_json_paths(before[key], after[key], f"{path}/{key}"))
+        return result
+    if isinstance(before, list):
+        if len(before) != len(after):
+            return {path or "/"}
+        result: set[str] = set()
+        for index, value in enumerate(before):
+            result.update(diff_json_paths(value, after[index], f"{path}/{index}"))
+        return result
+    return set() if before == after else {path or "/"}
+
+
+def atomic_write_text(path: Path, content: str) -> None:
+    temporary_path = path.with_name(path.name + ".tmp")
+    try:
+        temporary_path.write_text(content, encoding="utf-8", newline="\n")
+        temporary_path.replace(path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--check", action="store_true")
+    draft_group = parser.add_mutually_exclusive_group()
+    draft_group.add_argument("--verify-draft", type=Path)
+    draft_group.add_argument("--apply-draft", type=Path)
+    draft_group.add_argument("--test-draft-roundtrip", action="store_true")
     args = parser.parse_args()
+
+    if args.check and (args.verify_draft or args.apply_draft or args.test_draft_roundtrip):
+        fail("--check cannot be combined with a draft operation")
 
     root = args.root.resolve()
     source = root / "Data" / "Gameplay" / "ChampionGameData" / "champions.json"
@@ -2366,6 +3456,12 @@ def main() -> int:
     item_source = root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "ItemGameplayDefs.json"
     if not item_source.exists():
         fail(f"missing source: {item_source}")
+    rune_source = root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "RuneGameplayDefs.json"
+    if not rune_source.exists():
+        fail(f"missing source: {rune_source}")
+    ai_source = root / "Data" / "LoL" / "ServerPrivate" / "AI" / "ChampionAIGameplayDefs.json"
+    if not ai_source.exists():
+        fail(f"missing source: {ai_source}")
     champion_visual_source = root / "Data" / "LoL" / "ClientPublic" / "Visual" / "ChampionVisualDefs.json"
     if not champion_visual_source.exists():
         fail(f"missing source: {champion_visual_source}")
@@ -2376,12 +3472,16 @@ def main() -> int:
     if not champion_asset_visual_source.exists():
         fail(f"missing source: {champion_asset_visual_source}")
 
-    data = legacy.normalize_root(json.loads(source.read_text(encoding="utf-8")))
+    data_raw = json.loads(source.read_text(encoding="utf-8"))
+    validate_source_schema(root, source, data_raw)
+    data = legacy.normalize_root(data_raw)
     summoner_spell_raw = json.loads(summoner_spell_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, summoner_spell_source, summoner_spell_raw)
     summoner_spell_raw.pop("buildHash", None)
     summoner_spell_data = normalize_summoner_spell_root(summoner_spell_raw)
     champions, skills, spells = make_records(data, summoner_spell_data)
     champion_visual_raw = json.loads(champion_visual_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, champion_visual_source, champion_visual_raw)
     champion_visual_raw.pop("buildHash", None)
     champion_visual_data = normalize_client_visual_root(
         champion_visual_raw,
@@ -2389,18 +3489,22 @@ def main() -> int:
         {record["canonicalKey"] for record in skills},
     )
     spawn_object_raw = json.loads(spawn_object_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, spawn_object_source, spawn_object_raw)
     spawn_object_raw.pop("buildHash", None)
     spawn_object_data = normalize_spawn_object_root(spawn_object_raw)
     object_visual_raw = json.loads(object_visual_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, object_visual_source, object_visual_raw)
     object_visual_raw.pop("buildHash", None)
     object_visual_data = normalize_object_visual_root(object_visual_raw)
     champion_asset_visual_raw = json.loads(champion_asset_visual_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, champion_asset_visual_source, champion_asset_visual_raw)
     champion_asset_visual_raw.pop("buildHash", None)
     champion_asset_visual_data = normalize_champion_asset_visual_root(
         champion_asset_visual_raw,
         {champion["champion"] for champion in data["champions"]},
     )
     skill_effect_raw = json.loads(skill_effect_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, skill_effect_source, skill_effect_raw)
     skill_effect_raw.pop("buildHash", None)
     skill_effect_data = normalize_skill_effect_root(
         skill_effect_raw,
@@ -2408,15 +3512,226 @@ def main() -> int:
     )
     apply_skill_effect_params(skills, skill_effect_data)
     economy_raw = json.loads(economy_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, economy_source, economy_raw)
     economy_raw.pop("buildHash", None)
     economy_data = normalize_economy_root(economy_raw)
     item_raw = json.loads(item_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, item_source, item_raw)
     item_raw.pop("buildHash", None)
     item_data = normalize_items_root(item_raw)
+    rune_raw = json.loads(rune_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, rune_source, rune_raw)
+    rune_raw.pop("buildHash", None)
+    rune_data = normalize_rune_root(rune_raw)
+    ai_raw = json.loads(ai_source.read_text(encoding="utf-8"))
+    validate_source_schema(root, ai_source, ai_raw)
+    ai_raw.pop("buildHash", None)
+    ai_data = normalize_ai_root(ai_raw, {champion["champion"] for champion in data["champions"]})
     build_hash = compute_definition_pack_hash(
-        data, summoner_spell_data, spawn_object_data, skill_effect_data, economy_data, item_data)
+        data,
+        summoner_spell_data,
+        spawn_object_data,
+        skill_effect_data,
+        economy_data,
+        item_data,
+        rune_data,
+        ai_data,
+        champion_visual_data,
+        object_visual_data,
+        champion_asset_visual_data)
     champion_ids = {record["canonicalKey"]: record["defId"] for record in champions}
     skill_ids = {record["canonicalKey"]: record["defId"] for record in skills}
+
+    if args.verify_draft or args.apply_draft:
+        draft_path = (args.verify_draft or args.apply_draft).resolve()
+        if not draft_path.exists():
+            fail(f"missing draft: {draft_path}")
+        draft = require_object(json.loads(draft_path.read_text(encoding="utf-8")), "draft")
+        require_draft_base_hash(draft, build_hash)
+        source_relative = draft.get("source")
+        source_table = canonical_source_table(root)
+        if not isinstance(source_relative, str) or source_relative not in source_table:
+            fail("draft.source must name one of the 11 canonical authoring sources")
+        target_source = source_table[source_relative]
+        target_raw = require_object(json.loads(target_source.read_text(encoding="utf-8")), target_source.name)
+        candidate_raw = apply_draft_to_document(draft, source_relative, target_raw)
+        validate_source_schema(root, target_source, candidate_raw)
+        candidate_for_normalize = copy.deepcopy(candidate_raw)
+        candidate_for_normalize.pop("buildHash", None)
+
+        if target_source == source:
+            candidate_data = legacy.normalize_root(candidate_for_normalize)
+            _, candidate_skills, _ = make_records(candidate_data, summoner_spell_data)
+            candidate_champions = {champion["champion"] for champion in candidate_data["champions"]}
+            candidate_champion_map = {
+                canonical_champion(champion): champion for champion in candidate_champions
+            }
+            candidate_skill_keys = {record["canonicalKey"] for record in candidate_skills}
+            normalize_ai_root(copy.deepcopy(ai_raw), candidate_champions)
+            normalize_client_visual_root(
+                copy.deepcopy(champion_visual_raw), candidate_champion_map, candidate_skill_keys)
+            normalize_champion_asset_visual_root(
+                copy.deepcopy(champion_asset_visual_raw), candidate_champions)
+            normalize_skill_effect_root(copy.deepcopy(skill_effect_raw), candidate_skill_keys)
+        elif target_source == summoner_spell_source:
+            normalize_summoner_spell_root(candidate_for_normalize)
+        elif target_source == spawn_object_source:
+            normalize_spawn_object_root(candidate_for_normalize)
+        elif target_source == skill_effect_source:
+            normalize_skill_effect_root(candidate_for_normalize, {record["canonicalKey"] for record in skills})
+        elif target_source == economy_source:
+            normalize_economy_root(candidate_for_normalize)
+        elif target_source == item_source:
+            normalize_items_root(candidate_for_normalize)
+        elif target_source == rune_source:
+            normalize_rune_root(candidate_for_normalize)
+        elif target_source == ai_source:
+            normalize_ai_root(candidate_for_normalize, {champion["champion"] for champion in data["champions"]})
+        elif target_source == champion_visual_source:
+            normalize_client_visual_root(
+                candidate_for_normalize,
+                {canonical_champion(champion["champion"]): champion["champion"] for champion in data["champions"]},
+                {record["canonicalKey"] for record in skills},
+            )
+        elif target_source == object_visual_source:
+            normalize_object_visual_root(candidate_for_normalize)
+        elif target_source == champion_asset_visual_source:
+            normalize_champion_asset_visual_root(
+                candidate_for_normalize, {champion["champion"] for champion in data["champions"]})
+
+        if args.verify_draft:
+            print(f"Verified draft for {source_relative} at base 0x{build_hash:08X}")
+            return 0
+
+        atomic_write_text(target_source, json_text(candidate_raw))
+        generation = subprocess.run(
+            [sys.executable, str(Path(__file__).resolve()), "--root", str(root)],
+            cwd=root,
+            check=False,
+        )
+        if generation.returncode != 0:
+            fail(f"draft was validated but regeneration failed with exit code {generation.returncode}")
+        manifest_path = root / "Data" / "LoL" / "SharedContract" / "DefinitionManifest.json"
+        regenerated_hash = int(json.loads(manifest_path.read_text(encoding="utf-8"))["buildHash"])
+        for canonical_path in canonical_source_table(root).values():
+            canonical_document = require_object(
+                json.loads(canonical_path.read_text(encoding="utf-8")), canonical_path.name)
+            if "buildHash" not in canonical_document:
+                continue
+            canonical_document["buildHash"] = regenerated_hash
+            atomic_write_text(canonical_path, json_text(canonical_document))
+        print(
+            f"Applied draft to {source_relative} and regenerated LoL definition pack "
+            f"0x{regenerated_hash:08X}"
+        )
+        return 0
+
+    if args.test_draft_roundtrip:
+        test_source_relative = "Data/LoL/ServerPrivate/Gameplay/RuneGameplayDefs.json"
+        test_source = canonical_source_table(root)[test_source_relative]
+        original = require_object(json.loads(test_source.read_text(encoding="utf-8")), test_source.name)
+        runes = require_array(original.get("runes"), "RuneGameplayDefs.runes")
+        if not runes or not isinstance(runes[0].get("maxStacks"), int):
+            fail("round-trip fixture requires RuneGameplayDefs.runes[0].maxStacks")
+        replacement = runes[0]["maxStacks"] + 1
+        draft = {
+            "version": 1,
+            "source": test_source_relative,
+            "baseBuildHash": f"0x{build_hash:08X}",
+            "edits": [{"path": "/runes/0/maxStacks", "value": replacement}],
+        }
+        serialized_draft = json.dumps(draft, sort_keys=True)
+        parsed_draft = require_object(json.loads(serialized_draft), "roundTripDraft")
+        require_draft_base_hash(parsed_draft, build_hash)
+        candidate = apply_draft_to_document(parsed_draft, test_source_relative, original)
+        validate_source_schema(root, test_source, candidate)
+        candidate_for_normalize = copy.deepcopy(candidate)
+        candidate_for_normalize.pop("buildHash", None)
+        normalize_rune_root(candidate_for_normalize)
+        changed_paths = diff_json_paths(original, candidate)
+        if changed_paths != {"/runes/0/maxStacks"}:
+            fail(f"round-trip changed unexpected paths: {sorted(changed_paths)}")
+        stale_draft = copy.deepcopy(parsed_draft)
+        stale_draft["baseBuildHash"] = build_hash ^ 1
+        try:
+            require_draft_base_hash(stale_draft, build_hash)
+        except SystemExit:
+            pass
+        else:
+            fail("round-trip stale hash fixture was not rejected")
+        if original["runes"][0]["maxStacks"] == replacement:
+            fail("round-trip test mutated the canonical document")
+        with tempfile.TemporaryDirectory(prefix="winters_lol_draft_") as temporary_directory:
+            temporary_root = Path(temporary_directory)
+            for relative_path, canonical_path in canonical_source_table(root).items():
+                copied_path = temporary_root / Path(relative_path)
+                copied_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(canonical_path, copied_path)
+            shutil.copytree(
+                root / "Data" / "LoL" / "Schemas",
+                temporary_root / "Data" / "LoL" / "Schemas",
+            )
+            draft_path = temporary_root / "valid-draft.json"
+            atomic_write_text(draft_path, json_text(draft))
+            apply_result = subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).resolve()),
+                    "--root",
+                    str(temporary_root),
+                    "--apply-draft",
+                    str(draft_path),
+                ],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if apply_result.returncode != 0:
+                fail(
+                    "temporary draft apply failed: "
+                    + (apply_result.stderr.strip() or apply_result.stdout.strip())
+                )
+            applied_rune_path = temporary_root / Path(test_source_relative)
+            applied_rune = require_object(
+                json.loads(applied_rune_path.read_text(encoding="utf-8")), applied_rune_path.name)
+            if applied_rune["runes"][0]["maxStacks"] != replacement:
+                fail("temporary draft apply did not publish the intended field")
+            temporary_manifest_path = (
+                temporary_root / "Data" / "LoL" / "SharedContract" / "DefinitionManifest.json")
+            temporary_hash = int(
+                json.loads(temporary_manifest_path.read_text(encoding="utf-8"))["buildHash"])
+            if temporary_hash == build_hash:
+                fail("temporary draft apply did not regenerate the definition-pack hash")
+
+            stale_draft_path = temporary_root / "stale-draft.json"
+            atomic_write_text(stale_draft_path, json_text(stale_draft))
+            applied_text_before_stale_check = applied_rune_path.read_text(encoding="utf-8")
+            stale_result = subprocess.run(
+                [
+                    sys.executable,
+                    str(Path(__file__).resolve()),
+                    "--root",
+                    str(temporary_root),
+                    "--apply-draft",
+                    str(stale_draft_path),
+                ],
+                cwd=root,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if stale_result.returncode == 0:
+                fail("temporary stale draft apply unexpectedly succeeded")
+            if applied_rune_path.read_text(encoding="utf-8") != applied_text_before_stale_check:
+                fail("stale draft changed the temporary canonical source")
+        if json.loads(test_source.read_text(encoding="utf-8")) != original:
+            fail("round-trip integration test changed the workspace canonical source")
+        print(
+            "Draft round-trip PASS: temporary apply regenerated a new hash, stale hash was rejected, "
+            "workspace canonical source remained unchanged"
+        )
+        return 0
 
     outputs = {
         root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "ChampionGameplayDefs.json": json_text(
@@ -2433,91 +3748,29 @@ def main() -> int:
                 "skills": [server_skill_json(record, champion_ids) for record in skills],
             }
         ),
-        root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "SummonerSpellGameplayDefs.json": json_text(
-            {
-                "schemaVersion": summoner_spell_data["schemaVersion"],
-                "buildHash": build_hash,
-                "summonerSpells": [
-                    {
-                        "key": record["canonicalKey"],
-                        "definitionKey": record["definitionKey"],
-                        "defId": record["defId"],
-                        "legacySpellId": record["spellId"],
-                        "rangeMax": record["rangeMax"],
-                        "cooldownSec": record["cooldownSec"],
-                        "gameplayPolicyId": record["gameplayPolicyId"],
-                        "replicatedCueId": record["visualCueId"],
-                    }
-                    for record in spells
-                ],
-            }
-        ),
-        root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "SpawnObjectGameplayDefs.json": json_text(
-            {
-                "schemaVersion": spawn_object_data["schemaVersion"],
-                "dataVersion": spawn_object_data["dataVersion"],
-                "buildHash": build_hash,
-                "spawnLoadout": spawn_object_data["spawnLoadout"],
-                "championCollider": spawn_object_data["championCollider"],
-                "structure": spawn_object_data["structure"],
-                "defaultJungleCamp": spawn_object_data["defaultJungleCamp"],
-                "jungleCamps": spawn_object_data["jungleCamps"],
-                "defaultMinion": spawn_object_data["defaultMinion"],
-                "minions": spawn_object_data["minions"],
-                "minionWave": spawn_object_data["minionWave"],
-            }
-        ),
-        root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "SkillEffectGameplayDefs.json": json_text(
-            {
-                "schemaVersion": skill_effect_data["schemaVersion"],
-                "dataVersion": skill_effect_data["dataVersion"],
-                "buildHash": build_hash,
-                "skillEffects": [
-                    skill_effect_json(record)
-                    for record in skill_effect_data["skillEffects"]
-                ],
-            }
-        ),
-        root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "EconomyGameplayDefs.json": json_text(
-            {
-                "schemaVersion": economy_data["schemaVersion"],
-                "dataVersion": economy_data["dataVersion"],
-                "buildHash": build_hash,
-                "xpCurve": economy_data["xpCurve"],
-                "championKill": economy_data["championKill"],
-                "minions": economy_data["minions"],
-                "turretGold": economy_data["turretGold"],
-                "jungle": economy_data["jungle"],
-                "passiveGold": economy_data["passiveGold"],
-                "timers": economy_data["timers"],
-            }
-        ),
-        root / "Data" / "LoL" / "ServerPrivate" / "Gameplay" / "ItemGameplayDefs.json": json_text(
-            {
-                "schemaVersion": item_data["schemaVersion"],
-                "dataVersion": item_data["dataVersion"],
-                "buildHash": build_hash,
-                "items": item_data["items"],
-            }
-        ),
-        root / "Data" / "LoL" / "ClientPublic" / "Visual" / "ChampionVisualDefs.json": json_text(
-            client_visual_json(champion_visual_data)
-        ),
-        root / "Data" / "LoL" / "ClientPublic" / "Visual" / "ObjectVisualDefs.json": json_text(
-            object_visual_data
-        ),
-        root / "Data" / "LoL" / "ClientPublic" / "Visual" / "ChampionAssetVisualDefs.json": json_text(
-            champion_asset_visual_data
-        ),
         root / "Data" / "LoL" / "SharedContract" / "DefinitionManifest.json": json_text(
             manifest_json(data, champions, skills, spells, build_hash)
         ),
         root / "Server" / "Private" / "Data" / "Generated" / "LoLGameplayDefinitions.generated.cpp": emit_cpp(
-            data, spawn_object_data, economy_data, item_data, champions, skills, spells, build_hash
+            data,
+            spawn_object_data,
+            economy_data,
+            item_data,
+            rune_data,
+            champions,
+            skills,
+            spells,
+            build_hash,
         ),
         root / "Client" / "Private" / "Data" / "Generated" / "LoLVisualDefinitions.generated.cpp": emit_client_visual_cpp(
-            champion_visual_data, object_visual_data, champion_asset_visual_data
+            champion_visual_data,
+            object_visual_data,
+            champion_asset_visual_data,
+            spawn_object_data,
+            item_data,
+            build_hash,
         ),
+        root / "Shared" / "GameSim" / "Generated" / "ChampionAIPolicyData.generated.inl": emit_ai_inl(ai_data),
     }
 
     parity = {
@@ -2547,7 +3800,7 @@ def main() -> int:
                 stale.append(path)
             continue
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8", newline="\n")
+        atomic_write_text(path, content)
 
     if stale:
         for path in stale:

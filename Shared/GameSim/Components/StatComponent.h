@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../Definitions/ChampionStatsDef.h"
 #include "../Definitions/LoLMatchContext.h"
 #include "WintersTypes.h"
 
@@ -9,12 +10,14 @@ struct StatComponent
 {
     eChampion championId = eChampion::NONE;
     u8_t level = 1;
-    u16_t reservedIdentityAlignment = 0u;
+    eChampionResourceKind resourceKind = eChampionResourceKind::Mana;
+    u8_t reservedIdentityAlignment = 0u;
     u32_t buffMaskHash = 0;
     u32_t itemMaskHash = 0;
 
     f32_t hpMax = 0.f;
     f32_t manaMax = 0.f;
+    f32_t resourceRegenPerSec = 0.f;
 
     f32_t baseAd = 0.f;
     f32_t bonusAd = 0.f;
@@ -59,7 +62,7 @@ struct StatComponent
     u8_t reservedTail[3]{};
 };
 
-static_assert(sizeof(StatComponent) == 144u);
+static_assert(sizeof(StatComponent) == 148u);
 static_assert(offsetof(StatComponent, buffMaskHash) == 4u);
-static_assert(offsetof(StatComponent, abilityHaste) == 136u);
-static_assert(offsetof(StatComponent, bDirty) == 140u);
+static_assert(offsetof(StatComponent, abilityHaste) == 140u);
+static_assert(offsetof(StatComponent, bDirty) == 144u);

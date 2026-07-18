@@ -7,8 +7,12 @@
 
 StatComponent BuildDefaultChampionStat(eChampion champion, u8_t level = 1);
 ChampionStatsDef BuildDefaultChampionStatsDef(eChampion champion);
+u32_t GetDefaultChampionDataBuildHash();
 f32_t GetDefaultChampionSkillRange(eChampion champion, u8_t slot);
 f32_t GetDefaultChampionSkillCooldown(eChampion champion, u8_t slot);
+f32_t GetDefaultChampionPassiveDashDistance(eChampion champion);
+f32_t GetDefaultChampionPassiveDashDurationSec(eChampion champion);
+f32_t GetDefaultChampionPassiveDashInputGraceSec(eChampion champion);
 
 f32_t GetDefaultChampionVisualYawOffset(eChampion champion);
 // Canonical yaw is for wire values, debug deltas, and comparisons.
@@ -22,13 +26,13 @@ f32_t ResolveChampionVisualYawNear(eChampion champion, const Vec3& direction,
 
 struct ChampionSkillTimingDefaults
 {
-    f32_t lockDurationSec = 0.6f;
+    f32_t lockDurationSec = 0.f;
 };
 
 struct ChampionBasicAttackTimingDefaults
 {
-    f32_t fWindupSec = 0.25f;
-    f32_t fActionDurationSec = 0.75f;
+    f32_t fWindupSec = 0.f;
+    f32_t fActionDurationSec = 0.f;
 };
 
 ChampionSkillTimingDefaults GetDefaultChampionSkillTiming(eChampion champion, u8_t slot);

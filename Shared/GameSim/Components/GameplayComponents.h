@@ -222,7 +222,7 @@ struct ServerIdComponent
     uint32_t serverEntityId = 0;
 };
 
-//Yasuo의 고유 상태 Q Conditional 분기 + 3타 회오리 카운팅
+// Yasuo Q variant state and third-cast tornado counter.
 struct YasuoStateComponent
 {
     uint8_t qStackCount = 0;
@@ -232,16 +232,23 @@ struct YasuoStateComponent
     u8_t reservedEActiveAlignment[3]{};
     f32_t eActiveTimer = 0.f;
 
-    f32_t fPassiveFlow = 100.f;
+    f32_t fPassiveFlow = 0.f;
     f32_t fPassiveFlowMax = 100.f;
     f32_t fPassiveShieldRemaining = 0.f;
-    f32_t fPassiveShieldMax = 100.f;
+    f32_t fPassiveShieldMax = 125.f;
     f32_t fPassiveShieldTimer = 0.f;
+    f32_t fPassiveLastX = 0.f;
+    f32_t fPassiveLastZ = 0.f;
+    bool_t bPassivePositionInitialized = false;
+    u8_t reservedPassivePositionAlignment[3]{};
+    u64_t uPassiveLastObservedDiscontinuityTick = 0u;
 };
 
-static_assert(sizeof(YasuoStateComponent) == 36u);
+static_assert(sizeof(YasuoStateComponent) == 56u);
 static_assert(offsetof(YasuoStateComponent, qStackTimer) == 4u);
 static_assert(offsetof(YasuoStateComponent, eActiveTimer) == 12u);
+static_assert(offsetof(YasuoStateComponent, fPassiveLastX) == 36u);
+static_assert(offsetof(YasuoStateComponent, uPassiveLastObservedDiscontinuityTick) == 48u);
 
 //RivenStateComponent - ECS
 struct RivenStateComponent
@@ -469,6 +476,7 @@ enum class eStatusEffectId : uint16_t
     ZedDeathMark = 9,
     GenericAirborne = 10,
     KalistaOathswornRitual = 11,
+    ZhonyaStasis = 12,
 };
 
 enum class eStatusStackPolicy : uint8_t
@@ -489,6 +497,8 @@ inline constexpr u32_t kGameplayStateCannotAttackFlag = 1u << 6;
 inline constexpr u32_t kGameplayStateCannotCastFlag = 1u << 7;
 inline constexpr u32_t kGameplayStateAirborneFlag = 1u << 8;
 inline constexpr u32_t kGameplayStateDodgesBasicAttacksFlag = 1u << 9;
+inline constexpr u32_t kGameplayStateInvulnerableFlag = 1u << 10;
+inline constexpr u32_t kGameplayStateStasisVisualFlag = 1u << 11;
 
 inline constexpr u8_t kMaxStatusEffectInstances = 16;
 

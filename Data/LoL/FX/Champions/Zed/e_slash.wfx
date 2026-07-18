@@ -1,20 +1,25 @@
 {
+  "schema": "WintersWfx",
+  "version": 1,
   "name": "Zed.E.Slash",
   "emitters": [
     {
-      "name": "e_slash_ring",
-      "render_type": "Billboard",
+      "name": "e_black_mesh_ring",
+      "render_type": "MeshParticle",
       "blend_mode": "AlphaBlend",
       "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Zed/particles/fbx/zed_atkswipe.wmesh",
       "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/zed_e_slash.png",
+      "max_particles": 1,
+      "spawn_rate": 0.0,
       "lifetime": 0.5,
-      "width": 2.7,
-      "height": 2.7,
-      "color": [1.0, 0.46, 0.46, 0.95],
-      "attach_offset": [0.0, 0.0, 0.0],
       "fade_in": 0.02,
-      "fade_out": 0.2,
-      "billboard": true
+      "fade_out": 0.20,
+      "scale": [2.75, 2.75, 2.75],
+      "color": [0.025, 0.025, 0.035, 0.94],
+      "attach_offset": [0.0, 0.08, 0.0],
+      "world_yaw_spin_speed": 12.5664,
+      "blockable_by_wind_wall": false
     }
   ]
 }

@@ -108,6 +108,8 @@ Services/.env
 /Replay/LocalMatchHistory.jsonl
 /Profiles/*.json
 /tmp/
+/profiler.json
+/BreakPoint/
 
 # Terraform local state, real inputs, and provider cache
 **/.terraform/

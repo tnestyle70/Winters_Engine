@@ -16,14 +16,16 @@ function Invoke-RgLines {
         [string[]]$Paths
     )
 
-    $args = @("-n", $Pattern)
+    $args = @("-n", "-e", $Pattern)
+    $pathCount = 0
     foreach ($path in $Paths) {
         $fullPath = Join-Path $Root $path
         if (Test-Path $fullPath) {
             $args += $fullPath
+            ++$pathCount
         }
     }
-    if ($args.Count -eq 2) {
+    if ($pathCount -eq 0) {
         return @()
     }
     $args += @(
@@ -31,7 +33,8 @@ function Invoke-RgLines {
         "-g", "!Client/Intermediate/**",
         "-g", "!Client/Temp/**",
         "-g", "!Client/Private/Data/Generated/**",
-        "-g", "!Server/Private/Data/Generated/**"
+        "-g", "!Server/Private/Data/Generated/**",
+        "-g", "!Shared/GameSim/Generated/**"
     )
 
     $result = & rg @args 2>$null
@@ -47,14 +50,16 @@ function Invoke-RgFiles {
         [string[]]$Paths
     )
 
-    $args = @("-l", $Pattern)
+    $args = @("-l", "-e", $Pattern)
+    $pathCount = 0
     foreach ($path in $Paths) {
         $fullPath = Join-Path $Root $path
         if (Test-Path $fullPath) {
             $args += $fullPath
+            ++$pathCount
         }
     }
-    if ($args.Count -eq 2) {
+    if ($pathCount -eq 0) {
         return @()
     }
     $args += @(
@@ -62,20 +67,19 @@ function Invoke-RgFiles {
         "-g", "!Client/Intermediate/**",
         "-g", "!Client/Temp/**",
         "-g", "!Client/Private/Data/Generated/**",
-        "-g", "!Server/Private/Data/Generated/**"
+        "-g", "!Server/Private/Data/Generated/**",
+        "-g", "!Shared/GameSim/Generated/**"
     )
 
     $result = & rg @args 2>$null
     if ($LASTEXITCODE -gt 1) {
         throw "rg failed for pattern: $Pattern"
     }
-    return @($result | ForEach-Object { Resolve-Path $_ | ForEach-Object { $_.Path } })
+    return @($result | ForEach-Object { (Resolve-Path $_).Path })
 }
 
 function Convert-RgLineBreakdown {
-    param(
-        [string[]]$Lines
-    )
+    param([string[]]$Lines)
 
     $counts = @{}
     foreach ($line in $Lines) {
@@ -98,15 +102,26 @@ function Convert-RgLineBreakdown {
         })
 }
 
+function Read-JsonIfPresent {
+    param([string]$RelativePath)
+
+    $path = Join-Path $Root $RelativePath
+    if (-not (Test-Path $path)) {
+        return $null
+    }
+    return Get-Content -Raw -Encoding UTF8 -Path $path | ConvertFrom-Json
+}
+
 $championJsonPath = Join-Path $Root "Data\Gameplay\ChampionGameData\champions.json"
-$championJson = Get-Content -Raw -Path $championJsonPath | ConvertFrom-Json
+$championJson = Get-Content -Raw -Encoding UTF8 -Path $championJsonPath | ConvertFrom-Json
+$assetVisualJson = Read-JsonIfPresent "Data\LoL\ClientPublic\Visual\ChampionAssetVisualDefs.json"
+$aiJson = Read-JsonIfPresent "Data\LoL\ServerPrivate\AI\ChampionAIGameplayDefs.json"
 
 $stageCount = 0
 $animPlaySpeedCount = 0
 $castFrameCount = 0
 $recoveryFrameCount = 0
 $visualYawOffsetCount = 0
-
 foreach ($champion in $championJson.champions) {
     if ($null -ne $champion.visualYawOffset) { ++$visualYawOffsetCount }
     foreach ($skill in $champion.skills) {
@@ -136,63 +151,103 @@ $legacyChampionLines = Invoke-RgLines `
     -Pattern "\bChampionDef\b|s_ChampionTable|FindChampionDef|CChampionRegistry|ChampionCatalog" `
     -Paths @("Client", "Shared", "Server")
 
-$visualFieldPattern = "visualYawOffset|animPlaySpeed|castFrame|recoveryFrame|ResolveVisualYawOffset|summonerSpells"
-
-$visualLeakLines = Invoke-RgLines `
-    -Pattern $visualFieldPattern `
-    -Paths @("Data", "Client", "Shared", "Server", "Tools")
-
-$visualClientPublicLines = Invoke-RgLines `
-    -Pattern $visualFieldPattern `
-    -Paths @("Data\LoL\ClientPublic\Visual")
-
-$visualToolLines = Invoke-RgLines `
-    -Pattern $visualFieldPattern `
-    -Paths @("Tools")
-
-$visualGameplayDataLines = Invoke-RgLines `
-    -Pattern $visualFieldPattern `
-    -Paths @("Data\Gameplay")
-
-$visualClientLegacyLines = Invoke-RgLines `
-    -Pattern $visualFieldPattern `
-    -Paths @("Client")
-
-$visualSharedLines = Invoke-RgLines `
-    -Pattern $visualFieldPattern `
-    -Paths @("Shared\GameSim")
-
-$visualServerLines = Invoke-RgLines `
-    -Pattern $visualFieldPattern `
-    -Paths @("Server")
-
-$serverObjectLines = Invoke-RgLines `
-    -Pattern "ResolveStageStructureMaxHp|ResolveStageJungle|ServerMinionTuning::kWave|kWaveIntervalTicks|kInitialWaveDelayTicks|AssignDefaultBotSkillRanks|gold.amount|LethalTempo" `
-    -Paths @("Server", "Shared", "Tools")
-
-$projectileVisualLines = Invoke-RgLines `
-    -Pattern "ProjectileVisualCatalog|ProjectileVisualDesc" `
-    -Paths @("Client", "Shared", "Server")
+$visualFieldPattern = "visualYawOffset|animPlaySpeed|castFrame|recoveryFrame|ResolveVisualYawOffset"
+$visualLeakLines = Invoke-RgLines -Pattern $visualFieldPattern -Paths @("Data", "Client", "Shared", "Server", "Tools")
+$visualClientPublicLines = Invoke-RgLines -Pattern $visualFieldPattern -Paths @("Data\LoL\ClientPublic\Visual")
+$visualToolLines = Invoke-RgLines -Pattern $visualFieldPattern -Paths @("Tools")
+$visualGameplayDataLines = Invoke-RgLines -Pattern $visualFieldPattern -Paths @("Data\Gameplay")
+$visualClientLegacyLines = Invoke-RgLines -Pattern $visualFieldPattern -Paths @("Client")
+$visualSharedLines = Invoke-RgLines -Pattern $visualFieldPattern -Paths @("Shared\GameSim")
+$visualServerLines = Invoke-RgLines -Pattern $visualFieldPattern -Paths @("Server")
 
 $skillEffectHardcodeLines = Invoke-RgLines `
     -Pattern "constexpr\s+f32_t\s+k[A-Za-z0-9_]*(Damage|DamagePerRank|Range|Radius|Speed|DurationSec|MoveSpeedMul|Slow|Stun|Shield|Dash|Gap|Hp|Attack|Cooldown|Lifetime|Ratio|Distance|HalfAngleCos)" `
     -Paths @("Shared\GameSim\Champions")
 
-$skillEffectQueryLines = Invoke-RgLines `
-    -Pattern "ResolveSkillEffectParam|eSkillEffectParamId::" `
-    -Paths @("Shared\GameSim\Champions")
+$runeTuningLiteralLines = Invoke-RgLines `
+    -Pattern "RuneTuning::|kLethalTempo(MaxStacks|AttackSpeedPerStack)" `
+    -Paths @("Shared\GameSim", "Server")
 
-$aiPolicyHardcodeLines = Invoke-RgLines `
-    -Pattern "ChampionAIPolicy|AssignDefaultBotSkillRanks|TryExecute[A-Za-z]+ChampionCombat|BotSkill|SkillRank|combo|Combo" `
+$packMissFallbackLines = Invoke-RgLines `
+    -Pattern "ChampionGameDataDB::|ResetToDefaults\(|ResolveMinionCombatDef\(" `
+    -Paths @("Client", "Shared\GameSim", "Server")
+
+$clientGameplayLiteralLines = Invoke-RgLines `
+    -Pattern "\.(cooldownSec|rangeMax|manaCost|lockDurationSec|visualCastFrame|visualRecoveryFrame|visualAnimPlaySpeed|targetMode|stage2TargetMode|stageCount|rotate|stage2Rotate)\s*=" `
+    -Paths @("Client\Private\GameObject\Champion", "Client\Private\GameObject\SkillTable.cpp")
+
+$aiValueOwnerLines = Invoke-RgLines `
+    -Pattern "Make[A-Za-z]+Profile\(|static constexpr ChampionAIComboPlan|AssignDefaultBotSkillRanks" `
     -Paths @("Shared\GameSim\Systems\ChampionAI", "Server")
 
-$networkIdentityLegacyLines = Invoke-RgLines `
-    -Pattern "\bchampionId\b|ChampionId|ownerChampionDefId|eChampion" `
-    -Paths @("Shared\Schemas", "Shared\GameSim\Systems\ReplicatedEventSerializer", "Client\Private\Network", "Client\Private\Scene", "Server\Private")
+$objectWaveValueOwnerLines = Invoke-RgLines `
+    -Pattern "ServerMinionTuning::|static constexpr MinionSpawnSlot|ResolveMinionCombatDef\(" `
+    -Paths @("Client", "Shared\GameSim", "Server")
 
-$legacyValueOwnerLines = Invoke-RgLines `
-    -Pattern "ChampionGameDataDB|ChampionStatsRegistry|ChampionRuntimeDefaults|SkillTable|ChampionTable|ResolveMinionCombatDef|ServerMinionTuning" `
-    -Paths @("Client", "Shared", "Server")
+$networkIdentityRuntimeReaderLines = Invoke-RgLines `
+    -Pattern "->championId\(\)|\.championId\(\)|static_cast<eChampion>\(.*championId" `
+    -Paths @("Client\Private\Network", "Server\Private", "Shared\GameSim\Systems\ReplicatedEventSerializer")
+
+$legacyValueOwnerReaderLines = Invoke-RgLines `
+    -Pattern "ChampionGameDataDB::|CChampionStatsRegistry::|g_SkillTable|s_SkillTable|ResetToDefaults\(|ServerMinionTuning::" `
+    -Paths @("Client", "Shared\GameSim", "Server")
+
+$canonicalSources = @(
+    "Data\Gameplay\ChampionGameData\champions.json",
+    "Data\LoL\ServerPrivate\Gameplay\SkillEffectGameplayDefs.json",
+    "Data\LoL\ServerPrivate\Gameplay\SummonerSpellGameplayDefs.json",
+    "Data\LoL\ServerPrivate\Gameplay\SpawnObjectGameplayDefs.json",
+    "Data\LoL\ServerPrivate\Gameplay\EconomyGameplayDefs.json",
+    "Data\LoL\ServerPrivate\Gameplay\ItemGameplayDefs.json",
+    "Data\LoL\ServerPrivate\AI\ChampionAIGameplayDefs.json",
+    "Data\LoL\ServerPrivate\Gameplay\RuneGameplayDefs.json",
+    "Data\LoL\ClientPublic\Visual\ChampionVisualDefs.json",
+    "Data\LoL\ClientPublic\Visual\ObjectVisualDefs.json",
+    "Data\LoL\ClientPublic\Visual\ChampionAssetVisualDefs.json"
+)
+
+$schemaCoverage = New-Object System.Collections.Generic.List[string]
+$schemaDir = Join-Path $Root "Data\LoL\Schemas"
+foreach ($source in $canonicalSources) {
+    $schemaName = ([System.IO.Path]::GetFileName($source)) + ".schema.json"
+    $schemaPath = Join-Path $schemaDir $schemaName
+    if (Test-Path $schemaPath) {
+        $schemaJson = Get-Content -Raw -Encoding UTF8 -Path $schemaPath | ConvertFrom-Json
+        if ($schemaJson.PSObject.Properties.Name -contains '$schema') {
+            $schemaCoverage.Add($source)
+        }
+    }
+}
+
+$reloadSourceFiles = @(
+    "Server\Private\Data\RuntimeGameplayDefinitionOverlay.cpp",
+    "Client\Private\Data\RuntimeVisualDefinitionOverlay.cpp"
+)
+$reloadText = ""
+foreach ($relativePath in $reloadSourceFiles) {
+    $path = Join-Path $Root $relativePath
+    if (Test-Path $path) {
+        $reloadText += Get-Content -Raw -Encoding UTF8 -Path $path
+    }
+}
+$runtimeReloadDomains = New-Object System.Collections.Generic.List[string]
+foreach ($source in $canonicalSources) {
+    $fileName = [System.IO.Path]::GetFileName($source)
+    if ($reloadText.Contains($fileName)) {
+        $runtimeReloadDomains.Add($source)
+    }
+}
+
+$draftRoundTripFailureCount = 1
+$draftTestPath = Join-Path $Root "Tools\LoLData\Test-LoLDataDrivenDraftRoundTrip.ps1"
+if (Test-Path $draftTestPath) {
+    & powershell -ExecutionPolicy Bypass -File $draftTestPath -Root $Root -NoWrite | Out-Null
+    $draftRoundTripFailureCount = if ($LASTEXITCODE -eq 0) { 0 } else { 1 }
+}
+
+$championModelCount = if ($null -ne $assetVisualJson) { @($assetVisualJson.models).Count } else { 0 }
+$championUiCount = if ($null -ne $assetVisualJson) { @($assetVisualJson.ui).Count } else { 0 }
+$aiProfileCount = if ($null -ne $aiJson) { @($aiJson.profiles).Count } else { 0 }
 
 $report = [ordered]@{
     generatedAtUtc = (Get-Date).ToUniversalTime().ToString("o")
@@ -207,6 +262,19 @@ $report = [ordered]@{
         castFrameCount = $castFrameCount
         recoveryFrameCount = $recoveryFrameCount
     }
+    coverage = [ordered]@{
+        implementedChampionCount = @($championJson.champions).Count
+        championModelCount = $championModelCount
+        championUiCount = $championUiCount
+        aiProfileCount = $aiProfileCount
+    }
+    tooling = [ordered]@{
+        schemaCoverageCount = $schemaCoverage.Count
+        schemaCoverage = $schemaCoverage
+        runtimeReloadDomainCount = $runtimeReloadDomains.Count
+        runtimeReloadDomains = $runtimeReloadDomains
+        draftRoundTripFailureCount = $draftRoundTripFailureCount
+    }
     legacyRegistrations = [ordered]@{
         skillRegistrationFileCount = @($skillRegistrationFiles).Count
         skillRegistrationFiles = $skillRegistrationFiles
@@ -217,16 +285,6 @@ $report = [ordered]@{
         skillDefRelated = @($legacySkillLines).Count
         championDefRelated = @($legacyChampionLines).Count
         visualFieldsInGameplayOrLegacy = @($visualLeakLines).Count
-        serverObjectHardcode = @($serverObjectLines).Count
-        projectileVisualCatalog = @($projectileVisualLines).Count
-        skillEffectHardcodeCandidates = @($skillEffectHardcodeLines).Count
-        skillEffectDataQueryReaders = @($skillEffectQueryLines).Count
-    }
-    skillEffectCutover = [ordered]@{
-        hardcodeCandidateCount = @($skillEffectHardcodeLines).Count
-        dataQueryReaderCount = @($skillEffectQueryLines).Count
-        hardcodeCandidatesByFile = Convert-RgLineBreakdown -Lines $skillEffectHardcodeLines
-        dataQueryReadersByFile = Convert-RgLineBreakdown -Lines $skillEffectQueryLines
     }
     visualFieldBreakdown = [ordered]@{
         total = @($visualLeakLines).Count
@@ -239,20 +297,22 @@ $report = [ordered]@{
         suspiciousAuthoritative = @($visualGameplayDataLines).Count + @($visualSharedLines).Count + @($visualServerLines).Count
     }
     phaseGoalCounts = [ordered]@{
-        p3SkillEffectHardcode = @($skillEffectHardcodeLines).Count
-        p4VisualAuthorityLeak = @($visualGameplayDataLines).Count + @($visualSharedLines).Count + @($visualServerLines).Count
-        p5AiPolicyHardcode = @($aiPolicyHardcodeLines).Count
-        p6ObjectWaveHardcode = @($serverObjectLines).Count
-        p7NetworkIdentityLegacy = @($networkIdentityLegacyLines).Count
-        p8LegacyValueOwner = @($legacyValueOwnerLines).Count
+        p3GameplayTuningLiteral = @($skillEffectHardcodeLines).Count + @($runeTuningLiteralLines).Count
+        p3PackMissFallback = @($packMissFallbackLines).Count
+        p4ClientGameplayLiteral = @($clientGameplayLiteralLines).Count
+        p5AiPolicyHardcode = @($aiValueOwnerLines).Count
+        p6ObjectWaveHardcode = @($objectWaveValueOwnerLines).Count
+        p7NetworkIdentityRuntimeReader = @($networkIdentityRuntimeReaderLines).Count
+        p8LegacyValueOwnerReader = @($legacyValueOwnerReaderLines).Count
     }
     phaseGoalBreakdown = [ordered]@{
-        p3SkillEffectHardcode = Convert-RgLineBreakdown -Lines $skillEffectHardcodeLines
-        p4VisualAuthorityLeak = Convert-RgLineBreakdown -Lines @($visualGameplayDataLines + $visualSharedLines + $visualServerLines)
-        p5AiPolicyHardcode = Convert-RgLineBreakdown -Lines $aiPolicyHardcodeLines
-        p6ObjectWaveHardcode = Convert-RgLineBreakdown -Lines $serverObjectLines
-        p7NetworkIdentityLegacy = Convert-RgLineBreakdown -Lines $networkIdentityLegacyLines
-        p8LegacyValueOwner = Convert-RgLineBreakdown -Lines $legacyValueOwnerLines
+        p3GameplayTuningLiteral = Convert-RgLineBreakdown -Lines @($skillEffectHardcodeLines + $runeTuningLiteralLines)
+        p3PackMissFallback = Convert-RgLineBreakdown -Lines $packMissFallbackLines
+        p4ClientGameplayLiteral = Convert-RgLineBreakdown -Lines $clientGameplayLiteralLines
+        p5AiPolicyHardcode = Convert-RgLineBreakdown -Lines $aiValueOwnerLines
+        p6ObjectWaveHardcode = Convert-RgLineBreakdown -Lines $objectWaveValueOwnerLines
+        p7NetworkIdentityRuntimeReader = Convert-RgLineBreakdown -Lines $networkIdentityRuntimeReaderLines
+        p8LegacyValueOwnerReader = Convert-RgLineBreakdown -Lines $legacyValueOwnerReaderLines
     }
 }
 

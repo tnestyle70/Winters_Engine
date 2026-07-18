@@ -1,0 +1,557 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>05 · 좌표 답안집 — 4프로젝트 소스 감사 심화판</title><style>:root{--ink:#14161a;--hair:#c8ccd2;--faint:#f0f2f4;--grey:#5c636c;
+ --mono:"SFMono-Regular","Cascadia Mono","JetBrains Mono",Consolas,monospace;
+ --kr:"Pretendard",-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#8a8f96;font-family:var(--kr);color:var(--ink);padding:16px}
+.bar{max-width:210mm;margin:0 auto 16px;background:#fff;border:1px solid var(--ink);padding:10px 14px;
+ font:12px/1.5 var(--mono);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.bar button{font:11px var(--mono);padding:5px 12px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+.page{width:210mm;min-height:297mm;margin:0 auto 16px;background:#fff;padding:11mm 10mm}
+.top{border-bottom:2.4px solid var(--ink);padding-bottom:3mm;margin-bottom:4mm}
+.top h1{font:800 17px/1.2 var(--kr)} .top p{font:9px/1.5 var(--mono);color:var(--grey);margin-top:1.4mm}
+.dip{display:inline-flex;gap:1px;border:1px solid var(--ink);padding:1px;background:#fff;vertical-align:middle}
+.dip i{width:4.6mm;height:4.6mm;display:inline-flex;align-items:center;justify-content:center;
+ font:700 6.5px/1 var(--mono);background:#fff;color:var(--hair);font-style:normal}
+.dip i.on{background:var(--ink);color:#fff}
+.ax{width:100%;border-collapse:collapse;font-size:8.6px;margin-bottom:4mm}
+.ax td,.ax th{border-bottom:.4px solid var(--faint);padding:1.2mm 1mm;vertical-align:top;text-align:left;line-height:1.4}
+.ax th{font:700 8px var(--mono);border-bottom:1.2px solid var(--ink)}
+.ax td:first-child{font:700 9px var(--mono);white-space:nowrap}
+.rulebox{border:1.2px solid var(--ink);padding:2.6mm 3mm;margin-bottom:4mm;font:8.8px/1.55 var(--kr)}
+.rulebox b{font-weight:700}
+.pre{font:8.4px/1.6 var(--mono);white-space:pre-wrap;background:var(--faint);padding:2mm;margin:1.2mm 0}
+.spgrid{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin-bottom:4mm}
+.sp{border:.5px solid var(--hair);padding:2mm 2.4mm}
+.sp h3{font:700 9px var(--mono);display:flex;justify-content:space-between;align-items:center;margin-bottom:1mm}
+.sp pre{font:7.8px/1.6 var(--mono);white-space:pre-wrap}
+.card{break-inside:avoid;border:1.4px solid var(--ink);margin-bottom:3.4mm;padding:2.6mm 3mm}
+.chd{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;border-bottom:1.2px solid var(--ink);
+ padding-bottom:1.6mm;margin-bottom:1.6mm}
+.cid{font:800 13px/1 var(--mono)} .cttl{font:700 10.5px/1.35 var(--kr);margin-top:1mm}
+.cmeta{font:8px/1.4 var(--mono);color:var(--grey);margin-top:.8mm}
+.ask{font:8.6px/1.5 var(--kr);border-left:2px solid var(--ink);padding-left:2mm;margin-bottom:1.6mm}
+.ask i{font-style:normal;font:700 7.5px var(--mono);margin-right:1.2mm}
+.slot{margin-bottom:1.3mm;font:8.6px/1.5 var(--kr)}
+.slot b.tag{font:700 8px var(--mono);margin-right:1.4mm}
+.anch{font:7.2px/1.5 var(--mono);color:var(--grey);border-top:.4px solid var(--faint);padding-top:1.2mm;margin-top:1.4mm;word-break:break-all}
+.cf{font:7.8px/1.5 var(--kr);color:var(--grey);margin-top:.8mm}
+.cf i{font-style:normal;font-weight:700;color:var(--ink)}
+.sec{background:var(--ink);color:#fff;padding:2mm 2.6mm;margin:4mm 0 2.6mm;font:700 11px/1.3 var(--mono);
+ display:flex;justify-content:space-between;align-items:center}
+.sec s{font:400 8px var(--kr);text-decoration:none;opacity:.75;text-align:right;max-width:120mm}
+.cols{column-count:2;column-gap:7mm;column-rule:.4px solid var(--faint)}
+.dh{break-inside:avoid;break-after:avoid;background:var(--ink);color:#fff;padding:1.6mm 2.4mm;margin:0 0 2.6mm;
+ font:700 10px/1.3 var(--mono);display:flex;justify-content:space-between;align-items:center}
+.dh s{font:400 8px var(--kr);text-decoration:none;opacity:.7;text-align:right;max-width:70mm}
+.dh:not(:first-child){margin-top:4mm}
+.n{break-inside:avoid;margin-bottom:3.4mm;padding-bottom:2.6mm;border-bottom:.4px solid var(--faint)}
+.nh{display:flex;justify-content:space-between;align-items:baseline;gap:4px;margin-bottom:1.2mm}
+.nm{font:700 9.6px/1.3 var(--kr)} .nc{font:700 7.5px/1 var(--mono);color:var(--grey);white-space:nowrap}
+.core{font:8.6px/1.5 var(--kr);border-left:1.8px solid var(--ink);padding-left:2mm;margin-bottom:1.4mm}
+.num{font:8px/1.45 var(--mono);background:var(--faint);padding:1.2mm 2mm;margin-bottom:1.4mm;white-space:pre-wrap}
+.qa{font:8.2px/1.45 var(--kr);margin-bottom:1mm}
+.qa i{font-style:normal;font:700 7.5px var(--mono);color:var(--grey);margin-right:1.4mm}
+.trap{font:7.8px/1.4 var(--kr);color:var(--grey)} .trap i{font-style:normal;font-weight:700;color:var(--ink)}
+.end{border-top:2.4px solid var(--ink);margin-top:5mm;padding-top:3mm;font:8.6px/1.6 var(--kr)}
+@page{size:A4;margin:0}
+@media print{body{background:#fff;padding:0}.bar{display:none}.page{margin:0;page-break-after:always}}</style></head><body>
+<div class="bar"><span>CODEX SOURCE-AUDITED EDITION · 2026-07-16 · 62 CARDS</span><button onclick="window.print()">PRINT / PDF</button></div>
+<main class="page"><header class="top"><h1>05 · 좌표 답안집 — 4프로젝트 소스 감사 심화판</h1><p>WINTERS ENGINE · STARCRAFT · MINECRAFT DUNGEONS · NYPC / CLAUDE 05 VISUAL PARITY</p></header><div class="rulebox"><b>읽는 법.</b> Claude 05의 A4·흑백·mono/Korean font·axis DIP·card DOM을 그대로 사용한 비교용 Codex판이다. 내용은 문서 기억보다 2026-07-16 실제 폴더의 현재 소스를 우선한다. CURRENT는 현재 코드, HISTORICAL은 과거 프로젝트 구현, BOUNDARY는 필드/설계만 존재, REFUTED는 기존 주장을 현재 코드가 반박함을 뜻한다.<div class="pre">답안 계약 = ① 문제·제약·숫자 → ② 순진한 실패 곡선 → ③ 상태·소유·흐름 → ④ 동일 조건 비교·경계 → ⑤ 비용·틀리는 조건·철회 기준
+증거 계층 = 실행 capture/test &gt; current source/config &gt; architecture doc &gt; dated report &gt; 기억·서사</div></div><table class="ax"><thead><tr><th>AXIS</th><th>NAME</th><th>CALL QUESTION</th><th>PROJECT ANCHOR</th></tr></thead><tbody><tr><td>C1</td><td>기준계·단위·관찰 시점</td><td>무엇을 기준으로 측정하고, 값의 단위와 관찰 시점은 무엇인가?</td><td>Winters 고정 30 Hz tick, Snapshot serverTick, Starcraft Vec2 경로, Battlefield ETA 모델</td></tr><tr><td>C2</td><td>계산량보다 데이터 이동</td><td>연산 자체보다 캐시 미스·복사·동기화·왕복이 더 비싼 지점은 어디인가?</td><td>ComponentStore dense arrays, WorkStealingDeque, Starcraft fog dirty update, Minecraft select loop</td></tr><tr><td>C3</td><td>공유·경합·경계 비용</td><td>여러 스레드·시스템·프로세스가 무엇을 공유하며 그 공유를 누가 직렬화하는가?</td><td>Client→GameCommand→GameSim→Snapshot/Event, Go 서비스 경계, Minecraft packet schema</td></tr><tr><td>C4</td><td>수명·소유권·관찰 가능 상태</td><td>누가 만들고, 누가 파괴하며, 어떤 상태를 언제까지 관찰할 수 있는가?</td><td>EntityHandle generation, Starcraft deferred delete, Minecraft CBase refcount, match outbox</td></tr><tr><td>C5</td><td>이산화·근사·오차 예산</td><td>연속 현실을 어떤 간격·정밀도·근사로 자르고, 허용 오차를 어디에 배정하는가?</td><td>Winters 30 Hz/200 ms=6 ticks, Minecraft 20 TPS, fog 0.5 s, packet quantization</td></tr><tr><td>C6</td><td>탐색 공간 가지치기</td><td>가능한 경우의 수 중 무엇을 계산하지 않을 것인가?</td><td>Mushroom alpha-beta/ordering, Battlefield spareArmy/ETA, renderer frustum/LOD</td></tr><tr><td>C7</td><td>권위·일관성·복구</td><td>충돌한 두 상태 중 누가 진실이며, 늦거나 중복된 메시지를 어떻게 복구하는가?</td><td>Winters server authority, local reconciliation, Redis sync, outbox, NYPC deterministic replay</td></tr><tr><td>C8</td><td>검증 가능성·관측 대역폭</td><td>변경이 맞다는 것을 어떤 증거로 얼마나 빨리 반증할 수 있는가?</td><td>NYPC 패배→복제→trace→수정→시각검증→회귀, Winters SimLab/shadow gate, OutputDebugString</td></tr></tbody></table><div class="sec"><span>METHOD · 1→5</span><s>모든 답안을 같은 검증 가능한 구조로 쓰는 법</s></div><div class="card">
+<div class="chd"><div><div class="cid">M01</div><div class="cttl">1단계 — 문제·제약·숫자를 한 문장으로 고정</div><div class="cmeta">ANSWER CONTRACT · C1·C5·C8</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>문제는 목표, 관찰 기준계, 입력 규모 N, 호출률 R, 데이터 크기 B, 현재 기준값, 허용 예산, 실패 임계, 재현 절차의 묶음이다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>문제는 목표, 관찰 기준계, 입력 규모 N, 호출률 R, 데이터 크기 B, 현재 기준값, 허용 예산, 실패 임계, 재현 절차의 묶음이다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>‘느리다·안 된다·좋게’처럼 형용사로 시작하고 FPS 하나만 적으면 CPU/GPU, 평균/꼬리, 현재/목표가 섞인다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>Problem = Goal + Constraints + Baseline + Budget + Failure threshold + Reproducer로 적고 byte·tick·ms·entity·connection 단위를 끝까지 유지한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>숫자가 없으면 추정치를 사실로 만들지 말고 UNKNOWN과 측정 방법을 적는다. 작은 N에서 단순 해법이 충분한지도 확인한다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>측정 fixture 제작비가 들지만 이것 없이는 이후 비교가 같은 문제를 푸는지 증명할 수 없다.</div>
+<div class="anch">EVIDENCE · 30 Hz·200 ms→6 ticks; 20 TPS·50 ms; 128×128 grid; 200-day horizon</div><div class="cf"><i>CODEX AUDIT</i> 첫 문단에서 숫자·단위·권위 주체를 찾지 못하면 1단계 미완료다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">M02</div><div class="cttl">2단계 — 순진한 해법과 실패 곡선을 계산</div><div class="cmeta">ANSWER CONTRACT · C2·C5·C6·C8</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>순진한 해법은 정확성 기준선이다. 가장 단순한 구현과 T(N), M(N), BW(N,R,B)를 먼저 둔다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>순진한 해법은 정확성 기준선이다. 가장 단순한 구현과 T(N), M(N), BW(N,R,B)를 먼저 둔다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>Big-O 이름만 외우거나 고급 해법부터 꺼내면 작은 N의 상수항, 데이터 이동, 정확성 회귀를 놓친다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>baseline을 실행하고 cache miss·lock wait·queue delay·packet bytes·wrong answer 중 무엇이 먼저 임계를 넘는지 찾는다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>full snapshot의 payload 자체가 N에 비례하고 N명에게 broadcast하면 전체 wire bytes는 O(N²) 성격이 된다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>baseline/harness 유지비가 남지만 회귀 oracle이 되므로 제거보다 보존 가치가 크다.</div>
+<div class="anch">EVIDENCE · Minecraft packed snapshot 2,262 B×20≈45.2 KB/s/recipient before TCP/IP</div><div class="cf"><i>CODEX AUDIT</i> 실패 원인은 기능명이 아니라 비용 함수와 실제 첫 임계로 말한다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">M03</div><div class="cttl">3단계 — 상태·소유·흐름·불변식으로 메커니즘 복원</div><div class="cmeta">ANSWER CONTRACT · C1·C3·C4·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>입력이 어디서 들어와 누가 진실을 만들고 어떤 상태가 언제 파괴되며 무엇이 경계를 통과하는지 추적한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>입력이 어디서 들어와 누가 진실을 만들고 어떤 상태가 언제 파괴되며 무엇이 경계를 통과하는지 추적한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>‘ECS·IOCP·outbox·alpha-beta를 쓴다’로 끝내면 owner, 완료 의미, 오류 복구가 사라진다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>Create→Update→Destroy 또는 Ingress→Authority→Egress에서 owner, lifetime, ordering, retry/idempotency, observable counter를 기록한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>같은 이름도 구현은 다르다. IOCPDef.h는 scaffold일 수 있고 deltaBaseTick 필드는 실제 delta producer를 뜻하지 않는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>상태도와 불변식 문서 비용은 늘지만 반쪽 구현과 수명 버그를 드러낸다.</div>
+<div class="anch">EVIDENCE · Input→GameCommand→GameSim→Snapshot/Event→Visual; transaction→outbox→publisher</div><div class="cf"><i>CODEX AUDIT</i> 함수명 나열이 아니라 데이터 한 건의 실제 여행을 설명해야 한다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">M04</div><div class="cttl">4단계 — 같은 문제·상태·증거에서만 비교</div><div class="cmeta">ANSWER CONTRACT · C1·C6·C8</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>비교는 동일 workload, 정확도, 하드웨어, 버전에서 경계 변수를 바꾸는 실험이다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>비교는 동일 workload, 정확도, 하드웨어, 버전에서 경계 변수를 바꾸는 실험이다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>Winters 현재와 미래 설계, 문서상 IOCP와 실제 select, 초기 EVCORE2와 current bot을 같은 상태처럼 놓는다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>상태 라벨을 붙이고 A/B를 같은 재현 입력으로 실행해 crossover N*, memory/latency/quality의 Pareto 경계를 제시한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>UE나 현대 엔진은 참고점이지 자동 정답이 아니다. 작은 N·오프라인 툴에는 단순 vector/select/full snapshot도 합리적이다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>비교 harness와 version pin 비용이 들며 버전이 바뀌면 결론도 재검증해야 한다.</div>
+<div class="anch">EVIDENCE · CURRENT·HISTORICAL·PLANNED·REFUTED; same workload/build/side/seed</div><div class="cf"><i>CODEX AUDIT</i> 비교 문장에는 반드시 ‘어떤 조건에서’와 구현 상태가 들어간다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">M05</div><div class="cttl">5단계 — 비용·틀리는 조건·철회 기준까지</div><div class="cmeta">ANSWER CONTRACT · C4·C5·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="on">C5</i><i class="">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>좋은 해법도 자원을 소비하고 지배 비용이 바뀌면 틀린 해법이 된다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>좋은 해법도 자원을 소비하고 지배 비용이 바뀌면 틀린 해법이 된다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>장점으로 끝내거나 ‘trade-off가 있다’고만 쓰면 무엇을 얼마나 잃고 언제 되돌릴지 없다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>비용 ledger, rollback 숫자, verification command/counter, failure fixture를 함께 둔다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>휴리스틱은 분포 변화, 캐시는 working-set 변화, 강한 일관성은 latency budget 변화, lock-free는 수명 회수 실패에 취약하다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>관측·회귀·문서 유지비를 낼 수 없다면 더 단순한 해법이 정답이다.</div>
+<div class="anch">EVIDENCE · memory/CPU/GPU/network/latency/complexity/recovery + rollback trigger</div><div class="cf"><i>CODEX AUDIT</i> ‘이 해법을 제거할 숫자’가 없으면 의사결정이 아니라 신념이다.</div></div><div class="sec"><span>WINTERS ENGINE / SERVER / SERVICES</span><s>현재 구현·F5 경로·미래 방향 분리</s></div><div class="card">
+<div class="chd"><div><div class="cid">W01</div><div class="cttl">세대형 EntityHandle</div><div class="cmeta">현재 구현 · C1·C4·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>32-bit index만 재사용하면 죽은 엔티티를 새 엔티티로 오인한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>32-bit index만 재사용하면 죽은 엔티티를 새 엔티티로 오인한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>raw ID를 영구 참조로 저장한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>상위 32-bit generation+하위 32-bit index, 홀수 generation을 alive로 사용한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>64-bit handle과 검증 비용이 들며 임시 iteration ID까지 전부 handle로 바꿀 필요는 없다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>generation wrap·직렬화 계약을 관리해야 한다.</div>
+<div class="anch">EVIDENCE · Engine/Public/ECS/Entity.h</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W02</div><div class="cttl">Sparse-set ComponentStore</div><div class="cmeta">현재 구현 · C2·C3·C4</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>ECS 조회 O(1)과 순회 지역성을 동시에 원한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>ECS 조회 O(1)과 순회 지역성을 동시에 원한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>unordered_map만 쓰거나 엔티티마다 component pointer를 둔다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>sparse index→dense index, dense entity/data 배열, swap-remove O(1)로 유지한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>삭제 시 순서가 바뀌므로 결정론 순회는 별도 정렬 계약이 필요하다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>sparse 용량과 remove 관측 순서 비용이 있다.</div>
+<div class="anch">EVIDENCE · Engine/Public/ECS/ComponentStore.h</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W03</div><div class="cttl">Chase–Lev work-stealing deque</div><div class="cmeta">현재 구현 · C2·C3·C6</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>작업 편차가 크면 중앙 큐 lock이 병목이다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>작업 편차가 크면 중앙 큐 lock이 병목이다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>모든 worker가 하나의 mutex queue를 공유한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>owner LIFO Push/Pop, thief FIFO Steal, 마지막 항목 경계에서 fence/CAS를 쓴다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>고정 4096 slot이며 일반 MPMC queue가 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>memory-order 증명과 overflow 정책이 필요하다.</div>
+<div class="anch">EVIDENCE · Engine/Public/Core/JobSystem/WorkStealingDeque.h</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W04</div><div class="cttl">30 Hz 권위 tick</div><div class="cmeta">현재 구현 · C1·C5·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>클라이언트 FPS와 전투 판정을 결합하면 결과가 달라진다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>클라이언트 FPS와 전투 판정을 결합하면 결과가 달라진다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>render delta로 서버 gameplay를 적분한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>GameCommand를 30 Hz GameSim tick에서 실행하고 Snapshot/Event로 결과를 배포한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>33.3 ms 해상도라 빠른 판정에는 보간·sweep·rewind가 필요하다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>tick당 CPU 예산과 입력 지연을 교환한다.</div>
+<div class="anch">EVIDENCE · Server/Private/Game/GameRoomTick.cpp; Shared/GameSim</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W05</div><div class="cttl">결정론 엔티티 순회</div><div class="cmeta">현재 구현 · C5·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>컨테이너 순서가 달라지면 같은 입력의 결과가 달라질 수 있다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>컨테이너 순서가 달라지면 같은 입력의 결과가 달라질 수 있다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>unordered iteration 순서를 시뮬레이션 의미로 사용한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>대상 엔티티를 수집·정렬한 뒤 같은 tick 순서로 처리한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>정렬 O(N log N)이므로 모든 render-only 경로에 적용할 필요는 없다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>N이 크면 sort 비용과 임시 메모리가 든다.</div>
+<div class="anch">EVIDENCE · Shared/GameSim/Systems/DeterministicEntityIterator</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W06</div><div class="cttl">FlatBuffers Snapshot envelope</div><div class="cmeta">현재 구현 · C3·C7</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>서버 상태를 ABI 독립적으로 전달해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>서버 상태를 ABI 독립적으로 전달해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>C++ 구조체를 그대로 send하고 버전 차이를 무시한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>schema 기반 Snapshot에 serverTick/entity vector/deltaBaseTick 필드를 둔다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>현재 정상 경로는 deltaBaseTick=0인 full snapshot이며 AOI/delta는 구현 완료가 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>full snapshot은 개체 수에 비례해 대역폭이 든다.</div>
+<div class="anch">EVIDENCE · Shared/Schemas/Snapshot.fbs; Server/Private/Game/SnapshotBuilder.cpp</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W07</div><div class="cttl">로컬 입력 ack·reconciliation</div><div class="cmeta">현재 구현 · C1·C5·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>서버 왕복 동안 로컬 조작감과 권위 상태가 어긋난다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>서버 왕복 동안 로컬 조작감과 권위 상태가 어긋난다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>클라이언트 예측을 진실로 확정하거나 매 snapshot마다 즉시 snap한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>lastAck sequence로 확인된 입력을 제거하고 제한된 보호/보간 뒤 서버 상태로 수렴한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>보호가 길면 거짓 상태가 오래 보이고 짧으면 jitter가 커진다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>재실행 버퍼와 시각 보정 복잡도가 든다.</div>
+<div class="anch">EVIDENCE · Client/Private/Network/Client/SnapshotApplier.cpp</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W08</div><div class="cttl">200 ms·6 tick lag history</div><div class="cmeta">현재 구현 · C5·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>지연된 공격 판정을 현재 위치만으로 처리하면 공정성이 깨진다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>지연된 공격 판정을 현재 위치만으로 처리하면 공정성이 깨진다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>무제한 과거를 신뢰하거나 클라이언트 hit 결과를 승인한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>30 Hz에서 최대 200 ms를 ceil하여 6 tick history를 보관하고 generation까지 검증한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>현재 코드는 정확한 expected tick만 조회하며 모든 명령이 rewind되는 것은 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>엔티티별 history 메모리와 악용 방지 정책이 필요하다.</div>
+<div class="anch">EVIDENCE · Server/Public/Security/LagCompensation.h</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W09</div><div class="cttl">DX11 forward+depth/normal/GTAO</div><div class="cmeta">현재 구현 · C2·C3·C6</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>LoL형 다수 객체를 안정된 F5 경로로 렌더해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>LoL형 다수 객체를 안정된 F5 경로로 렌더해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>DX12·clustered·deferred·TAA가 이미 있다고 가정한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>DX11 forward 경로와 depth/normal prepass, GTAO/SSAO, contact shadow, 후처리 pass를 수동 순서로 운용한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>clustered lighting, G-buffer deferred, CSM, TAA는 현재 사실로 주장하지 않는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>수동 pass 의존성과 overdraw 비용이 있다.</div>
+<div class="anch">EVIDENCE · Client/Private/Scene/Scene_InGameRender.cpp</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W10</div><div class="cttl">수동 pass orchestration</div><div class="cmeta">현재 구현 · C3·C4·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>resource state와 pass 순서를 사람이 맞춰야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>resource state와 pass 순서를 사람이 맞춰야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>암묵적 전역 texture와 ad-hoc 호출을 늘린다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>Scene render 함수가 shadow/depth/AO/world/UI/post의 명시 순서를 소유한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>RenderGraph가 아니므로 자동 lifetime·barrier·aliasing은 제공하지 않는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>pass 수 증가 시 의존성 검증 비용이 급증한다.</div>
+<div class="anch">EVIDENCE · Client/Private/Scene/Scene_InGameRender.cpp</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W11</div><div class="cttl">67-feature AI shadow gate</div><div class="cmeta">현재 구현 · C6·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>새 policy가 live authority를 망치지 않게 비교해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>새 policy가 live authority를 망치지 않게 비교해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>학습 모델을 곧바로 authoritative command에 연결한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>67개 v1 feature, immutable .wbc artifact, shadow evaluation과 policy gate로 승격을 분리한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>shadow 일치가 실제 승률 개선을 보장하지 않아 league/replay 평가가 필요하다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>feature drift와 artifact 버전 관리 비용이 든다.</div>
+<div class="anch">EVIDENCE · Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W12</div><div class="cttl">transactional outbox</div><div class="cmeta">현재 구현·미커밋 트리 · C4·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>match DB commit과 event publish 사이 crash가 유실을 만든다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>match DB commit과 event publish 사이 crash가 유실을 만든다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>DB 저장 후 별도 publish를 best-effort로 호출한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>같은 transaction에 outbox row를 쓰고 SKIP LOCKED worker가 publish 후 published_at을 기록한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>exactly-once가 아니라 at-least-once+consumer idempotency 경계다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>outbox 적체·재시도·청소·관측이 필요하다.</div>
+<div class="anch">EVIDENCE · Services/internal/matchmaking/service.go; Services/migrations/000010_harden_match_outbox.up.sql</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W13</div><div class="cttl">Redis queue·ranking cache</div><div class="cmeta">현재 구현 · C2·C3·C4</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>매 요청 DB 조회와 다중 인스턴스 queue 공유를 줄여야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>매 요청 DB 조회와 다중 인스턴스 queue 공유를 줄여야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>프로세스 메모리 queue를 진실로 둔다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>matchmaking:queue와 leaderboard:mmr 키를 쓰고 DB→Redis 동기화 경로를 둔다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>Redis는 권위 DB를 대체하지 않으며 장애 시 재구축 전략이 필요하다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>stale cache와 운영 복잡성이 생긴다.</div>
+<div class="anch">EVIDENCE · Services/internal; rg matchmaking:queue|leaderboard:mmr</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W14</div><div class="cttl">WorldKeyframe·rewind</div><div class="cmeta">현재 구현 · C4·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>시간 되감기와 replay는 authority state 전체를 일관된 tick으로 복원해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>시간 되감기와 replay는 authority state 전체를 일관된 tick으로 복원해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>Transform 일부만 되돌리고 derived cache를 그대로 믿는다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>keyframe에서 권위 상태를 복원하고 decision trace/influence 같은 derived cache는 재유도한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>모든 runtime resource나 client visual을 keyframe에 넣는 것이 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>snapshot 크기·version migration·복원 검증 비용이 든다.</div>
+<div class="anch">EVIDENCE · Shared/GameSim/Core/Checkpoint/WorldKeyframe.cpp</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W15</div><div class="cttl">단일 runtime Resource root</div><div class="cmeta">현재 운영 규칙 · C1·C4·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>Debug/Release가 서로 다른 asset 복사본을 읽으면 같은 build도 결과가 달라진다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>Debug/Release가 서로 다른 asset 복사본을 읽으면 같은 build도 결과가 달라진다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>configuration 출력 폴더마다 Resource를 복제한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>Client/Bin/Resource를 유일 runtime root로 고정하고 pack/version으로 추적한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>authoring 임시 파일과 runtime artifact를 같은 폴더에 섞지 않는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>build/package 검증과 migration 비용이 든다.</div>
+<div class="anch">EVIDENCE · AGENTS.md; Client/Bin/Resource</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W16</div><div class="cttl">Go 서비스 control plane</div><div class="cmeta">현재 구현 · C3·C4·C7</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>실시간 GameSim과 matchmaking/replay/leaderboard는 장애·확장 단위가 다르다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>실시간 GameSim과 matchmaking/replay/leaderboard는 장애·확장 단위가 다르다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>GameServer가 DB·Redis·HTTP를 모두 직접 소유한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>서비스별 repository와 schema를 두고 queue/cache/outbox로 경계를 연결한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>서비스 수 자체가 성숙도를 뜻하지 않으며 현재 코드·배포 증거만 말한다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>네트워크·운영·migration 비용이 든다.</div>
+<div class="anch">EVIDENCE · Services</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W23</div><div class="cttl">Snapshot delta 필드와 실제 full producer의 경계</div><div class="cmeta">CURRENT + BOUNDARY · C1·C3·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>schema 기능과 실제 wire 경로를 분리해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>schema 기능과 실제 wire 경로를 분리해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>deltaBaseTick 필드가 있으니 delta snapshot이 완성됐다고 말한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>builder는 해당 인수에 0을 전달하고 client는 0을 full snapshot으로 판정한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>필드 준비와 AOI·tombstone·base-loss recovery까지 갖춘 delta 구현은 다르다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>현재 full entity vector는 개체 수에 비례한 대역폭을 쓴다.</div>
+<div class="anch">EVIDENCE · Shared/Schemas/Snapshot.fbs:222; Server/Private/Game/SnapshotBuilder.cpp:1086-1108; Client/Private/Network/Client/SnapshotApplier.cpp:823</div><div class="cf"><i>CODEX AUDIT</i> 필드 존재≠기능 완료의 대표 사례다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W24</div><div class="cttl">WorldKeyframe과 파생 spatial cache</div><div class="cmeta">CURRENT · C4·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>rewind에서 권위 상태와 재계산 가능한 cache를 분리해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>rewind에서 권위 상태와 재계산 가능한 cache를 분리해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>모든 cache를 저장하거나 entity 상태만 대충 복원한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>slots/freeHead, component raw stores, entity map, RNG를 staged restore하고 spatial index는 caller가 재구축한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>decision trace·influence sample 같은 debug 파생물은 같은 권위 데이터가 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>keyframe 크기, migration, restore invariant와 rebuild 비용이 든다.</div>
+<div class="anch">EVIDENCE · Shared/GameSim/Core/Checkpoint/WorldKeyframe.cpp:574-730</div><div class="cf"><i>CODEX AUDIT</i> 무엇을 저장하지 않는가도 authority 설계다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W25</div><div class="cttl">Work-stealing deque의 4,096-slot 경계</div><div class="cmeta">CURRENT · C2·C3·C4</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>작업 편차를 중앙 mutex 없이 흡수하되 마지막 원소 경합을 정확히 처리해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>작업 편차를 중앙 mutex 없이 흡수하되 마지막 원소 경합을 정확히 처리해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>모든 worker가 한 queue를 공유한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>owner LIFO push/pop, thief FIFO steal, 경계 CAS·memory ordering을 쓰는 Chase–Lev 계열이다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>일반 MPMC queue가 아니고 fixed capacity와 owner 규칙이 있다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>overflow, lock-free 추론, task lifetime, 중복 header 동기화 비용이 든다.</div>
+<div class="anch">EVIDENCE · Engine/Public/Core/JobSystem/WorkStealingDeque.h; EngineSDK/inc/Core/JobSystem/WorkStealingDeque.h</div><div class="cf"><i>CODEX AUDIT</i> 이름보다 사용 제약이 중요하다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W26</div><div class="cttl">Services/cmd 10개는 10개 상시 서비스가 아님</div><div class="cmeta">CURRENT + AUDIT · C1·C3·C8</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>폴더 개수와 배포 service 수를 구분해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>폴더 개수와 배포 service 수를 구분해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>하위 디렉터리 10개를 microservice 10개라고 부른다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>제품 entry와 loadtest·migrate·udp-ticket-smoke 같은 운영 도구를 역할별로 분리한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>entry 존재는 독립 배포·SLO·운영 성숙도의 증거가 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>경계가 늘수록 배포·관측·migration 비용이 증가한다.</div>
+<div class="anch">EVIDENCE · Services/cmd/{auth,leaderboard,loadtest,matchmaking,migrate,payment,profile,replay,shop,udp-ticket-smoke}</div><div class="cf"><i>CODEX AUDIT</i> 숫자보다 역할 분류가 정확하다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W27</div><div class="cttl">Bloom은 구현됐지만 기본 OFF</div><div class="cmeta">CURRENT + STATUS · C1·C5·C8</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>구현 존재와 정상 F5 기본 활성화를 나눈다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>구현 존재와 정상 F5 기본 활성화를 나눈다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>pass가 있으면 항상 화면에 쓰인다고 말한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>bloom branch와 debug control은 있지만 PostFxParams.bBloomEnabled 기본값은 false다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>debug preset과 shipping/default 상태는 다르다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>활성화하면 downsample/blur/composite와 과노출 tuning 비용이 든다.</div>
+<div class="anch">EVIDENCE · Engine/Public/Renderer/PostFxPass.h:23; Engine/Private/Renderer/PostFxPass.cpp:661-747; Client/Private/UI/RenderDebug.cpp:133</div><div class="cf"><i>CODEX AUDIT</i> 기능 목록에는 status가 필요하다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W28</div><div class="cttl">GTAO는 depth·normal 입력의 DX11 compute</div><div class="cmeta">CURRENT · C2·C5·C6</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="on">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>screen-space AO의 입력·근사·예산을 설명해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>screen-space AO의 입력·근사·예산을 설명해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>AO를 단순 texture 또는 deferred renderer의 증거로 본다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>GTAO/blur CS를 compile하고 depth/normal SRV 두 개를 바인딩한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>화면 밖 정보가 없고 thin geometry·temporal stability 한계가 있으며 deferred를 뜻하지 않는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>compute dispatch, blur, prepass bandwidth와 artifact tuning 비용이 든다.</div>
+<div class="anch">EVIDENCE · Engine/Private/Renderer/SSAOPass.cpp:186-256; Shaders/SSAO/GTAO_CS.hlsl</div><div class="cf"><i>CODEX AUDIT</i> 현재 renderer와 미래 renderer를 분리한다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">W29</div><div class="cttl">Match outbox는 현재 코드에 존재</div><div class="cmeta">CURRENT + CORRECTION · C3·C4·C7</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>DB commit 뒤 publish 전 crash의 event loss를 막아야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>DB commit 뒤 publish 전 crash의 event loss를 막아야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>DB 저장 후 broker publish를 best-effort 호출한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>transaction에 outbox row를 넣고 FOR UPDATE SKIP LOCKED worker가 publish 뒤 published_at을 기록한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>exactly-once가 아니라 at-least-once 성격이라 consumer idempotency가 필요하다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>적체·retry·poison event·cleanup·metric 비용이 든다.</div>
+<div class="anch">EVIDENCE · Services/internal/matchmaking/service.go:278-357; Services/migrations/000009_create_matches_and_replays.up.sql; 000010_harden_match_outbox.up.sql</div><div class="cf"><i>CODEX AUDIT</i> 과거 ‘outbox 없음’은 현재 트리 기준 반증된다.</div></div><div class="sec"><span>STARCRAFT · WINAPI/GDI</span><s>280 C++ source/header 정적 감사</s></div><div class="card">
+<div class="chd"><div><div class="cid">SC01</div><div class="cttl">Starcraft Order queue</div><div class="cmeta">역사적 프로젝트 구현 · C3·C4·C7</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>이동·공격·건설 명령을 객체 update와 분리해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>이동·공격·건설 명령을 객체 update와 분리해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>입력 핸들러가 유닛 상태를 즉시 직접 바꾼다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>Commandable의 Order와 CUnit deque가 명령을 보관·실행한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>완전한 서버 권위 command log는 아니며 로컬 WinAPI 프로젝트 경계다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>취소·대상 파괴·경로 무효화 처리가 필요하다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/스타크래프트/Starcraft/Starcraft/Commandable.h</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">SC02</div><div class="cttl">Starcraft 3-state fog</div><div class="cmeta">역사적 프로젝트 구현 · C2·C5·C8</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>매 프레임 전 맵 시야를 갱신하면 불필요한 비용이 크다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>매 프레임 전 맵 시야를 갱신하면 불필요한 비용이 크다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>모든 cell을 render frame마다 재계산한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>미탐색/탐색됨/현재시야 3상태, 0.5 s update interval과 dirty flag를 쓴다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>0.5 s 지연은 gameplay visibility 요구에 따라 너무 클 수 있다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>stale 시야와 scan 3.0 s 예외를 관리한다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/스타크래프트/Starcraft/Starcraft/CFogMgr.h</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">SC03</div><div class="cttl">Starcraft deferred delete</div><div class="cmeta">역사적 프로젝트 구현 · C4·C7</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>update 중 객체를 즉시 지우면 iterator와 주문 대상이 무효화된다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>update 중 객체를 즉시 지우면 iterator와 주문 대상이 무효화된다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>delete flag를 본 즉시 container에서 해제한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>ObjMgr가 pending delete를 모으고 모든 order의 target 참조를 정리한 뒤 제거한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>generation handle 기반 ECS와 동일 구현은 아니지만 수명 문제의 초기 해법이다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>전역 검색·삭제 지연·누락 참조 비용이 든다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/스타크래프트/Starcraft/Starcraft/CObjMgr.cpp</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">SC04</div><div class="cttl">A* 128×128·Octile·8방향·코너 차단</div><div class="cmeta">HISTORICAL CODE · C1·C5·C6</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="on">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>tile RTS에서 비용과 대각 이동을 일관되게 처리해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>tile RTS에서 비용과 대각 이동을 일관되게 처리해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>직선 거리만 쓰고 막힌 목표·대각 코너를 허용한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>128² score/parent/closed, Octile h, 1·√2 이동, tile cost, 양 인접축 검사, 막힌 목표 반경 12 snap을 쓴다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>요청마다 배열을 만들고 smoothing은 주석 처리되어 대규모 unit에서 비용·지그재그가 남는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>최악 O(V log V), allocation, snap 의미 변화와 stale path 비용이 든다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/스타크래프트/Starcraft/Starcraft/CNavMgr.cpp:12-267</div><div class="cf"><i>CODEX AUDIT</i> 코드 숫자를 그대로 보존했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">SC05</div><div class="cttl">Order 11종·path·raw target</div><div class="cmeta">HISTORICAL CODE · C3·C4·C7</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>입력 시점과 unit 실행을 분리해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>입력 시점과 unit 실행을 분리해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>click handler가 상태를 즉시 직접 바꾼다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>11종 order, path/index, CObj*/CBuilding* target과 deque&lt;Order&gt;, 9개 unit state를 결합한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>raw target은 파괴 시 정리가 필요하고 서버 권위 command log와는 다르다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>취소·재경로·대상 무효화·상태×명령 전이 검증 비용이 든다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/스타크래프트/Starcraft/Starcraft/Commandable.h; CUnit.h</div><div class="cf"><i>CODEX AUDIT</i> 명령 객체가 수명 문제를 자동 제거하지 않는다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">SC06</div><div class="cttl">Fog 3상태·0.5초·scan 3초</div><div class="cmeta">HISTORICAL CODE · C2·C5·C8</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>시야 계산 비용과 탐색 기억을 분리해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>시야 계산 비용과 탐색 기억을 분리해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>매 render frame 모든 cell을 재계산한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>UNKNOWN/EXPLORED/VISIBLE, update 0.5 s, scan duration 3.0 s, range 10, dirty flag, explored alpha 200을 둔다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>0.5초 stale visibility가 gameplay에 허용되는지는 별도 계약이다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>시야 지연·dirty 누락·scan 예외 비용이 든다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/스타크래프트/Starcraft/Starcraft/CFogMgr.h</div><div class="cf"><i>CODEX AUDIT</i> 숫자가 있는 근사 정책 사례다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">SC07</div><div class="cttl">SetAttackUpgrade가 armor를 쓰는 실제 결함</div><div class="cmeta">AUDIT FINDING · C4·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>setter와 getter는 같은 state를 가리켜야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>setter와 getter는 같은 state를 가리켜야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>이름이 맞으니 구현도 맞다고 가정한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>SetAttackUpgrade는 m_iArmorUpgrade에 대입하지만 GetAttackUpgrade는 m_iAttackUpgrade를 읽는다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>현재 header에서 확인된 결함이며 이 문서 작업은 코드를 수정하지 않는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>공격 업그레이드 미반영과 armor 오염 위험이 있다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/스타크래프트/Starcraft/Starcraft/CObjMgr.h:16-22</div><div class="cf"><i>CODEX AUDIT</i> 검증 고아가 실제 bug를 숨긴 사례다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">SC08</div><div class="cttl">ObjMgr의 다중 index와 deferred delete</div><div class="cmeta">HISTORICAL CODE · C2·C4·C7</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>update·selection·render·target container의 동일 객체 수명을 맞춰야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>update·selection·render·target container의 동일 객체 수명을 맞춰야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>한 container만 지우거나 update 중 즉시 delete한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>pending delete 뒤 unit/building/order/projectile target/control group 등 참조를 정리한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>새 보조 index를 추가하면 중앙 cleanup 누락 위험이 커진다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>전역 탐색·dynamic_cast·삭제 지연·이중등록 불변식 비용이 든다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/스타크래프트/Starcraft/Starcraft/CObjMgr.cpp:190-225; CStage.cpp:254</div><div class="cf"><i>CODEX AUDIT</i> generation handle 이전 수명 관리의 실제 형태다.</div></div><div class="sec"><span>MINECRAFT DUNGEONS · DX9/NETWORK</span><s>511 C++ source/header 정적 감사</s></div><div class="card">
+<div class="chd"><div><div class="cid">MD01</div><div class="cttl">Minecraft prototype·clone</div><div class="cmeta">역사적 프로젝트 구현 · C3·C4</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>다수 객체의 생성 설정을 중앙화해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>다수 객체의 생성 설정을 중앙화해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>각 scene이 concrete constructor와 component 조립을 반복한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>ProtoMgr에 prototype을 등록하고 Component Clone과 GameObject component map으로 복제한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>현대 asset ECS가 아니라 수동 refcount 기반 오브젝트 계층이다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>prototype mutation·refcount 누수·문자열 키 오류 비용이 있다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/SR_MinecraftDungeons/SR_Minecraft_Dungeons/Engine</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD02</div><div class="cttl">Minecraft 20 TPS loop</div><div class="cmeta">역사적 프로젝트 구현 · C1·C5·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>서버 판정을 render FPS와 분리해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>서버 판정을 render FPS와 분리해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>recv 시점마다 즉시 world를 갱신한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>50 ms 고정 tick, 즉 20 TPS로 게임 루프를 운용한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>Winters 30 Hz와 숫자가 다르며 50 ms 해상도에 맞춘 설계다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>낮은 tick은 입력·충돌 보정 요구를 키운다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/SR_MinecraftDungeons/SR_Minecraft_Dungeons/Server/CGameLoop.h</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD03</div><div class="cttl">Minecraft select 서버</div><div class="cmeta">현재 확인된 역사적 구현 · C2·C3·C8</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>여러 socket의 수신을 단일 blocking recv보다 낫게 처리해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>여러 socket의 수신을 단일 blocking recv보다 낫게 처리해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>문서의 IOCP 완성 주장을 코드 확인 없이 반복한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>accept thread+nonblocking sockets+select receive thread로 처리한다. IOCPDef.h는 scaffold다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>FD_SETSIZE·O(N) scan·send backpressure 한계가 있어 대규모 IOCP 증거가 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>동접 증가 시 확장성과 부분 send 처리가 병목이다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/SR_MinecraftDungeons/SR_Minecraft_Dungeons/Server/CServer.cpp</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD04</div><div class="cttl">Minecraft protocol v2</div><div class="cmeta">역사적 프로젝트 구현 · C1·C3·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>client/server 구조체 크기와 message 종류를 wire에서 맞춰야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>client/server 구조체 크기와 message 종류를 wire에서 맞춰야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>컴파일러 기본 packing과 raw object layout을 암묵 계약으로 둔다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>PacketDef의 version/type과 dragon packet 28/32-byte static_assert로 일부 layout을 고정한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>static_assert는 endian·semantic compatibility·stream framing 전체를 해결하지 않는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>버전 분기·partial packet·migration 비용이 든다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/SR_MinecraftDungeons/SR_Minecraft_Dungeons/Shared/PacketDef.h</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD05</div><div class="cttl">20 TPS cadence지만 fDt는 elapsed 기반</div><div class="cmeta">HISTORICAL + CORRECTION · C1·C5·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>tick cadence와 strict fixed-step을 구분해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>tick cadence와 strict fixed-step을 구분해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>TICK_MS=50이면 항상 dt=0.05라고 말한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>GetTickCount elapsed로 fDt를 계산해 0.1로 clamp하고 처리 시간이 짧을 때 나머지를 Sleep한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>20 TPS 목표는 맞지만 scheduling 지연이 dt에 들어가는 strict deterministic loop는 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>jitter·sleep 정밀도·long-frame clamp가 결과에 영향을 준다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/SR_MinecraftDungeons/SR_Minecraft_Dungeons/Server/CGameLoop.cpp:28-50; CGameLoop.h:55-56</div><div class="cf"><i>CODEX AUDIT</i> 기존 고정-step 표현을 코드에 맞게 교정했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD06</div><div class="cttl">Packed full snapshot 최대 2,262 B</div><div class="cmeta">HISTORICAL CODE · C1·C2·C7</div></div><span class="dip"><i class="on">C1</i><i class="on">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>고정 배열 wire struct의 대역폭을 계산해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>고정 배열 wire struct의 대역폭을 계산해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>iPlayerCount만큼만 자동 전송된다고 생각한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>pack(1) PlayerState 45 B×50 + header/tick/count 12 B = 2,262 B, 20 TPS면 recipient당 약 45.2 KB/s before TCP/IP다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>N recipient broadcast와 player-state N이 겹치면 전체 bytes는 O(N²) 성격이 된다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>빈 slot·TCP segmentation·queueing 비용이 든다.</div>
+<div class="anch">EVIDENCE · Shared/PacketDef.h:37-44,143-161; Server/CGameLoop.cpp:101-124</div><div class="cf"><i>CODEX AUDIT</i> 순진한 해법의 실패 곡선을 숫자로 보여준다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD07</div><div class="cttl">활성 수신은 nonblocking + select(10 ms)</div><div class="cmeta">HISTORICAL + REFUTED · C2·C3·C8</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>I/O 모델을 실제 main path로 판별해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>I/O 모델을 실제 main path로 판별해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>IOCPDef.h 존재를 IOCP 완성 증거로 삼는다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>receive thread가 FD_SET과 timeval 10,000 µs select 뒤 RecvData/packet loop를 수행한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>작은 N에는 단순하지만 FD set/O(N) scan 한계가 있고 IOCP scaffold와 실행 경로는 다르다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>동접 증가 시 scan·ownership·backpressure가 병목이 된다.</div>
+<div class="anch">EVIDENCE · Server/CServer.cpp:145-225; Server/IOCPDef.h</div><div class="cf"><i>CODEX AUDIT</i> 문서상 IOCP 주장은 현재 path 기준 반증된다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD08</div><div class="cttl">권위는 hybrid/partial</div><div class="cmeta">HISTORICAL + SECURITY · C3·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>필드별로 누가 진실을 만드는지 밝혀야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>필드별로 누가 진실을 만드는지 밝혀야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>server tick이 있으니 위치·피해가 모두 서버 권위라고 말한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>HandleInput은 client fX/fZ를 session에 복사하고 arrow/flame/dragon/damage/death payload 일부도 relay 또는 적용한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>tick과 snapshot을 server가 소유해도 결과 검증이 없으면 strong authority가 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>teleport·damage spoof·invalid killer/dragon damage 신뢰 위험이 남는다.</div>
+<div class="anch">EVIDENCE · Server/CServer.cpp:300-431; Server/CGameLoop.cpp</div><div class="cf"><i>CODEX AUDIT</i> 권위는 bool이 아니라 필드별 계약이다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD09</div><div class="cttl">Packet size 하한·상한·type-size 검증 공백</div><div class="cmeta">AUDIT FINDING · C3·C7·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="on">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="on">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>TCP header의 wSize를 신뢰하기 전 안전 범위를 확인해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>TCP header의 wSize를 신뢰하기 전 안전 범위를 확인해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>header와 현재 buffer 길이만 충분하면 정상 packet이라고 본다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>PeekPacket은 recvLen≥header, recvLen≥wSize만 보고 PopPacket이 그만큼 이동한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>정적 감사 관찰이며 exploit 증명은 아니지만 wSize 0은 loop progress를 막을 수 있다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>malformed cast·무한 처리·buffer state 오염 위험이 있다.</div>
+<div class="anch">EVIDENCE · Server/CSession.cpp:50-75; Server/CServer.cpp:188-225</div><div class="cf"><i>CODEX AUDIT</i> wire invariant 검증 고아다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD10</div><div class="cttl">Ocean FFT·Sine·Gerstner는 모두 존재</div><div class="cmeta">HISTORICAL + CORRECTION · C1·C5·C8</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>실험 실패 서사와 현재 코드 존재를 나눈다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>실험 실패 서사와 현재 코드 존재를 나눈다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>FFT가 삭제되고 Gerstner로 완전 교체됐다고 쓴다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>세 mode가 남아 있고 FFT는 srand(12345)를 사용하며 current NetworkStage 인수는 mode 2다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>default 선택과 구현 제거는 다르며 실제 품질·성능은 runtime 비교가 필요하다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>세 경로·vertex update·buffer·tuning 중복 비용이 든다.</div>
+<div class="anch">EVIDENCE · Client/Code/COcean.cpp; Client/Code/CNetworkStage.cpp:385</div><div class="cf"><i>CODEX AUDIT</i> 역사 회고를 현재 상태로 과장하지 않는다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">MD11</div><div class="cttl">Batch mesh와 quadtree는 별도 render mode</div><div class="cmeta">HISTORICAL + INTEGRATION · C2·C6·C8</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>draw-call 감소와 spatial culling을 함께 얻고 싶다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>draw-call 감소와 spatial culling을 함께 얻고 싶다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>두 최적화가 자동 결합됐다고 생각한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>RENDER_BATCH는 CBatchBuffer 하나를, RENDER_QUADTREE는 6-plane cull 뒤 leaf block을 개별 render한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>switch의 별도 mode이므로 batch+chunk culling 통합은 현재 증거가 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>batch rebuild 또는 개별 draw 중 하나의 비용과 node lifetime이 남는다.</div>
+<div class="anch">EVIDENCE · Client/Code/CBlockMgr.cpp:42-107,195-280; Client/Code/CBatchBuffer.cpp</div><div class="cf"><i>CODEX AUDIT</i> bridge가 없는 통합 고아다.</div></div><div class="sec"><span>NYPC · BATTLEFIELD + MUSHROOM</span><s>current bot과 역사적 개념 분리</s></div><div class="card">
+<div class="chd"><div><div class="cid">NY01</div><div class="cttl">Battlefield 목적함수</div><div class="cmeta">대회 역사 · C1·C6·C7</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="on">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>다수 전술 지표가 서로 충돌한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>다수 전술 지표가 서로 충돌한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>킬·점유·생산을 각각 독립 점수로 더한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>최종 목적을 my HQ HP−opponent HQ HP로 고정하고 행동을 그 단위로 환산한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>중간 proxy가 목적과 어긋날 수 있어 replay로 검증해야 한다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>장기 가치 추정 오차와 sparse feedback가 생긴다.</div>
+<div class="anch">EVIDENCE · nypc_qr_master_word_ko.docx; battlefield bot history</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY02</div><div class="cttl">Battlefield GameState·Perception</div><div class="cmeta">대회 역사→현재 확장 · C1·C3·C4</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="on">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>입력 파싱·기억·판단이 얽히면 패치 원인을 추적하기 어렵다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>입력 파싱·기억·판단이 얽히면 패치 원인을 추적하기 어렵다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>main 함수에서 원시 관측을 곧바로 명령으로 바꾼다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>GameState와 Perception/OppTrack을 분리해 관측·기억·의도를 구조화한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>초기 EVCORE2 구조는 현재 거대 bot의 일부 역사이지 전체 offer 목록이 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>상태 중복과 stale memory 위험이 있다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/NYPC/battlefield/bots/main_claude.cpp</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY03</div><div class="cttl">Battlefield ETA·committed force</div><div class="cmeta">대회 역사 · C1·C5·C6</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="on">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>맵 거리보다 실제 도착 시간과 이미 이동 중인 병력의 선택 불가능성이 중요하다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>맵 거리보다 실제 도착 시간과 이미 이동 중인 병력의 선택 불가능성이 중요하다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>현재 숫자만 보고 모든 병력을 다시 배분 가능하다고 센다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>ETA로 맵을 시간축으로 바꾸고 committed unit을 당장 쓸 수 없는 dead option으로 계산한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>경로·생산·동시행동 규칙이 바뀌면 ETA 모델도 바뀐다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>근사 ETA 오차가 contest/defend 경계를 뒤집을 수 있다.</div>
+<div class="anch">EVIDENCE · nypc_qr_master_word_ko.docx; battlefield source</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY04</div><div class="cttl">패배 복제 검증 루프</div><div class="cmeta">대회 역사·현재 원칙 · C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>최종 점수만으로는 패치 원인을 모른다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>최종 점수만으로는 패치 원인을 모른다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>감으로 조건문을 더하고 바로 제출한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>패배 log→playback clone→trace root cause→수정→시각 확인→regression match→제출 순서를 고정한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>clone이 공식 규칙과 어긋나면 거짓 확신이므로 rules parity test가 선행된다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>재현 fixture와 broad regression 실행 시간이 든다.</div>
+<div class="anch">EVIDENCE · nypc_qr_master_word_ko.docx; C:/Users/user/Desktop/NYPC/AGENTS.md</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY05</div><div class="cttl">Mushroom alpha-beta</div><div class="cmeta">대회 역사 · C6·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>제한 시간 안에 완전 game tree를 볼 수 없다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>제한 시간 안에 완전 game tree를 볼 수 없다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>모든 수를 같은 순서·고정 깊이로 탐색한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>iterative deepening, alpha-beta, move ordering, quiescence와 고정 깊이 audit을 결합한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>ordering은 정답을 바꾸지 않지만 heuristic leaf와 time cutoff는 바꾼다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>최악 branching과 evaluation 편향이 남는다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/NYPC/mushroom</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY06</div><div class="cttl">ImmediateSwing+DenyGain</div><div class="cmeta">대회 역사 · C1·C6·C8</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>행동의 즉시 획득과 상대 기회 박탈을 같은 점수 단위로 비교해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>행동의 즉시 획득과 상대 기회 박탈을 같은 점수 단위로 비교해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>즉시 점수만 보거나 장기 leaf와 move order 점수를 혼용한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>MoveEval=ImmediateSwing+DenyGain으로 정렬하고 LeafEval은 ScoreDiff+ImmediateSwing+SearchOrder로 분리한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>회고상 2100–2400 plateau와 연관되므로 최종 만능식으로 미화하지 않는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>가중치 중복 계산과 horizon bias가 생길 수 있다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/NYPC/mushroom/회고록.md</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY07</div><div class="cttl">중앙=시간 허브</div><div class="cmeta">대회 역사 · C1·C5·C6</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="on">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>전장 중앙 산악은 공격과 방어 양쪽 ETA를 줄이는 위치였다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>전장 중앙 산악은 공격과 방어 양쪽 ETA를 줄이는 위치였다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>기하학적 중앙을 단순 점유 보너스로만 본다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>위치를 거리 대신 여러 임무까지의 도착 시간 합/최댓값으로 평가한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>맵·이동 규칙이 달라지면 중앙의 가치도 달라지므로 보편 규칙이 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>과점유 시 본진·생산 방어가 약해질 수 있다.</div>
+<div class="anch">EVIDENCE · nypc_qr_master_word_ko.docx</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY08</div><div class="cttl">HQ 위협 patch 회귀</div><div class="cmeta">대회 역사 · C6·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>국소 패치가 keeper의 위협 반응을 과도하게 키워 전체 전략을 망칠 수 있다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>국소 패치가 keeper의 위협 반응을 과도하게 키워 전체 전략을 망칠 수 있다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>한 패배 유형을 막는 조건문을 추가하고 평균 점수만 본다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>해당 패배 replay를 고정하고 행동 trace·keeper allocation·회귀 match를 함께 비교한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>특정 map에서 유효한 threshold를 보편 규칙으로 승격하지 않는다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>회귀 fixture와 행동 원인 추적 비용이 든다.</div>
+<div class="anch">EVIDENCE · nypc_qr_master_word_ko.docx · day 10</div><div class="cf"><i>CODEX AUDIT</i> 기존 spine을 현재 status와 함께 1~5단계 카드로 재배치했다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY09</div><div class="cttl">Battlefield/전장 기준명과 별칭 drift</div><div class="cmeta">CURRENT NAMING · C1·C8</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>같은 프로젝트의 이름을 통일해 코드·회고·검색을 연결해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>같은 프로젝트의 이름을 통일해 코드·회고·검색을 연결해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>NEXT NATION 별칭을 현재 root의 공식명처럼 확정한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>실제 root/engine은 battlefield를 사용하므로 Battlefield/전장을 기준명으로 둔다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>대회 원문 증거가 다르면 그 문서로 갱신하고 별칭은 history로 남긴다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>naming drift는 grep·genealogy·artifact 연결 비용을 만든다.</div>
+<div class="anch">EVIDENCE · C:/Users/user/Desktop/NYPC/battlefield</div><div class="cf"><i>CODEX AUDIT</i> 이름 drift가 검색 고아를 만든다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY10</div><div class="cttl">spareArmy = 전군 − 생산 좌석 병력</div><div class="cmeta">CURRENT BOT · C1·C5·C6</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="on">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>생산 병력을 공격 가능 병력으로 중복 계산하지 않아야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>생산 병력을 공격 가능 병력으로 중복 계산하지 않아야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>myArmy 전체를 매 turn 자유 재배치한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>HQ/base별 min(주둔, 노동석)을 seated로 합산하고 myArmy-seated를 spareArmy로 둔다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>긴급 인출, 이동 중 committed, 방어 reserve는 추가 문맥이 필요하다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>보수적 reserve는 공격을 늦추고 과감한 인출은 income을 잃는다.</div>
+<div class="anch">EVIDENCE · battlefield/bots/main_claude.cpp:1598,1751-1759</div><div class="cf"><i>CODEX AUDIT</i> 숨은 기회비용을 명시 변수로 만들었다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY11</div><div class="cttl">현재 offer market은 초기 요약보다 확장됨</div><div class="cmeta">HISTORY vs CURRENT · C1·C6·C8</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>초기 아키텍처 요약이 현재 bot 전체를 대표하지 않게 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>초기 아키텍처 요약이 현재 bot 전체를 대표하지 않게 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>초기 9개 offer 설명을 영구 구조로 쓴다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>defend, claim/CLAIMHOLD, contest, labor, raid/siege와 hold/surge/gapraid 보정이 공존한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>초기 EVCORE2는 역사적 단계이고 현재 목록·우선순위는 source에서 다시 읽어야 한다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>중복 가격·상호차단·env gate·trace 해석 비용이 커진다.</div>
+<div class="anch">EVIDENCE · battlefield/bots/main_claude.cpp:2457-2462,3401-5650</div><div class="cf"><i>CODEX AUDIT</i> 역사 drift 고아다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY12</div><div class="cttl">Battlefield current bot 6,106 lines</div><div class="cmeta">AUDIT + MAINTENANCE · C4·C6·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>수백 실험의 실패 기억과 현재 활성 규칙을 구분해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>수백 실험의 실패 기억과 현재 활성 규칙을 구분해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>마지막 patch가 전체 전략을 깨끗이 대체했다고 생각한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>v/S-number, env gate, 회귀 장면, offer module이 한 파일에 누적되어 있다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>주석 history와 실행 default env가 다를 수 있고 line count는 성능 지표가 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>상호작용 폭발·stale toggle·onboarding 비용이 든다.</div>
+<div class="anch">EVIDENCE · battlefield/bots/main_claude.cpp (6,106 lines; 475,042 bytes)</div><div class="cf"><i>CODEX AUDIT</i> patch를 좌표·실험·철회 조건에 연결해야 한다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY13</div><div class="cttl">Mushroom TT 2^21×24 B≈48 MiB</div><div class="cmeta">CURRENT BOT · C2·C4·C6</div></div><span class="dip"><i class="">C1</i><i class="on">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>반복 상태를 줄이되 memory budget과 collision을 정해야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>반복 상태를 줄이되 memory budget과 collision을 정해야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>모든 node를 map에 무제한 보관한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>TTBits=21, vector&lt;TTEntry&gt;, mask indexing, depth/flag/value/move를 저장한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>collision·replacement·oracle salt·depth usability 때문에 hit가 항상 exact는 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>약 48 MiB, cache locality, clear/replacement 비용이 든다.</div>
+<div class="anch">EVIDENCE · mushroom/bots/cpp/main_claude.cpp:1287-1314,1427</div><div class="cf"><i>CODEX AUDIT</i> 숫자가 있어야 자료구조 선택이 된다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY14</div><div class="cttl">Iterative deepening·aspiration·PVS·quiescence</div><div class="cmeta">CURRENT BOT · C5·C6·C8</div></div><span class="dip"><i class="">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="on">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>제한 시간 안에 유효한 답과 tactical horizon 보정을 함께 얻어야 한다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>제한 시간 안에 유효한 답과 tactical horizon 보정을 함께 얻어야 한다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>목표 depth 하나를 시작하고 timeout의 현재 값을 쓴다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>완료 depth만 채택하고 이전 값으로 aspiration, 첫 PV full-window/나머지 zero-window, 큰 swing만 QSearch한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>ordering이 나쁘면 재탐색하고 pass/tempo 때문에 stand-pat은 완전한 lower bound가 아니다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>추가 node·threshold 편향·기법 상호작용과 gate 검증 비용이 든다.</div>
+<div class="anch">EVIDENCE · mushroom/bots/cpp/main_claude.cpp:1957-2058,3642-3705,3771-3930</div><div class="cf"><i>CODEX AUDIT</i> 기법 목록보다 연결 순서가 핵심이다.</div></div><div class="card">
+<div class="chd"><div><div class="cid">NY15</div><div class="cttl">ImmediateSwing+DenyGain은 렌즈이지 단일 current 식이 아님</div><div class="cmeta">HISTORY vs CURRENT · C1·C6·C8</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="">C4</i><i class="">C5</i><i class="on">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="ask"><i>묻는 것</i>좋은 역사 요약과 현재 실행 formula를 나눈다.</div>
+<div class="slot"><b class="tag">① 문제·제약·숫자</b>좋은 역사 요약과 현재 실행 formula를 나눈다.</div>
+<div class="slot"><b class="tag">② 순진한 해법의 실패</b>회고의 한 공식을 현재 모든 평가식으로 고정한다.</div>
+<div class="slot"><b class="tag">③ 실제 메커니즘</b>swing·deny·reply-gap이 여러 ordering/leaf/gated experiment에 쓰이고 다수 S-number hook가 공존한다.</div>
+<div class="slot"><b class="tag">④ 비교·경계</b>핵심 렌즈는 유효하지만 어떤 gate/default인지 없이 exact current formula라고 할 수 없다.</div>
+<div class="slot"><b class="tag">⑤ 비용·틀리는 조건</b>feature interaction·env configuration·재현성 비용이 든다.</div>
+<div class="anch">EVIDENCE · mushroom/bots/cpp/main_claude.cpp:2371-2386,2626-2728,2910+ (3,862 lines; 165,204 bytes)</div><div class="cf"><i>CODEX AUDIT</i> 역사 공식과 current implementation의 drift다.</div></div><div class="end"><b>범위.</b> 실제 source에서 확인하지 못한 runtime 성능·화면 품질은 확정하지 않았다. 카드 62개. Claude 원본은 덮어쓰지 않았다.</div></main></body></html>

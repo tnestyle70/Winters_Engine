@@ -3,6 +3,7 @@
 
 #include "ClientShell/ClientShellSession.h"
 #include "Dev/SmokeLog.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 
 #pragma push_macro("min")
 #pragma push_macro("max")
@@ -397,6 +398,8 @@ bool CGameSessionClient::SendLobbyCommand(
 	}
 
 	flatbuffers::FlatBufferBuilder fbb(128);
+	const ClientData::ChampionVisualDefinition* championDefinition =
+		ClientData::FindChampionVisualDefinition(champion);
 	const auto command = Shared::Schema::CreateLobbyCommand(
 		fbb,
 		kind,
@@ -404,7 +407,8 @@ bool CGameSessionClient::SendLobbyCommand(
 		static_cast<u8_t>(slotId < 5 ? 0 : 1),
 		static_cast<u8_t>(champion),
 		botDifficulty,
-		value);
+		value,
+		championDefinition ? championDefinition->key : kInvalidDefinitionKey);
 	fbb.Finish(command);
 	auto payload = fbb.Release();
 
@@ -532,7 +536,8 @@ void CGameSessionClient::OnLobbyState(const u8_t* payload, u32_t len)
 			dst.team = src->team();
 			dst.sessionId = src->sessionId();
 			dst.netId = src->netId();
-			dst.champion = static_cast<eChampion>(src->championId());
+			dst.champion = ClientData::ResolveChampionFromDefinitionKey(
+				src->championDefinitionKey());
 			dst.botDifficulty = src->botDifficulty();
 			dst.botLane = src->botLane();
 			dst.bHuman = (src->seatKind() == Shared::Schema::LobbySeatKind::Human);
@@ -583,8 +588,8 @@ void CGameSessionClient::OnHello(const u8_t* payload, u32_t len)
 
 	const u32_t helloSessionId = hello->sessionId();
 	const u32_t helloNetId = hello->yourNetId();
-	const eChampion helloChampion =
-		static_cast<eChampion>(hello->championId());
+	const eChampion helloChampion = ClientData::ResolveChampionFromDefinitionKey(
+		hello->championDefinitionKey());
 
 	m_lobbyContext.bUseNetworkRoster = true;
 	m_lobbyContext.MySessionId = helloSessionId;

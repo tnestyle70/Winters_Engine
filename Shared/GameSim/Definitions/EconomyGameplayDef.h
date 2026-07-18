@@ -60,7 +60,7 @@ struct EconomyGameplayDef
     u32_t passiveGoldPerGrant = 2u;            // ~2.0g/s
 
     f32_t assistCreditWindowSec = 10.f;
-    f32_t recallDurationSec = 2.f;
+    f32_t recallDurationSec = 6.f;
 
     // 팩 미장착 판별용: 코드젠/오버레이가 채운 팩만 true.
     bool_t bValid = false;

@@ -149,8 +149,20 @@ func (rcv *Hello) MutateGameplayPackRevision(n uint32) bool {
 	return rcv._tab.MutateUint32Slot(20, n)
 }
 
+func (rcv *Hello) ChampionDefinitionKey() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Hello) MutateChampionDefinitionKey(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(22, n)
+}
+
 func HelloStart(builder *flatbuffers.Builder) {
-	builder.StartObject(9)
+	builder.StartObject(10)
 }
 func HelloAddSessionId(builder *flatbuffers.Builder, sessionId uint32) {
 	builder.PrependUint32Slot(0, sessionId, 0)
@@ -178,6 +190,9 @@ func HelloAddGameplayPackHash(builder *flatbuffers.Builder, gameplayPackHash uin
 }
 func HelloAddGameplayPackRevision(builder *flatbuffers.Builder, gameplayPackRevision uint32) {
 	builder.PrependUint32Slot(8, gameplayPackRevision, 0)
+}
+func HelloAddChampionDefinitionKey(builder *flatbuffers.Builder, championDefinitionKey uint32) {
+	builder.PrependUint32Slot(9, championDefinitionKey, 0)
 }
 func HelloEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

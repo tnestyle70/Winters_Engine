@@ -2,7 +2,8 @@
 param(
     [string]$Root = "",
     [string]$OutputPath = "Data\LoL\ClientPublic\Visual\Champion\ChampionVisualTimingSeed.json",
-    [string]$ReportPath = ".md\TODO\06-22\LOL_VISUAL_TIMING_SEED_PARITY.json"
+    [string]$ReportPath = ".md\TODO\06-22\LOL_VISUAL_TIMING_SEED_PARITY.json",
+    [switch]$Check
 )
 
 $ErrorActionPreference = "Stop"
@@ -123,8 +124,22 @@ $report = [ordered]@{
     mismatches = $mismatches
 }
 
-Write-JsonFile -Path $outputPathResolved -Value $seed
-Write-JsonFile -Path $reportPathResolved -Value $report
+if ($Check) {
+    if (-not (Test-Path $outputPathResolved)) {
+        throw "visual timing seed is missing: $outputPathResolved"
+    }
+
+    $expectedJson = $seed | ConvertTo-Json -Depth 16
+    $actualJson = (Get-Content -Raw -Encoding UTF8 -Path $outputPathResolved | ConvertFrom-Json) |
+        ConvertTo-Json -Depth 16
+    if ($actualJson -cne $expectedJson) {
+        throw "visual timing seed is stale: $outputPathResolved"
+    }
+}
+else {
+    Write-JsonFile -Path $outputPathResolved -Value $seed
+    Write-JsonFile -Path $reportPathResolved -Value $report
+}
 
 Write-Output ($report | ConvertTo-Json -Depth 16)
 

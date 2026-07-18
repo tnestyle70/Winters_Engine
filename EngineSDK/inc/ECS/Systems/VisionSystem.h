@@ -58,6 +58,7 @@ public:
     u32_t GetPhase() const override { return 5; }
     const char* GetName() const override { return "VisionSystem"; }
     void Execute(CWorld& world, f32_t fTimeDelta) override;
+    void DescribeAccess(CSystemAccessBuilder& builder) const override;
 
     void ForceRebuildNextFrame() { m_bForceRebuild = true; }
     void SetFowProjection(const FowProjection& Projection);

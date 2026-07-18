@@ -8,6 +8,7 @@
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Definitions/GoldRewardDef.h"
+#include "Shared/GameSim/Definitions/MinionCombatDef.h"
 #include "Shared/GameSim/Feedback/GameplayFeedbackQueue.h"
 #include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
@@ -266,6 +267,10 @@ void CExperienceSystem::GrantKillRewards(CWorld& world, const TickContext& tc,
     if (world.HasComponent<MinionComponent>(victim))
     {
         const auto& minion = world.GetComponent<MinionComponent>(victim);
+        // Champion summons use the minion runtime for movement/targeting but
+        // must not inherit lane-minion gold or experience rewards.
+        if (minion.roleType == kGameSimMinionRoleTibbers)
+            return;
         const RewardDef* reward = CRewardRegistry::Instance().FindReward(
             eRewardSourceKind::Minion,
             static_cast<u8_t>(ResolveMinionRewardKind(minion.roleType)));

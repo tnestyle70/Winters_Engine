@@ -1,0 +1,33 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Riven.R.Blade",
+  "emitters": [
+    {
+      "name": "R_PersistentBladeMesh",
+      "render_type": "MeshParticle",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Riven/particles/render/exile_new_sword_fit_base_03.png",
+      "model": "Client/Bin/Resource/Texture/Character/Riven/particles/fbx/exile_new_sword_fit_base_03.wmesh",
+      "max_particles": 1,
+      "spawn_rate": 0.0,
+      "lifetime": 15.0,
+      "fade_in": 0.08,
+      "fade_out": 0.30,
+      "scale": [0.012, 0.012, 0.012],
+      "rotation": [0.0, -0.25, 0.0],
+      "color": [0.76, 1.35, 0.70, 1.0],
+      "attach_offset": [0.0, 0.0, 0.0],
+      "anchor": {
+        "type": "Bone",
+        "name": "Snap_Weapon2RHand",
+        "offset": [0.0, 0.0, 0.0],
+        "inherit_rotation": true,
+        "fallback": "Entity"
+      },
+      "alpha_clip": 0.01,
+      "depth_write": false
+    }
+  ]
+}

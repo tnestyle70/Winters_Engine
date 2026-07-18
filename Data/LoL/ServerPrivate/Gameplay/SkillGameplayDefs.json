@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "buildHash": 2392782607,
+  "schemaVersion": 2,
+  "buildHash": 4266036126,
   "skills": [
     {
       "key": "skill.annie.basic_attack",
@@ -8,6 +8,9 @@
       "defId": 1,
       "ownerChampionDefId": 1,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -29,8 +32,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.8,
-          0.6
+          0.7
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -72,9 +86,12 @@
       "defId": 2,
       "ownerChampionDefId": 1,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -101,8 +118,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.4,
-          0.6
+          0.4
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -185,6 +213,9 @@
       "defId": 3,
       "ownerChampionDefId": 1,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -214,8 +245,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -290,6 +332,9 @@
       "defId": 4,
       "ownerChampionDefId": 1,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Ground",
         "resolvePolicy": "Direct"
@@ -315,8 +360,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.2,
-          0.6
+          0.9
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -439,6 +495,9 @@
       "defId": 5,
       "ownerChampionDefId": 1,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -468,8 +527,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -552,6 +622,9 @@
       "defId": 6,
       "ownerChampionDefId": 2,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -573,8 +646,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.7,
-          0.6
+          0.7
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -625,6 +709,9 @@
       "defId": 7,
       "ownerChampionDefId": 2,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -654,8 +741,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -730,9 +828,12 @@
       "defId": 8,
       "ownerChampionDefId": 2,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -759,8 +860,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -839,6 +951,9 @@
       "defId": 9,
       "ownerChampionDefId": 2,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -864,8 +979,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          1.0
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -932,6 +1058,9 @@
       "defId": 10,
       "ownerChampionDefId": 2,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -961,8 +1090,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1045,6 +1185,9 @@
       "defId": 11,
       "ownerChampionDefId": 3,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -1066,8 +1209,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.65,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1126,6 +1280,9 @@
       "defId": 12,
       "ownerChampionDefId": 3,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Ground",
         "resolvePolicy": "Direct"
@@ -1155,8 +1312,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.25,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          0.25
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1251,6 +1419,9 @@
       "defId": 13,
       "ownerChampionDefId": 3,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -1280,8 +1451,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.25,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          0.25
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1378,6 +1560,9 @@
       "defId": 14,
       "ownerChampionDefId": 3,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -1403,8 +1588,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          1.0
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1491,6 +1687,9 @@
       "defId": 15,
       "ownerChampionDefId": 3,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -1520,8 +1719,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.25,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          0.25
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1620,6 +1830,9 @@
       "defId": 16,
       "ownerChampionDefId": 4,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -1641,15 +1854,47 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": [],
+        "params": [
+          {
+            "id": "acquireRange",
+            "value": 8.0
+          },
+          {
+            "id": "lifetimeSec",
+            "value": 8.0
+          },
+          {
+            "id": "respawnSec",
+            "value": 1.5
+          },
+          {
+            "id": "sideDotThreshold",
+            "value": 0.55
+          },
+          {
+            "id": "targetMaxHpRatio",
+            "value": 0.03
+          }
+        ],
         "damage": {
           "type": "Physical",
           "flags": [
@@ -1684,9 +1929,12 @@
       "defId": 17,
       "ownerChampionDefId": 4,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -1713,8 +1961,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.4,
-          0.6
+          0.4
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1791,9 +2050,12 @@
       "defId": 18,
       "ownerChampionDefId": 4,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -1820,8 +2082,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.5
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1906,6 +2179,9 @@
       "defId": 19,
       "ownerChampionDefId": 4,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -1931,8 +2207,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          2.0,
-          0.6
+          1.2
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1943,6 +2230,26 @@
           {
             "id": "baseDamage",
             "value": 80.0
+          },
+          {
+            "id": "challengeDurationSec",
+            "value": 8.0
+          },
+          {
+            "id": "healAmount",
+            "value": 40.0
+          },
+          {
+            "id": "healDurationSec",
+            "value": 5.0
+          },
+          {
+            "id": "healIntervalSec",
+            "value": 0.5
+          },
+          {
+            "id": "healRadius",
+            "value": 6.0
           }
         ],
         "damage": {
@@ -1987,9 +2294,12 @@
       "defId": 20,
       "ownerChampionDefId": 4,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -2016,8 +2326,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.5,
-          0.6
+          1.5
+        ],
+        "commandLockSeconds": [
+          1.5
+        ],
+        "movePolicies": [
+          "StationaryChannel"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2096,6 +2417,9 @@
       "defId": 21,
       "ownerChampionDefId": 5,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -2117,8 +2441,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2160,9 +2495,12 @@
       "defId": 22,
       "ownerChampionDefId": 5,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -2189,8 +2527,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          3.0,
-          0.6
+          3.0
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2252,9 +2601,12 @@
       "defId": 23,
       "ownerChampionDefId": 5,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -2281,8 +2633,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
-          0.6
+          0.45
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2344,6 +2707,9 @@
       "defId": 24,
       "ownerChampionDefId": 5,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -2369,8 +2735,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.5,
-          0.6
+          1.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2433,9 +2810,12 @@
       "defId": 25,
       "ownerChampionDefId": 5,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -2462,8 +2842,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2525,6 +2916,9 @@
       "defId": 26,
       "ownerChampionDefId": 6,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -2546,8 +2940,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.46,
-          0.6
+          0.46
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2589,9 +2994,12 @@
       "defId": 27,
       "ownerChampionDefId": 6,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -2620,6 +3028,22 @@
         "lockSeconds": [
           0.9,
           0.45
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.0
+        ],
+        "movePolicies": [
+          "Allow",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -2634,6 +3058,10 @@
           {
             "id": "damagePerRank",
             "value": 30.0
+          },
+          {
+            "id": "markDurationSec",
+            "value": 5.0
           },
           {
             "id": "radius",
@@ -2698,9 +3126,12 @@
       "defId": 28,
       "ownerChampionDefId": 6,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -2727,8 +3158,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.36,
-          0.6
+          0.36
+        ],
+        "commandLockSeconds": [
+          0.36
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2807,9 +3249,12 @@
       "defId": 29,
       "ownerChampionDefId": 6,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -2832,8 +3277,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.65,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2852,6 +3308,10 @@
           {
             "id": "effectDurationSec",
             "value": 2.5
+          },
+          {
+            "id": "markDurationSec",
+            "value": 5.0
           },
           {
             "id": "moveSpeedMul",
@@ -2920,9 +3380,12 @@
       "defId": 30,
       "ownerChampionDefId": 6,
       "slot": 2,
+      "input": {
+        "activation": "PressRelease"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -2951,6 +3414,22 @@
         "lockSeconds": [
           5.0,
           0.4
+        ],
+        "commandLockSeconds": [
+          4.0,
+          0.0
+        ],
+        "movePolicies": [
+          "StationaryChannel",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          true,
+          false
         ]
       },
       "effect": {
@@ -3021,6 +3500,22 @@
             0.0
           ]
         }
+      },
+      "charge": {
+        "maxHoldSec": 4.0,
+        "autoRelease": true,
+        "rangeScale": [
+          1.0,
+          1.0
+        ],
+        "damageScale": [
+          1.0,
+          1.0
+        ],
+        "stunSeconds": [
+          0.0,
+          0.0
+        ]
       }
     },
     {
@@ -3029,6 +3524,9 @@
       "defId": 31,
       "ownerChampionDefId": 7,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -3050,8 +3548,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3093,6 +3602,9 @@
       "defId": 32,
       "ownerChampionDefId": 7,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
         "shape": "Self",
         "resolvePolicy": "Direct"
@@ -3124,6 +3636,22 @@
         "lockSeconds": [
           2.0,
           0.7
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.0
+        ],
+        "movePolicies": [
+          "Allow",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          true,
+          false
         ]
       },
       "effect": {
@@ -3198,9 +3726,12 @@
       "defId": 33,
       "ownerChampionDefId": 7,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -3227,8 +3758,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.6
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3303,9 +3845,12 @@
       "defId": 34,
       "ownerChampionDefId": 7,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -3328,8 +3873,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3394,9 +3950,12 @@
       "defId": 35,
       "ownerChampionDefId": 7,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -3423,8 +3982,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          false
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3497,6 +4067,9 @@
       "defId": 36,
       "ownerChampionDefId": 8,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -3518,8 +4091,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3561,6 +4145,9 @@
       "defId": 37,
       "ownerChampionDefId": 8,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
         "resolvePolicy": "Direct"
@@ -3590,8 +4177,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.4,
-          0.6
+          0.4
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3674,6 +4272,9 @@
       "defId": 38,
       "ownerChampionDefId": 8,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -3703,8 +4304,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.3,
-          0.6
+          0.3
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3781,9 +4393,16 @@
       "defId": 39,
       "ownerChampionDefId": 8,
       "slot": 4,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Direction",
-        "resolvePolicy": "Direct"
+        "shape": "Self",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Self",
+          "Direction"
+        ]
       },
       "cost": {
         "manaByRank": [
@@ -3808,6 +4427,22 @@
         "lockSeconds": [
           0.5,
           0.45
+        ],
+        "commandLockSeconds": [
+          0.266666667,
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock",
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -3874,6 +4509,9 @@
       "defId": 40,
       "ownerChampionDefId": 8,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -3903,8 +4541,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3995,6 +4644,9 @@
       "defId": 41,
       "ownerChampionDefId": 9,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -4016,8 +4668,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -4059,9 +4722,12 @@
       "defId": 42,
       "ownerChampionDefId": 9,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -4088,8 +4754,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -4174,9 +4851,12 @@
       "defId": 43,
       "ownerChampionDefId": 9,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -4203,8 +4883,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -4266,6 +4957,9 @@
       "defId": 44,
       "ownerChampionDefId": 9,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Ground",
         "resolvePolicy": "Direct"
@@ -4291,8 +4985,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -4363,9 +5068,12 @@
       "defId": 45,
       "ownerChampionDefId": 9,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -4392,8 +5100,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -4472,6 +5191,9 @@
       "defId": 46,
       "ownerChampionDefId": 10,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -4493,8 +5215,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -4536,9 +5269,12 @@
       "defId": 47,
       "ownerChampionDefId": 10,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -4567,6 +5303,22 @@
         "lockSeconds": [
           0.6,
           0.45
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.0
+        ],
+        "movePolicies": [
+          "Allow",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -4641,9 +5393,16 @@
       "defId": 48,
       "ownerChampionDefId": 10,
       "slot": 1,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Direction",
+          "Unit"
+        ]
       },
       "cost": {
         "manaByRank": [
@@ -4672,6 +5431,22 @@
         "lockSeconds": [
           0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667,
+          0.6
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -4752,6 +5527,9 @@
       "defId": 49,
       "ownerChampionDefId": 10,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -4777,8 +5555,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -4837,9 +5626,16 @@
       "defId": 50,
       "ownerChampionDefId": 10,
       "slot": 2,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Unit",
+          "Self"
+        ]
       },
       "cost": {
         "manaByRank": [
@@ -4868,6 +5664,22 @@
         "lockSeconds": [
           0.6,
           0.45
+        ],
+        "commandLockSeconds": [
+          0.6,
+          0.0
+        ],
+        "movePolicies": [
+          "ForcedMotion",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -4946,6 +5758,9 @@
       "defId": 51,
       "ownerChampionDefId": 11,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -4967,8 +5782,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -5010,9 +5836,12 @@
       "defId": 52,
       "ownerChampionDefId": 11,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -5039,8 +5868,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -5102,9 +5942,12 @@
       "defId": 53,
       "ownerChampionDefId": 11,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -5131,8 +5974,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -5194,6 +6048,9 @@
       "defId": 54,
       "ownerChampionDefId": 11,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
         "resolvePolicy": "Direct"
@@ -5219,8 +6076,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -5283,9 +6151,12 @@
       "defId": 55,
       "ownerChampionDefId": 11,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -5312,8 +6183,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -5375,6 +6257,9 @@
       "defId": 56,
       "ownerChampionDefId": 12,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -5396,8 +6281,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -5439,9 +6335,12 @@
       "defId": 57,
       "ownerChampionDefId": 12,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -5468,8 +6367,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -5540,6 +6450,9 @@
       "defId": 58,
       "ownerChampionDefId": 12,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -5569,8 +6482,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.45,
-          0.6
+          0.45
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -5588,7 +6512,7 @@
           },
           {
             "id": "stackWindowSec",
-            "value": 4.0
+            "value": 2.0
           }
         ],
         "damage": {
@@ -5645,9 +6569,16 @@
       "defId": 59,
       "ownerChampionDefId": 12,
       "slot": 4,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Direction",
-        "resolvePolicy": "Direct"
+        "shape": "Self",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Self",
+          "Direction"
+        ]
       },
       "cost": {
         "manaByRank": [
@@ -5672,6 +6603,22 @@
         "lockSeconds": [
           0.8,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.0
+        ],
+        "movePolicies": [
+          "Allow",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -5746,6 +6693,9 @@
       "defId": 60,
       "ownerChampionDefId": 12,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
         "resolvePolicy": "Direct"
@@ -5775,8 +6725,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -5847,6 +6808,9 @@
       "defId": 61,
       "ownerChampionDefId": 13,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -5868,15 +6832,47 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": [],
+        "params": [
+          {
+            "id": "apRatio",
+            "value": 0.6
+          },
+          {
+            "id": "baseDamage",
+            "value": 60.0
+          },
+          {
+            "id": "maxStacks",
+            "value": 3.0
+          },
+          {
+            "id": "radius",
+            "value": 2.75
+          },
+          {
+            "id": "stackWindowSec",
+            "value": 5.0
+          }
+        ],
         "damage": {
           "type": "Physical",
           "flags": [
@@ -5911,6 +6907,9 @@
       "defId": 62,
       "ownerChampionDefId": 13,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -5942,6 +6941,22 @@
         "lockSeconds": [
           0.35,
           0.5
+        ],
+        "commandLockSeconds": [
+          0.35,
+          0.5
+        ],
+        "movePolicies": [
+          "ForcedMotion",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -6048,9 +7063,12 @@
       "defId": 63,
       "ownerChampionDefId": 13,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -6077,8 +7095,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.55,
-          0.6
+          0.55
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -6140,6 +7169,9 @@
       "defId": 64,
       "ownerChampionDefId": 13,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -6165,8 +7197,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.8,
-          0.6
+          0.8
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -6225,9 +7268,12 @@
       "defId": 65,
       "ownerChampionDefId": 13,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -6254,8 +7300,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.45,
-          0.6
+          0.45
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -6317,6 +7374,9 @@
       "defId": 66,
       "ownerChampionDefId": 14,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -6338,8 +7398,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.75,
-          0.6
+          0.75
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -6381,9 +7452,12 @@
       "defId": 67,
       "ownerChampionDefId": 14,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -6410,8 +7484,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.75,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -6490,9 +7575,12 @@
       "defId": 68,
       "ownerChampionDefId": 14,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -6519,8 +7607,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
-          0.6
+          0.45
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -6593,6 +7692,9 @@
       "defId": 69,
       "ownerChampionDefId": 14,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Ground",
         "resolvePolicy": "Direct"
@@ -6618,8 +7720,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.8,
-          0.6
+          0.8
+        ],
+        "commandLockSeconds": [
+          0.8
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -6690,6 +7803,9 @@
       "defId": 70,
       "ownerChampionDefId": 14,
       "slot": 2,
+      "input": {
+        "activation": "PressRelease"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -6713,7 +7829,7 @@
         ]
       },
       "range": {
-        "maximum": 4.0
+        "maximum": 5.0
       },
       "stage": {
         "count": 2,
@@ -6721,6 +7837,22 @@
         "lockSeconds": [
           0.7,
           0.3
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.3
+        ],
+        "movePolicies": [
+          "Allow",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          true,
+          false
         ]
       },
       "effect": {
@@ -6742,7 +7874,7 @@
           },
           {
             "id": "stunDurationSec",
-            "value": 0.75
+            "value": 2.0
           }
         ],
         "damage": {
@@ -6791,6 +7923,22 @@
             0.0
           ]
         }
+      },
+      "charge": {
+        "maxHoldSec": 4.0,
+        "autoRelease": true,
+        "rangeScale": [
+          0.5,
+          1.0
+        ],
+        "damageScale": [
+          1.0,
+          1.0
+        ],
+        "stunSeconds": [
+          0.25,
+          2.0
+        ]
       }
     },
     {
@@ -6799,6 +7947,9 @@
       "defId": 71,
       "ownerChampionDefId": 15,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -6820,8 +7971,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -6863,9 +8025,12 @@
       "defId": 72,
       "ownerChampionDefId": 15,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -6892,8 +8057,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.4,
-          0.6
+          0.4
+        ],
+        "commandLockSeconds": [
+          0.4
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -6980,6 +8156,9 @@
       "defId": 73,
       "ownerChampionDefId": 15,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -7009,8 +8188,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -7123,9 +8313,12 @@
       "defId": 74,
       "ownerChampionDefId": 15,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -7148,8 +8341,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.6
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -7212,6 +8416,9 @@
       "defId": 75,
       "ownerChampionDefId": 15,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -7241,8 +8448,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.25,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -7325,6 +8543,9 @@
       "defId": 76,
       "ownerChampionDefId": 16,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -7346,8 +8567,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.9,
-          0.6
+          0.75
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -7389,9 +8621,12 @@
       "defId": 77,
       "ownerChampionDefId": 16,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -7420,6 +8655,22 @@
         "lockSeconds": [
           0.75,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.75,
+          0.6
+        ],
+        "movePolicies": [
+          "ForcedMotion",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -7494,9 +8745,12 @@
       "defId": 78,
       "ownerChampionDefId": 16,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -7523,8 +8777,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.9,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -7597,6 +8862,9 @@
       "defId": 79,
       "ownerChampionDefId": 16,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
@@ -7622,8 +8890,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.2,
-          0.6
+          1.2
+        ],
+        "commandLockSeconds": [
+          1.2
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -7698,9 +8977,12 @@
       "defId": 80,
       "ownerChampionDefId": 16,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
@@ -7727,8 +9009,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.9,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -7799,6 +9092,9 @@
       "defId": 81,
       "ownerChampionDefId": 17,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
@@ -7820,15 +9116,35 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": [],
+        "params": [
+          {
+            "id": "missingHealthDamageRatio",
+            "value": 0.1
+          },
+          {
+            "id": "targetHealthThresholdRatio",
+            "value": 0.5
+          }
+        ],
         "damage": {
           "type": "Physical",
           "flags": [
@@ -7863,17 +9179,20 @@
       "defId": 82,
       "ownerChampionDefId": 17,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
-          50.0,
-          50.0,
-          50.0,
-          50.0,
-          50.0
+          40.0,
+          40.0,
+          40.0,
+          40.0,
+          40.0
         ]
       },
       "cooldown": {
@@ -7892,8 +9211,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -7976,17 +9306,20 @@
       "defId": 83,
       "ownerChampionDefId": 17,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
         "manaByRank": [
           75.0,
-          75.0,
-          75.0,
-          75.0,
-          75.0
+          70.0,
+          65.0,
+          60.0,
+          55.0
         ]
       },
       "cooldown": {
@@ -8005,8 +9338,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.7,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -8028,7 +9372,7 @@
           },
           {
             "id": "speed",
-            "value": 24.0
+            "value": 12.0
           }
         ],
         "damage": {
@@ -8085,9 +9429,16 @@
       "defId": 84,
       "ownerChampionDefId": 17,
       "slot": 4,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
         "shape": "Unit",
-        "resolvePolicy": "Direct"
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Unit",
+          "Self"
+        ]
       },
       "cost": {
         "manaByRank": [
@@ -8107,11 +9458,27 @@
         "maximum": 6.25
       },
       "stage": {
-        "count": 1,
-        "windowSeconds": 0.0,
+        "count": 2,
+        "windowSeconds": 4.0,
         "lockSeconds": [
           1.5,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          1.5,
+          0.25
+        ],
+        "movePolicies": [
+          "ForcedMotion",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -8121,7 +9488,7 @@
         "params": [
           {
             "id": "effectDurationSec",
-            "value": 5.0
+            "value": 4.0
           },
           {
             "id": "gap",
@@ -8182,17 +9549,24 @@
       "defId": 85,
       "ownerChampionDefId": 17,
       "slot": 2,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Ground",
+          "Self"
+        ]
       },
       "cost": {
         "manaByRank": [
           40.0,
-          40.0,
-          40.0,
-          40.0,
-          40.0
+          35.0,
+          30.0,
+          25.0,
+          20.0
         ]
       },
       "cooldown": {
@@ -8209,10 +9583,26 @@
       },
       "stage": {
         "count": 2,
-        "windowSeconds": 5.0,
+        "windowSeconds": 4.0,
         "lockSeconds": [
           0.5,
           0.25
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.25
+        ],
+        "movePolicies": [
+          "Allow",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -8222,7 +9612,7 @@
         "params": [
           {
             "id": "effectDurationSec",
-            "value": 5.0
+            "value": 4.0
           }
         ],
         "damage": {

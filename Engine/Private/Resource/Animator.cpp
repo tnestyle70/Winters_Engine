@@ -78,13 +78,24 @@ void CAnimator::Update(f32_t fDeltaTime)
 			m_bPlaying = false;
 		}
 	}
-	u32_t n = m_pSkeleton->GetBoneCount();
+	// 지연 포즈 평가: 시간만 전진하고 dirty 를 남긴다. 실제 Evaluate +
+	// ComputeFinalTransforms 는 EnsurePoseEvaluated(소비 지점)에서 프레임당 1회.
+	m_bPoseDirty = true;
+}
+
+void CAnimator::EnsurePoseEvaluated() const
+{
+	if (!m_bPoseDirty || !m_pCurrentAnim || !m_pSkeleton)
+		return;
+
+	const u32_t n = m_pSkeleton->GetBoneCount();
 	m_pCurrentAnim->Evaluate(m_dCurrentTime, m_vecLocalTransforms, n, m_pSkeleton);
 	m_pSkeleton->ComputeFinalTransformsWithScratch(
 		m_vecLocalTransforms,
 		m_vecFinalMatrices,
 		m_vecGlobalScratch,
 		&m_vecGlobalMatrices);
+	m_bPoseDirty = false;
 }
 
 void CAnimator::PlayAnimation(CAnimation* pAnim, bool_t bLoop)
@@ -104,6 +115,7 @@ void CAnimator::PlayAnimation(CAnimation* pAnim, bool_t bLoop, f64_t dStartTime,
 		return;
 
 	m_dCurrentTime = ClampAnimationTime(dStartTime, pAnim->GetDuration());
+	m_bPoseDirty = true;
 }
 
 void CAnimator::Stop()
@@ -124,7 +136,11 @@ i32_t CAnimator::FindBoneIndex(const string& strBoneName) const
 bool_t CAnimator::TryGetBoneGlobalTransform(const string& strBoneName, XMFLOAT4X4& outMatrix) const
 {
 	const i32_t iBoneIndex = FindBoneIndex(strBoneName);
-	if (iBoneIndex < 0 || static_cast<size_t>(iBoneIndex) >= m_vecGlobalMatrices.size())
+	if (iBoneIndex < 0)
+		return false;
+
+	EnsurePoseEvaluated();
+	if (static_cast<size_t>(iBoneIndex) >= m_vecGlobalMatrices.size())
 		return false;
 
 	outMatrix = m_vecGlobalMatrices[static_cast<size_t>(iBoneIndex)];

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "dataVersion": 1,
-  "buildHash": 2392782607,
+  "buildHash": 4237932526,
   "xpCurve": [
     280.0,
     380.0,
@@ -78,6 +78,6 @@
   },
   "timers": {
     "assistCreditWindowSec": 10.0,
-    "recallDurationSec": 2.0
+    "recallDurationSec": 6.0
   }
 }

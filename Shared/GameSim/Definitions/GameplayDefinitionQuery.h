@@ -94,7 +94,18 @@ namespace GameplayDefinitionQuery
         u8_t stage = 1u);
 
     eSkillActionMovePolicy ResolveSkillActionMovePolicy(
-        eChampion champion,
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        u8_t stage = 1u);
+
+    bool_t ShouldCreateSkillActionState(
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
         u8_t slot,
         u8_t stage = 1u);
 

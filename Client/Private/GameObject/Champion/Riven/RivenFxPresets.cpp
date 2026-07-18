@@ -13,6 +13,7 @@ namespace
     constexpr const char* kCueWNova = "Riven.W.Nova";
     constexpr const char* kCueEShield = "Riven.E.Shield";
     constexpr const char* kCueRActivate = "Riven.R.Activate";
+    constexpr const char* kCueRBlade = "Riven.R.Blade";
     constexpr const char* kCueRWindSlash = "Riven.R.WindSlash";
 
     struct RivenCueAnchor
@@ -47,7 +48,8 @@ namespace
 
     void PlayRivenCue(CWorld& world, EntityID owner, const char* pszCueName,
         bool_t bAttachToOwner, Engine::CFxStaticMeshRenderer* pRenderer,
-        f32_t fForwardVelocity = 0.f)
+        f32_t fForwardVelocity = 0.f,
+        f32_t fLifetimeOverride = 0.f)
     {
         if (owner == NULL_ENTITY || !pszCueName)
             return;
@@ -59,6 +61,13 @@ namespace
         cue.vForward = anchor.vForward;
         cue.attachTo = bAttachToOwner ? owner : NULL_ENTITY;
         cue.pFxMeshRenderer = pRenderer;
+        cue.bOverrideScaleMultiplier = true;
+        cue.vScaleMultiplier = { 0.7f, 0.7f, 0.7f };
+        if (fLifetimeOverride > 0.f)
+        {
+            cue.bOverrideLifetime = true;
+            cue.fLifetimeOverride = fLifetimeOverride;
+        }
         if (fForwardVelocity != 0.f)
         {
             cue.vVelocity = {
@@ -99,6 +108,12 @@ void RivenFx::SpawnRActivate(CWorld& world, EntityID owner, f32_t fLifetime,
 {
     (void)fLifetime;
     PlayRivenCue(world, owner, kCueRActivate, true, pRenderer);
+}
+
+void RivenFx::SpawnRBlade(CWorld& world, EntityID owner, f32_t fDuration,
+    Engine::CFxStaticMeshRenderer* pRenderer)
+{
+    PlayRivenCue(world, owner, kCueRBlade, true, pRenderer, 0.f, fDuration);
 }
 
 void RivenFx::SpawnRWindSlash(CWorld& world, EntityID owner, f32_t fLifetime,

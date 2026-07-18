@@ -14,6 +14,7 @@ table Hello {
     gameplayPackHash:uint;
     // M6: 런타임 정의 리로드 revision. 0 = 오버레이 없음(코드젠 팩), 성공 리로드마다 +1.
     gameplayPackRevision:uint;
+    championDefinitionKey:uint;
 }
 
 root_type Hello;

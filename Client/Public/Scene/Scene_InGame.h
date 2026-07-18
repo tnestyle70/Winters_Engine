@@ -451,7 +451,8 @@ private:
     void UpdateLocalPassiveDash(f32_t dt);
 
     bool DispatchSkillInput(uint8_t slot, u8_t requestedStage = 0);
-    void SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& cmd, u8_t skillStage = 1);
+    eSkillInputActivation ResolveLocalSkillInputActivation(u8_t slot);
+    bool_t SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& cmd, u8_t skillStage = 1);
     void ProtectNetworkAttackYaw(CClientNetwork* pNetworkView, u32_t commandSeq, const Vec3& facingTarget);
     void DriveNetworkAttackIntent(bool& outSkipGroundMove);
     void ApplyLocalPrediction(
@@ -503,6 +504,14 @@ private:
         u64_t serverTimeMs,
         u32_t lastAckedCommandSeq,
         u32_t localNetId);
+    void OnAuthoritativeCommandResult(
+        u64_t serverTick,
+        u32_t commandSequence,
+        u8_t state,
+        u16_t reason,
+        u8_t authoritativeSkillSlot,
+        u8_t authoritativeSkillStage,
+        u64_t stageWindowEndTick);
     void RebaseNetworkTimeline(
         const SnapshotTimelineState& previous,
         const SnapshotTimelineState& next,
@@ -528,6 +537,9 @@ private:
     std::unordered_map<EntityID, Vec3>   m_NetworkChampionPrevPos{};
     std::unordered_map<EntityID, f32_t>  m_NetworkChampionMoveGraceSec{};
     std::unordered_map<EntityID, bool_t> m_NetworkChampionMoving{};
+    bool_t m_bPlayerVoiceMoveInitialized = false;
+    f32_t  m_fPlayerVoiceMoveDelayRemainingSec = 0.f;
+    u32_t  m_uPlayerVoiceSelectionCounter = 0u;
 
     struct NetworkSnapshotInterpState
     {
@@ -555,6 +567,7 @@ private:
     };
     std::deque<NetworkMovePrediction> m_NetworkMovePredictions{};
     u32_t m_uLastAckedMovePredictionSeq = 0;
+    u32_t m_uLastSkillCommandResultSeq[5]{};
     f32_t m_fLocalCorrectionBlendSec = 0.08f;
     struct NetworkActionAnimationState
     {

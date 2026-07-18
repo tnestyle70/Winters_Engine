@@ -107,7 +107,7 @@ namespace Engine
             *(pLastSlash + 1) = L'\0';
 
             std::wstring candidate = std::wstring(exePath) +
-                L"..\\Resource\\UI\\actor_hud_layout.json";
+                L"..\\Resource\\UI\\hud_irelia_layout.json";
             wchar_t fullPath[MAX_PATH] = {};
             const DWORD got = GetFullPathNameW(candidate.c_str(), MAX_PATH, fullPath, nullptr);
             if (got == 0 || got >= MAX_PATH)
@@ -494,20 +494,33 @@ namespace Engine
             if (bind.empty())
                 return true;
             if (bind == "usesManaBar")
-                return !State.bUsesPassiveResource;
+                return State.ResourceKind == eUIResourceKind::Mana;
+            if (bind == "usesEnergyBar")
+                return State.ResourceKind == eUIResourceKind::Energy;
             if (bind == "usesPassiveBar")
-                return State.bUsesPassiveResource;
+                return State.ResourceKind == eUIResourceKind::Flow;
+            if (bind == "hasResourceBar")
+                return State.ResourceKind != eUIResourceKind::None;
             if (bind == "passiveShieldVisible")
-                return State.bUsesPassiveResource && State.PassiveShield > 0.f;
+                return State.ResourceKind == eUIResourceKind::Flow &&
+                    State.PassiveShield > 0.f;
             if (bind == "shopOpen")
                 return State.bShopOpen;
             return true;
         }
 
-        ImU32 TextColorForBind(const std::string& bind)
+        ImU32 TextColorForBind(
+            const ActorHUDState& State,
+            const std::string& bind)
         {
             if (bind == "mpText")
+            {
+                if (State.ResourceKind == eUIResourceKind::Energy)
+                    return IM_COL32(255, 221, 72, 255);
+                if (State.ResourceKind == eUIResourceKind::Flow)
+                    return IM_COL32(242, 246, 255, 255);
                 return IM_COL32(190, 238, 255, 255);
+            }
             if (bind == "gold")
                 return IM_COL32(255, 217, 91, 255);
             if (bind == "level")
@@ -523,7 +536,9 @@ namespace Engine
                 return ToRoundedString(State.Hp) + " / " + ToRoundedString(State.MaxHp);
             if (bind == "mpText")
             {
-                if (State.bUsesPassiveResource)
+                if (State.ResourceKind == eUIResourceKind::None)
+                    return {};
+                if (State.ResourceKind == eUIResourceKind::Flow)
                     return ToRoundedString(State.PassiveValue) + " / " + ToRoundedString(State.PassiveMax);
                 return ToRoundedString(State.Mp) + " / " + ToRoundedString(State.MaxMp);
             }
@@ -735,7 +750,7 @@ namespace Engine
 
         if (bSavedLoaded || bSavedSource)
         {
-            m_strLastSaveMessage = "Saved layout JSON to runtime and source resources.";
+            m_strLastSaveMessage = "Saved hud_irelia_layout.json.";
             return true;
         }
 
@@ -823,7 +838,7 @@ namespace Engine
                 pFont,
                 fontSize,
                 pos,
-                TextColorForBind(layoutText.strBind),
+                TextColorForBind(State, layoutText.strBind),
                 text.c_str());
         }
     }
@@ -848,6 +863,29 @@ namespace Engine
 
         if (ImGui::TreeNode("Elements"))
         {
+            LayoutElement* pXpArcTrack = nullptr;
+            LayoutElement* pXpArcFill = nullptr;
+            for (LayoutElement& candidate : m_Elements)
+            {
+                if (candidate.strID == "portrait.xp.arc.track")
+                    pXpArcTrack = &candidate;
+                else if (candidate.strID == "portrait.xp.arc.fill")
+                    pXpArcFill = &candidate;
+            }
+
+            if (pXpArcTrack && pXpArcFill)
+            {
+                f32_t groupX = pXpArcFill->Rect.fX;
+                if (ImGui::DragFloat("XP arc group X", &groupX, 0.25f, -512.f, 1024.f, "%.2f"))
+                {
+                    const f32_t deltaX = groupX - pXpArcFill->Rect.fX;
+                    pXpArcTrack->Rect.fX += deltaX;
+                    pXpArcFill->Rect.fX += deltaX;
+                }
+                ImGui::TextDisabled("Moves XP track + fill together. Save Layout writes the runtime JSON.");
+                ImGui::Separator();
+            }
+
             if (m_Elements.empty())
             {
                 ImGui::TextDisabled("No layout elements loaded");
@@ -904,6 +942,13 @@ namespace Engine
                     element.Rect.fH = rect[3];
                 }
 
+                if (element.strID == "portrait.xp.arc.fill")
+                {
+                    ImGui::Checkbox("preview XP ratio", &m_bPreviewXpRatio);
+                    if (m_bPreviewXpRatio)
+                        ImGui::SliderFloat("XP preview", &m_fPreviewXpRatio, 0.f, 1.f, "%.2f");
+                }
+
                 f32_t uv[4] = { element.vUV.x, element.vUV.y, element.vUV.z, element.vUV.w };
                 if (ImGui::DragFloat4("uv", uv, 0.001f, 0.f, 1.f, "%.4f"))
                 {
@@ -941,6 +986,12 @@ namespace Engine
                     {
                         snippet += ",\"shape\":\"";
                         snippet += element.strShape;
+                        snippet += "\"";
+                    }
+                    if (!element.strBind.empty())
+                    {
+                        snippet += ",\"bind\":\"";
+                        snippet += element.strBind;
                         snippet += "\"";
                     }
                     if (!element.strVisibleBind.empty())
@@ -1103,7 +1154,6 @@ namespace Engine
                 out += ",\n            \"clip\": ";
                 AppendJsonEscaped(out, element.strClip);
             }
-
             std::snprintf(
                 line,
                 sizeof(line),
@@ -1198,13 +1248,20 @@ namespace Engine
         };
 
         addElement("reference", nullptr, "reference", 0.f, 0.f, 861.f, 167.f);
-        addElement("portrait", nullptr, "portrait", 184.f, 37.f, 103.f, 103.f);
-        addElement("portrait.xp.arc.track", "portrait.xp.arc.track", nullptr, 252.f, 48.5f, 36.f, 90.f);
-        addElement("portrait.xp.arc.fill", "portrait.xp.arc.fill", nullptr, 252.f, 48.5f, 36.f, 90.f, "xpRatio", nullptr, "bottomToTop");
+        addElement("portrait.face", nullptr, "portrait", 167.75f, 61.25f, 82.f, 82.f);
+        m_Elements.back().strShape = "circle";
+        addElement("portrait.xp.arc.track", "portrait.xp.arc.track", nullptr,
+            244.25f, 48.5f, 30.42f, 91.43f);
+        addElement("portrait.xp.arc.fill", "portrait.xp.arc.fill", nullptr,
+            244.25f, 48.5f, 30.42f, 91.43f, "xpRatio", nullptr, "maskBottomToTop");
+        addElement("portrait.frame", "portrait.frame", nullptr,
+            159.75f, 48.5f, 128.f, 128.f);
         addElement("hp.bg", "bar.empty", nullptr, 287.f, 124.f, 319.f, 16.f);
         addElement("hp.fill", "bar.hp.fill", nullptr, 289.f, 127.f, 315.f, 10.f, "hpRatio");
-        addElement("mp.bg", "bar.empty", nullptr, 287.f, 143.f, 319.f, 14.f);
+        addElement("mp.bg", "bar.empty", nullptr, 287.f, 143.f, 319.f, 14.f,
+            nullptr, "hasResourceBar");
         addElement("mp.fill", "bar.mp.fill", nullptr, 289.f, 146.f, 315.f, 9.f, "mpRatio", "usesManaBar");
+        addElement("energy.fill", "bar.energy.fill", nullptr, 289.f, 146.f, 315.f, 9.f, "mpRatio", "usesEnergyBar");
         addElement("passive.fill", nullptr, "passive.bar", 289.f, 146.f, 315.f, 9.f, "passiveRatio", "usesPassiveBar");
         addElement("passive.shield", nullptr, "passive.bar", 289.f, 146.f, 315.f, 9.f, "passiveShieldRatio", "passiveShieldVisible");
         addElement("skill.q", nullptr, "skill.q", 291.f, 61.f, 43.f, 43.f);
@@ -1324,6 +1381,9 @@ namespace Engine
         if (GetRatioForBind(State, Element.strBind, ratio))
         {
             ratio = WintersMath::Clamp01(ratio);
+            if (Element.strID == "portrait.xp.arc.fill" && m_bPreviewXpRatio)
+                ratio = WintersMath::Clamp01(m_fPreviewXpRatio);
+
             if (Element.strClip == "bottomToTop")
             {
                 const f32_t sourceV0 = uv.y;
@@ -1332,7 +1392,7 @@ namespace Engine
                 drawH *= ratio;
                 uv.y = sourceV1 - (sourceV1 - sourceV0) * ratio;
             }
-            else
+            else if (Element.strClip != "maskBottomToTop")
             {
                 drawW *= ratio;
                 uv.z = uv.x + (uv.z - uv.x) * ratio;
@@ -1346,6 +1406,20 @@ namespace Engine
         const f32_t drawY = Root.fY + drawYInLayout * Root.fScaleY;
         const f32_t drawScaledW = drawW * Root.fScaleX;
         const f32_t drawScaledH = drawH * Root.fScaleY;
+
+        if (Element.strClip == "maskBottomToTop")
+        {
+            m_pRenderer->DrawImageVerticalReveal(
+                pSRV,
+                drawX,
+                drawY,
+                drawScaledW,
+                drawScaledH,
+                uv,
+                color,
+                ratio);
+            return;
+        }
 
         if (Element.strShape == "circle")
         {

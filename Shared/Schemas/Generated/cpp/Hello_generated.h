@@ -30,7 +30,8 @@ struct Hello FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_TEAM = 14,
     VT_DATABUILDHASH = 16,
     VT_GAMEPLAYPACKHASH = 18,
-    VT_GAMEPLAYPACKREVISION = 20
+    VT_GAMEPLAYPACKREVISION = 20,
+    VT_CHAMPIONDEFINITIONKEY = 22
   };
   uint32_t sessionId() const {
     return GetField<uint32_t>(VT_SESSIONID, 0);
@@ -59,6 +60,9 @@ struct Hello FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint32_t gameplayPackRevision() const {
     return GetField<uint32_t>(VT_GAMEPLAYPACKREVISION, 0);
   }
+  uint32_t championDefinitionKey() const {
+    return GetField<uint32_t>(VT_CHAMPIONDEFINITIONKEY, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -71,6 +75,7 @@ struct Hello FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint32_t>(verifier, VT_DATABUILDHASH, 4) &&
            VerifyField<uint32_t>(verifier, VT_GAMEPLAYPACKHASH, 4) &&
            VerifyField<uint32_t>(verifier, VT_GAMEPLAYPACKREVISION, 4) &&
+           VerifyField<uint32_t>(verifier, VT_CHAMPIONDEFINITIONKEY, 4) &&
            verifier.EndTable();
   }
 };
@@ -106,6 +111,9 @@ struct HelloBuilder {
   void add_gameplayPackRevision(uint32_t gameplayPackRevision) {
     fbb_.AddElement<uint32_t>(Hello::VT_GAMEPLAYPACKREVISION, gameplayPackRevision, 0);
   }
+  void add_championDefinitionKey(uint32_t championDefinitionKey) {
+    fbb_.AddElement<uint32_t>(Hello::VT_CHAMPIONDEFINITIONKEY, championDefinitionKey, 0);
+  }
   explicit HelloBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -127,10 +135,12 @@ inline ::flatbuffers::Offset<Hello> CreateHello(
     uint8_t team = 0,
     uint32_t dataBuildHash = 0,
     uint32_t gameplayPackHash = 0,
-    uint32_t gameplayPackRevision = 0) {
+    uint32_t gameplayPackRevision = 0,
+    uint32_t championDefinitionKey = 0) {
   HelloBuilder builder_(_fbb);
   builder_.add_serverTimeMs(serverTimeMs);
   builder_.add_serverTick(serverTick);
+  builder_.add_championDefinitionKey(championDefinitionKey);
   builder_.add_gameplayPackRevision(gameplayPackRevision);
   builder_.add_gameplayPackHash(gameplayPackHash);
   builder_.add_dataBuildHash(dataBuildHash);

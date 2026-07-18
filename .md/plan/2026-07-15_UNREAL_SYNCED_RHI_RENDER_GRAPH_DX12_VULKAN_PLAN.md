@@ -1,13 +1,18 @@
-Session - Unreal Engine 5.7.4의 Dynamic RHI·D3D12 barrier·Vulkan barrier2·RDG 실코드와 Winters 현재 구현을 맞춰, 강제 backend 선택을 진실화하고 DX12 state transition 및 snapshot-only 미니 Render Graph를 완성하며 Vulkan은 loader와 compiled backend 경계를 거짓 없이 분리한다.
+Session - 강제 backend 선택과 capability를 실제 구현에 맞추고 DX12 transition·snapshot Render Graph를 닫은 뒤, 단일 submission owner를 RHI thread와 Vulkan 수직 슬라이스의 선행 게이트로 만든다.
+좌표: 신규 좌표 후보 · 축: C3 · C8
+관련: WINTERS_UNREAL_STYLE_MULTI_BACKEND_RHI_ARCHITECTURE.md · 2026-07-15_143053_S17_RHI_VALIDATION_HARNESS_REPORT.md
 
-> [!NOTE]
-> 이 파일은 읽기용 해설서가 아니라, 구현자가 그대로 비교·적용할 수 있도록 전체 코드와 교체 블록을 보존한 **코드 적용 사양서**다. 흐름을 먼저 이해하려면 [읽기용 아키텍처 해설](../architecture/WINTERS_UNREAL_STYLE_MULTI_BACKEND_RHI_ARCHITECTURE.md)을 열고, 이 문서는 실제 구현 단계에서 필요한 항목만 찾아보는 편이 좋다. VS Code에서는 `Ctrl+Shift+V`로 Markdown 미리보기, `Ctrl+K V`로 옆쪽 미리보기, `Ctrl+Shift+O`로 제목 탐색을 사용할 수 있다.
+## 1. 결정 기록
 
-빠른 이동: [검증 하네스](#1-1-cusersuserdesktopwinterstoolsharnessrun-s17rhivalidationps1) · [Backend 모듈](#1-2-cusersuserdesktopwintersengineprivaterhiirhibackendmoduleh) · [Vulkan probe](#1-3-cusersuserdesktopwintersengineprivaterhivulkanvulkanruntimeprobeh) · [Backend registry](#1-5-cusersuserdesktopwintersengineprivaterhirhibackendregistryh) · [Capabilities](#1-7-cusersuserdesktopwintersenginepublicrhirhicapabilitiesh) · [Render Graph](#1-9-cusersuserdesktopwintersengineprivaterendererrendergraphrendergraphh) · [Scene renderer](#1-11-cusersuserdesktopwintersengineprivaterendererrhiscenerenderercpp) · [DX12 transition](#1-16-cusersuserdesktopwintersengineprivaterhidx12dx12devicecpp) · [검증](#2-검증)
+① 문제·제약: DX12는 2-frame direct queue로 부팅되지만 command API 4종이 no-op이고 capability는 3-frame·compute/async/bindless를 주장하며, Vulkan backend와 RHI thread는 0개다. 16.67 ms frame budget 안의 CPU/GPU 분리는 실측 없음이다.
+② 순진한 해법의 실패: 이 상태에서 RHI thread나 Vulkan 구현부터 더하면 잘못된 resource-state·queue ownership을 동기화하고, 현재 process-alive smoke는 `--rhi=dx12` 없이 DX11 성공도 DX12 성공으로 기록한다.
+③ 메커니즘: boot-time strict registry → backend 실측 capability → mini Render Graph transition 원장 순으로 단일 direct queue를 먼저 진실화하고, 그 게이트 뒤에 bounded submission queue를 가진 단일 RHI owner thread와 Vulkan vertical slice를 잇는다.
+④ 대조: Unreal의 Render Thread/RHI Thread/RDG는 다중 queue·barrier·lifetime 계약 위에서 병렬화한다. Winters는 snapshot renderer와 direct queue 하나를 유지해 그 계약을 먼저 증명한 뒤 병렬 recording을 연다.
+⑤ 대가: 순차 cutover라 Vulkan·parallel recording 도착이 늦다. render submission CPU 시간이 budget을 넘고 queue depth/backpressure 실측이 병목을 가리킬 때는 single-owner 단계가 틀리며 RHI thread packet을 즉시 승격한다.
 
-## 1. 반영해야 하는 코드
+## 2. 반영해야 하는 코드
 
-### 1-1. C:/Users/user/Desktop/Winters/Tools/Harness/Run-S17RhiValidation.ps1
+### 2-1. C:/Users/user/Desktop/Winters/Tools/Harness/Run-S17RhiValidation.ps1
 
 기존 코드:
 
@@ -21,7 +26,7 @@ Session - Unreal Engine 5.7.4의 Dynamic RHI·D3D12 barrier·Vulkan barrier2·RD
         @{ Name = "WintersElden_probe_dx12"; Exe = "EldenRingClient\Bin\$Configuration\WintersElden.exe"; Args = @("--scene=probe", "--rhi=dx12"); Cwd = "EldenRingClient\Bin\$Configuration" },
 ```
 
-### 1-2. C:/Users/user/Desktop/Winters/Engine/Private/RHI/IRHIBackendModule.h
+### 2-2. C:/Users/user/Desktop/Winters/Engine/Private/RHI/IRHIBackendModule.h
 
 새 파일:
 
@@ -70,7 +75,7 @@ public:
 };
 ```
 
-### 1-3. C:/Users/user/Desktop/Winters/Engine/Private/RHI/Vulkan/VulkanRuntimeProbe.h
+### 2-3. C:/Users/user/Desktop/Winters/Engine/Private/RHI/Vulkan/VulkanRuntimeProbe.h
 
 새 파일:
 
@@ -92,7 +97,7 @@ struct VulkanRuntimeProbeResult
 VulkanRuntimeProbeResult ProbeVulkanRuntime();
 ```
 
-### 1-4. C:/Users/user/Desktop/Winters/Engine/Private/RHI/Vulkan/VulkanRuntimeProbe.cpp
+### 2-4. C:/Users/user/Desktop/Winters/Engine/Private/RHI/Vulkan/VulkanRuntimeProbe.cpp
 
 새 파일:
 
@@ -185,7 +190,7 @@ VulkanRuntimeProbeResult ProbeVulkanRuntime()
 }
 ```
 
-### 1-5. C:/Users/user/Desktop/Winters/Engine/Private/RHI/RHIBackendRegistry.h
+### 2-5. C:/Users/user/Desktop/Winters/Engine/Private/RHI/RHIBackendRegistry.h
 
 새 파일:
 
@@ -223,7 +228,7 @@ public:
 };
 ```
 
-### 1-6. C:/Users/user/Desktop/Winters/Engine/Private/RHI/RHIBackendRegistry.cpp
+### 2-6. C:/Users/user/Desktop/Winters/Engine/Private/RHI/RHIBackendRegistry.cpp
 
 새 파일:
 
@@ -535,7 +540,7 @@ RHIBackendSelectionResult CRHIBackendRegistry::Select(
 }
 ```
 
-### 1-7. C:/Users/user/Desktop/Winters/Engine/Public/RHI/RHICapabilities.h
+### 2-7. C:/Users/user/Desktop/Winters/Engine/Public/RHI/RHICapabilities.h
 
 기존 코드:
 
@@ -641,7 +646,7 @@ inline RHICapabilities RHI_MakeDefaultCapabilities(eRHIBackend backend)
 }
 ```
 
-### 1-8. C:/Users/user/Desktop/Winters/Engine/Public/RHI/IRHIDevice.h
+### 2-8. C:/Users/user/Desktop/Winters/Engine/Public/RHI/IRHIDevice.h
 
 기존 코드:
 
@@ -658,7 +663,7 @@ inline RHICapabilities RHI_MakeDefaultCapabilities(eRHIBackend backend)
     virtual RHICapabilities GetCapabilities() const = 0;
 ```
 
-### 1-9. C:/Users/user/Desktop/Winters/Engine/Private/Renderer/RenderGraph/RenderGraph.h
+### 2-9. C:/Users/user/Desktop/Winters/Engine/Private/Renderer/RenderGraph/RenderGraph.h
 
 새 파일:
 
@@ -731,7 +736,7 @@ private:
 };
 ```
 
-### 1-10. C:/Users/user/Desktop/Winters/Engine/Private/Renderer/RenderGraph/RenderGraph.cpp
+### 2-10. C:/Users/user/Desktop/Winters/Engine/Private/Renderer/RenderGraph/RenderGraph.cpp
 
 새 파일:
 
@@ -1138,7 +1143,7 @@ u32_t CRenderGraph::GetCulledPassCount() const
 }
 ```
 
-### 1-11. C:/Users/user/Desktop/Winters/Engine/Private/Renderer/RHISceneRenderer.cpp
+### 2-11. C:/Users/user/Desktop/Winters/Engine/Private/Renderer/RHISceneRenderer.cpp
 
 기존 코드:
 
@@ -1500,7 +1505,7 @@ void CRHISceneRenderer::Render(IRHIDevice* pDevice, const RenderWorldSnapshot& s
     if (pDevice)
 ```
 
-### 1-12. C:/Users/user/Desktop/Winters/Engine/Private/RHI/Vulkan/VulkanDevice.h 및 C:/Users/user/Desktop/Winters/Engine/Private/RHI/Vulkan/VulkanDevice.cpp
+### 2-12. C:/Users/user/Desktop/Winters/Engine/Private/RHI/Vulkan/VulkanDevice.h 및 C:/Users/user/Desktop/Winters/Engine/Private/RHI/Vulkan/VulkanDevice.cpp
 
 ```text
 CONFIRM_NEEDED - 현재 Winters workspace에는 Vulkan SDK 환경 변수, Vulkan-Headers, loader import library, VMA, DXC SPIR-V toolchain이 없다. `vulkaninfo.exe`와 runtime loader 존재만으로 compile 가능한 backend를 만들 수 없으며, 빈 `CVulkanDevice`나 모든 메서드가 빈 handle을 반환하는 fake backend는 추가하지 않는다.
@@ -1515,7 +1520,7 @@ CONFIRM_NEEDED - 현재 Winters workspace에는 Vulkan SDK 환경 변수, Vulkan
 이 선행 packet이 실제 workspace에 들어온 뒤 `IRHIDevice`의 모든 pure virtual을 구현한 `CVulkanDevice` 전체 h/cpp와 conformance test를 별도 계획서에 완전 본문으로 작성한다.
 ```
 
-### 1-13. C:/Users/user/Desktop/Winters/Engine/Private/RHI/DX11/CDX11Device.h
+### 2-13. C:/Users/user/Desktop/Winters/Engine/Private/RHI/DX11/CDX11Device.h
 
 기존 코드:
 
@@ -1544,7 +1549,7 @@ CONFIRM_NEEDED - 현재 Winters workspace에는 Vulkan SDK 환경 변수, Vulkan
     void* GetNativeHandle(eNativeHandleType type) const override
 ```
 
-### 1-14. C:/Users/user/Desktop/Winters/Engine/Private/RHI/DX12/DX12Device.h
+### 2-14. C:/Users/user/Desktop/Winters/Engine/Private/RHI/DX12/DX12Device.h
 
 기존 코드:
 
@@ -1573,7 +1578,7 @@ CONFIRM_NEEDED - 현재 Winters workspace에는 Vulkan SDK 환경 변수, Vulkan
 	void* GetNativeHandle(eNativeHandleType type) const override;
 ```
 
-### 1-15. C:/Users/user/Desktop/Winters/Engine/Private/Framework/CEngineApp.cpp
+### 2-15. C:/Users/user/Desktop/Winters/Engine/Private/Framework/CEngineApp.cpp
 
 기존 코드:
 
@@ -1675,7 +1680,7 @@ anonymous namespace 안의 아래 기존 코드를 삭제:
     m_pDevice = std::move(selection.pDevice);
 ```
 
-### 1-16. C:/Users/user/Desktop/Winters/Engine/Private/RHI/DX12/DX12Device.cpp
+### 2-16. C:/Users/user/Desktop/Winters/Engine/Private/RHI/DX12/DX12Device.cpp
 
 기존 코드:
 
@@ -1814,7 +1819,7 @@ anonymous namespace 안의 아래 기존 코드를 삭제:
     }
 ```
 
-### 1-17. C:/Users/user/Desktop/Winters/Client/Private/main.cpp
+### 2-17. C:/Users/user/Desktop/Winters/Client/Private/main.cpp
 
 기존 코드:
 
@@ -1836,7 +1841,7 @@ anonymous namespace 안의 아래 기존 코드를 삭제:
             return eEngineRHIBackend::Null;
 ```
 
-### 1-18. C:/Users/user/Desktop/Winters/EldenRingClient/Private/main.cpp
+### 2-18. C:/Users/user/Desktop/Winters/EldenRingClient/Private/main.cpp
 
 기존 코드:
 
@@ -1858,7 +1863,7 @@ anonymous namespace 안의 아래 기존 코드를 삭제:
             return eEngineRHIBackend::Null;
 ```
 
-### 1-19. C:/Users/user/Desktop/Winters/EldenRingEditor/Private/main.cpp
+### 2-19. C:/Users/user/Desktop/Winters/EldenRingEditor/Private/main.cpp
 
 기존 코드:
 
@@ -1880,13 +1885,15 @@ anonymous namespace 안의 아래 기존 코드를 삭제:
             return eEngineRHIBackend::Null;
 ```
 
-## 2. 검증
+## 3. 검증
 
-미검증:
+예측:
 
-- 이 문서는 runtime 코드 프리뷰이며 본 세션에서 Engine/Client 실행 코드는 적용하지 않았다.
-- Vulkan backend는 구현 완료가 아니다. loader probe와 backend-not-compiled 진단만 본 계획에서 완전 코드로 고정했다.
-- Render Graph 첫 slice는 single-thread pass dependency/state transition 원장이다. transient resource allocation, aliasing, async compute, pass merge는 범위 밖이다.
+- S17의 DX12 항목은 실제 `--rhi=dx12`를 전달하고, requested/selected backend가 다르면 strict 실행이 실패한다.
+- capability dump는 DX12의 현재 2 frames-in-flight와 구현된 raster 기능만 보고하며 compute/async/bindless/VRS를 거짓으로 켜지 않는다.
+- DX12 buffer/texture transition no-op는 0건이고 debug layer/PIX의 state mismatch·barrier 오류도 0건이다.
+- 새 backend registry와 Render Graph public boundary에는 `ID3D11*`, `ID3D12*`, Vulkan native type이 노출되지 않는다.
+- 가장 큰 회귀 위험은 DX11 LoL 정상 F5와 DX12 descriptor/resource lifetime이다. normal roster를 숨기지 않는 S17/S18 smoke와 debug layer가 이를 잡는다. RHI thread 성능·정합 gate는 아직 없으므로 이 packet에서는 thread를 시작하지 않는다.
 
 검증 명령:
 
@@ -1895,41 +1902,24 @@ git diff --check
 msbuild Winters.sln /t:Engine /p:Configuration=Debug /p:Platform=x64 /m
 msbuild Winters.sln /t:EldenRingClient /p:Configuration=Debug-DX12 /p:Platform=x64 /m
 powershell -NoProfile -ExecutionPolicy Bypass -File Tools/Harness/Run-S17RhiValidation.ps1 -ReportPath .md/build/2026-07-15_RHI_RENDER_GRAPH_SYNC_REPORT.md
-```
-
-자동 확인:
-
-```powershell
 rg -n -- "WintersElden_probe_dx12.*--rhi=dx12" Tools/Harness/Run-S17RhiValidation.ps1
 rg -n "supportsCompute = true|supportsAsyncCompute = true|supportsBindless = true|supportsVariableRateShading = true" Engine/Public/RHI/RHICapabilities.h
 rg -n "TransitionResource\(RHIBufferHandle, eRHIResourceState\) override \{\}|TransitionResource\(RHITextureHandle, eRHIResourceState\) override \{\}" Engine/Private/RHI/DX12/DX12Device.cpp
 rg -n "ID3D11|ID3D12|d3d11.h|d3d12.h|vulkan.h" Engine/Public/RHI Engine/Public/Renderer Client/Public
 ```
 
-기대 결과:
+미검증:
 
-- S17 DX12 항목이 실제 `--rhi=dx12`를 전달한다.
-- 공용 capability helper가 backend enum만으로 compute/async/bindless/VRS를 true로 만들지 않는다.
-- DX12 buffer/texture transition no-op가 0건이다.
-- 새 Render Graph와 backend registry가 public header에 native graphics type을 노출하지 않는다.
-
-수동 확인:
-
-- `WintersElden.exe --scene=probe --rhi=dx11`은 requested/selected가 DX11로 일치한다.
-- `WintersElden.exe --scene=probe --rhi=dx12`는 requested/selected가 DX12로 일치하며 실패 시 DX11로 fallback하지 않는다.
-- `WintersElden.exe --scene=probe --rhi=vulkan`은 loader 버전과 `BackendNotCompiled`을 구분해 출력하고 DX11 화면으로 조용히 진입하지 않는다.
-- DX11과 DX12에서 동일 `RenderWorldSnapshot` static scene을 실행하고 `RenderGraph::CompiledPasses`, `ExecutedPasses`, `CulledPasses` 카운터를 확인한다.
-- DX12 debug layer/PIX에서 scene mesh의 buffer/texture state mismatch와 resource barrier 오류가 0인지 확인한다.
-- LoL 정상 F5의 roster, map, minion, champion, UI, FOW, FX를 숨기지 않는다. 이 packet은 static RHI scene만 다루므로 LoL 제품 parity 완료로 판정하지 않는다.
+- 이 문서는 runtime 코드 프리뷰이며 본 세션에서 Engine/Client 실행 코드는 적용하지 않았다.
+- Vulkan backend는 구현 완료가 아니다. loader probe와 `BackendNotCompiled` 진단만 이 계획에서 고정한다.
+- Render Graph 첫 slice는 single-thread pass dependency/state transition 원장이다. transient allocation, aliasing, async compute, pass merge는 범위 밖이다.
+- dedicated Render Thread/RHI Thread, bounded queue, backpressure, deferred destruction은 다음 C3 packet이다. 이 packet의 2-9~2-16 gate가 통과하기 전에는 구현하지 않는다.
 
 확인 필요:
 
 - 새 `.h/.cpp` 파일이 `Engine/Include/Engine.vcxproj`와 `.vcxproj.filters`의 기존 RHI/Renderer 그룹에 포함되는지 확인.
 - CMake `WintersWorkspaceMap`은 browsing map이므로 legacy Engine build 등록을 대신하지 않는지 확인.
 - Vulkan full backend 전 Vulkan-Headers/loader/VMA/DXC dependency packet과 shader artifact contract를 확정.
-
-후속 동기화:
-
-- Engine public header 변경 후 `UpdateLib.bat`을 실행해 `EngineSDK/inc`를 동기화한다.
-- 합격 보고서에는 requested/selected backend, adapter, capability dump, Render Graph pass counters, DX12 validation 결과를 함께 기록한다.
-- 전체 작업 시간의 30%는 천장 작업으로 고정해, 이 기반 packet 후 동일 snapshot의 DX11/DX12 캡처 또는 면접/블로그 공개물 중 하나를 외부 마감과 함께 완료한다.
+- RHI thread packet 전에 main-thread render submit 시간, queue depth, producer wait, consumer wait, frame latency의 JSON counter와 목표 frame budget을 확정.
+- Engine public header 변경 후 `UpdateLib.bat` 실행 위치를 확인하고 `EngineSDK/inc` 동기화를 검증.
+- 전체 작업 시간의 30%는 동일 snapshot DX11/DX12 비교 캡처와 기술 글 초안에 배정하고, 외부 공개 마감은 2026-07-20으로 둔다.

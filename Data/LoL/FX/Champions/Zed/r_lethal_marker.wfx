@@ -1,0 +1,26 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Zed.R.LethalMarker",
+  "emitters": [
+    {
+      "name": "r_lethal_head_marker",
+      "render_type": "MeshParticle",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "model": "Client/Bin/Resource/Texture/Character/Zed/particles/fbx/zed_shuriken.wmesh",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/render/zed_shuriken.png",
+      "max_particles": 1,
+      "spawn_rate": 0.0,
+      "lifetime": 3.0,
+      "fade_in": 0.05,
+      "fade_out": 0.12,
+      "scale": [0.095, 0.095, 0.095],
+      "color": [0.08, 0.085, 0.10, 1.0],
+      "attach_offset": [0.0, 2.50, 0.0],
+      "rotation": [0.0, 0.0, 1.5707963],
+      "world_yaw_spin_speed": 4.2,
+      "blockable_by_wind_wall": false
+    }
+  ]
+}

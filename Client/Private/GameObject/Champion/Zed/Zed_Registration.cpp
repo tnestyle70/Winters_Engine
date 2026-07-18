@@ -37,14 +37,53 @@ namespace
         }
     }
 
+    SkillDef MakeZedClientSkill(u8_t slot)
+    {
+        SkillDef def{};
+        def.champ = eChampion::ZED;
+        def.slot = slot;
+        switch (static_cast<eSkillSlot>(slot))
+        {
+        case eSkillSlot::Q:
+            def.animKey = "zed_spell1";
+            break;
+        case eSkillSlot::W:
+            def.animKey = "zed_spell2";
+            def.stage2AnimKey = "zed_spell2";
+            break;
+        case eSkillSlot::E:
+            def.animKey = "zed_spell3";
+            break;
+        case eSkillSlot::R:
+            def.animKey = "zed_spell4";
+            def.stage2AnimKey = "zed_spell4";
+            break;
+        default:
+            def.animKey = "zed_attack1";
+            break;
+        }
+        return def;
+    }
+
     void DispatchZedVisualHook(VisualHookContext& visualCtx)
     {
+        if (!visualCtx.bAuthoritativeEvent &&
+            visualCtx.pDef &&
+            ((visualCtx.pDef->slot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+                    visualCtx.skillStage >= 2u) ||
+                visualCtx.pDef->slot == static_cast<u8_t>(eSkillSlot::E) ||
+                visualCtx.pDef->slot == static_cast<u8_t>(eSkillSlot::R)))
+        {
+            return;
+        }
+
         SkillHookContext skillCtx{};
         skillCtx.pWorld = visualCtx.pWorld;
         skillCtx.casterEntity = visualCtx.casterEntity;
         skillCtx.pDef = visualCtx.pDef;
         skillCtx.pCommand = visualCtx.pCommand;
         skillCtx.skillStage = visualCtx.skillStage;
+        skillCtx.fEffectLifetimeSec = visualCtx.fEffectLifetimeSec;
         skillCtx.pKeyOut = visualCtx.pKeyOut;
         skillCtx.pFxMeshRenderer = visualCtx.pFxMeshRenderer;
 
@@ -57,12 +96,12 @@ namespace
         {
             for (u8_t slot = 0; slot < static_cast<u8_t>(eSkillSlot::SLOT_END); ++slot)
             {
-                const SkillDef* legacy = FindSkillDef(eChampion::ZED, slot);
-                if (!legacy)
-                    continue;
-
-                SkillDef s = *legacy;
+                SkillDef s = MakeZedClientSkill(slot);
                 s.castHookId = ResolveZedCastHook(slot);
+                if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+                {
+                    s.stage2AnimKey = "skinned_mesh_zed_attack_passive";
+                }
                 CSkillRegistry::Instance().Add(eChampion::ZED, slot, s);
             }
 
@@ -77,7 +116,6 @@ namespace
 
             for (const u32_t hook : hooks)
             {
-                CSkillHookRegistry::Instance().Register(hook, &Zed::OnCastFrame);
                 CVisualHookRegistry::Instance().Register(
                     hook,
                     [](VisualHookContext& ctx)

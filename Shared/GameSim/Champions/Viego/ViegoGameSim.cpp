@@ -25,6 +25,7 @@
 #include "Shared/GameSim/Components/MasterYiComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 #include "Shared/GameSim/Components/SylasSimComponent.h"
 #include "Shared/GameSim/Components/ViegoSimComponent.h"
 #include "Shared/GameSim/Components/YoneSimComponent.h"
@@ -32,6 +33,7 @@
 #include "Shared/GameSim/Definitions/ChampionGameplayDef.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
+#include "Shared/GameSim/Definitions/SkillGameplayDef.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -374,6 +376,53 @@ namespace
         return Vec3{ 0.f, 0.f, 1.f };
     }
 
+    Vec3 ResolveGroundDashEnd(
+        const GameplayHookContext& ctx,
+        const Vec3& origin,
+        const Vec3& fallbackDirection,
+        f32_t maxRange)
+    {
+        Vec3 end = ctx.pCommand
+            ? ctx.pCommand->groundPos
+            : Vec3{
+                origin.x + fallbackDirection.x * maxRange,
+                origin.y,
+                origin.z + fallbackDirection.z * maxRange };
+        end.y = origin.y;
+
+        const Vec3 delta{ end.x - origin.x, 0.f, end.z - origin.z };
+        const f32_t distanceSq = delta.x * delta.x + delta.z * delta.z;
+        const f32_t maxRangeSq = maxRange * maxRange;
+        if (maxRange > 0.f && distanceSq > maxRangeSq)
+        {
+            const f32_t inverseDistance = 1.f / std::sqrt(distanceSq);
+            end.x = origin.x + delta.x * inverseDistance * maxRange;
+            end.z = origin.z + delta.z * inverseDistance * maxRange;
+        }
+
+        if (ctx.pTickCtx && ctx.pTickCtx->pWalkable && ctx.pWorld)
+        {
+            Vec3 clampedEnd = end;
+            const f32_t casterRadius = GameplayStateQuery::ResolveGameplayRadius(
+                *ctx.pWorld,
+                ctx.casterEntity);
+            if (ctx.pTickCtx->pWalkable->TryClampMoveSegmentXZ(
+                origin,
+                end,
+                casterRadius,
+                clampedEnd))
+            {
+                end = clampedEnd;
+            }
+            else
+            {
+                end = origin;
+            }
+        }
+
+        return end;
+    }
+
     void ClearMove(CWorld& world, EntityID entity)
     {
         if (world.HasComponent<MoveTargetComponent>(entity))
@@ -648,7 +697,7 @@ namespace
 
         const Vec3& vOrigin =
             ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
-        const f32_t dashRange = ResolveViegoSkillRange(ctx, eSkillSlot::W);
+        f32_t dashRange = ResolveViegoSkillRange(ctx, eSkillSlot::W);
         const f32_t dashDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
@@ -657,14 +706,42 @@ namespace
             ctx,
             eSkillSlot::W,
             eSkillEffectParamId::Radius);
-        const f32_t damage = ResolveViegoSkillEffectParam(
+        f32_t damage = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
             eSkillEffectParamId::BaseDamage);
-        const f32_t stunDurationSec = ResolveViegoSkillEffectParam(
+        f32_t stunDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
             eSkillEffectParamId::StunDurationSec);
+        if (ctx.pWorld->HasComponent<SkillChargeStateComponent>(ctx.casterEntity))
+        {
+            const f32_t ratio =
+                ctx.pWorld->GetComponent<SkillChargeStateComponent>(
+                    ctx.casterEntity).chargeRatio;
+            if (const SkillGameplayDef* skill = GameplayDefinitionQuery::FindSkill(
+                *ctx.pWorld,
+                ctx.casterEntity,
+                *ctx.pTickCtx,
+                eChampion::VIEGO,
+                static_cast<u8_t>(eSkillSlot::W)))
+            {
+                const f32_t rangeScale = ResolveSkillChargeValue(
+                    skill->charge.minRangeScale,
+                    skill->charge.maxRangeScale,
+                    ratio);
+                const f32_t damageScale = ResolveSkillChargeValue(
+                    skill->charge.minDamageScale,
+                    skill->charge.maxDamageScale,
+                    ratio);
+                dashRange *= rangeScale;
+                damage *= damageScale;
+                stunDurationSec = ResolveSkillChargeValue(
+                    skill->charge.minStunSec,
+                    skill->charge.maxStunSec,
+                    ratio);
+            }
+        }
 
         Vec3 vEnd
         {
@@ -806,8 +883,17 @@ namespace
             ctx,
             eSkillSlot::R,
             eSkillEffectParamId::MoveSpeedMul);
-        const Vec3 end{ origin.x + dir.x * range, origin.y, origin.z + dir.z * range };
-        RotateToward(*ctx.pWorld, ctx.casterEntity, dir);
+        const Vec3 end = ResolveGroundDashEnd(ctx, origin, dir, range);
+        const Vec3 landingDirection = WintersMath::NormalizeXZ(Vec3{
+            end.x - origin.x,
+            0.f,
+            end.z - origin.z });
+        RotateToward(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            (landingDirection.x != 0.f || landingDirection.z != 0.f)
+                ? landingDirection
+                : dir);
         StartDash(*ctx.pWorld, ctx.casterEntity, end, dashDurationSec);
         EnqueueCircleDamage(
             *ctx.pWorld,

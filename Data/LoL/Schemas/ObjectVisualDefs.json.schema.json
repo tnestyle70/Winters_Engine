@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Object visual definitions",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "structures",
+    "jungles",
+    "minions",
+    "ambientProps",
+    "mapRuntime",
+    "fxMeshPreloads"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "structures": {
+      "type": "array",
+      "minItems": 1
+    },
+    "jungles": {
+      "type": "array",
+      "minItems": 1
+    },
+    "minions": {
+      "type": "array",
+      "minItems": 1
+    },
+    "ambientProps": {
+      "type": "object"
+    },
+    "mapRuntime": {
+      "type": "object"
+    },
+    "fxMeshPreloads": {
+      "type": "array"
+    }
+  }
+}

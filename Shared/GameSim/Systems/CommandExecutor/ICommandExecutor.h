@@ -74,6 +74,7 @@ enum class eCommandKind : uint8_t
     Flash = 10,
     CompanionCommand = 11,
     PracticeControl = 12,
+    ReorderItem = 13,
 };
 
 enum class eCompanionCommandMode : uint16_t
@@ -173,7 +174,12 @@ enum class eItemStatOverrideField : uint8_t
     LifeSteal = 12,
     FlatMagicPen = 13,
     Lethality = 14,
-    Count = 15,
+    CritDamageBonus = 15,
+    PercentMoveSpeed = 16,
+    ArmorPenPercent = 17,
+    BonusArmorPenPercent = 18,
+    MagicPenPercent = 19,
+    Count = 20,
 };
 
 inline constexpr u32_t kPracticeInfiniteHealthFlag = 1u << 0;
@@ -289,6 +295,14 @@ struct CommandExecutionResult
     }
 };
 
+struct SkillCommandFeedback
+{
+    CommandExecutionResult result{};
+    u8_t authoritativeSkillSlot = 0xFFu;
+    u8_t authoritativeSkillStage = 0u;
+    u64_t stageWindowEndTick = 0u;
+};
+
 class ICommandExecutor
 {
 public:
@@ -315,7 +329,8 @@ private:
     CommandExecutionResult HandleBasicAttack(CWorld&, const TickContext&, const GameCommand&);
     void HandleLevelSkill(CWorld&, const TickContext&, const GameCommand&);
     void HandleBuyItem(CWorld&, const TickContext&, const GameCommand&);
-    void HandleUseItem(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleUseItem(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleReorderItem(CWorld&, const TickContext&, const GameCommand&);
     CommandExecutionResult HandleRecall(CWorld&, const TickContext&, const GameCommand&);
     CommandExecutionResult HandleRecallCancel(CWorld&, const TickContext&, const GameCommand&);
     void HandleAIDebugControl(CWorld&, const TickContext&, const GameCommand&);
@@ -326,3 +341,8 @@ private:
 GameCommand BuildServerCommand(const GameCommandWire& wire,
     uint32_t sessionId, EntityID controlledEntity,
     const EntityIdMap& map);
+
+void ExecuteExpiredSkillCharges(
+    ICommandExecutor& executor,
+    CWorld& world,
+    const TickContext& tc);

@@ -7,6 +7,7 @@
 #include "Shared/GameSim/Definitions/GameplayDefinitionPack.h"
 
 class CWorld;
+struct TickContext;
 
 class CStatSystem
 {
@@ -24,6 +25,7 @@ public:
         const GameplayDefinitionPack& definitions);
     static void Execute(CWorld& world);
     static void Execute(CWorld& world, const GameplayDefinitionPack& definitions);
+    static void TickResourceRegeneration(CWorld& world, const TickContext& tc);
 
 private:
     static f32_t Clamp(f32_t value, f32_t minValue, f32_t maxValue);

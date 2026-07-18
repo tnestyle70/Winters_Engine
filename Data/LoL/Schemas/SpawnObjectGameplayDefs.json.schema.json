@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Spawn object gameplay definitions",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "dataVersion",
+    "spawnLoadout",
+    "championCollider",
+    "structure",
+    "defaultJungleCamp",
+    "jungleCamps",
+    "defaultMinion",
+    "minions",
+    "minionBehavior",
+    "minionWave"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dataVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "buildHash": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "spawnLoadout": {
+      "type": "object"
+    },
+    "championCollider": {
+      "type": "object"
+    },
+    "structure": {
+      "type": "object"
+    },
+    "defaultJungleCamp": {
+      "type": "object"
+    },
+    "jungleCamps": {
+      "type": "array",
+      "minItems": 1
+    },
+    "defaultMinion": {
+      "type": "object"
+    },
+    "minions": {
+      "type": "array",
+      "minItems": 1
+    },
+    "minionBehavior": {
+      "type": "object"
+    },
+    "minionWave": {
+      "type": "object"
+    }
+  }
+}

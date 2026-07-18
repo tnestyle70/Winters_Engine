@@ -95,7 +95,9 @@ C++20 자체 DX11 엔진 위에 LoL 구조의 MOBA를 서버 권위(authoritativ
 
 | 수치 | 내용 | 측정/근거 | 관련 코드 |
 |---|---|---|---|
-| 17.8ms → 9ms | 프레임 타임 약 2배 개선 (~110fps) | 자체 CPU 프로파일러 스코프 트리로 `Minion::AnimUpdate` 16ms(프레임의 90%) 병목 확정 → bAnimated 플래그 + 중복 Update/Render 제거 (2026-04-24) | `Engine/Private/Core/Profiler/`, `Engine/Private/Framework/CEngineApp.cpp` |
+| 17.8ms → 9ms | 프레임 타임 약 2배 개선 (~110fps) — **주의: Debug 캡처. 측정 방법 서사로만 사용, 헤드라인 수치는 아래 Release 실측으로** | 자체 CPU 프로파일러 스코프 트리로 `Minion::AnimUpdate` 16ms(프레임의 90%) 병목 확정 → bAnimated 플래그 + 중복 Update/Render 제거 (2026-04-24) | `Engine/Private/Core/Profiler/`, `Engine/Private/Framework/CEngineApp.cpp` |
+| Update 0.72→0.17ms (-76%) | **Release /O2 실측** — 지연 포즈 평가로 컬링 인스턴스 애니 비용 0화. 프레임 median 1.69→1.08~1.32ms (런 노이즈 병기), 유효 563→709~887 FPS. GPU·드로우콜 불변으로 회귀 없음 계측 확인 (2026-07-17, 시각 게이트 대기) | Release+`WINTERS_PROFILING` 점화 후 WRPL 리플레이 재현 조건에서 before/after 캡처 3회, `analyze_profiler_capture.py` 게이트 | `Engine/Private/Resource/Animator.cpp`(EnsurePoseEvaluated), `.md/plan/performance/PROFILING_LEDGER.md` |
+| 계측 인프라 하루 완성 | GPU 패스 타임스탬프 11개(disjoint 링 확장)+파이프라인 통계+통합 Draw::Total(깔때기2+원시5)+무인 캡처 CLI+원커맨드 파이프라인 — 프로파일러 자기 오버헤드 p95 1.5%(게이트 1% 예산 내), 드롭 0 | 원장 `PROFILING_LEDGER.md` + `Tools/Profiler/run_profile_session.ps1` 셀프테스트 | `Engine/Private/RHI/DX11/CDX11Device.cpp`, `Engine/Private/Core/Profiler/RenderFrameStats.h` |
 | 27종 / FAIL 0 | FBX·GLB → .wmesh 전수 변환 (챔피언5+맵1+구조물6+정글7+미니언8) | 자체 변환기 배치 실행 로그 | `Tools/WintersAssetConverter/`, `Tools/convert_all_assets.bat` |
 | 60MB → 1.2MB (50×) | Irelia FBX 대비 .wmesh 크기 | 변환 산출물 파일 크기 비교 | `Engine/Public/AssetFormat/Mesh/` (WMeshFormat POD + static_assert) |
 | 15종 | 서버 시뮬레이션 챔피언 수 (스킬·투사체 포함) | 레포 폴더 실측 | `Shared/GameSim/Champions/` |
@@ -220,7 +222,15 @@ C++20 자체 DX11 엔진 위에 LoL 구조의 MOBA를 서버 권위 멀티플레
 Engine(DLL)/Client/Server/Shared 4계층 아키텍처.
 
 **클라이언트/엔진**
-- 프레임 타임 17.8ms → 9ms 개선 — 자체 CPU 프로파일러(스코프 트리+카운터)를
+- 최적화 빌드(Release /O2) 상시 계측 파이프라인 구축 — GPU 패스별 타임스탬프
+  (D3D11 disjoint 쿼리 링)·파이프라인 통계·통합 드로우콜/상태바인드 카운터·
+  리플레이 기반 무인 캡처 CLI를 설계, 프로파일러 자기 오버헤드를 프레임의
+  1.5%(p95) 이내로 계측·게이트. 이 파이프라인이 지목한 1위 병목(애니메이션
+  포즈 평가, 프레임의 25%)을 지연 평가(lazy evaluation)로 전환해 Update 페이즈
+  0.72ms → 0.17ms(-76%), 프레임 중앙값 1.69ms → 1.1~1.3ms(563→709~887 FPS)
+  개선 — 동일 리플레이 재현 조건 3회 실측, GPU 시간·드로우콜 불변으로 회귀
+  없음을 계측으로 검증 (2026-07-17)
+- 프레임 타임 17.8ms → 9ms 개선 (Debug 계측 기준) — 자체 CPU 프로파일러(스코프 트리+카운터)를
   먼저 구축, 스키닝 갱신이 프레임의 90%(16ms)임을 계측으로 확정 후 정적 엔티티
   애니메이션 스킵 플래그와 중복 루프 호출 제거로 해결
 - FBX/GLB 27종 → 자체 포맷 .wmesh 전수 변환 파이프라인 — 60MB FBX를 1.2MB로

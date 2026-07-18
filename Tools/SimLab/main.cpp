@@ -29,6 +29,7 @@
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/ItemRuntimeComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
 #include "Shared/GameSim/Components/PoseActionStateHelpers.h"
@@ -41,8 +42,10 @@
 #include "Shared/GameSim/Components/SkillLoadoutComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Components/SylasSimComponent.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/AsheSimComponent.h"
 #include "Shared/GameSim/Components/FioraSimComponent.h"
@@ -56,13 +59,13 @@
 #include "Shared/GameSim/Components/ViegoSimComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Components/YoneSimComponent.h"
+#include "Shared/GameSim/Components/ZedSimComponent.h"
 
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 #include "Server/Private/Data/LoLGameplayDefinitionPack.h"
 
@@ -81,6 +84,7 @@
 #include "Shared/GameSim/Systems/Move/MoveSystem.h"
 #include "Shared/GameSim/Systems/Recall/RecallSystem.h"
 #include "Shared/GameSim/Systems/Gold/GoldIncomeSystem.h"
+#include "Shared/GameSim/Systems/Item/ItemEffectSystem.h"
 #include "Shared/GameSim/Systems/Rune/RuneSystem.h"
 #include "Shared/GameSim/Systems/Shield/ShieldSystem.h"
 #include "Shared/GameSim/Systems/SkillCooldown/SkillCooldownSystem.h"
@@ -111,6 +115,7 @@
 #include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
 #include "Shared/GameSim/Champions/Zed/ZedGameSim.h"
 #include "Tools/AIResearch/Native/AiDecisionTraceCaptureWriter.h"
+#include "Shared/Schemas/Generated/cpp/Snapshot_generated.h"
 
 #include <bcrypt.h>
 #include <algorithm>
@@ -278,10 +283,12 @@ namespace
         }
         else
         {
-            const ChampionStatsDef statsDef =
-                CChampionStatsRegistry::Instance().Resolve(champ);
-            stat = CStatSystem::BuildBaseStats(statsDef, kSimLabStartLevel);
-            spatialRadius = statsDef.spatialRadius;
+            std::fprintf(
+                stderr,
+                "[SimLab] missing canonical champion definition: %u\n",
+                static_cast<u32_t>(champ));
+            world.DestroyEntity(entity);
+            return NULL_ENTITY;
         }
         world.AddComponent<StatComponent>(entity, stat);
 
@@ -606,6 +613,10 @@ namespace
         const EntityID attacker = SpawnChampion(
             world, entityMap, eChampion::ANNIE,
             static_cast<u8_t>(eTeam::Red), 5u);
+        const EntityID minionAttacker = world.CreateEntity();
+        MinionComponent minion{};
+        minion.team = eTeam::Red;
+        world.AddComponent<MinionComponent>(minionAttacker, minion);
 
         world.GetComponent<TransformComponent>(leeSin).SetPosition(Vec3{ 0.f, 0.f, 0.f });
         world.GetComponent<TransformComponent>(ally).SetPosition(Vec3{ 1.f, 0.f, 0.f });
@@ -790,6 +801,29 @@ namespace
             return false;
         }
 
+        YasuoStateComponent& readyYasuoState =
+            world.GetComponent<YasuoStateComponent>(yasuo);
+        readyYasuoState.fPassiveFlow = readyYasuoState.fPassiveFlowMax;
+
+        DamageRequest yasuoMinionHit{};
+        yasuoMinionHit.source = minionAttacker;
+        yasuoMinionHit.target = yasuo;
+        yasuoMinionHit.sourceTeam = eTeam::Red;
+        yasuoMinionHit.type = eDamageType::True;
+        yasuoMinionHit.flatAmount = 10.f;
+        TickContext yasuoMinionTick = MakeProbeTickContext(
+            298ull, rng, entityMap, walkable);
+        const DamageResult minionDamage = ApplyDamageRequest(
+            world, yasuoMinionTick, yasuoMinionHit);
+        if (minionDamage.bWasShielded ||
+            minionDamage.finalAmount != 10.f ||
+            world.HasComponent<ShieldComponent>(yasuo) ||
+            world.GetComponent<YasuoStateComponent>(yasuo).fPassiveFlow != 100.f)
+        {
+            std::printf("[SimLab][Shield] FAIL: minion damage triggered Yasuo passive\n");
+            return false;
+        }
+
         DamageRequest yasuoHit{};
         yasuoHit.source = attacker;
         yasuoHit.target = yasuo;
@@ -814,8 +848,13 @@ namespace
         TickContext yasuoTick = MakeProbeTickContext(
             300ull, rng, entityMap, walkable);
         CDamageQueueSystem::Execute(world, yasuoTick);
+        const f32_t expectedYasuoShield =
+            YasuoGameSim::ResolvePassiveShieldAmount(
+                world.GetComponent<ChampionComponent>(yasuo).level);
         if (!world.HasComponent<ShieldComponent>(yasuo) ||
-            std::abs(world.GetComponent<ShieldComponent>(yasuo).fCurrent - 70.f) > 0.001f ||
+            std::abs(
+                world.GetComponent<ShieldComponent>(yasuo).fCurrent -
+                    (expectedYasuoShield - 30.f)) > 0.001f ||
             world.GetComponent<YasuoStateComponent>(yasuo).fPassiveFlow != 0.f)
         {
             std::printf("[SimLab][Shield] FAIL: Yasuo passive first-hit absorption mismatch\n");
@@ -844,14 +883,56 @@ namespace
                 }
             });
         if (passiveEventCount != 1u || !bPassiveDurationMatched ||
-            std::abs(world.GetComponent<ChampionComponent>(yasuo).shield - 60.f) > 0.001f)
+            std::abs(
+                world.GetComponent<ChampionComponent>(yasuo).shield -
+                    (expectedYasuoShield - 40.f)) > 0.001f)
         {
             std::printf("[SimLab][Shield] FAIL: Yasuo passive cue count/duration mismatch\n");
             return false;
         }
 
+        TransformComponent& yasuoTransform =
+            world.GetComponent<TransformComponent>(yasuo);
+        yasuoTransform.SetPosition(Vec3{});
+        TickContext flowInitTick = MakeProbeTickContext(
+            302ull, rng, entityMap, walkable);
+        YasuoGameSim::Tick(world, flowInitTick);
+        const f32_t distancePerFlow =
+            YasuoGameSim::ResolvePassiveFlowDistancePerPoint(
+                world.GetComponent<ChampionComponent>(yasuo).level);
+        yasuoTransform.SetPosition(Vec3{ distancePerFlow, 0.f, 0.f });
+        TickContext flowMoveTick = MakeProbeTickContext(
+            303ull, rng, entityMap, walkable);
+        YasuoGameSim::Tick(world, flowMoveTick);
+        const f32_t chargedFlow =
+            world.GetComponent<YasuoStateComponent>(yasuo).fPassiveFlow;
+        if (std::fabs(chargedFlow - 1.f) > 0.001f)
+        {
+            std::printf(
+                "[SimLab][Shield] FAIL: Yasuo movement Flow=%.3f expected=1\n",
+                chargedFlow);
+            return false;
+        }
+
+        PositionDiscontinuityComponent discontinuity{};
+        discontinuity.uTick = 304ull;
+        world.AddComponent<PositionDiscontinuityComponent>(
+            yasuo, discontinuity);
+        yasuoTransform.SetPosition(Vec3{ 25.f, 0.f, 0.f });
+        TickContext discontinuityTick = MakeProbeTickContext(
+            304ull, rng, entityMap, walkable);
+        YasuoGameSim::Tick(world, discontinuityTick);
+        if (std::fabs(
+                world.GetComponent<YasuoStateComponent>(yasuo).fPassiveFlow -
+                    chargedFlow) > 0.001f)
+        {
+            std::printf("[SimLab][Shield] FAIL: discontinuity granted Yasuo Flow\n");
+            return false;
+        }
+
         std::printf(
-            "[SimLab][Shield] PASS: Riven=70 LeeSin=80 Yasuo=100 duration=90ticks\n");
+            "[SimLab][Shield] PASS: Riven=70 LeeSin=80 Yasuo=%.3f Flow movement/discontinuity duration=90ticks\n",
+            expectedYasuoShield);
         return true;
     }
 
@@ -1657,6 +1738,7 @@ namespace
         bind.kind = eCommandKind::UseItem;
         bind.issuerEntity = kalista;
         bind.targetEntity = ally;
+        bind.slot = kKalistaOathswornInventorySlot;
         bind.itemId = kKalistaOathswornItemId;
         bind.sequenceNum = 1u;
         TickContext rejectedTick =
@@ -2077,6 +2159,7 @@ namespace
         orphanBind.kind = eCommandKind::UseItem;
         orphanBind.issuerEntity = disconnectedKalista;
         orphanBind.targetEntity = orphanAlly;
+        orphanBind.slot = kKalistaOathswornInventorySlot;
         orphanBind.itemId = kKalistaOathswornItemId;
         orphanBind.sequenceNum = 1u;
         TickContext orphanBindTick = MakeProbeTickContext(
@@ -2129,6 +2212,7 @@ namespace
         carryOrphanBind.kind = eCommandKind::UseItem;
         carryOrphanBind.issuerEntity = carryOwner;
         carryOrphanBind.targetEntity = carriedOrphan;
+        carryOrphanBind.slot = kKalistaOathswornInventorySlot;
         carryOrphanBind.itemId = kKalistaOathswornItemId;
         carryOrphanBind.sequenceNum = 1u;
         TickContext carryOrphanBindTick = MakeProbeTickContext(
@@ -2203,6 +2287,110 @@ namespace
 
         std::printf(
             "[SimLab][KalistaR] PASS: authority gates, ritual, Bound, explicit player/AI launch, airborne, rewards, orphan cleanup\n");
+        return true;
+    }
+
+    bool_t RunStructureDestructionRemnantProbe()
+    {
+        CWorld world;
+        DeterministicRng rng(20260718ull);
+        EntityIdMap entityMap;
+        FlatWalkable walkable;
+        auto executor = CDefaultCommandExecutor::Create();
+
+        const EntityID attacker = SpawnChampion(
+            world,
+            entityMap,
+            eChampion::GAREN,
+            static_cast<u8_t>(eTeam::Blue),
+            0u);
+        world.GetComponent<TransformComponent>(attacker).SetPosition(Vec3{});
+
+        const EntityID turret = SpawnStatusProbeTarget(
+            world,
+            GameplayStateQuery::eGameplayTargetKind::Structure,
+            eTeam::Red,
+            Vec3{ 1.f, 0.f, 0.f });
+        if (turret == NULL_ENTITY)
+        {
+            std::printf(
+                "[SimLab][StructureRemnant] FAIL: structure fixture spawn failed\n");
+            return false;
+        }
+        {
+            auto& structure = world.GetComponent<StructureComponent>(turret);
+            structure.kind = static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Turret);
+            structure.hp = 1000.f;
+            structure.maxHp = 1000.f;
+            TurretComponent turretComponent{};
+            turretComponent.team = eTeam::Red;
+            turretComponent.hp = 1000.f;
+            turretComponent.maxHp = 1000.f;
+            world.AddComponent<TurretComponent>(turret, turretComponent);
+        }
+
+        if (!GameplayStateQuery::CanBeTargetedBy(world, attacker, turret))
+        {
+            std::printf(
+                "[SimLab][StructureRemnant] FAIL: alive structure not targetable\n");
+            return false;
+        }
+
+        world.GetComponent<HealthComponent>(turret).fCurrent = 0.f;
+        TickContext deathTick =
+            MakeProbeTickContext(1ull, rng, entityMap, walkable);
+        CDeathSystem::Execute(world, deathTick);
+
+        if (!world.IsAlive(turret) ||
+            !world.GetComponent<HealthComponent>(turret).bIsDead)
+        {
+            std::printf(
+                "[SimLab][StructureRemnant] FAIL: destroyed structure entity was despawned or not marked dead\n");
+            return false;
+        }
+        if (world.HasComponent<TargetableTag>(turret) ||
+            GameplayStateQuery::CanBeTargetedBy(world, attacker, turret))
+        {
+            std::printf(
+                "[SimLab][StructureRemnant] FAIL: destroyed structure kept targetable contract\n");
+            return false;
+        }
+
+        TickContext attackTick =
+            MakeProbeTickContext(2ull, rng, entityMap, walkable);
+        GameCommand attack{};
+        attack.kind = eCommandKind::BasicAttack;
+        attack.issuerEntity = attacker;
+        attack.targetEntity = turret;
+        attack.direction = Vec3{ 1.f, 0.f, 0.f };
+        attack.sequenceNum = 1u;
+        attack.issuedAtTick = attackTick.tickIndex;
+        const CommandExecutionResult attackResult =
+            executor->ExecuteCommand(world, attackTick, attack);
+        if (attackResult.state != eCommandExecutionState::Rejected ||
+            attackResult.reason != eCommandExecutionReason::DeadTarget)
+        {
+            std::printf(
+                "[SimLab][StructureRemnant] FAIL: basic attack on remnant not rejected as dead target (state=%u reason=%u)\n",
+                static_cast<u32_t>(attackResult.state),
+                static_cast<u32_t>(attackResult.reason));
+            return false;
+        }
+
+        world.GetComponent<HealthComponent>(turret).fCurrent = 120.f;
+        TickContext reviveTick =
+            MakeProbeTickContext(3ull, rng, entityMap, walkable);
+        CDeathSystem::Execute(world, reviveTick);
+        if (world.GetComponent<HealthComponent>(turret).bIsDead ||
+            !world.HasComponent<TargetableTag>(turret))
+        {
+            std::printf(
+                "[SimLab][StructureRemnant] FAIL: revived structure did not restore targetable contract\n");
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][StructureRemnant] PASS: destroyed structure persists, untargetable, BA rejected, revive restores tag\n");
         return true;
     }
 
@@ -2335,6 +2523,484 @@ namespace
 
         std::printf(
             "[SimLab][ActionGeneration] PASS: stale BasicAttack impact discarded after action replacement\n");
+        return true;
+    }
+
+    bool_t RunSylasPassiveBasicAttackProbe()
+    {
+        CWorld world;
+        DeterministicRng rng(2026071701ull);
+        EntityIdMap entityMap;
+        FlatWalkable walkable;
+        auto executor = CDefaultCommandExecutor::Create();
+
+        const EntityID sylas = SpawnChampion(
+            world, entityMap, eChampion::SYLAS,
+            static_cast<u8_t>(eTeam::Blue), 0u);
+        const EntityID target = SpawnChampion(
+            world, entityMap, eChampion::JAX,
+            static_cast<u8_t>(eTeam::Red), 5u);
+        world.GetComponent<TransformComponent>(sylas).SetPosition(Vec3{});
+        world.GetComponent<TransformComponent>(target).SetPosition(
+            Vec3{ 1.f, 0.f, 0.f });
+
+        GameCommand castQ{};
+        castQ.kind = eCommandKind::CastSkill;
+        castQ.issuerEntity = sylas;
+        castQ.slot = static_cast<u8_t>(eSkillSlot::Q);
+        castQ.sequenceNum = 1u;
+        castQ.issuedAtTick = 1ull;
+        TickContext armTick = MakeProbeTickContext(
+            castQ.issuedAtTick, rng, entityMap, walkable);
+        const CommandExecutionResult rejectedCast =
+            executor->ExecuteCommand(world, armTick, castQ);
+        if (rejectedCast.state != eCommandExecutionState::Rejected ||
+            world.HasComponent<SylasSimComponent>(sylas))
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: rejected skill created a stack\n");
+            return false;
+        }
+
+        world.GetComponent<SkillRankComponent>(sylas).ranks[
+            static_cast<u8_t>(eSkillSlot::Q)] = 1u;
+        castQ.sequenceNum = 2u;
+        castQ.issuedAtTick = 2ull;
+        armTick = MakeProbeTickContext(
+            castQ.issuedAtTick, rng, entityMap, walkable);
+        const CommandExecutionResult acceptedCast =
+            executor->ExecuteCommand(world, armTick, castQ);
+        if (acceptedCast.state != eCommandExecutionState::Accepted ||
+            !world.HasComponent<SylasSimComponent>(sylas) ||
+            world.GetComponent<SylasSimComponent>(sylas).passiveStacks != 1u)
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: accepted skill did not create a stack\n");
+            return false;
+        }
+        for (u32_t i = 0u; i < 3u; ++i)
+            SylasGameSim::ArmPassiveOnSkillCast(world, armTick, sylas);
+
+        if (!world.HasComponent<SylasSimComponent>(sylas))
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: passive state missing\n");
+            return false;
+        }
+        const auto& capped = world.GetComponent<SylasSimComponent>(sylas);
+        if (capped.passiveStacks != 3u ||
+            std::fabs(capped.passiveRemainingSec - 5.f) > 0.001f)
+        {
+            std::printf(
+                "[SimLab][SylasPassive] FAIL: JSON cap/window mismatch stacks=%u time=%.3f\n",
+                static_cast<unsigned>(capped.passiveStacks),
+                capped.passiveRemainingSec);
+            return false;
+        }
+
+        TickContext beforeExpiry = armTick;
+        beforeExpiry.fDt = 4.99f;
+        SylasGameSim::Tick(world, beforeExpiry);
+        if (world.GetComponent<SylasSimComponent>(sylas).passiveStacks != 3u)
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: stack expired before five seconds\n");
+            return false;
+        }
+        TickContext afterExpiry = armTick;
+        afterExpiry.fDt = 0.02f;
+        SylasGameSim::Tick(world, afterExpiry);
+        if (world.GetComponent<SylasSimComponent>(sylas).passiveStacks != 0u)
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: stack survived five-second window\n");
+            return false;
+        }
+
+        for (u32_t i = 0u; i < 3u; ++i)
+            SylasGameSim::ArmPassiveOnSkillCast(world, armTick, sylas);
+        TickContext ageTick = armTick;
+        ageTick.fDt = 1.f;
+        SylasGameSim::Tick(world, ageTick);
+        const f32_t remainingBeforeAttack =
+            world.GetComponent<SylasSimComponent>(sylas).passiveRemainingSec;
+
+        GameCommand passiveAttack{};
+        passiveAttack.kind = eCommandKind::BasicAttack;
+        passiveAttack.issuerEntity = sylas;
+        passiveAttack.targetEntity = target;
+        passiveAttack.direction = Vec3{ 1.f, 0.f, 0.f };
+        passiveAttack.sequenceNum = 3u;
+        passiveAttack.issuedAtTick = 30ull;
+        TickContext attackTick = MakeProbeTickContext(
+            passiveAttack.issuedAtTick, rng, entityMap, walkable);
+        const CommandExecutionResult passiveResult =
+            executor->ExecuteCommand(world, attackTick, passiveAttack);
+        const auto& passiveState = world.GetComponent<SylasSimComponent>(sylas);
+        if (passiveResult.state != eCommandExecutionState::Accepted ||
+            passiveState.passiveStacks != 2u ||
+            std::fabs(passiveState.passiveRemainingSec - remainingBeforeAttack) > 0.001f ||
+            !world.HasComponent<CombatActionComponent>(sylas))
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: passive BA consume/remaining mismatch\n");
+            return false;
+        }
+
+        const CombatActionComponent passiveAction =
+            world.GetComponent<CombatActionComponent>(sylas);
+        if (passiveAction.uStage != 2u ||
+            (passiveAction.uFlags & CombatActionFlags::SylasPassive) == 0u)
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: passive BA stage/flag mismatch\n");
+            return false;
+        }
+
+        TickContext impactTick = MakeProbeTickContext(
+            passiveAction.uImpactTick, rng, entityMap, walkable);
+        CCombatActionSystem::Execute(world, impactTick);
+        u32_t passiveEffectCount = 0u;
+        world.ForEach<ReplicatedEventComponent>(
+            [&](EntityID, ReplicatedEventComponent& event)
+            {
+                const u8_t eventStage = static_cast<u8_t>(
+                    (event.flags >> 12) & 0x0fu);
+                if (event.kind == eReplicatedEventKind::EffectTrigger &&
+                    event.sourceEntity == sylas &&
+                    event.slot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+                    eventStage == 2u)
+                {
+                    ++passiveEffectCount;
+                }
+            });
+        if (passiveEffectCount != 1u)
+        {
+            std::printf(
+                "[SimLab][SylasPassive] FAIL: passive BA cue count=%u\n",
+                passiveEffectCount);
+            return false;
+        }
+
+        if (!SylasGameSim::TryConsumePassiveBasicAttack(world, sylas) ||
+            !SylasGameSim::TryConsumePassiveBasicAttack(world, sylas) ||
+            SylasGameSim::TryConsumePassiveBasicAttack(world, sylas))
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: one-stack-per-BA consume mismatch\n");
+            return false;
+        }
+
+        TickContext endTick = MakeProbeTickContext(
+            passiveAction.uEndTick, rng, entityMap, walkable);
+        CCombatActionSystem::Execute(world, endTick);
+        auto& baSlot = world.GetComponent<SkillStateComponent>(sylas).slots[
+            static_cast<u8_t>(eSkillSlot::BasicAttack)];
+        baSlot.cooldownRemaining = 0.f;
+        baSlot.cooldownDuration = 0.f;
+        GameCommand baseAttack = passiveAttack;
+        baseAttack.sequenceNum = 4u;
+        baseAttack.issuedAtTick = passiveAction.uEndTick + 1ull;
+        TickContext baseTick = MakeProbeTickContext(
+            baseAttack.issuedAtTick, rng, entityMap, walkable);
+        const CommandExecutionResult baseResult =
+            executor->ExecuteCommand(world, baseTick, baseAttack);
+        if (baseResult.state != eCommandExecutionState::Accepted ||
+            !world.HasComponent<CombatActionComponent>(sylas))
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: base BA was not accepted\n");
+            return false;
+        }
+        const auto& baseAction = world.GetComponent<CombatActionComponent>(sylas);
+        if (baseAction.uStage != 1u ||
+            (baseAction.uFlags & CombatActionFlags::SylasPassive) != 0u)
+        {
+            std::printf("[SimLab][SylasPassive] FAIL: base BA stage contract mismatch\n");
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][SylasPassive] PASS: JSON 3-stack/5s, consume, BA stage 1/2, one cue\n");
+        return true;
+    }
+
+    bool_t RunZedPassiveDeathMarkProbe()
+    {
+        CWorld world;
+        DeterministicRng rng(2026071702ull);
+        EntityIdMap entityMap;
+        FlatWalkable walkable;
+        auto executor = CDefaultCommandExecutor::Create();
+
+        const EntityID zed = SpawnChampion(
+            world, entityMap, eChampion::ZED,
+            static_cast<u8_t>(eTeam::Blue), 0u);
+        const EntityID target = SpawnChampion(
+            world, entityMap, eChampion::JAX,
+            static_cast<u8_t>(eTeam::Red), 5u);
+        const EntityID yasuoTarget = SpawnChampion(
+            world, entityMap, eChampion::YASUO,
+            static_cast<u8_t>(eTeam::Red), 6u);
+        world.GetComponent<TransformComponent>(zed).SetPosition(Vec3{});
+        world.GetComponent<TransformComponent>(target).SetPosition(
+            Vec3{ 1.f, 0.f, 0.f });
+        world.GetComponent<TransformComponent>(yasuoTarget).SetPosition(
+            Vec3{ 1.2f, 0.f, 0.f });
+
+        const auto SetHealth = [&](EntityID entity, f32_t current, f32_t maximum)
+        {
+            HealthComponent& health = world.GetComponent<HealthComponent>(entity);
+            health.fCurrent = current;
+            health.fMaximum = maximum;
+            health.bIsDead = false;
+            ChampionComponent& champion = world.GetComponent<ChampionComponent>(entity);
+            champion.hp = current;
+            champion.maxHp = maximum;
+        };
+        const auto ClearResistance = [&](EntityID entity)
+        {
+            StatComponent& stat = world.GetComponent<StatComponent>(entity);
+            stat.baseArmor = 0.f;
+            stat.bonusArmor = 0.f;
+            stat.armor = 0.f;
+        };
+        ClearResistance(target);
+        ClearResistance(yasuoTarget);
+
+        TickContext thresholdTick = MakeProbeTickContext(
+            1ull, rng, entityMap, walkable);
+        SetHealth(target, 50.1f, 100.f);
+        if (ZedGameSim::CanTriggerPassiveBasicAttack(
+                world, thresholdTick, zed, target))
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: passive accepted target above 50%%\n");
+            return false;
+        }
+
+        SetHealth(target, 50.f, 100.f);
+        GameCommand attack{};
+        attack.kind = eCommandKind::BasicAttack;
+        attack.issuerEntity = zed;
+        attack.targetEntity = target;
+        attack.direction = Vec3{ 1.f, 0.f, 0.f };
+        attack.sequenceNum = 1u;
+        attack.issuedAtTick = 2ull;
+        TickContext attackTick = MakeProbeTickContext(
+            attack.issuedAtTick, rng, entityMap, walkable);
+        const CommandExecutionResult attackResult =
+            executor->ExecuteCommand(world, attackTick, attack);
+        if (attackResult.state != eCommandExecutionState::Accepted ||
+            !world.HasComponent<CombatActionComponent>(zed))
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: threshold BA was not accepted\n");
+            return false;
+        }
+
+        const CombatActionComponent action =
+            world.GetComponent<CombatActionComponent>(zed);
+        if (action.uStage != 2u ||
+            (action.uFlags & CombatActionFlags::ZedPassive) == 0u)
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: passive BA stage/flag mismatch\n");
+            return false;
+        }
+
+        TickContext impactTick = MakeProbeTickContext(
+            action.uImpactTick, rng, entityMap, walkable);
+        CCombatActionSystem::Execute(world, impactTick);
+
+        u32_t normalAttackRequests = 0u;
+        u32_t passiveAttackRequests = 0u;
+        world.ForEach<DamageRequestComponent>(
+            [&](EntityID, DamageRequestComponent& request)
+            {
+                if (request.source != zed || request.target != target ||
+                    request.eSourceKind != eDamageSourceKind::BasicAttack)
+                {
+                    return;
+                }
+
+                if (std::fabs(request.targetMissingHpRatioOverride - 0.1f) <= 0.0001f &&
+                    request.flags == DamageFlag_ShowCriticalIndicator)
+                {
+                    ++passiveAttackRequests;
+                }
+                else if ((request.flags & DamageFlag_OnHit) != 0u)
+                {
+                    ++normalAttackRequests;
+                }
+            });
+
+        u32_t passiveCueCount = 0u;
+        world.ForEach<ReplicatedEventComponent>(
+            [&](EntityID, ReplicatedEventComponent& event)
+            {
+                const u8_t stage = static_cast<u8_t>((event.flags >> 12) & 0x0fu);
+                if (event.kind == eReplicatedEventKind::EffectTrigger &&
+                    event.sourceEntity == zed &&
+                    event.targetEntity == target &&
+                    event.slot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+                    stage == 2u)
+                {
+                    ++passiveCueCount;
+                }
+            });
+        if (normalAttackRequests != 1u ||
+            passiveAttackRequests != 1u ||
+            passiveCueCount != 1u)
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: BA requests/cue normal=%u passive=%u cue=%u\n",
+                normalAttackRequests,
+                passiveAttackRequests,
+                passiveCueCount);
+            return false;
+        }
+
+        SetHealth(target, 20.f, 100.f);
+        DamageRequest lethalRequest{};
+        lethalRequest.source = zed;
+        lethalRequest.target = target;
+        lethalRequest.sourceTeam = eTeam::Blue;
+        lethalRequest.type = eDamageType::Physical;
+        lethalRequest.flatAmount = 24.f;
+        lethalRequest.eSourceKind = eDamageSourceKind::Skill;
+        if (!WouldNonCriticalDamageRequestKill(
+                world, impactTick, lethalRequest))
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: unshielded lethal preview was false\n");
+            return false;
+        }
+
+        if (!CShieldSystem::Grant(world, impactTick, target, 10.f, 1.f) ||
+            WouldNonCriticalDamageRequestKill(world, impactTick, lethalRequest))
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: generic shield was ignored by preview\n");
+            return false;
+        }
+        CShieldSystem::Clear(world, target);
+
+        AnnieSimComponent annieShield{};
+        annieShield.fEShieldRemainingSec = 1.f;
+        annieShield.fEShieldAmount = 10.f;
+        world.AddComponent<AnnieSimComponent>(target, annieShield);
+        if (WouldNonCriticalDamageRequestKill(world, impactTick, lethalRequest))
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: Annie E shield was ignored by preview\n");
+            return false;
+        }
+        world.RemoveComponent<AnnieSimComponent>(target);
+
+        SetHealth(yasuoTarget, 20.f, 100.f);
+        YasuoStateComponent& lethalPreviewYasuo =
+            world.GetComponent<YasuoStateComponent>(yasuoTarget);
+        lethalPreviewYasuo.fPassiveFlow = lethalPreviewYasuo.fPassiveFlowMax;
+        DamageRequest yasuoRequest = lethalRequest;
+        yasuoRequest.target = yasuoTarget;
+        if (WouldNonCriticalDamageRequestKill(world, impactTick, yasuoRequest))
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: ready Yasuo shield was ignored by preview\n");
+            return false;
+        }
+
+        KindredHealthFloorComponent floor{};
+        floor.sourceEntity = zed;
+        floor.fRemainingSec = 1.f;
+        floor.fMinHealth = 1.f;
+        world.AddComponent<KindredHealthFloorComponent>(target, floor);
+        if (WouldNonCriticalDamageRequestKill(world, impactTick, lethalRequest))
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: Kindred health floor was ignored by preview\n");
+            return false;
+        }
+        world.RemoveComponent<KindredHealthFloorComponent>(target);
+
+        ZedDeathMarkComponent mark{};
+        mark.entitySource = zed;
+        mark.rank = 1u;
+        mark.fRemainingSec = 1.f;
+        mark.fMissingHealthDamageRatio = 0.3f;
+        world.AddComponent<ZedDeathMarkComponent>(target, mark);
+
+        TickContext showTick = MakeProbeTickContext(
+            100ull, rng, entityMap, walkable);
+        showTick.fDt = 0.01f;
+        ZedGameSim::Tick(world, showTick);
+        if (!world.HasComponent<ZedDeathMarkComponent>(target) ||
+            !world.GetComponent<ZedDeathMarkComponent>(target).bLethalMarkerVisible)
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: lethal marker did not transition to show\n");
+            return false;
+        }
+
+        TickContext hideTick = showTick;
+        hideTick.tickIndex = 101ull;
+        CShieldSystem::Grant(world, hideTick, target, 10.f, 1.f);
+        ZedGameSim::Tick(world, hideTick);
+        if (world.GetComponent<ZedDeathMarkComponent>(target).bLethalMarkerVisible)
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: lethal marker did not transition to hide\n");
+            return false;
+        }
+
+        TickContext reshowTick = showTick;
+        reshowTick.tickIndex = 102ull;
+        CShieldSystem::Clear(world, target);
+        ZedGameSim::Tick(world, reshowTick);
+        if (!world.GetComponent<ZedDeathMarkComponent>(target).bLethalMarkerVisible)
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: lethal marker did not transition back to show\n");
+            return false;
+        }
+
+        world.GetComponent<ZedDeathMarkComponent>(target).fRemainingSec = 0.01f;
+        TickContext popTick = showTick;
+        popTick.tickIndex = 103ull;
+        popTick.fDt = 0.02f;
+        ZedGameSim::Tick(world, popTick);
+        if (world.HasComponent<ZedDeathMarkComponent>(target))
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: death mark survived pop\n");
+            return false;
+        }
+
+        u32_t markerShowCount = 0u;
+        u32_t markerHideCount = 0u;
+        u32_t markerPopCount = 0u;
+        world.ForEach<ReplicatedEventComponent>(
+            [&](EntityID, ReplicatedEventComponent& event)
+            {
+                if (event.kind != eReplicatedEventKind::EffectTrigger ||
+                    event.sourceEntity != zed ||
+                    event.targetEntity != target ||
+                    event.slot != static_cast<u8_t>(eSkillSlot::R))
+                {
+                    return;
+                }
+
+                const u8_t stage = static_cast<u8_t>((event.flags >> 12) & 0x0fu);
+                markerShowCount += stage == 4u ? 1u : 0u;
+                markerHideCount += stage == 5u ? 1u : 0u;
+                markerPopCount += stage == 2u ? 1u : 0u;
+            });
+        if (markerShowCount != 2u ||
+            markerHideCount != 1u ||
+            markerPopCount != 1u)
+        {
+            std::printf(
+                "[SimLab][ZedPassiveR] FAIL: R cue transitions show=%u hide=%u pop=%u\n",
+                markerShowCount,
+                markerHideCount,
+                markerPopCount);
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][ZedPassiveR] PASS: 50%% BA, 10%% missing HP, shield-aware R show/hide/pop\n");
         return true;
     }
 
@@ -4491,6 +5157,20 @@ namespace
                     static_cast<u8_t>(Winters::Map::eLane::Mid);
             }
 
+            // 위협 게이트 진입 계약: 앵커 근방에 적 미니언이 있어야 집결한다.
+            const EntityID midThreat = SpawnStatusProbeTarget(
+                world,
+                GameplayStateQuery::eGameplayTargetKind::MinionOrSummon,
+                eTeam::Red,
+                Vec3{ 18.f, 0.f, 10.f });
+            if (midThreat != NULL_ENTITY)
+            {
+                world.GetComponent<MinionComponent>(midThreat).laneType =
+                    static_cast<u8_t>(Winters::Map::eLane::Mid);
+                world.GetComponent<MinionStateComponent>(midThreat).lane =
+                    static_cast<u8_t>(Winters::Map::eLane::Mid);
+            }
+
             ScenarioResult result{};
             const Vec3 initialPos =
                 world.GetComponent<TransformComponent>(bot).GetPosition();
@@ -4577,7 +5257,8 @@ namespace
             if (deadOuter == NULL_ENTITY ||
                 liveMidInner == NULL_ENTITY ||
                 liveNexus == NULL_ENTITY ||
-                alliedWave == NULL_ENTITY)
+                alliedWave == NULL_ENTITY ||
+                midThreat == NULL_ENTITY)
             {
                 result.bActivated = false;
             }
@@ -4670,6 +5351,17 @@ namespace
             Winters::Map::eLane::Mid,
             Vec3{ 20.f, 0.f, 10.f },
             false);
+        const EntityID commitmentThreat = SpawnStatusProbeTarget(
+            commitmentWorld,
+            GameplayStateQuery::eGameplayTargetKind::MinionOrSummon,
+            eTeam::Red,
+            Vec3{ 18.f, 0.f, 10.f });
+        if (commitmentThreat == NULL_ENTITY)
+        {
+            std::printf(
+                "[SimLab][ChampionAI][MidDefense] FAIL: commitment threat spawn failed\n");
+            return false;
+        }
 
         TickContext commitmentTick = MakeProbeTickContext(
             1ull,
@@ -4770,6 +5462,183 @@ namespace
                 static_cast<unsigned>(dangerState.debugLastBlockReason),
                 dangerState.fDecisionTurretDanger,
                 dangerState.bInsideEnemyTurretDanger ? 1u : 0u);
+            return false;
+        }
+
+        // 신규 계약 1: 위협 소멸 + 홀드 소진 → 래치 해제, 홈 레인 복귀.
+        CWorld releaseWorld;
+        DeterministicRng releaseRng(20260725ull);
+        EntityIdMap releaseEntityMap;
+        FlatWalkable releaseWalkable;
+        const EntityID releaseBot = SpawnChampion(
+            releaseWorld,
+            releaseEntityMap,
+            eChampion::ASHE,
+            static_cast<u8_t>(eTeam::Blue),
+            0u);
+        releaseWorld.GetComponent<TransformComponent>(releaseBot).SetPosition(
+            Vec3{ 20.f, 1.f, 10.f });
+        ChampionAIComponent releaseAI{};
+        releaseAI.champion = eChampion::ASHE;
+        releaseAI.team = eTeam::Blue;
+        releaseAI.lane = static_cast<u8_t>(Winters::Map::eLane::Top);
+        releaseAI.activeLane = static_cast<u8_t>(Winters::Map::eLane::Mid);
+        releaseAI.state = eChampionAIState::GroupMidDefense;
+        releaseAI.intent = eChampionAIIntent::DefendMid;
+        releaseAI.bMidDefenseActive = true;
+        releaseAI.midDefenseThreatHoldTimer = 0.f;
+        releaseAI.decisionTimer = 0.f;
+        releaseAI.safeAnchor = Vec3{ -10.f, 1.f, -10.f };
+        releaseAI.retreatGoal = releaseAI.safeAnchor;
+        releaseAI.midDefenseAnchor = Vec3{ 20.f, 1.f, 10.f };
+        releaseWorld.AddComponent<ChampionAIComponent>(releaseBot, releaseAI);
+        SpawnStructure(
+            releaseWorld,
+            eTeam::Blue,
+            Winters::Map::eObjectKind::Structure_Turret,
+            Winters::Map::eTurretTier::Outer,
+            Winters::Map::eLane::Top,
+            Vec3{ -10.f, 0.f, -10.f },
+            true);
+
+        TickContext releaseTick = MakeProbeTickContext(
+            1ull,
+            releaseRng,
+            releaseEntityMap,
+            releaseWalkable);
+        std::vector<GameCommand> releaseCommands;
+        CChampionAISystem::Execute(releaseWorld, releaseTick, releaseCommands);
+        const auto& releasedState =
+            releaseWorld.GetComponent<ChampionAIComponent>(releaseBot);
+        if (releasedState.bMidDefenseActive ||
+            releasedState.activeLane !=
+                static_cast<u8_t>(Winters::Map::eLane::Top) ||
+            releasedState.state != eChampionAIState::MoveToOuterTurret)
+        {
+            std::printf(
+                "[SimLab][ChampionAI][MidDefense] FAIL: threat-free latch did not release active=%u lane=%u state=%u\n",
+                releasedState.bMidDefenseActive ? 1u : 0u,
+                static_cast<unsigned>(releasedState.activeLane),
+                static_cast<unsigned>(releasedState.state));
+            return false;
+        }
+
+        // 신규 계약 2: 위협 존재 시 래치 유지 + 홀드 리필.
+        CWorld holdWorld;
+        DeterministicRng holdRng(20260726ull);
+        EntityIdMap holdEntityMap;
+        FlatWalkable holdWalkable;
+        const EntityID holdBot = SpawnChampion(
+            holdWorld,
+            holdEntityMap,
+            eChampion::ASHE,
+            static_cast<u8_t>(eTeam::Blue),
+            0u);
+        holdWorld.GetComponent<TransformComponent>(holdBot).SetPosition(
+            Vec3{ 20.f, 1.f, 10.f });
+        ChampionAIComponent holdAI{};
+        holdAI.champion = eChampion::ASHE;
+        holdAI.team = eTeam::Blue;
+        holdAI.lane = static_cast<u8_t>(Winters::Map::eLane::Top);
+        holdAI.activeLane = static_cast<u8_t>(Winters::Map::eLane::Mid);
+        holdAI.state = eChampionAIState::GroupMidDefense;
+        holdAI.intent = eChampionAIIntent::DefendMid;
+        holdAI.bMidDefenseActive = true;
+        holdAI.midDefenseThreatHoldTimer = 0.f;
+        holdAI.decisionTimer = 0.f;
+        holdAI.safeAnchor = Vec3{ -10.f, 1.f, -10.f };
+        holdAI.retreatGoal = holdAI.safeAnchor;
+        holdAI.midDefenseAnchor = Vec3{ 20.f, 1.f, 10.f };
+        holdWorld.AddComponent<ChampionAIComponent>(holdBot, holdAI);
+        // 살아있는 미드 포탑이 있어야 앵커가 safeAnchor 폴백으로 떨어지지
+        // 않고 위협 미니언이 판정 반경 안에 남는다.
+        SpawnStructure(
+            holdWorld,
+            eTeam::Blue,
+            Winters::Map::eObjectKind::Structure_Turret,
+            Winters::Map::eTurretTier::Inner,
+            Winters::Map::eLane::Mid,
+            Vec3{ 20.f, 0.f, 10.f },
+            false);
+        SpawnStatusProbeTarget(
+            holdWorld,
+            GameplayStateQuery::eGameplayTargetKind::MinionOrSummon,
+            eTeam::Red,
+            Vec3{ 18.f, 0.f, 10.f });
+
+        TickContext holdTick = MakeProbeTickContext(
+            1ull,
+            holdRng,
+            holdEntityMap,
+            holdWalkable);
+        std::vector<GameCommand> holdCommands;
+        CChampionAISystem::Execute(holdWorld, holdTick, holdCommands);
+        const auto& heldState =
+            holdWorld.GetComponent<ChampionAIComponent>(holdBot);
+        if (!heldState.bMidDefenseActive ||
+            heldState.midDefenseThreatHoldTimer <= 0.f)
+        {
+            std::printf(
+                "[SimLab][ChampionAI][MidDefense] FAIL: threatened latch released early active=%u hold=%.2f\n",
+                heldState.bMidDefenseActive ? 1u : 0u,
+                heldState.midDefenseThreatHoldTimer);
+            return false;
+        }
+
+        // 신규 계약 3: 로테이션 중 사거리 내 적 챔피언 → 교전 위임(지나치기 금지).
+        CWorld engageWorld;
+        DeterministicRng engageRng(20260727ull);
+        EntityIdMap engageEntityMap;
+        FlatWalkable engageWalkable;
+        const EntityID engageBot = SpawnChampion(
+            engageWorld,
+            engageEntityMap,
+            eChampion::ASHE,
+            static_cast<u8_t>(eTeam::Blue),
+            0u);
+        const EntityID engageEnemy = SpawnChampion(
+            engageWorld,
+            engageEntityMap,
+            eChampion::JAX,
+            static_cast<u8_t>(eTeam::Red),
+            5u);
+        engageWorld.GetComponent<TransformComponent>(engageBot).SetPosition(
+            Vec3{});
+        engageWorld.GetComponent<TransformComponent>(engageEnemy).SetPosition(
+            Vec3{ 1.5f, 0.f, 0.f });
+        ChampionAIComponent engageAI{};
+        engageAI.champion = eChampion::ASHE;
+        engageAI.team = eTeam::Blue;
+        engageAI.difficulty = 2u;
+        engageAI.brainType = eChampionAIBrainType::PlayerLike;
+        engageAI.lane = static_cast<u8_t>(Winters::Map::eLane::Top);
+        engageAI.activeLane = static_cast<u8_t>(Winters::Map::eLane::Mid);
+        engageAI.state = eChampionAIState::GroupMidDefense;
+        engageAI.intent = eChampionAIIntent::DefendMid;
+        engageAI.bMidDefenseActive = true;
+        engageAI.midDefenseThreatHoldTimer = 6.f;
+        engageAI.decisionTimer = 0.f;
+        engageAI.safeAnchor = Vec3{ -10.f, 1.f, -10.f };
+        engageAI.retreatGoal = engageAI.safeAnchor;
+        engageAI.midDefenseAnchor = Vec3{ 20.f, 1.f, 10.f };
+        engageWorld.AddComponent<ChampionAIComponent>(engageBot, engageAI);
+
+        TickContext engageTick = MakeProbeTickContext(
+            1ull,
+            engageRng,
+            engageEntityMap,
+            engageWalkable);
+        std::vector<GameCommand> engageCommands;
+        CChampionAISystem::Execute(engageWorld, engageTick, engageCommands);
+        const auto& engagedState =
+            engageWorld.GetComponent<ChampionAIComponent>(engageBot);
+        if (engagedState.state != eChampionAIState::LaneCombat ||
+            engagedState.intent != eChampionAIIntent::AttackChampion)
+        {
+            std::printf(
+                "[SimLab][ChampionAI][MidDefense] FAIL: in-range enemy ignored during rotation state=%u intent=%u\n",
+                static_cast<unsigned>(engagedState.state),
+                static_cast<unsigned>(engagedState.intent));
             return false;
         }
 
@@ -5212,6 +6081,902 @@ namespace
         return true;
     }
 
+    bool_t RunViegoRLandingCenterProbe()
+    {
+        CWorld world;
+        DeterministicRng rng(2026071803ull);
+        EntityIdMap entityMap;
+        FlatWalkable walkable;
+        auto executor = CDefaultCommandExecutor::Create();
+
+        const EntityID viego = SpawnChampion(
+            world, entityMap, eChampion::VIEGO,
+            static_cast<u8_t>(eTeam::Blue), 0u);
+        const EntityID clickedCenterTarget = SpawnChampion(
+            world, entityMap, eChampion::JAX,
+            static_cast<u8_t>(eTeam::Red), 5u);
+        const EntityID legacyMaxRangeTarget = SpawnChampion(
+            world, entityMap, eChampion::ANNIE,
+            static_cast<u8_t>(eTeam::Red), 6u);
+
+        world.GetComponent<TransformComponent>(viego).SetPosition(Vec3{});
+        world.GetComponent<TransformComponent>(clickedCenterTarget).SetPosition(
+            Vec3{ 3.f, 0.f, 0.f });
+        world.GetComponent<TransformComponent>(legacyMaxRangeTarget).SetPosition(
+            Vec3{ 6.f, 0.f, 0.f });
+        world.GetComponent<SkillRankComponent>(viego)
+            .ranks[static_cast<u8_t>(eSkillSlot::R)] = 1u;
+
+        TickContext tc = MakeProbeTickContext(
+            1ull, rng, entityMap, walkable);
+        GameCommand cast{};
+        cast.kind = eCommandKind::CastSkill;
+        cast.issuerEntity = viego;
+        cast.issuedAtTick = tc.tickIndex;
+        cast.sequenceNum = 1u;
+        cast.slot = static_cast<u8_t>(eSkillSlot::R);
+        cast.groundPos = Vec3{ 3.f, 0.f, 0.f };
+        cast.direction = Vec3{ 1.f, 0.f, 0.f };
+
+        const CommandExecutionResult result =
+            executor->ExecuteCommand(world, tc, cast);
+        bool_t bClickedTargetDamaged = false;
+        bool_t bLegacyTargetDamaged = false;
+        world.ForEach<DamageRequestComponent>(
+            [&](EntityID, DamageRequestComponent& request)
+            {
+                const u16_t viegoRSkillId = static_cast<u16_t>(
+                    (static_cast<u32_t>(eChampion::VIEGO) << 8) |
+                    static_cast<u32_t>(eSkillSlot::R));
+                if (request.source != viego ||
+                    request.skillId != viegoRSkillId)
+                {
+                    return;
+                }
+                bClickedTargetDamaged =
+                    bClickedTargetDamaged ||
+                    request.target == clickedCenterTarget;
+                bLegacyTargetDamaged =
+                    bLegacyTargetDamaged ||
+                    request.target == legacyMaxRangeTarget;
+            });
+
+        const bool_t bClickedTargetSlowed =
+            CountStatusEffects(
+                world,
+                clickedCenterTarget,
+                eStatusEffectId::GenericSlow,
+                viego) == 1u;
+        const bool_t bLegacyTargetSlowed =
+            CountStatusEffects(
+                world,
+                legacyMaxRangeTarget,
+                eStatusEffectId::GenericSlow,
+                viego) != 0u;
+
+        if (result.state != eCommandExecutionState::Accepted ||
+            !bClickedTargetDamaged ||
+            bLegacyTargetDamaged ||
+            !bClickedTargetSlowed ||
+            bLegacyTargetSlowed)
+        {
+            std::printf(
+                "[SimLab][ViegoRLanding] FAIL: state=%u clickedDamage=%u legacyDamage=%u clickedSlow=%u legacySlow=%u\n",
+                static_cast<u32_t>(result.state),
+                bClickedTargetDamaged ? 1u : 0u,
+                bLegacyTargetDamaged ? 1u : 0u,
+                bClickedTargetSlowed ? 1u : 0u,
+                bLegacyTargetSlowed ? 1u : 0u);
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][ViegoRLanding] PASS: damage/slow centered on requested landing point\n");
+        return true;
+    }
+
+    eSkillActionMovePolicy ResolveFrozenLegacyMovePolicy(
+        eChampion champion,
+        u8_t slot,
+        u8_t stage)
+    {
+        if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+            return eSkillActionMovePolicy::Allow;
+
+        const u8_t q = static_cast<u8_t>(eSkillSlot::Q);
+        const u8_t w = static_cast<u8_t>(eSkillSlot::W);
+        const u8_t e = static_cast<u8_t>(eSkillSlot::E);
+        const u8_t r = static_cast<u8_t>(eSkillSlot::R);
+        switch (champion)
+        {
+        case eChampion::ANNIE:
+            return slot == e ? eSkillActionMovePolicy::Allow : eSkillActionMovePolicy::QueueUntilUnlock;
+        case eChampion::ASHE:
+            return (slot == q || slot == e) ? eSkillActionMovePolicy::Allow : eSkillActionMovePolicy::QueueUntilUnlock;
+        case eChampion::EZREAL:
+            return slot == e ? eSkillActionMovePolicy::ForcedMotion : eSkillActionMovePolicy::QueueUntilUnlock;
+        case eChampion::FIORA:
+            if (slot == q) return eSkillActionMovePolicy::ForcedMotion;
+            if (slot == w) return eSkillActionMovePolicy::StationaryChannel;
+            return eSkillActionMovePolicy::Allow;
+        case eChampion::GAREN:
+            return slot == r ? eSkillActionMovePolicy::QueueUntilUnlock : eSkillActionMovePolicy::Allow;
+        case eChampion::IRELIA:
+            if (slot == q) return eSkillActionMovePolicy::ForcedMotion;
+            if (slot == w && stage <= 1u) return eSkillActionMovePolicy::StationaryChannel;
+            if (slot == e) return eSkillActionMovePolicy::Allow;
+            return eSkillActionMovePolicy::QueueUntilUnlock;
+        case eChampion::JAX:
+            return slot == q ? eSkillActionMovePolicy::ForcedMotion : eSkillActionMovePolicy::Allow;
+        case eChampion::KALISTA:
+            return (slot == q || slot == w || slot == r) ? eSkillActionMovePolicy::QueueUntilUnlock : eSkillActionMovePolicy::Allow;
+        case eChampion::KINDRED:
+            return eSkillActionMovePolicy::Allow;
+        case eChampion::LEESIN:
+            if (slot == q && stage >= 2u) return eSkillActionMovePolicy::ForcedMotion;
+            if (slot == w && stage <= 1u) return eSkillActionMovePolicy::ForcedMotion;
+            if (slot == w && stage >= 2u) return eSkillActionMovePolicy::Allow;
+            return slot == e ? eSkillActionMovePolicy::Allow : eSkillActionMovePolicy::QueueUntilUnlock;
+        case eChampion::MASTERYI:
+            return eSkillActionMovePolicy::Allow;
+        case eChampion::RIVEN:
+            return (slot == q || slot == w) ? eSkillActionMovePolicy::QueueUntilUnlock : eSkillActionMovePolicy::Allow;
+        case eChampion::SYLAS:
+            if (slot == e) return eSkillActionMovePolicy::ForcedMotion;
+            return (slot == q || slot == r) ? eSkillActionMovePolicy::QueueUntilUnlock : eSkillActionMovePolicy::Allow;
+        case eChampion::VIEGO:
+            if (slot == w) return stage >= 2u ? eSkillActionMovePolicy::ForcedMotion : eSkillActionMovePolicy::Allow;
+            if (slot == r) return eSkillActionMovePolicy::ForcedMotion;
+            if (slot == e) return eSkillActionMovePolicy::Allow;
+            return eSkillActionMovePolicy::QueueUntilUnlock;
+        case eChampion::YASUO:
+            if (slot == e || slot == r) return eSkillActionMovePolicy::ForcedMotion;
+            return slot == w ? eSkillActionMovePolicy::Allow : eSkillActionMovePolicy::QueueUntilUnlock;
+        case eChampion::YONE:
+            if (slot == e || slot == r) return eSkillActionMovePolicy::ForcedMotion;
+            return eSkillActionMovePolicy::QueueUntilUnlock;
+        case eChampion::ZED:
+            if ((slot == w && stage >= 2u) || slot == r) return eSkillActionMovePolicy::ForcedMotion;
+            return (slot == w || slot == e) ? eSkillActionMovePolicy::Allow : eSkillActionMovePolicy::QueueUntilUnlock;
+        default:
+            return eSkillActionMovePolicy::QueueUntilUnlock;
+        }
+    }
+
+    eSkillFacingMode ResolveDefaultFacing(eTargetShape shape)
+    {
+        switch (shape)
+        {
+        case eTargetShape::Unit:
+            return eSkillFacingMode::TowardsTarget;
+        case eTargetShape::Ground:
+        case eTargetShape::Direction:
+            return eSkillFacingMode::TowardsCommandDirection;
+        case eTargetShape::Self:
+        default:
+            return eSkillFacingMode::None;
+        }
+    }
+
+    struct FrozenFacingOverride
+    {
+        eChampion champion;
+        u8_t slot;
+        u8_t stage;
+        eSkillFacingMode mode;
+    };
+
+    constexpr FrozenFacingOverride kFrozenFacingOverrides[] =
+    {
+        { eChampion::RIVEN, 3u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::LEESIN, 0u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::LEESIN, 2u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::LEESIN, 4u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::KINDRED, 0u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::KINDRED, 3u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::MASTERYI, 0u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::MASTERYI, 1u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::YONE, 3u, 2u, eSkillFacingMode::None },
+        { eChampion::SYLAS, 0u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::SYLAS, 2u, 1u, eSkillFacingMode::TowardsCommandDirection },
+        { eChampion::SYLAS, 4u, 1u, eSkillFacingMode::TowardsCommandDirection },
+    };
+
+    const FrozenFacingOverride* FindFrozenFacingOverride(
+        eChampion champion,
+        u8_t slot,
+        u8_t stage)
+    {
+        for (const FrozenFacingOverride& candidate : kFrozenFacingOverrides)
+        {
+            if (candidate.champion == champion &&
+                candidate.slot == slot &&
+                candidate.stage == stage)
+            {
+                return &candidate;
+            }
+        }
+        return nullptr;
+    }
+
+    bool_t RunDataDrivenSkillContractProbe()
+    {
+        const GameplayDefinitionPack& definitions =
+            ServerData::GetLoLGameplayDefinitionPack();
+        if (definitions.championCount != 17u || definitions.skillCount != 85u)
+        {
+            std::printf(
+                "[SimLab][DataContract] FAIL: expected 17 champions/85 skills, got %zu/%zu\n",
+                definitions.championCount,
+                definitions.skillCount);
+            return false;
+        }
+
+        u32_t checkedSkills = 0u;
+        u32_t twoStageSkills = 0u;
+        u32_t pressReleaseSkills = 0u;
+        u32_t pressRecastSkills = 0u;
+        u32_t authoredStages = 0u;
+        u32_t chargeSkills = 0u;
+        u32_t loopingStages = 0u;
+        u32_t actionlessStages = 0u;
+        u32_t facingOverrides = 0u;
+        u32_t legacyMovePolicyDeltas = 0u;
+		u64_t orderedContractHash = 1469598103934665603ull;
+		HashU64(orderedContractHash, 2u);
+		const auto QuantizeContractSeconds = [](f32_t seconds)
+		{
+			return static_cast<u64_t>(std::llround(
+				static_cast<f64_t>(seconds) * 1000000.0));
+		};
+        for (std::size_t championIndex = 0u;
+            championIndex < definitions.championCount;
+            ++championIndex)
+        {
+            const ChampionGameplayDef& champion = definitions.champions[championIndex];
+            for (u8_t slot = 0u; slot < kChampionSkillSlotCount; ++slot)
+            {
+                const SkillGameplayDef* skill =
+                    definitions.FindSkill(champion.skillLoadout[slot]);
+                if (!skill || skill->slot != slot || !skill->target.bValid ||
+                    skill->stage.stageCount < 1u || skill->stage.stageCount > 2u ||
+                    skill->cooldown.rankCount < 1u ||
+                    skill->cooldown.rankCount > kSkillRankValueMax ||
+                    skill->cost.rankCount < 1u ||
+                    skill->cost.rankCount > kSkillRankValueMax ||
+                    !std::isfinite(skill->range.rangeMax) || skill->range.rangeMax < 0.f ||
+                    !std::isfinite(skill->stage.stageWindowSec) ||
+                    skill->stage.stageWindowSec < 0.f)
+                {
+                    std::printf(
+                        "[SimLab][DataContract] FAIL: malformed champ=%u slot=%u\n",
+                        static_cast<u32_t>(champion.legacyChampion),
+                        static_cast<u32_t>(slot));
+                    return false;
+                }
+
+                for (u8_t stage = 0u; stage < skill->stage.stageCount; ++stage)
+                {
+                    if (!std::isfinite(skill->stage.lockDurationSec[stage]) ||
+                        skill->stage.lockDurationSec[stage] < 0.f ||
+                        !std::isfinite(skill->stage.commandLockSec[stage]) ||
+                        skill->stage.commandLockSec[stage] < 0.f)
+                    {
+                        std::printf(
+                            "[SimLab][DataContract] FAIL: invalid lock champ=%u slot=%u stage=%u\n",
+                            static_cast<u32_t>(champion.legacyChampion),
+                            static_cast<u32_t>(slot),
+                            static_cast<u32_t>(stage + 1u));
+                        return false;
+                    }
+                    if (skill->target.resolvePolicy ==
+                            eTargetResolvePolicy::Contextual ||
+                        skill->target.resolvePolicy ==
+                            eTargetResolvePolicy::ChampionStateDependent)
+                    {
+                        std::printf(
+                            "[SimLab][DataContract] FAIL: unresolved target policy champ=%u slot=%u stage=%u\n",
+                            static_cast<u32_t>(champion.legacyChampion),
+                            static_cast<u32_t>(slot),
+                            static_cast<u32_t>(stage + 1u));
+                        return false;
+                    }
+
+                    const u8_t stageNumber = static_cast<u8_t>(stage + 1u);
+                    const eSkillFacingMode actualFacing = skill->facing.mode[stage];
+					HashU64(orderedContractHash,
+						static_cast<u64_t>(champion.legacyChampion));
+					HashU64(orderedContractHash, slot);
+					HashU64(orderedContractHash, stageNumber);
+					HashU64(orderedContractHash, skill->stage.stageCount);
+					HashU64(orderedContractHash,
+						static_cast<u64_t>(skill->target.shape[stage]));
+					HashU64(orderedContractHash,
+						static_cast<u64_t>(actualFacing));
+					HashU64(orderedContractHash,
+						static_cast<u64_t>(skill->input.activation));
+					HashU64(orderedContractHash,
+						static_cast<u64_t>(skill->stage.movePolicy[stage]));
+					HashU64(orderedContractHash,
+						skill->stage.bCreatesActionState[stage] ? 1u : 0u);
+					HashU64(orderedContractHash,
+						skill->stage.bPresentationLoopWhileActive[stage] ? 1u : 0u);
+					HashU64(orderedContractHash, QuantizeContractSeconds(
+						skill->stage.lockDurationSec[stage]));
+					HashU64(orderedContractHash, QuantizeContractSeconds(
+						skill->stage.commandLockSec[stage]));
+					HashU64(orderedContractHash, QuantizeContractSeconds(
+						skill->stage.stageWindowSec));
+                    const FrozenFacingOverride* facingOverride =
+                        FindFrozenFacingOverride(champion.legacyChampion, slot, stageNumber);
+                    const eSkillFacingMode expectedFacing = facingOverride
+                        ? facingOverride->mode
+                        : ResolveDefaultFacing(skill->target.shape[stage]);
+                    if (static_cast<u8_t>(actualFacing) >
+                            static_cast<u8_t>(eSkillFacingMode::TowardsCommandDirection) ||
+                        actualFacing != expectedFacing)
+                    {
+                        std::printf(
+                            "[SimLab][DataContract] FAIL: facing parity champ=%u slot=%u stage=%u actual=%u expected=%u\n",
+                            static_cast<u32_t>(champion.legacyChampion),
+                            static_cast<u32_t>(slot),
+                            static_cast<u32_t>(stageNumber),
+                            static_cast<u32_t>(actualFacing),
+                            static_cast<u32_t>(expectedFacing));
+                        return false;
+                    }
+                    if (facingOverride)
+                        ++facingOverrides;
+
+                    const eSkillActionMovePolicy legacyMovePolicy =
+                        ResolveFrozenLegacyMovePolicy(
+                            champion.legacyChampion,
+                            slot,
+                            stageNumber);
+                    const eSkillActionMovePolicy actualMovePolicy =
+                        skill->stage.movePolicy[stage];
+                    if (actualMovePolicy != legacyMovePolicy)
+                    {
+                        const bool_t bExpectedIreliaW2Delta =
+                            champion.legacyChampion == eChampion::IRELIA &&
+                            slot == static_cast<u8_t>(eSkillSlot::W) &&
+                            stageNumber == 2u &&
+                            legacyMovePolicy == eSkillActionMovePolicy::QueueUntilUnlock &&
+                            actualMovePolicy == eSkillActionMovePolicy::Allow;
+                        if (!bExpectedIreliaW2Delta)
+                        {
+                            std::printf(
+                                "[SimLab][DataContract] FAIL: legacy move parity champ=%u slot=%u stage=%u actual=%u legacy=%u\n",
+                                static_cast<u32_t>(champion.legacyChampion),
+                                static_cast<u32_t>(slot),
+                                static_cast<u32_t>(stageNumber),
+                                static_cast<u32_t>(actualMovePolicy),
+                                static_cast<u32_t>(legacyMovePolicy));
+                            return false;
+                        }
+                        ++legacyMovePolicyDeltas;
+                    }
+
+                    ++authoredStages;
+                    if (skill->stage.bPresentationLoopWhileActive[stage])
+                        ++loopingStages;
+                    if (!skill->stage.bCreatesActionState[stage])
+                        ++actionlessStages;
+                }
+
+                if (skill->charge.bEnabled)
+                {
+                    ++chargeSkills;
+                    if (skill->input.activation != eSkillInputActivation::PressRelease ||
+                        !skill->charge.bAutoRelease ||
+                        skill->charge.maxHoldSec <= 0.f)
+                    {
+                        std::printf(
+                            "[SimLab][DataContract] FAIL: malformed charge champ=%u slot=%u\n",
+                            static_cast<u32_t>(champion.legacyChampion),
+                            static_cast<u32_t>(slot));
+                        return false;
+                    }
+                }
+
+                ++checkedSkills;
+                if (skill->stage.stageCount >= 2u)
+                {
+                    if (skill->stage.stageWindowSec <= 0.f)
+                    {
+                        std::printf(
+                            "[SimLab][DataContract] FAIL: no stage window champ=%u slot=%u\n",
+                            static_cast<u32_t>(champion.legacyChampion),
+                            static_cast<u32_t>(slot));
+                        return false;
+                    }
+
+                    ++twoStageSkills;
+                    const eSkillActionMovePolicy stage1Policy =
+                        skill->stage.movePolicy[0];
+                    const eSkillActionMovePolicy stage2Policy =
+                        skill->stage.movePolicy[1];
+                    if (skill->input.activation == eSkillInputActivation::PressRelease)
+                        ++pressReleaseSkills;
+                    else if (skill->input.activation == eSkillInputActivation::PressRecast)
+                        ++pressRecastSkills;
+                    else
+                    {
+                        std::printf(
+                            "[SimLab][DataContract] FAIL: multi-stage activation is Press champ=%u slot=%u\n",
+                            static_cast<u32_t>(champion.legacyChampion),
+                            static_cast<u32_t>(slot));
+                        return false;
+                    }
+                    std::printf(
+                        "[SimLab][DataContract][TwoStage] champ=%u slot=%u window=%.3f lock1=%.3f lock2=%.3f target1=%u target2=%u move1=%u move2=%u activation=%u\n",
+                        static_cast<u32_t>(champion.legacyChampion),
+                        static_cast<u32_t>(slot),
+                        skill->stage.stageWindowSec,
+                        skill->stage.lockDurationSec[0],
+                        skill->stage.lockDurationSec[1],
+                        static_cast<u32_t>(skill->target.shape[0]),
+                        static_cast<u32_t>(skill->target.shape[1]),
+                        static_cast<u32_t>(stage1Policy),
+                        static_cast<u32_t>(stage2Policy),
+                        static_cast<u32_t>(skill->input.activation));
+                }
+            }
+        }
+
+		const auto FindAuthoredSkill = [&](eChampion champion, u8_t slot)
+		{
+			const ChampionGameplayDef* championDef =
+				definitions.FindChampion(champion);
+			return championDef && slot < kChampionSkillSlotCount
+				? definitions.FindSkill(championDef->skillLoadout[slot])
+				: static_cast<const SkillGameplayDef*>(nullptr);
+		};
+		const SkillGameplayDef* ireliaW = FindAuthoredSkill(
+			eChampion::IRELIA,
+			static_cast<u8_t>(eSkillSlot::W));
+		const SkillGameplayDef* zedR = FindAuthoredSkill(
+			eChampion::ZED,
+			static_cast<u8_t>(eSkillSlot::R));
+		const SkillGameplayDef* yoneE = FindAuthoredSkill(
+			eChampion::YONE,
+			static_cast<u8_t>(eSkillSlot::E));
+		const auto NearContractSeconds = [](f32_t left, f32_t right)
+		{
+			return std::fabs(left - right) <= 0.0001f;
+		};
+		if (!ireliaW || ireliaW->stage.stageCount != 2u ||
+			!NearContractSeconds(ireliaW->stage.lockDurationSec[0], 5.f) ||
+			!NearContractSeconds(ireliaW->stage.commandLockSec[0], 4.f) ||
+			ireliaW->stage.movePolicy[0] !=
+				eSkillActionMovePolicy::StationaryChannel ||
+			!NearContractSeconds(ireliaW->stage.lockDurationSec[1], 0.4f) ||
+			!NearContractSeconds(ireliaW->stage.commandLockSec[1], 0.f) ||
+			ireliaW->stage.movePolicy[1] != eSkillActionMovePolicy::Allow ||
+			!zedR || zedR->stage.stageCount != 2u ||
+			!NearContractSeconds(zedR->stage.lockDurationSec[1], 0.25f) ||
+			!NearContractSeconds(zedR->stage.commandLockSec[1], 0.25f) ||
+			zedR->stage.movePolicy[1] != eSkillActionMovePolicy::ForcedMotion ||
+			!yoneE || yoneE->stage.stageCount != 2u ||
+			!NearContractSeconds(yoneE->stage.lockDurationSec[1], 0.6f) ||
+			!NearContractSeconds(yoneE->stage.commandLockSec[1], 0.6f) ||
+			yoneE->stage.movePolicy[1] != eSkillActionMovePolicy::ForcedMotion)
+		{
+			std::printf(
+				"[SimLab][DataContract] FAIL: approved Irelia W / Zed R2 / Yone E2 lock contracts drifted\n");
+			return false;
+		}
+
+		constexpr u64_t kExpectedOrderedContractHash =
+			0x1F416E7039DD7C48ull;
+		if (orderedContractHash != kExpectedOrderedContractHash)
+		{
+			std::printf(
+				"[SimLab][DataContract] FAIL: ordered 98-stage contract hash actual=%016llx expected=%016llx\n",
+				static_cast<unsigned long long>(orderedContractHash),
+				static_cast<unsigned long long>(kExpectedOrderedContractHash));
+			return false;
+		}
+
+		if (checkedSkills != 85u || authoredStages != 98u ||
+            twoStageSkills != 13u || pressReleaseSkills != 2u ||
+            pressRecastSkills != 11u || chargeSkills != 2u ||
+            loopingStages != 3u || actionlessStages != 1u ||
+            facingOverrides != 12u || legacyMovePolicyDeltas != 1u)
+        {
+            std::printf(
+                "[SimLab][DataContract] FAIL: skills=%u stages=%u twoStage=%u release=%u recast=%u charge=%u loops=%u actionless=%u facingOverrides=%u moveDeltas=%u expected=85/98/13/2/11/2/3/1/12/1\n",
+                checkedSkills,
+                authoredStages,
+                twoStageSkills,
+                pressReleaseSkills,
+                pressRecastSkills,
+                chargeSkills,
+                loopingStages,
+                actionlessStages,
+                facingOverrides,
+                legacyMovePolicyDeltas);
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][DataContract] PASS: 17 champions, 85 skills, 98 stages, orderedContract=%016llx, 13 two-stage contracts, 12 facing overrides, Irelia W2-only move delta\n",
+			static_cast<unsigned long long>(orderedContractHash));
+        return true;
+    }
+
+    bool_t RunIreliaWReleaseRegressionProbe()
+    {
+        CWorld world;
+        DeterministicRng rng(20260718ull);
+        EntityIdMap entityMap;
+        FlatWalkable walkable;
+        auto executor = CDefaultCommandExecutor::Create();
+        const EntityID irelia = SpawnChampion(
+            world,
+            entityMap,
+            eChampion::IRELIA,
+            static_cast<u8_t>(eTeam::Blue),
+            0u);
+
+        auto& ranks = world.GetComponent<SkillRankComponent>(irelia);
+        const u8_t wSlot = static_cast<u8_t>(eSkillSlot::W);
+        const u8_t eSlot = static_cast<u8_t>(eSkillSlot::E);
+        ranks.ranks[wSlot] = 1u;
+        ranks.ranks[eSlot] = 1u;
+
+        GameCommand w1{};
+        w1.kind = eCommandKind::CastSkill;
+        w1.issuerEntity = irelia;
+        w1.slot = wSlot;
+        w1.sequenceNum = 1u;
+        w1.direction = Vec3{ 1.f, 0.f, 0.f };
+        TickContext w1Tick = MakeProbeTickContext(1ull, rng, entityMap, walkable);
+        const CommandExecutionResult w1Result =
+            executor->ExecuteCommand(world, w1Tick, w1);
+        const auto& w1State = world.GetComponent<SkillStateComponent>(irelia).slots[wSlot];
+        const auto& w1Action = world.GetComponent<ActionStateComponent>(irelia);
+        const bool_t bChargeArmed =
+            world.HasComponent<SkillChargeStateComponent>(irelia) &&
+            world.GetComponent<SkillChargeStateComponent>(irelia).bActive &&
+            world.GetComponent<SkillChargeStateComponent>(irelia).localSlot == wSlot &&
+            world.GetComponent<SkillChargeStateComponent>(irelia).maxReleaseTick >
+                w1Tick.tickIndex;
+        if (w1Result.state != eCommandExecutionState::Accepted ||
+            w1State.currentStage != 1u || w1State.stageWindow <= 0.f ||
+            w1Action.stage != 1u ||
+            w1Action.movePolicy != eSkillActionMovePolicy::StationaryChannel ||
+            w1Action.lockEndTick <= w1Tick.tickIndex ||
+            !bChargeArmed)
+        {
+            std::printf(
+                "[SimLab][IreliaWRelease] FAIL: W1 did not arm hold stage/action\n");
+            return false;
+        }
+
+        GameCommand blockedE{};
+        blockedE.kind = eCommandKind::CastSkill;
+        blockedE.issuerEntity = irelia;
+        blockedE.slot = eSlot;
+        blockedE.sequenceNum = 2u;
+        blockedE.groundPos = Vec3{ 2.f, 0.f, 0.f };
+        blockedE.direction = Vec3{ 1.f, 0.f, 0.f };
+        TickContext blockedTick = MakeProbeTickContext(2ull, rng, entityMap, walkable);
+        const CommandExecutionResult blockedResult =
+            executor->ExecuteCommand(world, blockedTick, blockedE);
+        if (blockedResult.state != eCommandExecutionState::Rejected ||
+            blockedResult.reason != eCommandExecutionReason::ActionBlocked)
+        {
+            std::printf(
+                "[SimLab][IreliaWRelease] FAIL: W1 hold did not block unrelated E\n");
+            return false;
+        }
+
+        GameCommand w2 = w1;
+        w2.sequenceNum = 3u;
+        w2.itemId = 2u;
+        TickContext releaseTick = MakeProbeTickContext(3ull, rng, entityMap, walkable);
+        const CommandExecutionResult w2Result =
+            executor->ExecuteCommand(world, releaseTick, w2);
+        const auto& releasedState =
+            world.GetComponent<SkillStateComponent>(irelia).slots[wSlot];
+        const auto& releasedAction = world.GetComponent<ActionStateComponent>(irelia);
+        if (w2Result.state != eCommandExecutionState::Accepted ||
+            releasedState.currentStage != 0u || releasedState.stageWindow != 0.f ||
+            releasedAction.stage != 2u ||
+            releasedAction.movePolicy != eSkillActionMovePolicy::Allow ||
+            releasedAction.lockEndTick != releaseTick.tickIndex ||
+            world.HasComponent<SkillChargeStateComponent>(irelia))
+        {
+            std::printf(
+                "[SimLab][IreliaWRelease] FAIL: W2 did not clear hold with zero input lock\n");
+            return false;
+        }
+
+        GameCommand move{};
+        move.kind = eCommandKind::Move;
+        move.issuerEntity = irelia;
+        move.sequenceNum = 4u;
+        move.groundPos = Vec3{ 5.f, 0.f, 0.f };
+        move.direction = Vec3{ 1.f, 0.f, 0.f };
+        const CommandExecutionResult moveResult =
+            executor->ExecuteCommand(world, releaseTick, move);
+        if (moveResult.state != eCommandExecutionState::Accepted ||
+            !world.GetComponent<MoveTargetComponent>(irelia).bHasTarget)
+        {
+            std::printf(
+                "[SimLab][IreliaWRelease] FAIL: move was not accepted immediately after W2\n");
+            return false;
+        }
+
+        GameCommand immediateE = blockedE;
+        immediateE.sequenceNum = 5u;
+        immediateE.groundPos = Vec3{ 3.f, 0.f, 0.f };
+        const CommandExecutionResult eResult =
+            executor->ExecuteCommand(world, releaseTick, immediateE);
+        if (eResult.state != eCommandExecutionState::Accepted)
+        {
+            std::printf(
+                "[SimLab][IreliaWRelease] FAIL: E rejected after W2 state=%u reason=%u\n",
+                static_cast<u32_t>(eResult.state),
+                static_cast<u32_t>(eResult.reason));
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][IreliaWRelease] PASS: W1 blocks E, W2 accepts, move+E accept same tick\n");
+        return true;
+    }
+
+    bool_t RunSkillChargeContractProbe()
+    {
+        const GameplayDefinitionPack& definitions =
+            ServerData::GetLoLGameplayDefinitionPack();
+        const u8_t wSlot = static_cast<u8_t>(eSkillSlot::W);
+        const ChampionGameplayDef* pIrelia =
+            definitions.FindChampion(eChampion::IRELIA);
+        const ChampionGameplayDef* pViego =
+            definitions.FindChampion(eChampion::VIEGO);
+        const SkillGameplayDef* pIreliaW = pIrelia
+            ? definitions.FindSkill(pIrelia->skillLoadout[wSlot])
+            : nullptr;
+        const SkillGameplayDef* pViegoW = pViego
+            ? definitions.FindSkill(pViego->skillLoadout[wSlot])
+            : nullptr;
+        const auto NearlyEqual = [](f32_t lhs, f32_t rhs)
+        {
+            return std::fabs(lhs - rhs) <= 0.0001f;
+        };
+
+        if (!pIreliaW || !pViegoW ||
+            !pIreliaW->charge.bEnabled || !pIreliaW->charge.bAutoRelease ||
+            !pViegoW->charge.bEnabled || !pViegoW->charge.bAutoRelease ||
+            !NearlyEqual(pIreliaW->charge.maxHoldSec, 4.f) ||
+            !NearlyEqual(pViegoW->charge.maxHoldSec, 4.f) ||
+            !NearlyEqual(pViegoW->range.rangeMax, 5.f) ||
+            !NearlyEqual(pViegoW->charge.minRangeScale, 0.5f) ||
+            !NearlyEqual(pViegoW->charge.maxRangeScale, 1.f) ||
+            !NearlyEqual(pViegoW->charge.minStunSec, 0.25f) ||
+            !NearlyEqual(pViegoW->charge.maxStunSec, 2.f) ||
+            !NearlyEqual(ResolveSkillChargeRatio(10u, 110u, 10u), 0.f) ||
+            !NearlyEqual(ResolveSkillChargeRatio(10u, 110u, 60u), 0.5f) ||
+            !NearlyEqual(ResolveSkillChargeRatio(10u, 110u, 110u), 1.f) ||
+            !NearlyEqual(ResolveSkillChargeValue(0.5f, 1.f, 0.5f), 0.75f) ||
+            !NearlyEqual(ResolveSkillChargeValue(0.25f, 2.f, 0.5f), 1.125f))
+        {
+            std::printf(
+                "[SimLab][ChargeContract] FAIL: authored charge curve mismatch\n");
+            return false;
+        }
+
+        CWorld autoReleaseWorld;
+        DeterministicRng autoReleaseRng(2026071801ull);
+        EntityIdMap autoReleaseEntityMap;
+        FlatWalkable walkable;
+        auto autoReleaseExecutor = CDefaultCommandExecutor::Create();
+        const EntityID autoReleaseViego = SpawnChampion(
+            autoReleaseWorld,
+            autoReleaseEntityMap,
+            eChampion::VIEGO,
+            static_cast<u8_t>(eTeam::Blue),
+            0u);
+        autoReleaseWorld.GetComponent<SkillRankComponent>(
+            autoReleaseViego).ranks[wSlot] = 1u;
+
+        GameCommand w1{};
+        w1.kind = eCommandKind::CastSkill;
+        w1.issuerEntity = autoReleaseViego;
+        w1.slot = wSlot;
+        w1.sequenceNum = 101u;
+        w1.direction = Vec3{ 1.f, 0.f, 0.f };
+        TickContext startTick = MakeProbeTickContext(
+            1ull,
+            autoReleaseRng,
+            autoReleaseEntityMap,
+            walkable);
+        const CommandExecutionResult w1Result =
+            autoReleaseExecutor->ExecuteCommand(autoReleaseWorld, startTick, w1);
+        if (w1Result.state != eCommandExecutionState::Accepted ||
+            !autoReleaseWorld.HasComponent<SkillChargeStateComponent>(autoReleaseViego))
+        {
+            std::printf(
+                "[SimLab][ChargeContract] FAIL: Viego W1 did not arm charge\n");
+            return false;
+        }
+
+        const u64_t maxReleaseTick =
+            autoReleaseWorld.GetComponent<SkillChargeStateComponent>(
+                autoReleaseViego).maxReleaseTick;
+        TickContext releaseTick = MakeProbeTickContext(
+            maxReleaseTick,
+            autoReleaseRng,
+            autoReleaseEntityMap,
+            walkable);
+        ExecuteExpiredSkillCharges(
+            *autoReleaseExecutor,
+            autoReleaseWorld,
+            releaseTick);
+        const auto& releasedSlot =
+            autoReleaseWorld.GetComponent<SkillStateComponent>(
+                autoReleaseViego).slots[wSlot];
+        const auto& releasedAction =
+            autoReleaseWorld.GetComponent<ActionStateComponent>(autoReleaseViego);
+        if (autoReleaseWorld.HasComponent<SkillChargeStateComponent>(autoReleaseViego) ||
+            releasedSlot.currentStage != 0u || releasedSlot.stageWindow != 0.f ||
+            releasedAction.stage != 2u || releasedAction.sequence == 0u ||
+            releasedAction.commandSequence != 0u)
+        {
+            std::printf(
+                "[SimLab][ChargeContract] FAIL: max-hold did not auto-release W2\n");
+            return false;
+        }
+
+        CWorld cancelWorld;
+        DeterministicRng cancelRng(2026071802ull);
+        EntityIdMap cancelEntityMap;
+        auto cancelExecutor = CDefaultCommandExecutor::Create();
+        const EntityID cancelViego = SpawnChampion(
+            cancelWorld,
+            cancelEntityMap,
+            eChampion::VIEGO,
+            static_cast<u8_t>(eTeam::Blue),
+            0u);
+        cancelWorld.GetComponent<SkillRankComponent>(cancelViego).ranks[wSlot] = 1u;
+        w1.issuerEntity = cancelViego;
+        w1.sequenceNum = 201u;
+        TickContext cancelTick = MakeProbeTickContext(
+            1ull,
+            cancelRng,
+            cancelEntityMap,
+            walkable);
+        const CommandExecutionResult cancelW1Result =
+            cancelExecutor->ExecuteCommand(cancelWorld, cancelTick, w1);
+        GameplayStatus::ApplyStun(
+            cancelWorld,
+            cancelTick,
+            cancelViego,
+            NULL_ENTITY,
+            eChampion::VIEGO,
+            eSkillSlot::W,
+            1.f);
+        const auto& cancelledSlot =
+            cancelWorld.GetComponent<SkillStateComponent>(cancelViego).slots[wSlot];
+        if (cancelW1Result.state != eCommandExecutionState::Accepted ||
+            cancelWorld.HasComponent<SkillChargeStateComponent>(cancelViego) ||
+            cancelledSlot.currentStage != 0u || cancelledSlot.stageWindow != 0.f)
+        {
+            std::printf(
+                "[SimLab][ChargeContract] FAIL: crowd control did not cancel charge state=%u reason=%u hasCharge=%u stage=%u window=%.3f\n",
+                static_cast<u32_t>(cancelW1Result.state),
+                static_cast<u32_t>(cancelW1Result.reason),
+                cancelWorld.HasComponent<SkillChargeStateComponent>(cancelViego)
+                    ? 1u
+                    : 0u,
+                static_cast<u32_t>(cancelledSlot.currentStage),
+                cancelledSlot.stageWindow);
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][ChargeContract] PASS: curves, max-hold release, CC cancellation\n");
+        return true;
+    }
+
+    bool_t RunCommandResultSnapshotCompatibilityProbe()
+    {
+        flatbuffers::FlatBufferBuilder legacyBuilder;
+        const auto legacyRoot = Shared::Schema::CreateSnapshot(
+            legacyBuilder,
+            7u);
+        legacyBuilder.Finish(legacyRoot);
+        flatbuffers::Verifier legacyVerifier(
+            legacyBuilder.GetBufferPointer(),
+            legacyBuilder.GetSize());
+        const Shared::Schema::Snapshot* pLegacy =
+            Shared::Schema::GetSnapshot(legacyBuilder.GetBufferPointer());
+        if (!Shared::Schema::VerifySnapshotBuffer(legacyVerifier) ||
+            !pLegacy ||
+            pLegacy->lastCommandResultSeq() != 0u ||
+            pLegacy->lastCommandResultState() != 0u ||
+            pLegacy->lastCommandResultReason() != 0u ||
+            pLegacy->authoritativeSkillSlot() != 255u ||
+            pLegacy->authoritativeSkillStage() != 0u ||
+            pLegacy->stageWindowEndTick() != 0u ||
+            pLegacy->commandResults() != nullptr)
+        {
+            std::printf(
+                "[SimLab][CommandResultWire] FAIL: appended-field defaults changed\n");
+            return false;
+        }
+
+        flatbuffers::FlatBufferBuilder resultBuilder;
+        std::vector<flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>>
+            commandResults;
+        commandResults.push_back(Shared::Schema::CreateCommandResultSnapshot(
+            resultBuilder,
+            77u,
+            static_cast<u8_t>(eCommandExecutionState::Rejected),
+            static_cast<u16_t>(eCommandExecutionReason::ActionBlocked),
+            static_cast<u8_t>(eSkillSlot::W),
+            1u,
+            123u));
+        commandResults.push_back(Shared::Schema::CreateCommandResultSnapshot(
+            resultBuilder,
+            78u,
+            static_cast<u8_t>(eCommandExecutionState::Accepted),
+            static_cast<u16_t>(eCommandExecutionReason::None),
+            static_cast<u8_t>(eSkillSlot::E),
+            0u,
+            0u));
+        const auto commandResultsOffset =
+            resultBuilder.CreateVector(commandResults);
+        Shared::Schema::SnapshotBuilder snapshotBuilder(resultBuilder);
+        snapshotBuilder.add_serverTick(9u);
+        snapshotBuilder.add_lastCommandResultSeq(77u);
+        snapshotBuilder.add_lastCommandResultState(
+            static_cast<u8_t>(eCommandExecutionState::Rejected));
+        snapshotBuilder.add_lastCommandResultReason(
+            static_cast<u16_t>(eCommandExecutionReason::ActionBlocked));
+        snapshotBuilder.add_authoritativeSkillSlot(
+            static_cast<u8_t>(eSkillSlot::W));
+        snapshotBuilder.add_authoritativeSkillStage(1u);
+        snapshotBuilder.add_stageWindowEndTick(123u);
+        snapshotBuilder.add_commandResults(commandResultsOffset);
+        resultBuilder.Finish(snapshotBuilder.Finish());
+        flatbuffers::Verifier resultVerifier(
+            resultBuilder.GetBufferPointer(),
+            resultBuilder.GetSize());
+        const Shared::Schema::Snapshot* pResult =
+            Shared::Schema::GetSnapshot(resultBuilder.GetBufferPointer());
+        if (!Shared::Schema::VerifySnapshotBuffer(resultVerifier) ||
+            !pResult ||
+            pResult->lastCommandResultSeq() != 77u ||
+            pResult->lastCommandResultState() !=
+                static_cast<u8_t>(eCommandExecutionState::Rejected) ||
+            pResult->lastCommandResultReason() !=
+                static_cast<u16_t>(eCommandExecutionReason::ActionBlocked) ||
+            pResult->authoritativeSkillSlot() !=
+                static_cast<u8_t>(eSkillSlot::W) ||
+            pResult->authoritativeSkillStage() != 1u ||
+            pResult->stageWindowEndTick() != 123u ||
+            !pResult->commandResults() ||
+            pResult->commandResults()->size() != 2u ||
+            pResult->commandResults()->Get(0)->authoritativeSkillSlot() !=
+                static_cast<u8_t>(eSkillSlot::W) ||
+            pResult->commandResults()->Get(1)->commandSequence() != 78u ||
+            pResult->commandResults()->Get(1)->authoritativeSkillSlot() !=
+                static_cast<u8_t>(eSkillSlot::E))
+        {
+            std::printf(
+                "[SimLab][CommandResultWire] FAIL: feedback round-trip mismatch\n");
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][CommandResultWire] PASS: legacy defaults and multi-slot feedback round-trip\n");
+        return true;
+    }
+
     bool_t RunActionMovePolicyProbe()
     {
         CWorld world;
@@ -5320,8 +7085,20 @@ namespace
         castW.slot = static_cast<u8_t>(eSkillSlot::W);
         castW.sequenceNum = 6u;
         castW.direction = Vec3{ 1.f, 0.f, 0.f };
-        executor->ExecuteCommand(world, w1Tick, castW);
+        const CommandExecutionResult w1Result =
+            executor->ExecuteCommand(world, w1Tick, castW);
         auto& w1Action = world.GetComponent<ActionStateComponent>(viego);
+        const auto& w1Slot =
+            world.GetComponent<SkillStateComponent>(viego).slots[
+                static_cast<u8_t>(eSkillSlot::W)];
+        if (w1Result.state != eCommandExecutionState::Accepted ||
+            w1Slot.currentStage != 1u || w1Slot.stageWindow <= 0.f ||
+            w1Action.stage != 1u ||
+            w1Action.movePolicy != eSkillActionMovePolicy::Allow)
+        {
+            std::printf("[SimLab][ActionLock] FAIL: Viego W1 stage contract mismatch\n");
+            return false;
+        }
         w1Action.lockEndTick = 999ull;
         w1Action.movePolicy = eSkillActionMovePolicy::QueueUntilUnlock;
 
@@ -5447,7 +7224,7 @@ namespace
             { 3006u, 5.45f, "berserkers-greaves" },
             { 3020u, 5.45f, "sorcerers-shoes" },
             { 3047u, 5.45f, "plated-steelcaps" },
-            { 3742u, 5.05f, "dead-mans-plate" },
+            { 3742u, 5.20f, "dead-mans-plate" },
         };
         constexpr u32_t kCaseCount =
             static_cast<u32_t>(sizeof(kCases) / sizeof(kCases[0]));
@@ -5522,8 +7299,98 @@ namespace
             }
         }
 
+        {
+            CWorld world;
+            DeterministicRng rng(0x17E17u);
+            EntityIdMap entityMap;
+            FlatWalkable walkable;
+            auto executor = CDefaultCommandExecutor::Create();
+            const EntityID championEntity = SpawnChampion(
+                world,
+                entityMap,
+                eChampion::ASHE,
+                static_cast<u8_t>(eTeam::Blue),
+                0u);
+
+            CStatSystem::Execute(
+                world,
+                ServerData::GetLoLGameplayDefinitionPack());
+            const StatComponent baseline =
+                world.GetComponent<StatComponent>(championEntity);
+
+            static constexpr u16_t kCoreStatItems[] =
+            {
+                3024u, // mana, armor, haste
+                3031u, // AD, crit chance, crit damage
+                3065u, // health, MR, haste
+                3078u, // AD, health, attack speed, haste
+                3135u, // AP, percent magic penetration
+                3742u, // health, armor, percent move speed
+            };
+            constexpr u32_t kCoreStatItemCount =
+                static_cast<u32_t>(sizeof(kCoreStatItems) / sizeof(kCoreStatItems[0]));
+            world.GetComponent<GoldComponent>(championEntity).amount = 50000u;
+            for (u32_t itemIndex = 0u; itemIndex < kCoreStatItemCount; ++itemIndex)
+            {
+                GameCommand buyItem{};
+                buyItem.kind = eCommandKind::BuyItem;
+                buyItem.issuerEntity = championEntity;
+                buyItem.itemId = kCoreStatItems[itemIndex];
+                buyItem.sequenceNum = itemIndex + 1u;
+                TickContext tc = MakeProbeTickContext(
+                    itemIndex + 1u,
+                    rng,
+                    entityMap,
+                    walkable);
+                executor->ExecuteCommand(world, tc, buyItem);
+            }
+
+            CStatSystem::Execute(
+                world,
+                ServerData::GetLoLGameplayDefinitionPack());
+            const StatComponent& stat =
+                world.GetComponent<StatComponent>(championEntity);
+            const InventoryComponent& inventory =
+                world.GetComponent<InventoryComponent>(championEntity);
+            const auto Near = [](f32_t left, f32_t right)
+            {
+                return std::fabs(left - right) <= 0.001f;
+            };
+            if (inventory.count != kCoreStatItemCount ||
+                !Near(stat.ad - baseline.ad, 111.f) ||
+                !Near(stat.ap - baseline.ap, 95.f) ||
+                !Near(stat.hpMax - baseline.hpMax, 1083.f) ||
+                !Near(stat.manaMax - baseline.manaMax, 300.f) ||
+                !Near(stat.armor - baseline.armor, 80.f) ||
+                !Near(stat.mr - baseline.mr, 50.f) ||
+                !Near(stat.bonusAttackSpeed, 0.30f) ||
+                !Near(stat.critChance, 0.25f) ||
+                !Near(stat.critDamage - baseline.critDamage, 0.30f) ||
+                !Near(stat.abilityHaste, 35.f) ||
+                !Near(stat.magicPenPercent, 0.40f) ||
+                !Near(stat.moveSpeed, baseline.moveSpeed * 1.04f))
+            {
+                std::printf(
+                    "[SimLab][ItemCoreStats] FAIL: count=%u ad=%.3f ap=%.3f hp=%.3f mana=%.3f armor=%.3f mr=%.3f as=%.3f crit=%.3f critDamage=%.3f haste=%.3f magicPen=%.3f move=%.3f\n",
+                    static_cast<u32_t>(inventory.count),
+                    stat.ad - baseline.ad,
+                    stat.ap - baseline.ap,
+                    stat.hpMax - baseline.hpMax,
+                    stat.manaMax - baseline.manaMax,
+                    stat.armor - baseline.armor,
+                    stat.mr - baseline.mr,
+                    stat.bonusAttackSpeed,
+                    stat.critChance,
+                    stat.critDamage - baseline.critDamage,
+                    stat.abilityHaste,
+                    stat.magicPenPercent,
+                    stat.moveSpeed);
+                return false;
+            }
+        }
+
         std::printf(
-            "[SimLab][ItemMoveSpeed] PASS: BuyItem -> dirty stat -> 0.01 world scale\n");
+            "[SimLab][ItemCoreStats] PASS: purchase path + core stat matrix + move scaling\n");
         return true;
     }
 
@@ -5689,6 +7556,762 @@ namespace
         return true;
     }
 
+    bool_t RunManaItemPassivesProbe()
+    {
+        const auto Near = [](f32_t left, f32_t right)
+        {
+            return std::fabs(left - right) <= 0.001f;
+        };
+
+        const ItemDef* essenceReaver = CItemRegistry::Instance().Find(3508u);
+        const ItemDef* manamune = CItemRegistry::Instance().Find(3004u);
+        const ItemDef* muramana = CItemRegistry::Instance().Find(3042u);
+        if (!essenceReaver || !essenceReaver->spellblade.bValid ||
+            !manamune || !manamune->manaflow.bValid ||
+            !muramana || muramana->bPurchasable)
+        {
+            std::printf(
+                "[SimLab][ManaItems] FAIL: generated passive/transform definitions missing\n");
+            return false;
+        }
+
+        {
+            CWorld world;
+            DeterministicRng rng(2026071801ull);
+            EntityIdMap entityMap;
+            FlatWalkable walkable;
+            const EntityID source = SpawnChampion(
+                world, entityMap, eChampion::EZREAL,
+                static_cast<u8_t>(eTeam::Blue), 0u);
+            const EntityID target = SpawnChampion(
+                world, entityMap, eChampion::GAREN,
+                static_cast<u8_t>(eTeam::Red), 5u);
+
+            InventoryComponent& inventory =
+                world.GetComponent<InventoryComponent>(source);
+            inventory.itemIds[0] = 3508u;
+            inventory.count = 1u;
+            StatComponent& sourceStat = world.GetComponent<StatComponent>(source);
+            sourceStat.bDirty = true;
+            CStatSystem::Execute(
+                world, ServerData::GetLoLGameplayDefinitionPack());
+
+            ChampionComponent& champion =
+                world.GetComponent<ChampionComponent>(source);
+            champion.mana = 0.f;
+            world.GetComponent<StatComponent>(target).armor = 0.f;
+
+            const auto QueueOnHit = [&](u64_t tick, eDamageSourceKind sourceKind)
+            {
+                DamageRequest request{};
+                request.source = source;
+                request.target = target;
+                request.sourceTeam = eTeam::Blue;
+                request.type = eDamageType::Physical;
+                request.flatAmount = 1.f;
+                request.iSourceSlot = sourceKind == eDamageSourceKind::Skill
+                    ? static_cast<u8_t>(eSkillSlot::Q)
+                    : static_cast<u8_t>(eSkillSlot::BasicAttack);
+                request.eSourceKind = sourceKind;
+                request.flags = DamageFlag_OnHit;
+                EnqueueDamageRequest(world, request);
+                TickContext tc = MakeProbeTickContext(
+                    tick, rng, entityMap, walkable);
+                CDamageQueueSystem::Execute(world, tc);
+            };
+
+            QueueOnHit(1u, eDamageSourceKind::Skill);
+            if (!Near(champion.mana, 0.f))
+            {
+                std::printf(
+                    "[SimLab][ManaItems] FAIL: unarmed Ezreal Q restored mana %.3f\n",
+                    champion.mana);
+                return false;
+            }
+
+            TickContext qCastTick = MakeProbeTickContext(
+                2u, rng, entityMap, walkable);
+            CItemEffectSystem::OnAbilityCastAccepted(world, qCastTick, source);
+            QueueOnHit(3u, eDamageSourceKind::Skill);
+            const StatComponent& resolvedStat =
+                world.GetComponent<StatComponent>(source);
+            const f32_t expectedRestore =
+                (resolvedStat.baseAd * 1.25f + resolvedStat.critChance * 50.f) * 0.5f;
+            if (!Near(champion.mana, expectedRestore))
+            {
+                std::printf(
+                    "[SimLab][ManaItems] FAIL: Ezreal Q Spellblade mana=%.3f expected=%.3f\n",
+                    champion.mana,
+                    expectedRestore);
+                return false;
+            }
+
+            TickContext basicAttackArmTick = MakeProbeTickContext(
+                48u, rng, entityMap, walkable);
+            CItemEffectSystem::OnAbilityCastAccepted(
+                world, basicAttackArmTick, source);
+            QueueOnHit(49u, eDamageSourceKind::BasicAttack);
+            if (!Near(champion.mana, expectedRestore * 2.f))
+            {
+                std::printf(
+                    "[SimLab][ManaItems] FAIL: basic attack Spellblade mana=%.3f expected=%.3f\n",
+                    champion.mana,
+                    expectedRestore * 2.f);
+                return false;
+            }
+        }
+
+        {
+            CWorld world;
+            DeterministicRng rng(2026071802ull);
+            EntityIdMap entityMap;
+            FlatWalkable walkable;
+            const EntityID source = SpawnChampion(
+                world, entityMap, eChampion::EZREAL,
+                static_cast<u8_t>(eTeam::Blue), 0u);
+            const EntityID target = SpawnChampion(
+                world, entityMap, eChampion::GAREN,
+                static_cast<u8_t>(eTeam::Red), 5u);
+
+            CStatSystem::Execute(
+                world, ServerData::GetLoLGameplayDefinitionPack());
+            const StatComponent baseline = world.GetComponent<StatComponent>(source);
+
+            InventoryComponent& inventory =
+                world.GetComponent<InventoryComponent>(source);
+            inventory.itemIds[0] = 3004u;
+            inventory.count = 1u;
+            world.GetComponent<StatComponent>(source).bDirty = true;
+            CStatSystem::Execute(
+                world, ServerData::GetLoLGameplayDefinitionPack());
+
+            HealthComponent& targetHealth =
+                world.GetComponent<HealthComponent>(target);
+            targetHealth.fMaximum = 100000.f;
+            targetHealth.fCurrent = targetHealth.fMaximum;
+            world.GetComponent<ChampionComponent>(target).maxHp = targetHealth.fMaximum;
+            world.GetComponent<ChampionComponent>(target).hp = targetHealth.fCurrent;
+
+            constexpr u64_t kRechargeTicks =
+                DeterministicTime::kTicksPerSecond * 8ull;
+            for (u16_t hit = 0u; hit < 60u; ++hit)
+            {
+                const u64_t tick = hit < 4u
+                    ? 100u
+                    : 100u + static_cast<u64_t>(hit - 3u) * kRechargeTicks;
+                DamageRequest request{};
+                request.source = source;
+                request.target = target;
+                request.sourceTeam = eTeam::Blue;
+                request.type = eDamageType::Physical;
+                request.flatAmount = 1.f;
+                request.iSourceSlot = static_cast<u8_t>(eSkillSlot::Q);
+                request.eSourceKind = eDamageSourceKind::Skill;
+                request.flags = DamageFlag_OnHit;
+                EnqueueDamageRequest(world, request);
+
+                TickContext tc = MakeProbeTickContext(
+                    tick, rng, entityMap, walkable);
+                CDamageQueueSystem::Execute(world, tc);
+                CStatSystem::Execute(
+                    world, ServerData::GetLoLGameplayDefinitionPack());
+                if (hit == 3u)
+                {
+                    const f32_t expectedStackedMana =
+                        baseline.manaMax + 500.f + 24.f;
+                    if (!Near(
+                            world.GetComponent<StatComponent>(source).manaMax,
+                            expectedStackedMana))
+                    {
+                        std::printf(
+                            "[SimLab][ManaItems] FAIL: Manamune first four champion hits did not grant 24 mana\n");
+                        return false;
+                    }
+                }
+            }
+
+            const StatComponent& transformedStat =
+                world.GetComponent<StatComponent>(source);
+            const f32_t expectedMana = baseline.manaMax + 1000.f;
+            const f32_t expectedAd = baseline.ad + 35.f + expectedMana * 0.02f;
+            if (inventory.itemIds[0] != 3042u ||
+                !Near(transformedStat.manaMax, expectedMana) ||
+                !Near(transformedStat.ad, expectedAd))
+            {
+                std::printf(
+                    "[SimLab][ManaItems] FAIL: transform item=%u mana=%.3f/%.3f ad=%.3f/%.3f\n",
+                    static_cast<u32_t>(inventory.itemIds[0]),
+                    transformedStat.manaMax,
+                    expectedMana,
+                    transformedStat.ad,
+                    expectedAd);
+                return false;
+            }
+
+            if (!world.HasComponent<ItemRuntimeComponent>(source) ||
+                world.GetComponent<ItemRuntimeComponent>(source).slots[0].itemId != 3042u)
+            {
+                std::printf(
+                    "[SimLab][ManaItems] FAIL: transformed runtime slot was not synchronized\n");
+                return false;
+            }
+        }
+
+        std::printf(
+            "[SimLab][ManaItems] PASS: Essence Reaver BA/Q mana + Manamune 360 -> Muramana\n");
+        return true;
+    }
+
+    bool_t RunChampionResourceContractProbe()
+    {
+        struct ExpectedResource
+        {
+            eChampion champion;
+            eChampionResourceKind kind;
+        };
+
+        static constexpr ExpectedResource kExpectedResources[] =
+        {
+            { eChampion::IRELIA, eChampionResourceKind::Mana },
+            { eChampion::YASUO, eChampionResourceKind::Flow },
+            { eChampion::KALISTA, eChampionResourceKind::Mana },
+            { eChampion::SYLAS, eChampionResourceKind::Mana },
+            { eChampion::VIEGO, eChampionResourceKind::None },
+            { eChampion::ANNIE, eChampionResourceKind::Mana },
+            { eChampion::ASHE, eChampionResourceKind::Mana },
+            { eChampion::FIORA, eChampionResourceKind::Mana },
+            { eChampion::GAREN, eChampionResourceKind::None },
+            { eChampion::RIVEN, eChampionResourceKind::None },
+            { eChampion::ZED, eChampionResourceKind::Energy },
+            { eChampion::EZREAL, eChampionResourceKind::Mana },
+            { eChampion::YONE, eChampionResourceKind::None },
+            { eChampion::JAX, eChampionResourceKind::Mana },
+            { eChampion::MASTERYI, eChampionResourceKind::Mana },
+            { eChampion::KINDRED, eChampionResourceKind::Mana },
+            { eChampion::LEESIN, eChampionResourceKind::Energy },
+        };
+
+        const GameplayDefinitionPack& pack =
+            ServerData::GetLoLGameplayDefinitionPack();
+        for (const ExpectedResource& expected : kExpectedResources)
+        {
+            const ChampionGameplayDef* champion =
+                pack.FindChampion(expected.champion);
+            if (!champion || champion->stats.resourceKind != expected.kind)
+            {
+                std::printf(
+                    "[SimLab][Resource] FAIL: champion=%u resource kind mismatch\n",
+                    static_cast<u32_t>(expected.champion));
+                return false;
+            }
+        }
+
+        const ChampionGameplayDef* zedDef = pack.FindChampion(eChampion::ZED);
+        const SkillGameplayDef* zedQ = zedDef
+            ? pack.FindSkill(zedDef->skillLoadout[static_cast<u8_t>(eSkillSlot::Q)])
+            : nullptr;
+        const SkillGameplayDef* zedW = zedDef
+            ? pack.FindSkill(zedDef->skillLoadout[static_cast<u8_t>(eSkillSlot::W)])
+            : nullptr;
+        const SkillGameplayDef* zedE = zedDef
+            ? pack.FindSkill(zedDef->skillLoadout[static_cast<u8_t>(eSkillSlot::E)])
+            : nullptr;
+        static constexpr f32_t kZedQCosts[] = { 75.f, 70.f, 65.f, 60.f, 55.f };
+        static constexpr f32_t kZedWCosts[] = { 40.f, 35.f, 30.f, 25.f, 20.f };
+        if (!zedQ || !zedW || !zedE)
+        {
+            std::printf("[SimLab][Resource] FAIL: Zed skill definitions missing\n");
+            return false;
+        }
+        for (u8_t rank = 0u; rank < 5u; ++rank)
+        {
+            if (std::fabs(zedQ->cost.manaCostByRank[rank] - kZedQCosts[rank]) > 0.001f ||
+                std::fabs(zedW->cost.manaCostByRank[rank] - kZedWCosts[rank]) > 0.001f)
+            {
+                std::printf("[SimLab][Resource] FAIL: Zed Q/W energy cost mismatch\n");
+                return false;
+            }
+        }
+        if (std::fabs(zedE->cost.manaCostByRank[0] - 40.f) > 0.001f)
+        {
+            std::printf("[SimLab][Resource] FAIL: Zed E energy cost mismatch\n");
+            return false;
+        }
+
+        CWorld world;
+        DeterministicRng rng(2026071805ull);
+        EntityIdMap entityMap;
+        FlatWalkable walkable;
+        const EntityID leeSin = SpawnChampion(
+            world, entityMap, eChampion::LEESIN,
+            static_cast<u8_t>(eTeam::Blue), 0u);
+        const EntityID zed = SpawnChampion(
+            world, entityMap, eChampion::ZED,
+            static_cast<u8_t>(eTeam::Blue), 1u);
+        const EntityID yone = SpawnChampion(
+            world, entityMap, eChampion::YONE,
+            static_cast<u8_t>(eTeam::Blue), 2u);
+        const EntityID riven = SpawnChampion(
+            world, entityMap, eChampion::RIVEN,
+            static_cast<u8_t>(eTeam::Blue), 3u);
+        const EntityID yasuo = SpawnChampion(
+            world, entityMap, eChampion::YASUO,
+            static_cast<u8_t>(eTeam::Blue), 4u);
+        const EntityID ezreal = SpawnChampion(
+            world, entityMap, eChampion::EZREAL,
+            static_cast<u8_t>(eTeam::Blue), 5u);
+        const EntityID target = SpawnChampion(
+            world, entityMap, eChampion::GAREN,
+            static_cast<u8_t>(eTeam::Red), 6u);
+
+        CStatSystem::Execute(world, pack);
+        const auto ValidateRuntime = [&](EntityID entity,
+            eChampionResourceKind kind,
+            f32_t maxResource,
+            f32_t regen)
+        {
+            const StatComponent& stat = world.GetComponent<StatComponent>(entity);
+            return stat.resourceKind == kind &&
+                std::fabs(stat.manaMax - maxResource) <= 0.001f &&
+                std::fabs(stat.resourceRegenPerSec - regen) <= 0.001f;
+        };
+        if (!ValidateRuntime(leeSin, eChampionResourceKind::Energy, 200.f, 10.f) ||
+            !ValidateRuntime(zed, eChampionResourceKind::Energy, 200.f, 10.f) ||
+            !ValidateRuntime(yone, eChampionResourceKind::None, 0.f, 0.f) ||
+            !ValidateRuntime(riven, eChampionResourceKind::None, 0.f, 0.f) ||
+            !ValidateRuntime(yasuo, eChampionResourceKind::Flow, 0.f, 0.f))
+        {
+            std::printf("[SimLab][Resource] FAIL: runtime resource stats mismatch\n");
+            return false;
+        }
+
+        ChampionComponent& leeChampion =
+            world.GetComponent<ChampionComponent>(leeSin);
+        leeChampion.mana = 0.f;
+        for (u64_t tick = 1ull;
+            tick <= DeterministicTime::kTicksPerSecond;
+            ++tick)
+        {
+            TickContext tc = MakeProbeTickContext(
+                tick, rng, entityMap, walkable);
+            CStatSystem::TickResourceRegeneration(world, tc);
+        }
+        if (std::fabs(leeChampion.mana - 10.f) > 0.001f)
+        {
+            std::printf(
+                "[SimLab][Resource] FAIL: Lee Sin regen=%.3f expected=10\n",
+                leeChampion.mana);
+            return false;
+        }
+
+        HealthComponent& leeHealth = world.GetComponent<HealthComponent>(leeSin);
+        leeHealth.bIsDead = true;
+        leeHealth.fCurrent = 0.f;
+        TickContext deadTick = MakeProbeTickContext(
+            31ull, rng, entityMap, walkable);
+        CStatSystem::TickResourceRegeneration(world, deadTick);
+        if (std::fabs(leeChampion.mana - 10.f) > 0.001f)
+        {
+            std::printf("[SimLab][Resource] FAIL: dead Lee Sin regenerated energy\n");
+            return false;
+        }
+
+        InventoryComponent& leeInventory =
+            world.GetComponent<InventoryComponent>(leeSin);
+        leeInventory.itemIds[0] = 3004u;
+        leeInventory.count = 1u;
+        world.GetComponent<StatComponent>(leeSin).bDirty = true;
+        InventoryComponent& ezrealInventory =
+            world.GetComponent<InventoryComponent>(ezreal);
+        ezrealInventory.itemIds[0] = 3004u;
+        ezrealInventory.count = 1u;
+        const f32_t ezrealManaBefore =
+            world.GetComponent<StatComponent>(ezreal).manaMax;
+        world.GetComponent<StatComponent>(ezreal).bDirty = true;
+        CStatSystem::Execute(world, pack);
+        if (std::fabs(world.GetComponent<StatComponent>(leeSin).manaMax - 200.f) > 0.001f ||
+            std::fabs(
+                world.GetComponent<StatComponent>(ezreal).manaMax -
+                    (ezrealManaBefore + 500.f)) > 0.001f)
+        {
+            std::printf("[SimLab][Resource] FAIL: mana item resource-kind gate mismatch\n");
+            return false;
+        }
+
+        leeHealth.bIsDead = false;
+        leeHealth.fCurrent = leeHealth.fMaximum;
+        world.GetComponent<StatComponent>(target).armor = 0.f;
+        leeChampion.mana = 0.f;
+        for (u64_t hit = 0ull; hit < 4ull; ++hit)
+        {
+            DamageRequest manamuneHit{};
+            manamuneHit.source = leeSin;
+            manamuneHit.target = target;
+            manamuneHit.sourceTeam = eTeam::Blue;
+            manamuneHit.type = eDamageType::Physical;
+            manamuneHit.flatAmount = 1.f;
+            manamuneHit.iSourceSlot = static_cast<u8_t>(eSkillSlot::Q);
+            manamuneHit.eSourceKind = eDamageSourceKind::Skill;
+            manamuneHit.flags = DamageFlag_OnHit;
+            EnqueueDamageRequest(world, manamuneHit);
+            TickContext tc = MakeProbeTickContext(
+                100ull + hit, rng, entityMap, walkable);
+            CDamageQueueSystem::Execute(world, tc);
+        }
+        if (world.HasComponent<ItemRuntimeComponent>(leeSin) &&
+            world.GetComponent<ItemRuntimeComponent>(leeSin)
+                    .slots[0].bonusMana != 0u)
+        {
+            std::printf("[SimLab][Resource] FAIL: Energy champion stacked Manamune mana\n");
+            return false;
+        }
+
+        leeInventory.itemIds[0] = 3508u;
+        world.GetComponent<StatComponent>(leeSin).bDirty = true;
+        CStatSystem::Execute(world, pack);
+        TickContext armTick = MakeProbeTickContext(
+            200ull, rng, entityMap, walkable);
+        CItemEffectSystem::OnAbilityCastAccepted(world, armTick, leeSin);
+        DamageRequest essenceHit{};
+        essenceHit.source = leeSin;
+        essenceHit.target = target;
+        essenceHit.sourceTeam = eTeam::Blue;
+        essenceHit.type = eDamageType::Physical;
+        essenceHit.flatAmount = 1.f;
+        essenceHit.iSourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+        essenceHit.eSourceKind = eDamageSourceKind::BasicAttack;
+        essenceHit.flags = DamageFlag_OnHit;
+        EnqueueDamageRequest(world, essenceHit);
+        TickContext essenceTick = MakeProbeTickContext(
+            201ull, rng, entityMap, walkable);
+        CDamageQueueSystem::Execute(world, essenceTick);
+        if (std::fabs(leeChampion.mana) > 0.001f)
+        {
+            std::printf("[SimLab][Resource] FAIL: Energy champion restored Essence Reaver mana\n");
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][Resource] PASS: 17-kind matrix, Energy 200/+10, None/Flow, Zed costs, mana-item/restore gate\n");
+        return true;
+    }
+
+    bool_t RunActiveItemInventoryProbe()
+    {
+        const auto Near = [](f32_t left, f32_t right)
+        {
+            return std::fabs(left - right) <= 0.001f;
+        };
+
+        const ItemDef* sundered = CItemRegistry::Instance().Find(6610u);
+        const ItemDef* zhonya = CItemRegistry::Instance().Find(3157u);
+        const ItemDef* qss = CItemRegistry::Instance().Find(3140u);
+        const ItemDef* ward = CItemRegistry::Instance().Find(3340u);
+        if (!sundered || !sundered->lightshieldStrike.bValid ||
+            !zhonya || zhonya->active.kind != eItemActiveKind::Stasis ||
+            !qss || qss->active.kind != eItemActiveKind::Cleanse ||
+            !ward || ward->bPurchasable ||
+            ward->active.kind != eItemActiveKind::Ward)
+        {
+            std::printf(
+                "[SimLab][ActiveItems] FAIL: generated item definitions missing\n");
+            return false;
+        }
+
+        {
+            CWorld world;
+            DeterministicRng rng(2026071803ull);
+            EntityIdMap entityMap;
+            FlatWalkable walkable;
+            const EntityID source = SpawnChampion(
+                world, entityMap, eChampion::EZREAL,
+                static_cast<u8_t>(eTeam::Blue), 0u);
+            const EntityID target = SpawnChampion(
+                world, entityMap, eChampion::GAREN,
+                static_cast<u8_t>(eTeam::Red), 5u);
+
+            InventoryComponent& inventory =
+                world.GetComponent<InventoryComponent>(source);
+            inventory.itemIds[0] = 6610u;
+            inventory.itemIds[1] = 3508u;
+            inventory.itemIds[2] = 3042u;
+            inventory.count = 3u;
+            world.GetComponent<StatComponent>(source).bDirty = true;
+            CStatSystem::Execute(
+                world, ServerData::GetLoLGameplayDefinitionPack());
+            StatComponent& targetStat = world.GetComponent<StatComponent>(target);
+            targetStat.armor = 0.f;
+            targetStat.baseArmor = 0.f;
+            targetStat.bonusArmor = 0.f;
+
+            HealthComponent& sourceHealth =
+                world.GetComponent<HealthComponent>(source);
+            sourceHealth.fMaximum = 1000.f;
+            sourceHealth.fCurrent = 400.f;
+            ChampionComponent& sourceChampion =
+                world.GetComponent<ChampionComponent>(source);
+            sourceChampion.maxHp = sourceHealth.fMaximum;
+            sourceChampion.hp = sourceHealth.fCurrent;
+            HealthComponent& targetHealth =
+                world.GetComponent<HealthComponent>(target);
+            targetHealth.fMaximum = 10000.f;
+            targetHealth.fCurrent = targetHealth.fMaximum;
+            world.GetComponent<ChampionComponent>(target).maxHp = targetHealth.fMaximum;
+            world.GetComponent<ChampionComponent>(target).hp = targetHealth.fCurrent;
+
+            TickContext armTick = MakeProbeTickContext(
+                1u, rng, entityMap, walkable);
+            CItemEffectSystem::OnAbilityCastAccepted(world, armTick, source);
+            const StatComponent& stat = world.GetComponent<StatComponent>(source);
+            const f32_t spellblade =
+                stat.baseAd * 1.25f + stat.critChance * 50.f;
+            const f32_t expectedHeal = stat.baseAd + 600.f * 0.06f;
+
+            const auto Hit = [&](u64_t tick)
+            {
+                DamageRequest request{};
+                request.source = source;
+                request.target = target;
+                request.sourceTeam = eTeam::Blue;
+                request.type = eDamageType::Physical;
+                request.flatAmount = 100.f;
+                request.critEligibleAmountOverride = 100.f;
+                request.iSourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+                request.eSourceKind = eDamageSourceKind::BasicAttack;
+                request.flags = DamageFlag_OnHit | DamageFlag_CanCrit;
+                EnqueueDamageRequest(world, request);
+                TickContext tc = MakeProbeTickContext(
+                    tick, rng, entityMap, walkable);
+                CDamageQueueSystem::Execute(world, tc);
+            };
+
+            Hit(1u);
+            if (!Near(10000.f - targetHealth.fCurrent, 180.f + spellblade) ||
+                !Near(sourceHealth.fCurrent, 400.f + expectedHeal) ||
+                !Near(sourceChampion.hp, sourceHealth.fCurrent))
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: Sundered first proc damage/heal %.3f %.3f\n",
+                    10000.f - targetHealth.fCurrent,
+                    sourceHealth.fCurrent);
+                return false;
+            }
+
+            const f32_t afterFirst = targetHealth.fCurrent;
+            Hit(150u);
+            if (!Near(afterFirst - targetHealth.fCurrent, 100.f))
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: Sundered cooldown boundary proc\n");
+                return false;
+            }
+            const f32_t afterCooldownHit = targetHealth.fCurrent;
+            Hit(151u);
+            if (!Near(afterCooldownHit - targetHealth.fCurrent, 180.f))
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: Sundered 5-second rearm boundary\n");
+                return false;
+            }
+        }
+
+        {
+            CWorld world;
+            DeterministicRng rng(2026071804ull);
+            EntityIdMap entityMap;
+            FlatWalkable walkable;
+            auto executor = CDefaultCommandExecutor::Create();
+            const EntityID source = SpawnChampion(
+                world, entityMap, eChampion::JAX,
+                static_cast<u8_t>(eTeam::Blue), 0u);
+            const EntityID enemy = SpawnChampion(
+                world, entityMap, eChampion::GAREN,
+                static_cast<u8_t>(eTeam::Red), 5u);
+            InventoryComponent& inventory =
+                world.GetComponent<InventoryComponent>(source);
+            inventory.itemIds[0] = 6610u;
+            inventory.itemIds[1] = 3157u;
+            inventory.itemIds[2] = 3140u;
+            inventory.itemIds[3] = 3340u;
+            inventory.itemIds[4] = 3139u;
+            inventory.count = 5u;
+
+            MoveTargetComponent move{};
+            move.bHasTarget = true;
+            world.AddComponent<MoveTargetComponent>(source, move);
+            world.AddComponent<AttackChaseComponent>(source, AttackChaseComponent{});
+            world.AddComponent<CombatActionComponent>(source, CombatActionComponent{});
+            RecallComponent recall{};
+            recall.bActive = true;
+            world.AddComponent<RecallComponent>(source, recall);
+
+            TickContext zhonyaTick = MakeProbeTickContext(
+                10u, rng, entityMap, walkable);
+            GameCommand useZhonya{};
+            useZhonya.kind = eCommandKind::UseItem;
+            useZhonya.issuerEntity = source;
+            useZhonya.sequenceNum = 1u;
+            useZhonya.slot = 1u;
+            useZhonya.itemId = 3157u;
+            const CommandExecutionResult zhonyaResult =
+                executor->ExecuteCommand(world, zhonyaTick, useZhonya);
+            const u32_t stasisFlags =
+                kGameplayStateUntargetableFlag |
+                kGameplayStateInvulnerableFlag |
+                kGameplayStateCannotMoveFlag |
+                kGameplayStateCannotAttackFlag |
+                kGameplayStateCannotCastFlag |
+                kGameplayStateStasisVisualFlag;
+            if (zhonyaResult.state != eCommandExecutionState::Accepted ||
+                !world.HasComponent<GameplayStateComponent>(source) ||
+                (world.GetComponent<GameplayStateComponent>(source).stateFlags &
+                    stasisFlags) != stasisFlags ||
+                world.GetComponent<MoveTargetComponent>(source).bHasTarget ||
+                world.HasComponent<AttackChaseComponent>(source) ||
+                world.HasComponent<CombatActionComponent>(source) ||
+                world.HasComponent<RecallComponent>(source))
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: Zhonya state/action interruption\n");
+                return false;
+            }
+
+            const f32_t hpBeforeInvulnerableHit =
+                world.GetComponent<HealthComponent>(source).fCurrent;
+            DamageRequest blockedDamage{};
+            blockedDamage.source = enemy;
+            blockedDamage.target = source;
+            blockedDamage.sourceTeam = eTeam::Red;
+            blockedDamage.type = eDamageType::Physical;
+            blockedDamage.flatAmount = 100.f;
+            blockedDamage.eSourceKind = eDamageSourceKind::BasicAttack;
+            EnqueueDamageRequest(world, blockedDamage);
+            CDamageQueueSystem::Execute(world, zhonyaTick);
+            if (!Near(
+                    hpBeforeInvulnerableHit,
+                    world.GetComponent<HealthComponent>(source).fCurrent))
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: Zhonya did not block damage\n");
+                return false;
+            }
+
+            for (u64_t tick = 11u; tick < 100u; ++tick)
+            {
+                TickContext tc = MakeProbeTickContext(
+                    tick, rng, entityMap, walkable);
+                GameplayStatus::TickStatusEffects(world, tc);
+            }
+            if (!GameplayStateQuery::HasState(
+                    world, source, kGameplayStateStasisVisualFlag))
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: Zhonya ended before 3 seconds\n");
+                return false;
+            }
+            TickContext stasisEndTick = MakeProbeTickContext(
+                100u, rng, entityMap, walkable);
+            GameplayStatus::TickStatusEffects(world, stasisEndTick);
+            if (GameplayStateQuery::HasState(
+                    world, source, kGameplayStateStasisVisualFlag))
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: Zhonya exceeded 3 seconds\n");
+                return false;
+            }
+
+            const StatusEffectApplyDesc stun{
+                eStatusEffectId::GenericStun,
+                eStatusStackPolicy::RefreshDuration,
+                enemy,
+                0u,
+                kGameplayStateStunnedFlag |
+                    kGameplayStateCannotMoveFlag |
+                    kGameplayStateCannotAttackFlag |
+                    kGameplayStateCannotCastFlag,
+                2.f,
+                1.f
+            };
+            const StatusEffectApplyDesc airborne{
+                eStatusEffectId::GenericAirborne,
+                eStatusStackPolicy::RefreshDuration,
+                enemy,
+                0u,
+                kGameplayStateAirborneFlag |
+                    kGameplayStateCannotMoveFlag,
+                2.f,
+                1.f
+            };
+            GameplayStatus::TryApplyStatusEffect(world, source, stun, stasisEndTick);
+            GameplayStatus::TryApplyStatusEffect(world, source, airborne, stasisEndTick);
+            GameCommand useQss{};
+            useQss.kind = eCommandKind::UseItem;
+            useQss.issuerEntity = source;
+            useQss.sequenceNum = 2u;
+            useQss.slot = 2u;
+            useQss.itemId = 3140u;
+            const CommandExecutionResult qssResult =
+                executor->ExecuteCommand(world, stasisEndTick, useQss);
+            if (qssResult.state != eCommandExecutionState::Accepted ||
+                GameplayStateQuery::HasState(
+                    world, source, kGameplayStateStunnedFlag) ||
+                !GameplayStateQuery::HasState(
+                    world, source, kGameplayStateAirborneFlag))
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: QSS cleanse/airborne preservation\n");
+                return false;
+            }
+
+            ItemRuntimeComponent& runtime =
+                world.GetComponent<ItemRuntimeComponent>(source);
+            runtime.slots[0].itemId = 6610u;
+            runtime.slots[0].lightshieldReadyTick = 999u;
+            GameCommand reorder{};
+            reorder.kind = eCommandKind::ReorderItem;
+            reorder.issuerEntity = source;
+            reorder.sequenceNum = 3u;
+            reorder.slot = 0u;
+            reorder.itemId = 6610u;
+            reorder.practiceFlags = 4u;
+            const CommandExecutionResult reorderResult =
+                executor->ExecuteCommand(world, stasisEndTick, reorder);
+            if (reorderResult.state != eCommandExecutionState::Accepted ||
+                inventory.itemIds[4] != 6610u ||
+                world.GetComponent<ItemRuntimeComponent>(source)
+                    .slots[4].lightshieldReadyTick != 999u ||
+                executor->ExecuteCommand(world, stasisEndTick, reorder).reason !=
+                    eCommandExecutionReason::InvalidPayload)
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: reorder runtime/stale intent\n");
+                return false;
+            }
+
+            GameCommand useWard{};
+            useWard.kind = eCommandKind::UseItem;
+            useWard.issuerEntity = source;
+            useWard.sequenceNum = 4u;
+            useWard.slot = 3u;
+            useWard.itemId = 3340u;
+            useWard.groundPos =
+                world.GetComponent<TransformComponent>(source).GetLocalPosition();
+            useWard.groundPos.x += 1.f;
+            if (executor->ExecuteCommand(
+                    world, stasisEndTick, useWard).state !=
+                eCommandExecutionState::Accepted)
+            {
+                std::printf(
+                    "[SimLab][ActiveItems] FAIL: authoritative ward slot use\n");
+                return false;
+            }
+        }
+
+        std::printf(
+            "[SimLab][ActiveItems] PASS: Sundered/Zhonya/QSS/ward/reorder\n");
+        return true;
+    }
+
     bool_t RunSkillRankGateProbe()
     {
         SkillRankComponent ranks{};
@@ -5737,6 +8360,77 @@ namespace
 
         std::printf(
             "[SimLab][SkillRank] PASS: Q/W/E 1/3/... and R 6/11/16 gates\n");
+        return true;
+    }
+
+    bool_t RunBasicAttackGameFeelContractProbe()
+    {
+        struct BasicAttackWindupExpectation
+        {
+            eChampion champion;
+            f32_t seconds;
+        };
+
+        static constexpr BasicAttackWindupExpectation kExpected[] =
+        {
+            { eChampion::IRELIA, 0.16f },
+            { eChampion::YASUO, 0.175f },
+            { eChampion::KALISTA, 0.2f },
+            { eChampion::GAREN, 0.2f },
+            { eChampion::ZED, 0.2f },
+            { eChampion::RIVEN, 0.2f },
+            { eChampion::EZREAL, 0.2f },
+            { eChampion::FIORA, 0.2f },
+            { eChampion::JAX, 0.2f },
+            { eChampion::LEESIN, 0.133333f },
+            { eChampion::KINDRED, 0.133333f },
+            { eChampion::MASTERYI, 0.133333f },
+            { eChampion::ANNIE, 0.2f },
+            { eChampion::ASHE, 0.166667f },
+            { eChampion::VIEGO, 0.2f },
+            { eChampion::YONE, 0.196078f },
+            { eChampion::SYLAS, 0.133333f },
+        };
+
+        for (const BasicAttackWindupExpectation& expected : kExpected)
+        {
+            const ChampionBasicAttackTimingDefaults timing =
+                GetDefaultChampionBasicAttackTiming(expected.champion);
+            if (std::fabs(timing.fWindupSec - expected.seconds) > 0.00001f ||
+                timing.fActionDurationSec + 0.00001f < timing.fWindupSec)
+            {
+                std::printf(
+                    "[SimLab][GameFeel] FAIL: champion=%u windup=%.6f/%.6f action=%.6f\n",
+                    static_cast<u32_t>(expected.champion),
+                    timing.fWindupSec,
+                    expected.seconds,
+                    timing.fActionDurationSec);
+                return false;
+            }
+        }
+
+        CWorld world;
+        EntityIdMap entityMap;
+        const EntityID irelia = SpawnChampion(
+            world, entityMap, eChampion::IRELIA,
+            static_cast<u8_t>(eTeam::Blue), 0u);
+        const EntityID annie = SpawnChampion(
+            world, entityMap, eChampion::ANNIE,
+            static_cast<u8_t>(eTeam::Blue), 1u);
+        const EntityID ezreal = SpawnChampion(
+            world, entityMap, eChampion::EZREAL,
+            static_cast<u8_t>(eTeam::Blue), 2u);
+        if (!GameplayStateQuery::ShouldApplyBasicAttackSegmentGate(world, irelia) ||
+            GameplayStateQuery::ShouldApplyBasicAttackSegmentGate(world, annie) ||
+            GameplayStateQuery::ShouldApplyBasicAttackSegmentGate(world, ezreal))
+        {
+            std::printf(
+                "[SimLab][GameFeel] FAIL: melee/ranged segment-gate classification mismatch\n");
+            return false;
+        }
+
+        std::printf(
+            "[SimLab][GameFeel] PASS: 17 authored BA windups and range-driven segment gate\n");
         return true;
     }
 
@@ -9468,6 +12162,41 @@ namespace
 
 int main(int argc, char** argv)
 {
+    if (argc > 1 && std::strcmp(argv[1], "--stage-input-only") == 0)
+    {
+        std::printf("[SimLab] data-driven stage/input regression probes only\n");
+        RegisterAllChampionHooks();
+        const bool_t bContractPass = RunDataDrivenSkillContractProbe();
+        const bool_t bIreliaPass = RunIreliaWReleaseRegressionProbe();
+        const bool_t bChargePass = RunSkillChargeContractProbe();
+        const bool_t bViegoRLandingPass = RunViegoRLandingCenterProbe();
+        const bool_t bCommandResultWirePass =
+            RunCommandResultSnapshotCompatibilityProbe();
+        const bool_t bActionPolicyPass = RunActionMovePolicyProbe();
+        const bool_t bPass = bContractPass && bIreliaPass && bChargePass &&
+            bViegoRLandingPass && bCommandResultWirePass && bActionPolicyPass;
+        std::printf("[SimLab] %s\n", bPass ? "PASS" : "FAIL");
+        return bPass ? 0 : 1;
+    }
+
+    if (argc > 1 && std::strcmp(argv[1], "--zed-passive-r-only") == 0)
+    {
+        std::printf("[SimLab] Zed passive/death-mark probe only\n");
+        RegisterAllChampionHooks();
+        const bool_t bPass = RunZedPassiveDeathMarkProbe();
+        std::printf("[SimLab] %s\n", bPass ? "PASS" : "FAIL");
+        return bPass ? 0 : 1;
+    }
+
+    if (argc > 1 && std::strcmp(argv[1], "--sylas-passive-only") == 0)
+    {
+        std::printf("[SimLab] Sylas passive basic-attack probe only\n");
+        RegisterAllChampionHooks();
+        const bool_t bPass = RunSylasPassiveBasicAttackProbe();
+        std::printf("[SimLab] %s\n", bPass ? "PASS" : "FAIL");
+        return bPass ? 0 : 1;
+    }
+
     if (argc > 1 &&
         std::strcmp(argv[1], "--run-ai-active-macro-episode") == 0)
     {
@@ -9674,6 +12403,40 @@ int main(int argc, char** argv)
         return bPass ? 0 : 1;
     }
 
+    if (argc > 1 && std::strcmp(argv[1], "--mana-items-only") == 0)
+    {
+        RegisterAllChampionHooks();
+        const bool_t bPass = RunManaItemPassivesProbe();
+        std::printf("[SimLab] %s\n", bPass ? "PASS" : "FAIL");
+        return bPass ? 0 : 1;
+    }
+
+    if (argc > 1 && std::strcmp(argv[1], "--resource-only") == 0)
+    {
+        RegisterAllChampionHooks();
+        const bool_t bPass = RunChampionResourceContractProbe() &&
+            RunServerAuthoritativeShieldProbe();
+        std::printf("[SimLab] %s\n", bPass ? "PASS" : "FAIL");
+        return bPass ? 0 : 1;
+    }
+
+    if (argc > 1 && std::strcmp(argv[1], "--gamefeel-only") == 0)
+    {
+        RegisterAllChampionHooks();
+        const bool_t bPass = RunBasicAttackGameFeelContractProbe() &&
+            RunAttackSpeedLabMatrixProbe();
+        std::printf("[SimLab] %s\n", bPass ? "PASS" : "FAIL");
+        return bPass ? 0 : 1;
+    }
+
+    if (argc > 1 && std::strcmp(argv[1], "--active-items-only") == 0)
+    {
+        RegisterAllChampionHooks();
+        const bool_t bPass = RunActiveItemInventoryProbe();
+        std::printf("[SimLab] %s\n", bPass ? "PASS" : "FAIL");
+        return bPass ? 0 : 1;
+    }
+
     if (argc > 1 && std::strcmp(argv[1], "--shield-only") == 0)
     {
         RegisterAllChampionHooks();
@@ -9703,6 +12466,12 @@ int main(int argc, char** argv)
         RunChampionAIStateGateCommitmentProbe();
     const bool_t bCombatActionGenerationProbePass =
         RunCombatActionGenerationProbe();
+    const bool_t bStructureDestructionRemnantProbePass =
+        RunStructureDestructionRemnantProbe();
+    const bool_t bSylasPassiveBasicAttackProbePass =
+        RunSylasPassiveBasicAttackProbe();
+    const bool_t bZedPassiveDeathMarkProbePass =
+        RunZedPassiveDeathMarkProbe();
     const bool_t bKalistaProjectileAuthorityProbePass =
         RunKalistaProjectileAuthorityProbe();
     const bool_t bKalistaSentinelAuthorityProbePass =
@@ -9715,11 +12484,23 @@ int main(int argc, char** argv)
         RunChampionAIMidDefenseDeterminismProbe();
     const bool_t bYoneEReturnProbePass = RunYoneEReturnProbe();
     const bool_t bViegoPossessionProbePass = RunViegoPossessionProbe();
+    const bool_t bViegoRLandingCenterProbePass =
+        RunViegoRLandingCenterProbe();
+    const bool_t bDataDrivenSkillContractProbePass =
+        RunDataDrivenSkillContractProbe();
+    const bool_t bIreliaWReleaseRegressionProbePass =
+        RunIreliaWReleaseRegressionProbe();
+    const bool_t bSkillChargeContractProbePass =
+        RunSkillChargeContractProbe();
+    const bool_t bCommandResultSnapshotCompatibilityProbePass =
+        RunCommandResultSnapshotCompatibilityProbe();
     const bool_t bActionMovePolicyProbePass = RunActionMovePolicyProbe();
     const bool_t bPracticeDefinitionOverlayProbePass =
         RunPracticeDefinitionOverlayProbe();
     const bool_t bItemMoveSpeedScaleProbePass =
         RunItemMoveSpeedScaleProbe();
+    const bool_t bBasicAttackGameFeelContractProbePass =
+        RunBasicAttackGameFeelContractProbe();
     const bool_t bAttackSpeedLabMatrixProbePass =
         RunAttackSpeedLabMatrixProbe();
     const bool_t bAuthoredNavGridProbePass = RunAuthoredNavGridProbe();
@@ -9742,6 +12523,12 @@ int main(int argc, char** argv)
         RunGameplayFormulaDataDrivenProbe();
     const bool_t bBladeOfTheRuinedKingProbePass =
         RunBladeOfTheRuinedKingProbe();
+    const bool_t bManaItemPassivesProbePass =
+        RunManaItemPassivesProbe();
+    const bool_t bChampionResourceContractProbePass =
+        RunChampionResourceContractProbe();
+    const bool_t bActiveItemInventoryProbePass =
+        RunActiveItemInventoryProbe();
     const bool_t bSkillRankGateProbePass =
         RunSkillRankGateProbe();
 
@@ -9751,6 +12538,9 @@ int main(int argc, char** argv)
         bKalistaOathswornFateCallProbePass &&
         bChampionAIStateGateCommitmentProbePass &&
         bCombatActionGenerationProbePass &&
+        bStructureDestructionRemnantProbePass &&
+        bSylasPassiveBasicAttackProbePass &&
+        bZedPassiveDeathMarkProbePass &&
         bKalistaProjectileAuthorityProbePass &&
         bKalistaSentinelAuthorityProbePass &&
         bEzrealProjectileAuthorityProbePass &&
@@ -9758,12 +12548,21 @@ int main(int argc, char** argv)
         bChampionAIMidDefenseDeterminismProbePass &&
         bYoneEReturnProbePass &&
         bViegoPossessionProbePass &&
+        bViegoRLandingCenterProbePass &&
+        bDataDrivenSkillContractProbePass &&
+        bIreliaWReleaseRegressionProbePass &&
+        bSkillChargeContractProbePass &&
+        bCommandResultSnapshotCompatibilityProbePass &&
         bActionMovePolicyProbePass &&
         bPracticeDefinitionOverlayProbePass &&
         bItemMoveSpeedScaleProbePass &&
         bGameplayFormulaDataDrivenProbePass &&
         bBladeOfTheRuinedKingProbePass &&
+        bManaItemPassivesProbePass &&
+        bChampionResourceContractProbePass &&
+        bActiveItemInventoryProbePass &&
         bSkillRankGateProbePass &&
+        bBasicAttackGameFeelContractProbePass &&
         bAttackSpeedLabMatrixProbePass &&
         bAuthoredNavGridProbePass &&
         bKeyframeTransactionalFailureProbePass &&

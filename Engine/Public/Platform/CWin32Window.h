@@ -44,6 +44,9 @@ public:
     // loading yields so continuous WM_MOUSEMOVE traffic cannot starve loading.
     bool    PumpMessages(uint32 maxMessages = 0u);
     void    SetSystemCursorVisible(bool bVisible);
+    // 네이티브(클래스) 커서 이미지를 PNG로 교체. 로딩 중 프레임이 멈춰도
+    // OS가 이 이미지를 계속 그리므로 텍스처 커서와 시각적으로 이어진다.
+    bool    SetCursorImageFromFile(const wchar_t* pPath);
     bool    IsQuitRequested() const { return m_bQuitRequested; }
 
     HWND    GetHandle() const { return m_hWnd;   }
@@ -86,6 +89,7 @@ private:
     static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     HWND    m_hWnd   = nullptr;
+    HCURSOR m_hCursorImage = nullptr;
     int32   m_Width  = 0;
     int32   m_Height = 0;
     bool    m_bQuitRequested = false;

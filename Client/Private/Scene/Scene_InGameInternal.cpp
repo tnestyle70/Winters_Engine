@@ -1,8 +1,8 @@
 #include "Scene/Scene_InGameInternal.h"
+#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionRegistry.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 
 #include <Windows.h>
 #include <cwchar>
@@ -23,7 +23,7 @@ const ChampionDef* FindClientChampionDef(eChampion champion)
 f32_t& LocalKalistaPassiveDashDurationSec()
 {
     static f32_t s_fDurationSec =
-        ChampionGameDataDB::ResolvePassiveDashDurationSec(eChampion::KALISTA);
+        GetDefaultChampionPassiveDashDurationSec(eChampion::KALISTA);
     return s_fDurationSec;
 }
 

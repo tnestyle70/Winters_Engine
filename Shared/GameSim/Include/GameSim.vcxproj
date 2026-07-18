@@ -110,8 +110,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(MSBuildThisFileDirect
     <ClCompile Include="..\Definitions\SpawnObjectDefinitionPack.cpp" />
     <ClCompile Include="..\Spawn\ChampionGameplayAssembly.cpp" />
     <ClCompile Include="..\Generated\ChampionGameData.generated.cpp" />
-    <ClCompile Include="..\Registries\ChampionGameData\ChampionGameDataDB.cpp" />
-    <ClCompile Include="..\Registries\ChampionStats\ChampionStatsRegistry.cpp" />
     <ClCompile Include="..\Registries\Reward\RewardRegistry.cpp" />
     <ClCompile Include="..\Systems\AreaAura\AreaAuraSystem.cpp" />
     <ClCompile Include="..\Systems\AttackChase\AttackChaseSystem.cpp" />
@@ -126,6 +124,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(MSBuildThisFileDirect
     <ClCompile Include="..\Systems\CommandExecutor\CommandExecutor.cpp" />
     <ClCompile Include="..\Systems\Damage\DamagePipeline.cpp" />
     <ClCompile Include="..\Systems\Damage\DamageQueueSystem.cpp" />
+    <ClCompile Include="..\Systems\Item\ItemEffectSystem.cpp" />
     <ClCompile Include="..\Systems\Death\DeathSystem.cpp" />
     <ClCompile Include="..\Systems\Experience\ExperienceSystem.cpp" />
     <ClCompile Include="..\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp" />
@@ -184,6 +183,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(MSBuildThisFileDirect
     <ClInclude Include="..\Components\GoldComponent.h" />
     <ClInclude Include="..\Components\HealthComponent.h" />
     <ClInclude Include="..\Components\InventoryComponent.h" />
+    <ClInclude Include="..\Components\ItemRuntimeComponent.h" />
     <ClInclude Include="..\Components\IreliaSimComponent.h" />
     <ClInclude Include="..\Components\JaxSimComponent.h" />
     <ClInclude Include="..\Components\JungleAIComponent.h" />
@@ -278,8 +278,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(MSBuildThisFileDirect
     <ClInclude Include="..\Feedback\GameplayFeedback.h" />
     <ClInclude Include="..\Feedback\GameplayFeedbackQueue.h" />
     <ClInclude Include="..\Generated\ChampionGameData.generated.h" />
-    <ClInclude Include="..\Registries\ChampionGameData\ChampionGameDataDB.h" />
-    <ClInclude Include="..\Registries\ChampionStats\ChampionStatsRegistry.h" />
     <ClInclude Include="..\Registries\Reward\RewardRegistry.h" />
     <ClInclude Include="..\Replication\EntityIdMap.h" />
     <ClInclude Include="..\Spawn\ChampionGameplayAssembly.h" />
@@ -297,9 +295,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(MSBuildThisFileDirect
     <ClInclude Include="..\Systems\Combat\CombatActionSystem.h" />
     <ClInclude Include="..\Systems\Combat\CombatFormula.h" />
     <ClInclude Include="..\Systems\CommandExecutor\ICommandExecutor.h" />
+    <ClInclude Include="..\Components\SkillChargeStateComponent.h" />
     <ClInclude Include="..\Systems\Damage\Damage.h" />
     <ClInclude Include="..\Systems\Damage\DamagePipeline.h" />
     <ClInclude Include="..\Systems\Damage\DamageQueueSystem.h" />
+    <ClInclude Include="..\Systems\Item\ItemEffectSystem.h" />
     <ClInclude Include="..\Systems\Death\DeathSystem.h" />
     <ClInclude Include="..\Systems\DeterministicEntityIterator\DeterministicEntityIterator.h" />
     <ClInclude Include="..\Systems\Experience\ExperienceSystem.h" />
@@ -325,8 +325,12 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(MSBuildThisFileDirect
     <ClInclude Include="..\Systems\Turret\TurretAISystem.h" />
     <ClInclude Include="..\Systems\WaypointPatrol\WaypointPatrolSystem.h" />
   </ItemGroup>
-  <Target Name="FlatcCodegen" BeforeTargets="ClCompile">
+  <Target Name="FlatcCodegen"
+          BeforeTargets="ClCompile"
+          Inputs="$(MSBuildThisFileDirectory)..\..\..\Tools\Bin\flatc.exe;$(MSBuildThisFileDirectory)..\..\Schemas\run_codegen.bat;$(MSBuildThisFileDirectory)..\..\Schemas\Command.fbs;$(MSBuildThisFileDirectory)..\..\Schemas\Snapshot.fbs;$(MSBuildThisFileDirectory)..\..\Schemas\Event.fbs;$(MSBuildThisFileDirectory)..\..\Schemas\Hello.fbs;$(MSBuildThisFileDirectory)..\..\Schemas\LobbyTypes.fbs;$(MSBuildThisFileDirectory)..\..\Schemas\LobbyState.fbs;$(MSBuildThisFileDirectory)..\..\Schemas\LobbyCommand.fbs"
+          Outputs="$(IntDir)FlatcCodegen.stamp;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\cpp\Command_generated.h;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\cpp\Snapshot_generated.h;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\cpp\Event_generated.h;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\cpp\Hello_generated.h;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\cpp\LobbyTypes_generated.h;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\cpp\LobbyState_generated.h;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\cpp\LobbyCommand_generated.h;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\ActionStartEvent.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\AIDebugTraceRow.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\BuffApplyEvent.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\CommandBatch.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\CommandKind.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\CommandPacket.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\CommandResultSnapshot.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\DamageEvent.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\EffectTriggerEvent.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\EntityKind.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\EntitySnapshot.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\EventKind.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\EventPacket.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\GameplayStateKind.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\GameplayStateSnapshot.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\Hello.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\KillFeedEvent.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\KillFeedObjectKind.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\LobbyCommand.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\LobbyCommandKind.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\LobbyPhase.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\LobbySeatKind.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\LobbySlot.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\LobbyState.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\PracticeOperation.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\ProjectileContactReason.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\ProjectileHitEvent.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\ProjectileSpawnEvent.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\SkillCastEvent.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\Snapshot.go;$(MSBuildThisFileDirectory)..\..\Schemas\Generated\go\Shared\Schema\Vec3.go">
     <Exec Command="&quot;$(MSBuildThisFileDirectory)..\..\Schemas\run_codegen.bat&quot;" />
+    <Touch Files="$(IntDir)FlatcCodegen.stamp" AlwaysCreate="true" />
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

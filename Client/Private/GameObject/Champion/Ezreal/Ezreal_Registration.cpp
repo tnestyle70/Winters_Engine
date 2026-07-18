@@ -46,45 +46,29 @@ namespace
 			{
 				SkillDef s{};
 				s.champ = eChampion::EZREAL; s.slot = 0;
-				s.targetMode = eTargetMode::UnitTarget;
-				s.cooldownSec = 0.5f; s.rangeMax = 5.5f; s.manaCost = 0.f;
 				s.animKey = "attack1";
-				s.lockDurationSec = 0.65f; s.bOneShot = true;
-				s.rotate = eRotateMode::TowardsTarget;
-				s.visualCastFrame = 6.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+				s.bOneShot = true;
 				s.castHookId = kEz_BA_Cast;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 0, s);
 			}
 			{
 				SkillDef s{};
 				s.champ = eChampion::EZREAL; s.slot = 1;
-				s.targetMode = eTargetMode::Direction;
-				s.cooldownSec = kEzrealDebugSkillCooldownSec; s.rangeMax = 11.f;
-				s.animKey = "spell1"; s.lockDurationSec = 0.5f; s.bOneShot = true;
-				s.rotate = eRotateMode::TowardsCursor;
-				s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+				s.animKey = "spell1"; s.bOneShot = true;
 				s.castHookId = kEz_Q_Cast;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 1, s);
 			}
 			{
 				SkillDef s{};
 				s.champ = eChampion::EZREAL; s.slot = 2;
-				s.targetMode = eTargetMode::Direction;
-				s.cooldownSec = kEzrealDebugSkillCooldownSec; s.rangeMax = 10.f;
-				s.animKey = "spell2"; s.lockDurationSec = 0.5f; s.bOneShot = true;
-				s.rotate = eRotateMode::TowardsCursor;
-				s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+				s.animKey = "spell2"; s.bOneShot = true;
 				s.castHookId = kEz_W_Cast;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 2, s);
 			}
 			{
 				SkillDef s{};
 				s.champ = eChampion::EZREAL; s.slot = 3;
-				s.targetMode = eTargetMode::Direction;
-				s.cooldownSec = kEzrealDebugSkillCooldownSec; s.rangeMax = 4.75f;
-				s.animKey = "spell3_generic"; s.lockDurationSec = 0.6f; s.bOneShot = true;
-				s.rotate = eRotateMode::TowardsCursor;
-				s.visualCastFrame = 1.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+				s.animKey = "spell3_generic"; s.bOneShot = true;
 				s.onCastAcceptedHookId = kEz_E_OnAccept;
 				s.keySwapHookId = kEz_E_KeySwap;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 3, s);
@@ -92,11 +76,7 @@ namespace
 			{
 				SkillDef s{};
 				s.champ = eChampion::EZREAL; s.slot = 4;
-				s.targetMode = eTargetMode::Direction;
-				s.cooldownSec = kEzrealDebugSkillCooldownSec; s.rangeMax = 200.f;
-				s.animKey = "spell4"; s.lockDurationSec = 1.0f; s.bOneShot = true;
-				s.rotate = eRotateMode::TowardsCursor;
-				s.visualCastFrame = 16.f; s.visualRecoveryFrame = 24.f; s.visualPlaySpeed = 1.f;
+				s.animKey = "spell4"; s.bOneShot = true;
 				s.castHookId = kEz_R_Cast;
 				CSkillRegistry::Instance().Add(eChampion::EZREAL, 4, s);
 			}

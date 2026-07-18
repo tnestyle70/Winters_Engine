@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Economy gameplay definitions",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "dataVersion",
+    "xpCurve",
+    "championKill",
+    "minions",
+    "turretGold",
+    "jungle",
+    "passiveGold",
+    "timers"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dataVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "buildHash": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "xpCurve": {
+      "type": "array",
+      "minItems": 1
+    },
+    "championKill": {
+      "type": "object"
+    },
+    "minions": {
+      "type": "object"
+    },
+    "turretGold": {
+      "type": "number"
+    },
+    "jungle": {
+      "type": "object"
+    },
+    "passiveGold": {
+      "type": "object"
+    },
+    "timers": {
+      "type": "object"
+    }
+  }
+}

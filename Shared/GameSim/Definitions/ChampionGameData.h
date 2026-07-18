@@ -6,19 +6,26 @@
 #include "SkillTypes.h"
 #include "WintersTypes.h"
 
-inline constexpr u32_t kChampionGameDataSchemaVersion = 1;
+inline constexpr u32_t kChampionGameDataSchemaVersion = 2;
 inline constexpr u8_t kChampionGameDataSkillSlotCount = 5;
 inline constexpr u8_t kChampionGameDataSkillStageMax = 2;
 
 struct ChampionGameDataSkillStage
 {
+    eTargetMode targetMode = eTargetMode::Self;
+    eSkillFacingMode facingMode = eSkillFacingMode::None;
     f32_t lockDurationSec = 0.6f;
+    f32_t commandLockSec = 0.f;
+    eSkillActionMovePolicy movePolicy = eSkillActionMovePolicy::Allow;
+    bool_t bCreatesActionState = true;
+    bool_t bPresentationLoopWhileActive = false;
 };
 
 struct ChampionGameDataSkill
 {
     bool_t bValid = false;
     u8_t slot = 0;
+    eSkillInputActivation inputActivation = eSkillInputActivation::Press;
     eTargetMode targetMode = eTargetMode::Self;
     u8_t stageCount = 1;
     f32_t stageWindowSec = 0.f;
@@ -33,6 +40,7 @@ struct ChampionGameDataSkill
     u16_t scalingTableId = 0;
     u32_t gameplayPolicyId = 0;
     u32_t visualCueId = 0;
+    SkillChargeSpec charge{};
     ChampionGameDataSkillStage stages[kChampionGameDataSkillStageMax] = {};
 };
 

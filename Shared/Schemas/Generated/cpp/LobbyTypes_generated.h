@@ -167,7 +167,8 @@ struct LobbySlot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_BOTLANE = 18,
     VT_BOTPROFILE = 20,
     VT_READY = 22,
-    VT_LOCKED = 24
+    VT_LOCKED = 24,
+    VT_CHAMPIONDEFINITIONKEY = 26
   };
   uint8_t slotId() const {
     return GetField<uint8_t>(VT_SLOTID, 0);
@@ -202,6 +203,9 @@ struct LobbySlot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   bool locked() const {
     return GetField<uint8_t>(VT_LOCKED, 0) != 0;
   }
+  uint32_t championDefinitionKey() const {
+    return GetField<uint32_t>(VT_CHAMPIONDEFINITIONKEY, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -216,6 +220,7 @@ struct LobbySlot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint16_t>(verifier, VT_BOTPROFILE, 2) &&
            VerifyField<uint8_t>(verifier, VT_READY, 1) &&
            VerifyField<uint8_t>(verifier, VT_LOCKED, 1) &&
+           VerifyField<uint32_t>(verifier, VT_CHAMPIONDEFINITIONKEY, 4) &&
            verifier.EndTable();
   }
 };
@@ -257,6 +262,9 @@ struct LobbySlotBuilder {
   void add_locked(bool locked) {
     fbb_.AddElement<uint8_t>(LobbySlot::VT_LOCKED, static_cast<uint8_t>(locked), 0);
   }
+  void add_championDefinitionKey(uint32_t championDefinitionKey) {
+    fbb_.AddElement<uint32_t>(LobbySlot::VT_CHAMPIONDEFINITIONKEY, championDefinitionKey, 0);
+  }
   explicit LobbySlotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -280,8 +288,10 @@ inline ::flatbuffers::Offset<LobbySlot> CreateLobbySlot(
     uint8_t botLane = 0,
     uint16_t botProfile = 0,
     bool ready = false,
-    bool locked = false) {
+    bool locked = false,
+    uint32_t championDefinitionKey = 0) {
   LobbySlotBuilder builder_(_fbb);
+  builder_.add_championDefinitionKey(championDefinitionKey);
   builder_.add_netId(netId);
   builder_.add_sessionId(sessionId);
   builder_.add_botProfile(botProfile);

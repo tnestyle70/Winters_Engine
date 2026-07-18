@@ -2,16 +2,21 @@
 
 #include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
+#include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
+#include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/SylasSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
+#include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
+#include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/SpellbookFormOverride/SpellbookFormOverrideSystem.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
@@ -27,9 +32,6 @@
 
 namespace
 {
-    constexpr u8_t kSylasPassiveMaxStacks = 3u;
-    constexpr f32_t kSylasPassiveWindowSec = 4.0f;
-
     f32_t ResolveSylasSkillEffectParam(
         CWorld& world,
         const TickContext& tc,
@@ -66,6 +68,59 @@ namespace
             slot,
             param,
             fallbackValue);
+    }
+
+    u16_t MakeSylasSkillId(u8_t slot)
+    {
+        return static_cast<u16_t>(
+            (static_cast<u32_t>(eChampion::SYLAS) << 8) |
+            static_cast<u32_t>(slot));
+    }
+
+    void EmitSylasEffect(
+        CWorld& world,
+        EntityID source,
+        EntityID target,
+        u8_t slot,
+        u8_t rank,
+        u8_t stage,
+        const Vec3& position,
+        const Vec3& direction,
+        u16_t durationMs,
+        u64_t startTick)
+    {
+        ReplicatedEventComponent event{};
+        event.kind = eReplicatedEventKind::EffectTrigger;
+        event.sourceEntity = source;
+        event.targetEntity = target;
+        event.effectId = MakeGameplayHookId(
+            eChampion::SYLAS,
+            slot == static_cast<u8_t>(eSkillSlot::R)
+                ? GameplayHookVariant::R_CastFrame
+                : GameplayHookVariant::BA_CastFrame);
+        event.skillId = MakeSylasSkillId(slot);
+        event.slot = slot;
+        event.rank = rank;
+        event.flags = static_cast<u16_t>(
+            (static_cast<u16_t>(stage & 0x0fu) << 12) |
+            (static_cast<u16_t>(rank & 0x0fu) << 8) |
+            static_cast<u16_t>(slot));
+        event.position = position;
+        event.direction = direction;
+        event.durationMs = durationMs;
+        event.startTick = startTick;
+        EnqueueReplicatedEvent(world, event);
+    }
+
+    eTeam ResolveTeam(CWorld& world, EntityID entity)
+    {
+        if (entity != NULL_ENTITY && world.HasComponent<ChampionComponent>(entity))
+            return world.GetComponent<ChampionComponent>(entity).team;
+        if (entity != NULL_ENTITY && world.HasComponent<MinionComponent>(entity))
+            return world.GetComponent<MinionComponent>(entity).team;
+        if (entity != NULL_ENTITY && world.HasComponent<StructureComponent>(entity))
+            return world.GetComponent<StructureComponent>(entity).team;
+        return eTeam::Neutral;
     }
 
     void ClearMove(CWorld& world, EntityID entity)
@@ -419,6 +474,24 @@ namespace
         if (!CanHijackUltimateInternal(world, tc, caster, target))
             return;
 
+        const Vec3 casterPos = world.GetComponent<TransformComponent>(caster).GetPosition();
+        const Vec3 targetPos = world.GetComponent<TransformComponent>(target).GetPosition();
+        const Vec3 direction = WintersMath::DirectionXZ(
+            casterPos,
+            targetPos,
+            ResolveCommandDirection(ctx));
+        EmitSylasEffect(
+            world,
+            caster,
+            target,
+            static_cast<u8_t>(eSkillSlot::R),
+            ctx.skillRank,
+            1u,
+            targetPos,
+            direction,
+            500u,
+            tc.tickIndex);
+
         SpellbookOverrideComponent spellbook{};
         spellbook.sourceChampion = ResolveHijackSourceChampion(world, target);
         spellbook.sourceSlot = static_cast<u8_t>(eSkillSlot::R);
@@ -551,17 +624,36 @@ namespace SylasGameSim
         return CanHijackUltimateInternal(world, tc, caster, target);
     }
 
-    void ArmPassiveOnSkillCast(CWorld& world, EntityID caster)
+    void ArmPassiveOnSkillCast(CWorld& world, const TickContext& tc, EntityID caster)
     {
         if (caster == NULL_ENTITY || !world.IsAlive(caster))
             return;
+
+        const f32_t maxStacksValue = ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::MaxStacks,
+            0.f);
+        const u32_t maxStacks = static_cast<u32_t>(std::clamp(
+            std::round(maxStacksValue),
+            1.f,
+            255.f));
+        const f32_t stackWindowSec = std::max(0.f, ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::StackWindowSec,
+            0.f));
 
         SylasSimComponent& sylas = world.HasComponent<SylasSimComponent>(caster)
             ? world.GetComponent<SylasSimComponent>(caster)
             : world.AddComponent<SylasSimComponent>(caster, SylasSimComponent{});
         sylas.passiveStacks = static_cast<u8_t>(
-            std::min<u32_t>(kSylasPassiveMaxStacks, sylas.passiveStacks + 1u));
-        sylas.passiveRemainingSec = kSylasPassiveWindowSec;
+            std::min<u32_t>(maxStacks, sylas.passiveStacks + 1u));
+        sylas.passiveRemainingSec = stackWindowSec;
     }
 
     bool_t TryConsumePassiveBasicAttack(CWorld& world, EntityID caster)
@@ -580,9 +672,84 @@ namespace SylasGameSim
         --sylas.passiveStacks;
         if (sylas.passiveStacks == 0u)
             sylas.passiveRemainingSec = 0.f;
-        else
-            sylas.passiveRemainingSec = kSylasPassiveWindowSec;
         return true;
+    }
+
+    void EnqueuePassiveBasicAttackAreaDamage(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID primaryTarget)
+    {
+        if (caster == NULL_ENTITY ||
+            primaryTarget == NULL_ENTITY ||
+            !world.IsAlive(caster) ||
+            !world.HasComponent<TransformComponent>(caster) ||
+            !world.HasComponent<ChampionComponent>(caster))
+        {
+            return;
+        }
+
+        const f32_t radius = std::max(0.f, ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::Radius,
+            0.f));
+        const f32_t baseDamage = std::max(0.f, ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::BaseDamage,
+            0.f));
+        const f32_t apRatio = std::max(0.f, ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::ApRatio,
+            0.f));
+        const Vec3 center = world.GetComponent<TransformComponent>(caster).GetPosition();
+        const eTeam sourceTeam = ResolveTeam(world, caster);
+
+        const auto targets =
+            DeterministicEntityIterator<HealthComponent>::CollectSorted(world);
+        for (EntityID target : targets)
+        {
+            if (target == caster ||
+                !world.IsAlive(target) ||
+                !world.HasComponent<TransformComponent>(target) ||
+                !GameplayStateQuery::CanReceiveDamage(world, caster, target))
+            {
+                continue;
+            }
+
+            const HealthComponent& health = world.GetComponent<HealthComponent>(target);
+            if (health.bIsDead || health.fCurrent <= 0.f)
+                continue;
+            const eTeam targetTeam = ResolveTeam(world, target);
+            if (targetTeam == sourceTeam && targetTeam != eTeam::Neutral)
+                continue;
+
+            const Vec3 targetPos =
+                world.GetComponent<TransformComponent>(target).GetPosition();
+            if (WintersMath::DistanceSqXZ(center, targetPos) > radius * radius)
+                continue;
+
+            DamageRequest request{};
+            request.source = caster;
+            request.target = target;
+            request.sourceTeam = sourceTeam;
+            request.type = eDamageType::Magic;
+            request.flatAmount = baseDamage;
+            request.apRatioOverride = apRatio;
+            request.iSourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+            request.eSourceKind = eDamageSourceKind::Skill;
+            request.flags = DamageFlag_None;
+            EnqueueDamageRequest(world, request);
+        }
     }
 
     void ApplyChainHit(CWorld& world, const TickContext& tc, EntityID source, EntityID target)

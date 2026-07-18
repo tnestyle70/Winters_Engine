@@ -3,7 +3,6 @@
 #include "GameRoomInternal.h"
 
 #include "Game/ServerMinionFlowField.h"
-#include "Game/ServerMinionTuning.h"
 #include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
@@ -392,7 +391,7 @@ namespace
         if (world.HasComponent<StructureComponent>(candidate))
         {
             resolvedMaxRange += ResolveAgentRadius(world, candidate) +
-                ServerMinionTuning::kStructureAcquireRangePadding;
+                ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.structureAcquireRangePadding;
         }
 
         const f32_t maxRangeSq = resolvedMaxRange * resolvedMaxRange;
@@ -424,7 +423,7 @@ namespace
 
     bool_t IsServerRangedMinion(const MinionStateComponent& state)
     {
-        return state.type == ServerMinionTuning::kRangedRoleType;
+        return state.type == ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.rangedRoleType;
     }
 
     eProjectileKind ResolveServerMinionRangedProjectileKind(eTeam team)
@@ -559,7 +558,7 @@ namespace
                 SpatialMask(eSpatialKind::Character);
             std::vector<EntityID> candidates;
             const f32_t queryRange =
-                maxRange + ServerMinionTuning::kStructureAcquireRangePadding;
+                maxRange + ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.structureAcquireRangePadding;
             candidates.reserve(64);
             pSpatial->QueryRadius(
                 myPos,
@@ -618,7 +617,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
     const auto minions =
         DeterministicEntityIterator<MinionStateComponent>::CollectSorted(m_world);
 
-    u32_t PathBuildBudget = ServerMinionTuning::kPathBuildBudgetPerTick;
+    u32_t PathBuildBudget = ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathBuildBudgetPerTick;
 
     for (EntityID entity : minions)
     {
@@ -770,7 +769,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
 
             const f32_t scanInterval = state.targetScanInterval > 0.f
                 ? state.targetScanInterval
-                : ServerMinionTuning::kTargetScanIntervalSec;
+                : ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.targetScanIntervalSec;
             state.targetScanCooldown = scanInterval;
         }
 
@@ -804,7 +803,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
                     const f32_t effectiveAttackRange =
                         ResolveServerMinionAttackRange(m_world, entity, target, state);
                     const f32_t impactRange =
-                        effectiveAttackRange + ServerMinionTuning::kAttackExitRangePadding;
+                        effectiveAttackRange + ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.attackExitRangePadding;
                     bImpactValid =
                         WintersMath::DistanceSqXZ(pos, targetPos) <= impactRange * impactRange &&
                         (GameplayStateQuery::IsAttackSegmentGateExemptTarget(m_world, target) ||
@@ -847,7 +846,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
                 ResolveServerMinionAttackRange(m_world, entity, target, state);
             const f32_t rangeSq = effectiveAttackRange * effectiveAttackRange;
             const f32_t exitAttackRange =
-                effectiveAttackRange + ServerMinionTuning::kAttackExitRangePadding;
+                effectiveAttackRange + ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.attackExitRangePadding;
             const bool_t bInAttackRange = distSq <= rangeSq;
             const bool_t bInExitRange = distSq <= exitAttackRange * exitAttackRange;
             const bool_t bHoldAttackRange =
@@ -948,7 +947,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
                         bCanMove &&
                         !bForcedMotion &&
                         state.BlockedMoveFrames >=
-                            ServerMinionTuning::kBlockedFramesBeforeRepath * 2u)
+                            ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.blockedFramesBeforeRepath * 2u)
                     {
                         tibbers.bHasCommandPosition = false;
                         state.current = MinionStateComponent::Idle;
@@ -1202,7 +1201,7 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         const f32_t otherRadius = (std::max)(0.2f, agent.radius);
         const f32_t padding = bStatic ? 0.20f : (bSoftMinion ? 0.f : 0.04f);
         const f32_t radiusScale = bSoftMinion
-            ? ServerMinionTuning::kMinionSoftSeparationRadiusScale
+            ? ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.softSeparationRadiusScale
             : 1.f;
         const f32_t minDist = (selfRadius + otherRadius) * radiusScale + padding;
         if (distSq >= minDist * minDist)
@@ -1212,7 +1211,7 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         const f32_t penetration = minDist - dist;
         const f32_t weight = bStatic
             ? 1.0f
-            : (bSoftMinion ? ServerMinionTuning::kMinionSoftSeparationWeight : 0.55f);
+            : (bSoftMinion ? ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.softSeparationWeight : ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.defaultSeparationWeight);
 
         vPush.x += (vAway.x / dist) * penetration * weight;
         vPush.z += (vAway.z / dist) * penetration * weight;
@@ -1232,7 +1231,7 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
 
     const f32_t pushLen = std::sqrt(pushLenSq);
     const f32_t maxPushStep = softMinionCount > 0u && staticCount == 0u && dynamicCount == 0u
-        ? ServerMinionTuning::kMinionSoftSeparationMaxStep
+        ? ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.softSeparationMaxStep
         : 0.35f;
     const f32_t pushStep = (std::min)((std::max)(0.08f, fStep), maxPushStep);
     const Vec3 vCandidate{
@@ -1245,7 +1244,7 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
     if (!TryClampMoveSegmentXZ(
         vPos,
         vCandidate,
-        ServerMinionTuning::kMinionLaneClearanceRadius,
+        ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.laneClearanceRadius,
         vGuarded))
     {
         return false;
@@ -1320,17 +1319,17 @@ bool_t CGameRoom::TryMoveServerMinionToward(
     }
 
     Vec3 vMoveGoal = vTarget;
-    if (!SegmentWalkableXZ(vPos, vTarget, ServerMinionTuning::kMinionLaneClearanceRadius))
+    if (!SegmentWalkableXZ(vPos, vTarget, ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.laneClearanceRadius))
     {
         const bool_t bTargetMoved =
             WintersMath::DistanceSqXZ(state.PathTarget, vTarget) >
-            ServerMinionTuning::kPathTargetRefreshDistanceSq;
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathTargetRefreshDistanceSq;
 
         const bool_t bNeedPath =
             state.PathCount == 0u ||
             state.PathIndex >= state.PathCount ||
             bTargetMoved ||
-            state.BlockedMoveFrames >= ServerMinionTuning::kBlockedFramesBeforeRepath;
+            state.BlockedMoveFrames >= ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.blockedFramesBeforeRepath;
 
         if (bNeedPath &&
             state.PathRebuildCooldown <= 0.f &&
@@ -1374,8 +1373,8 @@ bool_t CGameRoom::TryMoveServerMinionToward(
             --PathBuildBudget;
             state.PathRebuildCooldown =
                 moveState == MinionStateComponent::Chase
-                ? ServerMinionTuning::kChasePathRebuildIntervalSec
-                : ServerMinionTuning::kLanePathRebuildIntervalSec;
+                ? ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.chasePathRebuildIntervalSec
+                : ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.lanePathRebuildIntervalSec;
         }
 
         if (state.PathCount == 0u || state.PathIndex >= state.PathCount)
@@ -1386,8 +1385,8 @@ bool_t CGameRoom::TryMoveServerMinionToward(
         {
             while (state.PathIndex + 1u < state.PathCount &&
                 WintersMath::DistanceSqXZ(vPos, state.PathWaypoints[state.PathIndex]) <=
-                ServerMinionTuning::kPathWaypointArriveRadius *
-                ServerMinionTuning::kPathWaypointArriveRadius)
+                ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathWaypointArriveRadius *
+                ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathWaypointArriveRadius)
             {
                 ++state.PathIndex;
             }
@@ -1523,12 +1522,12 @@ bool_t CGameRoom::TryMoveServerMinionByFlowFields(
 
     const f32_t fNextLaneDistSq = WintersMath::DistanceSqXZ(vNext, vLaneTarget);
     const bool_t bProgressed =
-        fNextLaneDistSq + ServerMinionTuning::kFlowFieldProgressSlackSq < fPrevLaneDistSq;
+        fNextLaneDistSq + ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.flowFieldProgressSlackSq < fPrevLaneDistSq;
 
     if (!bProgressed)
     {
         ++state.BlockedMoveFrames;
-        if (state.BlockedMoveFrames >= ServerMinionTuning::kFlowFieldStallFramesBeforePathFallback)
+        if (state.BlockedMoveFrames >= ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.flowFieldStallFramesBeforePathFallback)
         {
             static u32_t s_flowFieldFallbackLogCount = 0;
             if (s_flowFieldFallbackLogCount < 64u)
@@ -1605,7 +1604,7 @@ bool_t CGameRoom::TryResolveMinionMoveStep(
         if (!TryClampMoveSegmentXZ(
             vPos,
             vCandidate,
-            ServerMinionTuning::kMinionLaneClearanceRadius,
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.laneClearanceRadius,
             vGuarded))
         {
             ++navBlocked;

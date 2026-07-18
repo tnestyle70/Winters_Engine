@@ -29,6 +29,14 @@ public:
     using OnNewEntityFn = std::function<EntityID(u32_t netId, u8_t championId, u8_t team)>;
     using OnAuthoritativeSnapshotFn = std::function<void(u64_t serverTick,
         u64_t serverTimeMs, u32_t lastAckedCommandSeq, u32_t yourNetId)>;
+    using OnCommandResultFn = std::function<void(
+        u64_t serverTick,
+        u32_t commandSequence,
+        u8_t state,
+        u16_t reason,
+        u8_t authoritativeSkillSlot,
+        u8_t authoritativeSkillStage,
+        u64_t stageWindowEndTick)>;
     using OnTimelineRebaseFn = std::function<void(
         const SnapshotTimelineState& previous,
         const SnapshotTimelineState& next,
@@ -41,6 +49,7 @@ public:
 
     void SetOnNewEntityCallback(OnNewEntityFn fn) { m_onNewEntity = std::move(fn); }
     void SetOnAuthoritativeSnapshot(OnAuthoritativeSnapshotFn fn) { m_onAuthoritativeSnapshot = std::move(fn); }
+    void SetOnCommandResult(OnCommandResultFn fn) { m_onCommandResult = std::move(fn); }
     void SetOnTimelineRebase(OnTimelineRebaseFn fn) { m_onTimelineRebase = std::move(fn); }
     void SetEventApplier(CEventApplier* pEventApplier)
     {
@@ -100,13 +109,14 @@ private:
         EntityIdMap& entityMap,
         u32_t netId,
         u8_t entityKind,
-        u8_t championId,
+        u8_t legacyChampionValue,
         u16_t subtype,
         const Vec3& vPos,
         u8_t team);
 
     OnNewEntityFn m_onNewEntity;
     OnAuthoritativeSnapshotFn m_onAuthoritativeSnapshot;
+    OnCommandResultFn m_onCommandResult;
     OnTimelineRebaseFn m_onTimelineRebase;
     u64_t m_lastServerTick = 0;
     u64_t m_lastSnapshotTick = 0;

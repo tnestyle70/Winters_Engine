@@ -1,20 +1,24 @@
 {
+  "schema": "WintersWfx",
+  "version": 1,
   "name": "Zed.R.Mark",
   "emitters": [
     {
-      "name": "r_death_mark",
-      "render_type": "Billboard",
+      "name": "r_red_cross_swipe",
+      "render_type": "MeshParticle",
       "blend_mode": "Additive",
       "depth_mode": "DepthTestWriteOff",
-      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/zed_r_marker.png",
+      "model": "Client/Bin/Resource/Texture/Character/Zed/particles/fbx/zed_crossswipe.wmesh",
+      "texture": "Client/Bin/Resource/Texture/Character/Zed/particles/render/zed_crossswipe.png",
+      "max_particles": 1,
+      "spawn_rate": 0.0,
       "lifetime": 3.0,
-      "width": 1.45,
-      "height": 1.45,
-      "color": [1.0, 0.18, 0.24, 0.95],
-      "attach_offset": [0.0, 0.0, 0.0],
       "fade_in": 0.05,
-      "fade_out": 0.35,
-      "billboard": true
+      "fade_out": 0.30,
+      "scale": [2.1, 2.1, 2.1],
+      "color": [1.55, 0.05, 0.08, 0.96],
+      "attach_offset": [0.0, 1.20, 0.0],
+      "blockable_by_wind_wall": false
     }
   ]
 }

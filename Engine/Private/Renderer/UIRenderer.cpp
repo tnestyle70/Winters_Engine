@@ -2,6 +2,7 @@
 
 #include "Renderer/UIRenderer.h"
 #include "WintersMath.h"
+#include "Core/Profiler/RenderFrameStats.h"
 
 #include <d3d11.h>
 #include <d3dcompiler.h>
@@ -25,6 +26,8 @@ namespace
         f32_t g = 1.f;
         f32_t b = 1.f;
         f32_t a = 1.f;
+        f32_t localV = 0.f;
+        f32_t revealRatio = -1.f;
     };
 
     struct UICBFrame
@@ -50,6 +53,7 @@ struct VS_INPUT
     float2 vPosition : POSITION;
     float2 vTexCoord : TEXCOORD0;
     float4 vColor : COLOR0;
+    float2 vRevealData : TEXCOORD1;
 };
 
 struct PS_INPUT
@@ -57,6 +61,7 @@ struct PS_INPUT
     float4 vPosition : SV_POSITION;
     float2 vTexCoord : TEXCOORD0;
     float4 vColor : COLOR0;
+    float2 vRevealData : TEXCOORD1;
 };
 
 PS_INPUT VSMain(VS_INPUT input)
@@ -68,11 +73,18 @@ PS_INPUT VSMain(VS_INPUT input)
     output.vPosition = float4(ndc, 0.0f, 1.0f);
     output.vTexCoord = input.vTexCoord;
     output.vColor = input.vColor;
+    output.vRevealData = input.vRevealData;
     return output;
 }
 
 float4 PSMain(PS_INPUT input) : SV_TARGET
 {
+    if (input.vRevealData.y >= 0.0f &&
+        input.vRevealData.x < 1.0f - saturate(input.vRevealData.y))
+    {
+        discard;
+    }
+
     float4 texColor = g_DiffuseMap.Sample(g_Sampler, input.vTexCoord);
     return texColor * input.vColor;
 }
@@ -181,6 +193,7 @@ struct CUIRenderer::Impl
 
         ID3D11ShaderResourceView* pSRV = pCurrentSRV;
         pContext->PSSetShaderResources(0, 1, &pSRV);
+        RenderFrameStats::AddDraw(vertices.size());
         pContext->Draw(static_cast<UINT>(vertices.size()), 0);
         vertices.clear();
     }
@@ -304,6 +317,7 @@ bool_t CUIRenderer::Initialize(IRHIDevice* pDevice)
         { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
     if (FAILED(m_pImpl->pNativeDevice->CreateInputLayout(
@@ -522,6 +536,52 @@ void CUIRenderer::DrawImage(void* pTextureSRV,
     pVtx[3] = { x0, y0, u0, v0, vColor.x, vColor.y, vColor.z, vColor.w };
     pVtx[4] = { x1, y1, u1, v1, vColor.x, vColor.y, vColor.z, vColor.w };
     pVtx[5] = { x0, y1, u0, v1, vColor.x, vColor.y, vColor.z, vColor.w };
+}
+
+void CUIRenderer::DrawImageVerticalReveal(void* pTextureSRV,
+    f32_t fX, f32_t fY, f32_t fW, f32_t fH,
+    const Vec4& vUVRect,
+    const Vec4& vColor,
+    f32_t fRevealRatio)
+{
+    if (!IsReady() || !m_pImpl->bInFrame ||
+        fW <= 0.f || fH <= 0.f || fRevealRatio <= 0.f)
+    {
+        return;
+    }
+
+    ID3D11ShaderResourceView* pSRV = pTextureSRV
+        ? static_cast<ID3D11ShaderResourceView*>(pTextureSRV)
+        : m_pImpl->pWhiteSRV.Get();
+    if (!pSRV)
+        return;
+
+    if (m_pImpl->pCurrentSRV != pSRV ||
+        m_pImpl->vertices.size() + 6 > kMaxUIVertices)
+    {
+        m_pImpl->Flush();
+        m_pImpl->pCurrentSRV = pSRV;
+    }
+
+    const f32_t x0 = fX;
+    const f32_t y0 = fY;
+    const f32_t x1 = fX + fW;
+    const f32_t y1 = fY + fH;
+    const f32_t u0 = vUVRect.x;
+    const f32_t v0 = vUVRect.y;
+    const f32_t u1 = vUVRect.z;
+    const f32_t v1 = vUVRect.w;
+    const f32_t reveal = WintersMath::Clamp01(fRevealRatio);
+
+    const size_t base = m_pImpl->vertices.size();
+    m_pImpl->vertices.resize(base + 6u);
+    UIVertex* pVtx = m_pImpl->vertices.data() + base;
+    pVtx[0] = { x0, y0, u0, v0, vColor.x, vColor.y, vColor.z, vColor.w, 0.f, reveal };
+    pVtx[1] = { x1, y0, u1, v0, vColor.x, vColor.y, vColor.z, vColor.w, 0.f, reveal };
+    pVtx[2] = { x1, y1, u1, v1, vColor.x, vColor.y, vColor.z, vColor.w, 1.f, reveal };
+    pVtx[3] = { x0, y0, u0, v0, vColor.x, vColor.y, vColor.z, vColor.w, 0.f, reveal };
+    pVtx[4] = { x1, y1, u1, v1, vColor.x, vColor.y, vColor.z, vColor.w, 1.f, reveal };
+    pVtx[5] = { x0, y1, u0, v1, vColor.x, vColor.y, vColor.z, vColor.w, 1.f, reveal };
 }
 
 void CUIRenderer::DrawImageCircle(void* pTextureSRV,

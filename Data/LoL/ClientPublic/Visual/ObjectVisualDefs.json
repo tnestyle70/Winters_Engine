@@ -7,7 +7,18 @@
       "team": "Blue",
       "mesh": "Texture/Object/Inhibitor/inhibitor_textured.wmesh",
       "shader": "Shaders/Mesh3D.hlsl",
-      "visibilityStates": []
+      "visibilityStates": [
+        {
+          "name": "Destroyed",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Alive",
+          "submeshIndex": 1,
+          "visibleWhenDestroyed": false
+        }
+      ]
     },
     {
       "key": "structure.inhibitor.red",
@@ -15,7 +26,18 @@
       "team": "Red",
       "mesh": "Texture/Object/Inhibitor/inhibitor_red_textured.wmesh",
       "shader": "Shaders/Mesh3D.hlsl",
-      "visibilityStates": []
+      "visibilityStates": [
+        {
+          "name": "Destroyed",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": true
+        },
+        {
+          "name": "Alive",
+          "submeshIndex": 1,
+          "visibleWhenDestroyed": false
+        }
+      ]
     },
     {
       "key": "structure.nexus.blue",
@@ -63,14 +85,21 @@
       "shader": "Shaders/Mesh3D.hlsl",
       "visibilityStates": [
         {
+          "name": "Base",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": false
+        },
+        {
           "name": "Stage1",
           "submeshIndex": 1,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Stage2",
           "submeshIndex": 2,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Stage3Stump",
@@ -80,22 +109,26 @@
         {
           "name": "Rubble",
           "submeshIndex": 4,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken1",
           "submeshIndex": 5,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken2",
           "submeshIndex": 6,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken3",
           "submeshIndex": 7,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         }
       ]
     },
@@ -107,14 +140,21 @@
       "shader": "Shaders/Mesh3D.hlsl",
       "visibilityStates": [
         {
+          "name": "Base",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": false
+        },
+        {
           "name": "Stage1",
           "submeshIndex": 1,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Stage2",
           "submeshIndex": 2,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Stage3Stump",
@@ -124,22 +164,26 @@
         {
           "name": "Rubble",
           "submeshIndex": 4,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken1",
           "submeshIndex": 5,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken2",
           "submeshIndex": 6,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken3",
           "submeshIndex": 7,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         }
       ]
     }

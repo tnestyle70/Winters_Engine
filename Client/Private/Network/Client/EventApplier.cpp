@@ -149,22 +149,21 @@ namespace
             id != eReplicatedActionId::Recall;
     }
     bool_t ShouldLoopReplicatedAction(
-        eChampion animationChampion,
         u16_t actionId,
-        u8_t actionStage)
+        u8_t actionStage,
+        const SkillDef* pSkillDef)
     {
         const auto id = static_cast<eReplicatedActionId>(actionId);
         if (id == eReplicatedActionId::None)
             return false;
         if (id == eReplicatedActionId::Recall)
             return true;
-        if (animationChampion == eChampion::JAX &&
-            id == eReplicatedActionId::SkillE &&
-            actionStage <= 1u)
-        {
-            return true;
-        }
-        return false;
+        if (!pSkillDef)
+            return false;
+
+        return actionStage >= 2u
+            ? pSkillDef->bStage2PresentationLoopWhileActive
+            : pSkillDef->bPresentationLoopWhileActive;
     }
 
     bool_t IsNewerActionSeq(u32_t seq, u32_t previousSeq)
@@ -997,7 +996,7 @@ EntityID CEventApplier::EnsureProjectilePresentation(
             mesh.vWorldPos = vPosition;
             mesh.vVelocity = {};
             mesh.attachTo = entity;
-            mesh.vRotation.y = yaw;
+            mesh.vRotation.y = visual.bSuppressMeshDirectionalYaw ? 0.f : yaw;
         }
         if (world.HasComponent<FxBillboardComponent>(visualEntity))
         {
@@ -1664,6 +1663,9 @@ void CEventApplier::ApplyEffectTrigger(
         ctx.pDef = pDef;
         ctx.pCommand = &command;
         ctx.skillStage = skillStage;
+        ctx.fEffectLifetimeSec = ev->durationMs() > 0u
+            ? static_cast<f32_t>(ev->durationMs()) / 1000.f
+            : 0.f;
         ctx.pFxMeshRenderer = m_pFxMeshRenderer;
         ctx.bAuthoritativeEvent = true;
 
@@ -1671,6 +1673,24 @@ void CEventApplier::ApplyEffectTrigger(
             CVisualHookRegistry::Instance().Dispatch(effectId, ctx);
 
 #if defined(_DEBUG)
+        if (hookChampion == eChampion::SYLAS &&
+            hookSlot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+        {
+            static u32_t s_sylasPassiveCueTraceCount = 0u;
+            if (s_sylasPassiveCueTraceCount < 32u)
+            {
+                char msg[192]{};
+                sprintf_s(
+                    msg,
+                    "[SylasPassive][ClientCue] stage=%u effect=0x%08X visual=%u authoritative=%u\n",
+                    static_cast<u32_t>(skillStage),
+                    effectId,
+                    bVisualHandled ? 1u : 0u,
+                    ctx.bAuthoritativeEvent ? 1u : 0u);
+                OutputDebugStringA(msg);
+                ++s_sylasPassiveCueTraceCount;
+            }
+        }
         if (hookChampion == eChampion::IRELIA)
         {
             static u32_t s_ireliaCueTraceCount = 0;
@@ -1689,6 +1709,7 @@ void CEventApplier::ApplyEffectTrigger(
                     command.groundPos.x,
                     command.groundPos.y,
                     command.groundPos.z);
+                OutputDebugStringA(msg);
                 ++s_ireliaCueTraceCount;
             }
         }
@@ -1734,12 +1755,16 @@ void CEventApplier::ApplyDamage(
 
     Vec3 damageTextPos = pos;
     damageTextPos.y += 2.1f;
+    const bool_t bShowCriticalIndicator =
+        ev->bWasCrit() ||
+        (ev->flags() & DamageFlag_ShowCriticalIndicator) != 0u;
     CGameInstance::Get()->UI_Push_DamageNumber(
         damageTextPos,
         ev->amount(),
         ev->type(),
         ev->bWasCrit(),
-        ev->bKilled());
+        ev->bKilled(),
+        bShowCriticalIndicator);
 
     if (ev->bKilled() && IsMinionEntity(world, target))
     {
@@ -1783,6 +1808,10 @@ void CEventApplier::ApplyKillFeed(
     const eTeam targetTeam = TeamFromWire(ev->targetTeam());
     const bool_t bSourceAlly = sourceTeam == localTeam;
     const bool_t bTargetAlly = targetTeam == localTeam;
+    const EntityID sourceEntity = ev->sourceNet() != NULL_NET_ENTITY
+        ? ResolveLiveEntity(world, entityMap, ev->sourceNet())
+        : NULL_ENTITY;
+    const bool_t bSourceMinion = IsMinionEntity(world, sourceEntity);
 
     // 포탑/억제기 파괴 순간 연출 — 구조물 엔티티는 사망 후에도 ECS 에 남으므로 위치 해석 가능.
     if (objectKind == kKillFeedObjectStructure || objectKind == kKillFeedObjectObjective)
@@ -1838,6 +1867,7 @@ void CEventApplier::ApplyKillFeed(
         objectKind,
         ev->targetTeam(),
         bSourceAlly,
+        bSourceMinion,
         pMessage);
 }
 
@@ -1903,11 +1933,22 @@ bool_t CEventApplier::PlayReplicatedActionVisual(
         animName = ResolveRecallAnimName(*cd, *render.pRenderer);
         break;
     case eReplicatedActionId::BasicAttack:
-        animName = PrefixAnim(*cd,
-            animationChampion == eChampion::SYLAS && actionStage >= 2u
-                ? "skinned_mesh_sylas_attack_passive"
-                : cd->basicAttackKey);
+    {
+        const SkillDef* def = CSkillRegistry::Instance().Find(
+            animationChampion,
+            static_cast<u8_t>(eSkillSlot::BasicAttack));
+        if (!def)
+        {
+            def = FindSkillDef(
+                animationChampion,
+                static_cast<u8_t>(eSkillSlot::BasicAttack));
+        }
+        const char* pAnimKey = actionStage >= 2u && def && def->stage2AnimKey
+            ? def->stage2AnimKey
+            : cd->basicAttackKey;
+        animName = PrefixAnim(*cd, pAnimKey);
         break;
+    }
     case eReplicatedActionId::DeathStart:
         animName = PrefixAnim(*cd, "death");
         break;
@@ -1952,20 +1993,22 @@ bool_t CEventApplier::PlayReplicatedActionVisual(
         const bool_t bBasicAttackPresentation =
             UI::IsAttackSpeedPlaybackAction(actionId, replicatedSourceSlot);
         f32_t playSpeed = 1.f;
+        const SkillDef* pPresentationDef = nullptr;
         if (id == eReplicatedActionId::BasicAttack ||
             id == eReplicatedActionId::SkillQ ||
             id == eReplicatedActionId::SkillW ||
             id == eReplicatedActionId::SkillE ||
             id == eReplicatedActionId::SkillR)
         {
-            const SkillDef* def = CSkillRegistry::Instance().Find(animationChampion, actionSlot);
-            if (!def)
-                def = FindSkillDef(animationChampion, actionSlot);
+            pPresentationDef =
+                CSkillRegistry::Instance().Find(animationChampion, actionSlot);
+            if (!pPresentationDef)
+                pPresentationDef = FindSkillDef(animationChampion, actionSlot);
             playSpeed = ResolveReplicatedActionPlaySpeed(
                 animationChampion,
                 actionSlot,
                 actionStage,
-                def);
+                pPresentationDef);
 
             // BA 모션은 복제된 최종 공속 / canonical base 비율로 재생하고,
             // AttackSpeedLab('8' 키)의 per-entity 시각 보정값을 그 위에 곱한다.
@@ -1979,11 +2022,36 @@ bool_t CEventApplier::PlayReplicatedActionVisual(
         }
         const bool_t bPlayed = render.pRenderer->PlayAnimationByNameAdvanced(
             animName.c_str(),
-            ShouldLoopReplicatedAction(animationChampion, actionId, actionStage),
+            ShouldLoopReplicatedAction(
+                actionId,
+                actionStage,
+                pPresentationDef),
             false,
             playSpeed);
 #if defined(_DEBUG)
-        if (!bPlayed)
+        if (animationChampion == eChampion::SYLAS &&
+            id == eReplicatedActionId::BasicAttack &&
+            actionStage >= 2u)
+        {
+            static u32_t s_sylasPassiveActionTraceCount = 0u;
+            if (s_sylasPassiveActionTraceCount < 32u)
+            {
+                char msg[224]{};
+                sprintf_s(
+                    msg,
+                    "[SylasPassive][ClientAction] stage=%u def=%u stage2Key=%s selected=%s played=%u\n",
+                    static_cast<u32_t>(actionStage),
+                    pPresentationDef ? 1u : 0u,
+                    pPresentationDef && pPresentationDef->stage2AnimKey
+                        ? pPresentationDef->stage2AnimKey
+                        : "-",
+                    animName.c_str(),
+                    bPlayed ? 1u : 0u);
+                OutputDebugStringA(msg);
+                ++s_sylasPassiveActionTraceCount;
+            }
+        }
+        else if (!bPlayed)
         {
             static u32_t s_actionMissTraceCount = 0;
             if (s_actionMissTraceCount < 64u)

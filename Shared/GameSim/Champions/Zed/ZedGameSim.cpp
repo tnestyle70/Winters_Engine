@@ -8,10 +8,10 @@
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/ZedSimComponent.h"
+#include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
@@ -21,14 +21,15 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <functional>
-#include <iostream>
 #include <vector>
 
 namespace
 {
     constexpr u8_t kZedRSourceShadowStage = 3u;
-
+    constexpr u8_t kZedRLethalMarkerShowStage = 4u;
+    constexpr u8_t kZedRLethalMarkerHideStage = 5u;
     u16_t CastFrameVariantForZedSlot(u8_t slot)
     {
         switch (static_cast<eSkillSlot>(slot))
@@ -95,6 +96,24 @@ namespace
             fallbackValue);
     }
 
+    f32_t ResolveZedSkillEffectParam(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        return GameplayDefinitionQuery::ResolveSkillEffectParam(
+            world,
+            caster,
+            tc,
+            eChampion::ZED,
+            static_cast<u8_t>(slot),
+            param,
+            fallbackValue);
+    }
+
     eTeam ResolveTeam(CWorld& world, EntityID entity)
     {
         if (entity != NULL_ENTITY && world.HasComponent<ChampionComponent>(entity))
@@ -124,21 +143,52 @@ namespace
             modelYaw - GetDefaultChampionVisualYawOffset(eChampion::ZED));
     }
 
+    ZedShadowState* ResolveShadowState(ZedSimComponent& state, eSkillSlot sourceSlot)
+    {
+        switch (sourceSlot)
+        {
+        case eSkillSlot::W:
+            return &state.wShadow;
+        case eSkillSlot::R:
+            return &state.rShadow;
+        default:
+            return nullptr;
+        }
+    }
+
+    const ZedShadowState* ResolveShadowState(const ZedSimComponent& state, eSkillSlot sourceSlot)
+    {
+        switch (sourceSlot)
+        {
+        case eSkillSlot::W:
+            return &state.wShadow;
+        case eSkillSlot::R:
+            return &state.rShadow;
+        default:
+            return nullptr;
+        }
+    }
+
     void SetZedShadowState(
         CWorld& world,
         EntityID caster,
+        eSkillSlot sourceSlot,
         const Vec3& position,
         const Vec3& direction,
         f32_t durationSec)
     {
         ZedSimComponent& state = EnsureZedState(world, caster);
-        state.bShadowActive = true;
-        state.vShadowPosition = position;
-        state.vShadowDirection = WintersMath::NormalizeXZ(
+        ZedShadowState* pShadow = ResolveShadowState(state, sourceSlot);
+        if (!pShadow)
+            return;
+
+        pShadow->bActive = true;
+        pShadow->vPosition = position;
+        pShadow->vDirection = WintersMath::NormalizeXZ(
             direction,
             ResolveForward(world, caster),
             0.0001f);
-        state.fShadowRemainingSec = durationSec;
+        pShadow->fRemainingSec = durationSec;
     }
 
     Vec3 ResolveEntityForward(CWorld& world, EntityID entity)
@@ -318,6 +368,30 @@ namespace
         EnqueueReplicatedEvent(world, event);
     }
 
+    DamageRequest BuildZedPhysicalDamageRequest(
+        EntityID source,
+        EntityID target,
+        eTeam sourceTeam,
+        f32_t amount,
+        u8_t slot,
+        u8_t rank)
+    {
+        DamageRequest request{};
+        request.source = source;
+        request.target = target;
+        request.sourceTeam = sourceTeam;
+        request.type = eDamageType::Physical;
+        request.flatAmount = amount;
+        request.skillId = slot == static_cast<u8_t>(eSkillSlot::R)
+            ? 0u
+            : MakeZedSkillId(slot);
+        request.rank = rank;
+        request.iSourceSlot = slot;
+        request.eSourceKind = eDamageSourceKind::Skill;
+        request.flags = DamageFlag_None;
+        return request;
+    }
+
     void EnqueuePhysicalDamage(
         CWorld& world,
         EntityID source,
@@ -334,16 +408,15 @@ namespace
             return;
         }
 
-        DamageRequest request{};
-        request.source = source;
-        request.target = target;
-        request.sourceTeam = sourceTeam;
-        request.type = eDamageType::Physical;
-        request.flatAmount = amount;
-        request.skillId = MakeZedSkillId(slot);
-        request.rank = rank;
-        request.flags = DamageFlag_OnHit;
-        EnqueueDamageRequest(world, request);
+        EnqueueDamageRequest(
+            world,
+            BuildZedPhysicalDamageRequest(
+                source,
+                target,
+                sourceTeam,
+                amount,
+                slot,
+                rank));
     }
 
     void SpawnZedShuriken(
@@ -492,10 +565,21 @@ namespace
             damagePerRank,
             ctx.skillRank);
 
-        Vec3 shadowPos{};
-        Vec3 shadowDir{};
-        if (ZedGameSim::TryGetShadowSource(world, ctx.casterEntity, shadowPos, shadowDir))
+        constexpr eSkillSlot kShadowSlots[] = { eSkillSlot::W, eSkillSlot::R };
+        for (eSkillSlot shadowSlot : kShadowSlots)
         {
+            Vec3 shadowPos{};
+            Vec3 shadowDir{};
+            if (!ZedGameSim::TryGetShadowSource(
+                    world,
+                    ctx.casterEntity,
+                    static_cast<u8_t>(shadowSlot),
+                    shadowPos,
+                    shadowDir))
+            {
+                continue;
+            }
+
             SpawnZedShuriken(
                 world,
                 ctx.casterEntity,
@@ -510,8 +594,6 @@ namespace
                 ctx.skillRank);
         }
 
-        std::cout << "[ZedSim] Q shuriken caster="
-            << ctx.casterEntity << " rank=" << static_cast<u32_t>(ctx.skillRank) << "\n";
     }
 
     void OnW(GameplayHookContext& ctx)
@@ -523,11 +605,8 @@ namespace
         if (ctx.pCommand && ctx.pCommand->itemId == 2u)
         {
             GameCommand swapCommand = *ctx.pCommand;
-            if (ctx.pTickCtx && ZedGameSim::ApplyLivingShadowMove(world, *ctx.pTickCtx, swapCommand))
-            {
-                std::cout << "[ZedSim] W swap caster="
-                    << ctx.casterEntity << "\n";
-            }
+            if (ctx.pTickCtx)
+                ZedGameSim::ApplyLivingShadowMove(world, *ctx.pTickCtx, swapCommand);
             return;
         }
         if (!ctx.pTickCtx)
@@ -547,11 +626,15 @@ namespace
             dir,
             range);
 
-        SetZedShadowState(world, ctx.casterEntity, target, dir, shadowDurationSec);
+        SetZedShadowState(
+            world,
+            ctx.casterEntity,
+            eSkillSlot::W,
+            target,
+            dir,
+            shadowDurationSec);
 
         RotateToward(world, ctx.casterEntity, dir);
-        std::cout << "[ZedSim] W shadow caster="
-            << ctx.casterEntity << " pos=(" << target.x << "," << target.z << ")\n";
     }
 
     void OnE(GameplayHookContext& ctx)
@@ -587,12 +670,34 @@ namespace
             eSkillEffectParamId::MoveSpeedMul);
 
         const Vec3 casterPos = ResolvePosition(world, ctx.casterEntity);
+        EmitZedEffect(
+            world,
+            ctx.casterEntity,
+            NULL_ENTITY,
+            static_cast<u8_t>(eSkillSlot::E),
+            ctx.skillRank,
+            1u,
+            casterPos,
+            dir,
+            500u,
+            ctx.pTickCtx->tickIndex);
         CollectEnemiesInCircle(world, ctx.casterEntity, sourceTeam, casterPos, radius, targets);
 
-        Vec3 shadowPos{};
-        Vec3 shadowDir{};
-        if (ZedGameSim::TryGetShadowSource(world, ctx.casterEntity, shadowPos, shadowDir))
+        constexpr eSkillSlot kShadowSlots[] = { eSkillSlot::W, eSkillSlot::R };
+        for (eSkillSlot shadowSlot : kShadowSlots)
         {
+            Vec3 shadowPos{};
+            Vec3 shadowDir{};
+            if (!ZedGameSim::TryGetShadowSource(
+                    world,
+                    ctx.casterEntity,
+                    static_cast<u8_t>(shadowSlot),
+                    shadowPos,
+                    shadowDir))
+            {
+                continue;
+            }
+
             CollectEnemiesInCircle(world, ctx.casterEntity, sourceTeam, shadowPos, radius, targets);
             EmitZedEffect(
                 world,
@@ -630,8 +735,6 @@ namespace
                 slowMoveSpeedMul);
         }
 
-        std::cout << "[ZedSim] E slash caster="
-            << ctx.casterEntity << " hits=" << targets.size() << "\n";
     }
 
     void OnR(GameplayHookContext& ctx)
@@ -640,6 +743,13 @@ namespace
             return;
 
         CWorld& world = *ctx.pWorld;
+        if (ctx.pCommand->itemId == 2u)
+        {
+            GameCommand swapCommand = *ctx.pCommand;
+            ZedGameSim::ApplyLivingShadowMove(world, *ctx.pTickCtx, swapCommand);
+            return;
+        }
+
         const EntityID target = ctx.pCommand->targetEntity;
         if (!ZedGameSim::CanCastDeathMark(
             world,
@@ -647,8 +757,6 @@ namespace
             ctx.casterEntity,
             target))
         {
-            std::cout << "[ZedSim] R rejected caster="
-                << ctx.casterEntity << " target=" << target << "\n";
             return;
         }
 
@@ -679,9 +787,24 @@ namespace
             ctx,
             eSkillSlot::R,
             eSkillEffectParamId::MissingHealthDamageRatio);
+        EmitZedEffect(
+            world,
+            ctx.casterEntity,
+            target,
+            static_cast<u8_t>(eSkillSlot::R),
+            ctx.skillRank,
+            1u,
+            targetPos,
+            dir,
+            static_cast<u16_t>(std::clamp(
+                markDurationSec * 1000.f,
+                0.f,
+                65535.f)),
+            ctx.pTickCtx->tickIndex);
         SetZedShadowState(
             world,
             ctx.casterEntity,
+            eSkillSlot::R,
             casterPos,
             dir,
             shadowDurationSec);
@@ -713,6 +836,24 @@ namespace
                     PositionDiscontinuityComponent{});
         discontinuity.uTick = ctx.pTickCtx->tickIndex;
 
+#if defined(_DEBUG)
+        char landingTrace[256]{};
+        std::snprintf(
+            landingTrace,
+            sizeof(landingTrace),
+            "[ZedShadow][R1] caster=%u target=%u source=(%.2f,%.2f,%.2f) behind=(%.2f,%.2f,%.2f) lifetime=%.2f\n",
+            static_cast<u32_t>(ctx.casterEntity),
+            static_cast<u32_t>(target),
+            casterPos.x,
+            casterPos.y,
+            casterPos.z,
+            landingPos.x,
+            landingPos.y,
+            landingPos.z,
+            shadowDurationSec);
+        WintersOutputAIDebugStringA(landingTrace);
+#endif
+
         const Vec3 faceDir = WintersMath::DirectionXZ(landingPos, targetPos, dir);
         if (faceDir.x != 0.f || faceDir.z != 0.f)
             dir = faceDir;
@@ -731,13 +872,84 @@ namespace
         else
             world.AddComponent<ZedDeathMarkComponent>(target, mark);
 
-        std::cout << "[ZedSim] R death mark caster="
-            << ctx.casterEntity << " target=" << target << "\n";
     }
 }
 
 namespace ZedGameSim
 {
+	bool_t CanTriggerPassiveBasicAttack(
+		CWorld& world,
+		const TickContext& tc,
+		EntityID caster,
+		EntityID target)
+	{
+		if (caster == NULL_ENTITY ||
+			target == NULL_ENTITY ||
+			!world.IsAlive(caster) ||
+			!world.IsAlive(target) ||
+			!world.HasComponent<HealthComponent>(target) ||
+			world.HasComponent<StructureComponent>(target) ||
+			!GameplayStateQuery::CanReceiveDamage(world, caster, target))
+		{
+			return false;
+		}
+
+		const HealthComponent& health = world.GetComponent<HealthComponent>(target);
+		if (health.bIsDead || health.fMaximum <= 0.f || health.fCurrent <= 0.f)
+			return false;
+
+		const f32_t threshold = std::clamp(
+			ResolveZedSkillEffectParam(
+				world,
+				tc,
+				caster,
+				eSkillSlot::BasicAttack,
+				eSkillEffectParamId::TargetHealthThresholdRatio,
+				0.f),
+			0.f,
+			1.f);
+		return health.fCurrent / health.fMaximum <= threshold;
+	}
+
+	void EnqueuePassiveBasicAttackDamage(
+		CWorld& world,
+		const TickContext& tc,
+		EntityID caster,
+		EntityID target)
+	{
+		if (caster == NULL_ENTITY ||
+			target == NULL_ENTITY ||
+			!world.IsAlive(caster) ||
+			!world.IsAlive(target) ||
+			!GameplayStateQuery::CanReceiveDamage(world, caster, target))
+		{
+			return;
+		}
+
+		const f32_t ratio = std::max(
+			0.f,
+			ResolveZedSkillEffectParam(
+				world,
+				tc,
+				caster,
+				eSkillSlot::BasicAttack,
+				eSkillEffectParamId::MissingHealthDamageRatio,
+				0.f));
+		if (ratio <= 0.f)
+			return;
+
+		DamageRequest request{};
+		request.source = caster;
+		request.target = target;
+		request.sourceTeam = ResolveTeam(world, caster);
+		request.type = eDamageType::Physical;
+		request.iSourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+		request.eSourceKind = eDamageSourceKind::BasicAttack;
+		request.targetMissingHpRatioOverride = ratio;
+		request.flags = DamageFlag_ShowCriticalIndicator;
+		EnqueueDamageRequest(world, request);
+	}
+
 	bool_t CanCastDeathMark(
 		CWorld& world,
 		const TickContext& tc,
@@ -774,8 +986,6 @@ namespace ZedGameSim
 			tc,
 			eChampion::ZED,
 			static_cast<u8_t>(eSkillSlot::R));
-		if (range <= 0.f)
-			range = 6.25f;
 		range += GameplayStateQuery::ResolveGameplayRadius(world, caster);
 		range += GameplayStateQuery::ResolveGameplayRadius(world, target);
 
@@ -806,34 +1016,26 @@ namespace ZedGameSim
             MakeGameplayHookId(eChampion::ZED, GameplayHookVariant::R_CastFrame), &OnR);
 
         s_bRegistered = true;
-        std::cout << "[ZedSim] hooks registered\n";
     }
 
     void Tick(CWorld& world, const TickContext& tc)
     {
-        std::vector<EntityID> expiredShadows;
         world.ForEach<ZedSimComponent>(
             std::function<void(EntityID, ZedSimComponent&)>(
-                [&](EntityID entity, ZedSimComponent& state)
+                [&](EntityID, ZedSimComponent& state)
                 {
-                    if (!state.bShadowActive)
-                        return;
+                    ZedShadowState* shadows[] = { &state.wShadow, &state.rShadow };
+                    for (ZedShadowState* pShadow : shadows)
+                    {
+                        if (!pShadow->bActive)
+                            continue;
 
-                    state.fShadowRemainingSec =
-                        std::max(0.f, state.fShadowRemainingSec - tc.fDt);
-                    if (state.fShadowRemainingSec <= 0.f)
-                        expiredShadows.push_back(entity);
+                        pShadow->fRemainingSec =
+                            std::max(0.f, pShadow->fRemainingSec - tc.fDt);
+                        if (pShadow->fRemainingSec <= 0.f)
+                            pShadow->bActive = false;
+                    }
                 }));
-
-        for (EntityID entity : expiredShadows)
-        {
-            if (world.HasComponent<ZedSimComponent>(entity))
-            {
-                ZedSimComponent& state = world.GetComponent<ZedSimComponent>(entity);
-                state.bShadowActive = false;
-                state.fShadowRemainingSec = 0.f;
-            }
-        }
 
         std::vector<EntityID> expiredVanishes;
         world.ForEach<ZedVanishComponent>(
@@ -855,6 +1057,65 @@ namespace ZedGameSim
             std::function<void(EntityID, ZedDeathMarkComponent&)>(
                 [&](EntityID entity, ZedDeathMarkComponent& mark)
                 {
+                    const bool_t bCanPredict =
+                        mark.entitySource != NULL_ENTITY &&
+                        world.IsAlive(mark.entitySource) &&
+                        world.IsAlive(entity) &&
+                        world.HasComponent<HealthComponent>(entity);
+                    if (bCanPredict)
+                    {
+                        const HealthComponent& health =
+                            world.GetComponent<HealthComponent>(entity);
+                        const f32_t missingHealth =
+                            std::max(0.f, health.fMaximum - health.fCurrent);
+                        const f32_t damage =
+                            missingHealth * mark.fMissingHealthDamageRatio;
+                        const DamageRequest previewRequest =
+                            BuildZedPhysicalDamageRequest(
+                                mark.entitySource,
+                                entity,
+                                ResolveTeam(world, mark.entitySource),
+                                damage,
+                                static_cast<u8_t>(eSkillSlot::R),
+                                mark.rank);
+                        const bool_t bLethal =
+                            WouldNonCriticalDamageRequestKill(
+                                world,
+                                tc,
+                                previewRequest);
+
+                        if (bLethal != mark.bLethalMarkerVisible)
+                        {
+                            mark.bLethalMarkerVisible = bLethal;
+                            const Vec3 targetPos = ResolvePosition(world, entity);
+                            const Vec3 sourcePos =
+                                ResolvePosition(world, mark.entitySource);
+                            const Vec3 dir = WintersMath::DirectionXZ(
+                                sourcePos,
+                                targetPos,
+                                ResolveForward(world, mark.entitySource));
+                            const f32_t durationMs = std::clamp(
+                                mark.fRemainingSec * 1000.f,
+                                0.f,
+                                65535.f);
+                            EmitZedEffect(
+                                world,
+                                mark.entitySource,
+                                entity,
+                                static_cast<u8_t>(eSkillSlot::R),
+                                mark.rank,
+                                bLethal
+                                    ? kZedRLethalMarkerShowStage
+                                    : kZedRLethalMarkerHideStage,
+                                targetPos,
+                                dir,
+                                bLethal
+                                    ? static_cast<u16_t>(durationMs)
+                                    : 0u,
+                                tc.tickIndex);
+                        }
+                    }
+
                     mark.fRemainingSec = std::max(0.f, mark.fRemainingSec - tc.fDt);
                     if (mark.fRemainingSec <= 0.f ||
                         mark.entitySource == NULL_ENTITY ||
@@ -911,9 +1172,6 @@ namespace ZedGameSim
                     mark.rank);
             }
 
-            std::cout << "[ZedSim] R mark pop source="
-                << mark.entitySource << " target=" << target
-                << " damage=" << damage << "\n";
         }
     }
 
@@ -927,12 +1185,16 @@ namespace ZedGameSim
         }
 
         ZedSimComponent& state = world.GetComponent<ZedSimComponent>(cmd.issuerEntity);
-        if (!state.bShadowActive || state.fShadowRemainingSec <= 0.f)
+        ZedShadowState* pShadow = ResolveShadowState(
+            state,
+            static_cast<eSkillSlot>(cmd.slot));
+        if (!pShadow || !pShadow->bActive || pShadow->fRemainingSec <= 0.f)
             return false;
 
         auto& transform = world.GetComponent<TransformComponent>(cmd.issuerEntity);
         const Vec3 previous = transform.GetPosition();
-        transform.SetPosition(state.vShadowPosition);
+        const Vec3 destination = pShadow->vPosition;
+        transform.SetPosition(destination);
         PositionDiscontinuityComponent& discontinuity =
             world.HasComponent<PositionDiscontinuityComponent>(cmd.issuerEntity)
                 ? world.GetComponent<PositionDiscontinuityComponent>(cmd.issuerEntity)
@@ -940,13 +1202,36 @@ namespace ZedGameSim
                     cmd.issuerEntity,
                     PositionDiscontinuityComponent{});
         discontinuity.uTick = tc.tickIndex;
-        state.vShadowPosition = previous;
-        RotateToward(world, cmd.issuerEntity, state.vShadowDirection);
+        pShadow->vPosition = previous;
+        RotateToward(world, cmd.issuerEntity, pShadow->vDirection);
         ClearMove(world, cmd.issuerEntity);
+
+#if defined(_DEBUG)
+        char swapTrace[256]{};
+        std::snprintf(
+            swapTrace,
+            sizeof(swapTrace),
+            "[ZedShadow][Swap] caster=%u slot=%u from=(%.2f,%.2f,%.2f) to=(%.2f,%.2f,%.2f) remaining=%.2f\n",
+            static_cast<u32_t>(cmd.issuerEntity),
+            static_cast<u32_t>(cmd.slot),
+            previous.x,
+            previous.y,
+            previous.z,
+            destination.x,
+            destination.y,
+            destination.z,
+            pShadow->fRemainingSec);
+        WintersOutputAIDebugStringA(swapTrace);
+#endif
         return true;
     }
 
-    bool_t TryGetShadowSource(CWorld& world, EntityID caster, Vec3& outPosition, Vec3& outDirection)
+    bool_t TryGetShadowSource(
+        CWorld& world,
+        EntityID caster,
+        u8_t sourceSlot,
+        Vec3& outPosition,
+        Vec3& outDirection)
     {
         if (caster == NULL_ENTITY ||
             !world.HasComponent<ZedSimComponent>(caster))
@@ -955,11 +1240,14 @@ namespace ZedGameSim
         }
 
         const ZedSimComponent& state = world.GetComponent<ZedSimComponent>(caster);
-        if (!state.bShadowActive || state.fShadowRemainingSec <= 0.f)
+        const ZedShadowState* pShadow = ResolveShadowState(
+            state,
+            static_cast<eSkillSlot>(sourceSlot));
+        if (!pShadow || !pShadow->bActive || pShadow->fRemainingSec <= 0.f)
             return false;
 
-        outPosition = state.vShadowPosition;
-        outDirection = state.vShadowDirection;
+        outPosition = pShadow->vPosition;
+        outDirection = pShadow->vDirection;
         return true;
     }
 }

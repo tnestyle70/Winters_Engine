@@ -1,5 +1,6 @@
 #include "Renderer/PostFxPass.h"
 
+#include "Core/Profiler/RenderFrameStats.h"
 #include "RHI/RHITypes.h"
 #include "WintersPaths.h"
 
@@ -679,6 +680,7 @@ void CPostFxPass::Execute(IRHIDevice* pDevice)
         ID3D11ShaderResourceView* pSources[2] = { pSource0, pSource1 };
         pContext->PSSetShaderResources(0, 2, pSources);
         pContext->PSSetShader(pPixelShader, nullptr, 0);
+        RenderFrameStats::AddDraw(3u);
         pContext->Draw(3, 0);
         pContext->PSSetShaderResources(0, 2, pNullSRVs);
     };

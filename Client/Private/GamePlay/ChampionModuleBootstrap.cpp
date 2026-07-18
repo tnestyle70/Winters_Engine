@@ -1,4 +1,5 @@
 #include "GamePlay/ChampionModuleBootstrap.h"
+#include "GamePlay/SkillRegistry.h"
 
 extern void Irelia_KeepAlive();
 extern void Ezreal_KeepAlive();
@@ -37,4 +38,5 @@ void BootstrapChampionModules()
     LeeSin_KeepAlive();
     MasterYi_KeepAlive();
     SylasKeepAlive();
+    (void)CSkillRegistry::Instance().AuditDataDrivenContracts();
 }

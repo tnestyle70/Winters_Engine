@@ -12,6 +12,15 @@ std::unique_ptr<CLocalStatusEffectSystem> CLocalStatusEffectSystem::Create()
     return std::unique_ptr<CLocalStatusEffectSystem>(new CLocalStatusEffectSystem());
 }
 
+void CLocalStatusEffectSystem::DescribeAccess(CSystemAccessBuilder& builder) const
+{
+    // RemoveComponent<T>는 스토어 로컬 연산이라 Write<T>로 충분하다.
+    // ForEach로 발견된 엔티티만 제거하므로 스토어 lazy-insert 경로는 타지 않는다.
+    builder.Write<StunComponent>()
+        .Write<SlowComponent>()
+        .Write<DisarmComponent>();
+}
+
 void CLocalStatusEffectSystem::Execute(CWorld& world, f32_t fTimeDelta)
 {
     WINTERS_PROFILE_SCOPE("LocalStatus::Execute");

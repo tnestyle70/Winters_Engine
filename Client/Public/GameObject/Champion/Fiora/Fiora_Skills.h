@@ -23,11 +23,14 @@ namespace Fiora
 
     namespace Visual
     {
-        void OnCastFrame_BA_Visual(VisualHookContext& ctx);
         void OnCastFrame_Q_Visual(VisualHookContext& ctx);
         void OnCastFrame_W_Visual(VisualHookContext& ctx);
+        void OnRecovery_W_Visual(VisualHookContext& ctx);
         void OnCastFrame_E_Visual(VisualHookContext& ctx);
+        void OnRecovery_E_Visual(VisualHookContext& ctx);
         void OnCastFrame_R_Visual(VisualHookContext& ctx);
+        void OnRecovery_R_Visual(VisualHookContext& ctx);
+        void OnPassiveTrigger_Visual(VisualHookContext& ctx);
     }
 }
 

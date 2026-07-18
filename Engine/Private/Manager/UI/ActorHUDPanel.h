@@ -97,7 +97,9 @@ namespace Engine
         std::wstring m_strLoadedLayoutPath;
         std::string m_strLastSaveMessage;
         bool_t m_bShowReference = true;
+        bool_t m_bPreviewXpRatio = false;
         f32_t m_fReferenceAlpha = 0.10f;
+        f32_t m_fPreviewXpRatio = 0.50f;
         f32_t m_fReferenceW = 861.f;
         f32_t m_fReferenceH = 167.f;
     };

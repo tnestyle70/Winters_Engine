@@ -25,7 +25,8 @@ namespace
         for (u8_t i = 0u; i < pVisual->submeshStateCount; ++i)
         {
             const ClientData::StructureVisualSubmeshStateDef& state = pVisual->submeshStates[i];
-            SetSubmeshVisible(mask, state.submeshIndex, state.bVisibleWhenDestroyed == bDestroyed);
+            SetSubmeshVisible(mask, state.submeshIndex,
+                bDestroyed ? state.bVisibleWhenDestroyed : state.bVisibleWhenAlive);
         }
         return mask;
     }

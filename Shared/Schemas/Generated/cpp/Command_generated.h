@@ -38,11 +38,12 @@ enum class CommandKind : uint8_t {
   Flash = 10,
   CompanionCommand = 11,
   PracticeControl = 12,
+  ReorderItem = 13,
   MIN = None,
-  MAX = PracticeControl
+  MAX = ReorderItem
 };
 
-inline const CommandKind (&EnumValuesCommandKind())[13] {
+inline const CommandKind (&EnumValuesCommandKind())[14] {
   static const CommandKind values[] = {
     CommandKind::None,
     CommandKind::Move,
@@ -56,13 +57,14 @@ inline const CommandKind (&EnumValuesCommandKind())[13] {
     CommandKind::AIDebugControl,
     CommandKind::Flash,
     CommandKind::CompanionCommand,
-    CommandKind::PracticeControl
+    CommandKind::PracticeControl,
+    CommandKind::ReorderItem
   };
   return values;
 }
 
 inline const char * const *EnumNamesCommandKind() {
-  static const char * const names[14] = {
+  static const char * const names[15] = {
     "None",
     "Move",
     "CastSkill",
@@ -76,13 +78,14 @@ inline const char * const *EnumNamesCommandKind() {
     "Flash",
     "CompanionCommand",
     "PracticeControl",
+    "ReorderItem",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameCommandKind(CommandKind e) {
-  if (::flatbuffers::IsOutRange(e, CommandKind::None, CommandKind::PracticeControl)) return "";
+  if (::flatbuffers::IsOutRange(e, CommandKind::None, CommandKind::ReorderItem)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesCommandKind()[index];
 }

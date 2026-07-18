@@ -2,6 +2,7 @@
 #include "RHI/DX11/CDX11Device.h"
 #include "WintersCore.h"
 #include "ProfilerAPI.h"
+#include "Core/Profiler/RenderFrameStats.h"
 
 #include <cstdio>
 #include <cstring>
@@ -663,7 +664,10 @@ public:
     {
         ID3D11DeviceContext* pContext = m_Owner.GetContext();
         if (pContext)
+        {
+            RenderFrameStats::AddDraw(vertexCount);
             pContext->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+        }
     }
 
     void DrawIndexed(
@@ -675,7 +679,10 @@ public:
     {
         ID3D11DeviceContext* pContext = m_Owner.GetContext();
         if (pContext)
+        {
+            RenderFrameStats::AddDraw(indexCount);
             pContext->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, baseVertex, firstInstance);
+        }
     }
 
     void Dispatch(u32_t, u32_t, u32_t) override {}
@@ -780,6 +787,9 @@ bool CDX11Device::Initialize(const DeviceDesc& desc)
 #ifdef WINTERS_PROFILING
     m_bGpuTimingReady = CreateGpuTimingQueries();
 #endif
+
+    // GPU 패스 마커 (RenderDoc/PIX 라벨). 실패해도 무해 — null 유지.
+    m_pContext.As(&m_pAnnotation);
 
     return true;
 }
@@ -908,15 +918,26 @@ bool CDX11Device::CreateGpuTimingQueries()
 {
     D3D11_QUERY_DESC disjointDesc{ D3D11_QUERY_TIMESTAMP_DISJOINT, 0 };
     D3D11_QUERY_DESC stampDesc{ D3D11_QUERY_TIMESTAMP, 0 };
+    D3D11_QUERY_DESC statsDesc{ D3D11_QUERY_PIPELINE_STATISTICS, 0 };
 
     for (GpuTimingSlot& slot : m_GpuTimingSlots)
     {
         if (FAILED(m_pDevice->CreateQuery(&disjointDesc, slot.pDisjoint.GetAddressOf())) ||
             FAILED(m_pDevice->CreateQuery(&stampDesc, slot.pBegin.GetAddressOf())) ||
-            FAILED(m_pDevice->CreateQuery(&stampDesc, slot.pEnd.GetAddressOf())))
+            FAILED(m_pDevice->CreateQuery(&stampDesc, slot.pEnd.GetAddressOf())) ||
+            FAILED(m_pDevice->CreateQuery(&statsDesc, slot.pPipelineStats.GetAddressOf())))
         {
             OutputDebugStringA("[CDX11Device] GPU timing query creation failed\n");
             return false;
+        }
+        for (uint32 i = 0; i < kMaxGpuPassesPerFrame; ++i)
+        {
+            if (FAILED(m_pDevice->CreateQuery(&stampDesc, slot.pPassBegin[i].GetAddressOf())) ||
+                FAILED(m_pDevice->CreateQuery(&stampDesc, slot.pPassEnd[i].GetAddressOf())))
+            {
+                OutputDebugStringA("[CDX11Device] GPU pass timing query creation failed\n");
+                return false;
+            }
         }
     }
     return true;
@@ -950,12 +971,77 @@ void CDX11Device::ReadGpuTimingResults()
                 (endTicks - beginTicks) * 1000000ull / disjoint.Frequency;
             WINTERS_PROFILE_GAUGE("GPU::FrameUs", gpuUs);
             WINTERS_PROFILE_GAUGE("GPU::SourceRHIFrame", slot.uSourceRHIFrame);
+
+            // 패스 분해: 같은 disjoint 아래 발행된 begin/end 쌍 (프레임 end 가 준비됐으면 순서상 준비됨).
+            for (uint32 i = 0; i < slot.uPassCount; ++i)
+            {
+                UINT64 passBegin = 0;
+                UINT64 passEnd = 0;
+                if (m_pContext->GetData(slot.pPassBegin[i].Get(), &passBegin, sizeof(passBegin),
+                        D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK ||
+                    m_pContext->GetData(slot.pPassEnd[i].Get(), &passEnd, sizeof(passEnd),
+                        D3D11_ASYNC_GETDATA_DONOTFLUSH) != S_OK)
+                    continue;
+                if (slot.passNames[i] && passEnd > passBegin)
+                    WINTERS_PROFILE_GAUGE(slot.passNames[i],
+                        (passEnd - passBegin) * 1000000ull / disjoint.Frequency);
+            }
+
+            D3D11_QUERY_DATA_PIPELINE_STATISTICS stats{};
+            if (m_pContext->GetData(slot.pPipelineStats.Get(), &stats, sizeof(stats),
+                    D3D11_ASYNC_GETDATA_DONOTFLUSH) == S_OK)
+            {
+                WINTERS_PROFILE_GAUGE("GPU::IAPrimitives", stats.IAPrimitives);
+                WINTERS_PROFILE_GAUGE("GPU::VSInvocations", stats.VSInvocations);
+                WINTERS_PROFILE_GAUGE("GPU::PSInvocations", stats.PSInvocations);
+                WINTERS_PROFILE_GAUGE("GPU::CSInvocations", stats.CSInvocations);
+            }
         }
 
         // Preserve one timing result per CPU frame. Multiple completed slots must never
         // be added together and reported as one GPU frame duration.
         return;
     }
+}
+
+void CDX11Device::BeginGpuPass(const char* pName)
+{
+    if (m_pAnnotation && pName)
+    {
+        wchar_t wide[64];
+        size_t i = 0;
+        for (; i + 1 < _countof(wide) && pName[i]; ++i)
+            wide[i] = static_cast<wchar_t>(pName[i]);
+        wide[i] = L'\0';
+        m_pAnnotation->BeginEvent(wide);
+    }
+#ifdef WINTERS_PROFILING
+    if (m_bGpuFrameTimingActive && !m_bGpuPassOpen)
+    {
+        GpuTimingSlot& slot = m_GpuTimingSlots[m_uGpuTimingWriteIndex];
+        if (slot.uPassCount < kMaxGpuPassesPerFrame)
+        {
+            slot.passNames[slot.uPassCount] = pName;
+            m_pContext->End(slot.pPassBegin[slot.uPassCount].Get());
+            m_bGpuPassOpen = true;
+        }
+    }
+#endif
+}
+
+void CDX11Device::EndGpuPass()
+{
+#ifdef WINTERS_PROFILING
+    if (m_bGpuFrameTimingActive && m_bGpuPassOpen)
+    {
+        GpuTimingSlot& slot = m_GpuTimingSlots[m_uGpuTimingWriteIndex];
+        m_pContext->End(slot.pPassEnd[slot.uPassCount].Get());
+        ++slot.uPassCount;
+        m_bGpuPassOpen = false;
+    }
+#endif
+    if (m_pAnnotation)
+        m_pAnnotation->EndEvent();
 }
 
 unique_ptr<CDX11Device> CDX11Device::Create(const DeviceDesc& desc)
@@ -978,14 +1064,18 @@ void CDX11Device::BeginFrame(float32 r, float32 g, float32 b, float32 a)
 
 #ifdef WINTERS_PROFILING
     ++m_uGpuTimingFrameSerial;
+    m_bGpuFrameTimingActive = false;
     if (m_bGpuTimingReady)
     {
         GpuTimingSlot& slot = m_GpuTimingSlots[m_uGpuTimingWriteIndex];
         if (!slot.bPending)
         {
             slot.uSourceRHIFrame = m_uGpuTimingFrameSerial;
+            slot.uPassCount = 0;
             m_pContext->Begin(slot.pDisjoint.Get());
+            m_pContext->Begin(slot.pPipelineStats.Get());
             m_pContext->End(slot.pBegin.Get());
+            m_bGpuFrameTimingActive = true;
         }
     }
 #endif
@@ -1008,14 +1098,25 @@ void CDX11Device::EndFrame()
         if (!slot.bPending)
         {
             m_pContext->End(slot.pEnd.Get());
+            m_pContext->End(slot.pPipelineStats.Get());
             m_pContext->End(slot.pDisjoint.Get());
             slot.bPending = true;
             m_uGpuTimingWriteIndex = (m_uGpuTimingWriteIndex + 1u) % kGpuTimingSlots;
         }
     }
+    m_bGpuFrameTimingActive = false;
+
+    // 프레임 드로우/바인드 통계: 사이트별 relaxed atomic 집계를 프레임당 1회 방출.
+    WINTERS_PROFILE_GAUGE("Draw::Total", RenderFrameStats::s_uDrawCalls.exchange(0, std::memory_order_relaxed));
+    WINTERS_PROFILE_GAUGE("Draw::Indices", RenderFrameStats::s_uDrawIndices.exchange(0, std::memory_order_relaxed));
+    WINTERS_PROFILE_GAUGE("Bind::Shader", RenderFrameStats::s_uBindShader.exchange(0, std::memory_order_relaxed));
+    WINTERS_PROFILE_GAUGE("Bind::Pipeline", RenderFrameStats::s_uBindPipeline.exchange(0, std::memory_order_relaxed));
+    WINTERS_PROFILE_GAUGE("Bind::Texture", RenderFrameStats::s_uBindTexture.exchange(0, std::memory_order_relaxed));
+    WINTERS_PROFILE_GAUGE("Bind::Blend", RenderFrameStats::s_uBindBlend.exchange(0, std::memory_order_relaxed));
 #endif
 
     // SyncInterval: 1 = VSync, 0 = 즉시 표시
+    //프레임의 끝, 여기 서면 완주
     HRESULT hr = m_pSwapChain->Present(m_bVSync ? 1 : 0, 0);
     if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
     {

@@ -81,11 +81,19 @@ public:
 		f32_t fPlaySpeed = 1.f);
 	bool HasAnimationByName(const std::string& strKeyword) const;
 	f32_t GetAnimationDurationSecondsByName(const std::string& strKeyword) const;
+	f32_t GetAnimationTimeSecondsByFrameByName(
+		const std::string& strKeyword,
+		f32_t fFrame) const;
 	bool HasSkeleton() const;
 	bool TryResolveBoneWorldPosition(const std::string& strBoneName,
 		const Mat4& matEntityWorld,
 		const Vec3& vLocalOffset,
 		Vec3& vOutWorldPos) const;
+	bool TryResolveBoneWorldPose(const std::string& strBoneName,
+		const Mat4& matEntityWorld,
+		const Vec3& vLocalOffset,
+		Vec3& vOutWorldPos,
+		Mat4& matOutWorldRotation) const;
 	bool UsesPBR() const;
 	void SetAmbientOcclusionSRV(void* pNativeSRV);
 	void SetMaterialOverrideColor(const Vec4& color, bool_t bEnabled);

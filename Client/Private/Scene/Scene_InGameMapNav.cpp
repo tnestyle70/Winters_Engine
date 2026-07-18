@@ -1,4 +1,4 @@
-// Scene_InGameMapNav.cpp — CScene_InGame의 맵 surface 샘플링/NavGrid 빌드/이동 타겟 해석 책임 TU.
+﻿// Scene_InGameMapNav.cpp — CScene_InGame의 맵 surface 샘플링/NavGrid 빌드/이동 타겟 해석 책임 TU.
 // Stage 1 (mechanical split): Scene_InGame.cpp에서 verbatim 이동. 동작/시그니처/호출순서 불변.
 // 설계: .md/plan/refactor/15_INGAME_SCENE_THINNING_DESIGN.md
 #define _CRT_SECURE_NO_WARNINGS
@@ -70,7 +70,6 @@
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
@@ -92,7 +91,6 @@
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/SkillDefGameDataAdapter.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -106,7 +104,6 @@
 #pragma pop_macro("min")
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
-#include "ECS/Systems/StatusEffectSystem.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"

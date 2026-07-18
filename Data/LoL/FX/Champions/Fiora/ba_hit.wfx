@@ -1,10 +1,10 @@
 {
   "schema": "WintersWfx",
   "version": 1,
-  "name": "Fiora.BA.Hit",
+  "name": "Fiora.E.Hit",
   "emitters": [
     {
-      "name": "ba_hit_spark",
+      "name": "e_hit_spark",
       "render_type": "Billboard",
       "blend_mode": "Additive",
       "depth_mode": "DepthTestWriteOff",

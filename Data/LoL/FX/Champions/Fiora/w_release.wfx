@@ -1,0 +1,21 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Fiora.W.Release",
+  "emitters": [{
+    "name": "w_sword_sharpflash_blue",
+    "render_type": "Beam",
+    "blend_mode": "Additive",
+    "depth_mode": "DepthTestWriteOff",
+    "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_w_sword_sharpflash_blue.png",
+    "lifetime": 0.30,
+    "fade_in": 0.01,
+    "fade_out": 0.18,
+    "width": 1.0,
+    "color": [0.55, 0.85, 1.6, 0.95],
+    "attach_offset": [0.0, 1.05, 0.2],
+    "end_offset": [0.0, 1.05, 6.0],
+    "uv_scroll": [0.0, -1.2],
+    "billboard": false
+  }]
+}

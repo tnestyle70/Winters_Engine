@@ -27,6 +27,9 @@ struct EntitySnapshotBuilder;
 struct GameplayStateSnapshot;
 struct GameplayStateSnapshotBuilder;
 
+struct CommandResultSnapshot;
+struct CommandResultSnapshotBuilder;
+
 struct Snapshot;
 struct SnapshotBuilder;
 
@@ -692,7 +695,9 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_PROJECTILEDIRX = 232,
     VT_PROJECTILEDIRY = 234,
     VT_PROJECTILEDIRZ = 236,
-    VT_PROJECTILETRAVELEDDIST = 238
+    VT_PROJECTILETRAVELEDDIST = 238,
+    VT_CHAMPIONDEFINITIONKEY = 240,
+    VT_SIGHTRANGE = 242
   };
   uint32_t netId() const {
     return GetField<uint32_t>(VT_NETID, 0);
@@ -1048,6 +1053,12 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   float projectileTraveledDist() const {
     return GetField<float>(VT_PROJECTILETRAVELEDDIST, 0.0f);
   }
+  uint32_t championDefinitionKey() const {
+    return GetField<uint32_t>(VT_CHAMPIONDEFINITIONKEY, 0);
+  }
+  float sightRange() const {
+    return GetField<float>(VT_SIGHTRANGE, 0.0f);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1178,6 +1189,8 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<float>(verifier, VT_PROJECTILEDIRY, 4) &&
            VerifyField<float>(verifier, VT_PROJECTILEDIRZ, 4) &&
            VerifyField<float>(verifier, VT_PROJECTILETRAVELEDDIST, 4) &&
+           VerifyField<uint32_t>(verifier, VT_CHAMPIONDEFINITIONKEY, 4) &&
+           VerifyField<float>(verifier, VT_SIGHTRANGE, 4) &&
            verifier.EndTable();
   }
 };
@@ -1540,6 +1553,12 @@ struct EntitySnapshotBuilder {
   void add_projectileTraveledDist(float projectileTraveledDist) {
     fbb_.AddElement<float>(EntitySnapshot::VT_PROJECTILETRAVELEDDIST, projectileTraveledDist, 0.0f);
   }
+  void add_championDefinitionKey(uint32_t championDefinitionKey) {
+    fbb_.AddElement<uint32_t>(EntitySnapshot::VT_CHAMPIONDEFINITIONKEY, championDefinitionKey, 0);
+  }
+  void add_sightRange(float sightRange) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_SIGHTRANGE, sightRange, 0.0f);
+  }
   explicit EntitySnapshotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1670,11 +1689,15 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
     float projectileDirX = 0.0f,
     float projectileDirY = 0.0f,
     float projectileDirZ = 0.0f,
-    float projectileTraveledDist = 0.0f) {
+    float projectileTraveledDist = 0.0f,
+    uint32_t championDefinitionKey = 0,
+    float sightRange = 0.0f) {
   EntitySnapshotBuilder builder_(_fbb);
   builder_.add_actionLockEndTick(actionLockEndTick);
   builder_.add_actionStartTick(actionStartTick);
   builder_.add_poseStartTick(poseStartTick);
+  builder_.add_sightRange(sightRange);
+  builder_.add_championDefinitionKey(championDefinitionKey);
   builder_.add_projectileTraveledDist(projectileTraveledDist);
   builder_.add_projectileDirZ(projectileDirZ);
   builder_.add_projectileDirY(projectileDirY);
@@ -1912,7 +1935,9 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
     float projectileDirX = 0.0f,
     float projectileDirY = 0.0f,
     float projectileDirZ = 0.0f,
-    float projectileTraveledDist = 0.0f) {
+    float projectileTraveledDist = 0.0f,
+    uint32_t championDefinitionKey = 0,
+    float sightRange = 0.0f) {
   auto skillCooldowns__ = skillCooldowns ? _fbb.CreateVector<float>(*skillCooldowns) : 0;
   auto skillCooldownDurations__ = skillCooldownDurations ? _fbb.CreateVector<float>(*skillCooldownDurations) : 0;
   auto skillRanks__ = skillRanks ? _fbb.CreateVector<uint8_t>(*skillRanks) : 0;
@@ -2040,7 +2065,9 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
       projectileDirX,
       projectileDirY,
       projectileDirZ,
-      projectileTraveledDist);
+      projectileTraveledDist,
+      championDefinitionKey,
+      sightRange);
 }
 
 struct GameplayStateSnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -2235,6 +2262,98 @@ inline ::flatbuffers::Offset<GameplayStateSnapshot> CreateGameplayStateSnapshot(
   return builder_.Finish();
 }
 
+struct CommandResultSnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef CommandResultSnapshotBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_COMMANDSEQUENCE = 4,
+    VT_STATE = 6,
+    VT_REASON = 8,
+    VT_AUTHORITATIVESKILLSLOT = 10,
+    VT_AUTHORITATIVESKILLSTAGE = 12,
+    VT_STAGEWINDOWENDTICK = 14
+  };
+  uint32_t commandSequence() const {
+    return GetField<uint32_t>(VT_COMMANDSEQUENCE, 0);
+  }
+  uint8_t state() const {
+    return GetField<uint8_t>(VT_STATE, 0);
+  }
+  uint16_t reason() const {
+    return GetField<uint16_t>(VT_REASON, 0);
+  }
+  uint8_t authoritativeSkillSlot() const {
+    return GetField<uint8_t>(VT_AUTHORITATIVESKILLSLOT, 255);
+  }
+  uint8_t authoritativeSkillStage() const {
+    return GetField<uint8_t>(VT_AUTHORITATIVESKILLSTAGE, 0);
+  }
+  uint64_t stageWindowEndTick() const {
+    return GetField<uint64_t>(VT_STAGEWINDOWENDTICK, 0);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_COMMANDSEQUENCE, 4) &&
+           VerifyField<uint8_t>(verifier, VT_STATE, 1) &&
+           VerifyField<uint16_t>(verifier, VT_REASON, 2) &&
+           VerifyField<uint8_t>(verifier, VT_AUTHORITATIVESKILLSLOT, 1) &&
+           VerifyField<uint8_t>(verifier, VT_AUTHORITATIVESKILLSTAGE, 1) &&
+           VerifyField<uint64_t>(verifier, VT_STAGEWINDOWENDTICK, 8) &&
+           verifier.EndTable();
+  }
+};
+
+struct CommandResultSnapshotBuilder {
+  typedef CommandResultSnapshot Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_commandSequence(uint32_t commandSequence) {
+    fbb_.AddElement<uint32_t>(CommandResultSnapshot::VT_COMMANDSEQUENCE, commandSequence, 0);
+  }
+  void add_state(uint8_t state) {
+    fbb_.AddElement<uint8_t>(CommandResultSnapshot::VT_STATE, state, 0);
+  }
+  void add_reason(uint16_t reason) {
+    fbb_.AddElement<uint16_t>(CommandResultSnapshot::VT_REASON, reason, 0);
+  }
+  void add_authoritativeSkillSlot(uint8_t authoritativeSkillSlot) {
+    fbb_.AddElement<uint8_t>(CommandResultSnapshot::VT_AUTHORITATIVESKILLSLOT, authoritativeSkillSlot, 255);
+  }
+  void add_authoritativeSkillStage(uint8_t authoritativeSkillStage) {
+    fbb_.AddElement<uint8_t>(CommandResultSnapshot::VT_AUTHORITATIVESKILLSTAGE, authoritativeSkillStage, 0);
+  }
+  void add_stageWindowEndTick(uint64_t stageWindowEndTick) {
+    fbb_.AddElement<uint64_t>(CommandResultSnapshot::VT_STAGEWINDOWENDTICK, stageWindowEndTick, 0);
+  }
+  explicit CommandResultSnapshotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<CommandResultSnapshot> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<CommandResultSnapshot>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<CommandResultSnapshot> CreateCommandResultSnapshot(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t commandSequence = 0,
+    uint8_t state = 0,
+    uint16_t reason = 0,
+    uint8_t authoritativeSkillSlot = 255,
+    uint8_t authoritativeSkillStage = 0,
+    uint64_t stageWindowEndTick = 0) {
+  CommandResultSnapshotBuilder builder_(_fbb);
+  builder_.add_stageWindowEndTick(stageWindowEndTick);
+  builder_.add_commandSequence(commandSequence);
+  builder_.add_reason(reason);
+  builder_.add_authoritativeSkillStage(authoritativeSkillStage);
+  builder_.add_authoritativeSkillSlot(authoritativeSkillSlot);
+  builder_.add_state(state);
+  return builder_.Finish();
+}
+
 struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef SnapshotBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -2258,7 +2377,14 @@ struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_TOOLREVISION = 38,
     VT_SIMPAUSED = 40,
     VT_SIMSPEEDMUL = 42,
-    VT_GAMEPLAYSTATES = 44
+    VT_GAMEPLAYSTATES = 44,
+    VT_LASTCOMMANDRESULTSEQ = 46,
+    VT_LASTCOMMANDRESULTSTATE = 48,
+    VT_LASTCOMMANDRESULTREASON = 50,
+    VT_AUTHORITATIVESKILLSLOT = 52,
+    VT_AUTHORITATIVESKILLSTAGE = 54,
+    VT_STAGEWINDOWENDTICK = 56,
+    VT_COMMANDRESULTS = 58
   };
   uint64_t serverTick() const {
     return GetField<uint64_t>(VT_SERVERTICK, 0);
@@ -2323,6 +2449,27 @@ struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *gameplayStates() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *>(VT_GAMEPLAYSTATES);
   }
+  uint32_t lastCommandResultSeq() const {
+    return GetField<uint32_t>(VT_LASTCOMMANDRESULTSEQ, 0);
+  }
+  uint8_t lastCommandResultState() const {
+    return GetField<uint8_t>(VT_LASTCOMMANDRESULTSTATE, 0);
+  }
+  uint16_t lastCommandResultReason() const {
+    return GetField<uint16_t>(VT_LASTCOMMANDRESULTREASON, 0);
+  }
+  uint8_t authoritativeSkillSlot() const {
+    return GetField<uint8_t>(VT_AUTHORITATIVESKILLSLOT, 255);
+  }
+  uint8_t authoritativeSkillStage() const {
+    return GetField<uint8_t>(VT_AUTHORITATIVESKILLSTAGE, 0);
+  }
+  uint64_t stageWindowEndTick() const {
+    return GetField<uint64_t>(VT_STAGEWINDOWENDTICK, 0);
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>> *commandResults() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>> *>(VT_COMMANDRESULTS);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -2351,6 +2498,15 @@ struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyOffset(verifier, VT_GAMEPLAYSTATES) &&
            verifier.VerifyVector(gameplayStates()) &&
            verifier.VerifyVectorOfTables(gameplayStates()) &&
+           VerifyField<uint32_t>(verifier, VT_LASTCOMMANDRESULTSEQ, 4) &&
+           VerifyField<uint8_t>(verifier, VT_LASTCOMMANDRESULTSTATE, 1) &&
+           VerifyField<uint16_t>(verifier, VT_LASTCOMMANDRESULTREASON, 2) &&
+           VerifyField<uint8_t>(verifier, VT_AUTHORITATIVESKILLSLOT, 1) &&
+           VerifyField<uint8_t>(verifier, VT_AUTHORITATIVESKILLSTAGE, 1) &&
+           VerifyField<uint64_t>(verifier, VT_STAGEWINDOWENDTICK, 8) &&
+           VerifyOffset(verifier, VT_COMMANDRESULTS) &&
+           verifier.VerifyVector(commandResults()) &&
+           verifier.VerifyVectorOfTables(commandResults()) &&
            verifier.EndTable();
   }
 };
@@ -2422,6 +2578,27 @@ struct SnapshotBuilder {
   void add_gameplayStates(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>> gameplayStates) {
     fbb_.AddOffset(Snapshot::VT_GAMEPLAYSTATES, gameplayStates);
   }
+  void add_lastCommandResultSeq(uint32_t lastCommandResultSeq) {
+    fbb_.AddElement<uint32_t>(Snapshot::VT_LASTCOMMANDRESULTSEQ, lastCommandResultSeq, 0);
+  }
+  void add_lastCommandResultState(uint8_t lastCommandResultState) {
+    fbb_.AddElement<uint8_t>(Snapshot::VT_LASTCOMMANDRESULTSTATE, lastCommandResultState, 0);
+  }
+  void add_lastCommandResultReason(uint16_t lastCommandResultReason) {
+    fbb_.AddElement<uint16_t>(Snapshot::VT_LASTCOMMANDRESULTREASON, lastCommandResultReason, 0);
+  }
+  void add_authoritativeSkillSlot(uint8_t authoritativeSkillSlot) {
+    fbb_.AddElement<uint8_t>(Snapshot::VT_AUTHORITATIVESKILLSLOT, authoritativeSkillSlot, 255);
+  }
+  void add_authoritativeSkillStage(uint8_t authoritativeSkillStage) {
+    fbb_.AddElement<uint8_t>(Snapshot::VT_AUTHORITATIVESKILLSTAGE, authoritativeSkillStage, 0);
+  }
+  void add_stageWindowEndTick(uint64_t stageWindowEndTick) {
+    fbb_.AddElement<uint64_t>(Snapshot::VT_STAGEWINDOWENDTICK, stageWindowEndTick, 0);
+  }
+  void add_commandResults(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>>> commandResults) {
+    fbb_.AddOffset(Snapshot::VT_COMMANDRESULTS, commandResults);
+  }
   explicit SnapshotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2455,8 +2632,16 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshot(
     uint64_t toolRevision = 0,
     bool simPaused = false,
     float simSpeedMul = 1.0f,
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>> gameplayStates = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>> gameplayStates = 0,
+    uint32_t lastCommandResultSeq = 0,
+    uint8_t lastCommandResultState = 0,
+    uint16_t lastCommandResultReason = 0,
+    uint8_t authoritativeSkillSlot = 255,
+    uint8_t authoritativeSkillStage = 0,
+    uint64_t stageWindowEndTick = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>>> commandResults = 0) {
   SnapshotBuilder builder_(_fbb);
+  builder_.add_stageWindowEndTick(stageWindowEndTick);
   builder_.add_toolRevision(toolRevision);
   builder_.add_branchId(branchId);
   builder_.add_timelineEpoch(timelineEpoch);
@@ -2464,11 +2649,14 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshot(
   builder_.add_rngState(rngState);
   builder_.add_serverTimeMs(serverTimeMs);
   builder_.add_serverTick(serverTick);
+  builder_.add_commandResults(commandResults);
+  builder_.add_lastCommandResultSeq(lastCommandResultSeq);
   builder_.add_gameplayStates(gameplayStates);
   builder_.add_simSpeedMul(simSpeedMul);
   builder_.add_yourNetId(yourNetId);
   builder_.add_lastAckedCommandSeq(lastAckedCommandSeq);
   builder_.add_entities(entities);
+  builder_.add_lastCommandResultReason(lastCommandResultReason);
   builder_.add_redBarons(redBarons);
   builder_.add_blueBarons(blueBarons);
   builder_.add_redDragons(redDragons);
@@ -2477,6 +2665,9 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshot(
   builder_.add_blueDestroyedTurrets(blueDestroyedTurrets);
   builder_.add_redTotalKills(redTotalKills);
   builder_.add_blueTotalKills(blueTotalKills);
+  builder_.add_authoritativeSkillStage(authoritativeSkillStage);
+  builder_.add_authoritativeSkillSlot(authoritativeSkillSlot);
+  builder_.add_lastCommandResultState(lastCommandResultState);
   builder_.add_simPaused(simPaused);
   return builder_.Finish();
 }
@@ -2503,9 +2694,17 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshotDirect(
     uint64_t toolRevision = 0,
     bool simPaused = false,
     float simSpeedMul = 1.0f,
-    const std::vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *gameplayStates = nullptr) {
+    const std::vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *gameplayStates = nullptr,
+    uint32_t lastCommandResultSeq = 0,
+    uint8_t lastCommandResultState = 0,
+    uint16_t lastCommandResultReason = 0,
+    uint8_t authoritativeSkillSlot = 255,
+    uint8_t authoritativeSkillStage = 0,
+    uint64_t stageWindowEndTick = 0,
+    const std::vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>> *commandResults = nullptr) {
   auto entities__ = entities ? _fbb.CreateVector<::flatbuffers::Offset<Shared::Schema::EntitySnapshot>>(*entities) : 0;
   auto gameplayStates__ = gameplayStates ? _fbb.CreateVector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>(*gameplayStates) : 0;
+  auto commandResults__ = commandResults ? _fbb.CreateVector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>>(*commandResults) : 0;
   return Shared::Schema::CreateSnapshot(
       _fbb,
       serverTick,
@@ -2528,7 +2727,14 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshotDirect(
       toolRevision,
       simPaused,
       simSpeedMul,
-      gameplayStates__);
+      gameplayStates__,
+      lastCommandResultSeq,
+      lastCommandResultState,
+      lastCommandResultReason,
+      authoritativeSkillSlot,
+      authoritativeSkillStage,
+      stageWindowEndTick,
+      commandResults__);
 }
 
 inline const Shared::Schema::Snapshot *GetSnapshot(const void *buf) {

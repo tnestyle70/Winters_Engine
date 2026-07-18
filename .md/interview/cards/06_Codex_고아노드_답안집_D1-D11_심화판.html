@@ -1,0 +1,1026 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>06 · 고아 노드 답안집 — D1~D11 기초·심화판</title><style>:root{--ink:#14161a;--hair:#c8ccd2;--faint:#f0f2f4;--grey:#5c636c;
+ --mono:"SFMono-Regular","Cascadia Mono","JetBrains Mono",Consolas,monospace;
+ --kr:"Pretendard",-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#8a8f96;font-family:var(--kr);color:var(--ink);padding:16px}
+.bar{max-width:210mm;margin:0 auto 16px;background:#fff;border:1px solid var(--ink);padding:10px 14px;
+ font:12px/1.5 var(--mono);display:flex;gap:14px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.bar button{font:11px var(--mono);padding:5px 12px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+.page{width:210mm;min-height:297mm;margin:0 auto 16px;background:#fff;padding:11mm 10mm}
+.top{border-bottom:2.4px solid var(--ink);padding-bottom:3mm;margin-bottom:4mm}
+.top h1{font:800 17px/1.2 var(--kr)} .top p{font:9px/1.5 var(--mono);color:var(--grey);margin-top:1.4mm}
+.dip{display:inline-flex;gap:1px;border:1px solid var(--ink);padding:1px;background:#fff;vertical-align:middle}
+.dip i{width:4.6mm;height:4.6mm;display:inline-flex;align-items:center;justify-content:center;
+ font:700 6.5px/1 var(--mono);background:#fff;color:var(--hair);font-style:normal}
+.dip i.on{background:var(--ink);color:#fff}
+.ax{width:100%;border-collapse:collapse;font-size:8.6px;margin-bottom:4mm}
+.ax td,.ax th{border-bottom:.4px solid var(--faint);padding:1.2mm 1mm;vertical-align:top;text-align:left;line-height:1.4}
+.ax th{font:700 8px var(--mono);border-bottom:1.2px solid var(--ink)}
+.ax td:first-child{font:700 9px var(--mono);white-space:nowrap}
+.rulebox{border:1.2px solid var(--ink);padding:2.6mm 3mm;margin-bottom:4mm;font:8.8px/1.55 var(--kr)}
+.rulebox b{font-weight:700}
+.pre{font:8.4px/1.6 var(--mono);white-space:pre-wrap;background:var(--faint);padding:2mm;margin:1.2mm 0}
+.spgrid{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin-bottom:4mm}
+.sp{border:.5px solid var(--hair);padding:2mm 2.4mm}
+.sp h3{font:700 9px var(--mono);display:flex;justify-content:space-between;align-items:center;margin-bottom:1mm}
+.sp pre{font:7.8px/1.6 var(--mono);white-space:pre-wrap}
+.card{break-inside:avoid;border:1.4px solid var(--ink);margin-bottom:3.4mm;padding:2.6mm 3mm}
+.chd{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;border-bottom:1.2px solid var(--ink);
+ padding-bottom:1.6mm;margin-bottom:1.6mm}
+.cid{font:800 13px/1 var(--mono)} .cttl{font:700 10.5px/1.35 var(--kr);margin-top:1mm}
+.cmeta{font:8px/1.4 var(--mono);color:var(--grey);margin-top:.8mm}
+.ask{font:8.6px/1.5 var(--kr);border-left:2px solid var(--ink);padding-left:2mm;margin-bottom:1.6mm}
+.ask i{font-style:normal;font:700 7.5px var(--mono);margin-right:1.2mm}
+.slot{margin-bottom:1.3mm;font:8.6px/1.5 var(--kr)}
+.slot b.tag{font:700 8px var(--mono);margin-right:1.4mm}
+.anch{font:7.2px/1.5 var(--mono);color:var(--grey);border-top:.4px solid var(--faint);padding-top:1.2mm;margin-top:1.4mm;word-break:break-all}
+.cf{font:7.8px/1.5 var(--kr);color:var(--grey);margin-top:.8mm}
+.cf i{font-style:normal;font-weight:700;color:var(--ink)}
+.sec{background:var(--ink);color:#fff;padding:2mm 2.6mm;margin:4mm 0 2.6mm;font:700 11px/1.3 var(--mono);
+ display:flex;justify-content:space-between;align-items:center}
+.sec s{font:400 8px var(--kr);text-decoration:none;opacity:.75;text-align:right;max-width:120mm}
+.cols{column-count:2;column-gap:7mm;column-rule:.4px solid var(--faint)}
+.dh{break-inside:avoid;break-after:avoid;background:var(--ink);color:#fff;padding:1.6mm 2.4mm;margin:0 0 2.6mm;
+ font:700 10px/1.3 var(--mono);display:flex;justify-content:space-between;align-items:center}
+.dh s{font:400 8px var(--kr);text-decoration:none;opacity:.7;text-align:right;max-width:70mm}
+.dh:not(:first-child){margin-top:4mm}
+.n{break-inside:avoid;margin-bottom:3.4mm;padding-bottom:2.6mm;border-bottom:.4px solid var(--faint)}
+.nh{display:flex;justify-content:space-between;align-items:baseline;gap:4px;margin-bottom:1.2mm}
+.nm{font:700 9.6px/1.3 var(--kr)} .nc{font:700 7.5px/1 var(--mono);color:var(--grey);white-space:nowrap}
+.core{font:8.6px/1.5 var(--kr);border-left:1.8px solid var(--ink);padding-left:2mm;margin-bottom:1.4mm}
+.num{font:8px/1.45 var(--mono);background:var(--faint);padding:1.2mm 2mm;margin-bottom:1.4mm;white-space:pre-wrap}
+.qa{font:8.2px/1.45 var(--kr);margin-bottom:1mm}
+.qa i{font-style:normal;font:700 7.5px var(--mono);color:var(--grey);margin-right:1.4mm}
+.trap{font:7.8px/1.4 var(--kr);color:var(--grey)} .trap i{font-style:normal;font-weight:700;color:var(--ink)}
+.end{border-top:2.4px solid var(--ink);margin-top:5mm;padding-top:3mm;font:8.6px/1.6 var(--kr)}
+@page{size:A4;margin:0}
+@media print{body{background:#fff;padding:0}.bar{display:none}.page{margin:0;page-break-after:always}}</style></head><body>
+<div class="bar"><span>CODEX SOURCE-AUDITED EDITION · 2026-07-16 · 132 DOMAIN NODES</span><button onclick="window.print()">PRINT / PDF</button></div>
+<main class="page"><header class="top"><h1>06 · 고아 노드 답안집 — D1~D11 기초·심화판</h1><p>ORPHAN NODE = LOST RETRIEVAL EDGE, NOT UNIMPORTANT KNOWLEDGE / CLAUDE 06 VISUAL PARITY</p></header><div class="rulebox"><b>핵심 명제.</b> 고아 노드는 사소한 지식이 아니다. 이미 배웠고 프로젝트에서도 사용했지만 질문·좌표·spine·증거·현재 status 중 하나와 연결되지 않아 제때 호출되지 않는 지식이다. 개념을 기초부터 정의하고 실제 코드 사례를 거친 뒤 D1~D11을 문제→메커니즘→경계→비용→증거로 복구한다.<div class="pre">G=(V,E) · V=knowledge nodes · E=retrieval/evidence/dependency/project edges
+orphan(v) = indegree_retrieval(v)=0 OR evidence(v)=∅ OR status(v)=stale OR owner(v)=∅
+repair(v) = question + axes + prerequisite + mechanism + boundary + cost + evidence + status + owner</div></div><table class="ax"><thead><tr><th>AXIS</th><th>NAME</th><th>CALL QUESTION</th><th>PROJECT ANCHOR</th></tr></thead><tbody><tr><td>C1</td><td>기준계·단위·관찰 시점</td><td>무엇을 기준으로 측정하고, 값의 단위와 관찰 시점은 무엇인가?</td><td>Winters 고정 30 Hz tick, Snapshot serverTick, Starcraft Vec2 경로, Battlefield ETA 모델</td></tr><tr><td>C2</td><td>계산량보다 데이터 이동</td><td>연산 자체보다 캐시 미스·복사·동기화·왕복이 더 비싼 지점은 어디인가?</td><td>ComponentStore dense arrays, WorkStealingDeque, Starcraft fog dirty update, Minecraft select loop</td></tr><tr><td>C3</td><td>공유·경합·경계 비용</td><td>여러 스레드·시스템·프로세스가 무엇을 공유하며 그 공유를 누가 직렬화하는가?</td><td>Client→GameCommand→GameSim→Snapshot/Event, Go 서비스 경계, Minecraft packet schema</td></tr><tr><td>C4</td><td>수명·소유권·관찰 가능 상태</td><td>누가 만들고, 누가 파괴하며, 어떤 상태를 언제까지 관찰할 수 있는가?</td><td>EntityHandle generation, Starcraft deferred delete, Minecraft CBase refcount, match outbox</td></tr><tr><td>C5</td><td>이산화·근사·오차 예산</td><td>연속 현실을 어떤 간격·정밀도·근사로 자르고, 허용 오차를 어디에 배정하는가?</td><td>Winters 30 Hz/200 ms=6 ticks, Minecraft 20 TPS, fog 0.5 s, packet quantization</td></tr><tr><td>C6</td><td>탐색 공간 가지치기</td><td>가능한 경우의 수 중 무엇을 계산하지 않을 것인가?</td><td>Mushroom alpha-beta/ordering, Battlefield spareArmy/ETA, renderer frustum/LOD</td></tr><tr><td>C7</td><td>권위·일관성·복구</td><td>충돌한 두 상태 중 누가 진실이며, 늦거나 중복된 메시지를 어떻게 복구하는가?</td><td>Winters server authority, local reconciliation, Redis sync, outbox, NYPC deterministic replay</td></tr><tr><td>C8</td><td>검증 가능성·관측 대역폭</td><td>변경이 맞다는 것을 어떤 증거로 얼마나 빨리 반증할 수 있는가?</td><td>NYPC 패배→복제→trace→수정→시각검증→회귀, Winters SimLab/shadow gate, OutputDebugString</td></tr></tbody></table><div class="sec"><span>FOUNDATION · O00–O09</span><s>정의→원인→유형→탐지→수명주기→복구→천재의 연결법</s></div><div class="card"><div class="chd"><div><div class="cid">O00</div><div class="cttl">가장 기초적인 정의</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">고아 노드는 사소한 지식이 아니라 질문→축→답안→증거로 이어지는 inbound retrieval edge를 잃은 지식이다.</div><div class="num">orphan(v)=no_retrieval_edge OR no_evidence OR stale_status OR no_owner</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="card"><div class="chd"><div><div class="cid">O01</div><div class="cttl">축과 노드는 다르다</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">C1~C8은 관찰 방향이고 D1~D11 node는 답할 지식이다. 하나의 node는 여러 축, 하나의 축은 여러 node를 호출한다.</div><div class="num">coordinate=projection; projection에서 잘린 차원이 orphan이 된다</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="card"><div class="chd"><div><div class="cid">O02</div><div class="cttl">발생 원인</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">너무 굵은 분류, 숨은 전제, 기능명 착시, naming/version drift, 미연결 producer-consumer, 검증·owner 부재가 원인이다.</div><div class="num">projection loss·hidden prerequisite·missing bridge·history drift</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="card"><div class="chd"><div><div class="cid">O03</div><div class="cttl">8가지 유형</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">전제, 비교/경계, 비용/실패, 검증, 플랫폼, 통합/bridge, 역사 drift, 권위/owner 고아로 나눈다.</div><div class="num">유형은 taxonomy가 아니라 repair policy다</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="card"><div class="chd"><div><div class="cid">O04</div><div class="cttl">탐지 지표</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">inbound 질문 수, 축 coverage, status, exact path, project 사용처, 90초 답안 완성, last verified를 본다.</div><div class="num">orphan rate=uncovered required nodes / required nodes</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="card"><div class="chd"><div><div class="cid">O05</div><div class="cttl">수명주기</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">Candidate→Anchored→Verified→Retrievable→Maintained→Merged/Retired를 거친다.</div><div class="num">verified지만 호출되지 않으면 여전히 orphan; retrievable하지만 stale이면 위험 orphan</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="card"><div class="chd"><div><div class="cid">O06</div><div class="cttl">복구 절차</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">핵심 한 문장, 호출 질문, 축, 1~5단계 답안, 증거, 프로젝트 예, 틀리는 조건, status와 owner를 한 카드에 묶는다.</div><div class="num">repair=anchor+status+evidence+question+boundary+owner</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="card"><div class="chd"><div><div class="cid">O07</div><div class="cttl">고아와 버그</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">고아는 지식 구조, bug는 실행 결과 문제다. 검증 node가 고아면 bug가 오래 숨고 integration node가 고아면 반쪽 기능이 완료처럼 보인다.</div><div class="num">Starcraft setter 결함=bug + invariant/verification orphan</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="card"><div class="chd"><div><div class="cid">O08</div><div class="cttl">천재의 연결법</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">천재성은 node 수보다 멀리 떨어진 node 사이에 싸고 정확한 edge를 만드는 능력으로 볼 수 있다.</div><div class="num">강한 edge=같은 기준계·보존량·owner·failure curve</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="card"><div class="chd"><div><div class="cid">O09</div><div class="cttl">05와 06의 역할</div><div class="cmeta">ORPHAN-NODE FOUNDATION</div></div><span class="dip"><i class="on">C1</i><i class="">C2</i><i class="">C3</i><i class="on">C4</i><i class="">C5</i><i class="">C6</i><i class="">C7</i><i class="on">C8</i></span></div>
+<div class="core">05는 축에서 즉시 호출되는 spine/answer node, 06은 투영에서 잘리는 전제·경계·비용·검증 node를 보존한다.</div><div class="num">05=map; 06=recovered terrain + coverage audit</div>
+<div class="qa"><i>Q</i>복구 완료 조건은?</div><div class="qa"><i>A</i>질문에서 호출되고 현재 status·증거·1~5단계 답안을 90초 안에 재구성할 수 있어야 한다.</div>
+<div class="trap"><i>함정</i> 태그 수만 늘려서는 의미·증거·버전 고아가 해결되지 않는다.</div></div><div class="sec"><span>REAL ORPHAN AUDIT</span><s>네 프로젝트의 검색·통합·권위·역사 drift 사례</s></div><div class="spgrid"><div class="sp"><h3><span>R-O1 · Winters delta</span><span>status/integration</span></h3><pre>field는 있으나 producer base tick은 0
+EVIDENCE · SnapshotBuilder.cpp:1086-1108</pre></div><div class="sp"><h3><span>R-O2 · Winters renderer</span><span>history/status</span></h3><pre>미래 clustered/deferred와 현재 DX11 F5가 섞이기 쉬움
+EVIDENCE · Scene_InGameRender.cpp</pre></div><div class="sp"><h3><span>R-O3 · Minecraft IOCP</span><span>evidence/platform</span></h3><pre>IOCPDef.h와 활성 select path가 다름
+EVIDENCE · Server/CServer.cpp:145-225</pre></div><div class="sp"><h3><span>R-O4 · Minecraft authority</span><span>authority/owner</span></h3><pre>server tick이 있어도 client position/damage를 신뢰
+EVIDENCE · Server/CServer.cpp:300-431</pre></div><div class="sp"><h3><span>R-O5 · batch×quadtree</span><span>integration</span></h3><pre>두 최적화가 별도 mode이고 bridge가 없음
+EVIDENCE · Client/Code/CBlockMgr.cpp</pre></div><div class="sp"><h3><span>R-O6 · Starcraft sort</span><span>integration</span></h3><pre>GetSortY API와 실제 fY sort 소비가 갈림
+EVIDENCE · CObj.h; CObjMgr.cpp</pre></div><div class="sp"><h3><span>R-O7 · Starcraft upgrade</span><span>verification</span></h3><pre>attack setter가 armor field를 수정
+EVIDENCE · CObjMgr.h:16-22</pre></div><div class="sp"><h3><span>R-O8 · Battlefield offers</span><span>history drift</span></h3><pre>초기 요약이 current 6,106-line market을 대표하지 못함
+EVIDENCE · battlefield/bots/main_claude.cpp</pre></div><div class="sp"><h3><span>R-O9 · Mushroom formula</span><span>history drift</span></h3><pre>역사 렌즈와 current gated formula가 다름
+EVIDENCE · mushroom/bots/cpp/main_claude.cpp</pre></div><div class="sp"><h3><span>R-O10 · 이름 drift</span><span>naming</span></h3><pre>NEXT NATION 별칭과 battlefield 실제 root가 검색 연결을 끊음
+EVIDENCE · NYPC/battlefield</pre></div></div><div class="sec"><span>D1–D11 · ORPHAN NODE ANSWER BOOK</span><s>natural domain order · failure boundary + evidence</s></div><div class="cols"><div class="dh"><span>D1 · 컴퓨터 구조</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D1-01 · 파이프라인과 처리량</div><div class="nc">C1·C2</div></div>
+<div class="core">5단계 파이프라인도 latency는 약 5 cycle이지만 정상 처리량은 cycle당 1명령을 목표로 한다. stage를 겹치고 hazard에서 stall/forwarding하며 CPI=cycles/instructions로 측정한다.</div>
+<div class="num">AXES C1·C2
+NAIVE 명령 하나의 지연과 초당 완료량을 같은 값으로 본다.
+BOUNDARY 분기·cache miss가 지배하면 stage 추가가 이득이 아니다. GPU SIMD pipeline과도 동일 개념이 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 깊은 pipeline은 mispredict penalty와 검증 복잡도를 늘린다.</div><div class="cf"><i>EVIDENCE</i> `.md/interview/01_computer_architecture.md`</div></div><div class="n"><div class="nh"><div class="nm">D1-02 · Out-of-order·분기 예측</div><div class="nc">C2·C6</div></div>
+<div class="core">수백 개 instruction window에서도 한 번의 branch miss는 대략 수십 cycle을 잃을 수 있다. rename·reservation station·ROB로 실행을 재배치하되 retirement는 순서대로 하고 predictor로 경로를 추측한다.</div>
+<div class="num">AXES C2·C6
+NAIVE 소스 순서대로만 실행하면 독립 명령도 cache miss 뒤에서 기다린다.
+BOUNDARY 결과 의미는 in-order retirement로 보존한다. 데이터 의존이 강하거나 분기가 무작위면 이득이 작다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> speculation 전력·보안·복잡성이 든다.</div><div class="cf"><i>EVIDENCE</i> `.md/interview/01_computer_architecture.md`</div></div><div class="n"><div class="nh"><div class="nm">D1-03 · 캐시 계층과 지역성</div><div class="nc">C2</div></div>
+<div class="core">L1은 수 cycle, DRAM은 대략 100 ns급이라 한 cache miss가 수십~수백 연산보다 비쌀 수 있다. 시간·공간 지역성을 높이고 hot/cold 분리, 연속 배열, blocking으로 working set을 cache에 맞춘다.</div>
+<div class="num">AXES C2
+NAIVE O(1)이면 unordered pointer 구조가 언제나 vector보다 빠르다고 가정한다.
+BOUNDARY 작은 N과 순차 순회에서는 vector가 우세하나 random lookup·큰 이동 비용에서는 hash/tree가 필요하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 복제와 layout 특화가 코드 유연성을 줄인다.</div><div class="cf"><i>EVIDENCE</i> Engine/Public/ECS/ComponentStore.h</div></div><div class="n"><div class="nh"><div class="nm">D1-04 · AoS·SoA·SIMD</div><div class="nc">C2·C3</div></div>
+<div class="core">64-byte cache line에서 position만 읽는데 64-byte 객체 전체를 끌면 대역폭을 낭비한다. 같은 field를 연속 배치하는 SoA 또는 AoSoA로 4/8-lane SIMD와 prefetch를 돕는다.</div>
+<div class="num">AXES C2·C3
+NAIVE 객체지향 구조를 그대로 hot loop에 사용한다.
+BOUNDARY 단일 객체 편집·직렬화에는 AoS가 단순하다. hot batch에만 SoA를 적용한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> gather/scatter와 동기화·디버깅 비용이 생긴다.</div><div class="cf"><i>EVIDENCE</i> ECS dense arrays; Winters particle pools</div></div><div class="n"><div class="nh"><div class="nm">D1-05 · 가상 메모리·TLB</div><div class="nc">C1·C2</div></div>
+<div class="core">4 KiB page 기준 1 GiB는 262,144 pages라 TLB reach를 쉽게 넘는다. page table+TLB를 이해하고 연속 접근, huge page가 맞는 workload, arena로 page walk를 줄인다.</div>
+<div class="num">AXES C1·C2
+NAIVE 주소 변환 비용을 무시하고 큰 random working set을 순회한다.
+BOUNDARY 2 MiB huge page는 TLB reach를 늘리지만 내부 단편화와 권한 granularity를 희생한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> NUMA·page fault·resident set 관측이 필요하다.</div><div class="cf"><i>EVIDENCE</i> `.md/interview/01_computer_architecture.md`; D2 VM</div></div><div class="n"><div class="nh"><div class="nm">D1-06 · 캐시 일관성과 false sharing</div><div class="nc">C2·C3</div></div>
+<div class="core">서로 다른 4-byte counter도 같은 64-byte line이면 코어 간 invalidation을 반복한다. writer ownership, per-thread shard, padding/alignment, batch merge로 coherence traffic을 줄인다.</div>
+<div class="num">AXES C2·C3
+NAIVE data race만 없으면 multi-thread 성능도 안전하다고 본다.
+BOUNDARY padding은 메모리를 늘리고 구조체 ABI를 바꾼다. 실제 HITM/contended counter 측정 후 적용한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 메모리 낭비와 merge 지연이 생긴다.</div><div class="cf"><i>EVIDENCE</i> WorkStealingDeque; `.md/interview/01_computer_architecture.md`</div></div><div class="n"><div class="nh"><div class="nm">D1-07 · 원자 연산과 메모리 순서</div><div class="nc">C3·C7</div></div>
+<div class="core">atomicity와 visibility ordering은 별개이며 relaxed/acquire/release/seq_cst 비용도 다르다. 불변식과 happens-before를 먼저 적고 publish는 release, consume은 acquire처럼 최소 계약을 선택한다.</div>
+<div class="num">AXES C3·C7
+NAIVE 모든 atomic을 relaxed로 하거나 반대로 전부 seq_cst로 둔다.
+BOUNDARY x86 TSO에서 우연히 동작해도 C++ memory model 증명이 없으면 타 플랫폼·컴파일러에서 깨진다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 추론과 테스트가 어렵고 lock-free reclamation이 추가된다.</div><div class="cf"><i>EVIDENCE</i> Engine/Public/Core/JobSystem/WorkStealingDeque.h</div></div><div class="n"><div class="nh"><div class="nm">D1-08 · SIMD·정렬·부동소수점</div><div class="nc">C1·C2·C5</div></div>
+<div class="core">AVX2 256-bit는 float 8개를 한 벡터에 담지만 분기·unaligned tail이 이득을 없앨 수 있다. SoA, alignment, mask/tail, auto-vectorization report를 함께 보고 scalar baseline과 비교한다.</div>
+<div class="num">AXES C1·C2·C5
+NAIVE 루프를 intrinsic으로 바꾸기만 하면 8배 빨라진다고 본다.
+BOUNDARY 결정론 gameplay에서는 FMA·fast-math·연산 순서 차이가 결과를 바꿀 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 코드 이식성과 downclock·검증 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> SimLab determinism; `.md/interview/01_computer_architecture.md`</div></div><div class="n"><div class="nh"><div class="nm">D1-09 · IEEE-754와 수치 경계</div><div class="nc">C1·C5·C7</div></div>
+<div class="core">float는 약 7자리 십진 정밀도이며 0.1을 정확히 표현하지 못한다. 도메인 단위에 맞는 absolute+relative tolerance, 정수 tick/fixed-point, stable reduction을 선택한다.</div>
+<div class="num">AXES C1·C5·C7
+NAIVE == 비교를 무조건 금지하거나 임의의 0.001 epsilon 하나를 전역 사용한다.
+BOUNDARY ID·정수 변환 결과처럼 정확 비교가 맞는 경우도 있다. 물리·렌더·네트워크 경계를 구분한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 성능·범위·정밀도 교환이 생긴다.</div><div class="cf"><i>EVIDENCE</i> Shared/GameSim determinism; D7 numerical stability</div></div><div class="n"><div class="nh"><div class="nm">D1-10 · NUMA·PCIe·CPU/GPU 경계</div><div class="nc">C2·C3</div></div>
+<div class="core">PCIe 왕복과 GPU readback은 µs~ms급 동기화를 만들 수 있어 ALU 비용보다 크다. upload ring, persistent staging, batch copy, frame-lagged readback과 GPU-resident 처리로 경계를 줄인다.</div>
+<div class="num">AXES C2·C3
+NAIVE 매 frame 작은 buffer를 map/readback하고 CPU가 기다린다.
+BOUNDARY 작은 툴·초기화 경로는 단순 UpdateSubresource가 낫다. DX11과 DX12 ownership 모델도 다르다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 추가 버퍼·latency·fence 관리 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Winters DX11 resource path; D8 resources</div></div><div class="n"><div class="nh"><div class="nm">D1-11 · Roofline·병목 측정</div><div class="nc">C2·C8</div></div>
+<div class="core">성능 상한은 min(peak FLOPS, bandwidth×arithmetic intensity)로 본다. scope별 CPU time, GPU timestamp, cache miss, bytes moved와 재현 장면을 묶는다.</div>
+<div class="num">AXES C2·C8
+NAIVE FPS 하나만 보고 CPU/GPU/대역폭 병목을 추측한다.
+BOUNDARY 모델은 상한 설명이지 exact prediction이 아니다. latency-bound branchy code는 별도 분석이 필요하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 계측 오버헤드와 counter 해석 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Winters performance plan rules; profiling docs</div></div><div class="n"><div class="nh"><div class="nm">D1-12 · ECS working set 사례</div><div class="nc">C2·C4·C8</div></div>
+<div class="core">N개 entity의 Transform만 순회할 때 dense array는 필요한 bytes만 선형 접근한다. sparse lookup은 존재 확인, dense data는 hot iteration, handle generation은 lifetime 검증으로 역할을 나눈다.</div>
+<div class="num">AXES C2·C4·C8
+NAIVE 상속 객체 vector와 component hash lookup을 매 entity 반복한다.
+BOUNDARY 모든 시스템에 archetype 이동·chunking까지 도입하는 것은 현재 요구를 넘는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> swap-remove 순서와 sparse capacity를 검증해야 한다.</div><div class="cf"><i>EVIDENCE</i> Engine/Public/ECS/Entity.h; Engine/Public/ECS/ComponentStore.h</div></div><div class="dh"><span>D2 · 운영체제</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D2-01 · 프로세스·스레드·fiber</div><div class="nc">C3·C4</div></div>
+<div class="core">프로세스는 주소공간 격리, 스레드는 공유 주소공간, fiber는 user-mode scheduling 단위다. failure boundary는 process, 병렬 CPU는 thread, job 대기는 fiber/coroutine처럼 목적별로 고른다.</div>
+<div class="num">AXES C3·C4
+NAIVE 동시성 단위를 모두 thread라고 부르고 비용·격리를 혼동한다.
+BOUNDARY fiber는 kernel scheduling과 page protection을 제공하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> stack·TLS/FLS·debugger·blocking call 연동 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Engine job system; `.md/interview/02_operating_system.md`</div></div><div class="n"><div class="nh"><div class="nm">D2-02 · 스케줄링·context switch</div><div class="nc">C2·C3</div></div>
+<div class="core">과도한 runnable thread는 cache/TLB를 잃고 context switch를 늘린다. core 수에 맞춘 worker pool, work stealing, affinity는 측정 후 사용하고 blocking 작업을 분리한다.</div>
+<div class="num">AXES C2·C3
+NAIVE 작업 하나마다 OS thread를 만든다.
+BOUNDARY oversubscription은 I/O 대기에는 유용할 수 있으나 CPU-bound에는 해롭다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> fairness·priority inversion·tail latency를 관리해야 한다.</div><div class="cf"><i>EVIDENCE</i> WorkStealingDeque; OS interview bank</div></div><div class="n"><div class="nh"><div class="nm">D2-03 · user/kernel 경계</div><div class="nc">C2·C3</div></div>
+<div class="core">system call은 privilege 전환과 검증을 동반하며 작은 I/O를 반복하면 비용이 누적된다. buffering, batching, async I/O, memory mapping으로 경계 횟수를 줄인다.</div>
+<div class="num">AXES C2·C3
+NAIVE 1-byte/1-packet마다 syscall하고 동기 완료를 기다린다.
+BOUNDARY 저빈도 control path는 단순 syscall이 가장 안전하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> buffer latency와 partial completion 처리 비용이 생긴다.</div><div class="cf"><i>EVIDENCE</i> D3 Windows I/O; network code</div></div><div class="n"><div class="nh"><div class="nm">D2-04 · mutex·semaphore·condition variable</div><div class="nc">C3·C7</div></div>
+<div class="core">mutex는 배타, semaphore는 개수, condition variable은 상태 변화 대기다. shared predicate를 mutex 아래 while로 재검사하고 notify는 상태 변경과 계약한다.</div>
+<div class="num">AXES C3·C7
+NAIVE condition variable 자체가 상태를 기억한다고 생각해 if 한 번만 검사한다.
+BOUNDARY spin은 수십~수백 ns 짧은 대기에만 유리하고 긴 대기는 sleep/wait가 낫다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> wake storm·priority inversion·lost wake 설계 위험이 있다.</div><div class="cf"><i>EVIDENCE</i> Job system; `.md/interview/02_operating_system.md`</div></div><div class="n"><div class="nh"><div class="nm">D2-05 · deadlock·livelock·starvation</div><div class="nc">C3·C8</div></div>
+<div class="core">deadlock은 상호배제·점유대기·비선점·순환대기 4조건이 함께 있을 때 가능하다. lock order, try/rollback, message passing, owner partition으로 최소 한 조건을 제거하고 wait graph를 계측한다.</div>
+<div class="num">AXES C3·C8
+NAIVE timeout만 추가하면 원인이 해결됐다고 본다.
+BOUNDARY lock-free도 livelock/starvation과 ABA가 있어 자동 해결책이 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 코드 규율과 failure trace 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> OS interview bank; WorkStealingDeque race boundary</div></div><div class="n"><div class="nh"><div class="nm">D2-06 · 가상 메모리·page fault</div><div class="nc">C1·C2·C4</div></div>
+<div class="core">reserve는 주소공간, commit은 backing 보장, resident는 실제 RAM 존재로 구분한다. working set, major/minor fault, commit charge를 관측하고 pool/arena로 fault 시점을 통제한다.</div>
+<div class="num">AXES C1·C2·C4
+NAIVE VirtualAlloc 한 번을 물리 메모리 비용과 동일시한다.
+BOUNDARY lazy commit은 초기 비용을 미루지만 첫 사용 hitch를 만들 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 메모리 peak와 fragmentation 관리가 필요하다.</div><div class="cf"><i>EVIDENCE</i> D3 VirtualAlloc; Engine allocators status register</div></div><div class="n"><div class="nh"><div class="nm">D2-07 · allocator·fragmentation</div><div class="nc">C2·C4</div></div>
+<div class="core">작은 allocation 수십만 회는 metadata·lock·cache miss를 만든다. lifetime이 같은 값은 arena, fixed-size는 pool, frame 임시는 linear allocator로 묶고 baseline을 측정한다.</div>
+<div class="num">AXES C2·C4
+NAIVE 모든 객체를 개별 new/delete하거나 범용 allocator를 즉시 교체한다.
+BOUNDARY Winters의 과거 W05 allocator는 현재 확정 구현 카드가 아니므로 계획과 사실을 분리한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> peak memory·reset granularity·destructor 처리 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> conflict register; allocator interview docs</div></div><div class="n"><div class="nh"><div class="nm">D2-08 · I/O 모델 비교</div><div class="nc">C2·C3</div></div>
+<div class="core">blocking, nonblocking+select, readiness(epoll), completion(IOCP)은 대기 주체와 완료 의미가 다르다. 동접·플랫폼·backpressure에 맞춰 모델을 고르고 partial read/write state machine을 둔다.</div>
+<div class="num">AXES C2·C3
+NAIVE nonblocking socket이 곧 비동기 completion이라고 말한다.
+BOUNDARY select는 작은 N에 단순하지만 FD set/O(N) scan 한계가 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 상태기계·buffer ownership이 복잡해진다.</div><div class="cf"><i>EVIDENCE</i> Minecraft CServer.cpp; D3 IOCP</div></div><div class="n"><div class="nh"><div class="nm">D2-09 · IOCP completion semantics</div><div class="nc">C3·C4·C7</div></div>
+<div class="core">OVERLAPPED 요청은 submit 후 buffer와 context가 completion까지 살아 있어야 한다. socket을 completion port에 연결하고 OVERLAPPED별 owner, bytes transferred, error, repost를 관리한다.</div>
+<div class="num">AXES C3·C4·C7
+NAIVE WSARecv 반환 직후 stack buffer를 해제하거나 1 completion=1 packet으로 본다.
+BOUNDARY IOCPDef.h 존재만으로 IOCP 서버 구현 증거가 되지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 취소·shutdown·outstanding I/O drain이 어렵다.</div><div class="cf"><i>EVIDENCE</i> Minecraft refutation; Windows docs knowledge bank</div></div><div class="n"><div class="nh"><div class="nm">D2-10 · IPC·shared memory</div><div class="nc">C3·C7</div></div>
+<div class="core">pipe/socket은 복사·kernel 경계, shared memory는 동기화·버전 계약을 요구한다. framed protocol, schema/version, ownership을 두고 대용량에만 mapped ring을 고려한다.</div>
+<div class="num">AXES C3·C7
+NAIVE 프로세스 분리 후 raw pointer나 C++ ABI를 공유한다.
+BOUNDARY 한 머신에서 낮은 빈도 control plane이면 pipe/socket이 더 안전하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> crash recovery와 stale segment 청소 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Services boundaries; D3 file mapping</div></div><div class="n"><div class="nh"><div class="nm">D2-11 · timer·clock·fixed timestep</div><div class="nc">C1·C5</div></div>
+<div class="core">wall clock은 조정될 수 있고 monotonic clock은 경과시간에 맞다. 30 Hz tick은 33.333… ms다. monotonic accumulator+fixed step, catch-up 상한, render interpolation을 분리한다.</div>
+<div class="num">AXES C1·C5
+NAIVE system time 차이로 gameplay dt를 직접 계산한다.
+BOUNDARY 실시간 벽시계 일정과 deterministic sim tick은 서로 다른 기준계다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> spiral of death와 input latency를 관리해야 한다.</div><div class="cf"><i>EVIDENCE</i> Winters 30 Hz; Minecraft 20 TPS</div></div><div class="n"><div class="nh"><div class="nm">D2-12 · crash·dump·관측</div><div class="nc">C4·C8</div></div>
+<div class="core">race와 UAF는 재현 빈도가 낮아 crash 시점의 thread/module/state 보존이 핵심이다. minidump, symbol/PDB, bounded ring log, build hash, replay seed를 함께 보존한다.</div>
+<div class="num">AXES C4·C8
+NAIVE 사용자 설명이나 마지막 로그 한 줄만으로 추측한다.
+BOUNDARY full dump는 개인정보·용량 문제가 있어 triage dump와 구분한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> symbol server와 retention 운영 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Winters OutputDebugString rule; D3 minidump</div></div><div class="dh"><span>D3 · Windows 시스템</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D3-01 · HANDLE·kernel object</div><div class="nc">C3·C4</div></div>
+<div class="core">HANDLE은 포인터가 아니라 프로세스 handle table의 opaque 값이며 CloseHandle 책임이 있다. API별 invalid sentinel, RAII wrapper, DuplicateHandle 권한·수명을 계약한다.</div>
+<div class="num">AXES C3·C4
+NAIVE NULL 검사만 하고 INVALID_HANDLE_VALUE 차이와 duplication을 무시한다.
+BOUNDARY pseudo handle은 닫지 않는 등 종류별 규칙이 다르다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> wrapper ABI와 ownership transfer 표기가 필요하다.</div><div class="cf"><i>EVIDENCE</i> `.md/interview/03_windows_system.md`</div></div><div class="n"><div class="nh"><div class="nm">D3-02 · PE·RVA·section</div><div class="nc">C1·C4</div></div>
+<div class="core">RVA=VA−image base이며 file offset과 같지 않다. DOS/NT headers와 section virtual/raw ranges를 따라 RVA를 file offset으로 변환한다.</div>
+<div class="num">AXES C1·C4
+NAIVE PE의 주소를 모두 파일 바이트 위치로 해석한다.
+BOUNDARY ASLR로 실제 VA는 실행마다 바뀔 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> malformed image 검증과 32/64-bit 차이를 처리해야 한다.</div><div class="cf"><i>EVIDENCE</i> Windows interview bank</div></div><div class="n"><div class="nh"><div class="nm">D3-03 · DLL·IAT·EAT</div><div class="nc">C3·C4</div></div>
+<div class="core">import는 loader가 IAT를 채우고 export는 name/ordinal로 찾는다. ABI-stable interface, explicit export macro, module owner에서 생성·파괴를 맞춘다.</div>
+<div class="num">AXES C3·C4
+NAIVE static library와 DLL을 같은 link/runtime 수명으로 본다.
+BOUNDARY C++ STL/CRT 객체를 DLL 경계로 넘기면 toolset·allocator 결합이 생긴다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 버전·배포·hot reload 안전성이 비용이다.</div><div class="cf"><i>EVIDENCE</i> Engine/Client DLL conventions; Windows bank</div></div><div class="n"><div class="nh"><div class="nm">D3-04 · loader lock·DLL search</div><div class="nc">C3·C7</div></div>
+<div class="core">DllMain은 loader lock 아래 호출되어 thread 생성·LoadLibrary·동기화가 deadlock 위험이다. DllMain은 최소 등록만 하고 명시적 Initialize/Shutdown을 둔다. 안전한 search path를 설정한다.</div>
+<div class="num">AXES C3·C7
+NAIVE DllMain에서 전체 subsystem을 초기화한다.
+BOUNDARY 간단한 TLS flag 초기화는 가능하지만 외부 의존 호출은 피한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 초기화 순서와 실패 전파 코드를 별도로 작성해야 한다.</div><div class="cf"><i>EVIDENCE</i> Windows system interview bank</div></div><div class="n"><div class="nh"><div class="nm">D3-05 · calling convention·ABI</div><div class="nc">C1·C3</div></div>
+<div class="core">x64 Windows는 4개 정수 인자 register와 32-byte shadow space 등 ABI 계약을 가진다. extern C, fixed-width types, explicit packing/version, 동일 compiler boundary 또는 C ABI를 쓴다.</div>
+<div class="num">AXES C1·C3
+NAIVE 함수 포인터 signature나 packing mismatch를 컴파일러가 모두 막아 준다고 본다.
+BOUNDARY 내부 동일 toolchain 모듈은 C++ ABI를 쓸 수 있으나 배포 플러그인에는 취약하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> adapter와 serialization 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> RHI/DLL interfaces; Windows bank</div></div><div class="n"><div class="nh"><div class="nm">D3-06 · stack·SEH·unwind</div><div class="nc">C4·C8</div></div>
+<div class="core">Windows x64 unwind metadata가 exception·stack walk·minidump 품질을 좌우한다. RAII와 normal C++ exception 경계를 쓰고 access violation은 dump/termination 대상으로 다룬다.</div>
+<div class="num">AXES C4·C8
+NAIVE catch(...)만 두면 crash 원인을 복구했다고 본다.
+BOUNDARY SEH translation은 제한적으로만 쓰며 corrupted state에서 계속 실행하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> unwind table·symbol·crash policy 관리가 필요하다.</div><div class="cf"><i>EVIDENCE</i> Windows interview bank</div></div><div class="n"><div class="nh"><div class="nm">D3-07 · HeapAlloc·LFH</div><div class="nc">C2·C4</div></div>
+<div class="core">Windows heap은 크기·스레드 분포에 따라 lock과 fragmentation 특성이 달라진다. heap profiling 후 LFH/arena/pool을 lifetime별로 선택하고 같은 heap에서 free한다.</div>
+<div class="num">AXES C2·C4
+NAIVE 모든 성능 문제를 OS heap 탓으로 보고 custom allocator를 먼저 만든다.
+BOUNDARY 작은 프로젝트·저빈도 allocation은 기본 heap이 더 안전하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> custom allocator의 diagnostics와 ABI 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> allocator status; Windows bank</div></div><div class="n"><div class="nh"><div class="nm">D3-08 · VirtualAlloc·guard page</div><div class="nc">C2·C4·C8</div></div>
+<div class="core">reserve/commit 단위와 page protection을 분리해 큰 arena·guard page를 만들 수 있다. VirtualAlloc arena와 NOACCESS guard, VirtualProtect를 debug path에서 활용한다.</div>
+<div class="num">AXES C2·C4·C8
+NAIVE malloc 실패만 확인하고 overflow/UAF를 관측하지 못한다.
+BOUNDARY guard는 page granularity라 작은 buffer마다 쓰면 낭비다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> address space·fault handling·platform 종속성이 든다.</div><div class="cf"><i>EVIDENCE</i> Windows system bank</div></div><div class="n"><div class="nh"><div class="nm">D3-09 · TLS·FLS</div><div class="nc">C3·C4</div></div>
+<div class="core">TLS는 OS thread, FLS는 fiber 전환에 맞춘 저장소다. worker-local과 job/fiber-local state를 구분하고 cleanup callback 수명을 맞춘다.</div>
+<div class="num">AXES C3·C4
+NAIVE fiber job이 thread_local 값에 고유 context가 있다고 가정한다.
+BOUNDARY thread pool에서 request context를 TLS에 숨기면 재사용 시 누출될 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> debugger 가시성과 destructor 순서 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Engine job/fiber direction; Windows bank</div></div><div class="n"><div class="nh"><div class="nm">D3-10 · file mapping·zero-copy</div><div class="nc">C2·C3·C4</div></div>
+<div class="core">memory map은 page cache를 공유하지만 file truncation·view lifetime·flush 계약이 필요하다. 큰 read-only artifact는 mapped view로 읽고 header magic/version/size를 먼저 검증한다.</div>
+<div class="num">AXES C2·C3·C4
+NAIVE map하면 디스크 I/O가 사라지고 항상 zero-copy라고 말한다.
+BOUNDARY 작은 파일과 순차 단발 read는 ReadFile이 더 단순하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 주소공간·page fault·corruption 처리 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> AI immutable .wbc artifact; data packs</div></div><div class="n"><div class="nh"><div class="nm">D3-11 · QPC·ETW·minidump</div><div class="nc">C1·C8</div></div>
+<div class="core">QPC는 고해상도 monotonic 측정, ETW는 낮은 오버헤드 event trace, minidump는 crash snapshot 역할이다. scope timer+build hash+ETW/PIX와 crash dump를 현상별로 선택한다.</div>
+<div class="num">AXES C1·C8
+NAIVE printf 로그 하나로 1 ms 이하 hitch와 rare crash를 모두 잡는다.
+BOUNDARY 계측 자체가 hot path를 바꾸므로 sampling과 buffer 상한을 둔다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 도구·symbol·storage 운영 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Winters debug conventions; Windows bank</div></div><div class="n"><div class="nh"><div class="nm">D3-12 · Winsock readiness와 completion</div><div class="nc">C2·C3·C7</div></div>
+<div class="core">select는 readiness, IOCP는 overlapped completion을 통지한다. partial packet은 둘 다 application framing이 필요하다. length/header state machine, receive buffer compaction, send queue와 disconnect drain을 둔다.</div>
+<div class="num">AXES C2·C3·C7
+NAIVE recv 1회가 packet 1개를 반환한다고 가정한다.
+BOUNDARY Minecraft 구현은 select이며 IOCP는 증거 없음; Winters transport는 별도 현행 코드로 판단한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> backpressure·buffer owner·shutdown race가 비용이다.</div><div class="cf"><i>EVIDENCE</i> Minecraft CServer.cpp; Network interview bank</div></div><div class="dh"><span>D4 · C++</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D4-01 · RAII·Rule of Zero</div><div class="nc">C4</div></div>
+<div class="core">resource는 획득 성공 시점부터 정확히 한 owner가 해제해야 한다. resource를 destructor에 묶고 조합 가능한 type은 compiler-generated special members를 유지한다.</div>
+<div class="num">AXES C4
+NAIVE 모든 함수 끝에서 수동 Release를 호출하고 예외·early return을 놓친다.
+BOUNDARY C API handle도 custom deleter로 감쌀 수 있다. shared ownership이 자동 해답은 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> wrapper type과 destruction order 설계가 필요하다.</div><div class="cf"><i>EVIDENCE</i> Engine COM/resource wrappers; C++ interview bank</div></div><div class="n"><div class="nh"><div class="nm">D4-02 · value category·move</div><div class="nc">C2·C4</div></div>
+<div class="core">move는 바이트 이동이 아니라 resource owner를 이전하는 protocol이다. moved-from invariant, noexcept move, copy elision과 forwarding reference를 구분한다.</div>
+<div class="num">AXES C2·C4
+NAIVE std::move가 무조건 복사를 제거하거나 원본을 비운다고 가정한다.
+BOUNDARY 작은 trivially copyable 값은 move와 copy 비용이 같다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> API 복잡성·use-after-move 검증 비용이 생긴다.</div><div class="cf"><i>EVIDENCE</i> `.md/interview/04_cpp.md`</div></div><div class="n"><div class="nh"><div class="nm">D4-03 · unique/shared/weak pointer</div><div class="nc">C3·C4</div></div>
+<div class="core">unique_ptr은 단일 owner, shared_ptr은 control block 공동 owner, weak_ptr은 비소유 관찰자다. owner는 unique를 기본으로, 실제 공동 수명만 shared, cycle 관찰은 weak로 표현한다.</div>
+<div class="num">AXES C3·C4
+NAIVE raw pointer를 전부 shared_ptr로 바꿔 수명을 해결한다.
+BOUNDARY ECS entity reference는 generation handle이 shared_ptr보다 맞을 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> atomic refcount·control block·cycle 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> EntityHandle; Minecraft CBase contrast</div></div><div class="n"><div class="nh"><div class="nm">D4-04 · virtual dispatch·object layout</div><div class="nc">C2·C3</div></div>
+<div class="core">virtual call은 간접 분기와 vptr/layout ABI를 만든다. stable polymorphic boundary에는 interface, hot homogeneous loop에는 data-oriented dispatch를 쓴다.</div>
+<div class="num">AXES C2·C3
+NAIVE virtual 하나가 항상 성능 병목이라고 제거하거나 DLL ABI를 무시한다.
+BOUNDARY N이 작고 I/O가 큰 path에서는 virtual 비용은 무시 가능하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> devirtualization 제한과 binary compatibility 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> Starcraft CObj; Minecraft CGameObject; Engine interfaces</div></div><div class="n"><div class="nh"><div class="nm">D4-05 · template·concept</div><div class="nc">C2·C3</div></div>
+<div class="core">template은 compile-time specialization을 주지만 instantiation마다 code size와 build time이 늘 수 있다. type constraint는 concept, hot generic code는 template, stable ABI는 non-template facade로 분리한다.</div>
+<div class="num">AXES C2·C3
+NAIVE 모든 runtime 선택을 template으로 만들어 유연성을 얻는다고 생각한다.
+BOUNDARY 단일 구현·작은 binary에서는 virtual/function object가 더 단순할 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> error surface·compile time·ODR 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> ComponentStore templates; C++ bank</div></div><div class="n"><div class="nh"><div class="nm">D4-06 · CRTP·type erasure</div><div class="nc">C3·C4</div></div>
+<div class="core">CRTP는 static polymorphism, type erasure는 runtime type을 value-like wrapper 뒤로 숨긴다. compile-time closed set에는 CRTP, plugin/callback heterogeneous set에는 vtable 또는 erased callable을 쓴다.</div>
+<div class="num">AXES C3·C4
+NAIVE 상속을 피하려고 CRTP 계층을 남용한다.
+BOUNDARY type erasure도 allocation/SBO/exception contract가 필요하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> diagnostics·code size·debugging 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> C++ interview bank</div></div><div class="n"><div class="nh"><div class="nm">D4-07 · vector·deque·list 선택</div><div class="nc">C2·C4</div></div>
+<div class="core">vector 재할당은 iterator/pointer를 무효화하고 deque는 block, list는 node allocation을 쓴다. 실제 access/erase 패턴과 cache를 보고 vector+swap erase, deque queue, stable handle을 조합한다.</div>
+<div class="num">AXES C2·C4
+NAIVE 중간 삽입 O(1)만 보고 list를 선택한다.
+BOUNDARY Starcraft Order queue는 deque가 의도를 드러내지만 ECS hot data는 dense vector가 맞다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 무효화 계약과 capacity 메모리가 비용이다.</div><div class="cf"><i>EVIDENCE</i> ComponentStore; Starcraft CUnit.h</div></div><div class="n"><div class="nh"><div class="nm">D4-08 · iterator·reference 무효화</div><div class="nc">C4·C7</div></div>
+<div class="core">vector grow/erase, unordered rehash, swap-remove마다 참조 안정성이 다르다. stable key/handle을 보관하고 mutation 뒤 재조회하며 API 문서로 invalidation을 계약한다.</div>
+<div class="num">AXES C4·C7
+NAIVE container 내부 주소를 장기 저장한다.
+BOUNDARY reserve는 grow를 줄이지만 erase/reorder 안정성을 주지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 조회 비용과 handle 검증 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> ComponentStore swap-remove; EntityHandle</div></div><div class="n"><div class="nh"><div class="nm">D4-09 · exception·noexcept·error channel</div><div class="nc">C3·C4·C7</div></div>
+<div class="core">exception은 비지역 제어 흐름이고 noexcept 위반은 terminate다. 복구 가능한 경계는 expected/result, construction invariant는 exception, realtime tick은 명시 상태를 사용한다.</div>
+<div class="num">AXES C3·C4·C7
+NAIVE 오류를 무시하거나 모든 내부 함수에 try/catch를 둔다.
+BOUNDARY 코드베이스 정책·DLL/CRT 경계에 따라 exception 금지 영역이 있을 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 두 오류 체계를 혼용하면 복잡성이 늘어난다.</div><div class="cf"><i>EVIDENCE</i> C++ bank; server command validation</div></div><div class="n"><div class="nh"><div class="nm">D4-10 · UB·strict aliasing·lifetime</div><div class="nc">C1·C4·C8</div></div>
+<div class="core">signed overflow, dangling reference, data race는 결과가 아니라 프로그램 의미를 잃는 UB다. sanitizer/static analysis, bit_cast/memcpy, lifetime-safe owner와 경계 검증을 쓴다.</div>
+<div class="num">AXES C1·C4·C8
+NAIVE Debug에서 동작하면 Release 최적화에서도 맞다고 본다.
+BOUNDARY reinterpret_cast 자체가 모두 UB는 아니며 실제 object representation 규칙을 따져야 한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 검사 build와 플랫폼 차이 관리가 필요하다.</div><div class="cf"><i>EVIDENCE</i> C++ bank; binary packet parsers</div></div><div class="n"><div class="nh"><div class="nm">D4-11 · DLL ABI·CRT ownership</div><div class="nc">C3·C4</div></div>
+<div class="core">서로 다른 CRT heap에서 new/delete를 나누면 파괴된다. creator-destroys, C ABI, opaque handle, versioned interface로 allocation 경계를 소유한다.</div>
+<div class="num">AXES C3·C4
+NAIVE DLL이 만든 STL 객체를 EXE가 자유롭게 해제한다.
+BOUNDARY 동일 solution/toolset 내부 모듈은 통제가 가능하지만 장기 plugin ABI와는 다르다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> adapter·copy·version negotiation 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Engine conventions; D3 DLL</div></div><div class="n"><div class="nh"><div class="nm">D4-12 · custom allocator 적용 기준</div><div class="nc">C2·C4·C8</div></div>
+<div class="core">allocation count·size histogram·lifetime·contention을 모르면 allocator 선택을 증명할 수 없다. profile→범주화→최소 allocator→leak/peak benchmark 순서로 도입한다.</div>
+<div class="num">AXES C2·C4·C8
+NAIVE 면접 키워드 때문에 pool/arena를 먼저 구현한다.
+BOUNDARY 현재 Winters W05는 확정 spine에서 제외한다. 코드 증거가 생기면 상태를 승격한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 도구·OOM·alignment·destructor 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> 05 conflict register; performance rules</div></div><div class="dh"><span>D5 · 컴파일러·링커·빌드</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D5-01 · 전처리·translation unit</div><div class="nc">C1·C3</div></div>
+<div class="core">매크로와 include는 translation unit마다 토큰을 복제하고 조건부 의미를 만든다. forward declaration, include ownership, module boundary와 build graph로 재컴파일 범위를 줄인다.</div>
+<div class="num">AXES C1·C3
+NAIVE header에 구현과 전역 정의를 무제한 넣는다.
+BOUNDARY template 정의는 보통 header에 필요하므로 무조건 분리할 수 없다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> interface 파일 수와 dependency 관리 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Winters vcxproj/include boundaries</div></div><div class="n"><div class="nh"><div class="nm">D5-02 · lex·parse·AST</div><div class="nc">C1·C8</div></div>
+<div class="core">compiler는 문자→token→grammar tree로 변환하며 오류 위치는 가장 먼저 모순이 드러난 곳이다. preprocessed output와 최소 reproducer로 token/grammar 문제를 먼저 격리한다.</div>
+<div class="num">AXES C1·C8
+NAIVE 한 compiler error 문장만 보고 원인을 해당 줄로 확정한다.
+BOUNDARY template error는 instantiation chain까지 따라야 한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> reproducer 생성 시간이 들지만 확신 대역폭을 늘린다.</div><div class="cf"><i>EVIDENCE</i> Compiler interview bank</div></div><div class="n"><div class="nh"><div class="nm">D5-03 · semantic analysis·type system</div><div class="nc">C1·C7</div></div>
+<div class="core">같은 syntax라도 overload resolution, implicit conversion, lifetime 규칙이 의미를 결정한다. strong type, explicit conversion, static_assert/concept로 잘못된 상태를 compile-time에 제거한다.</div>
+<div class="num">AXES C1·C7
+NAIVE 컴파일되면 의도한 overload와 단위가 선택됐다고 가정한다.
+BOUNDARY 과도한 strong wrapper는 DX/serialization interop을 번거롭게 한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> adapter와 compile time 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> EntityHandle strong type; compiler bank</div></div><div class="n"><div class="nh"><div class="nm">D5-04 · IR·SSA</div><div class="nc">C1·C6</div></div>
+<div class="core">SSA는 값마다 한 번 정의하여 data flow와 최적화를 명확히 한다. IR/optimization report/disassembly로 실제 load·branch·vectorization을 확인한다.</div>
+<div class="num">AXES C1·C6
+NAIVE source 코드 모양이 기계어 실행 순서라고 본다.
+BOUNDARY Debug build disassembly로 Release 성능을 판단하면 안 된다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> toolchain 지식과 분석 시간이 든다.</div><div class="cf"><i>EVIDENCE</i> Compiler bank; performance verification</div></div><div class="n"><div class="nh"><div class="nm">D5-05 · 최적화·as-if rule</div><div class="nc">C2·C7</div></div>
+<div class="core">observable behavior만 보존하면 compiler는 제거·재배치·벡터화할 수 있다. benchmark escape, realistic data, warmup, Release flags와 correctness oracle을 둔다.</div>
+<div class="num">AXES C2·C7
+NAIVE sleep/printf를 제거한 microbenchmark 결과를 실제 성능으로 믿는다.
+BOUNDARY volatile은 일반 thread sync나 benchmark 만능 장치가 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> benchmark harness와 통계 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> D1 roofline; compiler bank</div></div><div class="n"><div class="nh"><div class="nm">D5-06 · UB와 최적화 상호작용</div><div class="nc">C4·C7·C8</div></div>
+<div class="core">compiler는 UB가 없다고 가정해 null/overflow check를 제거할 수 있다. sanitizer, warnings-as-signal, reduced testcase와 standard rule로 원인을 확인한다.</div>
+<div class="num">AXES C4·C7·C8
+NAIVE Release에서만 깨지는 문제를 compiler 버그로 단정한다.
+BOUNDARY toolchain bug도 가능하지만 UB를 먼저 배제해야 한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 다중 compiler CI와 분석 시간이 든다.</div><div class="cf"><i>EVIDENCE</i> C++ UB node; compiler bank</div></div><div class="n"><div class="nh"><div class="nm">D5-07 · inline·LTO·code size</div><div class="nc">C2·C3</div></div>
+<div class="core">inline은 call overhead를 줄이지만 i-cache pressure와 build/link 시간을 늘린다. profile-guided hot path, LTO/PGO, size report로 선택한다.</div>
+<div class="num">AXES C2·C3
+NAIVE inline keyword가 강제이며 많을수록 빠르다고 본다.
+BOUNDARY 작은 cold 함수는 out-of-line이 cache에 유리하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> link time·debuggability·binary size 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Compiler bank; build configs</div></div><div class="n"><div class="nh"><div class="nm">D5-08 · template instantiation·ODR</div><div class="nc">C3·C4</div></div>
+<div class="core">같은 entity가 program 전체에서 동일 정의여야 하며 explicit instantiation으로 중복을 줄일 수 있다. ODR-safe header, generated code version pin, explicit instantiation과 link map을 쓴다.</div>
+<div class="num">AXES C3·C4
+NAIVE header별 다른 macro 상태로 같은 template/type을 정의한다.
+BOUNDARY COMDAT folding이 논리적 ODR 위반을 정당화하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> compile/link diagnostics 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> FlatBuffers generated code; compiler bank</div></div><div class="n"><div class="nh"><div class="nm">D5-09 · static·dynamic linking</div><div class="nc">C3·C4</div></div>
+<div class="core">static은 배포 단순성과 binary 중복, dynamic은 공유·교체와 ABI 위험을 교환한다. ownership/ABI/deploy 독립성이 실제 필요한 경계만 module/DLL로 만든다.</div>
+<div class="num">AXES C3·C4
+NAIVE DLL로 나누면 빌드·메모리·팀 경계가 자동 개선된다고 본다.
+BOUNDARY Winters Engine/Client/Shared dependency direction은 제품 경계이며 임의 역참조를 금지한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 버전·symbol·loader·test matrix 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> .md/architecture/WINTERS_CODEBASE_COMPASS.md</div></div><div class="n"><div class="nh"><div class="nm">D5-10 · symbol·mangling·link map</div><div class="nc">C1·C8</div></div>
+<div class="core">unresolved/duplicate symbol은 선언이 아니라 최종 object/library 집합과 name mangling의 문제다. dumpbin/nm, link verbose/map, project item과 configuration별 library를 확인한다.</div>
+<div class="num">AXES C1·C8
+NAIVE source에 함수가 있으니 linker가 찾아야 한다고 본다.
+BOUNDARY x86 calling convention과 x64 symbol 규칙이 다르다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> artifact 추적과 configuration matrix 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Winters vcxproj; compiler bank</div></div><div class="n"><div class="nh"><div class="nm">D5-11 · shader compilation·reflection</div><div class="nc">C1·C3·C8</div></div>
+<div class="core">HLSL register/layout과 C++ constant buffer packing이 어긋나면 값이 조용히 틀린다. compiled blob hash, reflection/explicit binding, 16-byte cbuffer packing 검증과 fallback shader를 둔다.</div>
+<div class="num">AXES C1·C3·C8
+NAIVE 변수 이름이 같으면 GPU layout도 같다고 본다.
+BOUNDARY DX11 reflection과 DX12 root signature는 ownership 모델이 다르다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> variant 폭발·compile hitch·cache invalidation 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Winters shader/resource pipeline</div></div><div class="n"><div class="nh"><div class="nm">D5-12 · MSBuild·vcxproj·재현 빌드</div><div class="nc">C3·C7·C8</div></div>
+<div class="core">Debug/Release·Win32/x64·client/server 조합마다 include/lib/runtime resource가 달라질 수 있다. project dependency, generated schema step, output/resource root, command-line build와 clean machine 검증을 고정한다.</div>
+<div class="num">AXES C3·C7·C8
+NAIVE IDE에서 한 번 성공한 상태를 재현 빌드로 간주한다.
+BOUNDARY Winters runtime resource는 Client/Bin/Resource 단일 루트만 사용한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> CI 시간·artifact 보관·toolset pin 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> AGENTS.md resource rule; project files</div></div><div class="dh"><span>D6 · 자료구조·알고리즘</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D6-01 · 복잡도와 상수·cache</div><div class="nc">C2·C8</div></div>
+<div class="core">O(N)과 O(N log N)의 교차점은 N·layout·branch에 따라 달라진다. 대표 분포·N·메모리·tail latency를 benchmark하고 worst-case를 따로 기록한다.</div>
+<div class="num">AXES C2·C8
+NAIVE 표기 하나로 실제 자료구조를 결정한다.
+BOUNDARY 적은 N에서는 단순 선형 scan이 hash보다 빠를 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> benchmark 유지와 분포 drift 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> D1 cache; DS&amp;A interview bank</div></div><div class="n"><div class="nh"><div class="nm">D6-02 · 동적 배열·연결 구조</div><div class="nc">C2·C4</div></div>
+<div class="core">vector는 연속·amortized push, list는 node stable·pointer chase다. 순회가 지배하면 vector+index/handle, queue 성격이면 deque, 진짜 splice/stability에만 list를 쓴다.</div>
+<div class="num">AXES C2·C4
+NAIVE 중간 erase가 있다는 이유만으로 list를 고른다.
+BOUNDARY vector swap-remove는 순서를 파괴한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> capacity·invalidation 계약 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> ComponentStore; Starcraft lists</div></div><div class="n"><div class="nh"><div class="nm">D6-03 · hash table</div><div class="nc">C2·C4·C7</div></div>
+<div class="core">평균 O(1)이지만 load factor·collision·rehash·hash flooding이 tail을 만든다. reserve/load factor, stable key, deterministic 결과에는 정렬된 output을 둔다.</div>
+<div class="num">AXES C2·C4·C7
+NAIVE unordered_map iteration 순서를 결정론으로 사용한다.
+BOUNDARY 작은 key set은 sorted vector가 더 단순하고 빠를 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 메모리 overhead와 rehash invalidation이 있다.</div><div class="cf"><i>EVIDENCE</i> LagComp history map+sorted iteration</div></div><div class="n"><div class="nh"><div class="nm">D6-04 · balanced tree·B-tree</div><div class="nc">C2·C6</div></div>
+<div class="core">RB-tree는 O(log N) 순서 연산, B-tree는 page/cache locality로 DB에 적합하다. range query·update 비율과 storage page 단위를 보고 tree/sorted vector/B-tree를 선택한다.</div>
+<div class="num">AXES C2·C6
+NAIVE 정렬이 필요하면 언제나 std::map을 쓴다.
+BOUNDARY in-memory 작은 N은 flat container가 우세할 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> node/page split와 복잡성이 비용이다.</div><div class="cf"><i>EVIDENCE</i> Database indexes; DS&amp;A bank</div></div><div class="n"><div class="nh"><div class="nm">D6-05 · heap·priority queue</div><div class="nc">C2·C6</div></div>
+<div class="core">top O(1), push/pop O(log N)로 next-best 후보를 관리한다. A* open set, timer, job priority에 heap을 쓰고 stale entry 또는 decrease-key 전략을 정한다.</div>
+<div class="num">AXES C2·C6
+NAIVE 매번 전체 후보를 sort한다.
+BOUNDARY priority가 자주 변하면 indexed heap/다른 구조가 필요하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> tie-break 결정론과 starvation 위험이 있다.</div><div class="cf"><i>EVIDENCE</i> Pathfinding; job queues</div></div><div class="n"><div class="nh"><div class="nm">D6-06 · graph 표현·탐색</div><div class="nc">C2·C6</div></div>
+<div class="core">sparse graph는 adjacency list O(V+E), dense graph는 matrix가 유리할 수 있다. BFS/DFS/Dijkstra를 weight와 목적에 맞추고 visited/parent를 분리한다.</div>
+<div class="num">AXES C2·C6
+NAIVE 모든 관계를 pairwise O(N²) 검사한다.
+BOUNDARY 동적 nav graph에서는 rebuild와 incremental update를 비교한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 메모리·cache·변경 전파 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Starcraft path Order; AI navigation</div></div><div class="n"><div class="nh"><div class="nm">D6-07 · A*·휴리스틱</div><div class="nc">C1·C6</div></div>
+<div class="core">admissible h≤true cost면 최적성을 보존하고 consistent면 reopen을 줄인다. g+h, tie-break, grid/mesh 단위, blocked update와 path smoothing을 분리한다.</div>
+<div class="num">AXES C1·C6
+NAIVE 큰 heuristic weight로 빠르게 만들고도 최적이라고 주장한다.
+BOUNDARY weighted A*는 속도와 suboptimality를 교환한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> open set·재탐색·stuck recovery 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> Movement debug rule; Starcraft path</div></div><div class="n"><div class="nh"><div class="nm">D6-08 · 정렬·stable order</div><div class="nc">C5·C7</div></div>
+<div class="core">std::sort는 평균 O(N log N)이고 stable_sort는 동등 원소 순서를 보존한다. authoritative iteration은 완전한 tie-break key를 만들고 stable 필요 여부를 명시한다.</div>
+<div class="num">AXES C5·C7
+NAIVE 동등 key의 임의 순서가 simulation 결과에 영향 없다고 가정한다.
+BOUNDARY render-only transparent sort와 gameplay order는 정확도 요구가 다르다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 정렬 비용과 key 생성 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> DeterministicEntityIterator; transparent render</div></div><div class="n"><div class="nh"><div class="nm">D6-09 · binary search·lower_bound</div><div class="nc">C1·C2</div></div>
+<div class="core">정렬된 N개에서 O(log N)이지만 comparator는 strict weak ordering이어야 한다. 정규화된 key와 exact ordering을 쓰고 tolerance는 검색 후 판정에 적용한다.</div>
+<div class="num">AXES C1·C2
+NAIVE float epsilon comparator로 정렬해 transitivity를 깨뜨린다.
+BOUNDARY update가 잦으면 유지 비용이 hash보다 클 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 정렬 유지와 duplicate range 처리가 필요하다.</div><div class="cf"><i>EVIDENCE</i> Snapshot sorted entities; DS&amp;A bank</div></div><div class="n"><div class="nh"><div class="nm">D6-10 · union-find·topological sort</div><div class="nc">C3·C6</div></div>
+<div class="core">union-find는 거의 O(α(N)) 연결성, topo sort는 DAG dependency 순서를 푼다. offline connectivity는 DSU, build/render dependency는 cycle detection+topo sort로 검증한다.</div>
+<div class="num">AXES C3·C6
+NAIVE resource/pass dependency를 수동 순서로만 관리한다.
+BOUNDARY 동적 삭제·cycle 허용 graph에는 그대로 쓸 수 없다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> graph metadata와 error reporting 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Manual render passes vs future graph; build graph</div></div><div class="n"><div class="nh"><div class="nm">D6-11 · 공간 분할·broad phase</div><div class="nc">C2·C6</div></div>
+<div class="core">N² 충돌은 N=10,000이면 약 5천만 pair다. grid/quadtree/BVH로 후보를 줄이고 cell size를 object scale과 분포에 맞춘다.</div>
+<div class="num">AXES C2·C6
+NAIVE 모든 object pair에 narrow-phase를 실행한다.
+BOUNDARY 밀집 한 cell이나 빠른 giant object는 worst case를 만든다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> update·rebuild·false positive 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Renderer culling; gameplay collision</div></div><div class="n"><div class="nh"><div class="nm">D6-12 · sparse set·lock-free 경계</div><div class="nc">C2·C3·C4</div></div>
+<div class="core">sparse set은 entity-component membership, lock-free deque는 job ownership이라는 서로 다른 문제를 푼다. mutation owner, lifetime reclamation, iteration semantics를 자료구조별로 증명한다.</div>
+<div class="num">AXES C2·C3·C4
+NAIVE 성능 자료구조라는 이유로 둘을 범용 shared container로 사용한다.
+BOUNDARY lock-free는 wait-free가 아니며 sparse set은 thread-safe가 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> ABA/reclamation 또는 reorder 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> ComponentStore; WorkStealingDeque</div></div><div class="dh"><span>D7 · 수학·물리</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D7-01 · 좌표계·basis</div><div class="nc">C1</div></div>
+<div class="core">점·벡터·normal은 변환 규칙이 다르고 left/right handedness가 부호를 바꾼다. from/to frame을 이름에 포함하고 transform chain을 경계에서 구성한다.</div>
+<div class="num">AXES C1
+NAIVE 숫자 3개면 같은 공간의 vector라고 본다.
+BOUNDARY UE와 DirectX의 관례를 외워 섞지 말고 실제 matrix/vector multiplication 계약을 확인한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 변환·타입·문서 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> 00 좌표계; Winters transforms</div></div><div class="n"><div class="nh"><div class="nm">D7-02 · 행렬·TRS 순서</div><div class="nc">C1·C4</div></div>
+<div class="core">matrix multiplication은 일반적으로 교환법칙이 없고 scale→rotate→translate 순서가 결과를 바꾼다. 엔진 convention에 맞춘 compose/decompose와 parent-child world update를 한 곳에 둔다.</div>
+<div class="num">AXES C1·C4
+NAIVE SRT와 TRS를 같은 결과로 본다.
+BOUNDARY non-uniform scale+rotation은 shear와 normal inverse-transpose를 만든다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> decomposition 오차와 hierarchy dirty propagation 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> Engine Transform components</div></div><div class="n"><div class="nh"><div class="nm">D7-03 · quaternion·보간</div><div class="nc">C1·C5</div></div>
+<div class="core">q와 −q는 같은 회전이며 slerp는 dot&lt;0에서 shortest arc 보정이 필요하다. normalization, shortest-path slerp/nlerp, angle unit 계약을 둔다.</div>
+<div class="num">AXES C1·C5
+NAIVE Euler 각을 선형 보간해 gimbal lock과 wrap을 만든다.
+BOUNDARY 작은 각은 nlerp가 싸고 충분할 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> normalize·분기·축 퇴화 처리가 필요하다.</div><div class="cf"><i>EVIDENCE</i> Snapshot rotation interpolation</div></div><div class="n"><div class="nh"><div class="nm">D7-04 · 투영·homogeneous w</div><div class="nc">C1·C5</div></div>
+<div class="core">clip→NDC는 xyz/w이며 w≤0과 near plane을 처리해야 한다. handedness·depth range·viewport를 명시하고 clipping 후 perspective divide한다.</div>
+<div class="num">AXES C1·C5
+NAIVE view-projection 뒤 xyz만 screen으로 사용한다.
+BOUNDARY reverse-Z는 정밀도를 개선하지만 depth compare·clear·shader 계약을 바꾼다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> platform convention과 debug visualization 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Renderer camera/picking</div></div><div class="n"><div class="nh"><div class="nm">D7-05 · ray picking</div><div class="nc">C1·C6</div></div>
+<div class="core">screen pixel을 inverse view-projection으로 near/far에 풀어 world ray를 만든다. viewport/NDC 변환→inverse matrix→ray→broad/narrow intersection 순서로 푼다.</div>
+<div class="num">AXES C1·C6
+NAIVE 2D 마우스 좌표를 world XZ로 직접 매핑한다.
+BOUNDARY terrain plane과 arbitrary mesh picking의 비용이 다르다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> inverse matrix·BVH·closest hit 정렬 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Client picking; editor direction</div></div><div class="n"><div class="nh"><div class="nm">D7-06 · collision·sweep</div><div class="nc">C1·C5·C6</div></div>
+<div class="core">discrete overlap은 한 tick에 얇은 벽을 통과하는 tunneling을 놓친다. relative motion을 ray/sweep으로 바꾸고 broad phase 뒤 time-of-impact를 구한다.</div>
+<div class="num">AXES C1·C5·C6
+NAIVE 끝 위치에서만 AABB overlap을 검사한다.
+BOUNDARY 모든 pair CCD는 비싸므로 빠른 projectile·중요 판정에 한정한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> root finding·contact ordering·epsilon 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> Server projectile authority; lag compensation</div></div><div class="n"><div class="nh"><div class="nm">D7-07 · 적분기·안정성</div><div class="nc">C5</div></div>
+<div class="core">explicit Euler는 큰 dt에서 에너지가 발산할 수 있고 semi-implicit은 게임 운동에 더 안정적이다. fixed dt와 적합한 integrator, clamp/substep, unit test로 안정 영역을 관리한다.</div>
+<div class="num">AXES C5
+NAIVE render dt를 그대로 물리식에 넣고 프레임마다 결과를 기대한다.
+BOUNDARY 고급 integrator가 collision discontinuity를 자동 해결하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> substep CPU와 상태 저장 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> GameSim fixed tick</div></div><div class="n"><div class="nh"><div class="nm">D7-08 · fixed step·accumulator</div><div class="nc">C1·C5·C7</div></div>
+<div class="core">30 Hz는 1/30 s, 20 TPS는 1/20 s로 프로젝트마다 계약이 다르다. simulation clock과 render interpolation을 분리하고 catch-up 횟수에 상한을 둔다.</div>
+<div class="num">AXES C1·C5·C7
+NAIVE 두 프로젝트의 tick 숫자를 일반 원리처럼 복사한다.
+BOUNDARY slow motion·pause·replay는 별도 time domain이 필요하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> latency와 spiral-of-death 방지 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> Winters 30 Hz; Minecraft 20 TPS</div></div><div class="n"><div class="nh"><div class="nm">D7-09 · 보간·외삽·reconciliation</div><div class="nc">C1·C5·C7</div></div>
+<div class="core">interpolation은 과거 두 sample 사이로 지연을 소비하고 extrapolation은 미래 오차를 감수한다. serverTick buffer, bounded interpolation, local weak prediction, authoritative correction을 역할별로 둔다.</div>
+<div class="num">AXES C1·C5·C7
+NAIVE 최신 snapshot 위치로 매번 즉시 snap한다.
+BOUNDARY teleport/death는 보간보다 hard state transition이 맞다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 추가 지연·rubber band·buffer memory가 든다.</div><div class="cf"><i>EVIDENCE</i> Client SnapshotApplier.cpp</div></div><div class="n"><div class="nh"><div class="nm">D7-10 · 확률·통계·A/B</div><div class="nc">C5·C8</div></div>
+<div class="core">승률 52%는 표본 수와 상대 분포 없이는 의미가 약하다. seeded paired match, confidence interval, effect size, regression cohort와 실패 유형을 함께 본다.</div>
+<div class="num">AXES C5·C8
+NAIVE 몇 경기 이긴 뒤 policy가 개선됐다고 확정한다.
+BOUNDARY 비독립 경기와 meta drift는 단순 binomial 가정을 깨뜨린다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 충분한 match 수와 compute 시간이 든다.</div><div class="cf"><i>EVIDENCE</i> NYPC league evaluation; AI shadow gate</div></div><div class="n"><div class="nh"><div class="nm">D7-11 · 미적분·rendering equation</div><div class="nc">C1·C5</div></div>
+<div class="core">pixel irradiance는 연속 hemisphere 적분을 유한 sample로 근사한다. BRDF, pdf, Monte Carlo estimator와 energy conservation 단위를 분리한다.</div>
+<div class="num">AXES C1·C5
+NAIVE 한 light·한 sample 결과를 물리적으로 정확하다고 부른다.
+BOUNDARY realtime raster PBR은 path tracing과 다른 근사 경계다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> noise·sample·denoising 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> D8 PBR/AO</div></div><div class="n"><div class="nh"><div class="nm">D7-12 · 수치 안정성·결정론</div><div class="nc">C5·C7·C8</div></div>
+<div class="core">연산 순서·FMA·container order가 float 결과와 branch 경계를 바꿀 수 있다. 정렬된 update, quantized command, stable epsilon, replay hash와 divergence probe를 둔다.</div>
+<div class="num">AXES C5·C7·C8
+NAIVE 같은 source면 플랫폼마다 bit-identical하다고 가정한다.
+BOUNDARY render math는 bit identity보다 시각 허용 오차가 적합할 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 성능·정밀도·플랫폼 제한을 교환한다.</div><div class="cf"><i>EVIDENCE</i> SimLab; deterministic iterator</div></div><div class="dh"><span>D8 · 그래픽스</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D8-01 · 그래픽 파이프라인</div><div class="nc">C1·C2</div></div>
+<div class="core">vertex→raster→pixel→output merger마다 입력 공간과 병목이 다르다. CPU submission, vertex, raster, pixel, bandwidth를 GPU timestamp/counter로 분리한다.</div>
+<div class="num">AXES C1·C2
+NAIVE draw call 수나 shader ALU 하나만 보고 전체 병목을 단정한다.
+BOUNDARY 작은 scene에서는 최적화보다 pass correctness와 state 정리가 우선이다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 계측·state variant·shader 관리 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Client render passes; graphics interview bank</div></div><div class="n"><div class="nh"><div class="nm">D8-02 · resource·view·binding</div><div class="nc">C3·C4</div></div>
+<div class="core">texture resource와 SRV/RTV/DSV/UAV view는 같은 메모리의 사용 해석을 분리한다. usage/format/lifetime과 view/binding을 구분하고 pass entry/exit contract를 둔다.</div>
+<div class="num">AXES C3·C4
+NAIVE resource 객체 하나가 모든 stage 사용 상태를 자동 소유한다고 본다.
+BOUNDARY DX11은 driver-managed hazard가 많고 DX12/Vulkan은 명시 barrier가 필요하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> view 수·state tracking·debug layer 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Engine RHI; current DX11 path</div></div><div class="n"><div class="nh"><div class="nm">D8-03 · buffer update·upload</div><div class="nc">C2·C4</div></div>
+<div class="core">per-object constant update 수천 번은 map/unmap과 driver validation을 누적한다. frame/ring buffer, dynamic map policy, instance batch와 immutable resource를 구분한다.</div>
+<div class="num">AXES C2·C4
+NAIVE 객체마다 작은 buffer를 생성·갱신한다.
+BOUNDARY DX11 DISCARD/NO_OVERWRITE와 DX12 upload heap 방식은 동일하지 않다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> ring wrap·frame ownership·alignment 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Winters resource pipeline</div></div><div class="n"><div class="nh"><div class="nm">D8-04 · forward·deferred</div><div class="nc">C2·C3·C6</div></div>
+<div class="core">forward는 material×light 비용, deferred는 G-buffer bandwidth와 transparency 제약을 교환한다. light count, MSAA, transparency, bandwidth를 기준으로 forward/forward+/deferred를 선택한다.</div>
+<div class="num">AXES C2·C3·C6
+NAIVE deferred가 항상 많은 light에 정답이라고 본다.
+BOUNDARY 현재 Winters는 DX11 forward이며 clustered/G-buffer 완료로 서술하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 변형 shader 또는 G-buffer 메모리 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Client/Private/Scene/Scene_InGameRender.cpp</div></div><div class="n"><div class="nh"><div class="nm">D8-05 · depth·normal prepass</div><div class="nc">C2·C3·C6</div></div>
+<div class="core">prepass는 overdraw를 줄이고 AO용 depth/normal을 주지만 geometry를 다시 그린다. heavy pixel/overdraw 장면과 AO dependency에서 사용하고 GPU scope로 break-even을 측정한다.</div>
+<div class="num">AXES C2·C3·C6
+NAIVE prepass는 공짜이며 모든 scene에서 빠르다고 본다.
+BOUNDARY alpha-tested foliage와 low-overdraw scene에서는 손해일 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> draw·vertex bandwidth·state 전환 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Current Winters depth/normal path</div></div><div class="n"><div class="nh"><div class="nm">D8-06 · PBR·색공간</div><div class="nc">C1·C5</div></div>
+<div class="core">baseColor는 보통 sRGB 입력, normal/roughness/metallic은 linear data다. linear lighting, sRGB decode/encode, energy-conserving BRDF와 exposure/tone mapping을 분리한다.</div>
+<div class="num">AXES C1·C5
+NAIVE 모든 texture를 같은 gamma로 샘플하고 light를 display space에서 더한다.
+BOUNDARY stylized LoL look은 물리 정확성과 가독성을 의도적으로 교환할 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> authoring 규칙·HDR buffer·검수 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Winters materials/post; graphics bank</div></div><div class="n"><div class="nh"><div class="nm">D8-07 · SSAO·GTAO</div><div class="nc">C5·C6·C8</div></div>
+<div class="core">screen-space AO는 보이는 depth/normal sample만으로 근사해 off-screen·thin geometry를 놓친다. radius/sample/noise/blur와 depth-aware bilateral을 장면 단위로 검증한다.</div>
+<div class="num">AXES C5·C6·C8
+NAIVE AO를 실제 global illumination 또는 shadow로 부른다.
+BOUNDARY 현재 Winters에는 GTAO/SSAO 계열이 있으나 clustered·deferred 증거는 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> banding·halo·temporal noise·GPU ms 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Current render guide; scene render path</div></div><div class="n"><div class="nh"><div class="nm">D8-08 · shadow 기법</div><div class="nc">C1·C5·C6</div></div>
+<div class="core">shadow map은 texel/PCF/bias, contact/blob은 근거리 가독성 근사다. 필요 거리와 light 유형에 따라 shadow map/PCF/contact/blob을 조합하고 acne/peter-panning을 비교한다.</div>
+<div class="num">AXES C1·C5·C6
+NAIVE blob/contact shadow를 CSM 구현으로 포장한다.
+BOUNDARY 현재 Winters의 confirmed path는 contact/blob 성격이며 CSM 완료를 주장하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> draw·texture·bias 튜닝과 shimmering 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Scene_InGameRender.cpp; conflict register</div></div><div class="n"><div class="nh"><div class="nm">D8-09 · frustum·occlusion·LOD</div><div class="nc">C2·C6</div></div>
+<div class="core">화면에 기여하지 않는 object는 CPU submission·vertex·pixel 비용을 모두 낭비한다. frustum→distance/LOD→필요시 occlusion 순서로 싼 test부터 적용한다.</div>
+<div class="num">AXES C2·C6
+NAIVE 모든 object를 draw하고 GPU가 알아서 버리게 한다.
+BOUNDARY 작은 LoL arena에서 복잡한 occlusion system이 이득인지 측정해야 한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> culling bounds update·popping·false negative 위험이 있다.</div><div class="cf"><i>EVIDENCE</i> Winters render optimization direction</div></div><div class="n"><div class="nh"><div class="nm">D8-10 · 투명·정렬·OIT</div><div class="nc">C3·C5·C6</div></div>
+<div class="core">alpha blending은 대개 순서 의존이며 depth write가 어렵다. opaque 먼저, transparent back-to-front와 particle bucket/근사 OIT를 요구에 맞게 쓴다.</div>
+<div class="num">AXES C3·C5·C6
+NAIVE opaque와 같은 batch/order로 그린다.
+BOUNDARY 정확 OIT는 메모리·bandwidth가 커서 이펙트 품질과 교환한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> sorting CPU와 overdraw GPU 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Client FX/render lists</div></div><div class="n"><div class="nh"><div class="nm">D8-11 · post FX·TAA 경계</div><div class="nc">C1·C5·C8</div></div>
+<div class="core">bloom/exposure/AA는 scene color history와 motion 정보 유무에 따라 품질이 달라진다. toggle, render target capture, GPU scope, history reset 규칙으로 실제 path를 검증한다.</div>
+<div class="num">AXES C1·C5·C8
+NAIVE 후처리 pass 이름만 있으면 기능이 활성·완성됐다고 본다.
+BOUNDARY 현재 Winters에서 bloom은 비활성 맥락이 있고 TAA 구현을 확정하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> history ghosting·VRAM·frame latency가 비용이다.</div><div class="cf"><i>EVIDENCE</i> Scene render code; conflict register</div></div><div class="n"><div class="nh"><div class="nm">D8-12 · RHI·RenderGraph 경계</div><div class="nc">C3·C4·C8</div></div>
+<div class="core">RHI는 backend 추상화, RenderGraph는 pass/resource dependency와 lifetime scheduling 문제다. 현재 backend와 smoke path를 상태표로 구분하고 graph 도입 전 기존 pass owner와 삭제 경로를 정한다.</div>
+<div class="num">AXES C3·C4·C8
+NAIVE RHI interface가 있으면 자동으로 multi-API·graph·barrier가 완성됐다고 본다.
+BOUNDARY 현재 Winters normal F5는 DX11, DX12는 smoke 성격이며 RenderGraph는 미래 방향이다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 추상화 누수·이중 renderer·검증 matrix 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> .md/architecture/WINTERS_CODEBASE_COMPASS.md; full-stack guide</div></div><div class="dh"><span>D9 · 네트워크·서버·DB·클라우드</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D9-01 · TCP·UDP 선택</div><div class="nc">C3·C7</div></div>
+<div class="core">TCP는 ordered byte stream, UDP는 message 경계가 있으나 유실·재정렬을 앱이 처리한다. 명령 중요도·latency·head-of-line·재전송 요구를 channel별로 평가한다.</div>
+<div class="num">AXES C3·C7
+NAIVE 게임은 무조건 UDP, 서비스는 무조건 TCP라고 외운다.
+BOUNDARY 작은 LAN 협업 게임은 TCP도 충분할 수 있고 실시간 snapshot은 selective reliability가 유리할 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> protocol·NAT·MTU·보안 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Network interview bank; project packet code</div></div><div class="n"><div class="nh"><div class="nm">D9-02 · framing·versioning</div><div class="nc">C1·C3·C7</div></div>
+<div class="core">TCP recv는 0.5개 또는 여러 packet을 줄 수 있고 schema는 배포 버전이 달라진다. length/type/version, fixed-width endian, max size, incremental parser와 unknown-field policy를 둔다.</div>
+<div class="num">AXES C1·C3·C7
+NAIVE recv 1회=struct 1개, sizeof(struct)를 wire contract로 쓴다.
+BOUNDARY FlatBuffers도 semantic version·validation을 자동 결정하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> copy·buffer·compatibility test 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Shared/Schemas; Minecraft PacketDef.h</div></div><div class="n"><div class="nh"><div class="nm">D9-03 · IOCP·backpressure</div><div class="nc">C2·C3·C4</div></div>
+<div class="core">completion까지 OVERLAPPED·buffer가 살아 있어야 하고 느린 peer는 send queue를 무한히 늘릴 수 있다. I/O owner, bounded queue, partial completion, disconnect drain과 GameSim command queue를 분리한다.</div>
+<div class="num">AXES C2·C3·C4
+NAIVE completion thread에서 gameplay까지 실행하고 무한 queue를 허용한다.
+BOUNDARY Minecraft 현재 코드는 select이며 이 노드는 완성 구현 증명이 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 상태기계·memory cap·shutdown race 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> D2/D3 IOCP; conflict register</div></div><div class="n"><div class="nh"><div class="nm">D9-04 · 고정 tick·GameCommand</div><div class="nc">C1·C5·C7</div></div>
+<div class="core">30 Hz 서버는 명령을 33.3 ms 단위의 권위 순서로 실행한다. Client Input→GameCommand→Server GameSim→Snapshot/Event→Client Visual을 고정한다.</div>
+<div class="num">AXES C1·C5·C7
+NAIVE client transform을 그대로 수용한다.
+BOUNDARY local-only smoke와 production authority 경로를 명확히 구분한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 명령 검증·queue·입력 지연 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> CLAUDE_Legacy.md; GameRoomTick.cpp</div></div><div class="n"><div class="nh"><div class="nm">D9-05 · snapshot·delta·compression</div><div class="nc">C2·C3·C5·C7</div></div>
+<div class="core">full transform snapshot은 entity 수×tick rate에 비례해 대역폭이 증가한다. baseline ack, changed field mask, quantization, keyframe fallback을 단계적으로 설계한다.</div>
+<div class="num">AXES C2·C3·C5·C7
+NAIVE schema에 deltaBaseTick 필드가 있으니 delta가 구현됐다고 주장한다.
+BOUNDARY 현재 Winters SnapshotBuilder는 정렬된 전체 entity vector, deltaBaseTick=0 full path다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> baseline loss·CPU encode·복구 keyframe 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Snapshot.fbs; SnapshotBuilder.cpp</div></div><div class="n"><div class="nh"><div class="nm">D9-06 · prediction·reconciliation</div><div class="nc">C1·C5·C7</div></div>
+<div class="core">RTT 동안 입력 반응을 숨기되 서버 판정에 수렴해야 한다. sequence/ack, unacked input replay, bounded visual correction을 쓴다.</div>
+<div class="num">AXES C1·C5·C7
+NAIVE client 예측 결과를 authoritative hit/position으로 확정한다.
+BOUNDARY Winters는 weak local protection/reconciliation이며 모든 gameplay 예측을 의미하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> rubber band·buffer·deterministic input replay 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> Client/Private/Network/SnapshotApplier.cpp</div></div><div class="n"><div class="nh"><div class="nm">D9-07 · lag compensation·AOI</div><div class="nc">C2·C5·C6·C7</div></div>
+<div class="core">lag rewind는 과거 판정, AOI는 관심 영역 밖 복제 제거라는 다른 문제다. 최대 200 ms=6 tick history를 세대 검증하고, AOI는 spatial ownership·enter/leave/keyframe 계약을 별도 설계한다.</div>
+<div class="num">AXES C2·C5·C6·C7
+NAIVE 둘을 네트워크 최적화 한 묶음으로 구현됐다고 말한다.
+BOUNDARY 현재 lag history는 존재하지만 AOI는 future comment 외 구현 증거가 없다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> memory·fairness·boundary churn·보안 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> LagCompensation.h; Shared/Network/PacketDef.h</div></div><div class="n"><div class="nh"><div class="nm">D9-08 · 인증·ticket·trust boundary</div><div class="nc">C3·C4·C7</div></div>
+<div class="core">client-provided identity와 gameplay claim은 검증 없이는 신뢰할 수 없다. short-lived signed ticket, server-side session binding, replay/expiry, command authorization을 분리한다.</div>
+<div class="num">AXES C3·C4·C7
+NAIVE session ID만 알면 권한이 있다고 본다.
+BOUNDARY 내부 smoke token과 production auth를 같은 보안 수준으로 말하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 키 회전·clock skew·revocation 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Services auth/gateway; server command ingress</div></div><div class="n"><div class="nh"><div class="nm">D9-09 · ACID·MVCC·idempotency</div><div class="nc">C4·C7</div></div>
+<div class="core">재시도와 동시 쓰기는 duplicate match/reward와 lost update를 만든다. transaction, unique idempotency key, MVCC/locking, compare-and-set와 재시도 정책을 쓴다.</div>
+<div class="num">AXES C4·C7
+NAIVE HTTP 200/DB commit 한 번을 exactly-once로 생각한다.
+BOUNDARY isolation level이 높을수록 contention과 latency가 증가한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> key 보관·deadlock retry·정리 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Services repositories/migrations; DB interview bank</div></div><div class="n"><div class="nh"><div class="nm">D9-10 · Redis queue·cache</div><div class="nc">C2·C3·C7</div></div>
+<div class="core">Redis는 빠르지만 메모리·TTL·failover에 따라 stale/missing 상태가 정상이다. key namespace, TTL/eviction, authoritative DB sync, cache-aside/write policy를 정한다.</div>
+<div class="num">AXES C2·C3·C7
+NAIVE cache를 영구 진실로 사용하고 invalidation을 생략한다.
+BOUNDARY 현재 matchmaking:queue와 leaderboard:mmr가 있으나 모든 서비스 상태가 Redis인 것은 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> hot key·stampede·rebuild 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Services current Redis code</div></div><div class="n"><div class="nh"><div class="nm">D9-11 · event·transactional outbox</div><div class="nc">C4·C7·C8</div></div>
+<div class="core">DB commit 성공 후 process crash면 broker publish가 사라질 수 있다. same transaction outbox insert→SKIP LOCKED claim→publish→published_at, consumer idempotency를 둔다.</div>
+<div class="num">AXES C4·C7·C8
+NAIVE dual write를 transaction처럼 취급한다.
+BOUNDARY 현재 dirty tree에 구현 증거가 있으나 committed baseline인지 별도 표기한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> at-least-once duplicate·outbox cleanup·monitoring 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Services/internal/matchmaking/service.go; migrations 000009/000010</div></div><div class="n"><div class="nh"><div class="nm">D9-12 · 배포·관측·복구</div><div class="nc">C4·C7·C8</div></div>
+<div class="core">분산 장애는 부분 실패이므로 build·config·schema·artifact 버전을 함께 알아야 한다. structured log, trace/correlation ID, metrics/SLO, migration gate, canary/rollback과 replay fixture를 둔다.</div>
+<div class="num">AXES C4·C7·C8
+NAIVE health 200이면 gameplay·queue·DB가 모두 정상이라고 본다.
+BOUNDARY 초기 개인 프로젝트에는 최소 health+logs+backup부터 시작해 비례적으로 확장한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 운영 비용·alert fatigue·storage가 든다.</div><div class="cf"><i>EVIDENCE</i> Services deployment docs; goal/output register</div></div><div class="dh"><span>D10 · AI·게임 AI·강화학습</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D10-01 · 목적함수·게임 이론</div><div class="nc">C1·C6·C7</div></div>
+<div class="core">행동 후보는 같은 단위의 utility로 비교해야 하고 상대도 최적화 주체다. 최종 승리 조건에서 proxy를 유도하고 zero-sum/non-zero-sum, simultaneous action을 구분한다.</div>
+<div class="num">AXES C1·C6·C7
+NAIVE 킬·자원·거리 가중치를 이유 없이 더한다.
+BOUNDARY Battlefield의 HQ HP 차이와 Mushroom의 score diff는 문제별 단위다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> proxy gaming과 sparse reward 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> NYPC DOCX; battlefield/mushroom rules</div></div><div class="n"><div class="nh"><div class="nm">D10-02 · minimax·alpha-beta</div><div class="nc">C6</div></div>
+<div class="core">branching b, depth d의 완전 탐색은 O(b^d)다. max/min bound로 결과를 바꾸지 않는 가지를 제거하고 좋은 move ordering으로 cutoff를 앞당긴다.</div>
+<div class="num">AXES C6
+NAIVE 모든 수를 끝까지 같은 순서로 탐색한다.
+BOUNDARY 동시행동·확률 game은 plain minimax 모델과 다르다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 최악 경우와 stack/time budget이 남는다.</div><div class="cf"><i>EVIDENCE</i> Mushroom search code</div></div><div class="n"><div class="nh"><div class="nm">D10-03 · iterative deepening·TT·ordering</div><div class="nc">C4·C6·C8</div></div>
+<div class="core">시간 제한에서는 마지막 완주 깊이의 결과가 필요하다. depth 1→N 반복, 이전 PV·ImmediateSwing ordering, transposition key/depth/bound를 저장한다.</div>
+<div class="num">AXES C4·C6·C8
+NAIVE 고정 깊이를 시작해 timeout 중간의 불완전 값을 사용한다.
+BOUNDARY hash collision·state key 누락은 오답을 만들므로 fixed-depth audit가 필요하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 메모리·hash·aging 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Mushroom alpha-beta/iterative deepening</div></div><div class="n"><div class="nh"><div class="nm">D10-04 · 평가함수·단위 분리</div><div class="nc">C1·C5·C8</div></div>
+<div class="core">move ordering score와 leaf utility를 섞으면 같은 feature가 중복 계산될 수 있다. MoveEval과 LeafEval을 분리하고 각 term의 단위·sign·ablation을 기록한다.</div>
+<div class="num">AXES C1·C5·C8
+NAIVE ImmediateSwing을 ordering과 terminal value에 무비판적으로 중복한다.
+BOUNDARY Mushroom 회고식은 plateau까지 포함한 역사이지 최종 보편식이 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> weight drift·horizon effect·설명 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> mushroom/회고록.md</div></div><div class="n"><div class="nh"><div class="nm">D10-05 · MCTS</div><div class="nc">C5·C6·C8</div></div>
+<div class="core">넓고 깊은 tree에서 rollout budget을 유망 branch에 배분한다. selection(UCB), expansion, simulation/value, backup을 deterministic seed와 budget으로 검증한다.</div>
+<div class="num">AXES C5·C6·C8
+NAIVE MCTS가 alpha-beta보다 항상 강하다고 가정한다.
+BOUNDARY 낮은 branching·좋은 heuristic·완전정보 2인 zero-sum에서는 alpha-beta가 유리할 수 있다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> rollout variance·tree memory·parallel contention 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> NYPC lab bridge docs</div></div><div class="n"><div class="nh"><div class="nm">D10-06 · MDP·POMDP·기억</div><div class="nc">C1·C4·C7</div></div>
+<div class="core">state가 미래를 충분히 요약해야 Markov이며 부분관측에서는 belief/memory가 필요하다. GameState와 Perception/OppTrack처럼 observation, latent memory, action을 분리한다.</div>
+<div class="num">AXES C1·C4·C7
+NAIVE 현재 화면만으로 상대 의도를 완전히 안다고 본다.
+BOUNDARY Battlefield 공식 정보 구조에 맞춰 POMDP 여부를 규칙으로 판단한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> stale track·memory dimension·학습 난도가 늘어난다.</div><div class="cf"><i>EVIDENCE</i> battlefield main_claude.cpp; AGENTS.md</div></div><div class="n"><div class="nh"><div class="nm">D10-07 · PPO</div><div class="nc">C5·C6·C8</div></div>
+<div class="core">PPO는 clipped objective로 policy update를 제한하지만 sample efficiency와 reward 설계가 필요하다. deterministic environment, observation/action schema, advantage normalization, seed league와 distillation gate를 둔다.</div>
+<div class="num">AXES C5·C6·C8
+NAIVE PPO라는 이름만으로 안정 학습과 우수 정책을 가정한다.
+BOUNDARY 현재 Winters runtime의 확정 구현 카드가 아니며 NYPC 독립 Lab 연구 방향이다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> compute·reward hacking·distribution shift 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> NYPC Lab boundary; plan/ai bridge</div></div><div class="n"><div class="nh"><div class="nm">D10-08 · self-play·league</div><div class="nc">C5·C7·C8</div></div>
+<div class="core">단일 최신 상대와만 학습하면 cyclic strategy와 forgetting을 놓친다. snapshot pool, Elo/paired seeds, exploitability-style probes, held-out bots와 promotion gate를 둔다.</div>
+<div class="num">AXES C5·C7·C8
+NAIVE 현재 champion과의 승률 하나로 일반화를 판단한다.
+BOUNDARY Elo는 transitive strength를 가정하므로 matchup matrix도 함께 본다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> match compute·artifact storage·selection bias 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> NYPC mushroom lab docs; champion policy gate</div></div><div class="n"><div class="nh"><div class="nm">D10-09 · imitation·artifact bridge</div><div class="nc">C3·C4·C7·C8</div></div>
+<div class="core">Python 학습과 C++ runtime 사이 feature/order/version mismatch가 silent bug를 만든다. immutable artifact magic/version/hash, feature schema, golden vectors, shadow inference로 경계를 검증한다.</div>
+<div class="num">AXES C3·C4·C7·C8
+NAIVE pybind 또는 파일 하나가 있으면 통합이 끝났다고 본다.
+BOUNDARY Winters에는 현재 .wbc/file-based path 증거가 있으며 pybind 확정 카드는 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> export tooling·quantization·drift 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> ChampionAIPolicy.h; WBC artifacts</div></div><div class="n"><div class="nh"><div class="nm">D10-10 · HFSM·BT·GOAP·utility</div><div class="nc">C3·C6·C8</div></div>
+<div class="core">반응 규칙·장기 계획·연속 점수 선택은 서로 다른 표현이 맞다. 명확한 mode는 HFSM, compositional task는 BT, symbolic plan은 GOAP, tradeoff 선택은 utility로 쓴다.</div>
+<div class="num">AXES C3·C6·C8
+NAIVE 유행하는 AI 구조 하나로 모든 NPC를 설계한다.
+BOUNDARY 현재 코드의 실제 owner와 debug trace가 우선이며 구조 이름은 사후 설명이다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 중복 의사결정 owner와 튜닝 표면이 비용이다.</div><div class="cf"><i>EVIDENCE</i> Shared/GameSim ChampionAI systems; interview bank</div></div><div class="n"><div class="nh"><div class="nm">D10-11 · 지각·영향도·spareArmy</div><div class="nc">C1·C5·C6</div></div>
+<div class="core">관측된 병력 전부가 즉시 사용 가능한 선택지는 아니다. ETA, committed force, spareArmy, influence/contest margin으로 가용 선택지를 계산한다.</div>
+<div class="num">AXES C1·C5·C6
+NAIVE 현재 count를 free resource로 보고 공격·수비에 중복 배정한다.
+BOUNDARY 초기 heuristic은 규칙·지도 크기 변화에 재보정해야 한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 근사와 threshold cliff·debug UI 비용이 있다.</div><div class="cf"><i>EVIDENCE</i> battlefield main_claude.cpp; DOCX day 9</div></div><div class="n"><div class="nh"><div class="nm">D10-12 · 검증 gate·실패 분류</div><div class="nc">C8</div></div>
+<div class="core">평균 점수는 특정 상태의 치명 회귀를 숨긴다. replay clone, root trace, visual check, fixed seed regression, broad league, immutable build hash 순으로 승격한다.</div>
+<div class="num">AXES C8
+NAIVE 한 번 submit 결과가 오르면 모든 변경을 유지한다.
+BOUNDARY broad suite는 root cause 도구가 아니라 마지막 안전망이다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> fixture 유지·실행 시간·false confidence 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> NYPC validation loop; Winters SimLab/shadow gate</div></div><div class="dh"><span>D11 · 게임 엔진·프로젝트 통합</span><s>12 NODES</s></div><div class="n"><div class="nh"><div class="nm">D11-01 · frame loop·time domains</div><div class="nc">C1·C5</div></div>
+<div class="core">input, fixed simulation, render, network, editor가 서로 다른 주기를 가진다. authority tick, render interpolation, async service와 tool preview를 명시적 phase로 분리한다.</div>
+<div class="num">AXES C1·C5
+NAIVE 하나의 Update(dt)에서 모든 시스템을 같은 순서와 dt로 갱신한다.
+BOUNDARY 작은 Starcraft WinAPI 프로젝트의 단일 loop와 Winters 분산 loop를 같은 규모로 말하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> phase dependency와 latency 추적 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> GameRoomTick.cpp; Starcraft lifecycle; Minecraft CGameLoop.h</div></div><div class="n"><div class="nh"><div class="nm">D11-02 · Engine·Client·Shared ownership</div><div class="nc">C3·C4·C7</div></div>
+<div class="core">generic runtime, product visual, authoritative rules가 역참조하면 재사용·검증이 무너진다. Engine은 generic primitive, Shared/GameSim은 renderer-free truth, Server는 authority, Client는 visual consumer로 둔다.</div>
+<div class="num">AXES C3·C4·C7
+NAIVE 편의를 위해 Shared/GameSim에서 Engine·DX·UI를 include한다.
+BOUNDARY 실제 adapter code는 Client/Server edge에 필요하며 중복 truth를 만들지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> DTO·interface·build graph 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> .md/architecture/WINTERS_CODEBASE_COMPASS.md</div></div><div class="n"><div class="nh"><div class="nm">D11-03 · ECS identity·storage</div><div class="nc">C2·C4·C7</div></div>
+<div class="core">빠른 iteration과 stale reference 방지는 다른 축이다. generation handle로 identity, sparse/dense store로 component membership/data를 분리한다.</div>
+<div class="num">AXES C2·C4·C7
+NAIVE index-only ID와 pointer를 장기 참조로 사용한다.
+BOUNDARY dense remove 순서가 sim-observable하므로 결정론 순회 계약이 추가된다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> sparse memory·generation serialization 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Entity.h; ComponentStore.h</div></div><div class="n"><div class="nh"><div class="nm">D11-04 · job system·parallel phase</div><div class="nc">C2·C3·C6</div></div>
+<div class="core">parallelism은 shared write와 phase dependency가 정리될 때만 이득이다. owner-local job, work stealing, dependency/fence, deterministic merge를 둔다.</div>
+<div class="num">AXES C2·C3·C6
+NAIVE 모든 system update를 job으로 쪼개고 shared World를 동시에 수정한다.
+BOUNDARY 4096-slot deque 존재가 전체 engine task graph 완성을 의미하지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> race·false sharing·debug replay 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> WorkStealingDeque.h; job system</div></div><div class="n"><div class="nh"><div class="nm">D11-05 · server authority·visual client</div><div class="nc">C3·C7</div></div>
+<div class="core">치팅 방지와 재현성을 위해 gameplay 결과는 한 권위가 결정해야 한다. Input→GameCommand→GameSim→Snapshot/Event→visual/UI/FX once 흐름을 유지한다.</div>
+<div class="num">AXES C3·C7
+NAIVE Client champion hook에서 damage·spawn·cooldown truth를 만든다.
+BOUNDARY local-only smoke는 명시 실험 경로로만 격리한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> latency·prediction·server compute 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> AGENTS.md; CLAUDE_Legacy.md</div></div><div class="n"><div class="nh"><div class="nm">D11-06 · snapshot·event·replay</div><div class="nc">C3·C4·C7·C8</div></div>
+<div class="core">지속 상태와 일회성 사건을 같은 snapshot field로 처리하면 FX 중복·누락이 생긴다. state는 Snapshot, once semantics는 Event/cue, 재현은 command/replay/checkpoint로 분리한다.</div>
+<div class="num">AXES C3·C4·C7·C8
+NAIVE client가 상태 차이를 추측해 hit/FX를 재생한다.
+BOUNDARY event 유실·late join에는 keyframe/state reconciliation이 필요하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> sequence·retention·dedup 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Snapshot schema; FX cue rules; WorldKeyframe</div></div><div class="n"><div class="nh"><div class="nm">D11-07 · RHI·renderer 현실 상태</div><div class="nc">C3·C4·C8</div></div>
+<div class="core">아키텍처 방향과 현재 normal F5 구현을 구분해야 한다. 현재 DX11 forward/manual passes를 기준선으로 쓰고 DX12/RenderGraph는 별도 검증 gate로 승격한다.</div>
+<div class="num">AXES C3·C4·C8
+NAIVE DX12 smoke나 인터페이스 이름을 production renderer로 포장한다.
+BOUNDARY 두 renderer를 병렬 영구 유지하면 owner가 갈라지므로 기존 삭제/전환 경로가 필요하다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> test matrix·resource abstraction 누수 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Scene_InGameRender.cpp; Codebase Compass</div></div><div class="n"><div class="nh"><div class="nm">D11-08 · asset·data pack·hot reload</div><div class="nc">C3·C4·C7</div></div>
+<div class="core">runtime resource는 빌드 config와 무관한 단일 root와 schema/version을 가져야 한다. Client/Bin/Resource를 유일 runtime root로 두고 immutable pack/version/hash, atomic swap을 쓴다.</div>
+<div class="num">AXES C3·C4·C7
+NAIVE Debug/Release 폴더마다 Resource를 복사해 서로 다른 데이터를 읽는다.
+BOUNDARY hot reload는 authoring 편의와 live object lifetime을 교환한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> dependency invalidation·fallback·migration 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> AGENTS.md runtime resource rule; data pipelines</div></div><div class="n"><div class="nh"><div class="nm">D11-09 · editor·authoring boundary</div><div class="nc">C1·C3·C4</div></div>
+<div class="core">editor 문서 상태와 runtime object 상태는 저장·undo·preview 수명이 다르다. document model→validated asset→runtime import 경계를 두고 command-based undo와 preview sandbox를 분리한다.</div>
+<div class="num">AXES C1·C3·C4
+NAIVE runtime scene 객체를 그대로 편집 문서와 저장 형식으로 사용한다.
+BOUNDARY 현재 Elden editor는 document authoring slice이며 UE급 전체 editor가 아니다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> schema migration·undo memory·preview parity 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Codebase Compass; editor plans</div></div><div class="n"><div class="nh"><div class="nm">D11-10 · AI command path</div><div class="nc">C3·C6·C7·C8</div></div>
+<div class="core">AI도 플레이어와 같은 authoritative command contract를 통과해야 결과 비교가 가능하다. perception→policy/HFSM→validated GameCommand→GameSim, shadow policy는 command diff만 기록한다.</div>
+<div class="num">AXES C3·C6·C7·C8
+NAIVE bot이 World component를 직접 수정하거나 model output을 곧바로 truth로 적용한다.
+BOUNDARY NYPC Lab은 독립 검증 후 artifact로 bridge하며 Winters runtime을 직접 오염시키지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> feature/version·latency·fallback 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> ChampionAIPolicy.h; NYPC bridge plan</div></div><div class="n"><div class="nh"><div class="nm">D11-11 · 서비스 control plane</div><div class="nc">C3·C4·C7</div></div>
+<div class="core">matchmaking·replay·leaderboard는 실시간 tick과 장애·확장 단위가 다르다. Go service 경계, authoritative DB, Redis cache/queue, transactional outbox로 control plane을 분리한다.</div>
+<div class="num">AXES C3·C4·C7
+NAIVE GameServer process가 DB/Redis/event를 직접 모두 소유한다.
+BOUNDARY microservice 수 자체가 목표가 아니며 4-service 같은 숫자는 현재 repo 증거로만 사용한다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 운영·schema·network failure 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> Services tree; current migrations/code</div></div><div class="n"><div class="nh"><div class="nm">D11-12 · C8 검증·릴리스</div><div class="nc">C8</div></div>
+<div class="core">엔진 변경은 FPS·결정론·서버 권위·시각 회귀를 동시에 깨뜨릴 수 있다. reproducer→unit/sim lab→git diff check→relevant build→runtime trace/capture→broad regression→artifact hash 순으로 gate한다.</div>
+<div class="num">AXES C8
+NAIVE 빌드 성공과 한 장면 실행만으로 완료한다.
+BOUNDARY 계측-only 변경은 최적화 성과가 아니며 정상 F5 시스템을 숨겨 숫자를 만들지 않는다.</div>
+<div class="qa"><i>Q</i>왜 고아가 되기 쉬운가?</div>
+<div class="qa"><i>A</i>기능명만 기억하면 전제·숫자·경계가 사라진다. 문제 제약과 메커니즘, 비교 조건을 함께 호출해야 한다.</div>
+<div class="trap"><i>COST / WRONG WHEN</i> 검증 시간과 fixture 유지 비용이 든다.</div><div class="cf"><i>EVIDENCE</i> AGENTS.md verification/performance rules; SimLab</div></div></div><div class="end"><b>완료 판정.</b> 90초 안에 숫자·제약, 순진한 실패, 메커니즘, 비교 경계, 비용, exact evidence 중 하나라도 복원하지 못하면 아직 고아다. 기초 10 + 실증 10 + domain 132 = 152개 지식 단위.</div></main></body></html>

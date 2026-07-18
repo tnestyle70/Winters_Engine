@@ -6,8 +6,10 @@
 #include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/KindredSimComponent.h"
+#include "Shared/GameSim/Components/ShieldComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
+#include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/Shield/ShieldSystem.h"
@@ -146,25 +148,30 @@ namespace
         bool_t& outCrit)
     {
         outCrit = false;
-        if ((flags & DamageFlag_CanCrit) == 0u)
+        const bool_t bForceCrit = (flags & DamageFlag_ForceCrit) != 0u;
+        if (!bForceCrit && (flags & DamageFlag_CanCrit) == 0u)
             return amount;
         if (req.source == NULL_ENTITY || !world.HasComponent<StatComponent>(req.source))
             return amount;
 
         const auto& sourceStat = world.GetComponent<StatComponent>(req.source);
-        const f32_t chance = std::clamp(sourceStat.critChance, 0.f, 1.f);
-        if (chance <= 0.f)
-            return amount;
-
-        bool_t bCrit = false;
-        if (tc.pRng)
-            bCrit = tc.pRng->RollChance(chance);
-
-        if (!bCrit)
-            return amount;
+        if (!bForceCrit)
+        {
+            const f32_t chance = std::clamp(sourceStat.critChance, 0.f, 1.f);
+            if (chance <= 0.f || !tc.pRng || !tc.pRng->RollChance(chance))
+                return amount;
+        }
 
         outCrit = true;
-        return amount * std::max(1.f, sourceStat.critDamage);
+        const f32_t multiplier = req.critDamageMultiplierOverride > 0.f
+            ? req.critDamageMultiplierOverride
+            : sourceStat.critDamage;
+        if (bForceCrit && req.critEligibleAmountOverride > 0.f)
+        {
+            const f32_t eligible = std::min(amount, req.critEligibleAmountOverride);
+            return amount + eligible * (std::max(1.f, multiplier) - 1.f);
+        }
+        return amount * std::max(1.f, multiplier);
     }
 
     f32_t ApplyTypedResistance(
@@ -242,10 +249,12 @@ namespace
     void TryActivateYasuoPassiveShield(
         CWorld& world,
         const TickContext& tc,
+        EntityID source,
         EntityID target,
         f32_t incomingDamage)
     {
         if (incomingDamage <= 0.f ||
+            !YasuoGameSim::CanTriggerPassiveShieldFromSource(world, source) ||
             target == NULL_ENTITY ||
             !world.HasComponent<ChampionComponent>(target) ||
             !world.HasComponent<YasuoStateComponent>(target))
@@ -266,11 +275,13 @@ namespace
         }
 
         constexpr f32_t kPassiveShieldDurationSec = 3.f;
+        state.fPassiveShieldMax =
+            YasuoGameSim::ResolvePassiveShieldAmount(champion.level);
         if (CShieldSystem::Grant(
                 world,
                 tc,
                 target,
-                state.fPassiveFlowMax,
+                state.fPassiveShieldMax,
                 kPassiveShieldDurationSec))
         {
             state.fPassiveFlow = 0.f;
@@ -305,6 +316,87 @@ f32_t ApplyResistance(f32_t amount, f32_t resistance)
     return CCombatFormula::ApplyResistance(amount, resistance);
 }
 
+bool_t WouldNonCriticalDamageRequestKill(
+    CWorld& world,
+    const TickContext& tc,
+    const DamageRequest& req)
+{
+    if ((req.flags & DamageFlag_CanCrit) != 0u ||
+        req.target == NULL_ENTITY ||
+        req.target == req.source ||
+        !world.IsAlive(req.target) ||
+        !world.HasComponent<HealthComponent>(req.target) ||
+        world.HasComponent<ViegoSoulComponent>(req.target))
+    {
+        return false;
+    }
+
+    const HealthComponent& hp = world.GetComponent<HealthComponent>(req.target);
+    if (hp.bIsDead || hp.fCurrent <= 0.f ||
+        !GameplayStateQuery::CanReceiveDamage(world, req.source, req.target))
+    {
+        return false;
+    }
+
+    eTeam targetTeam = eTeam::Neutral;
+    if (TryGetTeam(world, req.target, targetTeam) &&
+        targetTeam == req.sourceTeam &&
+        targetTeam != eTeam::Neutral)
+    {
+        return false;
+    }
+
+    f32_t amount = ApplyTypedResistance(
+        world,
+        req,
+        ResolveDamageType(req),
+        BuildRawDamage(world, req));
+
+    bool_t bYasuoShieldWillActivate = false;
+    f32_t genericShield = 0.f;
+    if (world.HasComponent<ChampionComponent>(req.target) &&
+        world.HasComponent<YasuoStateComponent>(req.target) &&
+        world.GetComponent<ChampionComponent>(req.target).id == eChampion::YASUO)
+    {
+        const YasuoStateComponent& state =
+            world.GetComponent<YasuoStateComponent>(req.target);
+        bYasuoShieldWillActivate =
+            amount > 0.f &&
+            YasuoGameSim::CanTriggerPassiveShieldFromSource(world, req.source) &&
+            state.fPassiveShieldRemaining <= 0.f &&
+            state.fPassiveFlowMax > 0.f &&
+            state.fPassiveFlow >= state.fPassiveFlowMax;
+        if (bYasuoShieldWillActivate)
+            genericShield = YasuoGameSim::ResolvePassiveShieldAmount(
+                world.GetComponent<ChampionComponent>(req.target).level);
+    }
+    if (!bYasuoShieldWillActivate &&
+        world.HasComponent<ShieldComponent>(req.target))
+    {
+        const ShieldComponent& shield = world.GetComponent<ShieldComponent>(req.target);
+        if (tc.tickIndex < shield.uExpireTick)
+            genericShield = std::max(0.f, shield.fCurrent);
+    }
+    amount = std::max(0.f, amount - genericShield);
+
+    if (world.HasComponent<AnnieSimComponent>(req.target))
+    {
+        const AnnieSimComponent& annie =
+            world.GetComponent<AnnieSimComponent>(req.target);
+        if (annie.fEShieldRemainingSec > 0.f)
+        {
+            amount = std::max(
+                0.f,
+                amount - std::max(0.f, annie.fEShieldAmount));
+        }
+    }
+
+    if (ResolveActiveHealthFloor(world, req.target, hp.fMaximum) > 0.f)
+        return false;
+
+    return amount >= hp.fCurrent;
+}
+
 DamageResult ApplyDamageRequest(CWorld& world, const TickContext& tc, const DamageRequest& req)
 {
     DamageResult result{};
@@ -329,13 +421,15 @@ DamageResult ApplyDamageRequest(CWorld& world, const TickContext& tc, const Dama
         return result;
     }
 
+    result.bApplied = true;
+
     const u32_t flags = ResolveDamageFlags(req);
     const eDamageType damageType = ResolveDamageType(req);
 
     f32_t amount = BuildRawDamage(world, req);
     amount = ApplyCritIfNeeded(world, tc, req, flags, amount, result.bWasCrit);
     amount = ApplyTypedResistance(world, req, damageType, amount);
-    TryActivateYasuoPassiveShield(world, tc, req.target, amount);
+    TryActivateYasuoPassiveShield(world, tc, req.source, req.target, amount);
     amount = CShieldSystem::Absorb(
         world, tc, req.target, amount, result.bWasShielded);
     amount = ApplyAnnieEShield(world, req.target, amount, result.bWasShielded);

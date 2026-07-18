@@ -22,6 +22,8 @@ struct FxMeshComponent
     FxAnchorDesc anchor{};
     FxLifecycleDesc lifecycle{};
     bool_t bAnchorResolvedLastFrame = false;
+    bool_t bInheritAnchorRotation = false;
+    Mat4 matAnchorRotation = Mat4::Identity();
 
     // 3-axis rotation in radians: pitch(X), yaw(Y), roll(Z).
     Vec3 vRotation = { 0.f, 0.f, 0.f };

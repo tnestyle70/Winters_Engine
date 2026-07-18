@@ -36,7 +36,7 @@ namespace Riven
         else
         {
             rs.qStackCount += 1;
-            rs.qStackTimer = 1.5f;
+            rs.qStackTimer = 2.f;
         }
     }
 
@@ -107,6 +107,22 @@ namespace Riven::Visual
 
         RivenFx::SpawnQSlash(*ctx.pWorld, ctx.casterEntity, stackIdx, 0.4f,
             ctx.pFxMeshRenderer);
+
+        if (ctx.bAuthoritativeEvent &&
+            ctx.pWorld->HasComponent<RivenStateComponent>(ctx.casterEntity))
+        {
+            auto& state = ctx.pWorld->GetComponent<RivenStateComponent>(ctx.casterEntity);
+            if (stackIdx >= 2u)
+            {
+                state.qStackCount = 0u;
+                state.qStackTimer = 0.f;
+            }
+            else
+            {
+                state.qStackCount = static_cast<u8_t>(stackIdx + 1u);
+                state.qStackTimer = 2.f;
+            }
+        }
     }
 
     void OnCastFrame_Visual(VisualHookContext& ctx)
@@ -136,6 +152,8 @@ namespace Riven::Visual
             {
                 RivenFx::SpawnRActivate(*ctx.pWorld, ctx.casterEntity, 0.8f,
                     ctx.pFxMeshRenderer);
+                RivenFx::SpawnRBlade(*ctx.pWorld, ctx.casterEntity, 15.f,
+                    ctx.pFxMeshRenderer);
             }
         }
     }
@@ -148,15 +166,26 @@ namespace Riven::Visual
             return;
 
         const auto& rs = ctx.pWorld->GetComponent<RivenStateComponent>(ctx.casterEntity);
-        if (rs.qStackCount >= 2)
+        u8_t stage = ctx.skillStage;
+        if (stage <= 1u && rs.qStackCount > 0u)
+        {
+            stage = static_cast<u8_t>((std::min<u32_t>)(
+                3u,
+                static_cast<u32_t>(rs.qStackCount) + 1u));
+        }
+
+        if (stage >= 3u)
             *ctx.pKeyOut = "spell1c";
-        else if (rs.qStackCount == 1)
+        else if (stage == 2u)
             *ctx.pKeyOut = "spell1b";
         else
             *ctx.pKeyOut = "spell1a";
 
         char dbg[96]{};
-        sprintf_s(dbg, "[Riven Q Anim] stack=%u key=%s\n",
-            static_cast<u32_t>(rs.qStackCount), ctx.pKeyOut->c_str());
+        sprintf_s(dbg, "[Riven Q Anim] stage=%u stack=%u key=%s\n",
+            static_cast<u32_t>(stage),
+            static_cast<u32_t>(rs.qStackCount),
+            ctx.pKeyOut->c_str());
+        OutputDebugStringA(dbg);
     }
 }

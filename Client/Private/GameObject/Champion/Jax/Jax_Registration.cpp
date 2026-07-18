@@ -55,67 +55,41 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::JAX; s.slot = 0;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = 0.6f; s.rangeMax = 1.5f; s.manaCost = 0.f;
                 s.animKey = "attack_1";
-                s.lockDurationSec = 1.0f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
-                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kJax_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 0, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::JAX; s.slot = 1;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = 0.6f; s.rangeMax = 7.0f; s.manaCost = 0.f;
                 s.animKey = "spell1";
-                s.lockDurationSec = 0.6f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
-                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kJax_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 1, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::JAX; s.slot = 2;
-                s.targetMode = eTargetMode::Self;
-                s.cooldownSec = 0.6f; s.rangeMax = 0.f; s.manaCost = 0.f;
                 s.animKey = "spell2_v03";
-                s.lockDurationSec = 0.5f; s.bOneShot = true;
-                s.rotate = eRotateMode::None;
-                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 8.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kJax_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 2, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::JAX; s.slot = 3;
-                s.targetMode = eTargetMode::Self;
-                s.cooldownSec = 0.6f; s.rangeMax = 0.f; s.manaCost = 0.f;
                 s.animKey = "spell3_idle_cycle";
-                s.lockDurationSec = 2.0f; s.bOneShot = true;
-                s.rotate = eRotateMode::None;
-                s.stageCount = 2;
-                s.stage2TargetMode = eTargetMode::Self;
+                s.bOneShot = true;
                 s.stage2AnimKey = "spell3_attack1";
-                s.stage2LockSec = 0.7f;
-                s.stage2Rotate = eRotateMode::None;
-                s.stageWindowSec = 2.0f;
-                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 48.f; s.visualPlaySpeed = 1.f;
-                s.stage2VisualCastFrame = 6.f; s.stage2VisualRecoveryFrame = 14.f; s.stage2VisualPlaySpeed = 1.f;
                 s.castHookId = kJax_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 3, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::JAX; s.slot = 4;
-                s.targetMode = eTargetMode::Self;
-                s.cooldownSec = 0.6f; s.rangeMax = 0.f; s.manaCost = 100.f;
                 s.animKey = "spell4_idle";
-                s.lockDurationSec = 0.6f; s.bOneShot = true;
-                s.rotate = eRotateMode::None;
-                s.visualCastFrame = 4.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kJax_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::JAX, 4, s);
             }

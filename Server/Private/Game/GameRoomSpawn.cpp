@@ -5,7 +5,6 @@
 #include "GameRoomSmokeRoster.h"
 
 #include "Game/ServerAICommandProducer.h"
-#include "Game/ServerMinionTuning.h"
 #include "Game/WorldBootstrap.h"
 #include "Server/Private/Game/Factory/ChampionSimComponentTable.h"
 #include "Server/Private/Game/Factory/ServerChampionEntityFactory.h"
@@ -30,8 +29,6 @@
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 #include "Shared/GameSim/Definitions/MinionCombatDef.h"
 #include "Shared/GameSim/Definitions/StageData.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Server/Private/Data/LoLGameplayDefinitionPack.h"
 #include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
@@ -486,20 +483,20 @@ EntityID CGameRoom::SpawnServerMinion(eTeam team, u8_t roleType, u8_t lane, cons
     state.sightRange = combat.sightRange;
     state.attackDamage = combat.attackDamage * timeGrowth;
     state.attackCooldownMax = combat.attackCooldownMax;
-    state.attackWindup = roleType == ServerMinionTuning::kRangedRoleType
-        ? ServerMinionTuning::kRangedAttackWindupSec
-        : ServerMinionTuning::kMeleeAttackWindupSec;
-    state.attackRecovery = ServerMinionTuning::kAttackRecoverySec;
-    state.targetScanInterval = ServerMinionTuning::kTargetScanIntervalSec;
+    state.attackWindup = roleType == ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.rangedRoleType
+        ? ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.rangedAttackWindupSec
+        : ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.meleeAttackWindupSec;
+    state.attackRecovery = ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.attackRecoverySec;
+    state.targetScanInterval = ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.targetScanIntervalSec;
     const u32_t scanBucket =
         (static_cast<u32_t>(entity) * 1103515245u +
             static_cast<u32_t>(lane) * 2246822519u +
             static_cast<u32_t>(roleType) * 3266489917u) %
-        ServerMinionTuning::kTargetScanStaggerBuckets;
+        ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.targetScanStaggerBuckets;
     state.targetScanCooldown =
         state.targetScanInterval *
         (static_cast<f32_t>(scanBucket) /
-            static_cast<f32_t>(ServerMinionTuning::kTargetScanStaggerBuckets));
+            static_cast<f32_t>(ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.targetScanStaggerBuckets));
     m_world.AddComponent<MinionStateComponent>(entity, state);
 
     const f32_t maxHp = combat.maxHp * timeGrowth;

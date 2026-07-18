@@ -11,50 +11,50 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1.25,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1.2,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  8,
+                                                  "recoveryFrame":  18
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
                                                   "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "recoveryFrame":  7
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  2,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1.05,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  8,
+                                                  "recoveryFrame":  18
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  2,
                                                   "playbackSpeed":  1.05,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  5,
+                                                  "recoveryFrame":  13
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  7,
+                                                  "recoveryFrame":  30
                                               }
                                           ]
                       },
@@ -107,15 +107,15 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  2.8,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  2,
@@ -137,6 +137,13 @@
                                                   "playbackSpeed":  1,
                                                   "castFrame":  0,
                                                   "recoveryFrame":  0
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               }
                                           ]
                       },
@@ -148,36 +155,36 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  8
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  12,
+                                                  "recoveryFrame":  60
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  24,
+                                                  "recoveryFrame":  36
                                               }
                                           ]
                       },
@@ -189,43 +196,57 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
+                                              },
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  8
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  2,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  5
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  18,
+                                                  "recoveryFrame":  30
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  5
                                               }
                                           ]
                       },
@@ -237,36 +258,50 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
+                                              },
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  3,
+                                                  "recoveryFrame":  8
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
+                                              },
+                                              {
+                                                  "slot":  4,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               }
                                           ]
                       },
@@ -278,36 +313,36 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  16,
+                                                  "recoveryFrame":  24
                                               }
                                           ]
                       },
@@ -319,36 +354,36 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  18
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  8
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  18,
+                                                  "recoveryFrame":  36
                                               }
                                           ]
                       },
@@ -360,43 +395,43 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  8
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  48
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  2,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               }
                                           ]
                       },
@@ -408,57 +443,57 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  2,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  2,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  2,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               }
                                           ]
                       },
@@ -470,36 +505,36 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               }
                                           ]
                       },
@@ -511,36 +546,36 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               }
                                           ]
                       },
@@ -552,36 +587,36 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  5,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  5,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  8
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  12,
+                                                  "recoveryFrame":  24
                                               }
                                           ]
                       },
@@ -593,36 +628,36 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  5,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  8
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  1,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  12,
+                                                  "recoveryFrame":  22
                                               }
                                           ]
                       },
@@ -634,43 +669,43 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  5,
+                                                  "recoveryFrame":  11
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
                                                   "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "recoveryFrame":  7
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  2,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  10,
+                                                  "recoveryFrame":  18
                                               }
                                           ]
                       },
@@ -682,29 +717,29 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  0.85,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  5,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  0.85,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  10
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  0.85,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  5,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  6,
+                                                  "recoveryFrame":  14
                                               },
                                               {
                                                   "slot":  3,
@@ -717,8 +752,8 @@
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  12,
+                                                  "recoveryFrame":  24
                                               }
                                           ]
                       },
@@ -730,43 +765,50 @@
                                                   "slot":  0,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
+                                              },
+                                              {
+                                                  "slot":  0,
+                                                  "stage":  2,
+                                                  "playbackSpeed":  1,
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  1,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  2,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  3,
                                                   "stage":  2,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               },
                                               {
                                                   "slot":  4,
                                                   "stage":  1,
                                                   "playbackSpeed":  1,
-                                                  "castFrame":  0,
-                                                  "recoveryFrame":  0
+                                                  "castFrame":  4,
+                                                  "recoveryFrame":  12
                                               }
                                           ]
                       }

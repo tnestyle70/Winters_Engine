@@ -1,0 +1,839 @@
+{
+  "schemaVersion": 1,
+  "dataVersion": 1,
+  "buildHash": 4237932526,
+  "defaultProfile": {
+    "champion": "END",
+    "preferredRange": 1.5,
+    "championScanRange": 6.0,
+    "minionScanRange": 10.0,
+    "structureScanRange": 18.0,
+    "leashRange": 14.0,
+    "aggression": 1.0,
+    "kiteBias": 0.0,
+    "retreatHpRatio": 0.35,
+    "reengageHpRatio": 0.55,
+    "minionPressureWeight": 1.0,
+    "turretRiskWeight": 1.0,
+    "lastHitWeight": 1.0,
+    "siegeWeight": 1.0,
+    "skillRules": []
+  },
+  "profiles": [
+    {
+      "champion": "ANNIE",
+      "preferredRange": 6.0,
+      "championScanRange": 9.0,
+      "minionScanRange": 12.0,
+      "structureScanRange": 18.0,
+      "leashRange": 16.0,
+      "aggression": 0.85,
+      "kiteBias": 1.0,
+      "retreatHpRatio": 0.45,
+      "reengageHpRatio": 0.62,
+      "minionPressureWeight": 1.05,
+      "turretRiskWeight": 1.1,
+      "lastHitWeight": 1.05,
+      "siegeWeight": 0.8,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        },
+        {
+          "slot": "W",
+          "minRange": 0.0,
+          "score": 0.8
+        }
+      ]
+    },
+    {
+      "champion": "ASHE",
+      "preferredRange": 6.0,
+      "championScanRange": 10.0,
+      "minionScanRange": 12.0,
+      "structureScanRange": 18.0,
+      "leashRange": 16.0,
+      "aggression": 0.9,
+      "kiteBias": 1.25,
+      "retreatHpRatio": 0.48,
+      "reengageHpRatio": 0.65,
+      "minionPressureWeight": 1.1,
+      "turretRiskWeight": 1.2,
+      "lastHitWeight": 1.15,
+      "siegeWeight": 0.8,
+      "skillRules": [
+        {
+          "slot": "W",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "EZREAL",
+      "preferredRange": 6.25,
+      "championScanRange": 11.0,
+      "minionScanRange": 12.0,
+      "structureScanRange": 18.0,
+      "leashRange": 17.0,
+      "aggression": 0.95,
+      "kiteBias": 1.2,
+      "retreatHpRatio": 0.42,
+      "reengageHpRatio": 0.62,
+      "minionPressureWeight": 1.0,
+      "turretRiskWeight": 1.1,
+      "lastHitWeight": 1.05,
+      "siegeWeight": 0.85,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "FIORA",
+      "preferredRange": 1.5,
+      "championScanRange": 6.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.2,
+      "kiteBias": 0.2,
+      "retreatHpRatio": 0.5,
+      "reengageHpRatio": 0.65,
+      "minionPressureWeight": 0.9,
+      "turretRiskWeight": 0.95,
+      "lastHitWeight": 1.1,
+      "siegeWeight": 1.0,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "GAREN",
+      "preferredRange": 1.5,
+      "championScanRange": 6.5,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.1,
+      "kiteBias": 0.0,
+      "retreatHpRatio": 0.42,
+      "reengageHpRatio": 0.6,
+      "minionPressureWeight": 0.9,
+      "turretRiskWeight": 0.95,
+      "lastHitWeight": 1.05,
+      "siegeWeight": 1.05,
+      "skillRules": [
+        {
+          "slot": "E",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "IRELIA",
+      "preferredRange": 1.75,
+      "championScanRange": 7.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.15,
+      "kiteBias": 0.1,
+      "retreatHpRatio": 0.42,
+      "reengageHpRatio": 0.6,
+      "minionPressureWeight": 0.95,
+      "turretRiskWeight": 1.0,
+      "lastHitWeight": 1.05,
+      "siegeWeight": 1.0,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "JAX",
+      "preferredRange": 1.5,
+      "championScanRange": 7.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.35,
+      "kiteBias": 0.0,
+      "retreatHpRatio": 0.35,
+      "reengageHpRatio": 0.55,
+      "minionPressureWeight": 0.7,
+      "turretRiskWeight": 0.9,
+      "lastHitWeight": 1.0,
+      "siegeWeight": 1.05,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "KALISTA",
+      "preferredRange": 5.5,
+      "championScanRange": 9.0,
+      "minionScanRange": 12.0,
+      "structureScanRange": 18.0,
+      "leashRange": 16.0,
+      "aggression": 0.85,
+      "kiteBias": 1.35,
+      "retreatHpRatio": 0.45,
+      "reengageHpRatio": 0.65,
+      "minionPressureWeight": 1.1,
+      "turretRiskWeight": 1.15,
+      "lastHitWeight": 1.1,
+      "siegeWeight": 0.8,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "KINDRED",
+      "preferredRange": 5.5,
+      "championScanRange": 9.0,
+      "minionScanRange": 12.0,
+      "structureScanRange": 18.0,
+      "leashRange": 16.0,
+      "aggression": 0.85,
+      "kiteBias": 1.15,
+      "retreatHpRatio": 0.42,
+      "reengageHpRatio": 0.62,
+      "minionPressureWeight": 1.05,
+      "turretRiskWeight": 1.1,
+      "lastHitWeight": 1.1,
+      "siegeWeight": 0.85,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "LEESIN",
+      "preferredRange": 1.5,
+      "championScanRange": 7.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.15,
+      "kiteBias": 0.0,
+      "retreatHpRatio": 0.35,
+      "reengageHpRatio": 0.55,
+      "minionPressureWeight": 1.0,
+      "turretRiskWeight": 1.0,
+      "lastHitWeight": 1.0,
+      "siegeWeight": 1.0,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "MASTERYI",
+      "preferredRange": 1.5,
+      "championScanRange": 7.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.25,
+      "kiteBias": 0.0,
+      "retreatHpRatio": 0.35,
+      "reengageHpRatio": 0.55,
+      "minionPressureWeight": 1.0,
+      "turretRiskWeight": 1.0,
+      "lastHitWeight": 1.05,
+      "siegeWeight": 1.05,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "RIVEN",
+      "preferredRange": 1.5,
+      "championScanRange": 7.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.15,
+      "kiteBias": 0.0,
+      "retreatHpRatio": 0.4,
+      "reengageHpRatio": 0.58,
+      "minionPressureWeight": 0.9,
+      "turretRiskWeight": 0.95,
+      "lastHitWeight": 1.05,
+      "siegeWeight": 1.0,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "SYLAS",
+      "preferredRange": 1.5,
+      "championScanRange": 7.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.05,
+      "kiteBias": 0.0,
+      "retreatHpRatio": 0.42,
+      "reengageHpRatio": 0.6,
+      "minionPressureWeight": 0.95,
+      "turretRiskWeight": 1.0,
+      "lastHitWeight": 1.0,
+      "siegeWeight": 1.0,
+      "skillRules": []
+    },
+    {
+      "champion": "VIEGO",
+      "preferredRange": 1.5,
+      "championScanRange": 7.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.1,
+      "kiteBias": 0.0,
+      "retreatHpRatio": 0.4,
+      "reengageHpRatio": 0.58,
+      "minionPressureWeight": 0.95,
+      "turretRiskWeight": 1.0,
+      "lastHitWeight": 1.05,
+      "siegeWeight": 1.0,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    },
+    {
+      "champion": "YASUO",
+      "preferredRange": 1.75,
+      "championScanRange": 7.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.1,
+      "kiteBias": 0.1,
+      "retreatHpRatio": 0.42,
+      "reengageHpRatio": 0.6,
+      "minionPressureWeight": 0.95,
+      "turretRiskWeight": 1.0,
+      "lastHitWeight": 1.05,
+      "siegeWeight": 1.0,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        },
+        {
+          "slot": "E",
+          "minRange": 0.0,
+          "score": 0.9
+        }
+      ]
+    },
+    {
+      "champion": "YONE",
+      "preferredRange": 1.75,
+      "championScanRange": 7.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.1,
+      "kiteBias": 0.1,
+      "retreatHpRatio": 0.42,
+      "reengageHpRatio": 0.6,
+      "minionPressureWeight": 0.95,
+      "turretRiskWeight": 1.0,
+      "lastHitWeight": 1.05,
+      "siegeWeight": 1.0,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        },
+        {
+          "slot": "W",
+          "minRange": 0.0,
+          "score": 0.8
+        }
+      ]
+    },
+    {
+      "champion": "ZED",
+      "preferredRange": 1.5,
+      "championScanRange": 8.0,
+      "minionScanRange": 10.0,
+      "structureScanRange": 18.0,
+      "leashRange": 14.0,
+      "aggression": 1.05,
+      "kiteBias": 0.2,
+      "retreatHpRatio": 0.4,
+      "reengageHpRatio": 0.58,
+      "minionPressureWeight": 0.95,
+      "turretRiskWeight": 1.0,
+      "lastHitWeight": 1.0,
+      "siegeWeight": 0.95,
+      "skillRules": [
+        {
+          "slot": "Q",
+          "minRange": 0.0,
+          "score": 1.0
+        }
+      ]
+    }
+  ],
+  "comboPlans": [
+    {
+      "champion": "END",
+      "steps": [
+        {
+          "slot": "Q",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 0.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 0.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "E",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 0.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 0.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "R",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 0.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 0.6,
+          "targetMode": "TargetEntity"
+        }
+      ]
+    },
+    {
+      "champion": "JAX",
+      "steps": [
+        {
+          "slot": "Q",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 7.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "W",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        }
+      ]
+    },
+    {
+      "champion": "FIORA",
+      "steps": [
+        {
+          "slot": "Q",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 4.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "E",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "W",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 2.5,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        }
+      ]
+    },
+    {
+      "champion": "ASHE",
+      "steps": [
+        {
+          "slot": "W",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 9.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "Q",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 6.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 6.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 6.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 6.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        }
+      ]
+    },
+    {
+      "champion": "RIVEN",
+      "steps": [
+        {
+          "slot": "Q",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 4.5,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "Q",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 4.5,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "Q",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 4.5,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "W",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 2.5,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "E",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 4.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "AwayFromTarget"
+        }
+      ]
+    },
+    {
+      "champion": "LEESIN",
+      "steps": [
+        {
+          "slot": "Q",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 11.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "Q",
+          "itemId": 2,
+          "minRange": 0.0,
+          "maxRange": 11.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "E",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 3.5,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "E",
+          "itemId": 2,
+          "minRange": 0.0,
+          "maxRange": 3.5,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "W",
+          "itemId": 3340,
+          "minRange": 0.0,
+          "maxRange": 6.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "WardBehindTarget"
+        },
+        {
+          "slot": "W",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 7.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "LastOwnWard"
+        },
+        {
+          "slot": "R",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 3.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 0.7,
+          "targetMode": "TargetEntity"
+        }
+      ]
+    },
+    {
+      "champion": "SYLAS",
+      "steps": [
+        {
+          "slot": "Q",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 4.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "E",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 6.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "E",
+          "itemId": 2,
+          "minRange": 0.0,
+          "maxRange": 6.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "W",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 5.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "BasicAttack",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 1.75,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "TargetEntity"
+        },
+        {
+          "slot": "R",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 10.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "SylasHijackTarget"
+        },
+        {
+          "slot": "R",
+          "itemId": 0,
+          "minRange": 0.0,
+          "maxRange": 10.0,
+          "selfHpMinRatio": 0.35,
+          "enemyHpMaxRatio": 1.0,
+          "targetMode": "SylasStolenUltimateTarget"
+        }
+      ]
+    }
+  ]
+}

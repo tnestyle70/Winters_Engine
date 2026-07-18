@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ECS/Entity.h"
+#include "Manager/UI/UIResourceKind.h"
 #include "WintersTypes.h"
 
 #include <array>
@@ -22,6 +23,7 @@ namespace Engine
         f32_t MaxHp = 640.f;
         f32_t Mp = 350.f;
         f32_t MaxMp = 350.f;
+        eUIResourceKind ResourceKind = eUIResourceKind::Mana;
         f32_t XpRatio = 0.f;
         f32_t Shield = 0.f;
         f32_t PassiveValue = 0.f;

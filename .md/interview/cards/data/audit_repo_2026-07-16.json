@@ -1,0 +1,1099 @@
+{
+  "summary": "Verify 25 coordinate cards + gather 4-project evidence against the actual Winters repo",
+  "agentCount": 7,
+  "logs": [],
+  "result": {
+    "coreCards": {
+      "cards": [
+        {
+          "id": "W01",
+          "status": "CONFIRMED",
+          "actual": "EntityHandle은 u64 하나에 하위 32비트 index + 상위 32비트 generation을 패킹한 구조체이고, CEntityManager::TryResolve가 (범위 검사 → generation 일치 → alive-generation 판정) 3단계로 stale 핸들을 거른다. 특이점: generation의 홀짝(parity)이 생존 상태를 인코딩한다 — 홀수=alive, 짝수=dead, 0=null 예약. 파괴 시 슬롯을 intrusive free list(nextFree + m_iFreeHead)로 재활용하고 재생성 시 generation을 다음 홀수로 올린다. ID 0은 NULL_ENTITY로 예약.",
+          "evidence": [
+            "Engine/Public/ECS/Entity.h:17-69",
+            "Engine/Public/ECS/Entity.h:152-169",
+            "Engine/Public/ECS/Entity.h:212-242",
+            "Engine/Public/ECS/Entity.h:76-115"
+          ],
+          "numbers": [
+            "핸들 64비트 = index 32 + generation 32",
+            "generation 0 = null, FIRST_ENTITY_GENERATION = 1",
+            "alive 판정 = (generation & 1) != 0 (홀수=생존)",
+            "EntityID 0 = NULL_ENTITY 예약 (EnsureNullSlot이 슬롯 0 자동 소비)"
+          ],
+          "note": "레거시 EntityID(index만)와 병행 운용 중 — 컴포넌트 스토어는 여전히 EntityID 키(Entity.h:7-9 주석). Chrono Break 리플레이용으로 slots/freeHead 비트 정확 스냅숏 API(RawSlots/RestoreRaw)까지 있음."
+        },
+        {
+          "id": "W02",
+          "status": "CONFIRMED",
+          "actual": "CComponentStore<T>가 교과서적 sparse set: m_vecSparse(EntityID→dense 인덱스, INVALID=UINT32_MAX 센티널), m_vecDense(EntityID 배열), m_vecData(컴포넌트 연속 배열) 3배열 구조에 swap-remove(마지막 원소를 구멍으로 이동)로 O(1) 삭제. CWorld::ForEach(1~3 컴포넌트 오버로드)가 첫 번째 스토어의 dense 배열을 선형 순회하며 나머지는 Has()로 필터. 스토어들은 std::type_index 키의 unordered_map<..., unique_ptr<IComponentStoreBase>>에 타입별로 생성.",
+          "evidence": [
+            "Engine/Public/ECS/ComponentStore.h:11-79",
+            "Engine/Public/ECS/World.h:135-177",
+            "Engine/Public/ECS/World.h:229"
+          ],
+          "numbers": [
+            "배열 3개: sparse(u32) / dense(EntityID) / data(T)",
+            "INVALID 센티널 = UINT32_MAX",
+            "Add/Remove/Get/Has 전부 O(1), Remove는 swap-back",
+            "다중 컴포넌트 ForEach는 첫 스토어 주도 + 나머지 Has() 체크 (아키타입/그룹 최적화 없음)"
+          ],
+          "note": "카드 주장과 일치. 추가 디테일: dense 순서가 ForEach 순회 순서라 시뮬레이션 관측 가능(sim-observable) → Chrono Break 키프레임에서 정렬/재구축 금지하고 raw 그대로 저장/복원(ComponentStore.h:61-72 주석). 헤더 온리 템플릿이라 DLL 경계는 CWorld의 non-template 멤버만 넘음."
+        },
+        {
+          "id": "W03",
+          "status": "CONFIRMED",
+          "actual": "CWorkStealingDeque<T>가 주석에 'Chase & Lev 2005' 명시된 정통 구현: owner만 bottom Push/Pop(LIFO), thief는 top Steal(FIFO, CAS), 마지막 1개 경합은 top CAS로 해소, alignas(64)로 top/bottom false-sharing 방지, seq_cst 펜스 사용. 현재 활성 상태 — GameInstance가 Initialize(0)으로 부팅하고 Scene_InGameLifecycle이 TransformSystem/NavigationSystem/LocalUnitAISystem에 주입, SystemScheduler 병렬 배치에도 사용. 과거 PushToSomeDeque race는 함수 자체가 사라졌고, 재설계로 해결: 외부(메인) 제출과 로컬 오버플로는 전역 mutex MPMC 큐로 우회시켜 owner-only bottom 규약을 복원했다(JobSystem.h:37-41 주석에 명문화).",
+          "evidence": [
+            "Engine/Public/Core/JobSystem/WorkStealingDeque.h:9-24",
+            "Engine/Public/Core/JobSystem/WorkStealingDeque.h:34-99",
+            "Engine/Public/Core/JobSystem.h:37-42",
+            "Engine/Private/GameInstance.cpp:140-141",
+            "Client/Private/Scene/Scene_InGameLifecycle.cpp:290-299",
+            "Engine/Private/Core/JobSystem.cpp:679-693",
+            "Engine/Private/ECS/SystemScheduler.cpp:102-123"
+          ],
+          "numbers": [
+            "덱 고정 용량 4096 슬롯(2의 거듭제곱 static_assert), 초과 시 Push false → 전역 큐 폴백",
+            "워커 수 기본값 = hardware_concurrency - 2 (최소 1) — JobSystem.cpp:212-216",
+            "서버 기본 워커 = hw - 6 (예약 스레드 6), 최대 256 — Server/Private/main.cpp:52-61",
+            "병렬 진입 임계값 kParallelThreshold = 16 (Transform/Navigation/LocalUnitAI 공통), SystemScheduler kMinParallelBatchSize = 2",
+            "victim 선택 = thread_local xorshift RNG (시드에 황금비 상수 0x9E3779B9)",
+            "통계 카운터: submitted/executed/steals/localPushes/globalPushes 등 12종 atomic"
+          ],
+          "note": "과거 기록의 'Set_JobSystem 임시 비활성'(Phase 5-A)은 해소됨 — 현재 클라이언트 인게임 경로에 실제 배선되어 있다. 단 T는 trivially-copyable 토큰(WorkItem* 포인터)만 허용."
+        },
+        {
+          "id": "W04",
+          "status": "DIFFERENT",
+          "actual": "fiber 기반 잡 실행은 레포에 실재하지만 'mov rsp' 자체 asm 스위치가 아니라 Windows Fiber API(ConvertThreadToFiberEx / CreateFiberEx / SwitchToFiber / DeleteFiber)를 쓴다. 1인칭 asm 컨텍스트 스위치 코드는 없음(asm 유사 매치는 외부 Tracy뿐). 실행 모드 3단: ThreadOnly(기본) / FiberShell(잡 1개당 1회용 fiber) / FiberFull(대기 스택 파킹 후 origin worker inbox로 재개). WaitForCounter가 FiberFull에서 현재 잡 fiber를 yield하고 같은 워커에서 resume하는 구조.",
+          "evidence": [
+            "Engine/Private/Core/JobSystem.cpp:625",
+            "Engine/Private/Core/JobSystem.cpp:814-825",
+            "Engine/Private/Core/JobSystem.cpp:874",
+            "Engine/Public/Core/Fiber/FiberTypes.h:5-18",
+            "Engine/Public/Core/Fiber/FiberPool.h:8-14",
+            "Engine/Private/Core/JobSystem.cpp:32-34",
+            "Server/Private/main.cpp:44-61",
+            "Server/Private/Network/IOCPCore.cpp:44"
+          ],
+          "numbers": [
+            "워커당 fiber 풀 kFibersPerWorker = 64",
+            "fiber 스택 commit 64KB / reserve 256KB (CreateFiberEx 인자)",
+            "실행 모드 3종 (ThreadOnly=0/FiberShell/FiberFull), Initialize 후 변경 불가",
+            "서버 --job-mode=thread|fiber-shell|fiber-full CLI 스위치, 기본값 thread",
+            "TCP IOCP: 포트 9000, IOCP 워커 4 (CIOCPCore::Create(9000u, 4u), main.cpp:646)"
+          ],
+          "note": "비활성 주의: 클라이언트 GameInstance는 SetExecutionMode를 호출하지 않아 항상 ThreadOnly로 돌고, 서버도 기본값 ThreadOnly(fiber는 CLI opt-in). FiberFull 실사용처는 Tools/Harness/JobSystemStress.cpp 하네스뿐. 'Server IOCP×Fiber 결합'도 코드상 없음 — IOCP(CIOCPCore)는 자체 워커 스레드로 돌고 fiber는 JobSystem 내부에만 존재하는 별개 서브시스템. 면접에서 'mov rsp 직접 구현'이라 말하면 코드와 불일치."
+        },
+        {
+          "id": "W05",
+          "status": "MISSING",
+          "actual": "Frame/Pool/Linear 커스텀 메모리 할당자는 코드에 존재하지 않는다. CLinearAllocator/CPoolAllocator라는 이름은 계획 문서에만 나온다(winters-skills/TODO.md:63 미체크 TODO, .md/roadmap/LOL_30DAY_MASTER_PLAN.md:311-339 설계 스케치). 실제로 있는 것은 메모리 할당자가 아닌 '오브젝트 풀' 2종: CParticlePool(SoA 컬럼 구조, swap-back kill)과 CFiberPool(워커당 fiber 핸들 재사용 풀).",
+          "evidence": [
+            "winters-skills/TODO.md:63",
+            ".md/roadmap/LOL_30DAY_MASTER_PLAN.md:311-339",
+            "Engine/Public/FX/ParticlePool.h:12-67",
+            "Engine/Public/Core/Fiber/FiberPool.h:11-84"
+          ],
+          "numbers": [
+            "CParticlePool SoA 컬럼: pos/velocity/color/lifetime/age/size/uv 7종 + custom int 4슬롯 + custom Vec4 8슬롯",
+            "CFiberPool = 워커당 64개 fiber 핸들 Free↔Acquired 관리",
+            "FX_INVALID_PARTICLE = 0xFFFFFFFF"
+          ],
+          "note": "면접에서 '할당자 3종 구현'이라고 답하면 허위가 된다. 정직한 답변 프레임: 범용 할당자 대신 도메인별 오브젝트 풀(파티클 SoA, fiber 풀)과 sparse set 연속 배열로 캐시 지역성을 확보했고, Linear/Pool 할당자는 로드맵 Phase 1 미착수 항목."
+        },
+        {
+          "id": "W06",
+          "status": "DIFFERENT",
+          "actual": "RHI는 '리소스-뷰 분리'(UE식 FRHITexture vs SRV/RTV 뷰 객체)가 아니라 WebGPU풍 핸들+BindGroup 모델이다. RHIHandle<Tag>는 u64 = index 32비트 + generation 32비트의 타입태그 핸들 8종(Buffer/Texture/Shader/Sampler/Pipeline/RenderPass/BindGroup/BindGroupLayout)이고, CRHIResourceTable이 슬롯+free list+generation 증가로 stale 핸들을 걸러낸다(렌더 스레드 assert 포함). IRHIDevice API에 TextureView/SRV/RTV 같은 공개 뷰 타입은 없고 리소스 바인딩은 CreateBindGroupLayout/CreateBindGroup/UpdateBindGroup으로 그룹 단위 — SRV/RTV 디스크립터는 DX12 백엔드 내부 구현 디테일로만 존재.",
+          "evidence": [
+            "Engine/Public/RHI/RHIHandles.h:6-65",
+            "Engine/Public/RHI/CRHIResourceTable.h:28-104",
+            "Engine/Public/RHI/IRHIDevice.h:37-102",
+            "Engine/Public/RHI/RHITypes.h:6-14",
+            "Engine/Private/RHI/DX12/DX12Device.cpp:1442",
+            ".md/architecture/WINTERS_UNREAL_STYLE_MULTI_BACKEND_RHI_ARCHITECTURE.md:354-427"
+          ],
+          "numbers": [
+            "핸들 u64 = index 32 + generation 32 (generation 0 무효, Make 시 0→1 강제)",
+            "타입태그 핸들 8종 (EntityHandle과 동일한 index+generation 패턴을 RHI에 재적용)",
+            "eRHIBackend enum 6종 (DX11/DX12/Vulkan/Metal/Xbox/PS5), 실구현은 DX11+DX12 2종",
+            "CRHIResourceTable: free list 재사용 시 generation++ (0 래핑 시 1로 보정)"
+          ],
+          "note": "카드의 '리소스-뷰 분리' 표현은 부정확 — 정확한 셀링 포인트는 'EntityHandle과 동일한 index+generation 세대 검증 패턴을 RHI 핸들에 재적용한 WebGPU풍 다중 백엔드 추상화'. 아키텍처 문서(§6-7)도 뷰 분리가 아닌 UE식 backend module 분리를 목표로 기술. 주의: 실제 프로덕션 경로는 DX11이며 PostFxPass/UIRenderer 등 일부 패스는 DX11 전용 게이트(PostFxPass.cpp:39, UIRenderer.cpp:273), CEngineApp은 비-DX11 실패 시 DX11 폴백(CEngineApp.cpp:180). 과거 기록상 'dx12 스모크가 실제 DX11로 도는 결함'도 있었음."
+        }
+      ]
+    },
+    "renderCards": {
+      "cards": [
+        {
+          "id": "W07",
+          "status": "MISSING",
+          "actual": "Clustered/tiled 라이트 컬링은 코드에 전혀 없다. 실제는 포워드 렌더러에 PerFrame 상수버퍼로 방향광 1개 + 포인트라이트 최대 4개(kMaxForwardPointLights=4)를 고정 배열로 넘기고 픽셀셰이더에서 단순 루프로 평가한다. 포인트라이트 값 자체가 ModelRenderer::UpdateCamera에 하드코딩(활성 2개)이며, 라이트 수집/할당/컬링 코드가 존재하지 않는다.",
+          "note": "카드 주장 자체가 사실과 다름 — 면접에서 'Clustered 구현했다'고 말하면 안 됨. Clustered+Deferred는 .md/plan/graphics/Graphics/02_Clustered_Deferred_WINTERS.md 계획 문서로만 존재. '포워드 4라이트 한계를 알고 clustered를 다음 단계로 설계해뒀다' 프레임이 정직한 답.",
+          "evidence": [
+            "Engine/Public/Renderer/LightData.h:9",
+            "Shaders/Mesh3D_PBR.hlsl:3",
+            "Shaders/Mesh3D_PBR.hlsl:119-123",
+            "Engine/Private/Renderer/ModelRenderer.cpp:493-497",
+            ".md/plan/graphics/Graphics/02_Clustered_Deferred_WINTERS.md"
+          ],
+          "numbers": [
+            "kMaxForwardPointLights = 4 (셰이더 MAX_FORWARD_POINT_LIGHTS와 일치)",
+            "PointLightData = 32바이트 (static_assert 고정)",
+            "런타임 활성 포인트라이트 = 2개 하드코딩 (radius 9.0, intensity 1.15)",
+            "방향광 1개: dir(-0.45,-1.0,0.30), intensity 1.65",
+            "감쇠 = (1 - d/radius)^2 스무스 폴오프"
+          ]
+        },
+        {
+          "id": "W08",
+          "status": "DIFFERENT",
+          "actual": "G-buffer 기반 디퍼드가 아니라 포워드 렌더링이다. 다만 GTAO(SSAO) 입력용 depth+normal 프리패스(CNormalPass)가 존재: normal RT는 R16G16B16A16_FLOAT 1장, depth는 R24G8_TYPELESS(DSV D24_UNORM_S8, SRV R24_UNORM_X8). 프레임 순서 = NormalPass → GTAO CS(8x8 스레드) → 포워드 메인 → PostFx. Hi-Z occlusion 없음, 전용 early-Z(depth prepass 재사용) 없음 — 컬링은 ModelRenderer::RenderFrustumCulled의 CPU frustum 컬링뿐.",
+          "note": "카드가 'G-buffer 레이아웃'을 주장하면 오답. 정직한 표현 = '포워드 + AO용 depth/normal 보조 패스'. NormalPass의 depth는 메인 패스와 공유되지 않아 씬을 2회 그린다(early-Z 절약 없음). RENDER_GRAPH_v2.md의 패스 그래프는 계획 문서.",
+          "evidence": [
+            "Engine/Private/Renderer/NormalPass.cpp:86",
+            "Engine/Private/Renderer/NormalPass.cpp:105-122",
+            "Engine/Public/Renderer/NormalPass.h:24-28",
+            "Client/Private/Scene/Scene_InGameRender.cpp:365",
+            "Client/Private/Scene/Scene_InGameRender.cpp:416",
+            "Engine/Private/Renderer/ModelRenderer.cpp:511",
+            "Shaders/SSAO/GTAO_CS.hlsl:29",
+            ".md/plan/engine/RENDER_GRAPH_v2.md"
+          ],
+          "numbers": [
+            "보조 RT 1장: normal R16G16B16A16_FLOAT / depth R24G8_TYPELESS",
+            "GTAO: [numthreads(8,8,1)], 8방향 x 4스텝 = 픽셀당 32샘플",
+            "GTAO 기본값: radius 1.25, intensity 1.5, thicknessHeuristic 0.05",
+            "GTAO 뒤 blur CS 1패스 (GTAO_Blur_CS.hlsl)",
+            "씬 지오메트리 2회 드로우 (normal 프리패스 + 메인 포워드)"
+          ]
+        },
+        {
+          "id": "W09",
+          "status": "CONFIRMED",
+          "actual": "변환 체인 전 구간 실재. 정방향: VS에서 world→viewProj (Mesh3D_PBR.hlsl VS, row_major mul), 투영은 XMMatrixPerspectiveFovLH(WintersMath.h). 역방향: CInput::GetMouseWorldRay가 스크린→NDC→invViewProj 언프로젝트(near z=0/far z=1 두 점, XMVector3TransformCoord가 w-divide 수행)로 픽킹 레이 생성. GTAO_CS의 ReconstructWorldPos는 clip→world 후 명시적 /w 나눗셈까지 있어 'w의 의미'를 코드로 설명 가능.",
+          "evidence": [
+            "Shaders/Mesh3D_PBR.hlsl:69-70",
+            "Engine/Include/WintersMath.h:288",
+            "Engine/Private/Platform/CInput.cpp:58-83",
+            "Engine/Private/Platform/CInput.cpp:85-92",
+            "Shaders/SSAO/GTAO_CS.hlsl:20-27",
+            "Engine/Public/Renderer/CCamera.h:29-31",
+            "Client/Private/Scene/GameplayQuery.cpp:20-78"
+          ],
+          "numbers": [
+            "NDC 변환: ndcX=(2*mx/W)-1, ndcY=1-(2*my/H) (LH, y 플립)",
+            "언프로젝트 near/far 쌍: z=0.f과 z=1.f 두 점 변환 후 방향 정규화",
+            "지면 픽킹: t = -Origin.y / Dir.y (y=0 평면 해석해)",
+            "명시적 w-divide: world.xyz / max(world.w, 1e-5) (GTAO_CS)",
+            "호버 타겟팅은 레이-실린더 해석해(2차방정식 판별식)로 판정"
+          ]
+        },
+        {
+          "id": "W10",
+          "status": "MISSING",
+          "actual": "CSM은커녕 셰도우맵 자체가 없다 (첫 파티 코드에 ShadowMap/Cascade/depth-from-light 렌더 0건). 실제 그림자 = ContactShadowPlane.hlsl의 블롭 컨택트 섀도우: 챔피언 발밑에 타원 스무스스텝 알파 쿼드 1장을 깔며, Scene_InGameRender에서 챔피언별 월드행렬(스케일 1.22, y오프셋 0.055)로 그린다.",
+          "note": "CSM은 RENDER_GRAPH_v2.md에 'ShadowPass — CSM (Phase 3+)'로 계획만 존재. 블롭 섀도우는 DX12 RHI 경로에선 스킵(bUseDX12RHI 가드). '쿼터뷰 LoL 시점에선 블롭이 비용 대비 충분하다고 판단, CSM은 렌더그래프 Phase 3에 설계됨'이 정직한 답변 라인.",
+          "evidence": [
+            "Shaders/ContactShadowPlane.hlsl:55-68",
+            "Client/Private/Scene/Scene_InGameRender.cpp:590-606",
+            "Engine/Private/Framework/CEngineApp.cpp:706-716",
+            ".md/plan/engine/RENDER_GRAPH_v2.md:66",
+            ".md/plan/engine/RENDER_GRAPH_v2.md:102"
+          ],
+          "numbers": [
+            "캐스케이드 수 = 0 (셰도우맵 부재)",
+            "블롭 타원: x*0.82 / y*1.18 스케일, d2 기반 smoothstep 2겹",
+            "알파 = broad(0.18~1.0)*0.54 + core(0~0.36)*0.18",
+            "배치: 챔피언당 쿼드 1장, 스케일 1.22f, y +0.055f",
+            "DX12 백엔드에서는 렌더 안 함 (DX11 전용)"
+          ]
+        },
+        {
+          "id": "W11",
+          "status": "MISSING",
+          "actual": "TAA 없음 — 프로젝션 지터, 모션벡터, 히스토리 버퍼, 리프로젝션 전부 부재(첫 파티 코드 검색 0건). 실제 후처리 스택 = CPostFxPass 1개: LDR에서 bloom extract(소프트니) → 분리형 가우시안 blur(5탭 가중치) → composite(감마/채도/틴트/비네트). 톤매핑(Reinhard)+감마 2.2는 후처리가 아니라 Mesh3D_PBR 픽셀셰이더 안에서 수행.",
+          "note": "구현돼 있지만 비활성: PostFxPass는 생성 직후 SetEnabled(false)로 꺼진 채 시작하고(Scene_InGameLifecycle.cpp:580) DX11 백엔드에서만 동작, RenderDebug ImGui 패널의 'PostFx (DX11 LDR)' 체크박스로 켠다. TAA/모션벡터는 .md/plan/graphics/Graphics/03_TAA_WINTERS.md, 05_Motion_Vectors_WINTERS.md 계획 문서만 존재.",
+          "evidence": [
+            "Shaders/PostFx/PostFx.hlsl:56-97",
+            "Shaders/PostFx/PostFx.hlsl:109-147",
+            "Engine/Public/Renderer/PostFxPass.h:12-27",
+            "Client/Private/Scene/Scene_InGameLifecycle.cpp:575-580",
+            "Client/Private/Scene/Scene_InGameRender.cpp:708-712",
+            "Client/Private/UI/RenderDebug.cpp:78-91",
+            "Shaders/Mesh3D_PBR.hlsl:129-130",
+            "Engine/Private/Renderer/PostFxPass.cpp:332"
+          ],
+          "numbers": [
+            "bloom 기본값: threshold 0.85, intensity 0.6, softKnee 0.1",
+            "blur = 5탭 분리형 가우시안 (가중치 0.227/0.195/0.122/0.054/0.016)",
+            "bloom RT 포맷 = R16G16B16A16_FLOAT",
+            "vignette 기본: inner 0.35 / outer 0.75",
+            "톤맵 = Reinhard c/(c+1) + pow 1/2.2 (메시 셰이더 내부, 후처리 아님)"
+          ]
+        },
+        {
+          "id": "W12",
+          "status": "CONFIRMED",
+          "actual": "서버 게임플레이 정의 핫리로드 실재. 인게임 '9'키 → Practice Tool 패널 → 'Reload Definitions From JSON (Server)' 버튼이 ePracticeOperation::ReloadGameplayDefinitions(=25) 커맨드를 보내고, 서버가 진실 JSON 6종(champions/SkillEffect/SummonerSpell/Economy/Item/SpawnObject)을 재파싱해 코드젠 팩 사본 위에 수치만 오버레이 후 atomic 포인터로 활성 팩을 원자 교체한다. 파싱/도메인 검증 실패 시 활성 팩 불변, 이전 세대 팩은 룸 틱 스레드 안전을 위해 해제하지 않고 세대 벡터에 보존.",
+          "note": "3가지 캐비앳: (1) Debug 빌드 전용 — Release는 TryReload가 무조건 실패('debug-only'). (2) 구조(스테이지 수/타겟 모드/신규 챔피언·아이템)는 코드젠+리빌드 소관, 수치 필드만 오버레이. (3) CommandExecutor.cpp:711의 dev 오버라이드 'return 3.0f'가 활성 상태라 QWER 쿨다운 JSON 값이 현재 마스킹됨 — 쿨다운 튜닝 시연 전 이 한 줄 제거 필요. SpawnObject 팩은 스폰 시점 복사 의미론이라 다음 스폰/웨이브부터 신값.",
+          "evidence": [
+            "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h:112",
+            "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h:8-31",
+            "Server/Private/Data/RuntimeGameplayDefinitionOverlay.cpp:1522-1628",
+            "Server/Private/Data/RuntimeGameplayDefinitionOverlay.cpp:1561-1575",
+            "Server/Private/Game/GameRoomCommands.cpp:2396-2411",
+            "Client/Private/Scene/Scene_InGameImGui.cpp:75-77",
+            "Client/Private/UI/ChampionTuner.cpp:966-978",
+            "Shared/GameSim/Systems/CommandExecutor/CommandExecutor.cpp:708-711"
+          ],
+          "numbers": [
+            "리로드 JSON 6종 / op=25 (ReloadGameplayDefinitions), ePracticeOperation Count=26",
+            "챔피언 스탯 오버레이 필드 20종, 스킬 이펙트 파라미터 55종, 아이템 스탯 13종, 소환수 정책 12종",
+            "키 해시 = FNV-1a 32 (2166136261 / 16777619) — 코드젠 파이썬과 동일 규약",
+            "xpCurve = 17개 배열 (레벨 1→18), 수치 도메인 0~1,000,000 검증",
+            "리로드마다 revision +1, dataVersion = base + revision + 1",
+            "ImGui 디버그/튜너 패널 소스 16개 (ChampionTuner, EffectTuner, MapTuner, StructureTuner, AttackSpeedLab('8'키), RenderDebug 등)"
+          ]
+        }
+      ]
+    },
+    "netCards": {
+      "cards": [
+        {
+          "id": "S01",
+          "status": "CONFIRMED",
+          "actual": "30Hz 고정 틱 확정: DeterministicTime에 kFixedDt = 1/30초, kTicksPerSecond = 30 상수로 박혀 있고 서버 GameRoom이 매 틱 스냅샷을 브로드캐스트한다. SimLab이 FNV-1a 기반 per-tick 상태 해시(위치/HP/사망/마나/레벨/골드/RNG 상태)를 쌓아 최종 해시로 결정론을 검증하며, 키프레임 save→restore→save 바이트 동일성 및 복원 후 재실행 해시의 원소 단위 비교까지 수행한다.",
+          "evidence": [
+            "Shared/GameSim/Core/Determinism/DeterministicTime.h:9",
+            "Shared/GameSim/Core/Determinism/DeterministicTime.h:10",
+            "Tools/SimLab/main.cpp:2",
+            "Tools/SimLab/main.cpp:541",
+            "Tools/SimLab/main.cpp:562",
+            "Tools/SimLab/main.cpp:6573",
+            "Tools/SimLab/main.cpp:6611",
+            "Server/Private/Game/GameRoomTick.cpp:148"
+          ],
+          "numbers": [
+            "kTicksPerSecond = 30, kFixedDt = 1/30초 ≈ 33.3ms",
+            "FNV-1a offset basis 1469598103934665603 (0xCBF29CE484222325)",
+            "틱 해시 입력: pos xyz + hp + isDead + mana + level + gold + RNG state",
+            "결정론 프로브 로스터 10챔피언(5v5), 스냅샷은 매 틱 브로드캐스트(30Hz)"
+          ]
+        },
+        {
+          "id": "S02",
+          "status": "PARTIAL",
+          "actual": "IOCP 서버 실재: CIOCPCore(AcceptEx+GetAcceptExSockaddrs, 포트 9000, 워커 4), IOContext가 OVERLAPPED+8KB 버퍼를 소유하고, CSession이 pendingIoCount 원자 카운터(AddPendingIo/CompletePendingIo/CanDestroy)로 OVERLAPPED 수명을 관리한다. UDP도 구현 완료: UdpIocpCore(포트 9000, 워커 4, receiveDepth 8) + RFC6298식 적응 RTO 채널 + chaos 파이프 하네스. 단 기본 전송은 여전히 TCP(--net-transport 옵트인).",
+          "note": "'링버퍼'는 부정확 — 수신은 CFrameParser의 선형 std::vector 버퍼(64KB max payload / 256KB max buffer), 송신은 std::deque 큐. 진짜 링버퍼 자료구조는 없다. UDP는 서버 --net-transport=udp/dual, 클라 --net-transport=udp로만 활성(기본 tcp).",
+          "evidence": [
+            "Server/Public/Network/IOCPCore.h:22",
+            "Server/Public/Network/IOCPCore.h:26",
+            "Server/Private/main.cpp:646",
+            "Server/Public/Network/Session.h:44",
+            "Server/Public/Network/Session.h:54",
+            "Server/Private/Network/Session.cpp:10",
+            "Server/Public/Network/FrameParser.h:29",
+            "Shared/Network/UdpReliabilityChannel.h:19",
+            "Server/Private/main.cpp:683",
+            "Client/Private/Network/Client/GameSessionClient.cpp:108",
+            "Tools/Harness/UdpLoopbackHarness.cpp:280"
+          ],
+          "numbers": [
+            "TCP: 포트 9000, IOCP 워커 4, IOContext 버퍼 8192B",
+            "송신 큐 캡: 256패킷 / 8MB (kMaxTcpSendQueuePackets/Bytes)",
+            "FrameParser: payload 최대 64KB, 버퍼 최대 256KB",
+            "UDP RTO: 초기 120ms / 최소 60ms / 최대 1000ms / 그래뉼러리티 10ms / 재전송 총한도 2000ms",
+            "UDP: 포트 9000, 워커 4, receiveDepth 8, ack bitfield 32비트(u32 mask)"
+          ]
+        },
+        {
+          "id": "S03",
+          "status": "PARTIAL",
+          "actual": "FlatBuffers 스냅샷은 확실(Shared/Schemas 7개 .fbs, Snapshot/EntitySnapshot). 그러나 델타 인코딩은 미구현 — 스키마에 deltaBaseTick 필드는 있지만 서버 SnapshotBuilder가 항상 0(풀 스냅샷)을 쓰고, 클라도 deltaBaseTick()==0을 풀 스냅샷으로만 처리한다. 양자화는 스냅샷 필드가 아니라 서버 투사체 판정의 contact-T에만 존재(QuantizeContactT, 2^20 스케일); 위치/yaw는 raw f32 전송.",
+          "note": "면접에서 '델타+양자화'라고 말하면 틀림. 정확한 표현: '스키마에 델타 베이스 필드를 예약해 뒀지만 현재는 매 틱 풀 스냅샷(30Hz), 양자화는 투사체 히트 t값 판정 결정론용으로만 사용'.",
+          "evidence": [
+            "Shared/Schemas/Snapshot.fbs:222",
+            "Server/Private/Game/SnapshotBuilder.cpp:1094",
+            "Client/Private/Network/Client/SnapshotApplier.cpp:823",
+            "Server/Private/Game/ServerProjectileAuthority.cpp:225",
+            "Server/Private/Game/ServerProjectileAuthority.cpp:223"
+          ],
+          "numbers": [
+            "스키마 7개: Command/Event/Hello/Snapshot/LobbyCommand/LobbyState/LobbyTypes.fbs",
+            "contact-T 양자화 스케일 1048576 = 2^20",
+            "deltaBaseTick 항상 0 = 풀 스냅샷 (CreateSnapshot 7번째 인자 하드코딩 0)",
+            "EntitySnapshot 필드 100+개, pos/yaw는 float 그대로"
+          ]
+        },
+        {
+          "id": "S04",
+          "status": "CONFIRMED",
+          "actual": "존재: 스냅샷에 lastAckedCommandSeq가 실려 오고, 클라는 이동 커맨드마다 NetworkMovePrediction(최대 64개 deque)을 기록 후 ack로 prune한다. LocalMoveYawProtection 구조체가 로컬 예측 yaw를 최대 12스냅샷 동안 서버 덮어쓰기에서 보호하고, Hello의 로컬 netId가 바뀌면 보호를 리셋한다. EventApplier에 Begin/EndSnapshotReconciliation(스냅샷 vs 이벤트 게임플레이 상태 조정)도 있다.",
+          "note": "풀 롤백-리시뮬레이션(입력 버퍼 재적용)이 아니라 표현 계층 예측 — yaw/이동 의도 보호 + ack 기반 prune + 서버 스냅샷 권위 덮어쓰기 방식. 면접에서 'rollback resim'이라고 하면 과장.",
+          "evidence": [
+            "Shared/Schemas/Snapshot.fbs:220",
+            "Client/Public/Network/Client/SnapshotApplier.h:116",
+            "Client/Public/Network/Client/SnapshotApplier.h:130",
+            "Client/Private/Network/Client/SnapshotApplier.cpp:88",
+            "Client/Private/Scene/Scene_InGameNetwork.cpp:1529",
+            "Client/Private/Scene/Scene_InGameNetwork.cpp:1549",
+            "Client/Public/Network/Client/EventApplier.h:54",
+            "Server/Private/Game/GameRoomReplication.cpp:166"
+          ],
+          "numbers": [
+            "이동 예측 버퍼 최대 64개 (초과 시 pop_front)",
+            "yaw 보호 최대 12 스냅샷 (kLocalMoveYawMaxProtectedSnapshots)",
+            "half-turn 판정 허용오차 0.35 rad (kYawHalfTurnTolerance)",
+            "서버가 세션별 lastSimCommandSeq를 스냅샷에 에코"
+          ]
+        },
+        {
+          "id": "S05",
+          "status": "MISSING",
+          "actual": "per-player AOI 컬링은 없다. 서버는 세션마다 SnapshotBuilder::Build를 호출하지만 개인화되는 것은 yourNetId와 lastAckedSeq뿐이고, 엔티티 목록은 항상 월드 전체다(Build 시그니처에 뷰어 위치/반경 파라미터 자체가 없음). 거리/시야(FoW) 기반 필터링 코드가 서버에 존재하지 않는다. 코드베이스에서 'AOI' 검색 히트는 전부 SSAO(렌더링) 오탐.",
+          "note": "면접에서 AOI를 주장하면 안 됨. 대신 '5v5 고정 소규모 룸이라 풀 스냅샷 브로드캐스트를 선택했고, AOI/델타는 스키마(deltaBaseTick)에 확장 지점만 예약' 프레이밍이 정직하다.",
+          "evidence": [
+            "Server/Private/Game/GameRoomReplication.cpp:157",
+            "Server/Private/Game/GameRoomReplication.cpp:170",
+            "Server/Public/Game/SnapshotBuilder.h:17"
+          ],
+          "numbers": [
+            "세션별 개인화 2필드뿐: yourNetId + lastAckedCommandSeq",
+            "스냅샷은 매 틱(30Hz) 전 세션에 월드 전체 전송"
+          ]
+        },
+        {
+          "id": "S06",
+          "status": "DIFFERENT",
+          "actual": "4서비스가 아니라 6서비스: auth(8081), leaderboard(8082), matchmaking(8083), profile(8084), payment(8085), shop(8086) — cmd/ 디렉터리에 각각 main.go 존재. LB/MM도 실재한다(카드 힌트의 'auth/shop/profile로 보임'이 오히려 부정확). 인프라는 Postgres+Redis+Kafka(docker-compose), 마이그레이션 8개.",
+          "note": "단 개발 브링업 스크립트 StartBackend.ps1은 auth/profile/shop 3개만 띄운다 — leaderboard/matchmaking/payment는 코드 완성이지만 로컬 구동 경로에 미배선. 면접에서는 '6서비스 구현, 게임 클라 E2E에는 3개(auth/profile/shop) 상시 사용'으로 말하는 게 정확.",
+          "evidence": [
+            "Services/pkg/config/config.go:88",
+            "Services/cmd/auth/main.go:1",
+            "Services/cmd/leaderboard/main.go:1",
+            "Services/cmd/matchmaking/main.go:48",
+            "Services/cmd/payment/main.go:40",
+            "Services/StartBackend.ps1:19",
+            "Services/StartBackend.ps1:23"
+          ],
+          "numbers": [
+            "포트: auth 8081 / leaderboard 8082 / matchmaking 8083 / profile 8084 / payment 8085 / shop 8086",
+            "매치메이킹: matchSize=2, MMR baseRange=200, 대기시간당 rangeExpand=50, 매처 1초 틱",
+            "JWT: access TTL 1h, refresh TTL 168h; DB pool max 20; 마이그레이션 8개",
+            "Kafka 토픽 3개: payment-events / match-events / player-events"
+          ]
+        },
+        {
+          "id": "S07",
+          "status": "PARTIAL",
+          "actual": "멱등성 키는 확실: payment_transactions.idempotency_key VARCHAR(64) UNIQUE + 인덱스, Charge 진입 시 FindByIdempotencyKey 프리체크로 기존 응답 재반환, 충전은 단일 tx(INSERT tx + wallet UPDATE + coin_transactions 원장). 그러나 '조건부 UPDATE'는 실제로는 shop 구매의 SELECT ... FOR UPDATE 행잠금 + 앱 레벨 잔액 검사(balance < price면 에러) 패턴이고, outbox는 없다 — Kafka 발행이 DB 커밋 후 직접 WriteMessages이며 실패 시 slog.Error만 남긴다(이벤트 유실 가능).",
+          "note": "outbox 테이블이 마이그레이션 8개 어디에도 없음 — 면접에서 outbox를 주장하면 틀리고, 오히려 'commit-후-직접발행의 유실 창을 알고 있고 outbox가 다음 개선'이라고 말하는 편이 강함. '조건부 UPDATE(WHERE balance >= price)' 대신 'FOR UPDATE 비관적 잠금'이 정확한 용어.",
+          "evidence": [
+            "Services/migrations/000005_create_payment_transactions.up.sql:4",
+            "Services/internal/payment/service.go:42",
+            "Services/internal/payment/repository.go:23",
+            "Services/internal/shop/repository.go:64",
+            "Services/internal/shop/repository.go:70",
+            "Services/internal/payment/service.go:74",
+            "Services/pkg/errors/errors.go:12"
+          ],
+          "numbers": [
+            "idempotency_key VARCHAR(64) NOT NULL UNIQUE + idx_payment_tx_idemp",
+            "구매 tx 3단계: FOR UPDATE 잔액잠금 → UPDATE wallets RETURNING balance → inventory ON CONFLICT quantity+1 + coin_transactions 원장 기록",
+            "Kafka Writer: BatchTimeout 10ms, RequiredAcks=RequireOne",
+            "outbox 테이블 0개 (마이그레이션 000001~000008 전수 확인)"
+          ]
+        },
+        {
+          "id": "S08",
+          "status": "CONFIRMED",
+          "actual": "Redis ZSET 실사용 2곳: leaderboard가 'leaderboard:mmr' ZSET에 ZAdd/ZRevRangeWithScores/ZRevRank/ZScore/ZCard로 랭킹을 서빙하고, matchmaking이 'matchmaking:queue' ZSET(score=MMR)로 대기열을 운용한다. dual-write도 실재: UpdateScore가 Redis ZAdd 후 Postgres player_stats UPDATE 순서로 이중 기록, 읽기는 Redis 우선 + DB 폴백(GetCurrentMMR), 기동 시 SyncFromDB가 DB→Redis 파이프라인 전체 재구축.",
+          "note": "dual-write가 무트랜잭션이라 ZAdd 성공 후 PG 실패 시 불일치 창이 있고 SyncFromDB가 복구 수단 — 이 트레이드오프를 아는 것 자체가 답변 소재. 'Redis 싱글스레드'는 Redis 자체 특성이지 이 코드의 구현이 아님. 단 leaderboard/matchmaking 서비스는 StartBackend.ps1 미포함(S06 note 참조).",
+          "evidence": [
+            "Services/internal/leaderboard/repository.go:13",
+            "Services/internal/leaderboard/repository.go:24",
+            "Services/internal/leaderboard/repository.go:101",
+            "Services/internal/leaderboard/repository.go:116",
+            "Services/internal/matchmaking/service.go:56",
+            "Services/internal/matchmaking/service.go:22",
+            "Services/pkg/cache/redis.go:17"
+          ],
+          "numbers": [
+            "ZSET 키 2개: leaderboard:mmr / matchmaking:queue (score=MMR)",
+            "go-redis 클라이언트 PoolSize 50",
+            "매치메이킹 status TTL 600초, match TTL 300초",
+            "GetRank = ZRevRank+1, TotalPlayers = ZCard; 랭킹 상세는 ZSET 순회 후 사용자별 PG JOIN 조회"
+          ]
+        }
+      ]
+    },
+    "botCards": {
+      "cards": [
+        {
+          "id": "N01",
+          "status": "PARTIAL",
+          "actual": "이 레포에는 alpha-beta 탐색 자체는 존재한다: Tools/MushroomZero/mushroom_zero.cpp가 반복심화(iterative deepening) minimax + alpha-beta 컷오프 + 시간예산 + 무브 오더링/트리밍을 구현한 NYPC 버섯게임(10x17 보드) 봇이다. 그러나 transposition table과 TT bound flag(EXACT/LOWER/UPPER)는 이 레포 어디에도 없다(코드 grep 결과 third-party lua/tracy만 매치).",
+          "note": "카드의 'TT bound flag'는 이 레포 기준 미구현 — TT는 15_MOBAZERO 로드맵 Phase 2 항목(문서상 계획)일 뿐이다. NYPC 대회 본 코드는 별도 레포(C:/Users/user/Desktop/NYPC, GitHub NYPC_Mushroom)에 있으며 이력서가 주장하는 MoveEval=ImmediateSwing+DenyGain / LeafEval=ScoreDiff+BestAll 심볼도 이 레포의 mushroom_zero.cpp에는 없다. 면접에서 TT를 말하려면 NYPC 레포 코드를 직접 확인해야 함.",
+          "evidence": [
+            "Tools/MushroomZero/mushroom_zero.cpp:386-430",
+            "Tools/MushroomZero/mushroom_zero.cpp:346-370",
+            "Tools/MushroomZero/mushroom_zero.cpp:443-495",
+            ".md/plan/ai/15_MOBAZERO_RESEARCH_PLATFORM_ROADMAP.md:260-264",
+            ".md/plan/ai/14_NYPC_COMPETITION_ML_LAB_BRIDGE.md:174-179",
+            "Tools/AIResearch/bridge_manifest.json:5-6",
+            ".md/이력서/이력서_초안_v2.md:94-97"
+          ],
+          "numbers": [
+            "보드 10x17 (H=10, W=17), 직사각형 합=10 규칙",
+            "수당 시간예산 12~260ms (chooseBudget: <500ms→25ms, <1500ms→60ms, <5000ms→120ms, 그 외 260ms 캡)",
+            "최대 탐색 깊이 5 (예산별 2/3/4/5)",
+            "깊이별 무브 트리밍 캡 18/26/38/58/90, 루트 캡 90~220",
+            "타임아웃 체크 1024노드마다 ((++nodes & 1023))",
+            "리프 평가 = scoreDiff*10000 + (myPotential-oppPotential)*80"
+          ]
+        },
+        {
+          "id": "N02",
+          "status": "PARTIAL",
+          "actual": "LoL 봇 쪽은 ChampionAIValuation이 '모든 가치를 골드로 환산'을 명시한 공통 평가 소스로 실존한다: 킬 300 / 근접미니언 21 / 원거리 14 / 포탑 250 골드(RewardRegistry 실측치 조회 + 레거시 폴백), 레벨 1 = 120골드 환산, 경제차 1000골드 = 만점 정규화. EconomyLead는 실제로 골드+레벨을 단일 골드 단위로 합산한다.",
+          "note": "'모든 항이 같은 단위'는 설계 선언이지 완성이 아니다: (1) 골드 기준값 getter 4종은 정의만 있고 호출부가 0곳, (2) 최종 utility(fight/farm/siege/retreat)는 골드가 아니라 [0,1] 정규화 가중합(예: fight = 0.45 기본 + HP항 0.30/0.35 + 사거리 ±0.20/-0.10), (3) TradeWindow는 구현됐지만 미배선(호출자 없음, 문서 17:54도 '미배선' 자인). 완전 동단위 J함수(J = Σ[15·filled − 2·army − 10·moves − 120·deaths] + terminal)는 NYPC 별도 레포의 것이고 이 레포에는 문서 인용만 있다.",
+          "evidence": [
+            "Shared/GameSim/Systems/ChampionAI/ChampionAIValuation.h:6-52",
+            "Shared/GameSim/Systems/ChampionAI/ChampionAIValuation.cpp:17-24",
+            "Shared/GameSim/Systems/ChampionAI/ChampionAIValuation.cpp:31-42",
+            "Shared/GameSim/Systems/ChampionAI/ChampionAIValuation.cpp:57-66",
+            "Shared/GameSim/Systems/ChampionAI/ChampionAISystem.cpp:2850",
+            ".md/plan/ai/17_NYPC_BATTLEFIELD_VS_LOL_BOT_GAP_ANALYSIS.md:26",
+            ".md/plan/ai/17_NYPC_BATTLEFIELD_VS_LOL_BOT_GAP_ANALYSIS.md:54"
+          ],
+          "numbers": [
+            "골드 기준값: 챔피언 킬 300 / 근접 21 / 원거리 14 / 포탑 250 (RewardRegistry 폴백 상수)",
+            "kGoldLeadFullScale = 1000골드 = 경제우위 만점, kLevelGoldValue = 120골드/레벨",
+            "utility 4종 = retreat/fight/farm/siege, 출력 범위 [0,1] (EconomyLead/HealthLead는 [-1,1])",
+            "fight 점수식: 0.45 기본 + 생존여유*0.30 + 체력우위*0.35 + 사거리 ±0.20/-0.10 + 웨이브 +0.10 + 경제*0.10 − 포탑위험*0.50",
+            "NYPC J함수(별도 레포): 15·filled − 2·army − 10·moves − 120·deaths + terminal(HQ)"
+          ]
+        },
+        {
+          "id": "N03",
+          "status": "MISSING",
+          "actual": "RL은 없다. 2026-07-15 전수 감사가 'RL(PPO)은 NO — 계약 자체가 없다'로 확정: PPO trajectory 계약, gym step/reset API, 보상 체계, self-play/league/frozen opponent/curriculum 전부 부재. NYPC의 self-play 도구(lab_selfplay.py)는 별도 NYPC 레포에 있고, 이식 타깃 RunOfflineLeague.py는 미생성(bridge_manifest 9엔트리 중 구현 2개뿐).",
+          "note": "실제로 존재하는 것은 IL(행동복제) 파이프라인이다: SimLab→AiEpisodeV1 JSONL→PyTorch masked-BC(실제 torch.autograd.grad 학습)→67피처 bias-free 선형 .wbc(WBCPOL1)→서버 SHADOW_ONLY 재채점. active 개입은 Debug 빌드 SimLab 1v1 canary 한정(CommandExecutor.cpp:3573 #if _DEBUG). C++ NN 추론 런타임 없음(CRLBridge::LoadModel 항상 false, ONNX 스텁). 면접에서 'self-play PPO'라고 말하면 과장 — NYPC 레포의 self-play 리그(탐색봇 튜닝용)와 Winters의 IL-only를 구분해야 함. NYPC의 claude_rl_tune.py도 매니페스트가 'RL로 보고 금지, ES/GA 베이스라인'으로 명시.",
+          "evidence": [
+            ".md/plan/ai/24_RL_IL_ML_INFRA_AUDIT_20260715.md:12-21",
+            ".md/plan/ai/24_RL_IL_ML_INFRA_AUDIT_20260715.md:84-88",
+            "Tools/AIResearch/bridge_manifest.json:130-146",
+            "Tools/AIResearch/bridge_manifest.json:147-163",
+            "Tools/AIResearch/TrainImitationRankingBaseline.py:709-715",
+            "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h:68-73"
+          ],
+          "numbers": [
+            "IL corpus 64레코드 (목표 10,000+의 0.6%)",
+            "정책 = 67피처 bias-free 선형, 후보 4종(Retreat/Fight/Farm/Siege), 포맷 WBCPOL1",
+            "병렬 팜: 프로세스 격리 8액터 6,002 world-tick/s (효율 76.7%, 20논리코어) — 단 학습 데이터 수율 0 (드레인 미부착)",
+            "bridge_manifest 9엔트리 중 구현 2개 (PolicyPromotionGate.py, TrainImitationRankingBaseline.py)",
+            "AIResearch Python 테스트 80/80 OK (07-15 재실행)"
+          ]
+        },
+        {
+          "id": "N04",
+          "status": "MISSING",
+          "actual": "pybind11도 Gymnasium도 실코드 0건이다. 레포 전체 grep에서 pybind는 .md 문서 3개에만 등장하고 vcxproj/CMake/py/cpp 어디에도 없다. 감사 문서도 '소켓/IPC/pybind 실시간 경로 0건, gym식 step/reset API 0건'으로 확정.",
+          "note": "계획 문서에만 존재: .md/plan/sim/05_TO_09_REMAINING_OUTLINE.md의 Sim-9 계획이 winters_gym_env.cpp(pybind11 바인딩)·256피처 Observation·PPO 트레이너를 8시간 견적으로 적어놨으나 진입한 적 없음. 실제 Python↔C++ 브릿지는 전면 파일 기반 배치(SimLab CLI가 decision_trace_v1.bin 덤프 → Python이 JSONL 변환/학습 → .wbc 바이너리를 C++이 SHA fail-closed 로드). 면접에서는 '온라인 브릿지 대신 결정론 보존을 위해 파일 기반 배치 브릿지를 선택했다'가 정직한 답.",
+          "evidence": [
+            ".md/plan/sim/05_TO_09_REMAINING_OUTLINE.md:656-663",
+            ".md/plan/sim/05_TO_09_REMAINING_OUTLINE.md:711",
+            ".md/plan/sim/05_TO_09_REMAINING_OUTLINE.md:840-851",
+            ".md/plan/ai/24_RL_IL_ML_INFRA_AUDIT_20260715.md:54",
+            ".md/plan/ai/24_RL_IL_ML_INFRA_AUDIT_20260715.md:86"
+          ],
+          "numbers": [
+            "pybind11 실코드 0건 / 문서 언급 3파일",
+            "Sim-9 계획(미진입): Observation 256피처, 9A~9I 합계 480분 견적",
+            "실제 브릿지: AiDecisionTraceV1 528B POD → .bin → JSONL → 67피처 .wbc (전부 파일 기반)"
+          ]
+        },
+        {
+          "id": "N05",
+          "status": "PARTIAL",
+          "actual": "4용도 중 실구현: (1) sim = CONFIRMED — SimLab 헤드리스 골든이 FNV-1a f32 비트 해시로 결정론을 게이트(기본 1800틱=60초, seed 42, 현행 골든 85A270CA375932B7, seed+1 민감도 검사, /fp:precise 전 프로젝트). (2) replay = PARTIAL — WRPL v2 포맷+서버 ReplayRecorder+클라 ReplayPlayer 실존, 봇 명령은 의도적으로 비저널('결정론 재생성' 설계)이지만 현행 재생은 스냅샷 적용 방식이고 명령 저널 정확 재시뮬은 미구현. (3) rollout = RL rollout은 없고, 대신 크로노 브레이크 키프레임(WKF1 v5, 미등록 스토어 하드실패 완전성 검사)의 되감기+재실행이 반사실 실험 장치로 실구현. (4) 안티치트 = 결정론 기반 치팅 탐지는 없다.",
+          "note": "카드에서 가장 위험한 항은 '안티치트': 실제 안티치트는 서버 권위 + CommandExecutor 인라인 명령검증 + 세션-엔티티 바인딩(와이어에 issuer 필드 자체가 없음) + anti-replay 시퀀스 윈도우(+60 점프 의심) + FlatBuffers Verifier이며, 결정론은 그 '토대'로 문서화됐을 뿐 결정론-재시뮬 검증형 안티치트 코드는 없다(면접 문서 스스로 '안티치트 전용 테스트 스위트 없음' 자인). 리플레이도 '결정론 재현' 주장은 설계 의도까지만 — 감사 문서 24:103이 정확 재시뮬 미구현을 확정. 크로노 브레이크 반사실 러너 .py(RunChronoCounterfactual.py)도 매니페스트 타깃만 있고 미생성.",
+          "evidence": [
+            "Tools/SimLab/main.cpp:1-3",
+            "Tools/SimLab/main.cpp:187-201",
+            "Tools/SimLab/main.cpp:9470",
+            "Shared/Replay/ReplayFormat.h:11-15",
+            "Shared/Replay/ReplayFormat.h:63-66",
+            "Client/Private/Replay/ReplayPlayer.cpp:196-230",
+            "Shared/GameSim/Core/Checkpoint/WorldKeyframe.cpp:71-72",
+            "Shared/GameSim/Core/Checkpoint/KeyframeComponentRegistry.h:2-5",
+            "Server/Private/Network/Session.cpp:33",
+            "Server/Private/Game/SessionBinding.cpp:54",
+            ".md/plan/ai/24_RL_IL_ML_INFRA_AUDIT_20260715.md:27",
+            ".md/plan/ai/24_RL_IL_ML_INFRA_AUDIT_20260715.md:103",
+            ".md/이력서/면접/15_SECURITY_ANTICHEAT.md:34-42"
+          ],
+          "numbers": [
+            "SimLab 골든: 기본 1800틱 = 60초 시뮬 @30Hz, seed 42, FNV-1a(프라임 1099511628211) f32 비트 해시, 현행 골든 85A270CA375932B7",
+            "WRPL v2: magic 'WRPL', 헤더 48B, 레코드 헤더 24B, 레코드 3종(Snapshot/Event/Command), 명령 도메인 5종",
+            "키프레임: magic WKF1(0x31464B57), 버전 5, 등록 호출 약 110개(WorldKeyframe.cpp 98 + 챔피언 TU 자기등록 12)",
+            "anti-replay: 시퀀스 ≤last 폐기, last+60 초과 점프 의심 플래그",
+            "결정론 3원천 대응: tickIndex×kFixedDt(1/30), xorshift DeterministicRng(seed 0xC0FFEE), EntityID 정렬 순회(CollectSorted)"
+          ]
+        },
+        {
+          "id": "EXTRA-BOT-ARCH",
+          "status": "CONFIRMED",
+          "actual": "현재 LoL 봇의 실제 아키텍처는 'HFSM(상태 8종) + 골드환산 utility 점수 + Brain 인터페이스 3종 + 챔피언별 프로필/콤보플랜'의 4층 구조로, Shared/GameSim 안에서 서버 권위로 돈다(봇은 GameCommand 생산자일 뿐 truth 직접 수정 금지). BT/GOAP/MCTS는 문서(04/05/08) 로드맵 단계일 뿐 미구현이다.",
+          "note": "면접 좌표용 요약: 상태 8종(MoveToOuterTurret/WaitForWave/LaneCombat/Diving/Retreat/Recalling/Dead/GroupMidDefense), intent 7종, LaneCombat 실행 순서는 '하드 안전(저HP·포탑위험) → 진행 중 커밋(다이브·콤보) → 신규 utility 재평가'로 고정. Brain 3종 중 Decision은 외부 판단 모듈 연동용 TODO 폴백(RuleBased 위임)이라 학습 정책의 봇 개입 지점은 예약만 된 상태. 부가 연구 인프라: 9x9 4레이어 influence map(ThreatNow/ThreatBelief/SupportEta/EscapeCost)은 구현됐으나 정책 입력에 미연결. 알려진 확정 회귀: Live 스모크에서 illegal Farm 후보 선택(legal=0x3인데 selected=3)으로 RunValidation 공식 게이트 FAIL 중.",
+          "evidence": [
+            "Shared/GameSim/Components/ChampionAIComponent.h:15-25",
+            "Shared/GameSim/Components/ChampionAIComponent.h:39-48",
+            "Shared/GameSim/Components/ChampionAIComponent.h:223-228",
+            "Shared/GameSim/Components/ChampionAIComponent.h:265-267",
+            "Shared/GameSim/Systems/ChampionAI/ChampionAISystem.cpp:3708-3766",
+            "Shared/GameSim/Systems/ChampionAI/ChampionAIBrain.cpp:127-141",
+            "Shared/GameSim/Systems/ChampionAI/ChampionAIInfluenceMap.h:13-15",
+            ".md/plan/ai/17_NYPC_BATTLEFIELD_VS_LOL_BOT_GAP_ANALYSIS.md:38-46",
+            ".md/plan/ai/24_RL_IL_ML_INFRA_AUDIT_20260715.md:50",
+            ".md/plan/ai/24_RL_IL_ML_INFRA_AUDIT_20260715.md:71"
+          ],
+          "numbers": [
+            "의사결정 주기 decisionInterval = 0.20s (5Hz), intent 유지 intentHoldDuration = 0.80s (PlayerLike는 kCommitScale 1.5배)",
+            "스캔 범위: 챔피언 9 / 미니언 12 / 구조물 18 / 리시 14 / 웨이브 합류 8",
+            "HFSM 상태 8종, intent 7종, Brain 3종(RuleBased/PlayerLike/Decision-TODO)",
+            "AiDecisionTraceV1 = 528B POD(static_assert), 봇당 16칸 링(kChampionAIDebugTraceCapacity=16u, 5Hz 기준 약 3.2초 분량)",
+            "influence map 9x9 셀 x 4레이어",
+            "PlayerLike 신규 교전 하드게이트: HP 열세 허용 폭 kHpDisadvantageTolerance = 0.12"
+          ]
+        }
+      ]
+    },
+    "projNypc": {
+      "summary": "NYPC 2026 예선 문제 2 \"전장(battlefield)\"은 턴제(최대 200일)·동시 명령 제출·100ms/턴 예산의 경제 RTS이며, \"NEXT NATION\"은 게임명이 아니라 아레나 상대 핸들이다. 봇은 GameState→OppTrack(상대 필름)→Perception(위협 귀속 5단계)→Offer market→gold scale→EMIT의 4층 구조로, 단일 화폐 J값(J = Σ[15·filled − 2·army − 10·moves − 120·deaths] + terminal(HQ)), pHold/defEV 커밋 오라클, spareArmy/oppNonEarning 회계 항등식, 반사실 핀크레딧, \"연속량만·임계값 0\" 원칙을 사용했다. 핵심 회고는 \"2400 레이팅은 봇이 아니라 검증 풀의 천장이었다\"(패배 해부 6일 뒤에야 승자 해부 시작), \"승자 모델은 Stockfish지 AlphaZero가 아니다\"(수천 개 인간 패치+Fishtest식 승급 게이트), 탐색 깊이 우선주의는 전장에서 명시 금지, offline≠outcome/first-advantage 교란/holdout 필수 등 측정 규율이다. 제출 관련으로는 mushroom+battlefield 두 대회 완주, battlefield 2100 레이팅 lane에서 탐색 에이전트가 baseline을 통계적으로 이겼다는 기록이 있으나 최종 순위/수상 여부는 문서에 없다. 문서들은 production PPO/DQN/Gymnasium이 NYPC에 없었음(PyTorch는 toy 수준)을 명시하며, Winters 이식 측 CONFIRM_NEEDED(시야 권위 소스, 그리드 해상도, JSONL 경로, 키프레임 blob 수명 등) 다수를 미해결로 표시한다.",
+      "facts": [
+        {
+          "fact": "NYPC 2026 예선 문제 2 '전장(battlefield)'은 경제 RTS이며, 'NEXT NATION'은 게임명이 아니라 아레나 상대 핸들이다('NEXT NATION 본질 봇' = 그 급 상대를 기준으로 삼은 봇).",
+          "evidence": ".md/plan/ai/17_NYPC_BATTLEFIELD_VS_LOL_BOT_GAP_ANALYSIS.md L13 (근거: NYPC/battlefield/CLAUDE.md 인용)"
+        },
+        {
+          "fact": "전장 시간 구조: 턴제 최대 200일, 동시 명령 제출. 시간 예산 100ms/턴. 지평은 200일 고정이며 '마감 은행(마감 B)'이 존재한다.",
+          "evidence": "17_...GAP_ANALYSIS.md L17(시간 구조), L23(100ms/턴), L24(200일·마감 B)"
+        },
+        {
+          "fact": "전장 정보 구조: 완전정보이나 상대 MOVE의 목적지만 미공개 → 역추론이 필수였다. 행동 공간은 이산 3동사(UPGRADE / MOVE / TRAIN), 명령권은 중앙 1주체(유닛 다수).",
+          "evidence": "17_...GAP_ANALYSIS.md L18(정보), L19(3동사), L20(의사결정 주체)"
+        },
+        {
+          "fact": "전장 승리 화폐는 HQ HP diff, 중간 화폐는 골드(좌석 +13/턴). 시뮬 재현은 로컬 결정론 심판 engine/rules.py로 했다.",
+          "evidence": "17_...GAP_ANALYSIS.md L22(승리 화폐·좌석 +13/턴), L21(engine/rules.py)"
+        },
+        {
+          "fact": "단일 화폐 J값 공식: J = Σ[15·filled − 2·army − 10·moves − 120·deaths] + terminal(HQ). 출처 문서는 NYPC docs/claude_EVCORE4_J_DECISION_SPEC_20260708.md.",
+          "evidence": "17_...GAP_ANALYSIS.md L26"
+        },
+        {
+          "fact": "전장 봇 아키텍처 4층: GameState(사실) → OppTrack(필름/기억) → Perception(귀속) → Offer market(KEEP/LABOR/DEFEND/CONTEST/CLAIM/RAID/SIEGE 7종 임무) → pairEv 전역 그리디 청산 → gold scale(TRAIN/펀딩/저축) → EMIT(fault-safe, dedup). 검증 출처는 docs/claude_EVCORE2_perception_20260705.md.",
+          "evidence": "17_...GAP_ANALYSIS.md L30-L34"
+        },
+        {
+          "fact": "핵심 설계 원칙 '연속량만, 임계값 0': 위협은 전부 숫자(연속량)로 존재시키고 분기는 마지막에 한다. 구현체는 claude_evcore2.cpp:1509의 배너.",
+          "evidence": "17_...GAP_ANALYSIS.md L60"
+        },
+        {
+          "fact": "OppTrack 역추론: 상대 MOVE 목적지가 숨겨져 있어 engineNext(prev, D) == 관측 이라는 생존 필터로 목적지 후보를 좁혔다. 방법론(관측 누적 → 후보 생존 필터 → 확신도)은 LoL로 그대로 이식 가능하다고 판단.",
+          "evidence": "17_...GAP_ANALYSIS.md L61"
+        },
+        {
+          "fact": "위협 귀속(Perception attribution)은 5단계: 방향 tier / 역추론 귀속 / 미러-EV 귀속 / 중간선 필터 / 집계. 원형 코드는 NYPC/battlefield/bots/cpp/claude_evcore2.cpp의 struct OppTrack, struct UnitHist, struct Perception.",
+          "evidence": "17_...GAP_ANALYSIS.md L62; 19_OPPONENT_REACTION_MODEL.md L5"
+        },
+        {
+          "fact": "교전 커밋 오라클 pHold/defEV: pHold = clamp(available + turret − effAtk + 2, 0, 4); defEV ≤ 0 이면 포기. LoL TradeWindow 배선의 수학적 원형으로 지정됨.",
+          "evidence": "17_...GAP_ANALYSIS.md L63"
+        },
+        {
+          "fact": "spareArmy / oppNonEarning 회계 항등식: '파밍하지 않는 적 병력 = 어딘가로 걷는 타격대'. LoL에서는 MIA 회계(라인에서 안 보이는 적 = 로밍 전력 계상)로 이식.",
+          "evidence": "17_...GAP_ANALYSIS.md L64; 19_OPPONENT_REACTION_MODEL.md L49"
+        },
+        {
+          "fact": "반사실 핀크레딧: 핀크레딧 = J_opp(무위협 시나리오) − J_opp(실제 반응), 관측 후에만 기장한다. 전장에서는 상대를 되돌릴 수 없어 관측 후 기장만 가능했지만, Winters 크로노 브레이크는 반사실을 실제로 실행한다(되감기→개입 변경→반응 분포 축적).",
+          "evidence": "17_...GAP_ANALYSIS.md L65; 22_CHRONO_BREAK_BOT_TUNING_LOOP.md L34-L41"
+        },
+        {
+          "fact": "실패 기록 1 — 검증 생태계 천장: docs/claude_RETRO_why_2400_ceiling_20260709.md에 따르면 2400은 봇이 아니라 검증 풀의 천장이었다. 패배 해부에 6일을 쓰고 승자 해부는 7일차에야 시작했다. 교훈 = 봇이 아니라 측정 생태계를 먼저 설계하고, 리그 상대 풀에 '나보다 강한 축'을 유지한다.",
+          "evidence": "17_...GAP_ANALYSIS.md L66"
+        },
+        {
+          "fact": "실패 기록 2 — 측정 함정(NYPC Gotchas.md §1): offline≠outcome, first-advantage(선공 이득) 교란, holdout 필수, wall-clock 노이즈 → node-budget 결정론(DET)으로 대체. 추가로 §7: 진행 즉시 flush('30초에 진행 못 보면 깨진 측정'), multiprocessing.Pool 금지 → OS 프로세스 병렬 + 재시도 래퍼, §17: 배치는 단위별 체크포인트(resumable), Windows cp949 → PYTHONIOENCODING=utf-8.",
+          "evidence": "17_...GAP_ANALYSIS.md L67; 23_NYPC_PY_TOOLCHAIN_PORT.md L58-L64"
+        },
+        {
+          "fact": "실패 기록 3 — 탐색 깊이 우선주의 금지: mushroom의 '깊이 추가' 노선은 전장에서 명시 금지였다(NYPC/AGENTS.md §4.0.1). 전장은 국면 가치가 눈으로 읽히는 게임이라 visual-first replay 루프가 우선.",
+          "evidence": "17_...GAP_ANALYSIS.md L74"
+        },
+        {
+          "fact": "승자 해부 결론 — 'Stockfish, not AlphaZero': 우승급 봇 '민이'는 수천 개 인간 패치 + Fishtest식 승급 게이트 + Situation 1급 객체였다(docs/claude_FINALS_blueprint_minii_class_bot_20260709.md). 학습 이전에 패치 승급 게이트 인프라(리그/회귀/시나리오)가 강함의 본체.",
+          "evidence": "17_...GAP_ANALYSIS.md L68"
+        },
+        {
+          "fact": "승급 게이트 규율(NYPC Gotchas.md §8): 노브/코드 변경 채택은 '리그 broad + 회귀 시나리오 + 결정론 parity 전부 통과' 조건 — 감으로 승급 금지. 승급 시 baseline exe 아카이브 갱신(Fishtest식 과거 챔피언 풀).",
+          "evidence": "23_NYPC_PY_TOOLCHAIN_PORT.md L64, L43"
+        },
+        {
+          "fact": "대회 결과/제출 사실: mushroom + battlefield 두 대회 완주, 리그/게이트/부검 툴 실사용. battlefield 2100 레이팅 lane에서 탐색 기반 에이전트가 baseline을 통계적으로 이겼다(리그 리포트 실재). feature/action 설계는 Perception/J 스펙 문서군으로 문서화됨. 최종 순위나 수상 여부는 문서에 기재 없음.",
+          "evidence": "23_NYPC_PY_TOOLCHAIN_PORT.md L9-L12"
+        },
+        {
+          "fact": "NYPC 툴체인 실체(.py): league.py·claude_broad.py·claude_round_robin.py(리그), claude_turn_inspect.py(턴 부검), claude_evcore2_tune.py((1+λ) ES)·claude_ga_tune.py·tune_proxy.py(튜너), claude_ai_fidelity.py(행동 게이트), claude_j_oracle.py·claude_j_autopsy.py(J 기준 사후 최선 대비 regret 부검=블런더 마이닝), mushroom claude_nnue_*/BC 체인.",
+          "evidence": "23_NYPC_PY_TOOLCHAIN_PORT.md L47-L55 이식 우선순위 표"
+        },
+        {
+          "fact": "NYPC에는 production PPO/DQN/Gymnasium 구현이 없으며 PyTorch는 toy 예제 수준이다. Python 601개 전부 복사 방식은 폐기되고 selective bridge(선별 이식)로 결정. 이식 제외: engine/rules.py(이중 진실 금지), 전장 전용 상대 클론(sample_ai*_proxy.py), 공식 리플레이 변환기(claude_replay_txt.py), tmp_* 일회성 분석.",
+          "evidence": "14_NYPC_COMPETITION_ML_LAB_BRIDGE.md L11-L12; 23_NYPC_PY_TOOLCHAIN_PORT.md L56"
+        },
+        {
+          "fact": "NYPC Lab의 게임별 역할: 버섯(mushroom) = 완전정보/결정론/순차 기준 모델, Yacht Dice/Auction = 확률/점수판/동시 입찰/CFR 계열, Connexion = 불완전정보/타일 배치/연결 성분/ISMCTS 계열. NYPC 실경로는 C:\\Users\\user\\Desktop\\NYPC (구 표기 C:\\Users\\tnest\\...는 stale).",
+          "evidence": "14_...BRIDGE.md L70-L72; 23_...PORT.md L5"
+        },
+        {
+          "fact": "이식 불가로 판정된 것: (1) 정확 FightSim 산술 — 전장은 이산·동시턴이라 HP×수×도착 스케줄 정확 재현 가능하지만 LoL은 연속 공간+스킬샷+CC라 불가, 크로노 브레이크 실측으로 대체. (2) 마감 은행 — 200일 고정 지평 전용, LoL 직역 금지. (3) 완전정보 가정 — 전장 Perception은 전 유닛 가시 전제라 LoL 이식 시 모든 귀속·회계를 FOW 게이트 뒤에 놓아야 한다.",
+          "evidence": "17_...GAP_ANALYSIS.md L72-L75"
+        },
+        {
+          "fact": "LoL 대비 숫자: Winters LoL은 30Hz 고정 틱 실시간, 명령 1틱 지연, decisionInterval 0.20s + 매 틱 긴급 인터럽트. 골드 환산 점수 = 킬 300 / 근접 미니언 21 / 원거리 14 / 포탑 250. 현행 봇 계측 한계 = trace 링 16 / 명령 로그 512 cap. 크로노 키프레임 = 30틱 간격 × 90개 = 90초 창, blob ~81KB, 컴포넌트 ~90종 레지스트리.",
+          "evidence": "17_...GAP_ANALYSIS.md L17, L26; 18_EXTREME_BOT_MASTER_PLAN.md L45; 22_...TUNING_LOOP.md L20-L21"
+        },
+        {
+          "fact": "마스터 로드맵(18): M0 계측(JSONL 스트리밍+난이도 노브 프리셋) → M1 BotLab 툴체인 → M2 Perception 2.0(FOW+last-seen+쿨다운 추론+ThreatField) → M3 크로노 반사실 루프 → M4 반응 모델 v1(귀속/MIA/커밋 오라클/스킬샷 리드) → M5 학습형 BC. 순서 근거: 'M1 리그가 M2~M4의 판정자'(봇보다 측정 생태계 먼저 — 17 §3-7 교훈), M3는 M4의 반사실 데이터 공장.",
+          "evidence": "18_EXTREME_BOT_MASTER_PLAN.md L9-L16, L44-L49"
+        },
+        {
+          "fact": "상대 모델 3층 설계(19): L0 관측 기억(OppTrack 이식 — FOW 게이트가 입구, 링 버퍼 {tick, posXZ, hpRatio, observedCast, moveDirXZ, bVisible}), L1 상태 추론(쿨다운 추론=관측 시각+ResolveSkillCooldown, 위협 귀속=이동 방향 일관성, MIA 회계), L2 반응 예측(반응 통계 테이블은 오프라인 산출 후 baked 주입 — 런타임 학습 금지, 커밋 오라클, 스킬샷 리드=속도 외삽+도주 방향 예측).",
+          "evidence": "19_OPPONENT_REACTION_MODEL.md L31-L59"
+        },
+        {
+          "fact": "영향맵(20)은 07의 GPU compute 설계를 폐기하고 Shared/GameSim 결정론 CPU로 재정착: GPU float 연산이 결정론 계약과 리플레이/SimLab 재현을 깨기 때문. 갱신은 절대 틱 위상(tickIndex % 6 == 0)만 허용하고 주기 6이 키프레임 간격 30의 약수여야 복원 후 재계산 값이 무중단 실행과 일치한다. 현행 유일 공간 신호는 ComputeTurretDanger 스칼라 [0..1.25] 1개.",
+          "evidence": "20_INFLUENCE_MAP_GAMESIM.md L20-L26, L46-L51, L32"
+        },
+        {
+          "fact": "디버그 장비 원칙(21): '시각화는 예쁘기 위한 것이 아니다 — 30초 안에 왜 틀린 수를 골랐는지 찾기 위한 검사 장비'(NYPC 02_INDEPENDENT_COMPETITION_ML_LAB.md §6 승계). NYPC Turn-JSONL 스키마(tick, botNetId, scores, chosen_intent, chosen_action, block_reason, decision_ms)와 claude_turn_inspect.py의 턴 부검 화면 구성을 이식. 부검 1건 30초 룰.",
+          "evidence": "21_AI_DEBUG_TOOL_EXTENSION.md L5, L34, L39; 23_...PORT.md L69"
+        },
+        {
+          "fact": "2026-07-13 S017 검증 사실: full validation SimTicks=1800/Seed=42 통과, Server/Client Debug x64 빌드 통과, live episode 두 run의 JSONL SHA-256이 BECC9A151ABD8C24E45D79C787EA37FDB7BAFFA513896723128F912C98B0130E로 일치 — 단 이는 foundation 계약 증거이며 AI strength/RL 완료 증거가 아니라고 명시.",
+          "evidence": "14_...BRIDGE.md L31-L36"
+        },
+        {
+          "fact": "23 문서에 레인 충돌 기록: 같은 날(2026-07-12) 병렬 Codex 세션이 Tools/AIResearch/ + SHA provenance manifest 방식 계획을 선점 작성. 통합 권고는 디렉토리 하나(manifest 봉인 P0 → 리그/부검/튜너 접붙임)이며, 병합 전까지 두 문서 모두 코드 착수 금지. 사용자 중재 필요로 표시됨.",
+          "evidence": "23_NYPC_PY_TOOLCHAIN_PORT.md L7"
+        }
+      ],
+      "numbers": [
+        "전장 턴 지평: 최대 200일(고정), 동시 명령 제출",
+        "전장 시간 예산: 100ms/턴",
+        "전장 좌석 수입: +13 골드/턴",
+        "J값 계수: filled +15, army −2, moves −10, deaths −120, + terminal(HQ)",
+        "pHold = clamp(available + turret − effAtk + 2, 0, 4); defEV ≤ 0 ⇒ 포기",
+        "행동 공간: 이산 3동사 (UPGRADE / MOVE / TRAIN)",
+        "Offer market 임무 7종: KEEP/LABOR/DEFEND/CONTEST/CLAIM/RAID/SIEGE",
+        "위협 귀속 5단계 (방향 tier/역추론/미러-EV/중간선 필터/집계)",
+        "레이팅: 2400 = 검증 풀의 천장(회고), battlefield 2100 레이팅 lane에서 baseline 통계적 우위",
+        "회고 타임라인: 패배 해부 6일 > 승자 해부 시작 7일차",
+        "'연속량만, 임계값 0' 배너 위치: claude_evcore2.cpp:1509",
+        "LoL 대비: 30Hz 틱, 명령 1틱 지연, decisionInterval 0.20s",
+        "LoL 골드 환산: 킬 300 / 근접 21 / 원거리 14 / 포탑 250",
+        "현행 봇 계측 cap: trace 링 16 / 명령 로그 512",
+        "크로노 키프레임: 30틱 간격 × 90개 = 90초 창, blob ~81KB, 컴포넌트 ~90종",
+        "영향맵 갱신 주기: 6틱(0.2s), 키프레임 간격 30의 약수 필수; turretDanger 스칼라 범위 [0..1.25]",
+        "NavGrid 512×512 (0.5u/셀), 영향맵 초안 64×64 (4u/셀, 1/8 다운스케일)",
+        "S017 검증: SimTicks=1800, Seed=42, JSONL SHA-256 두 run 일치 (BECC9A15...)",
+        "NYPC Python 파일 수: 601개(전량 복사 폐기)",
+        "부검 1건 30초 룰; 진행 flush 30초 규율",
+        "튜너: (1+λ) ES (claude_evcore2_tune.py)"
+      ],
+      "confirm_needed": [
+        "대회 최종 순위/수상 여부 — 문서에는 '두 대회 완주'와 레이팅(2100 lane, 2400 천장)만 있고 최종 결과·수상 기록은 없음. 사용자만 채울 수 있음",
+        "NYPC의 정식 명칭이 '넥슨 청소년 프로그래밍 챌린지'인지 — 문서는 'NYPC 2026 예선 문제 2'라고만 표기, 대회 정체는 미기재",
+        "실제 제출 코드가 claude_evcore2.cpp 계열인지, 제출 횟수/시점 — 문서는 bots/cpp/claude_evcore2.cpp 존재와 '대회용 C++ 제출 코드'라는 표현만 언급",
+        "우승급 봇 '민이'의 실제 정체(참가자 핸들인지, 공식 제공 봇인지) — FINALS blueprint 문서 인용만 있음",
+        "23 L7 레인 충돌: Tools/AIResearch vs Tools/BotLab 디렉토리 단일화 — 명시적으로 '사용자 중재 필요'로 표시됨",
+        "23 L16: '.py 전부 다' 사용자 요청을 선별 이식으로 축소한 것 — 사용자 승인 대상으로 명시",
+        "19 L43 CONFIRM_NEEDED: 서버 권위 시야 판정의 현재 소스(VisionSensorComponent가 챔피언 상호 가시성 제공하는지, 부쉬/FOW 규칙이 서버에 있는지)",
+        "20 L44 CONFIRM_NEEDED: 영향맵 해상도(64×64 초안, 실제 맵 플레이 영역 치수 측정 후 확정)",
+        "21 L31/L41 CONFIRM_NEEDED: 디버그 필드의 _DEBUG/practice 게이트 방식, JSONL 출력 경로 규약",
+        "22 L58-L59 CONFIRM_NEEDED: 키프레임 export 방식(op 추가 vs 서버 콘솔 명령), blob 수명 정책(버전 불일치 시 폐기 vs 마이그레이션)",
+        "23 L41 CONFIRM_NEEDED: 헤드리스 넥서스 파괴 시스템 존재 여부(리그 승패 지표 정의용)",
+        "22 L63: S015 §3 인게임 게이트 전체 미검증(사용자 수동 필요) — U1 튜닝 루프의 전제",
+        "14 L22, L26-27: terrain LOS·network snapshot FOW 미완료, exact journal re-simulation·reactive Chrono A/B 미완료 (2026-07-13 기준)"
+      ]
+    },
+    "projExp": {
+      "summary": "두 프로젝트의 기록은 두 계층으로 존재한다. (1) .md/interview/experience-projects.md·resume.md는 2026-07-10 시점 문서로 대부분 CONFIRM_NEEDED 슬롯 상태이지만, (2) .md/이력서/ 폴더(2026-07-13, 이력서_초안_v3 + weapons/ 사실 원장 4종 + HANDOVER)가 git 실측으로 대부분을 이미 채웠다. 확정 기록: (A) 스타크래프트 WinAPI 모작 = 1인, 2025.12.19~2026.01.20, WinAPI/GDI 순수 구현 약 5.4만 줄, 3종족 유닛 32종·건물 40종, Octile A*+플로킹 분리, 3상태 안개 dirty-flag, GDI 비트연산 알파합성, deque 생산큐, 9상태 FSM(어택무브가 최난 문제로 기록됨). (B) 마인크래프트 던전스 = 5인(git 실측) 팀 프로젝트 2026.03.10~04.06(약 4주), 본인이 팀장으로 커밋 64%(220/342)·PR 135건 머지, 담당 = IOCP 서버 전체 + 20TPS 스냅샷 동기화 + 엔더드래곤 보스전 + ImGui 맵 에디터, DX9 자체 엔진 약 12만 줄. Liberation = UE Blueprint 공포게임, 2023.06.05 Steam 출시(₩5,600, 수익 $91, 명의 WINTERS), 기획 6개월+개발 6개월 1인. 주의: 부모 태스크의 \"Mushroom StarCraft\" 추정은 오인 — Mushroom(버섯게임)은 NYPC 대회 봇(NYPC_Mushroom 레포)이고 스타 모작은 별개 프로젝트(Desktop\\스타크래프트\\Starcraft, github.com/tnestyle70/Starcraft). 5단계 답변 관점에서 '메커니즘'(3단계) 재료는 코드 근거로 충분히 기록돼 있고(스타: 어택무브 명령큐 충돌→Order+FSM 분리, 던전스: FFT 파도 실패 인정·드래곤 2연속 돌진 버그→디자인 승격), 결손은 주로 2단계(순진한 해법이 실패한 실화 — 특히 스타 모작의 '가장 오래 잡은 버그')와 협업 디테일(던전스 버전관리 충돌/갈등 사례, 팀 인원 4인 vs 5인 불일치), Liberation의 출시 직전 이슈·심사 경험이다. 면접 답변 스크립트 원장은 .md/plan/2026-07-13_RESUME_DOMAIN_STORY_STARCRAFT_MINECRAFT_WINTERS.md §8.",
+      "facts": [
+        {
+          "fact": "[스타] 개인 프로젝트(git author 단일), 커밋 2025.12.19~2026.01.20, 저장소 github.com/tnestyle70/Starcraft, 원본 위치 C:\\Users\\user\\Desktop\\스타크래프트\\Starcraft\\, 데모 영상 스타 mp4.mp4(1.23GB), Debug/Starcraft.exe 2026-01-23 빌드 존재",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\02_Starcraft_WinAPI.md:3-5"
+        },
+        {
+          "fact": "[스타] 엔진·라이브러리 없이 WinAPI/GDI만으로 RTS 코어 구현 — 약 5.4만 줄(서드파티 제외), 3종족 유닛 32종·건물 40종; 기술 C++20, WinAPI/GDI, FMOD",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\02_Starcraft_WinAPI.md:9 및 .md\\이력서\\이력서_초안_v3.md:125"
+        },
+        {
+          "fact": "[스타] 핵심 시스템 6종이 코드 근거 라인까지 기록됨: Octile A*(8방향·코너컷 방지, CNavMgr.cpp:124-268)+플로킹 스티어링(CSteeringMgr.h:44-107) 분리, Order deque 명령큐+Commandable+9상태 FSM, 3상태 전장의안개(dirty-flag+0.5초 주기, CFogMgr.h), GDI 더블버퍼링+SRCAND/SRCPAINT+AlphaBlend 3단 합성(CBmpMgr.cpp:188-274), 인게임 맵에디터→Tile.dat 바이너리→내비그리드 재생성(CTileMgr.cpp:524-625), 미니맵/드래그선택/자원·생산큐/충돌",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\02_Starcraft_WinAPI.md:11-18"
+        },
+        {
+          "fact": "[스타] 구조 기록: CObj 최상위 추상+ObjMgr(논리 그룹 m_ObjList[OBJ_END]+렌더 레이어 m_RenderList[RENDER_END]+Y-sort+m_PendingDelete 지연삭제), 전 시스템 싱글턴 매니저 11종+CAbstractFactory<T>, PeekMessage 루프+QueryPerformanceCounter dt, 소스 약 294파일",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\interview\\experience-projects.md:22,41-59,113,162-178"
+        },
+        {
+          "fact": "[스타] '가장 어려웠던 것'으로 기록된 문제 = 어택무브: 명령 큐 소비와 '이동 중 색적→교전→복귀' 상태 전환의 충돌을 Order 내장 데이터+유닛 FSM(9상태) 책임 분리로 해결 — 5단계 답변의 문제제약/메커니즘 재료",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\이력서_초안_v3.md:132"
+        },
+        {
+          "fact": "[스타] 포트폴리오 리스크로 기록: CNavMgr.h의 index(int row,int col)가 row*TILEX+row로 되어 있음(+col 오타 의심) — 제출 전 확인 필요",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\interview\\experience-projects.md:558"
+        },
+        {
+          "fact": "[던전스] 5인 팀(git 실측) 2026.03.10~04.06(약 4주), 본인이 팀장: git 세팅·브랜치 전략·PR 135건 머지(#136까지)·전체 342커밋 중 220(64%) 기여; 기여 분포 본인(winter77) 220/JS 50/Taejun 32/KCY 30/서준원 10; 저장소 github.com/tnestyle70/SR_Minecraft_Dungeons(본인 계정 소유), 원본 C:\\Users\\user\\Desktop\\SR_MinecraftDungeons\\, 영상 409MB",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\03_MinecraftDungeons.md:3-15 및 .md\\이력서\\이력서_초안_v3.md:90-93"
+        },
+        {
+          "fact": "[던전스] 구조 = 자체 DX9 엔진(DLL) 약 12만 줄, Base/Engine/Client/Server/Shared/UI_EDITOR 분리; CBase 수동 AddRef/Release(COM 스타일) + GameObject/Component multimap + CProtoMgr Prototype/Clone; 기술 C++, DX9, IOCP, HLSL, ImGui, FMOD",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\03_MinecraftDungeons.md:9 및 .md\\이력서\\이력서_초안_v3.md:92,95"
+        },
+        {
+          "fact": "[던전스] 본인 담당(git author+최초 생성자 근거) 4축: ① IOCP 서버 전체+커스텀 바이너리 PacketDef(Login/Spawn/Input/StateSnapshot/DragonSync 등 20여 구조체, static_assert 검증)+20TPS 고정 틱 스냅샷 브로드캐스트(CGameLoop.h TICK_RATE=20) ② 엔더드래곤 보스전(IK+sin파, 전용 동기화 패킷, CEnderDragon.cpp 최초 작성) ③ ImGui 맵 에디터(멀티 스테이지·TriggerBox, CEditor.cpp 21회 수정) ④ 파티클/FMOD/포스트프로세스 6 technique/쿼드트리 컬링/인벤토리·HUD",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\03_MinecraftDungeons.md:17-22"
+        },
+        {
+          "fact": "[던전스] 5단계 답변용 실패→전환 일화 2건 기록: 드래곤 돌진이 의도(1회+꼬리치기)와 달리 2연속 돌진으로 동작→더 위협적이라 디자인으로 승격 채택; 파도 스테이지 FFT는 시도 후 실패 인정하고 sin/거스트너로 범위 조정",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\이력서_초안_v3.md:97,99"
+        },
+        {
+          "fact": "[던전스] 협업 규약 기록: 팀원별 파일 프리픽스(CJS*/CCY*/CTG*)로 담당 영역 분리, 프리픽스 없는 코어 파일 다수가 본인 커밋 — '이니셜 프리픽스→Winters Ownership Matrix' 성장 서사로 사용 중",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\03_MinecraftDungeons.md:15 및 .md\\interview\\experience-projects.md:314"
+        },
+        {
+          "fact": "[던전스→Winters 대조(4단계) 확정 서사]: 20TPS 스냅샷을 팀으로 만들고→Winters 30Hz 서버 권위 풀 파이프라인으로 혼자 확장; TCP IOCP→UDP 전환 이유(head-of-line blocking); 수동 RefCount→RAII+EntityHandle/generation; CInventoryMgr OOP→데이터+커맨드+드로우 3분할 번역 문서 실존(.md/TODO/05-12/INVENTORY_UI_DUNGEONS_TO_WINTERS_PLAN.md)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\03_MinecraftDungeons.md:26, .md\\이력서\\이력서_초안_v3.md:68,100, .md\\interview\\experience-projects.md:182-196,322"
+        },
+        {
+          "fact": "[Liberation] Steam 상용 출시 2023.06.05, ₩5,600, 수익 $91(본인 진술), 개발/배급 명의 WINTERS(현 엔진 이름의 기원), appid 2014540; 1인(기획·개발·출시 전체), 2022~2023 기획 6개월+개발 6개월; 장르 = 전략 생존 공포(영매사가 저승에서 십자가를 모아 원혼 해방), Windows/영어; v3 기준 기술 = Unreal Engine 5 Blueprint 독학(문과 출신, AI 이전 시절 공식문서·책·Udemy·디스코드로 학습)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\01_Liberation.md:3-18 및 .md\\이력서\\이력서_초안_v3.md:143-148,169"
+        },
+        {
+          "fact": "[Liberation] 서사 위치 = 기술 과시가 아닌 '끝까지 만들어 파는 사람' 증명 + 1인 개발의 한계(난이도 객관성 상실) 각성→팀 필요성 결론. 인터뷰 문서(experience-projects.md)는 이 사실들을 모르는 상태로 작성돼 '전 항목 CONFIRM_NEEDED'로 남아 있음 — 이력서 폴더가 최신 원장",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\weapons\\01_Liberation.md:22 vs .md\\interview\\experience-projects.md:5,24"
+        },
+        {
+          "fact": "[교차 검증 규칙] HANDOVER 문서가 '검증된 수치만 기재' 원칙과 함께 확정 수치 목록을 고정: 커밋 64%·PR 135 / 20TPS→30Hz / Liberation 2023.06.05·₩5,600·$91 — 근거는 weapons/ 4종 카드로 역추적. 이름·연락처도 기입됨(홍건보/010-9758-5388)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\HANDOVER_2026-07-13_노션_V1_수정.md:12,31"
+        },
+        {
+          "fact": "[명칭 정정] 'Mushroom StarCraft'는 오인: Mushroom(버섯게임)은 NYPC 대회 봇 프로젝트(github.com/tnestyle70/NYPC_Mushroom, Desktop/NYPC/MushroomGame)이고, 스타크래프트 WinAPI 모작은 별개(Desktop/스타크래프트/Starcraft)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\이력서\\HANDOVER_2026-07-13_노션_V1_수정.md:26"
+        },
+        {
+          "fact": "[면접 답변 원장] 도메인별 면접 답변 템플릿(§8: ObjectManager/Factory/RefCount/ECS/서버권위/RHI)과 프로젝트별 코드 근거(§1)·성장 서사 연결(§6: 객체 생성/생명주기/객체 모델/UI/네트워크/렌더링 6축 진화)이 별도 문서에 완비 — CONFIRM_NEEDED 0건",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\.md\\plan\\2026-07-13_RESUME_DOMAIN_STORY_STARCRAFT_MINECRAFT_WINTERS.md:35-1133 (섹션 헤더 grep 확인)"
+        }
+      ],
+      "numbers": [
+        "[스타] 약 5.4만 줄(서드파티 제외), 소스 약 294파일, 3종족 유닛 32종·건물 40종, 유닛 FSM 9상태, 안개 3상태·0.5초 주기 재계산, 128×128 타일, 기간 2025.12.19~2026.01.20(git), 영상 1.23GB",
+        "[던전스] 5인 팀, 약 12만 줄, 342커밋 중 본인 220(64%), PR 135건 머지(#136까지), 기여 분포 220/50/32/30/10, 20TPS 고정 틱, 패킷 구조체 20여 종, 포스트프로세스 6 technique, CEditor.cpp 21회 수정, 기간 2026.03.10~04.06(약 4주), 영상 409MB",
+        "[Liberation] 출시 2023.06.05, 가격 ₩5,600, 수익 $91, 기획 6개월+개발 6개월(2022~2023), 1인, Steam appid 2014540",
+        "[대조축] 던전스 20TPS 스냅샷 → Winters 30Hz 서버 권위(챔피언 15종, IOCP 워커4+틱1)",
+        "[슬롯 현황] experience-projects.md 채움 슬롯 46곳 + resume.md 28곳 = 74곳(메모리 기록과 일치) — 단, .md/이력서/ 원장이 이 중 상당수를 이미 해소"
+      ],
+      "confirm_needed": [
+        "[스타] 가장 오래 잡은 버그 실화 — 5단계의 '순진한 해법 실패'(2단계) 핵심 결손; 지어내기 금지 명시됨 (experience-projects.md:302,552)",
+        "[스타] 개발 기간 공식 표기 확정(git 날짜는 있음), 데모 영상(1.23GB) 커버 범위, 현 환경(v145 툴셋) 재빌드 가능 여부, CNavMgr.h index() 오타 수정 여부 (weapons/02:26-30, experience-projects.md:558)",
+        "[던전스] 팀 인원 확정: git 기여자 5인 vs 사용자 기억 4인 불일치 — 커밋 안 한 인원 존재 여부 본인 확정 필요 (HANDOVER:33, weapons/03:31)",
+        "[던전스] 공식 역할 명칭 표기(예: '서버/네트워크+보스전 담당'), 당시 버전 관리·통합 방식의 실제 한계/충돌 사례, 팀 갈등→해결 실화(STAR용), 당시 IOCP 구조의 한계 한 줄 (weapons/03:30, experience-projects.md:318,330,551, resume.md:287)",
+        "[던전스] GitHub fork 표시 문제 정리, 데모 영상(409MB) 내용 확인 (weapons/03:32-33)",
+        "[Liberation] 수익 $91의 표기 근거(스팀 정산 캡처), 출시 직전 마지막 이슈, 크래시/장애 대응 실화, 스토어 심사 리젝 여부, 트레일러/스크린샷 재사용 가능 여부 (weapons/01:26-32, experience-projects.md:553) — 또한 weapons/01 카드에는 엔진이 아직 CONFIRM_NEEDED로 남아 있어 v3의 'UE5 Blueprint' 기재와 원장 동기화 필요",
+        "[행동면접 공통] 대인 실패 1개 / 갈등→회복 1개 / 타 직군 협업 1개 / 멘토링·공유 1개 (experience-projects.md:554)",
+        "[기타 잔여] NYPC 정식 표기(연도·부문·성적), Winters GitHub 공개 여부, 포트폴리오 영상 URL (이력서_초안_v3.md:191, HANDOVER:33)"
+      ]
+    },
+    "projWinters": {
+      "summary": "Winters 엔진 면접용 숫자 전수 수집: 30Hz 고정틱(33.333ms 예산, 배속 0.1~8x), SimLab 결정론 게이트(FNV-1a 64bit, 기본 1800틱=60초 sim, seed 42, 동일시드 2회 재현 일치 + seed+1 민감도 검사 + 시나리오 프로브 23종), FlatBuffers 스키마 7개(CommandKind 12종, EventKind 19종, PracticeOperation 25종, EntityKind 9종), 챔피언 17종(코드 enum·JSON 양쪽 일치), 아이템 34종·스킬 정의 85종, C++ 7개 vcxproj + CMake 별도 에디터 exe, RHI는 enum 6종 중 DX11+DX12 실구현, JobSystem 워커 = hw스레드-2, Go 백엔드 6서비스(8081~8086, Postgres 16 + pgx/v5 + Redis + Kafka). 모두 코드/데이터 파일에서 직접 확인한 값이며 추정치 없음.",
+      "facts": [
+        {
+          "fact": "서버 시뮬레이션 틱레이트 = 30Hz 고정 (kFixedDt = 1/30초, kTicksPerSecond = 30)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Core\\Determinism\\DeterministicTime.h:9-10 — `static constexpr f32_t kFixedDt = 1.f / 30.f;` / `static constexpr uint64_t kTicksPerSecond = 30;`"
+        },
+        {
+          "fact": "서버 틱 루프 프레임 예산 = 33,333µs(33.333ms), sleep_until 페이싱, 시뮬 배속 0.1x~8x 클램프",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomTick.cpp:87-97 — `period = std::chrono::microseconds(static_cast<long long>(33333.f / speedMul))`, speedMul은 0.1f~8.f로 클램프, `std::this_thread::sleep_until(next)`"
+        },
+        {
+          "fact": "랙 컴펜세이션 최대 되감기 = 200ms = 6틱 (30Hz 기준)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Server\\Public\\Security\\LagCompensation.h:11-13 — `kMaxRewindMs = 200; kTickRate = 30; kMaxRewindTicks = (kMaxRewindMs*kTickRate+999)/1000`"
+        },
+        {
+          "fact": "SimLab 골든 검증 방식 = 동일 seed 2회 실행(runA/runB) 최종 해시 완전 일치 + seed+1(runC) 해시가 달라야 PASS. 기본 파라미터 1800틱 = 60초 시뮬, seed 42, 5v5 스크립트 매치",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Tools\\SimLab\\main.cpp:9470-9471 (기본 1800ull/42ull), 9522-9524 (RunMatch 3회), 9550-9583 (runA!=runB → 첫 발산 틱 출력 FAIL, runA==runC → 'hash is not capturing sim state' FAIL)"
+        },
+        {
+          "fact": "SimLab 해시 = FNV-1a 64bit 변형(오프셋 베이시스 1469598103934665603 = 0xCBF29CE484222325). 틱마다 전 챔피언의 pos(x,y,z)·HP·사망플래그·마나·레벨·골드 + RNG 상태를 접고, 틱해시들을 다시 접어 finalHash 생성",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Tools\\SimLab\\main.cpp:541-565 — `u64_t hash = 1469598103934665603ull;` 이후 HashF32(pos/hp/mana), HashU64(level/gold/rng.GetState()), 562-565에서 tickHashes를 finalHash로 폴딩"
+        },
+        {
+          "fact": "SimLab은 결정론 본검사 외에 시나리오 프로브 23종을 AND 게이트로 묶음 (Status/Shield/SylasR/KalistaOathsworn/ChampionAI 상태게이트/ActionGeneration/Kalista·Ezreal projectile authority/FoW 관측/MidDefense 결정론/YoneE/Viego/ActionMovePolicy/Practice 오버레이/아이템 이속/공속 매트릭스/NavGrid/키프레임 트랜잭션·복원 결정론/EntityIdMap 전단사/커맨드 outcome trace/섀도 정책 계약 등)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Tools\\SimLab\\main.cpp:9479-9548 — 프로브 함수 호출 23개와 bPass && 체인"
+        },
+        {
+          "fact": "코드에 박힌 '기준 골든 해시 상수'는 없음 — in-code 게이트는 same-seed 재현 일치이고, 구체 해시값은 stdout으로 출력(`same-seed replay OK: hash=%016llX`)되어 세션 리포트 문서에 기록됨",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Tools\\SimLab\\main.cpp:9570-9571 (해시 출력), 리포트 문서들(.md\\build, Plan\\S036*)에만 해시값 문자열 존재 — 코드 grep에서 기준값 상수 미발견"
+        },
+        {
+          "fact": "서버 스모크 실행 = `--smoke-seconds=N` 플래그로 N초 구동 후 종료 (기본 0 = 스모크 아님)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\main.cpp:365-380 (ParseSmokeSeconds, 미지정 시 0 반환), 732-735 (`Smoke mode: running for N seconds` 후 sleep)"
+        },
+        {
+          "fact": "FlatBuffers 스키마 = 7개 (.fbs): Command, Event, Snapshot, Hello, LobbyCommand, LobbyState, LobbyTypes",
+          "evidence": "Glob C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\*.fbs — 7파일"
+        },
+        {
+          "fact": "명령 종류 = CommandKind 12종(Move~PracticeControl, None 제외) + PracticeOperation 25종(SetEnabled~ReloadGameplayDefinitions=25)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Command.fbs:3-17 (CommandKind 0~12), 19-46 (PracticeOperation 0~25)"
+        },
+        {
+          "fact": "이벤트 종류 = EventKind 19종(Damage~EffectTrigger, None 제외), Event.fbs에 페이로드 테이블 9개(DamageEvent, BuffApplyEvent, ProjectileSpawn/Hit, SkillCast, ActionStart, EffectTrigger, KillFeed, EventPacket)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Event.fbs:5-26 (enum 0~19), 28-153 (table 정의)"
+        },
+        {
+          "fact": "스냅샷 와이어 엔티티 종류 = EntityKind 9종(Champion, Minion, Turret, Inhibitor, Nexus, JungleMonster, Projectile, Ward, EffectAnchor). EntitySnapshot 테이블은 필드 약 120개(AI 디버그 필드 40여 개 포함)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Shared\\Schemas\\Snapshot.fbs:5-16 (EntityKind), 63-187 (EntitySnapshot)"
+        },
+        {
+          "fact": "스냅샷은 매 틱(30Hz) 활성 세션별로 빌드/전송되고, 리플레이 스냅샷도 틱/toolRevision 중복만 걸러 매 틱 기록",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Server\\Private\\Game\\GameRoomTick.cpp:148 (Tick 안 Phase_BroadcastSnapshot), GameRoomReplication.cpp:127-179 (세션 루프 per-session Build), ReplayRecorder.cpp:91-98 (`tick != lastTick || toolRevision != lastToolRevision`)"
+        },
+        {
+          "fact": "챔피언 = 17종. 데이터(champions.json count=17), 서버 정의(ChampionGameplayDefs.json champions=17), 코드 enum(eChampion IRELIA=1~LEESIN=17) 3곳 일치. 로스터는 5v5 고정 10슬롯",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Data\\Gameplay\\ChampionGameData\\champions.json (champions 배열 17개), Data\\LoL\\ServerPrivate\\Gameplay\\ChampionGameplayDefs.json (17개), Shared\\GameSim\\Definitions\\LoLMatchContext.h:5-28 (enum 1~17, kGameRosterSlotCount=10)"
+        },
+        {
+          "fact": "오브젝트 시각 정의 = structures 6종, jungles 11종, minions 10종, fxMeshPreloads 6종 (ObjectVisualDefs.json)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Data\\LoL\\ClientPublic\\Visual\\ObjectVisualDefs.json — structures=6/jungles=11/minions=10/fxMeshPreloads=6 (ConvertFrom-Json 카운트)"
+        },
+        {
+          "fact": "서버 프라이빗 게임플레이 정의 JSON = 7종(Champion/Economy/Item/SkillEffect/Skill/SpawnObject/SummonerSpell), 아이템 34종, 스킬 정의 85개(SkillGameplayDefs.json 80KB)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Data\\LoL\\ServerPrivate\\Gameplay\\ 디렉터리 7파일; ItemGameplayDefs.json items=34; SkillGameplayDefs.json skills=85"
+        },
+        {
+          "fact": "코드 규모(서드파티/External 제외, .cpp/.h): Client 160/176, Engine 106/181, Shared 63/199(+Go 생성물 30), Server 38/29, Tools 14/1, LoLEditor 4/3, EldenRingClient 5/5, Services Go 43파일",
+          "evidence": "PowerShell Get-ChildItem 재귀 카운트 (External/ThirdPartyLib/ThirdParty 경로 제외 필터 적용)"
+        },
+        {
+          "fact": "Winters.sln의 C++ vcxproj = 7개: Engine, Server, Client, GameSim, WintersAssetConverter, SimLab, EldenRingClient. LoLEditor(WintersLoLEditor.exe)는 sln 밖 CMake 빌드",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Winters.sln:6-25, 820 (vcxproj Project 항목 7개); LoLEditor\\CMakeLists.txt + LoLEditor\\Bin\\Debug\\WintersLoLEditor.exe 존재"
+        },
+        {
+          "fact": "RHI 백엔드 enum은 6종(DX11, DX12, Vulkan, Metal, Xbox, PS5) 선언, 실구현은 DX11(Engine\\Private\\RHI\\DX11 6파일)과 DX12(DX12Device.cpp 1,821줄, 실제 D3D12 디바이스/어댑터 선택 코드). 기본은 Auto이며 실패 시 DX11 폴백 경로 존재",
+          "evidence": "Engine\\Public\\RHI\\RHITypes.h:6-14 (enum 6종); Engine\\Private\\RHI\\DX12\\DX12Device.cpp (1821줄, SelectHighPerformanceDX12Adapter); Engine\\Include\\EngineConfig.h:38 (`rhiBackend = eEngineRHIBackend::Auto`); Engine\\Private\\Framework\\CEngineApp.cpp:168-180 (DX12/DX11 스위치 + allowRHIFallback 시 DX11 폴백)"
+        },
+        {
+          "fact": "JobSystem 워커 수 = 명시 0이면 hardware_concurrency - 2 (최소 1) — 메인 스레드 + 여유 1개를 뺀 값",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Engine\\Private\\Core\\JobSystem.cpp:212-215 — `iWorkerCount = (iHardwareThreads > 2) ? (iHardwareThreads - 2) : 1u;`"
+        },
+        {
+          "fact": "Go 백엔드 = 6개 서비스(auth, leaderboard, matchmaking, payment, profile, shop), 포트 8081~8086 (AUTH_PORT=8081 … SHOP_PORT=8086 기본값)",
+          "evidence": "C:\\Users\\user\\Desktop\\Winters\\Services\\cmd\\ 하위 6개 디렉터리; Services\\pkg\\config\\config.go:88-93 (포트 기본값 6개)"
+        },
+        {
+          "fact": "백엔드 DB = PostgreSQL (pgx/v5 pgxpool, DSN `postgres://…sslmode=disable`, 풀 최대 20). docker-compose는 postgres:16-alpine(호스트 5433→컨테이너 5432), redis:7-alpine(6379), apache/kafka:3.7.0(9092). JWT 액세스 1h/리프레시 168h 기본",
+          "evidence": "Services\\pkg\\database\\postgres.go:10-30 (jackc/pgx/v5/pgxpool); Services\\pkg\\config\\config.go:59-63,100-108 (DB_PORT 5432 기본·DB_POOL_MAX 20·DSN·JWT TTL); Services\\docker-compose.yml:3-48 (이미지·포트 매핑)"
+        }
+      ],
+      "numbers": [
+        "서버 틱 30Hz / 틱당 예산 33,333µs (DeterministicTime.h:9-10, GameRoomTick.cpp:90-91)",
+        "시뮬 배속 클램프 0.1x~8x (GameRoomTick.cpp:87-89)",
+        "랙컴펜 최대 되감기 200ms = 6틱 (LagCompensation.h:11-13)",
+        "SimLab 기본 1800틱 = 60초 시뮬, seed 42, 5v5 10챔피언 (main.cpp:9470-9473, 383-395)",
+        "SimLab FNV-1a 64bit 오프셋 1469598103934665603 (main.cpp:541,562)",
+        "SimLab 시나리오 프로브 23종 + 결정론 3런(runA/runB/runC) (main.cpp:9479-9524)",
+        "FlatBuffers 스키마 7개 / CommandKind 12종 / PracticeOperation 25종 / EventKind 19종 / EntityKind 9종",
+        "챔피언 17종 (enum·champions.json·ChampionGameplayDefs 3중 일치)",
+        "아이템 34종 / 스킬 정의 85개 / 서버 정의 JSON 7종",
+        "시각 정의: structures 6, jungles 11, minions 10",
+        "vcxproj 7개 (Engine/Client/Server/GameSim/AssetConverter/SimLab/EldenRingClient) + CMake LoLEditor exe 1개",
+        "소스 파일: Client 336(.cpp+.h), Engine 287, Shared 262, Server 67 (서드파티 제외)",
+        "RHI enum 6종 중 DX11+DX12 실구현 (DX12Device.cpp 1,821줄), 기본 Auto+DX11 폴백",
+        "JobSystem 워커 = hardware_concurrency - 2 (최소 1) (JobSystem.cpp:214-215)",
+        "Go 서비스 6개, 포트 8081~8086, Postgres 16(pgx/v5, 풀 20) + Redis 6379 + Kafka 9092",
+        "스냅샷 브로드캐스트 매 틱(30Hz) per-session"
+      ],
+      "confirm_needed": [
+        "세션 문서에 기록된 골든 해시값(18110C0D, 85A270CA 등)은 코드 상수가 아니라 SimLab stdout 출력값을 리포트에 옮긴 것 — 면접에서 '코드에 박힌 골든 기준값'이라고 말하면 부정확하므로, in-code 게이트는 '동일 seed 2회 재현 완전 일치 + seed 민감도'라고 표현할지 사용자 확인 필요",
+        "DX12 경로가 실제로 엔드투엔드로 도는지(과거 세션에서 'dx12 스모크가 실제 DX11로 돈다' 결함 메모 존재)는 이번 조사에서 런타임 검증하지 않음 — DX12를 '실구현 완료'로 소개할지 '이중 백엔드 아키텍처 + DX11 폴백'으로 소개할지 사용자 판단 필요",
+        "클라이언트 렌더 프레임 예산(예: 16.6ms 목표) 상수는 코드에서 확인하지 못함 — 과거 세션 기록의 '17.8ms→9ms 복구'는 문서 기반 수치이므로 면접 인용 전 실측 재확인 필요",
+        "UDP 적응형 RTO/전송 계층 수치(S031)는 이번 수집 범위에서 제외 — 네트워크 심화 질문 대비로 추가 수집할지 여부"
+      ]
+    }
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Verify"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Projects"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "verify:W01-W06",
+      "phaseIndex": 1,
+      "phaseTitle": "Verify",
+      "agentId": "a8aa2bb4f1284408b",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784182743906,
+      "queuedAt": 1784182743865,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "레포 루트: C:\\Users\\user\\Desktop\\Winters (Windows). Grep/Glob/Read 사용. 증거는 레포 상대경로 path:line 형태.\n각 카드에 대해: (1) 실제로 존재하나 (2) 카드 주장과 실제 코드가 다른 점 (3) 코드에서 뽑을 수 있는 숫자(상수, 크기, 개수, 주기 등 — 면접 답변 ①③칸에 쓸 수 있는 것) (4) 구현됐지만 비활성/보류 상태면 반드시 note에 명시.\n정확성이 최우선: 못 찾으면 MISSING으로 정직하게. 이름이 다르지만 같은 개념이면 PARTIAL/DIFFERENT + 실제 이름 기록.\n검증할 카드 (Winters 엔진 Core/ECS):\n- W01: \"EntityHandle (index + generation)\" — ECS 엔티티 핸들. …",
+      "lastProgressAt": 1784183059754,
+      "tokens": 99324,
+      "toolCalls": 49,
+      "durationMs": 315848,
+      "resultPreview": "{\"cards\":[{\"id\":\"W01\",\"status\":\"CONFIRMED\",\"actual\":\"EntityHandle은 u64 하나에 하위 32비트 index + 상위 32비트 generation을 패킹한 구조체이고, CEntityManager::TryResolve가 (범위 검사 → generation 일치 → alive-generation 판정) 3단계로 stale 핸들을 거른다. 특이점: generation의 홀짝(parity)이 생존 상태를 인코딩한다 — 홀수=alive, 짝수=dead, 0=null 예약. 파괴 시 슬롯을 intrusive free list(nextFree + m_iFreeHead)로 재활용하고 재생성 시 generation을 다음 홀수로 올린다. ID 0은 NULL_ENTITY로 예…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "verify:W07-W12",
+      "phaseIndex": 1,
+      "phaseTitle": "Verify",
+      "agentId": "a608410da2fa6535f",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784182743908,
+      "queuedAt": 1784182743865,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "레포 루트: C:\\Users\\user\\Desktop\\Winters (Windows). Grep/Glob/Read 사용. 증거는 레포 상대경로 path:line 형태.\n각 카드에 대해: (1) 실제로 존재하나 (2) 카드 주장과 실제 코드가 다른 점 (3) 코드에서 뽑을 수 있는 숫자(상수, 크기, 개수, 주기 등 — 면접 답변 ①③칸에 쓸 수 있는 것) (4) 구현됐지만 비활성/보류 상태면 반드시 note에 명시.\n정확성이 최우선: 못 찾으면 MISSING으로 정직하게. 이름이 다르지만 같은 개념이면 PARTIAL/DIFFERENT + 실제 이름 기록.\n검증할 카드 (Winters 렌더러/게임플레이):\n- W07: \"Clustered 라이트 할당\" — clustered/tiled light culling이 …",
+      "lastProgressAt": 1784183207803,
+      "tokens": 126159,
+      "toolCalls": 56,
+      "durationMs": 463895,
+      "resultPreview": "{\"cards\":[{\"id\":\"W07\",\"status\":\"MISSING\",\"actual\":\"Clustered/tiled 라이트 컬링은 코드에 전혀 없다. 실제는 포워드 렌더러에 PerFrame 상수버퍼로 방향광 1개 + 포인트라이트 최대 4개(kMaxForwardPointLights=4)를 고정 배열로 넘기고 픽셀셰이더에서 단순 루프로 평가한다. 포인트라이트 값 자체가 ModelRenderer::UpdateCamera에 하드코딩(활성 2개)이며, 라이트 수집/할당/컬링 코드가 존재하지 않는다.\",\"note\":\"카드 주장 자체가 사실과 다름 — 면접에서 'Clustered 구현했다'고 말하면 안 됨. Clustered+Deferred는 .md/plan/graphics/Graphics/02_Clustered_D…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "verify:S01-S08",
+      "phaseIndex": 1,
+      "phaseTitle": "Verify",
+      "agentId": "a206e437dc71f95b6",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784182743909,
+      "queuedAt": 1784182743866,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "레포 루트: C:\\Users\\user\\Desktop\\Winters (Windows). Grep/Glob/Read 사용. 증거는 레포 상대경로 path:line 형태.\n각 카드에 대해: (1) 실제로 존재하나 (2) 카드 주장과 실제 코드가 다른 점 (3) 코드에서 뽑을 수 있는 숫자(상수, 크기, 개수, 주기 등 — 면접 답변 ①③칸에 쓸 수 있는 것) (4) 구현됐지만 비활성/보류 상태면 반드시 note에 명시.\n정확성이 최우선: 못 찾으면 MISSING으로 정직하게. 이름이 다르지만 같은 개념이면 PARTIAL/DIFFERENT + 실제 이름 기록.\n검증할 카드 (Winters 서버/네트워크/백엔드):\n- S01: \"30Hz 고정 결정론 틱\" — 실제 틱레이트 상수 찾기(30Hz? 다른 값?). SimL…",
+      "lastProgressAt": 1784183156416,
+      "tokens": 117473,
+      "toolCalls": 60,
+      "durationMs": 412507,
+      "resultPreview": "{\"cards\":[{\"id\":\"S01\",\"status\":\"CONFIRMED\",\"actual\":\"30Hz 고정 틱 확정: DeterministicTime에 kFixedDt = 1/30초, kTicksPerSecond = 30 상수로 박혀 있고 서버 GameRoom이 매 틱 스냅샷을 브로드캐스트한다. SimLab이 FNV-1a 기반 per-tick 상태 해시(위치/HP/사망/마나/레벨/골드/RNG 상태)를 쌓아 최종 해시로 결정론을 검증하며, 키프레임 save→restore→save 바이트 동일성 및 복원 후 재실행 해시의 원소 단위 비교까지 수행한다.\",\"evidence\":[\"Shared/GameSim/Core/Determinism/DeterministicTime.h:9\",\"Shared/GameSim/Core…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "verify:N01-N05",
+      "phaseIndex": 1,
+      "phaseTitle": "Verify",
+      "agentId": "a368bc9135524d258",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784182743910,
+      "queuedAt": 1784182743866,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "레포 루트: C:\\Users\\user\\Desktop\\Winters (Windows). Grep/Glob/Read 사용. 증거는 레포 상대경로 path:line 형태.\n각 카드에 대해: (1) 실제로 존재하나 (2) 카드 주장과 실제 코드가 다른 점 (3) 코드에서 뽑을 수 있는 숫자(상수, 크기, 개수, 주기 등 — 면접 답변 ①③칸에 쓸 수 있는 것) (4) 구현됐지만 비활성/보류 상태면 반드시 note에 명시.\n정확성이 최우선: 못 찾으면 MISSING으로 정직하게. 이름이 다르지만 같은 개념이면 PARTIAL/DIFFERENT + 실제 이름 기록.\n검증할 카드 (봇/AI):\n- N01: \"alpha-beta + TT bound flag\" — 알파베타 탐색 + transposition table이 이 레…",
+      "lastProgressAt": 1784183186898,
+      "tokens": 128088,
+      "toolCalls": 60,
+      "durationMs": 442988,
+      "resultPreview": "{\"cards\":[{\"id\":\"N01\",\"status\":\"PARTIAL\",\"actual\":\"이 레포에는 alpha-beta 탐색 자체는 존재한다: Tools/MushroomZero/mushroom_zero.cpp가 반복심화(iterative deepening) minimax + alpha-beta 컷오프 + 시간예산 + 무브 오더링/트리밍을 구현한 NYPC 버섯게임(10x17 보드) 봇이다. 그러나 transposition table과 TT bound flag(EXACT/LOWER/UPPER)는 이 레포 어디에도 없다(코드 grep 결과 third-party lua/tracy만 매치).\",\"note\":\"카드의 'TT bound flag'는 이 레포 기준 미구현 — TT는 15_MOBAZERO 로드맵 Phas…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "proj:NYPC",
+      "phaseIndex": 2,
+      "phaseTitle": "Projects",
+      "agentId": "af52100d1160a13ab",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784182743932,
+      "queuedAt": 1784182743866,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "NYPC 2026 예선 문제 2 \"전장(battlefield)\"은 턴제(최대 200일…",
+      "promptPreview": "레포 루트: C:\\Users\\user\\Desktop\\Winters. 목적: NYPC NEXT NATION(넥슨 청소년 프로그래밍 챌린지 '전장' 종목으로 추정) 봇 프로젝트의 엔지니어링 사실 수집.\n읽을 것: .md/plan/ai/14_NYPC_COMPETITION_ML_LAB_BRIDGE.md, 17_NYPC_BATTLEFIELD_VS_LOL_BOT_GAP_ANALYSIS.md, 18_EXTREME_BOT_MASTER_PLAN.md, 19~23.\n뽑을 것: (1) NYPC 게임 규칙/제약 (틱, 시야, 명령 형식, 시간 제한 등 숫자) (2) 사용한 방법론 — Perception 귀속, OppTrack(상대 추적), 영향맵, J값?, 핀크레딧 등 문서에 나오는 실제 기법과 그 이유 (3) 순진한 접근이 왜…",
+      "lastProgressAt": 1784182914928,
+      "tokens": 82386,
+      "toolCalls": 10,
+      "durationMs": 170996,
+      "resultPreview": "{\"summary\":\"NYPC 2026 예선 문제 2 \\\"전장(battlefield)\\\"은 턴제(최대 200일)·동시 명령 제출·100ms/턴 예산의 경제 RTS이며, \\\"NEXT NATION\\\"은 게임명이 아니라 아레나 상대 핸들이다. 봇은 GameState→OppTrack(상대 필름)→Perception(위협 귀속 5단계)→Offer market→gold scale→EMIT의 4층 구조로, 단일 화폐 J값(J = Σ[15·filled − 2·army − 10·moves − 120·deaths] + terminal(HQ)), pHold/defEV 커밋 오라클, spareArmy/oppNonEarning 회계 항등식, 반사실 핀크레딧, \\\"연속량만·임계값 0\\\" 원칙을 사용했다. 핵심 회고는 \\\"2400 레…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "proj:경험3종",
+      "phaseIndex": 2,
+      "phaseTitle": "Projects",
+      "agentId": "af902fad8fc4ac36e",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784182743932,
+      "queuedAt": 1784182743867,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "두 프로젝트의 기록은 두 계층으로 존재한다. (1) .md/intervie…",
+      "promptPreview": "레포 루트: C:\\Users\\user\\Desktop\\Winters. 목적: 사용자의 과거 경험 프로젝트 2건의 기록 수집 — (A) 스타크래프트 WinAPI 클론(일명 Mushroom StarCraft로 추정), (B) 마인크래프트 던전스(Minecraft Dungeons) 협업.\n읽을 것: .md/interview/experience-projects.md 전체, .md/interview/resume.md, INDEX.md. 필요시 Grep으로 \"스타\", \"WinAPI\", \"마크던전\", \"던전스\", \"Mushroom\", \"머쉬룸\", \"Liberation\" 검색 (.md/ 전체).\n뽑을 것: 각 프로젝트별 (1) 기록된 사실 (역할, 기간, 기술, 구현 내용) (2) 기록된 숫자 (3) CONFIRM_NEED…",
+      "lastProgressAt": 1784182948435,
+      "tokens": 134938,
+      "toolCalls": 18,
+      "durationMs": 204502,
+      "resultPreview": "{\"summary\":\"두 프로젝트의 기록은 두 계층으로 존재한다. (1) .md/interview/experience-projects.md·resume.md는 2026-07-10 시점 문서로 대부분 CONFIRM_NEEDED 슬롯 상태이지만, (2) .md/이력서/ 폴더(2026-07-13, 이력서_초안_v3 + weapons/ 사실 원장 4종 + HANDOVER)가 git 실측으로 대부분을 이미 채웠다. 확정 기록: (A) 스타크래프트 WinAPI 모작 = 1인, 2025.12.19~2026.01.20, WinAPI/GDI 순수 구현 약 5.4만 줄, 3종족 유닛 32종·건물 40종, Octile A*+플로킹 분리, 3상태 안개 dirty-flag, GDI 비트연산 알파합성, deque 생산큐, 9상태 F…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "proj:Winters숫자",
+      "phaseIndex": 2,
+      "phaseTitle": "Projects",
+      "agentId": "a53c01459f3511764",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1784182743933,
+      "queuedAt": 1784182743867,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "Winters 엔진 면접용 숫자 전수 수집: 30Hz 고정틱(33.333ms 예…",
+      "promptPreview": "레포 루트: C:\\Users\\user\\Desktop\\Winters. 목적: Winters 엔진 전체의 \"면접용 숫자\" 수집 — 5단계 답변 ①(제약·숫자)과 ③(메커니즘 숫자) 칸을 코드 근거로 채울 재료.\n찾을 것 (각각 실제 코드/데이터에서 상수 확인, path:line):\n- 서버 틱레이트/프레임 예산 관련 상수\n- SimLab 골든 해시 체계 (해시값, 검증 방식, 스모크 시간)\n- FlatBuffers 스키마 개수와 주요 메시지 종류 수\n- 챔피언 수, 미니언/포탑 등 오브젝트 종류 수 (Data/LoL, Data/Gameplay)\n- 코드 규모: Client/Server/Engine/Shared 각각 대략 파일 수 (Glob 카운트)\n- Engine 렌더 백엔드 종류 (DX11만? DX12 스텁?…",
+      "lastProgressAt": 1784183221509,
+      "tokens": 113817,
+      "toolCalls": 58,
+      "durationMs": 477576,
+      "resultPreview": "{\"summary\":\"Winters 엔진 면접용 숫자 전수 수집: 30Hz 고정틱(33.333ms 예산, 배속 0.1~8x), SimLab 결정론 게이트(FNV-1a 64bit, 기본 1800틱=60초 sim, seed 42, 동일시드 2회 재현 일치 + seed+1 민감도 검사 + 시나리오 프로브 23종), FlatBuffers 스키마 7개(CommandKind 12종, EventKind 19종, PracticeOperation 25종, EntityKind 9종), 챔피언 17종(코드 enum·JSON 양쪽 일치), 아이템 34종·스킬 정의 85종, C++ 7개 vcxproj + CMake 별도 에디터 exe, RHI는 enum 6종 중 DX11+DX12 실구현, JobSystem 워커 = hw스레드-2,…"
+    }
+  ],
+  "totalTokens": 802185,
+  "totalToolCalls": 311
+}

@@ -24,8 +24,10 @@
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Components/SylasSimComponent.h"
 #include "Shared/GameSim/Champions/Annie/AnnieGameSim.h"
 #include "Shared/GameSim/Champions/Ashe/AsheGameSim.h"
 #include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
@@ -45,12 +47,14 @@
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/WardDefinitions.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/Item/ItemEffectSystem.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
+#include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
 #include "Shared/GameSim/Systems/SpellbookFormOverride/SpellbookFormOverrideSystem.h"
 //Viego Spawn
@@ -74,8 +78,6 @@ namespace
 {
     constexpr f32_t kMaxMoveCommandAbs = 10000.f;
     constexpr f32_t kAttackChaseArriveSlack = 0.05f;
-    constexpr u16_t kNetAnimFlagLoop = 0x0800u;
-
     void OutputCommandDebug(const char* pText)
     {
         if (!pText)
@@ -122,7 +124,8 @@ namespace
             cmd.kind == eCommandKind::LevelSkill ||
             cmd.kind == eCommandKind::RecallCancel ||
             cmd.kind == eCommandKind::AIDebugControl ||
-            cmd.kind == eCommandKind::CompanionCommand)
+            cmd.kind == eCommandKind::CompanionCommand ||
+            cmd.kind == eCommandKind::ReorderItem)
         {
             return false;
         }
@@ -271,8 +274,14 @@ namespace
         return true;
     }
 
-    void StartAttackChase(CWorld& world, const TickContext& tc,
-        const GameCommand& cmd, f32_t effectiveRange)
+    bool_t ShouldSustainAttackChase(CWorld& world, const GameCommand& cmd)
+    {
+        return cmd.kind == eCommandKind::BasicAttack &&
+            !world.HasComponent<ChampionAIComponent>(cmd.issuerEntity);
+    }
+
+    AttackChaseComponent& UpsertAttackChaseOrder(
+        CWorld& world, const GameCommand& cmd, f32_t effectiveRange)
     {
         auto& chase = world.HasComponent<AttackChaseComponent>(cmd.issuerEntity)
             ? world.GetComponent<AttackChaseComponent>(cmd.issuerEntity)
@@ -288,6 +297,14 @@ namespace
         chase.direction = cmd.direction;
         chase.repathTimer = 0.f;
         chase.bActive = true;
+        chase.bSustain = ShouldSustainAttackChase(world, cmd);
+        return chase;
+    }
+
+    void StartAttackChase(CWorld& world, const TickContext& tc,
+        const GameCommand& cmd, f32_t effectiveRange)
+    {
+        UpsertAttackChaseOrder(world, cmd, effectiveRange);
 
         if (world.HasComponent<TransformComponent>(cmd.targetEntity))
         {
@@ -584,6 +601,9 @@ namespace
             actionId != eActionStateId::BasicAttack)
         {
             action.movePolicy = GameplayDefinitionQuery::ResolveSkillActionMovePolicy(
+                world,
+                entity,
+                tc,
                 sourceChampion,
                 sourceSlot,
                 sanitizedStage);
@@ -605,18 +625,40 @@ namespace
         action.queuedMoveSequence = queuedMoveSequence;
         action.queuedMoveTarget = queuedMoveTarget;
         action.queuedMoveDirection = queuedMoveDirection;
+
+        if (sourceSlot > static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+            sourceSlot < static_cast<u8_t>(eSkillSlot::SLOT_END) &&
+            GameplayDefinitionQuery::IsSkillTwoStage(
+                world,
+                entity,
+                tc,
+                sourceChampion,
+                sourceSlot))
+        {
+            static u32_t s_uStageGateTraceCount = 0u;
+            if (s_uStageGateTraceCount < 96u)
+            {
+                char message[224]{};
+                sprintf_s(
+                    message,
+                    "[StageGate][ServerAction] champ=%u slot=%u stage=%u seq=%u policy=%u tick=%llu lockEnd=%llu lockTicks=%llu\n",
+                    static_cast<u32_t>(sourceChampion),
+                    static_cast<u32_t>(sourceSlot),
+                    static_cast<u32_t>(sanitizedStage),
+                    commandSequence,
+                    static_cast<u32_t>(action.movePolicy),
+                    static_cast<unsigned long long>(tc.tickIndex),
+                    static_cast<unsigned long long>(action.lockEndTick),
+                    static_cast<unsigned long long>(lockTicks));
+                OutputCommandDebug(message);
+                ++s_uStageGateTraceCount;
+            }
+        }
     }
 
     eActionStateId SkillSlotToActionStateId(u8_t slot)
     {
         return ActionIdFromSkillSlot(slot);
-    }
-
-    bool_t ShouldSuppressCastActionState(eChampion champion, u8_t slot, u8_t stage)
-    {
-        return champion == eChampion::JAX &&
-            slot == static_cast<u8_t>(eSkillSlot::W) &&
-            stage == 1u;
     }
 
     Vec3 ResolveEventPosition(CWorld& world, EntityID source, EntityID target, const Vec3& fallback)
@@ -705,11 +747,6 @@ namespace
             slot);
         if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
             return std::max(0.f, cooldown);
-
-        // DEV TUNING OVERRIDE (2026-07-15): 전 챔피언 스킬 쿨다운(Q/W/E/R, 플레이어+봇)
-        // 을 일괄 3초로 강제. BA 조기반환 뒤 + 해스트/CDR 계산 앞이라 정확히 3.0s.
-        // 되돌리기 = 이 return 한 줄 삭제.
-        return 3.0f;
 
         if (world.HasComponent<StatComponent>(entity))
         {
@@ -1970,7 +2007,10 @@ CommandExecutionResult CDefaultCommandExecutor::ExecuteCommand(CWorld& world, co
         HandleBuyItem(world, tc, cmd);
         break;
     case eCommandKind::UseItem:
-        HandleUseItem(world, tc, cmd);
+        result = HandleUseItem(world, tc, cmd);
+        break;
+    case eCommandKind::ReorderItem:
+        result = HandleReorderItem(world, tc, cmd);
         break;
     case eCommandKind::Recall:
         result = HandleRecall(world, tc, cmd);
@@ -1990,6 +2030,13 @@ CommandExecutionResult CDefaultCommandExecutor::ExecuteCommand(CWorld& world, co
         break;
     default:
         break;
+    }
+
+    if (cmd.kind == eCommandKind::CastSkill &&
+        result.state == eCommandExecutionState::Accepted)
+    {
+        CItemEffectSystem::OnAbilityCastAccepted(
+            world, tc, cmd.issuerEntity);
     }
 
     return FinalizeChampionAICommandTrace(world, cmd, result);
@@ -2337,6 +2384,12 @@ CommandExecutionResult CDefaultCommandExecutor::HandleCastSkill(CWorld& world, c
     const eChampion hookChampion = skillIdentity.hookChampion;
     const u8_t hookSlot = skillIdentity.hookSlot;
     const bool_t bRequestedStage2 = cmd.itemId == 2u;
+    const SkillGameplayDef* pSkillDefinition = GameplayDefinitionQuery::FindSkill(
+        world,
+        cmd.issuerEntity,
+        tc,
+        hookChampion,
+        hookSlot);
 
     if (!IsSkillLearned(world, cmd.issuerEntity, skillIdentity.localSlot))
     {
@@ -2433,6 +2486,27 @@ CommandExecutionResult CDefaultCommandExecutor::HandleCastSkill(CWorld& world, c
         return CommandExecutionResult::Rejected(
             cmd.sequenceNum,
             eCommandExecutionReason::InvalidSkillStage);
+    }
+
+    if (bStage2 && pSkillDefinition && pSkillDefinition->charge.bEnabled)
+    {
+        if (!world.HasComponent<SkillChargeStateComponent>(cmd.issuerEntity))
+        {
+            LogCastSkill("reject", "charge-state-missing", cmd, hookChampion, slot.stageWindow);
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::InvalidSkillStage);
+        }
+        const SkillChargeStateComponent& charge =
+            world.GetComponent<SkillChargeStateComponent>(cmd.issuerEntity);
+        if (!charge.bActive || charge.localSlot != skillIdentity.localSlot ||
+            charge.sourceChampion != hookChampion || charge.sourceSlot != hookSlot)
+        {
+            LogCastSkill("reject", "charge-state-mismatch", cmd, hookChampion, slot.stageWindow);
+            return CommandExecutionResult::Rejected(
+                cmd.sequenceNum,
+                eCommandExecutionReason::InvalidSkillStage);
+        }
     }
 
     if (!bStage2 &&
@@ -2707,18 +2781,59 @@ CommandExecutionResult CDefaultCommandExecutor::HandleCastSkill(CWorld& world, c
         slot.cooldownDuration = 0.f;
     }
 
+    if (pSkillDefinition && pSkillDefinition->charge.bEnabled)
+    {
+        if (!bStage2)
+        {
+            SkillChargeStateComponent charge{};
+            charge.bActive = true;
+            charge.localSlot = skillIdentity.localSlot;
+            charge.sourceChampion = hookChampion;
+            charge.sourceSlot = hookSlot;
+            charge.startTick = tc.tickIndex;
+            const f64_t holdTicks = std::ceil(
+                static_cast<f64_t>(pSkillDefinition->charge.maxHoldSec) *
+                static_cast<f64_t>(DeterministicTime::kTicksPerSecond));
+            charge.maxReleaseTick = tc.tickIndex +
+                (holdTicks > 1.0 ? static_cast<u64_t>(holdTicks) : 1u);
+            charge.aimDirection = effectiveCmd.direction;
+            if (world.HasComponent<SkillChargeStateComponent>(cmd.issuerEntity))
+                world.GetComponent<SkillChargeStateComponent>(cmd.issuerEntity) = charge;
+            else
+                world.AddComponent<SkillChargeStateComponent>(cmd.issuerEntity, charge);
+        }
+        else
+        {
+            auto& charge =
+                world.GetComponent<SkillChargeStateComponent>(cmd.issuerEntity);
+            charge.chargeRatio = ResolveSkillChargeRatio(
+                charge.startTick,
+                charge.maxReleaseTick,
+                tc.tickIndex);
+        }
+    }
+
     LogCastSkill("accept", bStage2 ? "stage2" : "ok", effectiveCmd, hookChampion, cooldown);
     const eSkillActionMovePolicy actionMovePolicy =
         GameplayDefinitionQuery::ResolveSkillActionMovePolicy(
+            world,
+            cmd.issuerEntity,
+            tc,
             hookChampion,
             hookSlot,
             skillStage);
     if (actionMovePolicy != eSkillActionMovePolicy::Allow)
         ClearMoveTarget(world, effectiveCmd.issuerEntity);
     if (champion == eChampion::SYLAS)
-        SylasGameSim::ArmPassiveOnSkillCast(world, effectiveCmd.issuerEntity);
+        SylasGameSim::ArmPassiveOnSkillCast(world, tc, effectiveCmd.issuerEntity);
 
-    if (!ShouldSuppressCastActionState(hookChampion, hookSlot, skillStage))
+    if (GameplayDefinitionQuery::ShouldCreateSkillActionState(
+        world,
+        cmd.issuerEntity,
+        tc,
+        hookChampion,
+        hookSlot,
+        skillStage))
     {
         StartCommandActionState(
             world,
@@ -2762,7 +2877,7 @@ CommandExecutionResult CDefaultCommandExecutor::HandleCastSkill(CWorld& world, c
     const u32_t effectId = (primaryHookId != 0)
         ? primaryHookId
         : BuildGenericEffectId(world, cmd.issuerEntity, cmd.slot);
-    const Vec3 eventPos = ResolveEventPosition(
+    Vec3 eventPos = ResolveEventPosition(
         world, resolvedCmd.issuerEntity, resolvedCmd.targetEntity, resolvedCmd.groundPos);
 
     const bool_t bServerProjectileSkill =
@@ -2780,6 +2895,20 @@ CommandExecutionResult CDefaultCommandExecutor::HandleCastSkill(CWorld& world, c
             hookChampion,
             rank,
             manaCost);
+
+    if (bGameplayHookHandled &&
+        hookChampion == eChampion::ZED &&
+        hookSlot == static_cast<u8_t>(eSkillSlot::W) &&
+        skillStage == 1u)
+    {
+        Vec3 shadowDirection{};
+        ZedGameSim::TryGetShadowSource(
+            world,
+            resolvedCmd.issuerEntity,
+            hookSlot,
+            eventPos,
+            shadowDirection);
+    }
     if (!bServerProjectileSkill && !bGameplayHookHandled)
         EnqueueFallbackSkillDamage(world, tc, resolvedCmd, hookChampion, rank);
 
@@ -2896,9 +3025,88 @@ CommandExecutionResult CDefaultCommandExecutor::HandleCastSkill(CWorld& world, c
         EnqueueReplicatedEvent(world, projectileEvent);
     }
 
+    if (bStage2 &&
+        world.HasComponent<SkillChargeStateComponent>(cmd.issuerEntity))
+    {
+        const SkillChargeStateComponent& charge =
+            world.GetComponent<SkillChargeStateComponent>(cmd.issuerEntity);
+        if (charge.localSlot == skillIdentity.localSlot &&
+            charge.sourceChampion == hookChampion &&
+            charge.sourceSlot == hookSlot)
+        {
+            world.RemoveComponent<SkillChargeStateComponent>(cmd.issuerEntity);
+        }
+    }
+
     return CommandExecutionResult::Accepted(
         cmd.sequenceNum,
         resolvedCmd.groundPos);
+}
+
+void ExecuteExpiredSkillCharges(
+    ICommandExecutor& executor,
+    CWorld& world,
+    const TickContext& tc)
+{
+    const auto entities =
+        DeterministicEntityIterator<SkillChargeStateComponent>::CollectSorted(world);
+    for (EntityID entity : entities)
+    {
+        if (!world.HasComponent<SkillChargeStateComponent>(entity))
+            continue;
+
+        const SkillChargeStateComponent charge =
+            world.GetComponent<SkillChargeStateComponent>(entity);
+        if (!charge.bActive)
+        {
+            world.RemoveComponent<SkillChargeStateComponent>(entity);
+            continue;
+        }
+
+        const SkillGameplayDef* skill = GameplayDefinitionQuery::FindSkill(
+            world,
+            entity,
+            tc,
+            charge.sourceChampion,
+            charge.sourceSlot);
+        const bool_t bCanAutoRelease =
+            skill && skill->charge.bEnabled && skill->charge.bAutoRelease &&
+            GameplayStateQuery::CanCast(world, entity);
+        if (!bCanAutoRelease)
+        {
+            if (world.HasComponent<SkillStateComponent>(entity) && charge.localSlot < 5u)
+            {
+                auto& slot =
+                    world.GetComponent<SkillStateComponent>(entity).slots[charge.localSlot];
+                slot.currentStage = 0u;
+                slot.stageWindow = 0.f;
+            }
+            world.RemoveComponent<SkillChargeStateComponent>(entity);
+            continue;
+        }
+
+        if (tc.tickIndex < charge.maxReleaseTick)
+            continue;
+
+        GameCommand release{};
+        release.kind = eCommandKind::CastSkill;
+        release.issuerEntity = entity;
+        release.issuedAtTick = tc.tickIndex;
+        release.slot = charge.localSlot;
+        release.itemId = 2u;
+        release.direction = charge.aimDirection;
+        if (world.HasComponent<TransformComponent>(entity))
+        {
+            const Vec3 origin =
+                world.GetComponent<TransformComponent>(entity).GetPosition();
+            release.groundPos = Vec3{
+                origin.x + charge.aimDirection.x,
+                origin.y,
+                origin.z + charge.aimDirection.z
+            };
+        }
+        executor.ExecuteCommand(world, tc, release);
+    }
 }
 
 CommandExecutionResult CDefaultCommandExecutor::HandleBasicAttack(CWorld& world, const TickContext& tc,
@@ -2961,6 +3169,10 @@ CommandExecutionResult CDefaultCommandExecutor::HandleBasicAttack(CWorld& world,
             eCommandExecutionReason::FriendlyTarget);
     }
 
+    const bool_t bSustainOrder = ShouldSustainAttackChase(world, cmd);
+    if (bSustainOrder)
+        UpsertAttackChaseOrder(world, cmd, 0.f);
+
     if (world.HasComponent<SkillStateComponent>(cmd.issuerEntity))
     {
         const auto& skillState = world.GetComponent<SkillStateComponent>(cmd.issuerEntity);
@@ -3018,7 +3230,8 @@ CommandExecutionResult CDefaultCommandExecutor::HandleBasicAttack(CWorld& world,
         return CommandExecutionResult::Accepted(cmd.sequenceNum);
     }
 
-    if (tc.pWalkable && champion != eChampion::EZREAL &&
+    if (tc.pWalkable &&
+        GameplayStateQuery::ShouldApplyBasicAttackSegmentGate(world, cmd.issuerEntity) &&
         !GameplayStateQuery::IsAttackSegmentGateExemptTarget(world, cmd.targetEntity))
     {
         const Vec3 sourcePos =
@@ -3035,7 +3248,8 @@ CommandExecutionResult CDefaultCommandExecutor::HandleBasicAttack(CWorld& world,
         }
     }
 
-    ClearAttackChase(world, cmd.issuerEntity);
+    if (!bSustainOrder)
+        ClearAttackChase(world, cmd.issuerEntity);
     ClearMoveTarget(world, cmd.issuerEntity);
 
     auto& action = world.HasComponent<CombatActionComponent>(cmd.issuerEntity)
@@ -3047,8 +3261,20 @@ CommandExecutionResult CDefaultCommandExecutor::HandleBasicAttack(CWorld& world,
     const bool_t bSylasPassiveAttack =
         champion == eChampion::SYLAS &&
         SylasGameSim::TryConsumePassiveBasicAttack(world, cmd.issuerEntity);
+    const bool_t bZedPassiveAttack =
+        champion == eChampion::ZED &&
+        ZedGameSim::CanTriggerPassiveBasicAttack(
+            world,
+            tc,
+            cmd.issuerEntity,
+            cmd.targetEntity);
+    const bool_t bRivenUltimateAttack =
+        champion == eChampion::RIVEN &&
+        world.HasComponent<RivenStateComponent>(cmd.issuerEntity) &&
+        world.GetComponent<RivenStateComponent>(cmd.issuerEntity).bUlted &&
+        world.GetComponent<RivenStateComponent>(cmd.issuerEntity).fUltTimer > 0.f;
     const ChampionBasicAttackTimingDefaults attackTiming =
-        ChampionGameDataDB::ResolveBasicAttackTiming(champion);
+        GetDefaultChampionBasicAttackTiming(champion);
 
     eActionStateId attackActionId = eActionStateId::BasicAttack;
     f32_t attackActionDurationSec = attackTiming.fActionDurationSec;
@@ -3056,7 +3282,7 @@ CommandExecutionResult CDefaultCommandExecutor::HandleBasicAttack(CWorld& world,
     if (bJaxEmpowerAttack)
     {
         const ChampionSkillTimingDefaults wTiming =
-            ChampionGameDataDB::ResolveSkillTiming(champion, static_cast<u8_t>(eSkillSlot::W));
+            GetDefaultChampionSkillTiming(champion, static_cast<u8_t>(eSkillSlot::W));
         attackActionId = eActionStateId::SkillW;
         attackActionDurationSec = wTiming.lockDurationSec;
     }
@@ -3075,11 +3301,38 @@ CommandExecutionResult CDefaultCommandExecutor::HandleBasicAttack(CWorld& world,
     action.eMovePolicy = ResolveBasicAttackMovePolicy(champion);
     action.eSourceChampion = champion;
     action.uSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
-    const u8_t attackActionStage = bSylasPassiveAttack ? 2u : 1u;
+    const u8_t attackActionStage =
+        (bSylasPassiveAttack || bZedPassiveAttack || bRivenUltimateAttack) ? 2u : 1u;
     action.uStage = attackActionStage;
     action.uFlags = bJaxEmpowerAttack ? CombatActionFlags::JaxEmpower : 0u;
     if (bSylasPassiveAttack)
         action.uFlags |= CombatActionFlags::SylasPassive;
+    if (bZedPassiveAttack)
+        action.uFlags |= CombatActionFlags::ZedPassive;
+#if defined(_DEBUG)
+    if (champion == eChampion::SYLAS)
+    {
+        static u32_t s_sylasPassiveTraceCount = 0u;
+        if (s_sylasPassiveTraceCount < 64u)
+        {
+            const u8_t remainingStacks =
+                world.HasComponent<SylasSimComponent>(cmd.issuerEntity)
+                    ? world.GetComponent<SylasSimComponent>(cmd.issuerEntity).passiveStacks
+                    : 0u;
+            char message[192]{};
+            sprintf_s(
+                message,
+                "[SylasPassive][ServerBA] consumed=%u stage=%u flags=0x%04X remaining=%u seq=%u\n",
+                bSylasPassiveAttack ? 1u : 0u,
+                static_cast<u32_t>(attackActionStage),
+                static_cast<u32_t>(action.uFlags),
+                static_cast<u32_t>(remainingStacks),
+                cmd.sequenceNum);
+            OutputCommandDebug(message);
+            ++s_sylasPassiveTraceCount;
+        }
+    }
+#endif
     action.entityTarget = cmd.targetEntity;
     action.uSequenceNum = cmd.sequenceNum;
     action.uStartTick = tc.tickIndex;
@@ -3189,7 +3442,7 @@ void CDefaultCommandExecutor::HandleBuyItem(CWorld& world, const TickContext& tc
         return;
 
     const ItemDef* pItem = CItemRegistry::Instance().Find(cmd.itemId);
-    if (!pItem)
+    if (!pItem || !pItem->bPurchasable)
         return;
 
     GoldComponent& gold = world.GetComponent<GoldComponent>(cmd.issuerEntity);
@@ -3238,61 +3491,177 @@ void CDefaultCommandExecutor::HandleBuyItem(CWorld& world, const TickContext& tc
     stat.bDirty = true;
 }
 
-void CDefaultCommandExecutor::HandleUseItem(CWorld& world, const TickContext& tc,
+CommandExecutionResult CDefaultCommandExecutor::HandleUseItem(
+    CWorld& world,
+    const TickContext& tc,
     const GameCommand& cmd)
 {
-    if (cmd.itemId == kKalistaOathswornItemId)
+    if (!world.HasComponent<InventoryComponent>(cmd.issuerEntity))
     {
-        if (!world.HasComponent<InventoryComponent>(cmd.issuerEntity))
-            return;
-        auto& inventory =
-            world.GetComponent<InventoryComponent>(cmd.issuerEntity);
-        if (inventory.itemIds[kKalistaOathswornInventorySlot] !=
-            kKalistaOathswornItemId)
-        {
-            return;
-        }
-
-        if (KalistaGameSim::TryBeginOathswornContract(
-            world,
-            tc,
-            cmd.issuerEntity,
-            cmd.targetEntity))
-        {
-            inventory.itemIds[kKalistaOathswornInventorySlot] = 0u;
-            while (inventory.count > 0u &&
-                inventory.itemIds[inventory.count - 1u] == 0u)
-            {
-                --inventory.count;
-            }
-        }
-        return;
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum, eCommandExecutionReason::MissingComponent);
     }
 
-    if (cmd.itemId != kTrinketWardItemId)
-        return;
-    if (!GameplayStateQuery::CanCast(world, cmd.issuerEntity))
-        return;
+    auto& inventory = world.GetComponent<InventoryComponent>(cmd.issuerEntity);
+    if (cmd.slot >= InventoryComponent::kMaxSlots ||
+        cmd.itemId == 0u ||
+        inventory.itemIds[cmd.slot] != cmd.itemId)
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum, eCommandExecutionReason::InvalidPayload);
+    }
 
-    Vec3 placement{};
-    if (!TryResolveWardPlacement(world, tc, cmd.issuerEntity, cmd.groundPos, placement))
-        return;
+    const ItemDef* pItem = CItemRegistry::Instance().Find(cmd.itemId);
+    if (!pItem || !pItem->active.bValid ||
+        pItem->active.kind == eItemActiveKind::None)
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum, eCommandExecutionReason::InvalidPayload);
+    }
 
-    ClearMoveTarget(world, cmd.issuerEntity);
-    ClearAttackChase(world, cmd.issuerEntity);
-    SpawnWardEntity(world, tc, cmd.issuerEntity, ResolveTeam(world, cmd.issuerEntity), placement);
+    const bool_t bIsCleanse = pItem->active.kind == eItemActiveKind::Cleanse;
+    if (GameplayStateQuery::HasState(
+            world, cmd.issuerEntity, kGameplayStateInvulnerableFlag) ||
+        (!bIsCleanse && !GameplayStateQuery::CanCast(world, cmd.issuerEntity)))
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum, eCommandExecutionReason::StateBlocked);
+    }
+
+    if (!CItemEffectSystem::IsActiveReady(
+            world, tc, cmd.issuerEntity, cmd.slot, *pItem))
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum, eCommandExecutionReason::Cooldown);
+    }
+
+    Vec3 resolvedPosition{};
+    bool_t bApplied = false;
+    switch (pItem->active.kind)
+    {
+    case eItemActiveKind::Ward:
+        if (TryResolveWardPlacement(
+                world, tc, cmd.issuerEntity, cmd.groundPos, resolvedPosition))
+        {
+            ClearMoveTarget(world, cmd.issuerEntity);
+            ClearAttackChase(world, cmd.issuerEntity);
+            SpawnWardEntity(
+                world,
+                tc,
+                cmd.issuerEntity,
+                ResolveTeam(world, cmd.issuerEntity),
+                resolvedPosition);
+            bApplied = true;
+        }
+        break;
+    case eItemActiveKind::Stasis:
+    {
+        const StatusEffectApplyDesc desc{
+            eStatusEffectId::ZhonyaStasis,
+            eStatusStackPolicy::RefreshDuration,
+            cmd.issuerEntity,
+            0u,
+            kGameplayStateUntargetableFlag |
+                kGameplayStateInvulnerableFlag |
+                kGameplayStateStasisVisualFlag |
+                kGameplayStateCannotMoveFlag |
+                kGameplayStateCannotAttackFlag |
+                kGameplayStateCannotCastFlag,
+            pItem->active.durationSec,
+            1.f
+        };
+        bApplied = GameplayStatus::TryApplyStatusEffect(
+            world, cmd.issuerEntity, desc, tc);
+        if (bApplied)
+        {
+            ClearMoveTarget(world, cmd.issuerEntity);
+            ClearAttackChase(world, cmd.issuerEntity);
+            ClearCombatAction(world, cmd.issuerEntity);
+            CancelRecall(world, cmd.issuerEntity);
+            SetPoseState(world, cmd.issuerEntity, ePoseStateId::Idle, tc.tickIndex);
+        }
+        break;
+    }
+    case eItemActiveKind::Cleanse:
+        GameplayStatus::CleanseCrowdControlEffects(world, cmd.issuerEntity);
+        bApplied = true;
+        break;
+    case eItemActiveKind::KalistaOathsworn:
+        bApplied = KalistaGameSim::TryBeginOathswornContract(
+            world, tc, cmd.issuerEntity, cmd.targetEntity);
+        break;
+    default:
+        break;
+    }
+
+    if (!bApplied)
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum, eCommandExecutionReason::InvalidTarget);
+    }
+
+    CItemEffectSystem::CommitActiveCooldown(
+        world, tc, cmd.issuerEntity, cmd.slot, *pItem);
+    if (pItem->active.kind == eItemActiveKind::KalistaOathsworn)
+    {
+        inventory.itemIds[cmd.slot] = 0u;
+        while (inventory.count > 0u &&
+            inventory.itemIds[inventory.count - 1u] == 0u)
+        {
+            --inventory.count;
+        }
+    }
 
 #if defined(_DEBUG)
     char msg[240]{};
     sprintf_s(msg,
-        "[Command] use-item ward accept issuer=%u seq=%u pos=(%.2f,%.2f,%.2f)\n",
+        "[Command] use-item accept issuer=%u seq=%u slot=%u item=%u\n",
         static_cast<u32_t>(cmd.issuerEntity),
         cmd.sequenceNum,
-        placement.x,
-        placement.y,
-        placement.z);
+        static_cast<u32_t>(cmd.slot),
+        static_cast<u32_t>(cmd.itemId));
     OutputCommandDebug(msg);
 #endif
+    return CommandExecutionResult::Accepted(cmd.sequenceNum, resolvedPosition);
+}
+
+CommandExecutionResult CDefaultCommandExecutor::HandleReorderItem(
+    CWorld& world,
+    const TickContext&,
+    const GameCommand& cmd)
+{
+    if (!world.HasComponent<InventoryComponent>(cmd.issuerEntity))
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum, eCommandExecutionReason::MissingComponent);
+    }
+
+    const u8_t targetSlot = static_cast<u8_t>(cmd.practiceFlags & 0xffu);
+    auto& inventory = world.GetComponent<InventoryComponent>(cmd.issuerEntity);
+    if ((cmd.practiceFlags & ~0xffu) != 0u ||
+        cmd.slot >= InventoryComponent::kMaxSlots ||
+        targetSlot >= InventoryComponent::kMaxSlots ||
+        cmd.itemId == 0u ||
+        inventory.itemIds[cmd.slot] != cmd.itemId)
+    {
+        return CommandExecutionResult::Rejected(
+            cmd.sequenceNum, eCommandExecutionReason::InvalidPayload);
+    }
+
+    if (cmd.slot != targetSlot)
+    {
+        std::swap(inventory.itemIds[cmd.slot], inventory.itemIds[targetSlot]);
+        CItemEffectSystem::SwapRuntimeSlots(
+            world, cmd.issuerEntity, cmd.slot, targetSlot);
+    }
+
+    inventory.count = 0u;
+    for (u8_t slot = 0u; slot < InventoryComponent::kMaxSlots; ++slot)
+    {
+        if (inventory.itemIds[slot] != 0u)
+            inventory.count = static_cast<u8_t>(slot + 1u);
+    }
+    return CommandExecutionResult::Accepted(cmd.sequenceNum);
 }
 CommandExecutionResult CDefaultCommandExecutor::HandleRecall(CWorld& world, const TickContext& tc,
     const GameCommand& cmd)

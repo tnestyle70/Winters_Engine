@@ -89,6 +89,17 @@ namespace
         return eEngineRHIBackend::DX11;
     }
 
+    uint32_t ParseRunSeconds()
+    {
+        const wchar_t* pValue = FindCommandLineValue(L"--run-seconds=");
+        if (!pValue)
+            return 0u;
+
+        wchar_t* pEnd = nullptr;
+        const unsigned long parsed = std::wcstoul(pValue, &pEnd, 10);
+        return (pEnd == pValue) ? 0u : static_cast<uint32_t>(parsed);
+    }
+
 	std::wstring ParseReplayIndexSmokePath()
 	{
 		const wchar_t* pValue = FindCommandLineValue(L"--replay-index-smoke=");
@@ -143,6 +154,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int)
     config.targetFPS = ParseRequestedTargetFPS();
     config.fullscreen = false;
     config.iNumScenes = static_cast<uint32_t>(eSceneID::End);
+    config.runSeconds = ParseRunSeconds();
+    config.profileCaptureOnExit = HasCommandLineFlag(L"--profile-capture-on-exit");
 
     return WintersRun(&gameApp, config);
 }

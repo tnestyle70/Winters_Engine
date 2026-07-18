@@ -4,6 +4,10 @@
 #include "ECS/Entity.h"
 #include "WintersMath.h"
 
+struct YoneSoulPresentationTag
+{
+};
+
 struct YoneStateComponent
 {
     bool_t bEActive = false;

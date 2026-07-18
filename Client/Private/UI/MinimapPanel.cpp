@@ -38,7 +38,7 @@ namespace
 
     struct MinimapRuntimeLayout
     {
-        f32_t ViewportHeightRatio = 0.35f;
+        f32_t ViewportHeightRatio = 0.37f;
         f32_t RightPadding = 12.f;
         f32_t BottomPadding = 12.f;
         f32_t IconScale = 1.f;

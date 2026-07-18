@@ -1,8 +1,10 @@
 #include "GamePlay/LoLUIContentRegistry.h"
 
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
 #include "GameInstance.h"
 #include "Manager/UI/ActorHUDAssets.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
+#include "Shared/GameSim/Components/KalistaBondComponent.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 
@@ -50,7 +52,12 @@ namespace Client
             AppendItemStatLine(Lines, "Magic Resist", Stats.flatMr);
             AppendItemStatLine(Lines, "Attack Speed", Stats.bonusAttackSpeed, true);
             AppendItemStatLine(Lines, "Crit Chance", Stats.critChance, true);
+            AppendItemStatLine(Lines, "Crit Damage", Stats.critDamageBonus, true);
             AppendItemStatLine(Lines, "Ability Haste", Stats.abilityHaste);
+            AppendItemStatLine(Lines, "Move Speed", Stats.percentMoveSpeed, true);
+            AppendItemStatLine(Lines, "Armor Pen", Stats.armorPenPercent, true);
+            AppendItemStatLine(Lines, "Bonus Armor Pen", Stats.bonusArmorPenPercent, true);
+            AppendItemStatLine(Lines, "Magic Pen", Stats.magicPenPercent, true);
             AppendItemStatLine(Lines, "Magic Pen", Stats.flatMagicPen);
             AppendItemStatLine(Lines, "Lethality", Stats.lethality);
             AppendItemStatLine(Lines, "Move Speed", Stats.flatMoveSpeed);
@@ -279,9 +286,11 @@ namespace Client
             const char* pSection = nullptr;
             const wchar_t* pIconPath = nullptr;
             const char* pIconSprite = nullptr;
+            bool_t bPurchasable = true;
         };
 
-        // 기본 배치: 시작템 -> 신발 -> 재료 -> 완성템. 전 항목 Data Dragon 16.13.1 SR 구매가능 검증.
+        // Preferred legacy icon ordering. Canonical availability, price, and
+        // stats come from the generated Data Dragon 16.14.1 item projection.
         constexpr LoLShopCatalogEntry kLoLShopCatalog[] =
         {
             { 1055, "1055_marksman_t1_doransblade.png", "legacy", L"Resource/Texture/UI/Items/1055_marksman_t1_doransblade.png", "item:1055_marksman_t1_doransblade.png" },
@@ -318,6 +327,9 @@ namespace Client
             { 3157, "3157_mage_t3_zhonyashourglass.png", "legacy", L"Resource/Texture/UI/Items/3157_mage_t3_zhonyashourglass.png", "item:3157_mage_t3_zhonyashourglass.png" },
             { 3065, "3065_tank_t3_spiritvisage.png", "legacy", L"Resource/Texture/UI/Items/3065_tank_t3_spiritvisage.png", "item:3065_tank_t3_spiritvisage.png" },
             { 3742, "3742_tank_t3_deadmansplate.png", "legacy", L"Resource/Texture/UI/Items/3742_tank_t3_deadmansplate.png", "item:3742_tank_t3_deadmansplate.png" },
+            { 3042, "3042_marksman_t3_muramana.png", "inventory", L"Resource/Texture/UI/Items/3042_marksman_t3_muramana.png", "item:3042_marksman_t3_muramana.png", false },
+            { 3340, "3340_class_t1_wardingtotem.png", "inventory", L"Resource/Texture/UI/Items/3340_class_t1_wardingtotem.png", "item:3340_class_t1_wardingtotem.png", false },
+            { kKalistaOathswornItemId, "3599_kalistapassiveitem.png", "inventory", L"Resource/Texture/UI/Items/3599_kalistapassiveitem.png", "item:3599_kalistapassiveitem.png", false },
         };
 
         struct RuntimeShopEntry
@@ -328,6 +340,7 @@ namespace Client
             std::wstring strIconPath;
             std::string strIconSprite;
             bool_t bEnabled = true;
+            bool_t bPurchasable = true;
         };
 
         u16_t ParseItemId(const std::string& AssetKey)
@@ -362,7 +375,10 @@ namespace Client
         }
 
         RuntimeShopEntry MakeRuntimeShopEntry(
-            u16_t ItemId, const std::string& AssetKey, bool_t bEnabled)
+            u16_t ItemId,
+            const std::string& AssetKey,
+            bool_t bEnabled,
+            bool_t bPurchasable = true)
         {
             RuntimeShopEntry entry{};
             entry.iItemId = ItemId;
@@ -373,6 +389,7 @@ namespace Client
                 std::wstring(AssetKey.begin(), AssetKey.end());
             entry.strIconSprite = "item:" + AssetKey;
             entry.bEnabled = bEnabled;
+            entry.bPurchasable = bPurchasable;
             return entry;
         }
 
@@ -380,15 +397,21 @@ namespace Client
         {
             std::vector<RuntimeShopEntry> catalog;
             std::unordered_set<std::string> assetKeys;
+            std::unordered_set<u16_t> itemIds;
             catalog.reserve(std::size(kLoLShopCatalog) + 384u);
 
             for (const LoLShopCatalogEntry& entry : kLoLShopCatalog)
             {
+                if (entry.bPurchasable &&
+                    !ClientData::FindShopItemPresentationDefinition(entry.iItemId))
+                    continue;
                 catalog.push_back(MakeRuntimeShopEntry(
                     entry.iItemId,
                     entry.pAssetKey ? entry.pAssetKey : "",
-                    true));
+                    true,
+                    entry.bPurchasable));
                 assetKeys.insert(catalog.back().strAssetKey);
+                itemIds.insert(entry.iItemId);
             }
 
             const std::filesystem::path candidates[] =
@@ -426,8 +449,17 @@ namespace Client
                 const std::string assetKey = it->path().filename().string();
                 if (assetKey.empty() || !assetKeys.insert(assetKey).second)
                     continue;
+
+                const u16_t itemId = ParseItemId(assetKey);
+                if (itemId == 0u ||
+                    itemIds.find(itemId) != itemIds.end() ||
+                    !ClientData::FindShopItemPresentationDefinition(itemId))
+                {
+                    continue;
+                }
+                itemIds.insert(itemId);
                 discovered.push_back(MakeRuntimeShopEntry(
-                    ParseItemId(assetKey), assetKey, true));
+                    itemId, assetKey, true));
             }
 
             std::sort(discovered.begin(), discovered.end(),
@@ -470,11 +502,13 @@ namespace Client
                     continue;
 
                 const RuntimeShopEntry& Entry = Catalog[Index];
-                const ItemDef* pItem = CItemRegistry::Instance().Find(Entry.iItemId);
-                if (pItem)
-                    StatTextStorage.push_back(BuildItemStatLines(pItem->stats));
-                else
-                    StatTextStorage.push_back({ "Resource only - add a server ItemDef to enable purchase" });
+                const ClientData::ShopItemPresentationDefinition* pItem =
+                    ClientData::FindShopItemPresentationDefinition(Entry.iItemId);
+                if (!pItem && Entry.bPurchasable)
+                    continue;
+                StatTextStorage.push_back(pItem
+                    ? BuildItemStatLines(pItem->stats)
+                    : std::vector<std::string>{ "Champion-bound item" });
                 const std::vector<std::string>& Lines = StatTextStorage.back();
 
                 std::vector<const char*>& LinePointers = StatLineStorage.emplace_back();
@@ -488,13 +522,15 @@ namespace Client
                 Desc.iOrder = Index;
                 Desc.pAssetKey = Entry.strAssetKey.c_str();
                 Desc.pSection = Entry.strSection.c_str();
-                Desc.pDisplayName = pItem ? pItem->displayName : Entry.strAssetKey.c_str();
+                Desc.pDisplayName = pItem
+                    ? pItem->displayName
+                    : "Black Spear";
                 Desc.pIconPath = Entry.strIconPath.c_str();
                 Desc.pIconSprite = Entry.strIconSprite.c_str();
                 Desc.pStatLines = LinePointers.empty() ? nullptr : LinePointers.data();
                 Desc.iStatLineCount = static_cast<u32_t>(LinePointers.size());
                 Desc.bEnabled = true;
-                Desc.bPurchasable = pItem != nullptr && Entry.iItemId != 0u;
+                Desc.bPurchasable = Entry.bPurchasable && pItem != nullptr;
                 Items.push_back(Desc);
             }
 
@@ -536,11 +572,15 @@ namespace Client
         View.pAssetKey = Entry.strAssetKey.c_str();
         View.pSection = Entry.strSection.c_str();
         View.bEnabled = Entry.bEnabled;
-        const ItemDef* pItem = CItemRegistry::Instance().Find(View.iItemId);
+        const ClientData::ShopItemPresentationDefinition* pItem =
+            ClientData::FindShopItemPresentationDefinition(View.iItemId);
         View.iPrice = pItem ? pItem->price : 0u;
-        View.pDisplayName = pItem ? pItem->displayName : Entry.strAssetKey.c_str();
-        View.bRegistered = pItem != nullptr;
-        View.bPurchasable = pItem != nullptr && View.iItemId != 0u;
+        View.pDisplayName = pItem
+            ? pItem->displayName
+            : (Entry.bPurchasable ? Entry.strAssetKey.c_str() : "Black Spear");
+        View.bRegistered = pItem != nullptr || !Entry.bPurchasable;
+        View.bPurchasable =
+            Entry.bPurchasable && pItem != nullptr && View.iItemId != 0u;
         return View;
     }
 

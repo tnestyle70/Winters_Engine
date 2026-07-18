@@ -1,6 +1,7 @@
 #include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 
 #include "Server/Private/Data/LoLGameplayDefinitionPack.h"
+#include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
 
 #include <atomic>
 #include <memory>
@@ -34,6 +35,12 @@ namespace
         EconomyGameplayDef economyStorage{};
         // displayName 은 코드젠 문자열 리터럴 포인터 공유 (JSON 이름은 무시 = 구조 소관).
         std::vector<ItemDef> items;
+        std::vector<RuneGameplayDef> runes;
+        ChampionAIProfile defaultAIProfile{};
+        std::vector<ChampionAIProfile> aiProfiles;
+        ChampionAIComboPlan defaultAIComboPlan{};
+        std::vector<ChampionAIComboOverride> aiComboOverrides;
+        ChampionAIRuntimeDefinitionPack aiPack{};
         GameplayDefinitionPack pack{};
         // SpawnObject 팩 사본 + 소유 배열 (jungleCamps/minions 포인터가 이 벡터를 가리킨다).
         std::vector<JungleCampGameDefEntry> jungleCamps;
@@ -75,6 +82,43 @@ namespace
                 ch = static_cast<char>(ch - 'A' + 'a');
         }
         return text;
+    }
+
+    bool_t ResolveTargetMode(
+        const std::string& text,
+        eTargetShape& outShape,
+        eTargetResolvePolicy& outPolicy)
+    {
+        outPolicy = eTargetResolvePolicy::Direct;
+        if (text == "Self") outShape = eTargetShape::Self;
+        else if (text == "UnitTarget") outShape = eTargetShape::Unit;
+        else if (text == "GroundTarget") outShape = eTargetShape::Ground;
+        else if (text == "Direction") outShape = eTargetShape::Direction;
+        else return false;
+        return true;
+    }
+
+    bool_t ResolveInputActivation(
+        const std::string& text,
+        eSkillInputActivation& outActivation)
+    {
+        if (text == "Press") outActivation = eSkillInputActivation::Press;
+        else if (text == "PressRecast") outActivation = eSkillInputActivation::PressRecast;
+        else if (text == "PressRelease") outActivation = eSkillInputActivation::PressRelease;
+        else return false;
+        return true;
+    }
+
+    bool_t ResolveMovePolicy(
+        const std::string& text,
+        eSkillActionMovePolicy& outPolicy)
+    {
+        if (text == "Allow") outPolicy = eSkillActionMovePolicy::Allow;
+        else if (text == "QueueUntilUnlock") outPolicy = eSkillActionMovePolicy::QueueUntilUnlock;
+        else if (text == "StationaryChannel") outPolicy = eSkillActionMovePolicy::StationaryChannel;
+        else if (text == "ForcedMotion") outPolicy = eSkillActionMovePolicy::ForcedMotion;
+        else return false;
+        return true;
     }
 
     bool_t ReadFileText(const std::wstring& path, std::string& outText)
@@ -226,6 +270,17 @@ namespace
         { "refreshDurationSec", eSkillEffectParamId::RefreshDurationSec },
         { "vanishDurationSec", eSkillEffectParamId::VanishDurationSec },
         { "missingHealthDamageRatio", eSkillEffectParamId::MissingHealthDamageRatio },
+        { "targetHealthThresholdRatio", eSkillEffectParamId::TargetHealthThresholdRatio },
+        { "acquireRange", eSkillEffectParamId::AcquireRange },
+        { "lifetimeSec", eSkillEffectParamId::LifetimeSec },
+        { "respawnSec", eSkillEffectParamId::RespawnSec },
+        { "sideDotThreshold", eSkillEffectParamId::SideDotThreshold },
+        { "targetMaxHpRatio", eSkillEffectParamId::TargetMaxHpRatio },
+        { "challengeDurationSec", eSkillEffectParamId::ChallengeDurationSec },
+        { "healDurationSec", eSkillEffectParamId::HealDurationSec },
+        { "healRadius", eSkillEffectParamId::HealRadius },
+        { "healIntervalSec", eSkillEffectParamId::HealIntervalSec },
+        { "healAmount", eSkillEffectParamId::HealAmount },
         { "minHealthAmount", eSkillEffectParamId::MinHealthAmount },
         { "healBaseAmount", eSkillEffectParamId::HealBaseAmount },
         { "healAmountPerRank", eSkillEffectParamId::HealAmountPerRank },
@@ -285,7 +340,7 @@ namespace
         { "lane", eSummonPolicyParamId::Lane },
     };
 
-    // champions.json "stats" 필드명 -> ChampionStatBlock 멤버 (전 20필드).
+    // champions.json numeric "stats" field -> ChampionStatBlock member.
     struct ChampionStatFieldName
     {
         const char* name;
@@ -298,6 +353,7 @@ namespace
         { "hpPerLevel", &ChampionStatBlock::hpPerLevel },
         { "baseMana", &ChampionStatBlock::baseMana },
         { "manaPerLevel", &ChampionStatBlock::manaPerLevel },
+        { "resourceRegenPerSec", &ChampionStatBlock::resourceRegenPerSec },
         { "baseAd", &ChampionStatBlock::baseAd },
         { "adPerLevel", &ChampionStatBlock::adPerLevel },
         { "baseAp", &ChampionStatBlock::baseAp },
@@ -309,6 +365,7 @@ namespace
         { "baseAttackSpeed", &ChampionStatBlock::baseAttackSpeed },
         { "attackSpeedRatio", &ChampionStatBlock::attackSpeedRatio },
         { "attackSpeedPerLevel", &ChampionStatBlock::attackSpeedPerLevel },
+        { "basicAttackWindupSec", &ChampionStatBlock::basicAttackWindupSec },
         { "baseAttackRange", &ChampionStatBlock::baseAttackRange },
         { "baseMoveSpeed", &ChampionStatBlock::baseMoveSpeed },
         { "navArriveRadius", &ChampionStatBlock::navArriveRadius },
@@ -664,6 +721,30 @@ namespace
                 }
                 for (const auto& item : stats.items())
                 {
+                    if (item.key() == "resourceKind")
+                    {
+                        if (!item.value().is_string())
+                        {
+                            outError = name + ".stats.resourceKind must be a string";
+                            return false;
+                        }
+                        const std::string resourceKind = item.value().get<std::string>();
+                        if (resourceKind == "Mana")
+                            pChampion->stats.resourceKind = eChampionResourceKind::Mana;
+                        else if (resourceKind == "Energy")
+                            pChampion->stats.resourceKind = eChampionResourceKind::Energy;
+                        else if (resourceKind == "None")
+                            pChampion->stats.resourceKind = eChampionResourceKind::None;
+                        else if (resourceKind == "Flow")
+                            pChampion->stats.resourceKind = eChampionResourceKind::Flow;
+                        else
+                        {
+                            outError = name + ".stats.resourceKind has an unknown value";
+                            return false;
+                        }
+                        continue;
+                    }
+
                     const ChampionStatFieldName* pField = nullptr;
                     for (const ChampionStatFieldName& candidate : kChampionStatFields)
                     {
@@ -717,7 +798,6 @@ namespace
                     return false;
                 }
 
-                // 수치 필드만 오버레이. 구조 필드(targetMode/stageCount/skillId 등)는 무시 = 코드젠 소관.
                 std::string fieldError;
                 const u8_t expectedRankCount = slot == static_cast<u32_t>(eSkillSlot::BasicAttack)
                     ? 1u
@@ -741,19 +821,108 @@ namespace
                 pSkill->cooldown.cooldownSec = pSkill->cooldown.cooldownSecByRank[0];
                 pSkill->cost.manaCost = pSkill->cost.manaCostByRank[0];
 
+                const u32_t stageCount = skillEntry.value("stageCount", 0u);
+                const std::string activationMode =
+                    skillEntry.value("activationMode", std::string("Press"));
+                if (stageCount < 1u || stageCount > kSkillAtomStageMax ||
+                    !ResolveInputActivation(activationMode, pSkill->input.activation))
+                {
+                    outError = name + ".skills[" + std::to_string(slot) +
+                        "] invalid stageCount/activationMode";
+                    return false;
+                }
+                pSkill->stage.stageCount = static_cast<u8_t>(stageCount);
+
                 if (skillEntry.contains("stages") && skillEntry["stages"].is_array())
                 {
                     const json& stages = skillEntry["stages"];
+                    if (stages.size() != stageCount)
+                    {
+                        outError = name + ".skills[" + std::to_string(slot) +
+                            "].stages count mismatch";
+                        return false;
+                    }
                     for (u8_t stageIndex = 0;
                         stageIndex < stages.size() && stageIndex < kSkillAtomStageMax;
                         ++stageIndex)
                     {
-                        if (!TryOverlayNumber(stages[stageIndex], "lockDurationSec", 0.f, 10.f,
-                            pSkill->stage.lockDurationSec[stageIndex], fieldError))
+                        const json& stageEntry = stages[stageIndex];
+                        if (!stageEntry.is_object() ||
+                            !stageEntry.contains("targetMode") ||
+                            !stageEntry["targetMode"].is_string() ||
+                            !stageEntry.contains("movePolicy") ||
+                            !stageEntry["movePolicy"].is_string() ||
+                            !TryOverlayNumber(stageEntry, "lockDurationSec", 0.f, 10.f,
+                                pSkill->stage.lockDurationSec[stageIndex], fieldError) ||
+                            !TryOverlayNumber(stageEntry, "commandLockSec", 0.f, 10.f,
+                                pSkill->stage.commandLockSec[stageIndex], fieldError) ||
+                            !ResolveTargetMode(
+                                stageEntry["targetMode"].get<std::string>(),
+                                pSkill->target.shape[stageIndex],
+                                pSkill->target.resolvePolicy) ||
+                            !ResolveMovePolicy(
+                                stageEntry["movePolicy"].get<std::string>(),
+                                pSkill->stage.movePolicy[stageIndex]))
                         {
                             outError = name + ".skills[" + std::to_string(slot) + "].stages " + fieldError;
                             return false;
                         }
+                        pSkill->stage.bCreatesActionState[stageIndex] =
+                            stageEntry.value("createsActionState", true);
+                        pSkill->stage.bPresentationLoopWhileActive[stageIndex] =
+                            stageEntry.value("presentationLoopWhileActive", false);
+                    }
+                    pSkill->target.bValid = true;
+                    pSkill->target.resolvePolicy =
+                        stageCount > 1u &&
+                        pSkill->target.shape[0] != pSkill->target.shape[1]
+                            ? eTargetResolvePolicy::StageDependent
+                            : eTargetResolvePolicy::Direct;
+                }
+                else
+                {
+                    outError = name + ".skills[" + std::to_string(slot) + "].stages missing";
+                    return false;
+                }
+
+                pSkill->charge = SkillChargeSpec{};
+                if (skillEntry.contains("charge"))
+                {
+                    const json& charge = skillEntry["charge"];
+                    const auto readPair = [&](const char* field, f32_t& outMin, f32_t& outMax)
+                    {
+                        if (!charge.contains(field) || !charge[field].is_array() ||
+                            charge[field].size() != 2u ||
+                            !charge[field][0].is_number() || !charge[field][1].is_number())
+                        {
+                            return false;
+                        }
+                        outMin = charge[field][0].get<f32_t>();
+                        outMax = charge[field][1].get<f32_t>();
+                        return std::isfinite(outMin) && std::isfinite(outMax) &&
+                            outMin >= 0.f && outMax >= outMin;
+                    };
+                    if (!charge.is_object() ||
+                        !charge.contains("maxHoldSec") || !charge["maxHoldSec"].is_number() ||
+                        !charge.contains("autoRelease") || !charge["autoRelease"].is_boolean())
+                    {
+                        outError = name + ".skills[" + std::to_string(slot) + "].charge malformed";
+                        return false;
+                    }
+                    pSkill->charge.bEnabled = true;
+                    pSkill->charge.bAutoRelease = charge["autoRelease"].get<bool_t>();
+                    pSkill->charge.maxHoldSec = charge["maxHoldSec"].get<f32_t>();
+                    if (!std::isfinite(pSkill->charge.maxHoldSec) ||
+                        pSkill->charge.maxHoldSec <= 0.f ||
+                        !readPair("rangeScale", pSkill->charge.minRangeScale,
+                            pSkill->charge.maxRangeScale) ||
+                        !readPair("damageScale", pSkill->charge.minDamageScale,
+                            pSkill->charge.maxDamageScale) ||
+                        !readPair("stunSeconds", pSkill->charge.minStunSec,
+                            pSkill->charge.maxStunSec))
+                    {
+                        outError = name + ".skills[" + std::to_string(slot) + "].charge invalid";
+                        return false;
                     }
                 }
             }
@@ -1239,11 +1408,16 @@ namespace
         { "flatMr", &ItemStatModifier::flatMr },
         { "bonusAttackSpeed", &ItemStatModifier::bonusAttackSpeed },
         { "critChance", &ItemStatModifier::critChance },
+        { "critDamageBonus", &ItemStatModifier::critDamageBonus },
         { "abilityHaste", &ItemStatModifier::abilityHaste },
+        { "percentMoveSpeed", &ItemStatModifier::percentMoveSpeed },
+        { "armorPenPercent", &ItemStatModifier::armorPenPercent },
+        { "bonusArmorPenPercent", &ItemStatModifier::bonusArmorPenPercent },
+        { "lethality", &ItemStatModifier::lethality },
+        { "magicPenPercent", &ItemStatModifier::magicPenPercent },
+        { "flatMagicPen", &ItemStatModifier::flatMagicPen },
         { "flatMoveSpeed", &ItemStatModifier::flatMoveSpeed },
         { "lifeSteal", &ItemStatModifier::lifeSteal },
-        { "flatMagicPen", &ItemStatModifier::flatMagicPen },
-        { "lethality", &ItemStatModifier::lethality },
     };
 
     // 아이템 스탯 도메인: 음수 허용 (코드젠 validate_item_stat_number 와 동일).
@@ -1263,7 +1437,8 @@ namespace
 
         static constexpr const char* kKnownRootKeys[] =
         {
-            "schemaVersion", "dataVersion", "buildHash", "items",
+            "schemaVersion", "dataVersion", "buildHash", "sourcePatch",
+            "sourceMapId", "items",
         };
         std::string unknownKey;
         if (!HasOnlyKnownKeys(root, kKnownRootKeys,
@@ -1289,7 +1464,8 @@ namespace
             // name 은 구조(표시) 소관이라 허용하되 무시한다.
             static constexpr const char* kKnownItemKeys[] =
             {
-                "itemId", "price", "stats", "onHitDamage", "name",
+                "itemId", "price", "purchasable", "stats", "onHitDamage", "name",
+                "spellblade", "manaflow", "maxManaBonusAdRatio",
             };
             if (!HasOnlyKnownKeys(entry, kKnownItemKeys,
                 sizeof(kKnownItemKeys) / sizeof(kKnownItemKeys[0]), unknownKey))
@@ -1325,6 +1501,16 @@ namespace
             {
                 outError = "items[" + std::to_string(itemId) + "] " + fieldError;
                 return false;
+            }
+            if (entry.contains("purchasable"))
+            {
+                if (!entry["purchasable"].is_boolean())
+                {
+                    outError = "items[" + std::to_string(itemId)
+                        + "].purchasable must be boolean";
+                    return false;
+                }
+                pItem->bPurchasable = entry["purchasable"].get<bool_t>();
             }
 
             if (entry.contains("stats"))
@@ -1381,12 +1567,389 @@ namespace
                 }
                 pItem->onHitDamage = damage;
             }
+            if (entry.contains("spellblade"))
+            {
+                const json& spellblade = entry["spellblade"];
+                static constexpr const char* kSpellbladeKeys[] =
+                {
+                    "cooldownSec", "baseAdRatio", "critChanceFlatScale",
+                    "manaRestoreRatio",
+                };
+                if (!spellblade.is_object() ||
+                    !HasOnlyKnownKeys(
+                        spellblade,
+                        kSpellbladeKeys,
+                        sizeof(kSpellbladeKeys) / sizeof(kSpellbladeKeys[0]),
+                        unknownKey))
+                {
+                    outError = "items[" + std::to_string(itemId)
+                        + "].spellblade invalid field: " + unknownKey;
+                    return false;
+                }
+                ItemSpellbladeDef parsed = pItem->spellblade;
+                if (!TryOverlayNumber(spellblade, "cooldownSec", 0.f, 1000000.f,
+                        parsed.cooldownSec, fieldError) ||
+                    !TryOverlayNumber(spellblade, "baseAdRatio", 0.f, 1000000.f,
+                        parsed.baseAdRatio, fieldError) ||
+                    !TryOverlayNumber(spellblade, "critChanceFlatScale", 0.f, 1000000.f,
+                        parsed.critChanceFlatScale, fieldError) ||
+                    !TryOverlayNumber(spellblade, "manaRestoreRatio", 0.f, 1000000.f,
+                        parsed.manaRestoreRatio, fieldError))
+                {
+                    outError = "items[" + std::to_string(itemId)
+                        + "].spellblade " + fieldError;
+                    return false;
+                }
+                parsed.bValid = true;
+                pItem->spellblade = parsed;
+            }
+            if (entry.contains("manaflow"))
+            {
+                const json& manaflow = entry["manaflow"];
+                static constexpr const char* kManaflowKeys[] =
+                {
+                    "rechargeSec", "maxCharges", "manaPerTrigger",
+                    "championMultiplier", "maxBonusMana", "transformItemId",
+                };
+                if (!manaflow.is_object() ||
+                    !HasOnlyKnownKeys(
+                        manaflow,
+                        kManaflowKeys,
+                        sizeof(kManaflowKeys) / sizeof(kManaflowKeys[0]),
+                        unknownKey))
+                {
+                    outError = "items[" + std::to_string(itemId)
+                        + "].manaflow invalid field: " + unknownKey;
+                    return false;
+                }
+                ItemManaflowDef parsed = pItem->manaflow;
+                if (!TryOverlayNumber(manaflow, "rechargeSec", 0.f, 1000000.f,
+                        parsed.rechargeSec, fieldError) ||
+                    !TryOverlayUnsigned8(manaflow, "maxCharges", 1ull, 255ull,
+                        parsed.maxCharges, fieldError) ||
+                    !TryOverlayUnsigned16(manaflow, "manaPerTrigger", 1ull, 65535ull,
+                        parsed.manaPerTrigger, fieldError) ||
+                    !TryOverlayUnsigned8(manaflow, "championMultiplier", 1ull, 255ull,
+                        parsed.championMultiplier, fieldError) ||
+                    !TryOverlayUnsigned16(manaflow, "maxBonusMana", 1ull, 65535ull,
+                        parsed.maxBonusMana, fieldError) ||
+                    !TryOverlayUnsigned16(manaflow, "transformItemId", 1ull, 65535ull,
+                        parsed.transformItemId, fieldError))
+                {
+                    outError = "items[" + std::to_string(itemId)
+                        + "].manaflow " + fieldError;
+                    return false;
+                }
+                parsed.bValid = true;
+                pItem->manaflow = parsed;
+            }
+            if (!TryOverlayNumber(
+                    entry,
+                    "maxManaBonusAdRatio",
+                    0.f,
+                    1000000.f,
+                    pItem->maxManaBonusAdRatio,
+                    fieldError))
+            {
+                outError = "items[" + std::to_string(itemId)
+                    + "].maxManaBonusAdRatio " + fieldError;
+                return false;
+            }
         }
 
         return true;
     }
 
     // SpawnObjectGameplayDefs.json 수치 필드 -> 정의 멤버 (코드젠 *_FIELDS 와 1:1).
+    bool_t ApplyRuneJson(
+        const json& root,
+        RuntimePackStorage& storage,
+        std::string& outError)
+    {
+        if (!root.contains("runes") || !root["runes"].is_array())
+        {
+            outError = "runes must be an array";
+            return false;
+        }
+        for (const json& entry : root["runes"])
+        {
+            if (!entry.is_object() || !entry.contains("key") || !entry["key"].is_string() ||
+                !entry.contains("legacyRuneId") || !entry["legacyRuneId"].is_number_unsigned() ||
+                !entry.contains("enabled") || !entry["enabled"].is_boolean() ||
+                !entry.contains("maxStacks") || !entry["maxStacks"].is_number_unsigned())
+            {
+                outError = "invalid rune entry";
+                return false;
+            }
+            const u64_t legacyId = entry["legacyRuneId"].get<u64_t>();
+            const u64_t maxStacks = entry["maxStacks"].get<u64_t>();
+            const std::string key = entry["key"].get<std::string>();
+            RuneGameplayDef* target = nullptr;
+            for (RuneGameplayDef& rune : storage.runes)
+            {
+                if (static_cast<u64_t>(rune.legacyRuneId) == legacyId)
+                {
+                    target = &rune;
+                    break;
+                }
+            }
+            if (!target || maxStacks > 255u || target->key != Fnv1a32(key))
+            {
+                outError = "unknown or incompatible rune: " + key;
+                return false;
+            }
+            target->bEnabled = entry["enabled"].get<bool>();
+            target->maxStacks = static_cast<u8_t>(maxStacks);
+        }
+        return true;
+    }
+
+    constexpr EconomyFieldName<ChampionAIProfile> kAIProfileFloatFields[] =
+    {
+        { "preferredRange", &ChampionAIProfile::preferredRange },
+        { "championScanRange", &ChampionAIProfile::championScanRange },
+        { "minionScanRange", &ChampionAIProfile::minionScanRange },
+        { "structureScanRange", &ChampionAIProfile::structureScanRange },
+        { "leashRange", &ChampionAIProfile::leashRange },
+        { "aggression", &ChampionAIProfile::aggression },
+        { "kiteBias", &ChampionAIProfile::kiteBias },
+        { "retreatHpRatio", &ChampionAIProfile::retreatHpRatio },
+        { "reengageHpRatio", &ChampionAIProfile::reengageHpRatio },
+        { "minionPressureWeight", &ChampionAIProfile::minionPressureWeight },
+        { "turretRiskWeight", &ChampionAIProfile::turretRiskWeight },
+        { "lastHitWeight", &ChampionAIProfile::lastHitWeight },
+        { "siegeWeight", &ChampionAIProfile::siegeWeight },
+    };
+
+    bool_t ResolveAIChampion(
+        const RuntimePackStorage& storage,
+        const std::string& name,
+        eChampion& outChampion)
+    {
+        const DefinitionKey key = Fnv1a32("champion." + ToLowerAscii(name));
+        for (const ChampionGameplayDef& definition : storage.champions)
+        {
+            if (definition.key == key)
+            {
+                outChampion = definition.legacyChampion;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool_t ResolveAISlot(const std::string& text, u8_t& outSlot)
+    {
+        if (text == "BasicAttack") outSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+        else if (text == "Q") outSlot = static_cast<u8_t>(eSkillSlot::Q);
+        else if (text == "W") outSlot = static_cast<u8_t>(eSkillSlot::W);
+        else if (text == "E") outSlot = static_cast<u8_t>(eSkillSlot::E);
+        else if (text == "R") outSlot = static_cast<u8_t>(eSkillSlot::R);
+        else return false;
+        return true;
+    }
+
+    bool_t ParseAIProfile(
+        const json& node,
+        const RuntimePackStorage& storage,
+        bool_t bDefault,
+        ChampionAIProfile& outProfile,
+        std::string& outError)
+    {
+        if (!node.is_object() || !node.contains("champion") || !node["champion"].is_string())
+        {
+            outError = "invalid AI profile";
+            return false;
+        }
+        const std::string name = node["champion"].get<std::string>();
+        if (bDefault)
+        {
+            if (name != "END")
+            {
+                outError = "default AI profile champion must be END";
+                return false;
+            }
+            outProfile.champion = eChampion::END;
+        }
+        else if (!ResolveAIChampion(storage, name, outProfile.champion))
+        {
+            outError = "unknown AI champion: " + name;
+            return false;
+        }
+
+        json floats = node;
+        floats.erase("champion");
+        floats.erase("skillRules");
+        if (!OverlayEconomyGroup(
+            floats, "AI profile", kAIProfileFloatFields, outProfile, outError))
+        {
+            return false;
+        }
+
+        outProfile.skillRuleCount = 0u;
+        if (!node.contains("skillRules") || !node["skillRules"].is_array() ||
+            node["skillRules"].size() > 4u)
+        {
+            outError = "AI skillRules must contain 0..4 entries";
+            return false;
+        }
+        for (std::size_t index = 0u; index < node["skillRules"].size(); ++index)
+        {
+            const json& rule = node["skillRules"][index];
+            if (!rule.is_object() || !rule.contains("slot") || !rule["slot"].is_string() ||
+                !rule.contains("minRange") || !rule["minRange"].is_number() ||
+                !rule.contains("score") || !rule["score"].is_number())
+            {
+                outError = "invalid AI skill rule";
+                return false;
+            }
+            ChampionAISkillRule parsed{};
+            if (!ResolveAISlot(rule["slot"].get<std::string>(), parsed.slot))
+            {
+                outError = "invalid AI skill slot";
+                return false;
+            }
+            parsed.minRange = rule["minRange"].get<f32_t>();
+            parsed.score = rule["score"].get<f32_t>();
+            if (!std::isfinite(parsed.minRange) || parsed.minRange < 0.f ||
+                !std::isfinite(parsed.score) || parsed.score < 0.f)
+            {
+                outError = "AI skill rule values out of range";
+                return false;
+            }
+            outProfile.skillRules[index] = parsed;
+            ++outProfile.skillRuleCount;
+        }
+        return true;
+    }
+
+    bool_t ResolveAITargetMode(const std::string& text, u8_t& outMode)
+    {
+        if (text == "TargetEntity") outMode = static_cast<u8_t>(eChampionAIComboTargetMode::TargetEntity);
+        else if (text == "AwayFromTarget") outMode = static_cast<u8_t>(eChampionAIComboTargetMode::AwayFromTarget);
+        else if (text == "WardBehindTarget") outMode = static_cast<u8_t>(eChampionAIComboTargetMode::WardBehindTarget);
+        else if (text == "LastOwnWard") outMode = static_cast<u8_t>(eChampionAIComboTargetMode::LastOwnWard);
+        else if (text == "SylasHijackTarget") outMode = static_cast<u8_t>(eChampionAIComboTargetMode::SylasHijackTarget);
+        else if (text == "SylasStolenUltimateTarget") outMode = static_cast<u8_t>(eChampionAIComboTargetMode::SylasStolenUltimateTarget);
+        else return false;
+        return true;
+    }
+
+    bool_t ApplyAIJson(
+        const json& root,
+        RuntimePackStorage& storage,
+        std::string& outError)
+    {
+        if (!root.contains("defaultProfile") || !root.contains("profiles") ||
+            !root["profiles"].is_array() || !root.contains("comboPlans") ||
+            !root["comboPlans"].is_array())
+        {
+            outError = "invalid ChampionAIGameplayDefs root";
+            return false;
+        }
+        if (!ParseAIProfile(root["defaultProfile"], storage, true,
+            storage.defaultAIProfile, outError))
+        {
+            return false;
+        }
+        storage.aiProfiles.clear();
+        for (const json& node : root["profiles"])
+        {
+            ChampionAIProfile profile{};
+            if (!ParseAIProfile(node, storage, false, profile, outError))
+                return false;
+            for (const ChampionAIProfile& existing : storage.aiProfiles)
+            {
+                if (existing.champion == profile.champion)
+                {
+                    outError = "duplicate AI profile";
+                    return false;
+                }
+            }
+            storage.aiProfiles.push_back(profile);
+        }
+        if (storage.aiProfiles.size() != storage.champions.size())
+        {
+            outError = "AI profile coverage mismatch";
+            return false;
+        }
+
+        storage.aiComboOverrides.clear();
+        bool_t bHasDefault = false;
+        for (const json& node : root["comboPlans"])
+        {
+            if (!node.is_object() || !node.contains("champion") || !node["champion"].is_string() ||
+                !node.contains("steps") || !node["steps"].is_array() ||
+                node["steps"].size() > 10u)
+            {
+                outError = "invalid AI combo plan";
+                return false;
+            }
+            ChampionAIComboPlan plan{};
+            for (std::size_t index = 0u; index < node["steps"].size(); ++index)
+            {
+                const json& step = node["steps"][index];
+                if (!step.is_object() || !step.contains("slot") || !step["slot"].is_string() ||
+                    !step.contains("itemId") || !step["itemId"].is_number_unsigned() ||
+                    !step.contains("minRange") || !step["minRange"].is_number() ||
+                    !step.contains("maxRange") || !step["maxRange"].is_number() ||
+                    !step.contains("selfHpMinRatio") || !step["selfHpMinRatio"].is_number() ||
+                    !step.contains("enemyHpMaxRatio") || !step["enemyHpMaxRatio"].is_number() ||
+                    !step.contains("targetMode") || !step["targetMode"].is_string())
+                {
+                    outError = "invalid AI combo step";
+                    return false;
+                }
+                ChampionAIComboStep parsed{};
+                const u64_t itemId = step["itemId"].get<u64_t>();
+                if (itemId > 65535u ||
+                    !ResolveAISlot(step["slot"].get<std::string>(), parsed.slot) ||
+                    !ResolveAITargetMode(step["targetMode"].get<std::string>(), parsed.targetMode))
+                {
+                    outError = "AI combo enum or item out of range";
+                    return false;
+                }
+                parsed.itemId = static_cast<u16_t>(itemId);
+                parsed.minRange = step["minRange"].get<f32_t>();
+                parsed.maxRange = step["maxRange"].get<f32_t>();
+                parsed.selfHpMinRatio = step["selfHpMinRatio"].get<f32_t>();
+                parsed.enemyHpMaxRatio = step["enemyHpMaxRatio"].get<f32_t>();
+                if (!std::isfinite(parsed.minRange) || parsed.minRange < 0.f ||
+                    !std::isfinite(parsed.maxRange) || parsed.maxRange < parsed.minRange ||
+                    !std::isfinite(parsed.selfHpMinRatio) || parsed.selfHpMinRatio < 0.f || parsed.selfHpMinRatio > 1.f ||
+                    !std::isfinite(parsed.enemyHpMaxRatio) || parsed.enemyHpMaxRatio < 0.f || parsed.enemyHpMaxRatio > 1.f)
+                {
+                    outError = "AI combo values out of range";
+                    return false;
+                }
+                plan.steps[index] = parsed;
+                ++plan.stepCount;
+            }
+            const std::string name = node["champion"].get<std::string>();
+            if (name == "END")
+            {
+                storage.defaultAIComboPlan = plan;
+                bHasDefault = true;
+            }
+            else
+            {
+                eChampion champion = eChampion::END;
+                if (!ResolveAIChampion(storage, name, champion))
+                {
+                    outError = "unknown AI combo champion: " + name;
+                    return false;
+                }
+                storage.aiComboOverrides.push_back(ChampionAIComboOverride{ champion, plan });
+            }
+        }
+        if (!bHasDefault)
+        {
+            outError = "AI default combo missing";
+            return false;
+        }
+        return true;
+    }
+
     constexpr EconomyFieldName<ChampionColliderProfileDef> kSpawnChampionColliderFields[] =
     {
         { "bodyHeight", &ChampionColliderProfileDef::bodyHeight },
@@ -1437,6 +2000,27 @@ namespace
         { "forwardOffset", &MinionWaveRangedProjectileDef::forwardOffset },
         { "spawnHeight", &MinionWaveRangedProjectileDef::spawnHeight },
         { "maxDistancePadding", &MinionWaveRangedProjectileDef::maxDistancePadding },
+    };
+
+    constexpr EconomyFieldName<MinionBehaviorDef> kSpawnMinionBehaviorFields[] =
+    {
+        { "pathAgentRadius", &MinionBehaviorDef::pathAgentRadius },
+        { "laneClearanceRadius", &MinionBehaviorDef::laneClearanceRadius },
+        { "softSeparationRadiusScale", &MinionBehaviorDef::softSeparationRadiusScale },
+        { "softSeparationWeight", &MinionBehaviorDef::softSeparationWeight },
+        { "defaultSeparationWeight", &MinionBehaviorDef::defaultSeparationWeight },
+        { "softSeparationMaxStep", &MinionBehaviorDef::softSeparationMaxStep },
+        { "lanePathRebuildIntervalSec", &MinionBehaviorDef::lanePathRebuildIntervalSec },
+        { "chasePathRebuildIntervalSec", &MinionBehaviorDef::chasePathRebuildIntervalSec },
+        { "pathTargetRefreshDistanceSq", &MinionBehaviorDef::pathTargetRefreshDistanceSq },
+        { "pathWaypointArriveRadius", &MinionBehaviorDef::pathWaypointArriveRadius },
+        { "flowFieldProgressSlackSq", &MinionBehaviorDef::flowFieldProgressSlackSq },
+        { "structureAcquireRangePadding", &MinionBehaviorDef::structureAcquireRangePadding },
+        { "targetScanIntervalSec", &MinionBehaviorDef::targetScanIntervalSec },
+        { "attackExitRangePadding", &MinionBehaviorDef::attackExitRangePadding },
+        { "meleeAttackWindupSec", &MinionBehaviorDef::meleeAttackWindupSec },
+        { "rangedAttackWindupSec", &MinionBehaviorDef::rangedAttackWindupSec },
+        { "attackRecoverySec", &MinionBehaviorDef::attackRecoverySec },
     };
 
     // OverlayEconomyGroup 과 동일 규약이되 식별자 키(subKind/roleType)는 건너뛴다.
@@ -1493,7 +2077,7 @@ namespace
             "schemaVersion", "dataVersion", "buildHash",
             "spawnLoadout", "championCollider", "structure",
             "defaultJungleCamp", "jungleCamps", "defaultMinion",
-            "minions", "minionWave",
+            "minions", "minionBehavior", "minionWave",
         };
         std::string unknownKey;
         if (!HasOnlyKnownKeys(root, kKnownRootKeys,
@@ -1676,6 +2260,55 @@ namespace
             }
         }
 
+        if (root.contains("minionBehavior"))
+        {
+            const json& behavior = root["minionBehavior"];
+            static constexpr const char* kKnownBehaviorKeys[] =
+            {
+                "pathAgentRadius", "laneClearanceRadius", "softSeparationRadiusScale",
+                "softSeparationWeight", "defaultSeparationWeight", "softSeparationMaxStep",
+                "lanePathRebuildIntervalSec", "chasePathRebuildIntervalSec",
+                "pathTargetRefreshDistanceSq", "pathWaypointArriveRadius",
+                "pathBuildBudgetPerTick", "blockedFramesBeforeRepath",
+                "flowFieldStallFramesBeforePathFallback", "flowFieldProgressSlackSq",
+                "structureAcquireRangePadding", "targetScanIntervalSec",
+                "targetScanStaggerBuckets", "rangedRoleType", "attackExitRangePadding",
+                "meleeAttackWindupSec", "rangedAttackWindupSec", "attackRecoverySec",
+            };
+            if (!behavior.is_object() ||
+                !HasOnlyKnownKeys(behavior, kKnownBehaviorKeys,
+                    sizeof(kKnownBehaviorKeys) / sizeof(kKnownBehaviorKeys[0]), unknownKey))
+            {
+                outError = behavior.is_object()
+                    ? "minionBehavior unknown field: " + unknownKey
+                    : "minionBehavior must be an object";
+                return false;
+            }
+            json floatBehavior = behavior;
+            floatBehavior.erase("pathBuildBudgetPerTick");
+            floatBehavior.erase("blockedFramesBeforeRepath");
+            floatBehavior.erase("flowFieldStallFramesBeforePathFallback");
+            floatBehavior.erase("targetScanStaggerBuckets");
+            floatBehavior.erase("rangedRoleType");
+            if (!OverlayEconomyGroup(floatBehavior, "minionBehavior",
+                    kSpawnMinionBehaviorFields, pack.minionBehavior, outError) ||
+                !TryOverlayUnsigned32(behavior, "pathBuildBudgetPerTick", 1ull, 1000000ull,
+                    pack.minionBehavior.pathBuildBudgetPerTick, fieldError) ||
+                !TryOverlayUnsigned8(behavior, "blockedFramesBeforeRepath", 0ull, 255ull,
+                    pack.minionBehavior.blockedFramesBeforeRepath, fieldError) ||
+                !TryOverlayUnsigned8(behavior, "flowFieldStallFramesBeforePathFallback", 0ull, 255ull,
+                    pack.minionBehavior.flowFieldStallFramesBeforePathFallback, fieldError) ||
+                !TryOverlayUnsigned32(behavior, "targetScanStaggerBuckets", 1ull, 1000000ull,
+                    pack.minionBehavior.targetScanStaggerBuckets, fieldError) ||
+                !TryOverlayUnsigned8(behavior, "rangedRoleType", 0ull, 255ull,
+                    pack.minionBehavior.rangedRoleType, fieldError))
+            {
+                if (outError.empty())
+                    outError = "minionBehavior " + fieldError;
+                return false;
+            }
+        }
+
         if (root.contains("minionWave"))
         {
             const json& wave = root["minionWave"];
@@ -1683,7 +2316,8 @@ namespace
             {
                 "waveIntervalTicks", "initialDelayTicks", "perMinionDelayTicks",
                 "siegeWavePeriod", "timeGrowthPerMinute", "timeGrowthCapMinutes",
-                "rangedProjectile", "corpseDeathTimerSec",
+                "rangedProjectile", "corpseDeathTimerSec", "startX",
+                "formationSlots", "siegeSlot",
             };
             if (!wave.is_object() ||
                 !HasOnlyKnownKeys(wave, kKnownWaveKeys,
@@ -1707,7 +2341,9 @@ namespace
                 !TryOverlayNumber(wave, "timeGrowthPerMinute", 0.f, 1000000.f,
                     pack.minionWave.timeGrowthPerMinute, fieldError) ||
                 !TryOverlayNumber(wave, "corpseDeathTimerSec", 0.f, 1000000.f,
-                    pack.minionWave.corpseDeathTimerSec, fieldError))
+                    pack.minionWave.corpseDeathTimerSec, fieldError) ||
+                !TryOverlayNumber(wave, "startX", 0.f, 1000000.f,
+                    pack.minionWave.startX, fieldError))
             {
                 outError = "minionWave " + fieldError;
                 return false;
@@ -1717,6 +2353,62 @@ namespace
                     kSpawnMinionWaveProjectileFields, pack.minionWave.rangedProjectile, outError))
             {
                 return false;
+            }
+            if (wave.contains("formationSlots"))
+            {
+                const json& slots = wave["formationSlots"];
+                if (!slots.is_array() || slots.empty() || slots.size() > 6u)
+                {
+                    outError = "minionWave.formationSlots must contain 1..6 entries";
+                    return false;
+                }
+                for (std::size_t index = 0u; index < slots.size(); ++index)
+                {
+                    const json& slot = slots[index];
+                    static constexpr const char* kKnownSlotKeys[] =
+                    {
+                        "roleType", "forwardOffset", "sideOffset",
+                    };
+                    unknownKey.clear();
+                    if (!slot.is_object() ||
+                        !HasOnlyKnownKeys(slot, kKnownSlotKeys,
+                            sizeof(kKnownSlotKeys) / sizeof(kKnownSlotKeys[0]), unknownKey) ||
+                        !TryOverlayUnsigned8(slot, "roleType", 0ull, 255ull,
+                            pack.minionWave.formationSlots[index].roleType, fieldError) ||
+                        !TryOverlayNumber(slot, "forwardOffset", -1000000.f, 1000000.f,
+                            pack.minionWave.formationSlots[index].forwardOffset, fieldError) ||
+                        !TryOverlayNumber(slot, "sideOffset", -1000000.f, 1000000.f,
+                            pack.minionWave.formationSlots[index].sideOffset, fieldError))
+                    {
+                        outError = "minionWave.formationSlots[" + std::to_string(index) + "] "
+                            + (unknownKey.empty() ? fieldError : "unknown field: " + unknownKey);
+                        return false;
+                    }
+                }
+                pack.minionWave.formationSlotCount = static_cast<u8_t>(slots.size());
+            }
+            if (wave.contains("siegeSlot"))
+            {
+                const json& slot = wave["siegeSlot"];
+                static constexpr const char* kKnownSlotKeys[] =
+                {
+                    "roleType", "forwardOffset", "sideOffset",
+                };
+                unknownKey.clear();
+                if (!slot.is_object() ||
+                    !HasOnlyKnownKeys(slot, kKnownSlotKeys,
+                        sizeof(kKnownSlotKeys) / sizeof(kKnownSlotKeys[0]), unknownKey) ||
+                    !TryOverlayUnsigned8(slot, "roleType", 0ull, 255ull,
+                        pack.minionWave.siegeSlot.roleType, fieldError) ||
+                    !TryOverlayNumber(slot, "forwardOffset", -1000000.f, 1000000.f,
+                        pack.minionWave.siegeSlot.forwardOffset, fieldError) ||
+                    !TryOverlayNumber(slot, "sideOffset", -1000000.f, 1000000.f,
+                        pack.minionWave.siegeSlot.sideOffset, fieldError))
+                {
+                    outError = "minionWave.siegeSlot "
+                        + (unknownKey.empty() ? fieldError : "unknown field: " + unknownKey);
+                    return false;
+                }
             }
         }
 
@@ -1767,6 +2459,8 @@ namespace ServerData
         // 코드젠 팩에 아이템 정의가 없으면 비워둬 pack.items = nullptr = 컴파일된 기본 표 폴백.
         if (base.items && base.itemCount > 0u)
             pStorage->items.assign(base.items, base.items + base.itemCount);
+        if (base.runes && base.runeCount > 0u)
+            pStorage->runes.assign(base.runes, base.runes + base.runeCount);
 
         // SpawnObject 팩은 스폰 시점 복사 의미론 — 리로드 후 다음 스폰/웨이브부터 신값(M4).
         const SpawnObjectDefinitionPack& spawnBase = GetLoLSpawnObjectDefinitionPack();
@@ -1798,6 +2492,10 @@ namespace ServerData
                 "EconomyGameplayDefs.json", &ApplyEconomyJson },
             { L"Data\\LoL\\ServerPrivate\\Gameplay\\ItemGameplayDefs.json",
                 "ItemGameplayDefs.json", &ApplyItemsJson },
+            { L"Data\\LoL\\ServerPrivate\\Gameplay\\RuneGameplayDefs.json",
+                "RuneGameplayDefs.json", &ApplyRuneJson },
+            { L"Data\\LoL\\ServerPrivate\\AI\\ChampionAIGameplayDefs.json",
+                "ChampionAIGameplayDefs.json", &ApplyAIJson },
             { L"Data\\LoL\\ServerPrivate\\Gameplay\\SpawnObjectGameplayDefs.json",
                 "SpawnObjectGameplayDefs.json", &ApplySpawnObjectJson },
         };
@@ -1843,14 +2541,24 @@ namespace ServerData
         pack.economy = &pStorage->economyStorage;
         pack.items = pStorage->items.empty() ? nullptr : pStorage->items.data();
         pack.itemCount = pStorage->items.size();
+        pack.runes = pStorage->runes.empty() ? nullptr : pStorage->runes.data();
+        pack.runeCount = pStorage->runes.size();
 
         pStorage->spawnPack.manifest.uDataVersion =
             spawnBase.manifest.uDataVersion +
             g_runtimeRevision.load(std::memory_order_relaxed) + 1u;
 
+        pStorage->aiPack.defaultProfile = &pStorage->defaultAIProfile;
+        pStorage->aiPack.profiles = pStorage->aiProfiles.data();
+        pStorage->aiPack.profileCount = pStorage->aiProfiles.size();
+        pStorage->aiPack.defaultComboPlan = &pStorage->defaultAIComboPlan;
+        pStorage->aiPack.comboOverrides = pStorage->aiComboOverrides.data();
+        pStorage->aiPack.comboOverrideCount = pStorage->aiComboOverrides.size();
+
         g_pActiveRuntimePack.store(&pack, std::memory_order_release);
         g_pActiveRuntimeSpawnObjectPack.store(
             &pStorage->spawnPack, std::memory_order_release);
+        PublishChampionAIRuntimeDefinitions(&pStorage->aiPack);
         StorageGenerations().push_back(std::move(pStorage));
         g_runtimeRevision.fetch_add(1u, std::memory_order_relaxed);
         return true;
@@ -1861,6 +2569,7 @@ namespace ServerData
     {
         g_pActiveRuntimePack.store(nullptr, std::memory_order_release);
         g_pActiveRuntimeSpawnObjectPack.store(nullptr, std::memory_order_release);
+        PublishChampionAIRuntimeDefinitions(nullptr);
     }
 
     u32_t GetRuntimeGameplayDefinitionRevision()

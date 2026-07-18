@@ -1,4 +1,5 @@
 #include "GameObject/ChampionSpawnService.h"
+#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 
 #include <Windows.h>
 #include <cstdio>
@@ -27,8 +28,6 @@
 #include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
 #include "Shared/GameSim/Systems/Stat/StatSystem.h"
@@ -218,7 +217,7 @@ ChampionSpawnResult CChampionSpawnService::Spawn(
 		? pDef->spawnPosition
 		: request.position;
 	const ChampionStatsDef statsDef =
-		CChampionStatsRegistry::Instance().Resolve(request.champion);
+		BuildDefaultChampionStatsDef(request.champion);
 	constexpr u8_t kSpawnChampionLevel = 6;
 	StatComponent stat = CStatSystem::BuildBaseStats(statsDef, kSpawnChampionLevel);
 

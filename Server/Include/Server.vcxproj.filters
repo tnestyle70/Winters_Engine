@@ -147,6 +147,9 @@
     <ClCompile Include="..\Private\Game\ReplayRecorder.cpp">
       <Filter>02. Game\07. Replay</Filter>
     </ClCompile>
+    <ClCompile Include="..\Private\Backend\ReplayUploadQueue.cpp">
+      <Filter>02. Game\07. Replay</Filter>
+    </ClCompile>
     <ClCompile Include="..\Private\Game\ServerMinionFlowField.cpp">
       <Filter>02. Game\08. Minion\00. FlowField</Filter>
     </ClCompile>
@@ -290,11 +293,11 @@
     <ClInclude Include="..\Public\Game\ReplayRecorder.h">
       <Filter>02. Game\07. Replay</Filter>
     </ClInclude>
+    <ClInclude Include="..\Public\Backend\ReplayUploadQueue.h">
+      <Filter>02. Game\07. Replay</Filter>
+    </ClInclude>
     <ClInclude Include="..\Public\Game\ServerMinionFlowField.h">
       <Filter>02. Game\08. Minion\00. FlowField</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\Game\ServerMinionTuning.h">
-      <Filter>02. Game\08. Minion\02. Tuning</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Game\ServerMinionWaveRuntime.h">
       <Filter>02. Game\08. Minion\01. WaveRuntime</Filter>

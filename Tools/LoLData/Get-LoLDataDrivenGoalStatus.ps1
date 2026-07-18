@@ -3,7 +3,8 @@ param(
     [string]$Root = "",
     [string]$CriteriaPath = "",
     [string]$OutputDir = "",
-    [switch]$FailWhenIncomplete
+    [switch]$FailWhenIncomplete,
+    [switch]$NoWrite
 )
 
 $ErrorActionPreference = "Stop"
@@ -30,10 +31,7 @@ function Get-NestedValue {
 
     $current = $Object
     foreach ($part in $Path.Split(".")) {
-        if ($null -eq $current) {
-            return $Fallback
-        }
-        if (-not ($current.PSObject.Properties.Name -contains $part)) {
+        if ($null -eq $current -or -not ($current.PSObject.Properties.Name -contains $part)) {
             return $Fallback
         }
         $current = $current.$part
@@ -63,10 +61,27 @@ function New-GoalStatus {
         [object[]]$PhaseOrder
     )
 
-    $rawCurrent = Get-NestedValue -Object $Audit -Path $Goal.auditPath -Fallback 999999
+    $rawCurrent = Get-NestedValue -Object $Audit -Path $Goal.auditPath -Fallback $null
+    if ($null -eq $rawCurrent) {
+        throw "goal audit path not found: $($Goal.auditPath)"
+    }
     $current = [int]$rawCurrent
-    $target = [int]$Goal.targetMax
+    $comparison = [string]$Goal.comparison
+    $target = [int]$Goal.target
     $phase = [string]$Goal.phase
+
+    $achieved = switch ($comparison) {
+        "max" { $current -le $target }
+        "min" { $current -ge $target }
+        "equal" { $current -eq $target }
+        default { throw "unknown goal comparison: $comparison" }
+    }
+
+    $remaining = switch ($comparison) {
+        "max" { [Math]::Max(0, $current - $target) }
+        "min" { [Math]::Max(0, $target - $current) }
+        "equal" { [Math]::Abs($target - $current) }
+    }
 
     return [ordered]@{
         key = [string]$Goal.key
@@ -74,25 +89,37 @@ function New-GoalStatus {
         phaseRank = Get-PhaseRank -Phase $phase -PhaseOrder $PhaseOrder
         name = [string]$Goal.name
         currentCount = $current
-        targetMax = $target
-        achieved = ($current -le $target)
-        remaining = [Math]::Max(0, $current - $target)
+        comparison = $comparison
+        target = $target
+        achieved = $achieved
+        remaining = $remaining
         nextFocus = [string]$Goal.nextFocus
     }
 }
-
-New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 
 $auditPath = Join-Path $OutputDir "LOL_DATA_DRIVEN_AUDIT.json"
 $statusPath = Join-Path $OutputDir "LOL_DATA_DRIVEN_GOAL_STATUS.json"
 $markdownPath = Join-Path $OutputDir "LOL_DATA_DRIVEN_GOAL_STATUS.md"
 
-powershell -ExecutionPolicy Bypass -File (Join-Path $Root "Tools\LoLData\Collect-LoLLegacyDataAudit.ps1") `
-    -Root $Root `
-    -OutputPath $auditPath | Out-Null
+if ($NoWrite) {
+    $auditJson = & powershell -ExecutionPolicy Bypass -File (Join-Path $Root "Tools\LoLData\Collect-LoLLegacyDataAudit.ps1") -Root $Root
+    if ($LASTEXITCODE -ne 0) {
+        throw "legacy data audit failed with exit code $LASTEXITCODE"
+    }
+    $audit = $auditJson | ConvertFrom-Json
+}
+else {
+    New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+    & powershell -ExecutionPolicy Bypass -File (Join-Path $Root "Tools\LoLData\Collect-LoLLegacyDataAudit.ps1") `
+        -Root $Root `
+        -OutputPath $auditPath | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        throw "legacy data audit failed with exit code $LASTEXITCODE"
+    }
+    $audit = Get-Content -Raw -Encoding UTF8 -Path $auditPath | ConvertFrom-Json
+}
 
 $criteria = Get-Content -Raw -Encoding UTF8 -Path $CriteriaPath | ConvertFrom-Json
-$audit = Get-Content -Raw -Encoding UTF8 -Path $auditPath | ConvertFrom-Json
 
 $manifestPath = Join-Path $Root "Data\LoL\SharedContract\DefinitionManifest.json"
 $buildHash = ""
@@ -129,45 +156,47 @@ $status = [ordered]@{
     totalGoalCount = @($goals).Count
     nextGoal = $nextGoal
     goals = $goals
-    auditPath = $auditPath
-    statusPath = $statusPath
-    markdownPath = $markdownPath
+    auditPath = if ($NoWrite) { $null } else { $auditPath }
+    statusPath = if ($NoWrite) { $null } else { $statusPath }
+    markdownPath = if ($NoWrite) { $null } else { $markdownPath }
     fullVerificationCommand = $criteria.fullVerificationCommand
     completionDefinition = $criteria.completionDefinition
 }
 
-$status | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -Path $statusPath
+if (-not $NoWrite) {
+    $status | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 -Path $statusPath
 
-$lines = @()
-$lines += "# LoL Data-Driven Goal Status"
-$lines += ""
-$lines += "generatedAtUtc: $($status.generatedAtUtc)"
-$lines += "buildHash: $($status.buildHash)"
-$lines += "complete: $($status.complete)"
-$lines += "completedGoalCount: $($status.completedGoalCount) / $($status.totalGoalCount)"
-$lines += ""
-if ($null -ne $nextGoal) {
-    $lines += "## Next Focus"
+    $lines = @()
+    $lines += "# LoL Data-Driven Goal Status"
     $lines += ""
-    $lines += "- phase: $($nextGoal.phase)"
-    $lines += "- key: $($nextGoal.key)"
-    $lines += "- remaining: $($nextGoal.remaining)"
-    $lines += "- action: $($nextGoal.nextFocus)"
+    $lines += "generatedAtUtc: $($status.generatedAtUtc)"
+    $lines += "buildHash: $($status.buildHash)"
+    $lines += "complete: $($status.complete)"
+    $lines += "completedGoalCount: $($status.completedGoalCount) / $($status.totalGoalCount)"
     $lines += ""
-}
-$lines += "## Goals"
-$lines += ""
-foreach ($goal in $goals) {
-    $mark = if ($goal.achieved) { "PASS" } else { "TODO" }
-    $lines += "- [$mark] $($goal.phase) $($goal.key): current=$($goal.currentCount), targetMax=$($goal.targetMax)"
-}
-$lines += ""
-$lines += "## Gate"
-$lines += ""
-$lines += "- $($status.fullVerificationCommand)"
-$lines += "- $($status.completionDefinition)"
+    if ($null -ne $nextGoal) {
+        $lines += "## Next Focus"
+        $lines += ""
+        $lines += "- phase: $($nextGoal.phase)"
+        $lines += "- key: $($nextGoal.key)"
+        $lines += "- remaining: $($nextGoal.remaining)"
+        $lines += "- action: $($nextGoal.nextFocus)"
+        $lines += ""
+    }
+    $lines += "## Goals"
+    $lines += ""
+    foreach ($goal in $goals) {
+        $mark = if ($goal.achieved) { "PASS" } else { "TODO" }
+        $lines += "- [$mark] $($goal.phase) $($goal.key): current=$($goal.currentCount), comparison=$($goal.comparison), target=$($goal.target)"
+    }
+    $lines += ""
+    $lines += "## Gate"
+    $lines += ""
+    $lines += "- $($status.fullVerificationCommand)"
+    $lines += "- $($status.completionDefinition)"
 
-$lines | Set-Content -Encoding UTF8 -Path $markdownPath
+    $lines | Set-Content -Encoding UTF8 -Path $markdownPath
+}
 
 Write-Output ($status | ConvertTo-Json -Depth 8)
 

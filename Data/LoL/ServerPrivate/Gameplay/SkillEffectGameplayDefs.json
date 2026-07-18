@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "dataVersion": 1,
-  "buildHash": 2392782607,
+  "buildHash": 4237932526,
   "skillEffects": [
     {
       "key": "skill.annie.basic_attack",
@@ -763,7 +763,13 @@
     },
     {
       "key": "skill.fiora.basic_attack",
-      "params": {},
+      "params": {
+        "acquireRange": 8.0,
+        "lifetimeSec": 8.0,
+        "respawnSec": 1.5,
+        "sideDotThreshold": 0.55,
+        "targetMaxHpRatio": 0.03
+      },
       "damage": {
         "type": "Physical",
         "flags": [
@@ -908,7 +914,12 @@
     {
       "key": "skill.fiora.r",
       "params": {
-        "baseDamage": 80.0
+        "baseDamage": 80.0,
+        "challengeDurationSec": 8.0,
+        "healAmount": 40.0,
+        "healDurationSec": 5.0,
+        "healIntervalSec": 0.5,
+        "healRadius": 6.0
       },
       "damage": {
         "type": "Physical",
@@ -1257,6 +1268,7 @@
       "params": {
         "baseDamage": 70.0,
         "damagePerRank": 30.0,
+        "markDurationSec": 5.0,
         "radius": 1.5,
         "stunDurationSec": 0.75
       },
@@ -1368,6 +1380,7 @@
         "baseDamage": 250.0,
         "disarmDurationSec": 1.5,
         "effectDurationSec": 2.5,
+        "markDurationSec": 5.0,
         "moveSpeedMul": 0.5,
         "range": 8.0,
         "rectLength": 5.0,
@@ -2730,7 +2743,7 @@
       "params": {
         "airborneDurationSec": 0.75,
         "radius": 2.25,
-        "stackWindowSec": 4.0
+        "stackWindowSec": 2.0
       },
       "damage": {
         "type": "Physical",
@@ -2879,7 +2892,13 @@
     },
     {
       "key": "skill.sylas.basic_attack",
-      "params": {},
+      "params": {
+        "apRatio": 0.6,
+        "baseDamage": 60.0,
+        "maxStacks": 3.0,
+        "radius": 2.75,
+        "stackWindowSec": 5.0
+      },
       "damage": {
         "type": "Physical",
         "flags": [
@@ -3300,7 +3319,7 @@
         "baseDamage": 55.0,
         "dashDurationSec": 0.26,
         "radius": 0.75,
-        "stunDurationSec": 0.75
+        "stunDurationSec": 2.0
       },
       "damage": {
         "type": "Physical",
@@ -3838,7 +3857,10 @@
     },
     {
       "key": "skill.zed.basic_attack",
-      "params": {},
+      "params": {
+        "missingHealthDamageRatio": 0.1,
+        "targetHealthThresholdRatio": 0.5
+      },
       "damage": {
         "type": "Physical",
         "flags": [
@@ -3928,7 +3950,7 @@
         "baseDamage": 70.0,
         "damagePerRank": 25.0,
         "radius": 0.45,
-        "speed": 24.0
+        "speed": 12.0
       },
       "damage": {
         "type": "Physical",
@@ -3980,7 +4002,7 @@
     {
       "key": "skill.zed.r",
       "params": {
-        "effectDurationSec": 5.0,
+        "effectDurationSec": 4.0,
         "gap": 0.75,
         "markDurationSec": 3.0,
         "missingHealthDamageRatio": 0.3,
@@ -4024,7 +4046,7 @@
     {
       "key": "skill.zed.w",
       "params": {
-        "effectDurationSec": 5.0
+        "effectDurationSec": 4.0
       },
       "damage": {
         "type": "Physical",

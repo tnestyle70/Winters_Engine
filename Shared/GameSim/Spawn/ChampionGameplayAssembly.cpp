@@ -2,6 +2,7 @@
 
 #include "Shared/GameSim/Definitions/ChampionGameplayDef.h"
 #include "Shared/GameSim/Definitions/SkillTypes.h"
+#include "Shared/GameSim/Definitions/WardDefinitions.h"
 
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
@@ -69,6 +70,9 @@ namespace
 
 EntityID ChampionGameplayAssembly::Build(CWorld& world, const ChampionAssemblyContext& ctx)
 {
+    if (!ctx.pDef)
+        return NULL_ENTITY;
+
     const EntityHandle entityHandle = world.CreateEntityHandle();
     const EntityID entity = entityHandle.GetIndex();
 
@@ -77,26 +81,19 @@ EntityID ChampionGameplayAssembly::Build(CWorld& world, const ChampionAssemblyCo
     world.AddComponent<TransformComponent>(entity, transform);
 
     StatComponent stat{};
-    if (ctx.pDef)
-    {
-        ChampionDefinitionComponent identity{};
-        identity.championDefId = ctx.pDef->id;
-        world.AddComponent<ChampionDefinitionComponent>(entity, identity);
+    ChampionDefinitionComponent identity{};
+    identity.championDefId = ctx.pDef->id;
+    world.AddComponent<ChampionDefinitionComponent>(entity, identity);
 
-        SkillLoadoutComponent loadout{};
-        for (u8_t skillSlot = 0u; skillSlot < kChampionSkillSlotCount; ++skillSlot)
-            loadout.skills[skillSlot] = ctx.pDef->skillLoadout[skillSlot];
-        world.AddComponent<SkillLoadoutComponent>(entity, loadout);
+    SkillLoadoutComponent loadout{};
+    for (u8_t skillSlot = 0u; skillSlot < kChampionSkillSlotCount; ++skillSlot)
+        loadout.skills[skillSlot] = ctx.pDef->skillLoadout[skillSlot];
+    world.AddComponent<SkillLoadoutComponent>(entity, loadout);
 
-        stat = CStatSystem::BuildBaseStats(
-            ctx.pDef->stats,
-            ctx.pDef->legacyChampion,
-            ctx.loadout.startLevel);
-    }
-    else
-    {
-        stat = CStatSystem::BuildBaseStats(ctx.fallbackStats, ctx.loadout.startLevel);
-    }
+    stat = CStatSystem::BuildBaseStats(
+        ctx.pDef->stats,
+        ctx.pDef->legacyChampion,
+        ctx.loadout.startLevel);
     if (ctx.maxHpOverride > 0.f)
         stat.hpMax = ctx.maxHpOverride;
     world.AddComponent<StatComponent>(entity, stat);
@@ -129,6 +126,9 @@ EntityID ChampionGameplayAssembly::Build(CWorld& world, const ChampionAssemblyCo
     world.AddComponent<GoldComponent>(entity, gold);
 
     InventoryComponent inventory{};
+    constexpr u8_t kDefaultWardSlot = 3u;
+    inventory.itemIds[kDefaultWardSlot] = kTrinketWardItemId;
+    inventory.count = static_cast<u8_t>(kDefaultWardSlot + 1u);
     if (ctx.champion == eChampion::KALISTA)
     {
         // 칼리스타 서약(Oathsworn) 아이템은 스폰 시 고정 슬롯에 시딩된다 —

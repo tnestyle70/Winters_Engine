@@ -60,7 +60,6 @@
 #include "Resource/Animation.h"
 
 #include "GameObject/ChampionDef.h"
-#include "GameObject/Champion/Zed/ZedFxPresets.h"
 #include "GameObject/Champion/Annie/Annie_Components.h"
 #include "GameObject/Champion/Ashe/Ashe_Components.h"
 #include "GameObject/Champion/Irelia/Irelia_Skills.h"
@@ -72,7 +71,6 @@
 #include "Shared/GameSim/Components/InventoryComponent.h"
 #include "Shared/GameSim/Components/KalistaBondComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
@@ -95,7 +93,6 @@
 #include "Shared/GameSim/Definitions/SkillDefGameDataAdapter.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
 #include "Shared/GameSim/Definitions/WardDefinitions.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -109,7 +106,6 @@
 #pragma pop_macro("min")
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
-#include "ECS/Systems/StatusEffectSystem.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
@@ -124,6 +120,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <cwchar>
 #include <functional>
@@ -136,6 +133,50 @@ namespace
     u32_t s_uNetworkAttackCommandFrame = 0u;
     u32_t s_uNetworkAttackMissLogCount = 0u;
     constexpr u32_t kNetworkAttackCommandIntervalFrames = 6u;
+
+    void TraceWGate(
+        const char* pEvent,
+        eChampion champion,
+        bool_t bDown,
+        bool_t bPressed,
+        bool_t bReleased,
+        bool_t bReleasePending,
+        bool_t bStagePending,
+        bool_t bImGuiKeyboard,
+        bool_t bDispatched)
+    {
+#if defined(_DEBUG)
+        static u32_t s_uTraceCount = 0u;
+        if (s_uTraceCount >= 96u)
+            return;
+
+        char message[256]{};
+        sprintf_s(
+            message,
+            "[WGate][ClientInput] event=%s champ=%u down=%u press=%u edgeRelease=%u releasePending=%u stagePending=%u imgui=%u dispatched=%u\n",
+            pEvent ? pEvent : "-",
+            static_cast<u32_t>(champion),
+            bDown ? 1u : 0u,
+            bPressed ? 1u : 0u,
+            bReleased ? 1u : 0u,
+            bReleasePending ? 1u : 0u,
+            bStagePending ? 1u : 0u,
+            bImGuiKeyboard ? 1u : 0u,
+            bDispatched ? 1u : 0u);
+        OutputDebugStringA(message);
+        ++s_uTraceCount;
+#else
+        (void)pEvent;
+        (void)champion;
+        (void)bDown;
+        (void)bPressed;
+        (void)bReleased;
+        (void)bReleasePending;
+        (void)bStagePending;
+        (void)bImGuiKeyboard;
+        (void)bDispatched;
+#endif
+    }
 
     u8_t ResolvePingWheelDirectionCode(f32_t fCenterX, f32_t fCenterY,
         f32_t fMouseX, f32_t fMouseY)
@@ -325,6 +366,27 @@ void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
     auto& in = CInput::Get();
     const bool bImGuiMouse = ImGui::GetIO().WantCaptureMouse;
     const bool bImGuiKbd = ImGui::GetIO().WantCaptureKeyboard;
+    const u8_t wSlot = static_cast<u8_t>(eSkillSlot::W);
+    const bool_t bWDown = in.IsKeyDown('W');
+    const bool_t bWPressed = in.IsKeyPressed('W');
+    const bool_t bWReleased = in.IsKeyReleased('W');
+    const bool_t bWStagePending = HasPendingSkillStage(*this, wSlot);
+    if (bWPressed || bWReleased ||
+        (bImGuiKbd && !bWDown && (s_bWReleasePending || bWStagePending)))
+    {
+        TraceWGate(
+            bImGuiKbd && !bWDown && (s_bWReleasePending || bWStagePending)
+                ? "frame-deferred"
+                : "frame-edge",
+            GetPlayerChampionId(),
+            bWDown,
+            bWPressed,
+            bWReleased,
+            s_bWReleasePending,
+            bWStagePending,
+            bImGuiKbd,
+            false);
+    }
     if (IsPlayerDead())
     {
         outSkipGroundMove = true;
@@ -339,6 +401,13 @@ void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
 
     if (!HasPlayerRenderer())
         return;
+
+    if (CGameInstance::Get()->UI_IsPointerOverActorInventory() &&
+        (in.IsLButtonDown() || in.IsLButtonPressed() || in.IsLButtonReleased()))
+    {
+        outSkipGroundMove = true;
+        return;
+    }
 
     const bool_t bKalistaCarried =
         m_PlayerEntity != NULL_ENTITY &&
@@ -358,6 +427,42 @@ void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
                 launchTarget);
         }
         return;
+    }
+
+    if (!bImGuiKbd &&
+        IsNetworkAuthoritativeGameplay() &&
+        m_PlayerEntity != NULL_ENTITY &&
+        m_World.HasComponent<InventoryComponent>(m_PlayerEntity) &&
+        m_pCommandSerializer && m_pNetworkView &&
+        m_pNetworkView->IsConnected())
+    {
+        const auto& inventory =
+            m_World.GetComponent<InventoryComponent>(m_PlayerEntity);
+        for (u8_t slot = 0u; slot < InventoryComponent::kMaxSlots; ++slot)
+        {
+            if (!in.IsKeyPressed('1' + slot))
+                continue;
+
+            const u16_t itemId = inventory.itemIds[slot];
+            if (itemId == 0u)
+                continue;
+
+            const Vec3 itemPos = ResolveMouseMapSurfacePos();
+            const Vec3 origin = m_pPlayerTransform
+                ? m_pPlayerTransform->GetPosition()
+                : itemPos;
+            NetEntityId targetNet = NULL_NET_ENTITY;
+            if (m_pEntityIdMap && GetHoveredEntity() != NULL_ENTITY)
+                targetNet = m_pEntityIdMap->ToNet(GetHoveredEntity());
+            ClearNetworkAttackIntent();
+            m_pCommandSerializer->SendUseItem(
+                *m_pNetworkView,
+                slot,
+                itemId,
+                itemPos,
+                WintersMath::DirectionXZ(origin, itemPos, Vec3{}),
+                targetNet);
+        }
     }
 
     if (IsPlayerStunned())
@@ -411,98 +516,76 @@ void CScene_InGame::UpdateCombatInput(bool& outSkipGroundMove)
             }
         }
 
-        if (in.IsKeyPressed('4') && IsNetworkAuthoritativeGameplay())
-        {
-            CCommandSerializer* pCommandSerializer = GetCommandSerializer();
-            CClientNetwork* pNetworkView = GetNetworkView();
-            if (pCommandSerializer && pNetworkView && pNetworkView->IsConnected())
-            {
-                const Vec3 wardPos = ResolveMouseMapSurfacePos();
-                const Vec3 origin = m_pPlayerTransform ? m_pPlayerTransform->GetPosition() : wardPos;
-                ClearNetworkAttackIntent();
-                pCommandSerializer->SendUseItem(
-                    *pNetworkView,
-                    kTrinketWardItemId,
-                    wardPos,
-                    WintersMath::DirectionXZ(origin, wardPos, Vec3{}));
-            }
-        }
-
-        if (in.IsKeyPressed('6') &&
-            IsNetworkAuthoritativeGameplay() &&
-            GetPlayerChampionId() == eChampion::KALISTA &&
-            m_PlayerEntity != NULL_ENTITY &&
-            GetHoveredEntity() != NULL_ENTITY &&
-            GetHoveredEntity() != m_PlayerEntity &&
-            GetHoveredTeam() == GetPlayerTeam() &&
-            m_World.HasComponent<InventoryComponent>(m_PlayerEntity) &&
-            m_World.GetComponent<InventoryComponent>(m_PlayerEntity)
-                .itemIds[kKalistaOathswornInventorySlot] ==
-                    kKalistaOathswornItemId &&
-            m_pCommandSerializer && m_pNetworkView && m_pEntityIdMap &&
-            m_pNetworkView->IsConnected())
-        {
-            const NetEntityId targetNet =
-                m_pEntityIdMap->ToNet(GetHoveredEntity());
-            if (targetNet != NULL_NET_ENTITY &&
-                m_World.HasComponent<TransformComponent>(GetHoveredEntity()))
-            {
-                const Vec3 targetPos =
-                    m_World.GetComponent<TransformComponent>(
-                        GetHoveredEntity()).GetPosition();
-                const Vec3 origin = m_pPlayerTransform
-                    ? m_pPlayerTransform->GetPosition()
-                    : targetPos;
-                ClearNetworkAttackIntent();
-                m_pCommandSerializer->SendUseItem(
-                    *m_pNetworkView,
-                    kKalistaOathswornItemId,
-                    targetPos,
-                    WintersMath::DirectionXZ(origin, targetPos, Vec3{}),
-                    targetNet);
-            }
-        }
-
-        if (in.IsKeyPressed('Q'))
-        {
-            ClearNetworkAttackIntent();
-            DispatchSkillInput(static_cast<uint8_t>(eSkillSlot::Q));
-        }
         if (in.IsKeyPressed('F'))
         {
             ClearNetworkAttackIntent();
             TriggerFlash();
         }
 
-        const u8_t wSlot = static_cast<u8_t>(eSkillSlot::W);
-        if (in.IsKeyPressed('W'))
+        const auto dispatchKey = [&](u8_t slot, i32_t key)
         {
-            if (!HasPendingSkillStage(*this, wSlot))
+            const eSkillInputActivation activation =
+                ResolveLocalSkillInputActivation(slot);
+            const bool_t bPressed = in.IsKeyPressed(key);
+            const bool_t bDown = in.IsKeyDown(key);
+            const bool_t bPending = HasPendingSkillStage(*this, slot);
+
+            if (activation == eSkillInputActivation::PressRelease)
+            {
+                if (bPressed && !bPending)
+                {
+                    ClearNetworkAttackIntent();
+                    const bool_t bDispatched = DispatchSkillInput(slot, 1u);
+                    if (slot == wSlot)
+                    {
+                        s_bWReleasePending =
+                            bDispatched && HasPendingSkillStage(*this, slot);
+                        TraceWGate(
+                            "stage1-arm",
+                            GetPlayerChampionId(),
+                            bDown,
+                            bPressed,
+                            in.IsKeyReleased(key),
+                            s_bWReleasePending,
+                            HasPendingSkillStage(*this, slot),
+                            bImGuiKbd,
+                            bDispatched);
+                    }
+                }
+                else if (!bDown &&
+                    (bPending || (slot == wSlot && s_bWReleasePending)))
+                {
+                    ClearNetworkAttackIntent();
+                    const bool_t bDispatched = DispatchSkillInput(slot, 2u);
+                    if (slot == wSlot)
+                    {
+                        TraceWGate(
+                            "stage2-release",
+                            GetPlayerChampionId(),
+                            bDown,
+                            bPressed,
+                            in.IsKeyReleased(key),
+                            s_bWReleasePending,
+                            HasPendingSkillStage(*this, slot),
+                            bImGuiKbd,
+                            bDispatched);
+                        s_bWReleasePending = false;
+                    }
+                }
+            }
+            else if (bPressed)
             {
                 ClearNetworkAttackIntent();
-                const bool_t bDispatched = DispatchSkillInput(wSlot);
-                s_bWReleasePending = bDispatched && HasPendingSkillStage(*this, wSlot);
+                DispatchSkillInput(slot);
             }
-        }
-        else if (in.IsKeyReleased('W') &&
-            (s_bWReleasePending || HasPendingSkillStage(*this, wSlot)))
-        {
-            ClearNetworkAttackIntent();
-            DispatchSkillInput(wSlot, 2u);
-            s_bWReleasePending = false;
-        }
+            if (slot == wSlot && activation != eSkillInputActivation::PressRelease)
+                s_bWReleasePending = false;
+        };
 
-        if (in.IsKeyPressed('E'))
-        {
-            ClearNetworkAttackIntent();
-            DispatchSkillInput(static_cast<uint8_t>(eSkillSlot::E));
-        }
-
-        if (in.IsKeyPressed('R'))
-        {
-            ClearNetworkAttackIntent();
-            DispatchSkillInput(static_cast<uint8_t>(eSkillSlot::R));
-        }
+        dispatchKey(static_cast<u8_t>(eSkillSlot::Q), 'Q');
+        dispatchKey(wSlot, 'W');
+        dispatchKey(static_cast<u8_t>(eSkillSlot::E), 'E');
+        dispatchKey(static_cast<u8_t>(eSkillSlot::R), 'R');
     }
 
     if (IsNetworkAuthoritativeGameplay())

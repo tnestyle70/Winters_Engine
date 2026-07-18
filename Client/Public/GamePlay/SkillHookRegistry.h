@@ -60,4 +60,6 @@ namespace HookVariant
 	constexpr u16_t W_Recovery = 0x0043;
 	constexpr u16_t E_Recovery = 0x0044;
 	constexpr u16_t R_Recovery = 0x0045;
+
+	constexpr u16_t Passive_Trigger = 0x0051;
 }

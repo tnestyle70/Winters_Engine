@@ -79,7 +79,6 @@
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
 #include "GameObject/Champion/Viego/Viego_FxPresets.h"
 #include "GamePlay/ChampionCatalog.h"
@@ -102,7 +101,6 @@
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/SkillDefGameDataAdapter.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -155,6 +153,20 @@ namespace
             return;
 
         pScene->GetCommandSerializer()->SendLevelSkill(*pScene->GetNetworkView(), slot);
+    }
+
+    void UI_SendInventoryReorderCommand(
+        void* pUser, u8_t sourceSlot, u8_t targetSlot, u16_t expectedItemId)
+    {
+        CScene_InGame* pScene = static_cast<CScene_InGame*>(pUser);
+        if (!pScene || !pScene->GetCommandSerializer() || !pScene->GetNetworkView())
+            return;
+
+        pScene->GetCommandSerializer()->SendReorderItem(
+            *pScene->GetNetworkView(),
+            sourceSlot,
+            targetSlot,
+            expectedItemId);
     }
 
     RHITextureHandle CreateDefaultRHITexture(IRHIDevice* pDevice, const char* pszDebugName)
@@ -420,6 +432,8 @@ bool CScene_InGame::OnEnter()
     }
     CGameInstance::Get()->UI_Set_InGameBuyItemCallback(&UI_SendBuyItemCommand, this);
     CGameInstance::Get()->UI_Set_LevelSkillCallback(&UI_SendLevelSkillCommand, this);
+    CGameInstance::Get()->UI_Set_InventoryReorderCallback(
+        &UI_SendInventoryReorderCommand, this);
 
     CMinion_Manager::Get()->Set_Enabled(!m_bNetworkAuthoritativeGameplay);
     wchar_t navGridPath[MAX_PATH] = {};
@@ -909,6 +923,7 @@ void CScene_InGame::OnExit()
 
     CGameInstance::Get()->UI_Set_InGameBuyItemCallback(nullptr, nullptr);
     CGameInstance::Get()->UI_Set_LevelSkillCallback(nullptr, nullptr);
+    CGameInstance::Get()->UI_Set_InventoryReorderCallback(nullptr, nullptr);
     CGameInstance::Get()->UI_Clear_ActorHUDState();
     CGameInstance::Get()->UI_Clear_StatusPanelState();
     CGameInstance::Get()->UI_Clear_WorldHealthBars();

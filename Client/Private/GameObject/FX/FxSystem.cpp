@@ -282,7 +282,7 @@ void CFxSystem::Update(CWorld& world, f32_t fTimeDelta)
     WINTERS_PROFILE_SCOPE("Fx::Update");
 
     std::vector<EntityID> vecDelete;
-    //ForEach ?⑥닔濡?EntityID??FxBillboardComponent瑜??쒗쉶?섎㈃???낅뜲?댄듃瑜??댁???
+    //ForEach
     world.ForEach<FxBillboardComponent>(
         std::function<void(EntityID, FxBillboardComponent&)>(
             [&](EntityID e, FxBillboardComponent& fx)

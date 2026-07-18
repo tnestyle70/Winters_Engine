@@ -10,6 +10,7 @@
 #include "Shared/GameSim/Core/Ecs/VisionSystem.h"
 
 #include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/AreaAuraComponent.h"
 #include "Shared/GameSim/Components/AsheSimComponent.h"
@@ -26,6 +27,7 @@
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/ItemRuntimeComponent.h"
 #include "Shared/GameSim/Components/IreliaSimComponent.h"
 #include "Shared/GameSim/Components/JaxSimComponent.h"
 #include "Shared/GameSim/Components/JungleAIComponent.h"
@@ -313,6 +315,7 @@ namespace
 		reg.Register<PracticeSpawnedTag>("PracticeSpawnedTag");
 		reg.Register<RivenStateComponent>("RivenStateComponent");
 		reg.Register<SkillStateComponent>("SkillStateComponent");
+		reg.Register<SkillChargeStateComponent>("SkillChargeStateComponent");
 		reg.Register<StatusEffectComponent>("StatusEffectComponent");
 		reg.Register<StructureComponent>("StructureComponent");
 		reg.Register<StructureProjectileComponent>("StructureProjectileComponent");
@@ -346,7 +349,9 @@ namespace
 		reg.Register<FormOverrideComponent>("FormOverrideComponent");
 		reg.Register<GoldComponent>("GoldComponent");
 		reg.Register<InventoryComponent>("InventoryComponent");
+		reg.Register<ItemRuntimeComponent>("ItemRuntimeComponent");
 		reg.Register<IreliaSimComponent>("IreliaSimComponent");
+		reg.Register<IreliaMarkComponent>("IreliaMarkComponent");
 		reg.Register<JaxSimComponent>("JaxSimComponent");
 		reg.Register<JungleAIComponent>("JungleAIComponent");
 		reg.Register<KalistaFateCallCarriedComponent>("KalistaFateCallCarriedComponent");

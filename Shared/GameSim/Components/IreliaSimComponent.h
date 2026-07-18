@@ -33,6 +33,15 @@ struct IreliaSimComponent
 	bool_t bDashActive = false;
 	bool_t bRWaveActive = false;
 	bool_t bRWallActive = false;
+	bool_t bQMarkCooldownReset = false;
 };
 
 static_assert(std::is_trivially_copyable_v<IreliaSimComponent>);
+
+struct IreliaMarkComponent
+{
+	EntityID sourceEntity = NULL_ENTITY;
+	f32_t fRemainingSec = 0.f;
+};
+
+static_assert(std::is_trivially_copyable_v<IreliaMarkComponent>);

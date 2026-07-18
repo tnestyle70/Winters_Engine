@@ -231,7 +231,8 @@ struct DamageEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_TYPE = 10,
     VT_BWASCRIT = 12,
     VT_BKILLED = 14,
-    VT_SKILLID = 16
+    VT_SKILLID = 16,
+    VT_FLAGS = 18
   };
   uint32_t sourceNet() const {
     return GetField<uint32_t>(VT_SOURCENET, 0);
@@ -254,6 +255,9 @@ struct DamageEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint16_t skillId() const {
     return GetField<uint16_t>(VT_SKILLID, 0);
   }
+  uint16_t flags() const {
+    return GetField<uint16_t>(VT_FLAGS, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -264,6 +268,7 @@ struct DamageEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_BWASCRIT, 1) &&
            VerifyField<uint8_t>(verifier, VT_BKILLED, 1) &&
            VerifyField<uint16_t>(verifier, VT_SKILLID, 2) &&
+           VerifyField<uint16_t>(verifier, VT_FLAGS, 2) &&
            verifier.EndTable();
   }
 };
@@ -293,6 +298,9 @@ struct DamageEventBuilder {
   void add_skillId(uint16_t skillId) {
     fbb_.AddElement<uint16_t>(DamageEvent::VT_SKILLID, skillId, 0);
   }
+  void add_flags(uint16_t flags) {
+    fbb_.AddElement<uint16_t>(DamageEvent::VT_FLAGS, flags, 0);
+  }
   explicit DamageEventBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -312,11 +320,13 @@ inline ::flatbuffers::Offset<DamageEvent> CreateDamageEvent(
     uint8_t type = 0,
     bool bWasCrit = false,
     bool bKilled = false,
-    uint16_t skillId = 0) {
+    uint16_t skillId = 0,
+    uint16_t flags = 0) {
   DamageEventBuilder builder_(_fbb);
   builder_.add_amount(amount);
   builder_.add_targetNet(targetNet);
   builder_.add_sourceNet(sourceNet);
+  builder_.add_flags(flags);
   builder_.add_skillId(skillId);
   builder_.add_bKilled(bKilled);
   builder_.add_bWasCrit(bWasCrit);

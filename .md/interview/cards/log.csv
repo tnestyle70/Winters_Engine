@@ -1,0 +1,18 @@
+﻿date,item,kind,verdict,axes,note
+2026-07-16,W01,방어,실패,C4,C2/W02 내용으로 답함 — 핸들·수명 문제 자체가 인출 안 됨. 캐시라인 64KB 오류 (타 세션 채점분)
+2026-07-17,뼈대(Day0),⓪인수,성공,-,"사다리 8칸 관통, '예전 디버깅 감각' 회복. 함수 BP+XML 영구화"
+2026-07-17,W01,⓪인수,진행중,C4,Entity.h BP 4개 판독(76 Create/104·117 Destroy/199 SwapRawState). divergence·m_Parent 유도 미납
+2026-07-17,S18/C7 경계,관측,성공,C7,클라 F11로 전투 부재 직접 관측 — 전투는 서버 프로세스의 Shared/GameSim에서만 실행. divergence: 서버를 띄워도 클라 디버거엔 전투가 안 보인다는 사실
+2026-07-17,비에고 빙의 체인,⓪인수,성공,C7 C5,CommandExecutor:1686 pending → 다음 틱 ApplyViegoPossession → form.visual/skillChampion 교체 관통. 원혼 EntityID 질문 미납
+2026-07-17,씬 수명주기,관측,성공,C4,divergence: 첫 씬 진입에도 정리가 돌 줄 알았다 → if(m_pCurrentScene) 널 가드. 정리는 2회차 전환부터만 존재
+2026-07-17,StaticScene,판결,CONTEST,C8,"호출부 0 전수 실측(BP 미적중이 단서) — 수업 관례 흔적 기관. 은퇴 적용됨, 빌드 검증 대기"
+2026-07-17,Blueprint 파이프라인,판결,CONTEST,C8 C4,"Clone_Entity 0건/전 제품 + Add_Blueprint 1건 고아(hp600 하드코딩 이중 진실). 은퇴 적용됨, 빌드 검증 대기"
+2026-07-17,"OnShutdown Change_Scene(End,nullptr)",판결,보류,C4,널 가드에 거부되는 무효 호출 의심 — 종료 시 출력창 로그 확인 후 판결
+2026-07-17,관측 기법,메모,-,C8,'BP 미적중 = 코드 미실행의 1급 증거' 확립 + 트레이스포인트 도입(인지→기록 전환)
+2026-07-17,Engine CStatusEffectSystem,판결,보류(CONTEST 유력),C8 C7,"생성 호출부 0 전수 실측 — 상태 시스템 3벌 중 유일 고아(진실=Shared, 표현=CLocalStatusEffect). blame 감정 후 확정. 스테일 include 2곳"
+2026-07-17,오프라인 시뮬 스택 7종(BT/MCTS/클라Nav 등),관측,분류완료,C7 C8,전부 !bNetworkAuthoritativeGameplay 게이트 뒤 봉인 — 죽음 아님. 판결은 '오프라인 모드 유지 여부' 제품 결정. 스모크/랩 의존 확인 선행
+2026-07-17,Engine CStatusEffectSystem,판결,CONTEST 확정+적용,C8 C7,blame=최초 커밋 출생 후 무변경(사연 없음). 파일 2+vcxproj/filters+스테일 include 6TU 제거. 상태 시스템 3벌→2벌 정상화. 빌드 검증 대기
+2026-07-17,빌드 브레이크,수리,완료,C8,원인=Codex 중단 편집: UI_StatsPanelAtlasUV가 FindOrLoadKillFeedObjectIcon의 if/else-if 사슬 내부에 삽입된 채 세션 종료. 파일 스코프로 이사(의도 보존) → 전 솔루션 그린
+2026-07-17,은퇴 슬라이스 2건,검증,빌드 통과,C8,Blueprint+StaticScene / Engine StatusEffect — 참조 제거 완전성 컴파일 증명. 런타임 육안 대기
+2026-07-17,SimLab 게이트,관측,Codex WIP 2건 검출,C8 C7,ZedPassiveR probe FAIL + 키프레임 truncated payload(컴포넌트 성장 vs 직렬화 비대칭 유력) — W15 완전성 게이트 정상 작동. 레인 소유권: 사용자 결정 대기
+2026-07-17,피오라 바이탈 시각 슬라이스,적용,빌드 그린,C1 C8,"passive_vital.wfx=crest3+backing 2층, r_mark.wfx=crest/warning/glow2 3층 피자, kVitalGap 1.35→1.6. 육안·BP 검증 및 W -90°·JSON 이관은 차기 세션"

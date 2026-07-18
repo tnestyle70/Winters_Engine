@@ -17,6 +17,7 @@
 #include "WintersMath.h"
 #include "WintersTypes.h"
 
+#include <array>
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -325,6 +326,8 @@ private:
     u8_t m_winningTeam = 0xFFu;
     std::unordered_map<EntityID, u32_t> m_lastBroadcastActionSeq;
     std::unordered_map<u32_t, u32_t> m_lastSimCommandSeqBySession;
+    std::unordered_map<u32_t, std::array<SkillCommandFeedback, 5u>>
+        m_lastCommandFeedbackBySession;
 
     bool_t m_bGameplayObjectsSpawned = false;
     CServerMinionWaveRuntime m_serverMinionWaves{};

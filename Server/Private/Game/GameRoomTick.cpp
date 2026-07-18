@@ -49,6 +49,7 @@
 #include "ECS/Components/VisionComponents.h"
 
 #include <chrono>
+#include <cmath>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -140,6 +141,7 @@ void CGameRoom::Tick()
 	Phase_DrainCommands(tc);
 	Phase_ServerBotAI(tc);
 	Phase_ExecuteCommands(tc);
+	ExecuteExpiredSkillCharges(*m_pExecutor, m_world, tc);
 	Phase_SimulationSystems(tc);
 	if (m_pLagCompensation)
 		m_pLagCompensation->RecordHistory(m_world, tc.tickIndex);
@@ -197,6 +199,35 @@ void CGameRoom::Phase_CheckGameEnd(TickContext& tc)
 
 void CGameRoom::Phase_ExecuteCommands(TickContext& tc)
 {
+	const auto recordFeedback = [&](const GameCommand& cmd, const CommandExecutionResult& result)
+	{
+		// This append-only snapshot feedback reconciles client skill-stage
+		// prediction. Preserve the latest skill result when move/attack commands
+		// are executed in the same server tick.
+		if (cmd.sourceSessionId == 0u ||
+			cmd.kind != eCommandKind::CastSkill ||
+			cmd.slot >= 5u)
+			return;
+
+		SkillCommandFeedback feedback{};
+		feedback.result = result;
+		if (m_world.HasComponent<SkillStateComponent>(cmd.issuerEntity))
+		{
+			const auto& slot =
+				m_world.GetComponent<SkillStateComponent>(cmd.issuerEntity).slots[cmd.slot];
+			feedback.authoritativeSkillSlot = cmd.slot;
+			feedback.authoritativeSkillStage =
+				slot.currentStage == 1u && slot.stageWindow > 0.f ? 1u : 0u;
+			if (feedback.authoritativeSkillStage == 1u)
+			{
+				feedback.stageWindowEndTick = tc.tickIndex + static_cast<u64_t>(
+					std::ceil(static_cast<f64_t>(slot.stageWindow) *
+						static_cast<f64_t>(DeterministicTime::kTicksPerSecond)));
+			}
+		}
+		m_lastCommandFeedbackBySession[cmd.sourceSessionId][cmd.slot] = feedback;
+	};
+
 	for (const auto& cmd : m_pendingExecCommands)
 	{
 		bool_t bAccepted = false;
@@ -218,6 +249,12 @@ void CGameRoom::Phase_ExecuteCommands(TickContext& tc)
 						? Winters::Replay::eReplayJournalOutcome::AcceptedToolCommand
 						: Winters::Replay::eReplayJournalOutcome::RejectedToolCommand);
 			}
+			recordFeedback(
+				cmd,
+				bAccepted
+					? CommandExecutionResult::Accepted(cmd.sequenceNum)
+					: CommandExecutionResult::Rejected(
+						cmd.sequenceNum, eCommandExecutionReason::ChampionRuleBlocked));
 			continue;
 		}
 		if (TryHandleAIDebugControl(tc, cmd, bAccepted))
@@ -228,13 +265,21 @@ void CGameRoom::Phase_ExecuteCommands(TickContext& tc)
 				bAccepted
 					? Winters::Replay::eReplayJournalOutcome::AcceptedToolCommand
 					: Winters::Replay::eReplayJournalOutcome::RejectedToolCommand);
+			recordFeedback(
+				cmd,
+				bAccepted
+					? CommandExecutionResult::Accepted(cmd.sequenceNum)
+					: CommandExecutionResult::Rejected(
+						cmd.sequenceNum, eCommandExecutionReason::ChampionRuleBlocked));
 			continue;
 		}
 		RecordPendingReplayCommand(
 			tc.tickIndex,
 			cmd,
 			Winters::Replay::eReplayJournalOutcome::SubmittedPlayerInput);
-		m_pExecutor->ExecuteCommand(m_world, tc, cmd);
+		const CommandExecutionResult result =
+			m_pExecutor->ExecuteCommand(m_world, tc, cmd);
+		recordFeedback(cmd, result);
 	}
 	m_pendingExecCommands.clear();
 
@@ -260,6 +305,7 @@ void CGameRoom::Phase_SimulationSystems(TickContext& tc)
 	CSpellbookFormOverrideSystem::Execute(m_world, tc);
 	CAreaAuraSystem::Execute(m_world, tc);
 	CStatSystem::Execute(m_world, definitions);
+	CStatSystem::TickResourceRegeneration(m_world, tc);
 	CBuffSystem::AdvanceDurationsAfterStat(m_world, tc);
 	CSkillCooldownSystem::Execute(m_world, tc);
 	CRecallSystem::Execute(m_world, tc);

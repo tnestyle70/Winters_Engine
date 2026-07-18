@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- ── 필터 정의 ──────────────────────────────────────────── -->
   <ItemGroup>
@@ -37,66 +37,6 @@
     </Filter>
     <Filter Include="03. Renderer\00. Camera">
       <UniqueIdentifier>{F1400001-0000-0000-0000-000000000001}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\02. Cube">
-      <UniqueIdentifier>{F1400003-0000-0000-0000-000000000003}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\03. Model">
-      <UniqueIdentifier>{3bdb9482-862d-43c7-9208-e58893582ae6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\04. Plane">
-      <UniqueIdentifier>{31b52bc5-3a1f-4ba4-8c2a-2c2a57b472e7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX">
-      <UniqueIdentifier>{8577a70e-638b-434d-bf90-b62850020784}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\07. Material">
-      <UniqueIdentifier>{1daf48a6-19f7-4637-94ce-7a56db52c7bc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\08. FogOfWar">
-      <UniqueIdentifier>{bf3afd90-a4a2-475d-a4f9-bef3aad4e7e6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\03. Model\00. Renderer">
-      <UniqueIdentifier>{72eaee67-064c-4510-8f1e-c57d1a96ec45}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\03. Model\01. NormalPass">
-      <UniqueIdentifier>{35e3a22a-e280-480f-b8ca-8655658304ae}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\03. Model\02. SSAOPass">
-      <UniqueIdentifier>{a7373159-3fd4-46b0-9e61-84380515d18f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\03. Model\03. PostFxPass">
-      <UniqueIdentifier>{310f1bac-b6e8-466c-bcc5-df90988273ee}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\00. Asset">
-      <UniqueIdentifier>{656f4949-3128-4a32-ae73-5cff1038080d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\01. DepthMode">
-      <UniqueIdentifier>{62981b32-dc18-4d98-abd2-6e74dae99373}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\02. DeterministicRandom">
-      <UniqueIdentifier>{a5bb062a-d8c6-4065-adc0-d251ab94211e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\03. StaticMeshRenderer">
-      <UniqueIdentifier>{12396025-87f4-4a80-9a6f-96d4e301103c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\04. MaterialDesc">
-      <UniqueIdentifier>{ee1729e2-bd52-433b-8815-9010a17b43f6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\05. ShaderConstant">
-      <UniqueIdentifier>{57751ad8-aca9-4380-afc8-c6190a5ce51e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\06. ParticlePool">
-      <UniqueIdentifier>{84b7404d-3411-44b7-a693-32d69b2a834a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\07. ParameterMap">
-      <UniqueIdentifier>{ab5a5f9e-3839-4eab-98c8-f0447f9acc5f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\08. RHI">
-      <UniqueIdentifier>{c7a7306d-1daa-4c9a-a6f2-3d0618755772}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\09. UIRenderer">
-      <UniqueIdentifier>{ed3fd8b4-3eaf-43e0-9d0c-cc2e5af1c682}</UniqueIdentifier>
     </Filter>
     <Filter Include="05. ECS\00. Core\00. World">
       <UniqueIdentifier>{db0e3330-6ad4-4f3b-9702-1509d7834004}</UniqueIdentifier>
@@ -148,21 +88,6 @@
     </Filter>
     <Filter Include="05. ECS\03. Systems\01. UnitFlow\01. NavigationThrottle">
       <UniqueIdentifier>{c980d8f2-6181-4188-87c7-7f5bf86fcdc6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\03. Systems\04. Vision">
-      <UniqueIdentifier>{24da531b-2c19-49f8-b2e6-2049dd6eb2e2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\03. Systems\06. Navigation">
-      <UniqueIdentifier>{e42365d5-a6b0-48fe-85a6-5fb140753d2f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\03. Systems\08. StatusEffect">
-      <UniqueIdentifier>{7c25e899-b407-45bb-8fb1-6b6e9e43c515}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\00. Core\10. JobSystem">
-      <UniqueIdentifier>{F1A00001-0000-0000-0000-000000000001}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="05. ECS\00. Core\10. JobSystem\00. Core">
-      <UniqueIdentifier>{43251245-d92f-49b7-854e-e76bedbf4ac2}</UniqueIdentifier>
     </Filter>
     <Filter Include="11. Scripting">
       <UniqueIdentifier>{3bcf0ba8-6359-434b-b967-9e513fc972cb}</UniqueIdentifier>
@@ -320,9 +245,6 @@
     <Filter Include="00. Core\06. Profiler\00. CPU">
       <UniqueIdentifier>{4f723a01-9d87-4deb-a9bf-a37a06c3bdd2}</UniqueIdentifier>
     </Filter>
-    <Filter Include="01. Runtime\04. Scene">
-      <UniqueIdentifier>{5b724e25-9810-4483-8cae-fdcf45d8bbbb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="02. RHI\01. DX11\00. Device">
       <UniqueIdentifier>{ccd3bf50-3583-42f9-a375-e624911319db}</UniqueIdentifier>
     </Filter>
@@ -344,12 +266,6 @@
     <Filter Include="02. RHI\02. DX12">
       <UniqueIdentifier>{5b05cabc-747c-48f4-8506-b40fe7cd98ca}</UniqueIdentifier>
     </Filter>
-    <Filter Include="03. Renderer\05. FX\10. Exec">
-      <UniqueIdentifier>{f45e707b-77a1-4398-8c39-22a36f37f8a3}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="03. Renderer\05. FX\11. Graph">
-      <UniqueIdentifier>{67ef6c75-de97-43f0-8b27-a67c8549e65a}</UniqueIdentifier>
-    </Filter>
     <Filter Include="12. Cinematic">
       <UniqueIdentifier>{8df1d33a-c6d2-44ba-b21b-767293965cef}</UniqueIdentifier>
     </Filter>
@@ -358,6 +274,90 @@
     </Filter>
     <Filter Include="14. World">
       <UniqueIdentifier>{2679cf3b-8a38-438d-80cb-8b75394a119c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="01. Runtime\03. Scene">
+      <UniqueIdentifier>{5b724e25-9810-4483-8cae-fdcf45d8bbbb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\00. Core\03. JobSystem">
+      <UniqueIdentifier>{F1A00001-0000-0000-0000-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\00. Core\03. JobSystem\00. Core">
+      <UniqueIdentifier>{43251245-d92f-49b7-854e-e76bedbf4ac2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\01. Cube">
+      <UniqueIdentifier>{F1400003-0000-0000-0000-000000000003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\02. Model">
+      <UniqueIdentifier>{3bdb9482-862d-43c7-9208-e58893582ae6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\02. Model\00. Renderer">
+      <UniqueIdentifier>{72eaee67-064c-4510-8f1e-c57d1a96ec45}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\02. Model\01. NormalPass">
+      <UniqueIdentifier>{35e3a22a-e280-480f-b8ca-8655658304ae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\02. Model\02. SSAOPass">
+      <UniqueIdentifier>{a7373159-3fd4-46b0-9e61-84380515d18f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\02. Model\03. PostFxPass">
+      <UniqueIdentifier>{310f1bac-b6e8-466c-bcc5-df90988273ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\03. Plane">
+      <UniqueIdentifier>{31b52bc5-3a1f-4ba4-8c2a-2c2a57b472e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX">
+      <UniqueIdentifier>{8577a70e-638b-434d-bf90-b62850020784}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\00. Asset">
+      <UniqueIdentifier>{656f4949-3128-4a32-ae73-5cff1038080d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\01. DepthMode">
+      <UniqueIdentifier>{62981b32-dc18-4d98-abd2-6e74dae99373}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\02. DeterministicRandom">
+      <UniqueIdentifier>{a5bb062a-d8c6-4065-adc0-d251ab94211e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\03. StaticMeshRenderer">
+      <UniqueIdentifier>{12396025-87f4-4a80-9a6f-96d4e301103c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\04. MaterialDesc">
+      <UniqueIdentifier>{ee1729e2-bd52-433b-8815-9010a17b43f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\05. ShaderConstant">
+      <UniqueIdentifier>{57751ad8-aca9-4380-afc8-c6190a5ce51e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\06. ParticlePool">
+      <UniqueIdentifier>{84b7404d-3411-44b7-a693-32d69b2a834a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\07. ParameterMap">
+      <UniqueIdentifier>{ab5a5f9e-3839-4eab-98c8-f0447f9acc5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\08. RHI">
+      <UniqueIdentifier>{c7a7306d-1daa-4c9a-a6f2-3d0618755772}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\09. UIRenderer">
+      <UniqueIdentifier>{ed3fd8b4-3eaf-43e0-9d0c-cc2e5af1c682}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\10. Exec">
+      <UniqueIdentifier>{f45e707b-77a1-4398-8c39-22a36f37f8a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\04. FX\11. Graph">
+      <UniqueIdentifier>{67ef6c75-de97-43f0-8b27-a67c8549e65a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\05. Material">
+      <UniqueIdentifier>{1daf48a6-19f7-4637-94ce-7a56db52c7bc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="03. Renderer\06. FogOfWar">
+      <UniqueIdentifier>{bf3afd90-a4a2-475d-a4f9-bef3aad4e7e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\03. Vision">
+      <UniqueIdentifier>{24da531b-2c19-49f8-b2e6-2049dd6eb2e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\04. Navigation">
+      <UniqueIdentifier>{e42365d5-a6b0-48fe-85a6-5fb140753d2f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="05. ECS\03. Systems\05. StatusEffect">
+      <UniqueIdentifier>{7c25e899-b407-45bb-8fb1-6b6e9e43c515}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <!-- ── 공개 API 헤더 → Include 필터 ────────────────────── -->
@@ -425,16 +425,16 @@
       <Filter>01. Runtime\00. EngineApp</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Core\JobCounter.h">
-      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+      <Filter>05. ECS\00. Core\03. JobSystem\00. Core</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Core\Fiber\Fiber.h">
-      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+      <Filter>05. ECS\00. Core\03. JobSystem\00. Core</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Core\Fiber\FiberPool.h">
-      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+      <Filter>05. ECS\00. Core\03. JobSystem\00. Core</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Core\Fiber\FiberTypes.h">
-      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+      <Filter>05. ECS\00. Core\03. JobSystem\00. Core</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\ISystem.h">
       <Filter>05. ECS\01. System</Filter>
@@ -446,7 +446,7 @@
       <Filter>00. Core</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\CubeRenderer.h">
-      <Filter>03. Renderer\02. Cube</Filter>
+      <Filter>03. Renderer\01. Cube</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\CCamera.h">
       <Filter>03. Renderer\00. Camera</Filter>
@@ -485,10 +485,10 @@
       <Filter>10. Editor</Filter>
     </ClInclude>
     <ClInclude Include="IScene.h">
-      <Filter>01. Runtime\04. Scene</Filter>
+      <Filter>01. Runtime\03. Scene</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Scene\Scene_Manager.h">
-      <Filter>01. Runtime\04. Scene</Filter>
+      <Filter>01. Runtime\03. Scene</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Sound\Sound_Manager.h">
       <Filter>08. Sound</Filter>
@@ -518,13 +518,13 @@
       <Filter>07. UI</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Core\JobSystem\JobDecl.h">
-      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+      <Filter>05. ECS\00. Core\03. JobSystem\00. Core</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Core\JobSystem\WorkStealingDeque.h">
-      <Filter>05. ECS\00. Core\10. JobSystem\00. Core</Filter>
+      <Filter>05. ECS\00. Core\03. JobSystem\00. Core</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\PlaneRenderer.h">
-      <Filter>03. Renderer\04. Plane</Filter>
+      <Filter>03. Renderer\03. Plane</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\AssetFormat\Common\BinaryReader.h">
       <Filter>04. Resource\08. AssetFormat\Common</Filter>
@@ -584,16 +584,16 @@
       <Filter>04. Resource\08. AssetFormat\Anim</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\CBPerMaterial.h">
-      <Filter>03. Renderer\07. Material</Filter>
+      <Filter>03. Renderer\05. Material</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\CMaterialPBR.h">
-      <Filter>03. Renderer\07. Material</Filter>
+      <Filter>03. Renderer\05. Material</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\BlendTypes.h">
-      <Filter>03. Renderer\07. Material</Filter>
+      <Filter>03. Renderer\05. Material</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\LightData.h">
-      <Filter>03. Renderer\07. Material</Filter>
+      <Filter>03. Renderer\05. Material</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Manager\UI\UIAtlasManifest.h">
       <Filter>07. UI\00. AtlasManifest</Filter>
@@ -605,6 +605,9 @@
       <Filter>07. UI\01. HUD</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Manager\UI\StatusPanelState.h">
+      <Filter>07. UI\01. HUD</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Public\Manager\UI\UIResourceKind.h">
       <Filter>07. UI\01. HUD</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Manager\UI\WorldHealthBarState.h">
@@ -623,7 +626,7 @@
       <Filter>07. UI\03. Lua</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\FogOfWarRenderer.h">
-      <Filter>03. Renderer\08. FogOfWar</Filter>
+      <Filter>03. Renderer\06. FogOfWar</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Core\CInput.h">
       <Filter>00. Core\04. Input</Filter>
@@ -638,64 +641,64 @@
       <Filter>00. Core\05. PCH</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\ModelRenderer.h">
-      <Filter>03. Renderer\03. Model\00. Renderer</Filter>
+      <Filter>03. Renderer\02. Model\00. Renderer</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\NormalPass.h">
-      <Filter>03. Renderer\03. Model\01. NormalPass</Filter>
+      <Filter>03. Renderer\02. Model\01. NormalPass</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\SSAOPass.h">
-      <Filter>03. Renderer\03. Model\02. SSAOPass</Filter>
+      <Filter>03. Renderer\02. Model\02. SSAOPass</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\PostFxPass.h">
-      <Filter>03. Renderer\03. Model\03. PostFxPass</Filter>
+      <Filter>03. Renderer\02. Model\03. PostFxPass</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\FxAsset.h">
-      <Filter>03. Renderer\05. FX\00. Asset</Filter>
+      <Filter>03. Renderer\04. FX\00. Asset</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\FxLifeCycle.h">
-      <Filter>03. Renderer\05. FX\00. Asset</Filter>
+      <Filter>03. Renderer\04. FX\00. Asset</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\FxDepthMode.h">
-      <Filter>03. Renderer\05. FX\01. DepthMode</Filter>
+      <Filter>03. Renderer\04. FX\01. DepthMode</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\DeterministicRandom.h">
-      <Filter>03. Renderer\05. FX\02. DeterministicRandom</Filter>
+      <Filter>03. Renderer\04. FX\02. DeterministicRandom</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\FxStaticMeshRenderer.h">
-      <Filter>03. Renderer\05. FX\03. StaticMeshRenderer</Filter>
+      <Filter>03. Renderer\04. FX\03. StaticMeshRenderer</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\FxMaterialDesc.h">
-      <Filter>03. Renderer\05. FX\04. MaterialDesc</Filter>
+      <Filter>03. Renderer\04. FX\04. MaterialDesc</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\FxShaderConstants.h">
-      <Filter>03. Renderer\05. FX\05. ShaderConstant</Filter>
+      <Filter>03. Renderer\04. FX\05. ShaderConstant</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\ParticlePool.h">
-      <Filter>03. Renderer\05. FX\06. ParticlePool</Filter>
+      <Filter>03. Renderer\04. FX\06. ParticlePool</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\ParameterMap.h">
-      <Filter>03. Renderer\05. FX\07. ParameterMap</Filter>
+      <Filter>03. Renderer\04. FX\07. ParameterMap</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\RHIFxMeshResource.h">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\RHIFxSpriteRenderer.h">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\RenderWorldSnapshot.h">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\RHIMaterialResource.h">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\RHIMeshResource.h">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\RHISceneRenderer.h">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Renderer\UIRenderer.h">
-      <Filter>03. Renderer\05. FX\09. UIRenderer</Filter>
+      <Filter>03. Renderer\04. FX\09. UIRenderer</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\World.h">
       <Filter>05. ECS\00. Core\00. World</Filter>
@@ -745,20 +748,14 @@
     <ClInclude Include="..\Public\ECS\Systems\CoreSystems.h">
       <Filter>05. ECS\03. Systems\00. Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\ECS\Systems\EntityBlueprint.h">
-      <Filter>05. ECS\03. Systems\02. Entity</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Public\ECS\Systems\EntityBlueprintRegistry.h">
-      <Filter>05. ECS\03. Systems\02. Entity</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\ECS\Systems\NavigationThrottleSystem.h">
       <Filter>05. ECS\03. Systems\01. UnitFlow\01. NavigationThrottle</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\Systems\VisionSystem.h">
-      <Filter>05. ECS\03. Systems\04. Vision</Filter>
+      <Filter>05. ECS\03. Systems\03. Vision</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\Systems\SpatialHashSystem.h">
-      <Filter>05. ECS\03. Systems\06. Navigation</Filter>
+      <Filter>05. ECS\03. Systems\04. Navigation</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\ECS\Systems\MCTSSystem.h">
       <Filter>09. AI\01. MCTS</Filter>
@@ -766,11 +763,8 @@
     <ClInclude Include="..\Public\ECS\Systems\BehaviorTreeSystem.h">
       <Filter>09. AI\00. BT</Filter>
     </ClInclude>
-    <ClInclude Include="..\Public\ECS\Systems\StatusEffectSystem.h">
-      <Filter>05. ECS\03. Systems\08. StatusEffect</Filter>
-    </ClInclude>
     <ClInclude Include="..\Public\Core\JobSystem.h">
-      <Filter>05. ECS\00. Core\10. JobSystem</Filter>
+      <Filter>05. ECS\00. Core\03. JobSystem</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\AI\BehaviorTree.h">
       <Filter>09. AI\00. BT</Filter>
@@ -884,16 +878,16 @@
       <Filter>12. Cinematic</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\Exec\FxExecPlan.h">
-      <Filter>03. Renderer\05. FX\10. Exec</Filter>
+      <Filter>03. Renderer\04. FX\10. Exec</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\Exec\FxParticlePool.h">
-      <Filter>03. Renderer\05. FX\10. Exec</Filter>
+      <Filter>03. Renderer\04. FX\10. Exec</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\Graph\FxGraph.h">
-      <Filter>03. Renderer\05. FX\11. Graph</Filter>
+      <Filter>03. Renderer\04. FX\11. Graph</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\FX\Graph\FxGraphValidator.h">
-      <Filter>03. Renderer\05. FX\11. Graph</Filter>
+      <Filter>03. Renderer\04. FX\11. Graph</Filter>
     </ClInclude>
     <ClInclude Include="..\Public\Physics3D\HitVolume.h">
       <Filter>13. Physics3D</Filter>
@@ -932,7 +926,7 @@
       <Filter>03. Renderer\00. Camera</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\CubeRenderer.cpp">
-      <Filter>03. Renderer\02. Cube</Filter>
+      <Filter>03. Renderer\01. Cube</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Resource\Mesh.cpp">
       <Filter>04. Resource\00. Mesh</Filter>
@@ -1085,7 +1079,7 @@
       <Filter>11. Scripting\00. Lua VM</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Scene\Scene_Manager.cpp">
-      <Filter>01. Runtime\04. Scene</Filter>
+      <Filter>01. Runtime\03. Scene</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Sound\Sound_Manager.cpp">
       <Filter>08. Sound</Filter>
@@ -1112,7 +1106,7 @@
       <Filter>07. UI</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\PlaneRenderer.cpp">
-      <Filter>03. Renderer\04. Plane</Filter>
+      <Filter>03. Renderer\03. Plane</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\AssetFormat\Common\BinaryReader.cpp">
       <Filter>04. Resource\08. AssetFormat\Common</Filter>
@@ -1142,7 +1136,7 @@
       <Filter>05. ECS\01. System\03. TransformSystem</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\CMaterialPBR.cpp">
-      <Filter>03. Renderer\07. Material</Filter>
+      <Filter>03. Renderer\05. Material</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\AssetFormat\Anim\WSkelWriter.cpp">
       <Filter>04. Resource\08. AssetFormat\Anim</Filter>
@@ -1175,7 +1169,7 @@
       <Filter>11. Scripting</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\FogOfWarRenderer.cpp">
-      <Filter>03. Renderer\08. FogOfWar</Filter>
+      <Filter>03. Renderer\06. FogOfWar</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Platform\CInput.cpp">
       <Filter>00. Core\04. Input</Filter>
@@ -1193,46 +1187,46 @@
       <Filter>00. Core\05. PCH</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\ModelRenderer.cpp">
-      <Filter>03. Renderer\03. Model\00. Renderer</Filter>
+      <Filter>03. Renderer\02. Model\00. Renderer</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\NormalPass.cpp">
-      <Filter>03. Renderer\03. Model\01. NormalPass</Filter>
+      <Filter>03. Renderer\02. Model\01. NormalPass</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\SSAOPass.cpp">
-      <Filter>03. Renderer\03. Model\02. SSAOPass</Filter>
+      <Filter>03. Renderer\02. Model\02. SSAOPass</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\PostFxPass.cpp">
-      <Filter>03. Renderer\03. Model\03. PostFxPass</Filter>
+      <Filter>03. Renderer\02. Model\03. PostFxPass</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\FX\FxAsset.cpp">
-      <Filter>03. Renderer\05. FX\00. Asset</Filter>
+      <Filter>03. Renderer\04. FX\00. Asset</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\FX\DeterministicRandom.cpp">
-      <Filter>03. Renderer\05. FX\02. DeterministicRandom</Filter>
+      <Filter>03. Renderer\04. FX\02. DeterministicRandom</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\FxStaticMeshRenderer.cpp">
-      <Filter>03. Renderer\05. FX\03. StaticMeshRenderer</Filter>
+      <Filter>03. Renderer\04. FX\03. StaticMeshRenderer</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\FX\ParticlePool.cpp">
-      <Filter>03. Renderer\05. FX\06. ParticlePool</Filter>
+      <Filter>03. Renderer\04. FX\06. ParticlePool</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\RHIFxMeshResource.cpp">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\RHIFxSpriteRenderer.cpp">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\RHIMaterialResource.cpp">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\RHIMeshResource.cpp">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\RHISceneRenderer.cpp">
-      <Filter>03. Renderer\05. FX\08. RHI</Filter>
+      <Filter>03. Renderer\04. FX\08. RHI</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Renderer\UIRenderer.cpp">
-      <Filter>03. Renderer\05. FX\09. UIRenderer</Filter>
+      <Filter>03. Renderer\04. FX\09. UIRenderer</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\ECS\World.cpp">
       <Filter>05. ECS\00. Core\00. World</Filter>
@@ -1246,20 +1240,14 @@
     <ClCompile Include="..\Private\ECS\Systems\CoreSystems.cpp">
       <Filter>05. ECS\03. Systems\00. Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\ECS\Systems\EntityBlueprint.cpp">
-      <Filter>05. ECS\03. Systems\02. Entity</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Private\ECS\Systems\EntityBlueprintRegistry.cpp">
-      <Filter>05. ECS\03. Systems\02. Entity</Filter>
-    </ClCompile>
     <ClCompile Include="..\Private\ECS\Systems\NavigationThrottleSystem.cpp">
       <Filter>05. ECS\03. Systems\01. UnitFlow\01. NavigationThrottle</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\ECS\Systems\VisionSystem.cpp">
-      <Filter>05. ECS\03. Systems\04. Vision</Filter>
+      <Filter>05. ECS\03. Systems\03. Vision</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\ECS\Systems\SpatialHashSystem.cpp">
-      <Filter>05. ECS\03. Systems\06. Navigation</Filter>
+      <Filter>05. ECS\03. Systems\04. Navigation</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\ECS\Systems\MCTSSystem.cpp">
       <Filter>09. AI\01. MCTS</Filter>
@@ -1267,11 +1255,8 @@
     <ClCompile Include="..\Private\ECS\Systems\BehaviorTreeSystem.cpp">
       <Filter>09. AI\00. BT</Filter>
     </ClCompile>
-    <ClCompile Include="..\Private\ECS\Systems\StatusEffectSystem.cpp">
-      <Filter>05. ECS\03. Systems\08. StatusEffect</Filter>
-    </ClCompile>
     <ClCompile Include="..\Private\Core\JobSystem.cpp">
-      <Filter>05. ECS\00. Core\10. JobSystem</Filter>
+      <Filter>05. ECS\00. Core\03. JobSystem</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\AI\BehaviorTree.cpp">
       <Filter>09. AI\00. BT</Filter>
@@ -1322,16 +1307,16 @@
       <Filter>12. Cinematic</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\FX\Exec\FxExecPlan.cpp">
-      <Filter>03. Renderer\05. FX\10. Exec</Filter>
+      <Filter>03. Renderer\04. FX\10. Exec</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\FX\Exec\FxParticlePool.cpp">
-      <Filter>03. Renderer\05. FX\10. Exec</Filter>
+      <Filter>03. Renderer\04. FX\10. Exec</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\FX\Graph\FxGraph.cpp">
-      <Filter>03. Renderer\05. FX\11. Graph</Filter>
+      <Filter>03. Renderer\04. FX\11. Graph</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\FX\Graph\FxGraphValidator.cpp">
-      <Filter>03. Renderer\05. FX\11. Graph</Filter>
+      <Filter>03. Renderer\04. FX\11. Graph</Filter>
     </ClCompile>
     <ClCompile Include="..\Private\Physics3D\HitVolume.cpp">
       <Filter>13. Physics3D</Filter>

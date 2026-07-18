@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "dataVersion": 1,
-  "buildHash": 2392782607,
+  "buildHash": 4237932526,
   "spawnLoadout": {
     "startGold": 10000,
     "startLevel": 6,
@@ -241,6 +241,30 @@
       "maxHp": 750.0
     }
   ],
+  "minionBehavior": {
+    "pathAgentRadius": 0.5,
+    "laneClearanceRadius": 0.5,
+    "softSeparationRadiusScale": 0.65,
+    "softSeparationWeight": 0.35,
+    "defaultSeparationWeight": 0.55,
+    "softSeparationMaxStep": 0.18,
+    "lanePathRebuildIntervalSec": 1.0,
+    "chasePathRebuildIntervalSec": 0.2,
+    "pathTargetRefreshDistanceSq": 0.1225,
+    "pathWaypointArriveRadius": 0.35,
+    "flowFieldProgressSlackSq": 0.01,
+    "structureAcquireRangePadding": 0.75,
+    "targetScanIntervalSec": 0.15,
+    "attackExitRangePadding": 0.18,
+    "meleeAttackWindupSec": 0.3666667,
+    "rangedAttackWindupSec": 0.4666667,
+    "attackRecoverySec": 0.3666667,
+    "pathBuildBudgetPerTick": 4,
+    "blockedFramesBeforeRepath": 6,
+    "flowFieldStallFramesBeforePathFallback": 4,
+    "targetScanStaggerBuckets": 10,
+    "rangedRoleType": 1
+  },
   "minionWave": {
     "waveIntervalTicks": 900,
     "initialDelayTicks": 300,
@@ -255,6 +279,44 @@
       "spawnHeight": 0.85,
       "maxDistancePadding": 2.0
     },
-    "corpseDeathTimerSec": 1.5
+    "corpseDeathTimerSec": 1.5,
+    "startX": 5.0,
+    "formationSlots": [
+      {
+        "roleType": 0,
+        "forwardOffset": 3.6,
+        "sideOffset": -0.9
+      },
+      {
+        "roleType": 0,
+        "forwardOffset": 4.8,
+        "sideOffset": 0.0
+      },
+      {
+        "roleType": 0,
+        "forwardOffset": 6.0,
+        "sideOffset": 0.9
+      },
+      {
+        "roleType": 1,
+        "forwardOffset": 0.0,
+        "sideOffset": -0.9
+      },
+      {
+        "roleType": 1,
+        "forwardOffset": 1.2,
+        "sideOffset": 0.0
+      },
+      {
+        "roleType": 1,
+        "forwardOffset": 2.4,
+        "sideOffset": 0.9
+      }
+    ],
+    "siegeSlot": {
+      "roleType": 2,
+      "forwardOffset": 7.2,
+      "sideOffset": 0.0
+    }
   }
 }

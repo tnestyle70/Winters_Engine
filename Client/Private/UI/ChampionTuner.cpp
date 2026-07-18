@@ -1,4 +1,6 @@
 #include "Network/Client/ClientNetwork.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
+#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "UI/ChampionTuner.h"
 
 #include "Core/CInput.h"
@@ -13,9 +15,7 @@
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/ManaComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/SkillAtomData.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "WintersPaths.h"
 
@@ -52,7 +52,7 @@ namespace
 		eSkillEffectParamId id = eSkillEffectParamId::None;
 	};
 
-	constexpr std::array<ParamOption, 55> kParamOptions =
+	constexpr std::array<ParamOption, 66> kParamOptions =
 	{
 		ParamOption{ "BaseDamage", eSkillEffectParamId::BaseDamage },
 		ParamOption{ "DamagePerRank", eSkillEffectParamId::DamagePerRank },
@@ -80,6 +80,17 @@ namespace
 		ParamOption{ "RefreshDurationSec", eSkillEffectParamId::RefreshDurationSec },
 		ParamOption{ "VanishDurationSec", eSkillEffectParamId::VanishDurationSec },
 		ParamOption{ "MissingHealthDamageRatio", eSkillEffectParamId::MissingHealthDamageRatio },
+		ParamOption{ "TargetHealthThresholdRatio", eSkillEffectParamId::TargetHealthThresholdRatio },
+		ParamOption{ "AcquireRange", eSkillEffectParamId::AcquireRange },
+		ParamOption{ "LifetimeSec", eSkillEffectParamId::LifetimeSec },
+		ParamOption{ "RespawnSec", eSkillEffectParamId::RespawnSec },
+		ParamOption{ "SideDotThreshold", eSkillEffectParamId::SideDotThreshold },
+		ParamOption{ "TargetMaxHpRatio", eSkillEffectParamId::TargetMaxHpRatio },
+		ParamOption{ "ChallengeDurationSec", eSkillEffectParamId::ChallengeDurationSec },
+		ParamOption{ "HealDurationSec", eSkillEffectParamId::HealDurationSec },
+		ParamOption{ "HealRadius", eSkillEffectParamId::HealRadius },
+		ParamOption{ "HealIntervalSec", eSkillEffectParamId::HealIntervalSec },
+		ParamOption{ "HealAmount", eSkillEffectParamId::HealAmount },
 		ParamOption{ "MinHealthAmount", eSkillEffectParamId::MinHealthAmount },
 		ParamOption{ "HealBaseAmount", eSkillEffectParamId::HealBaseAmount },
 		ParamOption{ "HealAmountPerRank", eSkillEffectParamId::HealAmountPerRank },
@@ -143,7 +154,7 @@ namespace
 		eItemStatOverrideField id = eItemStatOverrideField::None;
 	};
 
-	constexpr std::array<ItemFieldOption, 14> kItemFieldOptions =
+	constexpr std::array<ItemFieldOption, 19> kItemFieldOptions =
 	{
 		ItemFieldOption{ "Price", eItemStatOverrideField::Price },
 		ItemFieldOption{ "FlatAd", eItemStatOverrideField::FlatAd },
@@ -159,6 +170,11 @@ namespace
 		ItemFieldOption{ "LifeSteal", eItemStatOverrideField::LifeSteal },
 		ItemFieldOption{ "FlatMagicPen", eItemStatOverrideField::FlatMagicPen },
 		ItemFieldOption{ "Lethality", eItemStatOverrideField::Lethality },
+		ItemFieldOption{ "CritDamageBonus", eItemStatOverrideField::CritDamageBonus },
+		ItemFieldOption{ "PercentMoveSpeed", eItemStatOverrideField::PercentMoveSpeed },
+		ItemFieldOption{ "ArmorPenPercent", eItemStatOverrideField::ArmorPenPercent },
+		ItemFieldOption{ "BonusArmorPenPercent", eItemStatOverrideField::BonusArmorPenPercent },
+		ItemFieldOption{ "MagicPenPercent", eItemStatOverrideField::MagicPenPercent },
 	};
 
 	struct StatOverrideRow
@@ -278,7 +294,9 @@ namespace
 		}
 	}
 
-	f32_t ResolveItemFieldBaseline(const ItemDef& item, int fieldIndex)
+	f32_t ResolveItemFieldBaseline(
+		const ClientData::ShopItemPresentationDefinition& item,
+		int fieldIndex)
 	{
 		switch (kItemFieldOptions[static_cast<size_t>(fieldIndex)].id)
 		{
@@ -291,7 +309,12 @@ namespace
 		case eItemStatOverrideField::FlatMr: return item.stats.flatMr;
 		case eItemStatOverrideField::BonusAttackSpeed: return item.stats.bonusAttackSpeed;
 		case eItemStatOverrideField::CritChance: return item.stats.critChance;
+		case eItemStatOverrideField::CritDamageBonus: return item.stats.critDamageBonus;
 		case eItemStatOverrideField::AbilityHaste: return item.stats.abilityHaste;
+		case eItemStatOverrideField::PercentMoveSpeed: return item.stats.percentMoveSpeed;
+		case eItemStatOverrideField::ArmorPenPercent: return item.stats.armorPenPercent;
+		case eItemStatOverrideField::BonusArmorPenPercent: return item.stats.bonusArmorPenPercent;
+		case eItemStatOverrideField::MagicPenPercent: return item.stats.magicPenPercent;
 		case eItemStatOverrideField::FlatMoveSpeed: return item.stats.flatMoveSpeed;
 		case eItemStatOverrideField::LifeSteal: return item.stats.lifeSteal;
 		case eItemStatOverrideField::FlatMagicPen: return item.stats.flatMagicPen;
@@ -1421,7 +1444,7 @@ namespace UI
 				"Target = 'Target NetId' above (0 = self). Sheet baseline shows your champion's values.");
 
 			const ChampionStatsDef baselineDef =
-				ChampionGameDataDB::ResolveStats(observed.championId);
+				BuildDefaultChampionStatsDef(observed.championId);
 			for (int statIndex = 0; statIndex < static_cast<int>(kStatOptions.size()); ++statIndex)
 			{
 				const f32_t baseline = ResolveStatBaseline(baselineDef, statIndex);
@@ -1487,8 +1510,9 @@ namespace UI
 			ImGui::TextDisabled(
 				"Full field sheet per item: every stat listed, +0 fields included. Price gates BuyItem.");
 
-			const ItemDef* pSheetItem =
-				CItemRegistry::Instance().Find(static_cast<u16_t>(state.sheetItemId));
+			const ClientData::ShopItemPresentationDefinition* pSheetItem =
+				ClientData::FindShopItemPresentationDefinition(
+					static_cast<u16_t>(state.sheetItemId));
 			char itemLabel[96]{};
 			std::snprintf(itemLabel, sizeof(itemLabel), "%d %s",
 				state.sheetItemId,

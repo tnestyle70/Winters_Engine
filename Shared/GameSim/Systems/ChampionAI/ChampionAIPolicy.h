@@ -62,8 +62,25 @@ struct ChampionAIProfile
     u8_t skillRuleCount = 0;
 };
 
+struct ChampionAIComboOverride
+{
+    eChampion champion = eChampion::END;
+    ChampionAIComboPlan plan{};
+};
+
+struct ChampionAIRuntimeDefinitionPack
+{
+    const ChampionAIProfile* defaultProfile = nullptr;
+    const ChampionAIProfile* profiles = nullptr;
+    std::size_t profileCount = 0u;
+    const ChampionAIComboPlan* defaultComboPlan = nullptr;
+    const ChampionAIComboOverride* comboOverrides = nullptr;
+    std::size_t comboOverrideCount = 0u;
+};
+
 const ChampionAIProfile& GetChampionAIProfile(eChampion champion);
 const ChampionAIComboPlan& GetChampionAIComboPlan(eChampion champion);
+void PublishChampionAIRuntimeDefinitions(const ChampionAIRuntimeDefinitionPack* pack);
 
 inline constexpr u16_t kChampionAIShadowPolicySchemaVersionV1 = 1u;
 inline constexpr u16_t kChampionAIShadowFeatureCountV1 = 67u;

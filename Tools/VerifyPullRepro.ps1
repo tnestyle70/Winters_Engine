@@ -97,9 +97,14 @@ try {
     Assert-GitIgnored "Client/Bin/Debug/Resource/example.asset"
     Assert-GitIgnored "Client/Bin/Release/Resource/example.asset"
 
-    $trackedRuntimeResources = git ls-files -- Client/Bin/Resource
-    if ($trackedRuntimeResources) {
-        throw "Client/Bin/Resource has tracked files; runtime assets must stay local-only."
+    $expectedTrackedRuntimeResources = @(
+        "Client/Bin/Resource/Config/Practice/attack_speed_tuning.json",
+        "Client/Bin/Resource/Config/Practice/practice_balance_overrides.json"
+    ) | Sort-Object
+    $trackedRuntimeResources = @(git ls-files -- Client/Bin/Resource) | Sort-Object
+    $runtimeResourceDrift = @(Compare-Object -ReferenceObject $expectedTrackedRuntimeResources -DifferenceObject $trackedRuntimeResources)
+    if ($runtimeResourceDrift.Count -ne 0) {
+        throw "Client/Bin/Resource tracked exact-set drift: $($runtimeResourceDrift | Out-String)"
     }
 
     Write-Host "PASS: pull reproducibility inputs and local asset boundary are valid."

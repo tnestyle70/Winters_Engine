@@ -65,7 +65,7 @@ Operational (마이크로, 매 프레임)   스킬샷 예측, 평타 무빙, 궁
 | 크로노 브레이크 봇 튜닝 루프 (반사실 실험/골든 시나리오 공장) | [22_CHRONO_BREAK_BOT_TUNING_LOOP.md](22_CHRONO_BREAK_BOT_TUNING_LOOP.md) |
 | NYPC .py 툴체인 이식 (BotLab — 14 §10 보류 해제) | [23_NYPC_PY_TOOLCHAIN_PORT.md](23_NYPC_PY_TOOLCHAIN_PORT.md) |
 
-채용 연계: `.md/이력서/AI연구직_지원작전.md` (RL/모방학습 게임 AI 공고 매핑 + 제출 순서).
+외부 지원 일정과 공고 매핑은 저장소 밖 지원 자산에서 관리한다. 이 인덱스는 공개 가능한 AI 구현·검증 계획만 소유한다.
 
 ## RL/IL/ML 인프라 감사 & 반영 로드맵 (2026-07-15)
 

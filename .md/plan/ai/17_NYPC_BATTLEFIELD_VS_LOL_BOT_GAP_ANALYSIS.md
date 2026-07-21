@@ -84,4 +84,4 @@ BuildChampionAIContext (ChampionAISystem.cpp:1613)
 | score breakdown / why-not / 히트맵 / JSONL | `21_AI_DEBUG_TOOL_EXTENSION.md` |
 | 반사실 실험 장치 + 골든 시나리오 공장 | `22_CHRONO_BREAK_BOT_TUNING_LOOP.md` |
 | 리그/부검/튜너/오라클 .py 이식 | `23_NYPC_PY_TOOLCHAIN_PORT.md` |
-| 채용 서사/지원 순서 | `.md/이력서/AI연구직_지원작전.md` |
+| 공개 환전물 | 구현 근거·리그 리포트·재현 가능한 기술 글 |

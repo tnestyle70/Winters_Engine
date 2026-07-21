@@ -6,7 +6,8 @@
 *.sln.docstates
 
 # Agent local state
-.claude/
+.claude/*
+!.claude/gotchas.md
 .codex/
 .worktree-backups/
 
@@ -98,3 +99,29 @@ GEMINI.md
 
 # Local service secrets
 Services/.env
+
+# Private runtime evidence and local exports
+/.md/이력서/
+/.md/interview/
+/.md/engines/
+/.md/guide/WINTERS_ENGINE_INTERVIEW_SESSIONS.md
+/Replay/
+/Profiles/
+/tmp/
+/profiler.json
+/BreakPoint/
+/final_state.bin
+/output/
+/docs/portfolio_link_sheet.pdf
+/limgrave_lineup_log.txt
+/limgrave_showcase_log*.txt
+/limgrave_spawn_failed_assets.txt
+/limgrave_showcase_failures.txt
+/elden_runtime_capture.png
+/winters_elven_showcase_capture.png
+
+# Local verification output below the documentation tree
+/.md/build/f4-ranked-*/
+/.md/build/release-replay-capture/
+/.md/build/replay-ui-layout/
+/.md/build/server-release-verify*/

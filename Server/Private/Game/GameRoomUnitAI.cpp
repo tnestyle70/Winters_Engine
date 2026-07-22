@@ -3,7 +3,6 @@
 #include "GameRoomInternal.h"
 
 #include "Game/ServerMinionFlowField.h"
-#include "Game/ServerMinionTuning.h"
 #include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
@@ -16,6 +15,7 @@
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/Move/MinionSoftSeparationPolicy.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 
@@ -80,6 +80,40 @@ namespace
         Vec3 vRotation = transform.GetRotation();
         vRotation.y = static_cast<f32_t>(std::atan2(-vDirection.x, -vDirection.z));
         transform.SetRotation(vRotation);
+    }
+
+    void RecordServerMinionBlockedMove(MinionStateComponent& state)
+    {
+        if (state.BlockedMoveFrames < (std::numeric_limits<u8_t>::max)())
+            ++state.BlockedMoveFrames;
+    }
+
+    void UpdateServerMinionMoveProgress(
+        MinionStateComponent& state,
+        const Vec3& vBefore,
+        const Vec3& vAfter,
+        const Vec3& vGoal)
+    {
+        const f32_t fSlackSq =
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack()
+                .minionBehavior.flowFieldProgressSlackSq;
+        const bool_t bProgressed =
+            WintersMath::DistanceSqXZ(vAfter, vGoal) + fSlackSq <
+            WintersMath::DistanceSqXZ(vBefore, vGoal);
+        if (bProgressed)
+            state.BlockedMoveFrames = 0u;
+        else
+            RecordServerMinionBlockedMove(state);
+    }
+
+    void ClearServerMinionPathRuntime(MinionStateComponent& state)
+    {
+        state.PathTarget = {};
+        state.PathResolvedTarget = {};
+        state.PathCount = 0u;
+        state.PathIndex = 0u;
+        state.PathRebuildCooldown = 0.f;
+        state.BlockedMoveFrames = 0u;
     }
 
     void FaceServerMinionTowardTarget(
@@ -392,7 +426,7 @@ namespace
         if (world.HasComponent<StructureComponent>(candidate))
         {
             resolvedMaxRange += ResolveAgentRadius(world, candidate) +
-                ServerMinionTuning::kStructureAcquireRangePadding;
+                ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.structureAcquireRangePadding;
         }
 
         const f32_t maxRangeSq = resolvedMaxRange * resolvedMaxRange;
@@ -424,7 +458,7 @@ namespace
 
     bool_t IsServerRangedMinion(const MinionStateComponent& state)
     {
-        return state.type == ServerMinionTuning::kRangedRoleType;
+        return state.type == ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.rangedRoleType;
     }
 
     eProjectileKind ResolveServerMinionRangedProjectileKind(eTeam team)
@@ -559,7 +593,7 @@ namespace
                 SpatialMask(eSpatialKind::Character);
             std::vector<EntityID> candidates;
             const f32_t queryRange =
-                maxRange + ServerMinionTuning::kStructureAcquireRangePadding;
+                maxRange + ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.structureAcquireRangePadding;
             candidates.reserve(64);
             pSpatial->QueryRadius(
                 myPos,
@@ -602,6 +636,8 @@ void CGameRoom::Phase_ServerMinionWave(TickContext& tc)
     if (!IsInGamePhase() || !m_bGameplayObjectsSpawned)
         return;
 
+    RefreshServerStructureNavigationIfNeeded();
+
     m_serverMinionWaves.TickWave(
         tc.tickIndex,
         [this](const CServerMinionWaveRuntime::SpawnRequest& request)
@@ -615,10 +651,11 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
     if (!IsInGamePhase())
         return;
 
+    m_serverMinionTickStartPositions.clear();
     const auto minions =
         DeterministicEntityIterator<MinionStateComponent>::CollectSorted(m_world);
 
-    u32_t PathBuildBudget = ServerMinionTuning::kPathBuildBudgetPerTick;
+    u32_t PathBuildBudget = ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathBuildBudgetPerTick;
 
     for (EntityID entity : minions)
     {
@@ -633,6 +670,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
         auto& state = m_world.GetComponent<MinionStateComponent>(entity);
         auto& minion = m_world.GetComponent<MinionComponent>(entity);
         auto& transform = m_world.GetComponent<TransformComponent>(entity);
+        m_serverMinionTickStartPositions[entity] = transform.GetPosition();
 
         if (m_world.HasComponent<HealthComponent>(entity))
         {
@@ -770,7 +808,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
 
             const f32_t scanInterval = state.targetScanInterval > 0.f
                 ? state.targetScanInterval
-                : ServerMinionTuning::kTargetScanIntervalSec;
+                : ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.targetScanIntervalSec;
             state.targetScanCooldown = scanInterval;
         }
 
@@ -804,7 +842,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
                     const f32_t effectiveAttackRange =
                         ResolveServerMinionAttackRange(m_world, entity, target, state);
                     const f32_t impactRange =
-                        effectiveAttackRange + ServerMinionTuning::kAttackExitRangePadding;
+                        effectiveAttackRange + ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.attackExitRangePadding;
                     bImpactValid =
                         WintersMath::DistanceSqXZ(pos, targetPos) <= impactRange * impactRange &&
                         (GameplayStateQuery::IsAttackSegmentGateExemptTarget(m_world, target) ||
@@ -847,7 +885,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
                 ResolveServerMinionAttackRange(m_world, entity, target, state);
             const f32_t rangeSq = effectiveAttackRange * effectiveAttackRange;
             const f32_t exitAttackRange =
-                effectiveAttackRange + ServerMinionTuning::kAttackExitRangePadding;
+                effectiveAttackRange + ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.attackExitRangePadding;
             const bool_t bInAttackRange = distSq <= rangeSq;
             const bool_t bInExitRange = distSq <= exitAttackRange * exitAttackRange;
             const bool_t bHoldAttackRange =
@@ -948,7 +986,7 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
                         bCanMove &&
                         !bForcedMotion &&
                         state.BlockedMoveFrames >=
-                            ServerMinionTuning::kBlockedFramesBeforeRepath * 2u)
+                            ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.blockedFramesBeforeRepath * 2u)
                     {
                         tibbers.bHasCommandPosition = false;
                         state.current = MinionStateComponent::Idle;
@@ -1000,28 +1038,24 @@ void CGameRoom::Phase_ServerUnitAI(TickContext& tc)
         {
             Vec3 laneTarget{};
             bool_t bHasLaneTarget = false;
+            const bool_t bResumeLaneFromCombat =
+                state.current == MinionStateComponent::Chase ||
+                state.current == MinionStateComponent::Attack ||
+                state.attackTargetId != NULL_ENTITY;
+            state.attackTargetId = NULL_ENTITY;
+            if (bResumeLaneFromCombat)
+                ClearServerMinionPathRuntime(state);
+
             const u8_t waypointLane = ResolveServerWaypointLane(minion.team, state.lane);
             const u32_t waypointCount = GetServerMinionWaypointCount(minion.team, waypointLane);
+            AdvanceServerMinionWaypointPastPosition(
+                state, pos, waypointLane, waypointCount);
             if (waypointCount > 0u && state.currentWaypoint < waypointCount)
             {
                 laneTarget = GetServerMinionWaypoint(minion.team, waypointLane, state.currentWaypoint);
-                const f32_t arriveSq = 0.8f * 0.8f;
-                if (WintersMath::DistanceSqXZ(pos, laneTarget) <= arriveSq)
-                {
-                    ++state.currentWaypoint;
-                    if (state.currentWaypoint < waypointCount)
-                    {
-                        laneTarget = GetServerMinionWaypoint(minion.team, waypointLane, state.currentWaypoint);
-                        bHasLaneTarget = true;
-                    }
-                }
-                else
-                {
-                    bHasLaneTarget = true;
-                }
+                bHasLaneTarget = true;
             }
 
-            state.attackTargetId = NULL_ENTITY;
             if (bHasLaneTarget)
             {
                 if (!TryMoveServerMinionByFlowFields(entity, state, transform, laneTarget, tc, bMoved))
@@ -1090,15 +1124,118 @@ void CGameRoom::Phase_ServerMinionDepenetration(TickContext& tc)
                 GameplayStateQuery::GetMoveSpeedMultiplier(m_world, entity) *
                 tc.fDt);
 
+        Vec3 vPreferredTarget{};
+        bool_t bHasPreferredTarget = false;
+        if (state.PathCount > 0u && state.PathIndex < state.PathCount)
+        {
+            vPreferredTarget = state.PathWaypoints[state.PathIndex];
+            bHasPreferredTarget = true;
+        }
+        else if (state.current == MinionStateComponent::Chase &&
+            IsAliveHealth(m_world, state.attackTargetId) &&
+            m_world.HasComponent<TransformComponent>(state.attackTargetId))
+        {
+            vPreferredTarget = m_world.GetComponent<TransformComponent>(
+                state.attackTargetId).GetPosition();
+            bHasPreferredTarget = true;
+        }
+        else
+        {
+            const u8_t waypointLane =
+                ResolveServerWaypointLane(state.team, state.lane);
+            const u32_t waypointCount =
+                GetServerMinionWaypointCount(state.team, waypointLane);
+            if (state.currentWaypoint < waypointCount)
+            {
+                vPreferredTarget = GetServerMinionWaypoint(
+                    state.team,
+                    waypointLane,
+                    state.currentWaypoint);
+                bHasPreferredTarget = true;
+            }
+        }
+        const Vec3 vPreferredForward = bHasPreferredTarget
+            ? Vec3{
+                vPreferredTarget.x - vPos.x,
+                0.f,
+                vPreferredTarget.z - vPos.z }
+            : NormalizeXZOrForward(Vec3{}, state.team);
+
         Vec3 vResolved{};
-        if (!TryResolveMinionDepenetrationStep(entity, vPos, fStep, tc, vResolved))
+        if (!TryResolveMinionDepenetrationStep(
+                entity,
+                vPos,
+                fStep,
+                vPreferredForward,
+                tc,
+                vResolved))
             continue;
 
+        Vec3 vFacingOrigin = vPos;
+        const auto startIt = m_serverMinionTickStartPositions.find(entity);
+        if (startIt != m_serverMinionTickStartPositions.end())
+            vFacingOrigin = startIt->second;
+        const Vec3 vActualMove{
+            vResolved.x - vFacingOrigin.x,
+            0.f,
+            vResolved.z - vFacingOrigin.z };
         transform.SetPosition(vResolved);
-
-        if (state.BlockedMoveFrames > 0u)
-            state.BlockedMoveFrames = 0u;
+        FaceServerMinionTowardDirection(transform, vActualMove);
     }
+}
+
+void CGameRoom::AdvanceServerMinionWaypointPastPosition(
+    MinionStateComponent& state,
+    const Vec3& position,
+    u8_t waypointLane,
+    u32_t waypointCount) const
+{
+    if (state.currentWaypoint >= waypointCount)
+        return;
+
+    constexpr f32_t kArriveRadius = 0.8f;
+    constexpr f32_t kLaneRebaseCorridor = 5.f;
+    const u32_t index = state.currentWaypoint;
+    const Vec3 waypoint = GetServerMinionWaypoint(
+        state.team, waypointLane, index);
+    if (WintersMath::DistanceSqXZ(position, waypoint) <=
+        kArriveRadius * kArriveRadius)
+    {
+        ++state.currentWaypoint;
+        return;
+    }
+
+    if (index == 0u || waypointCount < 2u)
+        return;
+
+    const Vec3 previous = GetServerMinionWaypoint(
+        state.team, waypointLane, index - 1u);
+    const Vec3 segment{
+        waypoint.x - previous.x,
+        0.f,
+        waypoint.z - previous.z };
+    const f32_t segmentLengthSq =
+        segment.x * segment.x + segment.z * segment.z;
+    if (segmentLengthSq <= 0.0001f)
+        return;
+
+    const Vec3 fromPrevious{
+        position.x - previous.x,
+        0.f,
+        position.z - previous.z };
+    const f32_t projection =
+        (fromPrevious.x * segment.x + fromPrevious.z * segment.z) /
+        segmentLengthSq;
+    const f32_t clampedProjection = std::clamp(projection, 0.f, 1.f);
+    const Vec3 closest{
+        previous.x + segment.x * clampedProjection,
+        position.y,
+        previous.z + segment.z * clampedProjection };
+    const bool_t bInsideLaneCorridor =
+        WintersMath::DistanceSqXZ(position, closest) <=
+        kLaneRebaseCorridor * kLaneRebaseCorridor;
+    if (bInsideLaneCorridor && projection >= 1.f)
+        ++state.currentWaypoint;
 }
 
 u32_t CGameRoom::ResolveServerMinionStartWaypoint(eTeam team, u8_t lane, const Vec3& vSpawnPos) const
@@ -1127,6 +1264,7 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
     EntityID entity,
     const Vec3& vPos,
     f32_t fStep,
+    const Vec3& vPreferredForward,
     const TickContext& tc,
     Vec3& vOutNext)
 {
@@ -1155,7 +1293,9 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         blockers = DeterministicEntityIterator<SpatialAgentComponent>::CollectSorted(m_world);
     }
 
-    Vec3 vPush{};
+    Vec3 vSoftMinionPush{};
+    Vec3 vOtherPush{};
+    Vec3 vStaticPush{};
     u32_t blockerCount = 0u;
     u32_t staticCount = 0u;
     u32_t dynamicCount = 0u;
@@ -1202,7 +1342,7 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         const f32_t otherRadius = (std::max)(0.2f, agent.radius);
         const f32_t padding = bStatic ? 0.20f : (bSoftMinion ? 0.f : 0.04f);
         const f32_t radiusScale = bSoftMinion
-            ? ServerMinionTuning::kMinionSoftSeparationRadiusScale
+            ? ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.softSeparationRadiusScale
             : 1.f;
         const f32_t minDist = (selfRadius + otherRadius) * radiusScale + padding;
         if (distSq >= minDist * minDist)
@@ -1212,10 +1352,27 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         const f32_t penetration = minDist - dist;
         const f32_t weight = bStatic
             ? 1.0f
-            : (bSoftMinion ? ServerMinionTuning::kMinionSoftSeparationWeight : 0.55f);
+            : (bSoftMinion ? ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.softSeparationWeight : ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.defaultSeparationWeight);
 
-        vPush.x += (vAway.x / dist) * penetration * weight;
-        vPush.z += (vAway.z / dist) * penetration * weight;
+        const Vec3 vDelta{
+            (vAway.x / dist) * penetration * weight,
+            0.f,
+            (vAway.z / dist) * penetration * weight };
+        if (bSoftMinion)
+        {
+            vSoftMinionPush.x += vDelta.x;
+            vSoftMinionPush.z += vDelta.z;
+        }
+        else
+        {
+            vOtherPush.x += vDelta.x;
+            vOtherPush.z += vDelta.z;
+            if (bStatic)
+            {
+                vStaticPush.x += vDelta.x;
+                vStaticPush.z += vDelta.z;
+            }
+        }
 
         ++blockerCount;
         if (bStatic)
@@ -1226,30 +1383,48 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
             ++dynamicCount;
     }
 
-    const f32_t pushLenSq = vPush.x * vPush.x + vPush.z * vPush.z;
-    if (pushLenSq <= 0.0001f)
+    if (blockerCount == 0u)
         return false;
-
-    const f32_t pushLen = std::sqrt(pushLenSq);
-    const f32_t maxPushStep = softMinionCount > 0u && staticCount == 0u && dynamicCount == 0u
-        ? ServerMinionTuning::kMinionSoftSeparationMaxStep
+    const Vec3 vRawPush{
+        vSoftMinionPush.x + vOtherPush.x,
+        0.f,
+        vSoftMinionPush.z + vOtherPush.z };
+    const Vec3 primaryDirection =
+        MinionSoftSeparationPolicy::ResolveCompositeDepenetrationDirection(
+            vSoftMinionPush, vOtherPush, vPreferredForward,
+            static_cast<u32_t>(entity));
+    const bool_t bSoftMinionOnly =
+        softMinionCount > 0u && staticCount == 0u && dynamicCount == 0u;
+    const f32_t maxPushStep = bSoftMinionOnly
+        ? ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.softSeparationMaxStep
         : 0.35f;
     const f32_t pushStep = (std::min)((std::max)(0.08f, fStep), maxPushStep);
-    const Vec3 vCandidate{
-        vPos.x + (vPush.x / pushLen) * pushStep,
-        vPos.y,
-        vPos.z + (vPush.z / pushLen) * pushStep
+    const f32_t clearanceRadius =
+        ServerData::GetActiveLoLSpawnObjectDefinitionPack()
+            .minionBehavior.laneClearanceRadius;
+    MinionSoftSeparationPolicy::DepenetrationCandidateSelection selection{};
+    const auto clamp = [&](const Vec3& from, const Vec3& desired,
+                           f32_t radius, Vec3& out)
+    {
+        return TryClampMoveSegmentXZ(from, desired, radius, out);
     };
-
-    Vec3 vGuarded = vCandidate;
-    if (!TryClampMoveSegmentXZ(
-        vPos,
-        vCandidate,
-        ServerMinionTuning::kMinionLaneClearanceRadius,
-        vGuarded))
+    if (!MinionSoftSeparationPolicy::TrySelectDepenetrationCandidate(
+            vPos,
+            clearanceRadius,
+            pushStep,
+            primaryDirection,
+            vStaticPush,
+            vPreferredForward,
+            static_cast<u32_t>(entity),
+            staticCount > 0u,
+            clamp,
+            selection))
     {
         return false;
     }
+    Vec3 vGuarded = selection.vPosition;
+    const char* pCandidateKind =
+        selection.bUsedStaticTangent ? "static-tangent" : "primary";
 
     if (!TrySampleHeight(vGuarded.x, vGuarded.z, vGuarded.y))
         vGuarded.y = vPos.y;
@@ -1264,19 +1439,22 @@ bool_t CGameRoom::TryResolveMinionDepenetrationStep(
         sprintf_s(
             msg,
             "[MinionMove][Depenetrate] tick=%llu entity=%u posCell=(%d,%d) nextCell=(%d,%d) "
-            "push=(%.3f,%.3f) blockers=%u static=%u dynamic=%u softMinion=%u from=(%.2f,%.2f) to=(%.2f,%.2f)\n",
+            "push=(%.3f,%.3f) resolved=(%.3f,%.3f) blockers=%u static=%u dynamic=%u softMinion=%u candidate=%s from=(%.2f,%.2f) to=(%.2f,%.2f)\n",
             static_cast<unsigned long long>(tc.tickIndex),
             static_cast<u32_t>(entity),
             posCell.x,
             posCell.y,
             nextCell.x,
             nextCell.y,
-            vPush.x,
-            vPush.z,
+            vRawPush.x,
+            vRawPush.z,
+            primaryDirection.x,
+            primaryDirection.z,
             blockerCount,
             staticCount,
             dynamicCount,
             softMinionCount,
+            pCandidateKind,
             vPos.x,
             vPos.z,
             vGuarded.x,
@@ -1320,17 +1498,17 @@ bool_t CGameRoom::TryMoveServerMinionToward(
     }
 
     Vec3 vMoveGoal = vTarget;
-    if (!SegmentWalkableXZ(vPos, vTarget, ServerMinionTuning::kMinionLaneClearanceRadius))
+    if (!SegmentWalkableXZ(vPos, vTarget, ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.laneClearanceRadius))
     {
         const bool_t bTargetMoved =
             WintersMath::DistanceSqXZ(state.PathTarget, vTarget) >
-            ServerMinionTuning::kPathTargetRefreshDistanceSq;
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathTargetRefreshDistanceSq;
 
         const bool_t bNeedPath =
             state.PathCount == 0u ||
             state.PathIndex >= state.PathCount ||
             bTargetMoved ||
-            state.BlockedMoveFrames >= ServerMinionTuning::kBlockedFramesBeforeRepath;
+            state.BlockedMoveFrames >= ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.blockedFramesBeforeRepath;
 
         if (bNeedPath &&
             state.PathRebuildCooldown <= 0.f &&
@@ -1374,8 +1552,8 @@ bool_t CGameRoom::TryMoveServerMinionToward(
             --PathBuildBudget;
             state.PathRebuildCooldown =
                 moveState == MinionStateComponent::Chase
-                ? ServerMinionTuning::kChasePathRebuildIntervalSec
-                : ServerMinionTuning::kLanePathRebuildIntervalSec;
+                ? ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.chasePathRebuildIntervalSec
+                : ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.lanePathRebuildIntervalSec;
         }
 
         if (state.PathCount == 0u || state.PathIndex >= state.PathCount)
@@ -1386,8 +1564,8 @@ bool_t CGameRoom::TryMoveServerMinionToward(
         {
             while (state.PathIndex + 1u < state.PathCount &&
                 WintersMath::DistanceSqXZ(vPos, state.PathWaypoints[state.PathIndex]) <=
-                ServerMinionTuning::kPathWaypointArriveRadius *
-                ServerMinionTuning::kPathWaypointArriveRadius)
+                ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathWaypointArriveRadius *
+                ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathWaypointArriveRadius)
             {
                 ++state.PathIndex;
             }
@@ -1415,18 +1593,24 @@ bool_t CGameRoom::TryMoveServerMinionToward(
     if (!TryResolveMinionMoveStep(entity, vPos, vDir, fStep, tc, vNext))
     {
         Vec3 vDepenetrated{};
-        if (TryResolveMinionDepenetrationStep(entity, vPos, fStep, tc, vDepenetrated))
+        if (TryResolveMinionDepenetrationStep(
+                entity,
+                vPos,
+                fStep,
+                vDir,
+                tc,
+                vDepenetrated))
         {
             const Vec3 vActualMove{ vDepenetrated.x - vPos.x, 0.f, vDepenetrated.z - vPos.z };
             transform.SetPosition(vDepenetrated);
             FaceServerMinionTowardDirection(transform, vActualMove);
             state.current = moveState;
-            state.BlockedMoveFrames = 0u;
+            UpdateServerMinionMoveProgress(state, vPos, vDepenetrated, vMoveGoal);
             outMoved = true;
             return true;
         }
 
-        ++state.BlockedMoveFrames;
+        RecordServerMinionBlockedMove(state);
 
         const Vec3* pWaypoint =
             state.PathCount > 0u && state.PathIndex < state.PathCount
@@ -1448,7 +1632,7 @@ bool_t CGameRoom::TryMoveServerMinionToward(
     transform.SetPosition(vNext);
     FaceServerMinionTowardDirection(transform, vActualMove);
     state.current = moveState;
-    state.BlockedMoveFrames = 0u;
+    UpdateServerMinionMoveProgress(state, vPos, vNext, vMoveGoal);
     outMoved = true;
     return true;
 }
@@ -1489,6 +1673,40 @@ bool_t CGameRoom::TryMoveServerMinionByFlowFields(
     if (fLenSq <= 0.0001f)
         return false;
 
+    const Vec3 vLaneTargetDelta{
+        vLaneTarget.x - vPos.x,
+        0.f,
+        vLaneTarget.z - vPos.z };
+    const Vec3 vLaneTargetDirection = WintersMath::NormalizeXZOrZero(
+        vLaneTargetDelta,
+        std::numeric_limits<f32_t>::epsilon());
+    const f32_t fFlowLaneAlignment =
+        vDir.x * vLaneTargetDirection.x + vDir.z * vLaneTargetDirection.z;
+    if (fFlowLaneAlignment < -0.05f)
+    {
+        static u32_t s_flowFieldOpposedLogCount = 0u;
+        if (s_flowFieldOpposedLogCount < 64u)
+        {
+            char msg[320]{};
+            sprintf_s(
+                msg,
+                "[UnitAI] flow fallback reason=opposes-waypoint entity=%u team=%u lane=%u "
+                "blocked=%u alignment=%.3f pos=(%.2f,%.2f) target=(%.2f,%.2f)\n",
+                static_cast<u32_t>(entity),
+                static_cast<u32_t>(state.team),
+                static_cast<u32_t>(state.lane),
+                static_cast<u32_t>(state.BlockedMoveFrames),
+                fFlowLaneAlignment,
+                vPos.x,
+                vPos.z,
+                vLaneTarget.x,
+                vLaneTarget.z);
+            OutputServerAITrace(msg);
+            ++s_flowFieldOpposedLogCount;
+        }
+        return false;
+    }
+
     const f32_t fStep =
         state.moveSpeed *
         GameplayStateQuery::GetMoveSpeedMultiplier(m_world, entity) *
@@ -1497,18 +1715,31 @@ bool_t CGameRoom::TryMoveServerMinionByFlowFields(
     if (!TryResolveMinionMoveStep(entity, vPos, vDir, fStep, tc, vNext))
     {
         Vec3 vDepenetrated{};
-        if (TryResolveMinionDepenetrationStep(entity, vPos, fStep, tc, vDepenetrated))
+        if (TryResolveMinionDepenetrationStep(
+                entity,
+                vPos,
+                fStep,
+                vDir,
+                tc,
+                vDepenetrated))
         {
+            UpdateServerMinionMoveProgress(state, vPos, vDepenetrated, vLaneTarget);
+            if (state.BlockedMoveFrames >=
+                ServerData::GetActiveLoLSpawnObjectDefinitionPack()
+                    .minionBehavior.flowFieldStallFramesBeforePathFallback)
+            {
+                return false;
+            }
+
             const Vec3 vActualMove{ vDepenetrated.x - vPos.x, 0.f, vDepenetrated.z - vPos.z };
             transform.SetPosition(vDepenetrated);
             FaceServerMinionTowardDirection(transform, vActualMove);
             state.current = MinionStateComponent::LaneMove;
-            state.BlockedMoveFrames = 0u;
             outMoved = true;
             return true;
         }
 
-        ++state.BlockedMoveFrames;
+        RecordServerMinionBlockedMove(state);
         OutputServerMinionStuckDebug(
             "flow-resolve-failed",
             m_pNavGrid.get(),
@@ -1523,12 +1754,12 @@ bool_t CGameRoom::TryMoveServerMinionByFlowFields(
 
     const f32_t fNextLaneDistSq = WintersMath::DistanceSqXZ(vNext, vLaneTarget);
     const bool_t bProgressed =
-        fNextLaneDistSq + ServerMinionTuning::kFlowFieldProgressSlackSq < fPrevLaneDistSq;
+        fNextLaneDistSq + ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.flowFieldProgressSlackSq < fPrevLaneDistSq;
 
     if (!bProgressed)
     {
-        ++state.BlockedMoveFrames;
-        if (state.BlockedMoveFrames >= ServerMinionTuning::kFlowFieldStallFramesBeforePathFallback)
+        RecordServerMinionBlockedMove(state);
+        if (state.BlockedMoveFrames >= ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.flowFieldStallFramesBeforePathFallback)
         {
             static u32_t s_flowFieldFallbackLogCount = 0;
             if (s_flowFieldFallbackLogCount < 64u)
@@ -1605,7 +1836,7 @@ bool_t CGameRoom::TryResolveMinionMoveStep(
         if (!TryClampMoveSegmentXZ(
             vPos,
             vCandidate,
-            ServerMinionTuning::kMinionLaneClearanceRadius,
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.laneClearanceRadius,
             vGuarded))
         {
             ++navBlocked;

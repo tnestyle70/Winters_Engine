@@ -3,8 +3,9 @@
 #include "GameRoomInternal.h"
 #include "GameRoomSmokeRoster.h"
 
-#include "Game/ServerMinionTuning.h"
 #include "Game/WalkabilityAuthority.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
 
 #include "Shared/GameSim/Components/WaypointPatrolComponent.h"
@@ -108,7 +109,10 @@ namespace
 
 void CGameRoom::InitializeServerWalkableGrid(const Winters::Map::StageData* pStage, const wchar_t* pStagePath)
 {
+    m_pTerrainNavGrid.reset();
     m_pPathNavGrid.reset();
+    m_pMinionLaneNavGrid.reset();
+    m_serverStructureNavigationStateHash = 0ull;
 
     WalkabilityAuthoredNavGridLoadResult authoredLoad =
         CWalkabilityAuthority::TryLoadAuthoredNavGrid(pStagePath);
@@ -153,6 +157,7 @@ void CGameRoom::InitializeServerWalkableGrid(const Winters::Map::StageData* pSta
         {
             m_pNavGrid = std::move(authoredLoad.pGrid);
             OutputServerNavGridSummary("authored navgrid loaded", *m_pNavGrid);
+            CaptureServerTerrainNavGrid();
             BuildServerPathNavGrid();
             return;
         }
@@ -273,6 +278,7 @@ void CGameRoom::InitializeServerWalkableGrid(const Winters::Map::StageData* pSta
         m_pMapSurfaceSampler.reset();
         OutputServerAITrace("[ServerNav] wmesh load failed; fail-closed grid disables movement/combat traversal\n");
         OutputServerNavGridSummary("fail-closed grid", *m_pNavGrid);
+        CaptureServerTerrainNavGrid();
         BuildServerPathNavGrid();
         return;
     }
@@ -319,6 +325,7 @@ void CGameRoom::InitializeServerWalkableGrid(const Winters::Map::StageData* pSta
         m_pNavGrid->SetAllWalkable(false);
         OutputServerAITrace("[ServerNav] terrain bake failed or missed gameplay seeds; fail-closed grid disables movement/combat traversal\n");
         OutputServerNavGridSummary("fail-closed grid", *m_pNavGrid);
+        CaptureServerTerrainNavGrid();
         BuildServerPathNavGrid();
         return;
     }
@@ -330,19 +337,109 @@ void CGameRoom::InitializeServerWalkableGrid(const Winters::Map::StageData* pSta
         seeds.size(),
         m_pNavGrid->ComputeContentHash());
     OutputServerAITrace(msg);
+    CaptureServerTerrainNavGrid();
     BuildServerPathNavGrid();
 }
 
-void CGameRoom::CarveServerStructuresOnNavGrid()
+bool_t CGameRoom::CaptureServerTerrainNavGrid()
 {
+    m_pTerrainNavGrid.reset();
     if (!m_pNavGrid)
+    {
+        OutputServerAITrace(
+            "[ServerNav] terrain clone aborted: source nav grid is missing\n");
+        return false;
+    }
+
+    auto terrain = Engine::CNavGrid::Create(
+        m_pNavGrid->Get_OriginX(),
+        m_pNavGrid->Get_OriginZ());
+    if (!terrain)
+    {
+        OutputServerAITrace(
+            "[ServerNav] terrain clone aborted: allocation failed\n");
+        return false;
+    }
+
+    terrain->Load_Bits(
+        m_pNavGrid->Get_Bits(),
+        Engine::CNavGrid::kByteSize);
+    m_pTerrainNavGrid = std::move(terrain);
+    return true;
+}
+
+u64_t CGameRoom::ComputeServerStructureNavigationStateHash()
+{
+    u64_t hash = 1469598103934665603ull;
+    const auto structures =
+        DeterministicEntityIterator<StructureComponent>::CollectSorted(m_world);
+    for (EntityID entity : structures)
+    {
+        const bool_t bBlocking =
+            m_world.HasComponent<TransformComponent>(entity) &&
+            m_world.HasComponent<HealthComponent>(entity) &&
+            !m_world.GetComponent<HealthComponent>(entity).bIsDead &&
+            m_world.GetComponent<HealthComponent>(entity).fCurrent > 0.f;
+        hash ^= static_cast<u64_t>(entity);
+        hash *= 1099511628211ull;
+        hash ^= bBlocking ? 1ull : 0ull;
+        hash *= 1099511628211ull;
+    }
+    return hash;
+}
+
+void CGameRoom::RefreshServerStructureNavigationIfNeeded()
+{
+    const u64_t currentHash = ComputeServerStructureNavigationStateHash();
+    if (currentHash == m_serverStructureNavigationStateHash)
         return;
 
+    if (CarveServerStructuresOnNavGrid(false))
+        ++m_serverStructureNavigationRefreshCount;
+}
+
+bool_t CGameRoom::CarveServerStructuresOnNavGrid(bool_t bRebuildDerived)
+{
+    if (!m_pTerrainNavGrid)
+    {
+        OutputServerAITrace(
+            "[ServerNav] structure carve aborted: terrain clone is missing\n");
+        return false;
+    }
+
+    if (!m_pNavGrid ||
+        m_pNavGrid->Get_OriginX() != m_pTerrainNavGrid->Get_OriginX() ||
+        m_pNavGrid->Get_OriginZ() != m_pTerrainNavGrid->Get_OriginZ())
+    {
+        m_pNavGrid = Engine::CNavGrid::Create(
+            m_pTerrainNavGrid->Get_OriginX(),
+            m_pTerrainNavGrid->Get_OriginZ());
+        if (!m_pNavGrid)
+        {
+            OutputServerAITrace(
+                "[ServerNav] structure carve aborted: grid allocation failed\n");
+            return false;
+        }
+    }
+    m_pNavGrid->Load_Bits(
+        m_pTerrainNavGrid->Get_Bits(),
+        Engine::CNavGrid::kByteSize);
+
     u32_t carvedStructures = 0;
-    m_world.ForEach<StructureComponent, TransformComponent>(
-        std::function<void(EntityID, StructureComponent&, TransformComponent&)>(
-            [&](EntityID, StructureComponent& structure, TransformComponent& transform)
+    m_world.ForEach<StructureComponent, TransformComponent, HealthComponent>(
+        std::function<void(
+            EntityID,
+            StructureComponent&,
+            TransformComponent&,
+            HealthComponent&)>(
+            [&](EntityID,
+                StructureComponent& structure,
+                TransformComponent& transform,
+                HealthComponent& health)
             {
+                if (health.bIsDead || health.fCurrent <= 0.f)
+                    return;
+
                 const f32_t radius = ResolveStageStructureRadius(structure.kind, structure.tier);
 
                 const Vec3 pos = transform.GetPosition();
@@ -360,26 +457,95 @@ void CGameRoom::CarveServerStructuresOnNavGrid()
                 ++carvedStructures;
             }));
 
-    char msg[192]{};
+    if (!bRebuildDerived && m_pPathNavGrid && m_pMinionLaneNavGrid)
+    {
+        const MinionBehaviorDef& minionBehavior =
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior;
+        const auto RefreshDerivedAroundStructures = [&]
+            (Engine::CNavGrid& derivedGrid, f32_t clearanceRadius)
+            {
+                m_world.ForEach<StructureComponent, TransformComponent>(
+                    std::function<void(
+                        EntityID,
+                        StructureComponent&,
+                        TransformComponent&)>(
+                        [&](EntityID,
+                            StructureComponent& structure,
+                            TransformComponent& transform)
+                        {
+                            const f32_t structureRadius =
+                                ResolveStageStructureRadius(
+                                    structure.kind,
+                                    structure.tier);
+                            const int32_t repairRadiusCells =
+                                static_cast<int32_t>(std::ceil(
+                                    (structureRadius + clearanceRadius) /
+                                    Engine::CNavGrid::kCellSize)) + 1;
+                            const Engine::CNavGrid::Cell center =
+                                m_pNavGrid->WorldToCell(
+                                    transform.GetPosition());
+
+                            for (int32_t dy = -repairRadiusCells;
+                                dy <= repairRadiusCells;
+                                ++dy)
+                            {
+                                for (int32_t dx = -repairRadiusCells;
+                                    dx <= repairRadiusCells;
+                                    ++dx)
+                                {
+                                    const int32_t x = center.x + dx;
+                                    const int32_t y = center.y + dy;
+                                    if (!derivedGrid.IsInBounds(x, y))
+                                        continue;
+
+                                    const Vec3 cellCenter =
+                                        derivedGrid.CellToWorld(x, y);
+                                    derivedGrid.SetWalkable(
+                                        x,
+                                        y,
+                                        m_pNavGrid->IsAreaWalkable(
+                                            cellCenter,
+                                            clearanceRadius));
+                                }
+                            }
+                        }));
+            };
+
+        RefreshDerivedAroundStructures(
+            *m_pPathNavGrid,
+            minionBehavior.pathAgentRadius);
+        RefreshDerivedAroundStructures(
+            *m_pMinionLaneNavGrid,
+            minionBehavior.laneClearanceRadius);
+    }
+
+    m_serverStructureNavigationStateHash =
+        ComputeServerStructureNavigationStateHash();
+
+    char msg[224]{};
     sprintf_s(msg,
-        "[ServerNav] structures carved=%u walkable=%u hash=%08X\n",
+        "[ServerNav] structures carved=%u derived=%u walkable=%u hash=%08X\n",
         carvedStructures,
+        bRebuildDerived ? 1u : 0u,
         m_pNavGrid->CountWalkableCells(),
         m_pNavGrid->ComputeContentHash());
     OutputServerAITrace(msg);
-    BuildServerPathNavGrid();
+    if (bRebuildDerived)
+        BuildServerPathNavGrid();
+    return true;
 }
 
 void CGameRoom::BuildServerPathNavGrid()
 {
+    ++m_serverPathNavGridBuildCount;
     if (!m_pNavGrid)
     {
         m_pPathNavGrid.reset();
         m_pMinionLaneNavGrid.reset();
         return;
     }
-    m_pPathNavGrid = m_pNavGrid->BuildInflated(ServerMinionTuning::kPathAgentRadius);
-    m_pMinionLaneNavGrid = m_pNavGrid->BuildInflated(ServerMinionTuning::kMinionLaneClearanceRadius);
+    m_pPathNavGrid = m_pNavGrid->BuildInflated(ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.pathAgentRadius);
+    m_pMinionLaneNavGrid = m_pNavGrid->BuildInflated(ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior.laneClearanceRadius);
 
     if (!m_pPathNavGrid || !m_pMinionLaneNavGrid)
     {

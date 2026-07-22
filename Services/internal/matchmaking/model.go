@@ -2,20 +2,28 @@ package matchmaking
 
 import (
 	"time"
+
 	"github.com/google/uuid"
 )
 
-type QueueEntry struct {
-	UserID   uuid.UUID `json:"user_id"`
-	MMR      int       `json:"mmr"`
-	JoinedAt time.Time `json:"joined_at"`
+type MatchStatus struct {
+	// matched, none
+	Status        string `json:"status"`
+	MatchID       string `json:"match_id,omitempty"`
+	GameSessionID string `json:"game_session_id,omitempty"`
+	Generation    int64  `json:"generation,omitempty"`
+	Host          string `json:"host,omitempty"`
+	Port          int    `json:"port,omitempty"`
+	Transport     string `json:"transport,omitempty"`
+	PlayerTicket  string `json:"player_ticket,omitempty"`
+	ExpiresAt     int64  `json:"expires_at,omitempty"`
 }
 
-
-type MatchStatus struct {
-	//queued, matched, none
-	Status string `json:"status"`
-	MatchID string `json:"match_id,omitempty"`
+type GameAllocation struct {
+	Host          string
+	Port          int
+	Transport     string
+	GameSessionID string
 }
 
 type MatchCreatedEvent struct {
@@ -26,3 +34,14 @@ type MatchCreatedEvent struct {
 	CreatedAt time.Time   `json:"created_at"`
 }
 
+type LobbyStartPlayer struct {
+	UserID uuid.UUID `json:"user_id"`
+	Slot   int16     `json:"slot"`
+	Team   int16     `json:"team"`
+}
+
+type ActiveGameSession struct {
+	MatchID    uuid.UUID
+	Generation int64
+	Status     string
+}

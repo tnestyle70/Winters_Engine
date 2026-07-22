@@ -25,9 +25,44 @@ namespace
         for (u8_t i = 0u; i < pVisual->submeshStateCount; ++i)
         {
             const ClientData::StructureVisualSubmeshStateDef& state = pVisual->submeshStates[i];
-            SetSubmeshVisible(mask, state.submeshIndex, state.bVisibleWhenDestroyed == bDestroyed);
+            SetSubmeshVisible(mask, state.submeshIndex,
+                bDestroyed ? state.bVisibleWhenDestroyed : state.bVisibleWhenAlive);
         }
         return mask;
+    }
+
+    struct StructureRenderSelection
+    {
+        ModelRenderer* pRenderer = nullptr;
+        const ClientData::StructureVisualDefinition* pVisual = nullptr;
+    };
+
+    StructureRenderSelection ResolveStructureRenderSelection(
+        EntityID entity,
+        const StructureComponent& structure,
+        ModelRenderer* pAliveRenderer,
+        const std::unordered_map<EntityID, std::unique_ptr<ModelRenderer>>& destroyedRenderers)
+    {
+        const auto kind = static_cast<Winters::Map::eObjectKind>(structure.kind);
+        StructureRenderSelection selection{
+            pAliveRenderer,
+            ClientData::FindStructureVisualDefinition(kind, structure.team)
+        };
+
+        if (kind != Winters::Map::eObjectKind::Structure_Inhibitor || structure.hp > 0.f)
+            return selection;
+
+        const auto it = destroyedRenderers.find(entity);
+        const ClientData::StructureVisualDefinition* pTurretVisual =
+            ClientData::FindStructureVisualDefinition(
+                Winters::Map::eObjectKind::Structure_Turret,
+                structure.team);
+        if (it != destroyedRenderers.end() && it->second && pTurretVisual)
+        {
+            selection.pRenderer = it->second.get();
+            selection.pVisual = pTurretVisual;
+        }
+        return selection;
     }
 }
 
@@ -131,26 +166,32 @@ void CStructure_Manager::Render(const Mat4& matViewProj, const Vec3& vCameraWorl
                 return;
             }
 
+            const StructureRenderSelection selection = ResolveStructureRenderSelection(
+                id,
+                structure,
+                rc.pRenderer,
+                m_mapInhibitorDestroyedRenderers);
+            if (!selection.pRenderer)
+                return;
+
             ++visibleCount;
-            rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
-            rc.pRenderer->UpdateCamera(matViewProj, vCameraWorld);
-            rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
+            selection.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
+            selection.pRenderer->UpdateCamera(matViewProj, vCameraWorld);
+            selection.pRenderer->UpdateTransform(xform.GetWorldMatrix());
             // 넥서스는 양 팀 모두 컬링 없이 항상 렌더한다.
             // (이전엔 Blue 넥서스만 우회해 Red 넥서스가 프러스텀 경계에서 비대칭 컬링/pop-in.)
             // S035: visibilityStates를 가진 구조물(포탑 Z-fight 수복)도 상태 마스크 경로를 탄다.
-            const auto kind = static_cast<Winters::Map::eObjectKind>(structure.kind);
-            const ClientData::StructureVisualDefinition* pVisual =
-                ClientData::FindStructureVisualDefinition(kind, structure.team);
             const bool_t bNexus =
                 structure.kind == static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus);
-            if (bNexus || (pVisual && pVisual->submeshStateCount > 0u))
+            if (bNexus || (selection.pVisual && selection.pVisual->submeshStateCount > 0u))
             {
-                const VisibilityMask mask = BuildStructureVisibilityMask(structure, pVisual);
-                rc.pRenderer->RenderWithVisibility(mask);
+                const VisibilityMask mask =
+                    BuildStructureVisibilityMask(structure, selection.pVisual);
+                selection.pRenderer->RenderWithVisibility(mask);
             }
             else
             {
-                rc.pRenderer->RenderFrustumCulled(matViewProj);
+                selection.pRenderer->RenderFrustumCulled(matViewProj);
             }
         });
 
@@ -186,23 +227,31 @@ u32_t CStructure_Manager::AppendRenderSnapshotMeshes(
                 return;
             }
 
+            const StructureRenderSelection selection = ResolveStructureRenderSelection(
+                id,
+                structure,
+                rc.pRenderer,
+                m_mapInhibitorDestroyedRenderers);
+            if (!selection.pRenderer)
+                return;
+
             ++visibleCount;
-            rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
+            selection.pRenderer->UpdateTransform(xform.GetWorldMatrix());
 
             // S035: visibilityStates를 가진 구조물(포탑)도 상태 마스크 경로를 탄다.
-            const auto kind = static_cast<Winters::Map::eObjectKind>(structure.kind);
-            const ClientData::StructureVisualDefinition* pVisual =
-                ClientData::FindStructureVisualDefinition(kind, structure.team);
             const bool_t bNexus =
                 structure.kind == static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus);
-            if (bNexus || (pVisual && pVisual->submeshStateCount > 0u))
+            if (bNexus || (selection.pVisual && selection.pVisual->submeshStateCount > 0u))
             {
-                const VisibilityMask mask = BuildStructureVisibilityMask(structure, pVisual);
-                appendedCount += rc.pRenderer->AppendRenderSnapshotMeshes(snapshot, mask);
+                const VisibilityMask mask =
+                    BuildStructureVisibilityMask(structure, selection.pVisual);
+                appendedCount += selection.pRenderer->AppendRenderSnapshotMeshes(snapshot, mask);
             }
             else
             {
-                appendedCount += rc.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(snapshot, matViewProj);
+                appendedCount += selection.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(
+                    snapshot,
+                    matViewProj);
             }
         });
 
@@ -241,6 +290,7 @@ bool_t CStructure_Manager::Remove_At(uint32_t iIndex)
     if (!m_pWorld || iIndex >= m_vecEntities.size()) return false;
     EntityID id = m_vecEntities[iIndex];
     m_mapRenderers.erase(id);
+    m_mapInhibitorDestroyedRenderers.erase(id);
     m_pWorld->DestroyEntity(id);
     m_vecEntities.erase(m_vecEntities.begin() + iIndex);
     m_vecNames.erase(m_vecNames.begin() + iIndex);
@@ -256,6 +306,7 @@ void CStructure_Manager::Clear()
     m_vecEntities.clear();
     m_vecNames.clear();
     m_mapRenderers.clear();
+    m_mapInhibitorDestroyedRenderers.clear();
     m_uAutoNumber = 0;
 }
 
@@ -407,6 +458,26 @@ EntityID CStructure_Manager::Spawn_FromEntry(const Winters::Map::StructureEntry&
     if (!pRenderer->Initialize(pVisual->mesh.resourceRelativePath, pVisual->shader.runtimePath))
         return NULL_ENTITY;
 
+    std::unique_ptr<ModelRenderer> pInhibitorDestroyedRenderer;
+    if (kind == Winters::Map::eObjectKind::Structure_Inhibitor)
+    {
+        const ClientData::StructureVisualDefinition* pTurretVisual =
+            ClientData::FindStructureVisualDefinition(
+                Winters::Map::eObjectKind::Structure_Turret,
+                team);
+        if (pTurretVisual &&
+            pTurretVisual->mesh.resourceRelativePath &&
+            pTurretVisual->shader.runtimePath)
+        {
+            pInhibitorDestroyedRenderer = std::make_unique<ModelRenderer>();
+            if (!pInhibitorDestroyedRenderer->Initialize(
+                    pTurretVisual->mesh.resourceRelativePath,
+                    pTurretVisual->shader.runtimePath))
+            {
+                pInhibitorDestroyedRenderer.reset();
+            }
+        }
+    }
 
     EntityID id = m_pWorld->CreateEntity();
 
@@ -497,6 +568,8 @@ EntityID CStructure_Manager::Spawn_FromEntry(const Winters::Map::StructureEntry&
     m_pWorld->AddComponent<HealthComponent>(id, hp);
 
     m_mapRenderers[id] = std::move(pRenderer);
+    if (pInhibitorDestroyedRenderer)
+        m_mapInhibitorDestroyedRenderers[id] = std::move(pInhibitorDestroyedRenderer);
     m_vecEntities.push_back(id);
     m_vecNames.emplace_back(entry.name);
     return id;

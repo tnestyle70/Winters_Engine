@@ -1571,8 +1571,434 @@ func (rcv *EntitySnapshot) MutateProjectileTraveledDist(n float32) bool {
 	return rcv._tab.MutateFloat32Slot(238, n)
 }
 
+func (rcv *EntitySnapshot) ChampionDefinitionKey() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(240))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateChampionDefinitionKey(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(240, n)
+}
+
+func (rcv *EntitySnapshot) SightRange() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(242))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateSightRange(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(242, n)
+}
+
+func (rcv *EntitySnapshot) RespawnRemainingSec() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(244))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateRespawnRemainingSec(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(244, n)
+}
+
+func (rcv *EntitySnapshot) RespawnDurationSec() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(246))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateRespawnDurationSec(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(246, n)
+}
+
+func (rcv *EntitySnapshot) AiDebugEnemyMinionNet() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(248))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugEnemyMinionNet(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(248, n)
+}
+
+func (rcv *EntitySnapshot) AiDebugAlliedWaveNet() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(250))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugAlliedWaveNet(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(250, n)
+}
+
+func (rcv *EntitySnapshot) AiDebugWaveDistance() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(252))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 999.0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugWaveDistance(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(252, n)
+}
+
+func (rcv *EntitySnapshot) AiDebugWaveSupportRange() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(254))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugWaveSupportRange(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(254, n)
+}
+
+func (rcv *EntitySnapshot) AiDebugFollowWaveSearchRange() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(256))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugFollowWaveSearchRange(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(256, n)
+}
+
+func (rcv *EntitySnapshot) AiDebugFarmPriority() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(258))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugFarmPriority(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(258, n)
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTick() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(260))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateTick(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(260, n)
+}
+
+func (rcv *EntitySnapshot) AiDebugSelectionTick() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(262))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugSelectionTick(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(262, n)
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateKinds(j int) byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(264))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateKindsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(264))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateKindsBytes() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(264))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateKinds(j int, n byte) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(264))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+	}
+	return false
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateFlags(j int) byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(266))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateFlagsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(266))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateFlagsBytes() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(266))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateFlags(j int, n byte) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(266))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+	}
+	return false
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTargets(j int) uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(268))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetUint32(a + flatbuffers.UOffsetT(j*4))
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTargetsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(268))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateTargets(j int, n uint32) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(268))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateUint32(a+flatbuffers.UOffsetT(j*4), n)
+	}
+	return false
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateScores(j int) float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(270))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetFloat32(a + flatbuffers.UOffsetT(j*4))
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateScoresLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(270))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateScores(j int, n float32) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(270))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateFloat32(a+flatbuffers.UOffsetT(j*4), n)
+	}
+	return false
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermCounts(j int) byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(272))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetByte(a + flatbuffers.UOffsetT(j*1))
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermCountsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(272))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermCountsBytes() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(272))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateTermCounts(j int, n byte) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(272))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateByte(a+flatbuffers.UOffsetT(j*1), n)
+	}
+	return false
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermFeatureIds(j int) uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(274))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetUint16(a + flatbuffers.UOffsetT(j*2))
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermFeatureIdsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(274))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateTermFeatureIds(j int, n uint16) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(274))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateUint16(a+flatbuffers.UOffsetT(j*2), n)
+	}
+	return false
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermRawValues(j int) float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(276))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetFloat32(a + flatbuffers.UOffsetT(j*4))
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermRawValuesLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(276))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateTermRawValues(j int, n float32) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(276))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateFloat32(a+flatbuffers.UOffsetT(j*4), n)
+	}
+	return false
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermWeights(j int) float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(278))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetFloat32(a + flatbuffers.UOffsetT(j*4))
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermWeightsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(278))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateTermWeights(j int, n float32) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(278))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateFloat32(a+flatbuffers.UOffsetT(j*4), n)
+	}
+	return false
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermContributions(j int) float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(280))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.GetFloat32(a + flatbuffers.UOffsetT(j*4))
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) AiDebugCandidateTermContributionsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(280))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateAiDebugCandidateTermContributions(j int, n float32) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(280))
+	if o != 0 {
+		a := rcv._tab.Vector(o)
+		return rcv._tab.MutateFloat32(a+flatbuffers.UOffsetT(j*4), n)
+	}
+	return false
+}
+
+func (rcv *EntitySnapshot) ObjectiveStateFlags() uint32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(282))
+	if o != 0 {
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *EntitySnapshot) MutateObjectiveStateFlags(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(282, n)
+}
+
+func (rcv *EntitySnapshot) VisualScaleMultiplier() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(284))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 1.0
+}
+
+func (rcv *EntitySnapshot) MutateVisualScaleMultiplier(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(284, n)
+}
+
 func EntitySnapshotStart(builder *flatbuffers.Builder) {
-	builder.StartObject(118)
+	builder.StartObject(141)
 }
 func EntitySnapshotAddNetId(builder *flatbuffers.Builder, netId uint32) {
 	builder.PrependUint32Slot(0, netId, 0)
@@ -1951,6 +2377,102 @@ func EntitySnapshotAddProjectileDirZ(builder *flatbuffers.Builder, projectileDir
 }
 func EntitySnapshotAddProjectileTraveledDist(builder *flatbuffers.Builder, projectileTraveledDist float32) {
 	builder.PrependFloat32Slot(117, projectileTraveledDist, 0.0)
+}
+func EntitySnapshotAddChampionDefinitionKey(builder *flatbuffers.Builder, championDefinitionKey uint32) {
+	builder.PrependUint32Slot(118, championDefinitionKey, 0)
+}
+func EntitySnapshotAddSightRange(builder *flatbuffers.Builder, sightRange float32) {
+	builder.PrependFloat32Slot(119, sightRange, 0.0)
+}
+func EntitySnapshotAddRespawnRemainingSec(builder *flatbuffers.Builder, respawnRemainingSec float32) {
+	builder.PrependFloat32Slot(120, respawnRemainingSec, 0.0)
+}
+func EntitySnapshotAddRespawnDurationSec(builder *flatbuffers.Builder, respawnDurationSec float32) {
+	builder.PrependFloat32Slot(121, respawnDurationSec, 0.0)
+}
+func EntitySnapshotAddAiDebugEnemyMinionNet(builder *flatbuffers.Builder, aiDebugEnemyMinionNet uint32) {
+	builder.PrependUint32Slot(122, aiDebugEnemyMinionNet, 0)
+}
+func EntitySnapshotAddAiDebugAlliedWaveNet(builder *flatbuffers.Builder, aiDebugAlliedWaveNet uint32) {
+	builder.PrependUint32Slot(123, aiDebugAlliedWaveNet, 0)
+}
+func EntitySnapshotAddAiDebugWaveDistance(builder *flatbuffers.Builder, aiDebugWaveDistance float32) {
+	builder.PrependFloat32Slot(124, aiDebugWaveDistance, 999.0)
+}
+func EntitySnapshotAddAiDebugWaveSupportRange(builder *flatbuffers.Builder, aiDebugWaveSupportRange float32) {
+	builder.PrependFloat32Slot(125, aiDebugWaveSupportRange, 0.0)
+}
+func EntitySnapshotAddAiDebugFollowWaveSearchRange(builder *flatbuffers.Builder, aiDebugFollowWaveSearchRange float32) {
+	builder.PrependFloat32Slot(126, aiDebugFollowWaveSearchRange, 0.0)
+}
+func EntitySnapshotAddAiDebugFarmPriority(builder *flatbuffers.Builder, aiDebugFarmPriority float32) {
+	builder.PrependFloat32Slot(127, aiDebugFarmPriority, 0.0)
+}
+func EntitySnapshotAddAiDebugCandidateTick(builder *flatbuffers.Builder, aiDebugCandidateTick uint64) {
+	builder.PrependUint64Slot(128, aiDebugCandidateTick, 0)
+}
+func EntitySnapshotAddAiDebugSelectionTick(builder *flatbuffers.Builder, aiDebugSelectionTick uint64) {
+	builder.PrependUint64Slot(129, aiDebugSelectionTick, 0)
+}
+func EntitySnapshotAddAiDebugCandidateKinds(builder *flatbuffers.Builder, aiDebugCandidateKinds flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(130, flatbuffers.UOffsetT(aiDebugCandidateKinds), 0)
+}
+func EntitySnapshotStartAiDebugCandidateKindsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(1, numElems, 1)
+}
+func EntitySnapshotAddAiDebugCandidateFlags(builder *flatbuffers.Builder, aiDebugCandidateFlags flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(131, flatbuffers.UOffsetT(aiDebugCandidateFlags), 0)
+}
+func EntitySnapshotStartAiDebugCandidateFlagsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(1, numElems, 1)
+}
+func EntitySnapshotAddAiDebugCandidateTargets(builder *flatbuffers.Builder, aiDebugCandidateTargets flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(132, flatbuffers.UOffsetT(aiDebugCandidateTargets), 0)
+}
+func EntitySnapshotStartAiDebugCandidateTargetsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func EntitySnapshotAddAiDebugCandidateScores(builder *flatbuffers.Builder, aiDebugCandidateScores flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(133, flatbuffers.UOffsetT(aiDebugCandidateScores), 0)
+}
+func EntitySnapshotStartAiDebugCandidateScoresVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func EntitySnapshotAddAiDebugCandidateTermCounts(builder *flatbuffers.Builder, aiDebugCandidateTermCounts flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(134, flatbuffers.UOffsetT(aiDebugCandidateTermCounts), 0)
+}
+func EntitySnapshotStartAiDebugCandidateTermCountsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(1, numElems, 1)
+}
+func EntitySnapshotAddAiDebugCandidateTermFeatureIds(builder *flatbuffers.Builder, aiDebugCandidateTermFeatureIds flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(135, flatbuffers.UOffsetT(aiDebugCandidateTermFeatureIds), 0)
+}
+func EntitySnapshotStartAiDebugCandidateTermFeatureIdsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(2, numElems, 2)
+}
+func EntitySnapshotAddAiDebugCandidateTermRawValues(builder *flatbuffers.Builder, aiDebugCandidateTermRawValues flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(136, flatbuffers.UOffsetT(aiDebugCandidateTermRawValues), 0)
+}
+func EntitySnapshotStartAiDebugCandidateTermRawValuesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func EntitySnapshotAddAiDebugCandidateTermWeights(builder *flatbuffers.Builder, aiDebugCandidateTermWeights flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(137, flatbuffers.UOffsetT(aiDebugCandidateTermWeights), 0)
+}
+func EntitySnapshotStartAiDebugCandidateTermWeightsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func EntitySnapshotAddAiDebugCandidateTermContributions(builder *flatbuffers.Builder, aiDebugCandidateTermContributions flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(138, flatbuffers.UOffsetT(aiDebugCandidateTermContributions), 0)
+}
+func EntitySnapshotStartAiDebugCandidateTermContributionsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
+}
+func EntitySnapshotAddObjectiveStateFlags(builder *flatbuffers.Builder, objectiveStateFlags uint32) {
+	builder.PrependUint32Slot(139, objectiveStateFlags, 0)
+}
+func EntitySnapshotAddVisualScaleMultiplier(builder *flatbuffers.Builder, visualScaleMultiplier float32) {
+	builder.PrependFloat32Slot(140, visualScaleMultiplier, 1.0)
 }
 func EntitySnapshotEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

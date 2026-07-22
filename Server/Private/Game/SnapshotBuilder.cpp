@@ -1,6 +1,7 @@
 #include "Game/SnapshotBuilder.h"
 
 #include "Game/ServerProjectileAuthority.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 
 #include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Components/BuffComponent.h"
@@ -23,6 +24,8 @@
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedPoseComponent.h"
+#include "Shared/GameSim/Components/RecallComponent.h"
+#include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
@@ -44,6 +47,14 @@
 
 namespace
 {
+    DefinitionKey ResolveSnapshotChampionDefinitionKey(u8_t legacyValue)
+    {
+        const ChampionGameplayDef* definition =
+            ServerData::GetActiveLoLGameplayDefinitionPack().FindChampion(
+                static_cast<eChampion>(legacyValue));
+        return definition ? definition->key : kInvalidDefinitionKey;
+    }
+
     bool_t IsMoveLockedBySnapshotAction(CWorld& world, EntityID entity, u64_t serverTick)
     {
         if (!world.HasComponent<ReplicatedActionComponent>(entity))
@@ -54,6 +65,23 @@ namespace
             return false;
         return action.movePolicy != eSkillActionMovePolicy::Allow &&
             serverTick < action.lockEndTick;
+    }
+
+    AiCandidateKindV1 ResolveAIDebugCandidateKind(eChampionAIIntent intent)
+    {
+        switch (intent)
+        {
+        case eChampionAIIntent::Retreat:
+            return AiCandidateKindV1::Retreat;
+        case eChampionAIIntent::AttackChampion:
+            return AiCandidateKindV1::Fight;
+        case eChampionAIIntent::FarmMinion:
+            return AiCandidateKindV1::Farm;
+        case eChampionAIIntent::SiegeStructure:
+            return AiCandidateKindV1::Siege;
+        default:
+            return AiCandidateKindV1::None;
+        }
     }
 }
 
@@ -69,6 +97,7 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
     u64_t serverTimeMs,
     u64_t rngState,
     u32_t lastAckedSeq,
+    const std::array<SkillCommandFeedback, 5u>& commandFeedback,
     NetEntityId yourNetId,
     u64_t timelineEpoch,
     u64_t branchId,
@@ -130,6 +159,7 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         f32_t maxMana = 0.f;
         f32_t shield = 0.f;
         f32_t moveSpeed = 0.f;
+        f32_t sightRange = 0.f;
         f32_t ad = 0.f;
         f32_t ap = 0.f;
         f32_t armor = 0.f;
@@ -138,6 +168,8 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         f32_t attackRange = 0.f;
         f32_t critChance = 0.f;
         f32_t abilityHaste = 0.f;
+        f32_t respawnRemainingSec = 0.f;
+        f32_t respawnDurationSec = 0.f;
         f32_t yaw = NormalizeChampionVisualYaw(rot.y);
         u16_t poseId = static_cast<u16_t>(eReplicatedPoseId::Idle);
         u64_t poseStartTick = 0;
@@ -162,6 +194,8 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         u32_t buffMask = 0;
         u32_t statHash = 0;
         u32_t stateFlags = 0;
+        u32_t objectiveStateFlags = 0;
+        f32_t visualScaleMultiplier = 1.f;
         u32_t gameplayStateFlags = 0;
         f32_t gameplayMoveSpeedMul = 1.f;
         u8_t forcedMotionKind = 0u;
@@ -194,6 +228,31 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 stateFlags |= kSnapshotStateDeadFlag;
         }
 
+        if (world.HasComponent<RecallComponent>(entity) &&
+            world.GetComponent<RecallComponent>(entity).bActive)
+        {
+            stateFlags |= kSnapshotStateRecallFlag;
+        }
+
+        if (const ObjectiveBuffComponent* objective =
+            world.TryGetComponent<ObjectiveBuffComponent>(entity))
+        {
+            if (objective->expireTicks[static_cast<u8_t>(eObjectiveBuffKind::Baron)] != 0u)
+                objectiveStateFlags |= kObjectiveStateBaronFlag;
+            if (objective->expireTicks[static_cast<u8_t>(eObjectiveBuffKind::Elder)] != 0u)
+                objectiveStateFlags |= kObjectiveStateElderFlag;
+            if (objective->expireTicks[static_cast<u8_t>(eObjectiveBuffKind::Blue)] != 0u)
+                objectiveStateFlags |= kObjectiveStateBlueFlag;
+            if (objective->expireTicks[static_cast<u8_t>(eObjectiveBuffKind::Red)] != 0u)
+                objectiveStateFlags |= kObjectiveStateRedFlag;
+        }
+        if (const BaronEmpoweredMinionComponent* empowered =
+            world.TryGetComponent<BaronEmpoweredMinionComponent>(entity))
+        {
+            objectiveStateFlags |= kObjectiveStateBaronMinionFlag;
+            visualScaleMultiplier = empowered->scaleMultiplier;
+        }
+
         if (world.HasComponent<StatComponent>(entity))
         {
             const auto& stat = world.GetComponent<StatComponent>(entity);
@@ -213,6 +272,19 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             statHash = stat.itemMaskHash ^ (stat.buffMaskHash * 16777619u);
         }
 
+        if (world.HasComponent<RespawnComponent>(entity))
+        {
+            const auto& respawn = world.GetComponent<RespawnComponent>(entity);
+            if (respawn.bPending)
+            {
+                respawnRemainingSec = (std::max)(0.f, respawn.respawnTimer);
+                respawnDurationSec = (std::max)(respawnRemainingSec, respawn.respawnDelay);
+            }
+        }
+
+        if (world.HasComponent<VisionSourceComponent>(entity))
+            sightRange = world.GetComponent<VisionSourceComponent>(entity).sightRange;
+
         if (world.HasComponent<ChampionComponent>(entity))
         {
             const auto& champion = world.GetComponent<ChampionComponent>(entity);
@@ -230,7 +302,9 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                 maxMana = champion.maxMana;
             shield = (std::max)(0.f, champion.shield);
         }
-        if (world.HasComponent<YasuoStateComponent>(entity))
+        if (world.HasComponent<ChampionComponent>(entity) &&
+            world.GetComponent<ChampionComponent>(entity).id == eChampion::YASUO &&
+            world.HasComponent<YasuoStateComponent>(entity))
         {
             const auto& yasuoState = world.GetComponent<YasuoStateComponent>(entity);
             mana = yasuoState.fPassiveFlow;
@@ -521,6 +595,12 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         f32_t aiDebugDiveExtraBAWindow = 0.f;
         f32_t aiDebugFlashRange = 0.f;
         f32_t aiDebugPostComboBATimer = 0.f;
+        u32_t aiDebugEnemyMinionNet = NULL_NET_ENTITY;
+        u32_t aiDebugAlliedWaveNet = NULL_NET_ENTITY;
+        f32_t aiDebugWaveDistance = 999.f;
+        f32_t aiDebugWaveSupportRange = 0.f;
+        f32_t aiDebugFollowWaveSearchRange = 0.f;
+        f32_t aiDebugFarmPriority = 0.f;
         Vec3 aiDebugLastCommandPos{};
 
         if (world.HasComponent<ChampionAIComponent>(entity))
@@ -599,6 +679,16 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             aiDebugDiveExtraBAWindow = ai.fDiveExtraBAWindow;
             aiDebugFlashRange = ai.fDecisionFlashRange;
             aiDebugPostComboBATimer = ai.fPostComboBATimer;
+            aiDebugEnemyMinionNet = ai.targetMinion != NULL_ENTITY
+                ? entityMap.ToNet(ai.targetMinion)
+                : NULL_NET_ENTITY;
+            aiDebugAlliedWaveNet = ai.alliedWave != NULL_ENTITY
+                ? entityMap.ToNet(ai.alliedWave)
+                : NULL_NET_ENTITY;
+            aiDebugWaveDistance = ai.fDecisionWaveDistance;
+            aiDebugWaveSupportRange = ai.waveJoinRange;
+            aiDebugFollowWaveSearchRange = ai.followWaveSearchRange;
+            aiDebugFarmPriority = ai.fFarmPriority;
             aiDebugLastCommandPos = ai.debugLastCommandPos;
         }
 
@@ -685,6 +775,17 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             fbb.CreateVector(summonerSpellCooldownDurations);
 
         std::vector<flatbuffers::Offset<Shared::Schema::AIDebugTraceRow>> aiDebugTraceRows;
+		std::vector<u8_t> aiDebugCandidateKinds;
+		std::vector<u8_t> aiDebugCandidateFlags;
+		std::vector<u32_t> aiDebugCandidateTargets;
+		std::vector<f32_t> aiDebugCandidateScores;
+		std::vector<u8_t> aiDebugCandidateTermCounts;
+		std::vector<u16_t> aiDebugCandidateTermFeatureIds;
+		std::vector<f32_t> aiDebugCandidateTermRawValues;
+		std::vector<f32_t> aiDebugCandidateTermWeights;
+		std::vector<f32_t> aiDebugCandidateTermContributions;
+		u64_t aiDebugCandidateTick = 0u;
+		u64_t aiDebugSelectionTick = 0u;
         if (world.HasComponent<ChampionAIComponent>(entity))
         {
             const auto& ai = world.GetComponent<ChampionAIComponent>(entity);
@@ -762,8 +863,99 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
                     pShadowRow ? pShadowRow->shadowSelectedCandidateKind : 0u,
                     pShadowRow ? pShadowRow->bShadowDisagreed : false));
             }
+
+#if defined(_DEBUG)
+			if (world.HasComponent<ChampionAIResearchDebugComponent>(entity))
+			{
+				const auto& research =
+					world.GetComponent<ChampionAIResearchDebugComponent>(entity);
+				const AiDecisionTraceV1& draft = research.decisionDraft;
+				if (draft.schemaVersion == kAiDecisionTraceSchemaVersionV1 &&
+					draft.tick == serverTick &&
+					draft.candidateCount == kAiDecisionCandidateCapacityV1)
+				{
+					AiCandidateKindV1 selectedKind = AiCandidateKindV1::None;
+					if (ai.debugDecisionTraceCount > 0u)
+					{
+						const u8_t latestIndex = static_cast<u8_t>(
+							(ai.debugDecisionTraceHead +
+								kChampionAIDebugTraceCapacity - 1u) %
+							kChampionAIDebugTraceCapacity);
+						const ChampionAIDecisionTraceEntry& latest =
+							ai.debugDecisionTrace[latestIndex];
+						if (latest.tick == serverTick)
+						{
+							selectedKind = ResolveAIDebugCandidateKind(latest.intent);
+							if (selectedKind != AiCandidateKindV1::None)
+								aiDebugSelectionTick = serverTick;
+						}
+					}
+
+					aiDebugCandidateTick = serverTick;
+					aiDebugCandidateKinds.reserve(kAiDecisionCandidateCapacityV1);
+					aiDebugCandidateFlags.reserve(kAiDecisionCandidateCapacityV1);
+					aiDebugCandidateTargets.reserve(kAiDecisionCandidateCapacityV1);
+					aiDebugCandidateScores.reserve(kAiDecisionCandidateCapacityV1);
+					aiDebugCandidateTermCounts.reserve(kAiDecisionCandidateCapacityV1);
+					constexpr u32_t kTermCapacity =
+						kAiDecisionCandidateCapacityV1 *
+						kAiFeatureContributionCapacityV1;
+					aiDebugCandidateTermFeatureIds.reserve(kTermCapacity);
+					aiDebugCandidateTermRawValues.reserve(kTermCapacity);
+					aiDebugCandidateTermWeights.reserve(kTermCapacity);
+					aiDebugCandidateTermContributions.reserve(kTermCapacity);
+
+					for (u8_t candidateIndex = 0u;
+						candidateIndex < kAiDecisionCandidateCapacityV1;
+						++candidateIndex)
+					{
+						const AiCandidateEvidenceV1& candidate =
+							draft.candidates[candidateIndex];
+						u8_t flags = static_cast<u8_t>(
+							candidate.flags & ~kAiCandidateSelectedFlagV1);
+						if (aiDebugSelectionTick == serverTick &&
+							candidate.candidateKind == static_cast<u8_t>(selectedKind))
+						{
+							flags |= kAiCandidateSelectedFlagV1;
+						}
+						aiDebugCandidateKinds.push_back(candidate.candidateKind);
+						aiDebugCandidateFlags.push_back(flags);
+						aiDebugCandidateTargets.push_back(candidate.targetNetEntityId);
+						aiDebugCandidateScores.push_back(candidate.score);
+						aiDebugCandidateTermCounts.push_back((std::min)(
+							candidate.contributionCount,
+							kAiFeatureContributionCapacityV1));
+						for (u8_t termIndex = 0u;
+							termIndex < kAiFeatureContributionCapacityV1;
+							++termIndex)
+						{
+							const AiFeatureContributionV1& term =
+								candidate.contributions[termIndex];
+							aiDebugCandidateTermFeatureIds.push_back(term.featureId);
+							aiDebugCandidateTermRawValues.push_back(term.rawValue);
+							aiDebugCandidateTermWeights.push_back(term.weight);
+							aiDebugCandidateTermContributions.push_back(term.contribution);
+						}
+					}
+				}
+			}
+#endif
         }
         const auto aiDebugTraceOffset = fbb.CreateVector(aiDebugTraceRows);
+		const auto aiDebugCandidateKindsOffset = fbb.CreateVector(aiDebugCandidateKinds);
+		const auto aiDebugCandidateFlagsOffset = fbb.CreateVector(aiDebugCandidateFlags);
+		const auto aiDebugCandidateTargetsOffset = fbb.CreateVector(aiDebugCandidateTargets);
+		const auto aiDebugCandidateScoresOffset = fbb.CreateVector(aiDebugCandidateScores);
+		const auto aiDebugCandidateTermCountsOffset =
+			fbb.CreateVector(aiDebugCandidateTermCounts);
+		const auto aiDebugCandidateTermFeatureIdsOffset =
+			fbb.CreateVector(aiDebugCandidateTermFeatureIds);
+		const auto aiDebugCandidateTermRawValuesOffset =
+			fbb.CreateVector(aiDebugCandidateTermRawValues);
+		const auto aiDebugCandidateTermWeightsOffset =
+			fbb.CreateVector(aiDebugCandidateTermWeights);
+		const auto aiDebugCandidateTermContributionsOffset =
+			fbb.CreateVector(aiDebugCandidateTermContributions);
 
         if (item.netId == yourNetId && championId != 0)
         {
@@ -943,7 +1135,30 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
             projectileDirection.x,
             projectileDirection.y,
             projectileDirection.z,
-            projectileTraveledDist));
+            projectileTraveledDist,
+            ResolveSnapshotChampionDefinitionKey(championId),
+            sightRange,
+            respawnRemainingSec,
+            respawnDurationSec,
+            aiDebugEnemyMinionNet,
+            aiDebugAlliedWaveNet,
+            aiDebugWaveDistance,
+            aiDebugWaveSupportRange,
+            aiDebugFollowWaveSearchRange,
+            aiDebugFarmPriority,
+			aiDebugCandidateTick,
+			aiDebugSelectionTick,
+			aiDebugCandidateKindsOffset,
+			aiDebugCandidateFlagsOffset,
+			aiDebugCandidateTargetsOffset,
+			aiDebugCandidateScoresOffset,
+			aiDebugCandidateTermCountsOffset,
+			aiDebugCandidateTermFeatureIdsOffset,
+			aiDebugCandidateTermRawValuesOffset,
+			aiDebugCandidateTermWeightsOffset,
+			aiDebugCandidateTermContributionsOffset,
+            objectiveStateFlags,
+            visualScaleMultiplier));
     }
 
     const auto entitiesOffset = fbb.CreateVector(snapshots);
@@ -1083,6 +1298,39 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
     }
     const auto gameplayStatesOffset = fbb.CreateVector(gameplayStates);
 
+    std::vector<flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>>
+        commandResults;
+    commandResults.reserve(commandFeedback.size());
+    const SkillCommandFeedback* pLatestFeedback = nullptr;
+    for (const SkillCommandFeedback& feedback : commandFeedback)
+    {
+        if (feedback.result.state == eCommandExecutionState::Unknown ||
+            feedback.result.commandSequence == 0u ||
+            feedback.authoritativeSkillSlot >= 5u)
+        {
+            continue;
+        }
+
+        commandResults.push_back(Shared::Schema::CreateCommandResultSnapshot(
+            fbb,
+            feedback.result.commandSequence,
+            static_cast<u8_t>(feedback.result.state),
+            static_cast<u16_t>(feedback.result.reason),
+            feedback.authoritativeSkillSlot,
+            feedback.authoritativeSkillStage,
+            feedback.stageWindowEndTick));
+        if (!pLatestFeedback ||
+            static_cast<i32_t>(feedback.result.commandSequence -
+                pLatestFeedback->result.commandSequence) > 0)
+        {
+            pLatestFeedback = &feedback;
+        }
+    }
+    const auto commandResultsOffset = fbb.CreateVector(commandResults);
+    const SkillCommandFeedback emptyFeedback{};
+    const SkillCommandFeedback& latestFeedback =
+        pLatestFeedback ? *pLatestFeedback : emptyFeedback;
+
     const auto snapshot = Shared::Schema::CreateSnapshot(
         fbb,
         serverTick,
@@ -1105,7 +1353,14 @@ flatbuffers::DetachedBuffer CSnapshotBuilder::Build(
         toolRevision,
         simPaused,
         simSpeedMul,
-        gameplayStatesOffset);
+        gameplayStatesOffset,
+        latestFeedback.result.commandSequence,
+        static_cast<u8_t>(latestFeedback.result.state),
+        static_cast<u16_t>(latestFeedback.result.reason),
+        latestFeedback.authoritativeSkillSlot,
+        latestFeedback.authoritativeSkillStage,
+        latestFeedback.stageWindowEndTick,
+        commandResultsOffset);
     // Finish writes the Snapshot root; Release returns the byte buffer for the server packet path.
     fbb.Finish(snapshot);
     return fbb.Release();

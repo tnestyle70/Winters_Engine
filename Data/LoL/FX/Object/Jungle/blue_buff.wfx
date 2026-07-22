@@ -1,0 +1,22 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Objective.Blue.Buff",
+  "emitters": [
+    {
+      "name": "blue_ground_mark",
+      "render_type": "GroundDecal",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/common_flashblue_02.png",
+      "lifetime": 300.0,
+      "fade_in": 0.15,
+      "fade_out": 0.35,
+      "width": 2.2,
+      "height": 2.2,
+      "color": [0.2, 0.75, 2.1, 0.62],
+      "attach_offset": [0.0, 0.065, 0.0],
+      "billboard": false
+    }
+  ]
+}

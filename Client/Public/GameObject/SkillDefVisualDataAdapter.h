@@ -7,6 +7,13 @@
 
 namespace SkillDefAdapters
 {
+    inline u8_t ResolveVisualStageCount(const SkillDef& def)
+    {
+        const u8_t gameplayStageCount =
+            SkillDefAdapters::ClampSkillStageCount(def.stageCount);
+        return def.stage2AnimKey ? 2u : gameplayStageCount;
+    }
+
     inline void AppendVisualEvent(
         ChampionActionVisualStageData& stage,
         eVisualEventKind kind,
@@ -46,7 +53,7 @@ namespace SkillDefAdapters
         SkillVisualData data{};
         data.bValid = true;
         data.slot = def.slot;
-        data.stageCount = SkillDefAdapters::ClampSkillStageCount(def.stageCount);
+        data.stageCount = ResolveVisualStageCount(def);
         data.vfxKey = def.vfxKey;
         data.sfxKey = def.sfxKey;
         data.endTransitionIdleAnim = def.endTransitionIdleAnim;
@@ -79,7 +86,7 @@ namespace SkillDefAdapters
         ChampionActionVisualData data{};
         data.bValid = true;
         data.actionId = def.slot;
-        data.stageCount = SkillDefAdapters::ClampSkillStageCount(def.stageCount);
+        data.stageCount = ResolveVisualStageCount(def);
 
         ChampionActionVisualStageData& stage1 = data.stages[0];
         stage1.stage = 1;

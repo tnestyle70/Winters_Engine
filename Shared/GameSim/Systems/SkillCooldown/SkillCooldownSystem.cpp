@@ -16,8 +16,13 @@
 #include "Shared/GameSim/Systems/Move/DashArrival.h"
 #include "WintersMath.h"
 
+#include <algorithm>
+#include <cmath>
+
 namespace
 {
+    constexpr f32_t kCooldownReadyEpsilon = 0.000001f;
+
     void ClearMoveTarget(CWorld& world, EntityID entity)
     {
         if (world.HasComponent<MoveTargetComponent>(entity))
@@ -155,6 +160,39 @@ namespace
     }
 }
 
+void CSkillCooldownSystem::RemapDefinitionCooldown(
+    SkillSlotRuntime& slot,
+    f32_t previousDefinitionCooldown,
+    f32_t reloadedDefinitionCooldown)
+{
+    if (!std::isfinite(slot.cooldownRemaining) ||
+        !std::isfinite(slot.cooldownDuration) ||
+        slot.cooldownRemaining <= kCooldownReadyEpsilon ||
+        slot.cooldownDuration <= kCooldownReadyEpsilon)
+    {
+        slot.cooldownRemaining = 0.f;
+        slot.cooldownDuration = 0.f;
+        return;
+    }
+
+    const f32_t previous = std::isfinite(previousDefinitionCooldown)
+        ? std::max(0.f, previousDefinitionCooldown) : 0.f;
+    const f32_t reloaded = std::isfinite(reloadedDefinitionCooldown)
+        ? std::max(0.f, reloadedDefinitionCooldown) : 0.f;
+    const f32_t progressRemaining = std::clamp(
+        slot.cooldownRemaining / slot.cooldownDuration, 0.f, 1.f);
+    const f32_t reloadedDuration = previous > kCooldownReadyEpsilon
+        ? slot.cooldownDuration * (reloaded / previous)
+        : reloaded;
+    slot.cooldownDuration = reloadedDuration;
+    slot.cooldownRemaining = reloadedDuration * progressRemaining;
+    if (slot.cooldownRemaining <= kCooldownReadyEpsilon)
+    {
+        slot.cooldownRemaining = 0.f;
+        slot.cooldownDuration = 0.f;
+    }
+}
+
 void CSkillCooldownSystem::Execute(CWorld& world, const TickContext& tc)
 {
     UpdateKalistaPassiveDash(world, tc);
@@ -194,7 +232,7 @@ void CSkillCooldownSystem::Execute(CWorld& world, const TickContext& tc)
             if (slot.cooldownRemaining > 0.f)
             {
                 slot.cooldownRemaining -= tc.fDt;
-                if (slot.cooldownRemaining <= 0.f)
+                if (slot.cooldownRemaining <= kCooldownReadyEpsilon)
                 {
                     slot.cooldownRemaining = 0.f;
                     slot.cooldownDuration = 0.f;

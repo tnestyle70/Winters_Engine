@@ -59,7 +59,8 @@ namespace SharedSim
                 static_cast<u8_t>(event.damageType),
                 event.bWasCrit,
                 event.bKilled,
-                event.skillId);
+                event.skillId,
+                event.flags);
 
             return Finish(fbb, Shared::Schema::CreateEventPacket(
                 fbb,
@@ -129,7 +130,9 @@ namespace SharedSim
                 event.direction.z,
                 event.startTick,
                 event.durationMs,
-                event.flags);
+                event.flags,
+                event.effectLength,
+                event.effectHalfWidth);
 
             return Finish(fbb, Shared::Schema::CreateEventPacket(
                 fbb,

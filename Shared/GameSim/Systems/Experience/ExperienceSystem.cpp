@@ -8,9 +8,13 @@
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Definitions/GoldRewardDef.h"
+#include "Shared/GameSim/Definitions/MinionCombatDef.h"
 #include "Shared/GameSim/Feedback/GameplayFeedbackQueue.h"
 #include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
+#include "Shared/GameSim/Systems/Buff/BuffSystem.h"
+#include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionPack.h"
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
@@ -41,16 +45,6 @@ namespace
         if (roleType == 3)
             return eMinionRewardKind::Super;
         return eMinionRewardKind::Melee;
-    }
-
-    u8_t ResolveJungleRewardSubKind(u32_t victimSubKind)
-    {
-        // JungleComponent.subKind 규약(DamageQueueSystem 과 동일): 0=Baron, 1=Dragon, 2+=소형 캠프.
-        if (victimSubKind == 0u)
-            return kJungleRewardSubBaron;
-        if (victimSubKind == 1u)
-            return kJungleRewardSubEpic;
-        return kJungleRewardSubSmall;
     }
 
     u32_t RoundRewardGold(f32_t amount)
@@ -178,6 +172,23 @@ namespace
         for (EntityID recipient : recipients)
             CExperienceSystem::GrantExperience(world, recipient, amount);
     }
+
+    void GrantMinionExperienceToRecipients(
+        CWorld& world,
+        const std::vector<EntityID>& recipients,
+        const RewardDef& reward)
+    {
+        if (recipients.empty())
+            return;
+
+        const f32_t totalPool = recipients.size() == 1u
+            ? reward.experience.nearbyXP
+            : reward.experience.teamXP;
+        const f32_t perRecipient =
+            totalPool / static_cast<f32_t>(recipients.size());
+        for (EntityID recipient : recipients)
+            CExperienceSystem::GrantExperience(world, recipient, perRecipient);
+    }
 }
 
 void CExperienceSystem::InitializeChampionExperience(CWorld& world, EntityID entity, u8_t level)
@@ -247,6 +258,39 @@ void CExperienceSystem::GrantExperience(CWorld& world, EntityID entity, f32_t am
         CSkillRankSystem::SyncPointsForLevel(world.GetComponent<SkillRankComponent>(entity), xp.level);
 }
 
+void CExperienceSystem::GrantChampionLevels(
+    CWorld& world,
+    EntityID entity,
+    u8_t levels)
+{
+    if (entity == NULL_ENTITY || levels == 0u || !world.IsAlive(entity) ||
+        !world.HasComponent<ExperienceComponent>(entity))
+    {
+        return;
+    }
+
+    auto& xp = world.GetComponent<ExperienceComponent>(entity);
+    const u8_t oldLevel = xp.level;
+    xp.level = static_cast<u8_t>((std::min)(
+        static_cast<u32_t>(ChampionExperienceCurveDef::kMaxChampionLevel),
+        static_cast<u32_t>(xp.level) + static_cast<u32_t>(levels)));
+    xp.requiredForNextLevel = xp.level < ChampionExperienceCurveDef::kMaxChampionLevel
+        ? CRewardRegistry::Instance().GetRequiredExperienceForNextLevel(xp.level)
+        : 0.f;
+    if (xp.level >= ChampionExperienceCurveDef::kMaxChampionLevel)
+        xp.current = 0.f;
+
+    if (ChampionComponent* champion = world.TryGetComponent<ChampionComponent>(entity))
+        champion->level = xp.level;
+    if (StatComponent* stat = world.TryGetComponent<StatComponent>(entity))
+    {
+        stat->level = xp.level;
+        stat->bDirty = stat->bDirty || oldLevel != xp.level;
+    }
+    if (oldLevel != xp.level && world.HasComponent<SkillRankComponent>(entity))
+        CSkillRankSystem::SyncPointsForLevel(world.GetComponent<SkillRankComponent>(entity), xp.level);
+}
+
 void CExperienceSystem::GrantKillRewards(CWorld& world, const TickContext& tc,
     EntityID killer, EntityID victim)
 {
@@ -266,6 +310,10 @@ void CExperienceSystem::GrantKillRewards(CWorld& world, const TickContext& tc,
     if (world.HasComponent<MinionComponent>(victim))
     {
         const auto& minion = world.GetComponent<MinionComponent>(victim);
+        // Champion summons use the minion runtime for movement/targeting but
+        // must not inherit lane-minion gold or experience rewards.
+        if (minion.roleType == kGameSimMinionRoleTibbers)
+            return;
         const RewardDef* reward = CRewardRegistry::Instance().FindReward(
             eRewardSourceKind::Minion,
             static_cast<u8_t>(ResolveMinionRewardKind(minion.roleType)));
@@ -280,7 +328,7 @@ void CExperienceSystem::GrantKillRewards(CWorld& world, const TickContext& tc,
 
         const std::vector<EntityID> recipients = CollectNearbyExperienceRecipients(
             world, rewardTeam, killer, victim, ResolveExperienceShareRadius(*reward));
-        GrantExperienceToRecipients(world, recipients, reward->experience.nearbyXP);
+        GrantMinionExperienceToRecipients(world, recipients, *reward);
 
         return;
     }
@@ -294,31 +342,81 @@ void CExperienceSystem::GrantKillRewards(CWorld& world, const TickContext& tc,
             return;
         }
 
-        if (world.HasComponent<ChampionComponent>(killer))
+        const bool_t bChampionKiller =
+            world.HasComponent<ChampionComponent>(killer);
+        if (bChampionKiller)
         {
-            const u32_t goldAmount = GrantGold(world, killer, reward->gold.killerGold);
-            (void)GameplayFeedback::EnqueueGoldRewardFeedback(world, tc, killer, victim, goldAmount);
+            const u32_t goldAmount =
+                GrantGold(world, killer, reward->gold.killerGold);
+            (void)GameplayFeedback::EnqueueGoldRewardFeedback(
+                world, tc, killer, victim, goldAmount);
         }
+
+        world.ForEach<ChampionComponent>(
+            [&](EntityID entity, ChampionComponent& champion)
+            {
+                if (champion.team != rewardTeam ||
+                    (bChampionKiller && entity == killer))
+                {
+                    return;
+                }
+
+                const u32_t goldAmount =
+                    GrantGold(world, entity, reward->gold.teamGold);
+                (void)GameplayFeedback::EnqueueGoldRewardFeedback(
+                    world, tc, entity, victim, goldAmount);
+            });
         return;
     }
 
     if (world.HasComponent<JungleComponent>(victim))
     {
         const auto& jungle = world.GetComponent<JungleComponent>(victim);
-        const RewardDef* reward = CRewardRegistry::Instance().FindReward(
-            eRewardSourceKind::Jungle, ResolveJungleRewardSubKind(jungle.subKind));
-        if (!reward)
+        const EconomyGameplayDef fallbackEconomy{};
+        const EconomyGameplayDef* economy = tc.pDefinitions
+            ? tc.pDefinitions->FindEconomy() : nullptr;
+        if (!economy)
+            economy = &fallbackEconomy;
+
+        if (jungle.subKind == 0u || jungle.subKind == 1u)
         {
-            LogRewardMiss("jungle");
+            const eObjectiveBuffKind buffKind = jungle.subKind == 0u
+                ? eObjectiveBuffKind::Baron : eObjectiveBuffKind::Elder;
+            const auto recipients =
+                DeterministicEntityIterator<ChampionComponent>::CollectSorted(world);
+            for (EntityID entity : recipients)
+            {
+                const ChampionComponent& champion =
+                    world.GetComponent<ChampionComponent>(entity);
+                if (champion.team != rewardTeam ||
+                    world.HasComponent<PracticeSpawnedTag>(entity) ||
+                    !world.HasComponent<GoldComponent>(entity) ||
+                    !world.HasComponent<ExperienceComponent>(entity))
+                {
+                    continue;
+                }
+
+                const u32_t goldAmount = GrantGold(
+                    world, entity, economy->objectives.teamGoldPerChampion);
+                (void)GameplayFeedback::EnqueueGoldRewardFeedback(
+                    world, tc, entity, victim, goldAmount);
+                GrantChampionLevels(world, entity, economy->objectives.teamLevelGrant);
+                if (IsLivingChampionRecipient(world, entity))
+                    CBuffSystem::AddOrRefreshObjectiveBuff(world, entity, buffKind, tc);
+            }
             return;
         }
 
-        const u32_t goldAmount = GrantGold(world, killer, reward->gold.killerGold);
+        const u32_t goldAmount = GrantGold(world, killer, economy->jungle.smallCampGold);
         (void)GameplayFeedback::EnqueueGoldRewardFeedback(world, tc, killer, victim, goldAmount);
-
-        const std::vector<EntityID> recipients = CollectNearbyExperienceRecipients(
-            world, rewardTeam, killer, victim, ResolveExperienceShareRadius(*reward));
-        GrantExperienceToRecipients(world, recipients, reward->experience.nearbyXP);
+        GrantExperience(world, killer, economy->jungle.smallCampXP);
+        if (IsLivingChampionRecipient(world, killer))
+        {
+            if (jungle.subKind == 2u)
+                CBuffSystem::AddOrRefreshObjectiveBuff(world, killer, eObjectiveBuffKind::Blue, tc);
+            else if (jungle.subKind == 3u)
+                CBuffSystem::AddOrRefreshObjectiveBuff(world, killer, eObjectiveBuffKind::Red, tc);
+        }
 
         return;
     }

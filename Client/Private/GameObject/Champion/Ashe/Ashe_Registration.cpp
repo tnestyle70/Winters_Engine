@@ -24,7 +24,7 @@ namespace
             ChampionDef cd{};
             cd.id = eChampion::ASHE;
             cd.animPrefix = "ashe_";
-            cd.idleAnimKey = "Idle1";
+            cd.idleAnimKey = "idle1";
             cd.runAnimKey = "run";
             cd.basicAttackKey = "attack1";
             cd.basicAttackRange = 6.0f;
@@ -43,60 +43,40 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::ASHE; s.slot = 0;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = 0.55f; s.rangeMax = 6.0f; s.manaCost = 0.f;
                 s.animKey = "attack1";
-                s.lockDurationSec = 0.7f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
-                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAsh_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 0, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::ASHE; s.slot = 1;
-                s.targetMode = eTargetMode::Self;
-                s.cooldownSec = 12.f; s.rangeMax = 0.f; s.manaCost = 50.f;
                 s.animKey = "spell1";
-                s.lockDurationSec = 0.5f; s.bOneShot = true;
-                s.rotate = eRotateMode::None;
-                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 8.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAsh_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 1, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::ASHE; s.slot = 2;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = 9.f; s.rangeMax = 9.0f; s.manaCost = 60.f;
                 s.animKey = "spell2";
-                s.lockDurationSec = 0.6f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAsh_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 2, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::ASHE; s.slot = 3;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = 60.f; s.rangeMax = 25.f; s.manaCost = 50.f;
                 s.animKey = "spell3";
-                s.lockDurationSec = 0.5f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAsh_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 3, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::ASHE; s.slot = 4;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = 100.f; s.rangeMax = 200.f; s.manaCost = 100.f;
                 s.animKey = "channel";
-                s.lockDurationSec = 1.0f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 12.f; s.visualRecoveryFrame = 22.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAsh_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ASHE, 4, s);
             }

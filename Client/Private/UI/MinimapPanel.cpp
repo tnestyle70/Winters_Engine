@@ -12,9 +12,17 @@
 #include "Scene/LobbyRosterHelpers.h"
 #include "Scene/RenderVisibilityFilter.h"
 
+#include <Windows.h>
+
 #include <algorithm>
+#include <cerrno>
+#include <cfloat>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <filesystem>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -38,11 +46,12 @@ namespace
 
     struct MinimapRuntimeLayout
     {
-        f32_t ViewportHeightRatio = 0.35f;
+        f32_t ViewportHeightRatio = 0.39f;
         f32_t RightPadding = 12.f;
         f32_t BottomPadding = 12.f;
         f32_t IconScale = 1.f;
         f32_t ChampionScale = 2.f;
+        f32_t ChampionOutlineThickness = 2.f;
     };
 
     std::unique_ptr<Engine::CTexture> s_pMinimapBaseTexture;
@@ -51,6 +60,8 @@ namespace
     f32_t s_fRuntimeProjectionExtent = kCanonicalProjectionExtent;
     u32_t s_iRuntimeProjectionRevision = 0u;
     MinimapRuntimeLayout s_MinimapLayout{};
+    bool_t s_bMinimapLayoutSettingsLoaded = false;
+    std::string s_strMinimapLayoutSaveMessage;
     u64_t s_iPortraitLoadFailuresSinceLastRender = 0u;
 
     UI::MinimapProjection BuildUniformMinimapProjection(f32_t fExtent)
@@ -79,6 +90,192 @@ namespace
         s_RuntimeProjection = BuildUniformMinimapProjection(
             s_fRuntimeProjectionExtent);
         ++s_iRuntimeProjectionRevision;
+    }
+
+    bool_t BuildMinimapLayoutSettingsPath(std::filesystem::path& outPath)
+    {
+        wchar_t localAppData[32768]{};
+        const DWORD length = GetEnvironmentVariableW(
+            L"LOCALAPPDATA",
+            localAppData,
+            static_cast<DWORD>(std::size(localAppData)));
+        if (length == 0u || length >= std::size(localAppData))
+            return false;
+        outPath = std::filesystem::path(localAppData) /
+            L"Winters" / L"Developer" / L"minimap_layout.ini";
+        return true;
+    }
+
+    bool_t ReadMinimapProfileFloat(
+        const std::filesystem::path& path,
+        const wchar_t* key,
+        f32_t minimum,
+        f32_t maximum,
+        f32_t& outValue)
+    {
+        wchar_t text[96]{};
+        if (GetPrivateProfileStringW(
+                L"Minimap",
+                key,
+                L"",
+                text,
+                static_cast<DWORD>(std::size(text)),
+                path.c_str()) == 0u)
+        {
+            return false;
+        }
+        errno = 0;
+        wchar_t* end = nullptr;
+        const f32_t parsed = std::wcstof(text, &end);
+        if (errno == ERANGE || end == text || !end || *end != L'\0' ||
+            !std::isfinite(parsed) || parsed < minimum || parsed > maximum)
+        {
+            return false;
+        }
+        outValue = parsed;
+        return true;
+    }
+
+    bool_t ReadMinimapProfileVersion(
+        const std::filesystem::path& path,
+        u32_t& outVersion)
+    {
+        wchar_t text[32]{};
+        if (GetPrivateProfileStringW(
+                L"Minimap",
+                L"version",
+                L"",
+                text,
+                static_cast<DWORD>(std::size(text)),
+                path.c_str()) == 0u)
+        {
+            return false;
+        }
+        errno = 0;
+        wchar_t* end = nullptr;
+        const unsigned long parsed = std::wcstoul(text, &end, 10);
+        if (errno == ERANGE || end == text || !end || *end != L'\0' ||
+            parsed > (std::numeric_limits<u32_t>::max)())
+        {
+            return false;
+        }
+        outVersion = static_cast<u32_t>(parsed);
+        return true;
+    }
+
+    void EnsureMinimapLayoutSettingsLoaded()
+    {
+        if (s_bMinimapLayoutSettingsLoaded)
+            return;
+        s_bMinimapLayoutSettingsLoaded = true;
+
+        std::filesystem::path path;
+        if (!BuildMinimapLayoutSettingsPath(path))
+            return;
+        std::error_code existsError;
+        if (!std::filesystem::exists(path, existsError) || existsError)
+            return;
+
+        u32_t version = 0u;
+        MinimapRuntimeLayout loaded{};
+        f32_t extent = kCanonicalProjectionExtent;
+        const bool_t valid =
+            ReadMinimapProfileVersion(path, version) && version == 1u &&
+            ReadMinimapProfileFloat(path, L"viewportHeightRatio", 0.18f, 0.55f,
+                loaded.ViewportHeightRatio) &&
+            ReadMinimapProfileFloat(path, L"rightPadding", 0.f, 64.f,
+                loaded.RightPadding) &&
+            ReadMinimapProfileFloat(path, L"bottomPadding", 0.f, 64.f,
+                loaded.BottomPadding) &&
+            ReadMinimapProfileFloat(path, L"iconScale", 0.65f, 2.f,
+                loaded.IconScale) &&
+            ReadMinimapProfileFloat(path, L"championScale", 0.75f, 3.f,
+                loaded.ChampionScale) &&
+            ReadMinimapProfileFloat(path, L"championOutlineThickness", 0.5f, 8.f,
+                loaded.ChampionOutlineThickness) &&
+            ReadMinimapProfileFloat(path, L"projectionExtent",
+                kMinProjectionExtent, kMaxProjectionExtent, extent);
+        if (!valid)
+            return;
+
+        s_MinimapLayout = loaded;
+        s_fRuntimeProjectionExtent = extent;
+        ApplyRuntimeMinimapProjection();
+    }
+
+    bool_t SaveMinimapLayoutSettings()
+    {
+        std::filesystem::path path;
+        if (!BuildMinimapLayoutSettingsPath(path))
+            return false;
+        std::error_code directoryError;
+        std::filesystem::create_directories(path.parent_path(), directoryError);
+        if (directoryError)
+            return false;
+        std::filesystem::path temporaryPath = path;
+        temporaryPath += L".tmp";
+        FILE* file = nullptr;
+        if (_wfopen_s(&file, temporaryPath.c_str(), L"wb") != 0 || !file)
+            return false;
+        const i32_t writeResult = fprintf(
+            file,
+            "[Minimap]\nversion=1\n"
+            "viewportHeightRatio=%.9g\nrightPadding=%.9g\nbottomPadding=%.9g\n"
+            "iconScale=%.9g\nchampionScale=%.9g\n"
+            "championOutlineThickness=%.9g\nprojectionExtent=%.9g\n",
+            s_MinimapLayout.ViewportHeightRatio,
+            s_MinimapLayout.RightPadding,
+            s_MinimapLayout.BottomPadding,
+            s_MinimapLayout.IconScale,
+            s_MinimapLayout.ChampionScale,
+            s_MinimapLayout.ChampionOutlineThickness,
+            s_fRuntimeProjectionExtent);
+        const i32_t flushResult = fflush(file);
+        const i32_t closeResult = fclose(file);
+        if (writeResult < 0 || flushResult != 0 || closeResult != 0)
+        {
+            DeleteFileW(temporaryPath.c_str());
+            return false;
+        }
+        if (!MoveFileExW(
+                temporaryPath.c_str(),
+                path.c_str(),
+                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+        {
+            DeleteFileW(temporaryPath.c_str());
+            return false;
+        }
+        return true;
+    }
+
+    bool_t DrawLabeledMinimapSlider(
+        const char* label,
+        f32_t* value,
+        f32_t minimum,
+        f32_t maximum,
+        const char* format)
+    {
+        bool_t changed = false;
+        ImGui::PushID(label);
+        if (ImGui::BeginTable(
+                "##MinimapScalarRow",
+                2,
+                ImGuiTableFlags_SizingStretchProp |
+                    ImGuiTableFlags_NoSavedSettings))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 185.f);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(label);
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            changed = ImGui::SliderFloat(
+                "##Value", value, minimum, maximum, format);
+            ImGui::EndTable();
+        }
+        ImGui::PopID();
+        return changed;
     }
 
     bool_t EnsureMinimapBaseTexture()
@@ -193,6 +390,16 @@ namespace
             : Vec4{ 1.f, 0.18f, 0.16f, 1.f };
     }
 
+    Vec4 ResolveChampionOutlineColor(const UI::MinimapIconView& icon)
+    {
+        const f32_t alpha = icon.bAlive ? 0.98f : 0.58f;
+        if (icon.eTeamId == eTeam::Blue)
+            return Vec4{ 0.08f, 0.42f, 1.35f, alpha };
+        if (icon.eTeamId == eTeam::Red)
+            return Vec4{ 1.35f, 0.10f, 0.08f, alpha };
+        return Vec4{ 0.015f, 0.018f, 0.022f, alpha };
+    }
+
     f32_t ResolveIconRadius(
         UI::eMinimapIconKind eKind,
         f32_t fPanelSide)
@@ -245,6 +452,7 @@ namespace
         f32_t& fOutY,
         f32_t& fOutSide)
     {
+        EnsureMinimapLayoutSettingsLoaded();
         if (!State.bShow || State.fScreenWidth <= 0.f || State.fScreenHeight <= 0.f)
             return false;
 
@@ -354,10 +562,12 @@ namespace
             return false;
 
         const f32_t fRadius = ResolveIconRadius(Icon.eKind, fPanelSide);
-        const Vec4 vBorder{ 0.015f, 0.018f, 0.022f, 0.94f };
+        const bool_t bChampion =
+            Icon.eKind == UI::eMinimapIconKind::Champion;
+        const Vec4 vBorder = bChampion
+            ? ResolveChampionOutlineColor(Icon)
+            : Vec4{ 0.015f, 0.018f, 0.022f, 0.94f };
         const Vec4 vFill = ResolveIconColor(Icon);
-
-        const bool_t bChampion = Icon.eKind == UI::eMinimapIconKind::Champion;
 
         if (!bChampion)
         {
@@ -380,12 +590,14 @@ namespace
             return false;
         }
 
+        const f32_t outlineThickness = std::clamp(
+            s_MinimapLayout.ChampionOutlineThickness, 0.5f, 8.f);
         pGameInstance->UI_Draw_RawImageCircle(
             nullptr,
-            fCenterX - fRadius - 1.f,
-            fCenterY - fRadius - 1.f,
-            (fRadius + 1.f) * 2.f,
-            (fRadius + 1.f) * 2.f,
+            fCenterX - fRadius - outlineThickness,
+            fCenterY - fRadius - outlineThickness,
+            (fRadius + outlineThickness) * 2.f,
+            (fRadius + outlineThickness) * 2.f,
             kUVFull,
             vBorder,
             28);
@@ -428,6 +640,7 @@ namespace UI
 {
     const MinimapProjection& GetDefaultMinimapProjection()
     {
+        EnsureMinimapLayoutSettingsLoaded();
         return s_RuntimeProjection;
     }
 
@@ -575,62 +788,67 @@ namespace UI
             (void)PrewarmChampionPortrait(static_cast<eChampion>(iChampion));
     }
 
-    bool_t CMinimapPanel::DrawTunerImGui(
+    bool_t CMinimapPanel::SaveTunerSettings()
+    {
+        const bool_t bSaved = SaveMinimapLayoutSettings();
+        s_strMinimapLayoutSaveMessage = bSaved
+            ? "Saved to %LOCALAPPDATA%/Winters/Developer/minimap_layout.ini"
+            : "Save failed";
+        return bSaved;
+    }
+
+    bool_t CMinimapPanel::DrawTunerContentsImGui(
         bool_t bProjectionSyncAvailable,
         MinimapProjection& OutAppliedProjection)
     {
+        EnsureMinimapLayoutSettingsLoaded();
         bool_t bProjectionChanged = false;
         OutAppliedProjection = s_RuntimeProjection;
 
-        ImGui::SetNextWindowSize(ImVec2(380.f, 440.f), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSizeConstraints(
-            ImVec2(340.f, 280.f),
-            ImVec2(560.f, 720.f));
-        if (!ImGui::Begin("Minimap Layout"))
-        {
-            ImGui::End();
-            return false;
-        }
-
         ImGui::PushID("MinimapLayout");
-        ImGui::PushItemWidth(-155.f);
-        ImGui::SliderFloat(
+        DrawLabeledMinimapSlider(
             "Viewport Height Ratio",
             &s_MinimapLayout.ViewportHeightRatio,
             0.18f,
             0.55f,
             "%.2f");
-        ImGui::SliderFloat(
+        DrawLabeledMinimapSlider(
             "Right Padding",
             &s_MinimapLayout.RightPadding,
             0.f,
             64.f,
             "%.0f px");
-        ImGui::SliderFloat(
+        DrawLabeledMinimapSlider(
             "Bottom Padding",
             &s_MinimapLayout.BottomPadding,
             0.f,
             64.f,
             "%.0f px");
-        ImGui::SliderFloat(
+        DrawLabeledMinimapSlider(
             "Icon Scale",
             &s_MinimapLayout.IconScale,
             0.65f,
             2.f,
             "%.2f");
-        ImGui::SliderFloat(
+        DrawLabeledMinimapSlider(
             "Champion Scale",
             &s_MinimapLayout.ChampionScale,
             0.75f,
             3.f,
             "%.2f");
+        DrawLabeledMinimapSlider(
+            "Champion Outline Thickness",
+            &s_MinimapLayout.ChampionOutlineThickness,
+            0.5f,
+            8.f,
+            "%.1f px");
         ImGui::SeparatorText("World Projection (Top / Bottom)");
         ImGui::TextWrapped(
             "S020 uniform basis: one extent moves render, click, camera bounds, and FoW together.");
 
         ImGui::BeginDisabled(!bProjectionSyncAvailable);
         f32_t fEditedExtent = s_fRuntimeProjectionExtent;
-        if (ImGui::SliderFloat(
+        if (DrawLabeledMinimapSlider(
                 "World Extent",
                 &fEditedExtent,
                 kMinProjectionExtent,
@@ -645,9 +863,8 @@ namespace UI
         ImGui::TextDisabled(
             "smaller = outward, larger = inward | revision %u",
             s_iRuntimeProjectionRevision);
-        ImGui::PopItemWidth();
 
-        if (ImGui::Button("Reset S020 Projection"))
+        if (ImGui::Button("Reset Projection"))
         {
             s_fRuntimeProjectionExtent = kCanonicalProjectionExtent;
             ApplyRuntimeMinimapProjection();
@@ -656,16 +873,20 @@ namespace UI
         }
         ImGui::EndDisabled();
         ImGui::SameLine();
-        if (ImGui::Button("Reset Panel / Icons"))
+        if (ImGui::Button("Reset Layout"))
             s_MinimapLayout = {};
+        ImGui::SameLine();
+        if (ImGui::Button("Save"))
+            SaveTunerSettings();
         if (!bProjectionSyncAvailable)
         {
             ImGui::TextColored(
                 ImVec4(1.f, 0.45f, 0.25f, 1.f),
                 "Projection/FoW sync unavailable");
         }
+        if (!s_strMinimapLayoutSaveMessage.empty())
+            ImGui::TextWrapped("%s", s_strMinimapLayoutSaveMessage.c_str());
         ImGui::PopID();
-        ImGui::End();
         return bProjectionChanged;
     }
 

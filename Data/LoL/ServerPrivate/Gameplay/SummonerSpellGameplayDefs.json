@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "buildHash": 276254117,
+  "buildHash": 4237932526,
   "summonerSpells": [
     {
       "key": "summoner.flash",
@@ -8,7 +8,7 @@
       "defId": 1,
       "legacySpellId": 4,
       "rangeMax": 4.25,
-      "cooldownSec": 300.0,
+      "cooldownSec": 20.0,
       "gameplayPolicyId": 0,
       "replicatedCueId": 0
     }

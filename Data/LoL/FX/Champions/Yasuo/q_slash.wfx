@@ -25,7 +25,7 @@
       "thickness": 0.2000,
       "grow_duration": 0.0000,
       "color": [0.9500, 0.9800, 1.0000, 0.9500],
-      "attach_offset": [0.0000, 2.5200, 1.3100],
+      "attach_offset": [0.0000, 2.0400, 1.3100],
       "anchor": {
         "type": "Entity",
         "name": "",

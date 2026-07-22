@@ -4,6 +4,13 @@
 #include "WintersTypes.h"
 #include "RHI/RHIDescriptors.h"
 
+struct WINTERS_ENGINE RHICommandListDiagnostics
+{
+    u64_t emittedResourceBarrierCount = 0;
+    u32_t validationErrorCount = 0;
+    bool_t validationAvailable = false;
+};
+
 class WINTERS_ENGINE IRHICommandList
 {
 public:
@@ -11,6 +18,7 @@ public:
 
     virtual void Begin() = 0;
     virtual void End() = 0;
+    virtual RHICommandListDiagnostics GetDiagnostics() const = 0;
 
     virtual void BeginRenderPass(RHIRenderPassHandle handle) = 0;
     virtual void EndRenderPass() = 0;
@@ -31,8 +39,8 @@ public:
     virtual void Dispatch(u32_t x, u32_t y, u32_t z) = 0;
 
     virtual void UpdateBuffer(RHIBufferHandle handle, const void* pData, u32_t sizeBytes) = 0;
-    virtual void TransitionResource(RHIBufferHandle handle, eRHIResourceState newState) = 0;
-    virtual void TransitionResource(RHITextureHandle handle, eRHIResourceState newState) = 0;
+    virtual bool_t TransitionResource(RHIBufferHandle handle, eRHIResourceState newState) = 0;
+    virtual bool_t TransitionResource(RHITextureHandle handle, eRHIResourceState newState) = 0;
 
     virtual void* GetNativeHandle(eNativeHandleType type) const = 0;
 };

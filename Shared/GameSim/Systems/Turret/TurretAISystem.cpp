@@ -65,6 +65,25 @@ namespace
         const HealthComponent& hp = world.GetComponent<HealthComponent>(entity);
         return hp.bIsDead || hp.fCurrent <= 0.f;
     }
+
+    bool_t IsWithinAttackRange(
+        CWorld& world,
+        const Vec3& turretPos,
+        EntityID target,
+        f32_t attackRange)
+    {
+        if (!std::isfinite(attackRange) ||
+            attackRange < 0.f ||
+            !world.HasComponent<TransformComponent>(target))
+        {
+            return false;
+        }
+
+        const Vec3 targetPos =
+            world.GetComponent<TransformComponent>(target).GetPosition();
+        return WintersMath::DistanceSqXZ(turretPos, targetPos) <=
+            attackRange * attackRange;
+    }
 }
 
 namespace GameplayTurret
@@ -162,7 +181,7 @@ namespace GameplayTurret
 
         world.ForEach<TurretAIComponent, TurretComponent, TransformComponent>(
             std::function<void(EntityID, TurretAIComponent&, TurretComponent&, TransformComponent&)>(
-                [&](EntityID id, TurretAIComponent& ai, TurretComponent& turret, TransformComponent&)
+                [&](EntityID id, TurretAIComponent& ai, TurretComponent& turret, TransformComponent& xf)
                 {
                     if (!ai.bActive)
                         return;
@@ -194,7 +213,12 @@ namespace GameplayTurret
 
                     const u8_t turretTeam = TeamOf(turret.team);
                     if (ai.aggroTargetId != NULL_ENTITY &&
-                        !IsValidTarget(world, ai.aggroTargetId, turretTeam))
+                        (!IsValidTarget(world, ai.aggroTargetId, turretTeam) ||
+                            !IsWithinAttackRange(
+                                world,
+                                xf.GetPosition(),
+                                ai.aggroTargetId,
+                                ai.attackRange)))
                     {
                         ai.aggroTargetId = NULL_ENTITY;
                         ai.aggroLockTimer = 0.f;
@@ -231,6 +255,7 @@ namespace GameplayTurret
             return;
         if (!world.HasComponent<ChampionComponent>(attacker) ||
             !world.HasComponent<ChampionComponent>(victim) ||
+            !world.HasComponent<TransformComponent>(attacker) ||
             !world.HasComponent<TransformComponent>(victim))
         {
             return;
@@ -241,16 +266,25 @@ namespace GameplayTurret
         if (attackerTeam == victimTeam)
             return;
 
-        const Vec3 victimPos = world.GetComponent<TransformComponent>(victim).GetPosition();
-
         world.ForEach<TurretAIComponent, TurretComponent, TransformComponent>(
             std::function<void(EntityID, TurretAIComponent&, TurretComponent&, TransformComponent&)>(
                 [&](EntityID, TurretAIComponent& ai, TurretComponent& turret, TransformComponent& xf)
                 {
                     if (!ai.bActive || TeamOf(turret.team) != victimTeam)
                         return;
-                    if (WintersMath::DistanceSqXZ(xf.GetPosition(), victimPos) > ai.attackRange * ai.attackRange)
+                    if (!IsWithinAttackRange(
+                            world,
+                            xf.GetPosition(),
+                            victim,
+                            ai.attackRange) ||
+                        !IsWithinAttackRange(
+                            world,
+                            xf.GetPosition(),
+                            attacker,
+                            ai.attackRange))
+                    {
                         return;
+                    }
 
                     ai.aggroTargetId = attacker;
                     ai.aggroLockTimer = priorityDuration;
@@ -290,6 +324,9 @@ namespace GameplayTurret
 
             const i32_t priority = TargetPriority(world, candidate);
             if (priority >= 1000)
+                continue;
+
+            if (!IsWithinAttackRange(world, pos, candidate, ai.attackRange))
                 continue;
 
             const Vec3 targetPos = world.GetComponent<TransformComponent>(candidate).GetPosition();

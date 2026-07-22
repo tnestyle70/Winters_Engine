@@ -6,8 +6,14 @@ NS_BEGIN(Client)
 
 struct MatchStatus
 {
-    string  status;     // "queued", "matched"
+    string  status;     // "matched", "none"
     string  matchId;
+    string  gameSessionId;
+    string  host;
+    i32_t   port = 0;
+    string  transport;
+    string  playerTicket;
+    i64_t   expiresAt = 0;
     string  error;
 };
 

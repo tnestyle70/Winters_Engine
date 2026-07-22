@@ -124,6 +124,26 @@ runtime policy promotion.
 schema에 결합된 검증 기록이며 이후 binary/data 변경 때 고정 golden으로
 재사용하지 않는다.
 
+## Utility contribution feature IDs
+
+Each candidate carries at most four additive terms. Their contributions sum to
+the final candidate score within floating-point tolerance, so a replay can show
+which opportunity, risk, clamp, or threshold caused the selected action.
+
+| ID | Name | Meaning |
+|---:|---|---|
+| 1 | `UtilityScore` | Legacy aggregate term retained for V1 compatibility |
+| 2 | `PositiveOpportunity` | Candidate-specific positive base opportunity |
+| 3 | `TurretRisk` | Enemy turret exposure penalty |
+| 4 | `ObservedComboRisk` | Team-observable hostile combo damage penalty |
+| 5 | `ClampOrThresholdAdjustment` | Final clamp, margin, or authoritative score correction |
+| 6 | `HealthPressure` | Health advantage or retreat pressure term |
+| 7 | `FarmOpportunity` | Last-hit and wave-farm opportunity term |
+| 8 | `StructureExposure` | Siege target and allied-wave tanking term |
+
+The numeric IDs are additive within schema V1; POD sizes and wire versions are
+unchanged.
+
 ## Human/debug correction boundary
 
 `AiEpisodeV1` is immutable factual evidence. A human/debug correction must not

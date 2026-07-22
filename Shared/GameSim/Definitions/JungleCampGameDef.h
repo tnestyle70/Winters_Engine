@@ -14,4 +14,5 @@ struct JungleCampGameDef
     f32_t baseMr = 0.f;
     f32_t aggroRange = 0.f;
     f32_t leashRange = 0.f;
+    f32_t respawnDelaySec = 30.f;
 };

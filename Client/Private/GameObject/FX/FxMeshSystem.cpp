@@ -156,20 +156,27 @@ void CFxMeshSystem::Update(CWorld& world, f32_t fTimeDelta)
                 }
 
                 Vec3 vResolvedAnchor{};
+                Mat4 matResolvedAnchorRotation = Mat4::Identity();
+                bool_t bInheritedAnchorRotation = false;
                 if (FxAnchor::TryResolveWorldPosition(
                     world,
                     m.attachTo,
                     m.anchor,
                     m.vAttachOffset,
                     m.vWorldPos,
-                    vResolvedAnchor))
+                    vResolvedAnchor,
+                    &matResolvedAnchorRotation,
+                    &bInheritedAnchorRotation))
                 {
                     m.vWorldPos = vResolvedAnchor;
                     m.bAnchorResolvedLastFrame = true;
+                    m.bInheritAnchorRotation = bInheritedAnchorRotation;
+                    m.matAnchorRotation = matResolvedAnchorRotation;
                 }
                 else
                 {
                     m.bAnchorResolvedLastFrame = false;
+                    m.bInheritAnchorRotation = false;
                     m.vWorldPos.x += m.vVelocity.x * fEffectiveDelta;
                     m.vWorldPos.y += m.vVelocity.y * fEffectiveDelta;
                     m.vWorldPos.z += m.vVelocity.z * fEffectiveDelta;
@@ -219,7 +226,11 @@ void CFxMeshSystem::Render(CWorld& world, const CDynamicCamera* pCamera)
                 //移쇰궇 ?뚯쟾 ?쒗궎湲?
                 const XMMATRIX mRBase = mRX * mRY * mRZ;
                 const XMMATRIX mRSpin = XMMatrixRotationY(m.fWorldYawSpin);
-                const XMMATRIX mWorld = mS * mRBase * mRSpin * mT;
+                const XMMATRIX mRAnchor = m.bInheritAnchorRotation
+                    ? XMLoadFloat4x4(reinterpret_cast<const XMFLOAT4X4*>(
+                        &m.matAnchorRotation.m))
+                    : XMMatrixIdentity();
+                const XMMATRIX mWorld = mS * mRBase * mRSpin * mRAnchor * mT;
 
                 Mat4 world;
                 XMStoreFloat4x4(reinterpret_cast<XMFLOAT4X4*>(&world.m), mWorld);

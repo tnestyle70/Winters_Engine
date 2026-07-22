@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "buildHash": 276254117,
+  "schemaVersion": 2,
+  "buildHash": 3200529822,
   "champions": [
     {
       "key": "champion.annie",
@@ -8,6 +8,7 @@
       "defId": 1,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Mana",
         "baseHp": 560.0,
         "hpPerLevel": 102.0,
         "baseMana": 418.0,
@@ -23,11 +24,13 @@
         "baseAttackSpeed": 0.625,
         "attackSpeedRatio": 0.625,
         "attackSpeedPerLevel": 0.02,
+        "basicAttackWindupSec": 0.25,
         "baseAttackRange": 6.25,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         1,
@@ -43,6 +46,7 @@
       "defId": 2,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Mana",
         "baseHp": 610.0,
         "hpPerLevel": 101.0,
         "baseMana": 280.0,
@@ -58,11 +62,13 @@
         "baseAttackSpeed": 0.658,
         "attackSpeedRatio": 0.658,
         "attackSpeedPerLevel": 0.0333,
+        "basicAttackWindupSec": 0.208333,
         "baseAttackRange": 6.0,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         6,
@@ -78,6 +84,7 @@
       "defId": 3,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Mana",
         "baseHp": 600.0,
         "hpPerLevel": 102.0,
         "baseMana": 375.0,
@@ -93,11 +100,13 @@
         "baseAttackSpeed": 0.625,
         "attackSpeedRatio": 0.625,
         "attackSpeedPerLevel": 0.025,
+        "basicAttackWindupSec": 0.25,
         "baseAttackRange": 5.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         11,
@@ -113,6 +122,7 @@
       "defId": 4,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Mana",
         "baseHp": 620.0,
         "hpPerLevel": 99.0,
         "baseMana": 300.0,
@@ -128,11 +138,13 @@
         "baseAttackSpeed": 0.69,
         "attackSpeedRatio": 0.69,
         "attackSpeedPerLevel": 0.032,
+        "basicAttackWindupSec": 0.25,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         16,
@@ -148,10 +160,11 @@
       "defId": 5,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "None",
         "baseHp": 690.0,
         "hpPerLevel": 98.0,
-        "baseMana": 300.0,
-        "manaPerLevel": 50.0,
+        "baseMana": 0.0,
+        "manaPerLevel": 0.0,
         "baseAd": 69.0,
         "adPerLevel": 4.5,
         "baseAp": 0.0,
@@ -163,11 +176,13 @@
         "baseAttackSpeed": 0.625,
         "attackSpeedRatio": 0.625,
         "attackSpeedPerLevel": 0.034,
+        "basicAttackWindupSec": 0.25,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 0.0
       },
       "skillLoadout": [
         21,
@@ -183,26 +198,29 @@
       "defId": 6,
       "dataVersion": 1,
       "stats": {
-        "baseHp": 590.0,
-        "hpPerLevel": 124.0,
+        "resourceKind": "Mana",
+        "baseHp": 630.0,
+        "hpPerLevel": 115.0,
         "baseMana": 350.0,
         "manaPerLevel": 50.0,
-        "baseAd": 65.0,
-        "adPerLevel": 3.5,
+        "baseAd": 85.0,
+        "adPerLevel": 10.5,
         "baseAp": 0.0,
         "apPerLevel": 0.0,
         "baseArmor": 36.0,
         "armorPerLevel": 4.7,
-        "baseMr": 32.0,
+        "baseMr": 30.0,
         "mrPerLevel": 2.05,
         "baseAttackSpeed": 0.656,
         "attackSpeedRatio": 0.656,
         "attackSpeedPerLevel": 0.025,
+        "basicAttackWindupSec": 0.2,
         "baseAttackRange": 2.1,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         26,
@@ -218,6 +236,7 @@
       "defId": 7,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Mana",
         "baseHp": 665.0,
         "hpPerLevel": 103.0,
         "baseMana": 300.0,
@@ -233,11 +252,13 @@
         "baseAttackSpeed": 0.638,
         "attackSpeedRatio": 0.638,
         "attackSpeedPerLevel": 0.034,
+        "basicAttackWindupSec": 0.25,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         31,
@@ -253,6 +274,7 @@
       "defId": 8,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Mana",
         "baseHp": 574.0,
         "hpPerLevel": 114.0,
         "baseMana": 300.0,
@@ -268,11 +290,13 @@
         "baseAttackSpeed": 0.694,
         "attackSpeedRatio": 0.694,
         "attackSpeedPerLevel": 0.045,
+        "basicAttackWindupSec": 0.25,
         "baseAttackRange": 5.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         36,
@@ -293,6 +317,7 @@
       "defId": 9,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Mana",
         "baseHp": 610.0,
         "hpPerLevel": 99.0,
         "baseMana": 300.0,
@@ -308,11 +333,13 @@
         "baseAttackSpeed": 0.625,
         "attackSpeedRatio": 0.625,
         "attackSpeedPerLevel": 0.034,
+        "basicAttackWindupSec": 0.166667,
         "baseAttackRange": 5.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         41,
@@ -328,12 +355,13 @@
       "defId": 10,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Energy",
         "baseHp": 645.0,
         "hpPerLevel": 108.0,
-        "baseMana": 300.0,
-        "manaPerLevel": 50.0,
-        "baseAd": 66.0,
-        "adPerLevel": 3.7,
+        "baseMana": 200.0,
+        "manaPerLevel": 0.0,
+        "baseAd": 85.0,
+        "adPerLevel": 8.699999809265137,
         "baseAp": 0.0,
         "apPerLevel": 0.0,
         "baseArmor": 34.0,
@@ -343,11 +371,13 @@
         "baseAttackSpeed": 0.651,
         "attackSpeedRatio": 0.651,
         "attackSpeedPerLevel": 0.03,
+        "basicAttackWindupSec": 0.166667,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 10.0
       },
       "skillLoadout": [
         46,
@@ -363,6 +393,7 @@
       "defId": 11,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Mana",
         "baseHp": 669.0,
         "hpPerLevel": 105.0,
         "baseMana": 300.0,
@@ -378,11 +409,13 @@
         "baseAttackSpeed": 0.679,
         "attackSpeedRatio": 0.679,
         "attackSpeedPerLevel": 0.025,
+        "basicAttackWindupSec": 0.166667,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         51,
@@ -398,10 +431,11 @@
       "defId": 12,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "None",
         "baseHp": 630.0,
         "hpPerLevel": 100.0,
-        "baseMana": 300.0,
-        "manaPerLevel": 50.0,
+        "baseMana": 0.0,
+        "manaPerLevel": 0.0,
         "baseAd": 64.0,
         "adPerLevel": 3.0,
         "baseAp": 0.0,
@@ -413,11 +447,13 @@
         "baseAttackSpeed": 0.625,
         "attackSpeedRatio": 0.625,
         "attackSpeedPerLevel": 0.034,
+        "basicAttackWindupSec": 0.25,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 0.0
       },
       "skillLoadout": [
         56,
@@ -433,6 +469,7 @@
       "defId": 13,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Mana",
         "baseHp": 600.0,
         "hpPerLevel": 115.0,
         "baseMana": 400.0,
@@ -448,11 +485,13 @@
         "baseAttackSpeed": 0.645,
         "attackSpeedRatio": 0.645,
         "attackSpeedPerLevel": 0.034,
+        "basicAttackWindupSec": 0.166667,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 3.0
       },
       "skillLoadout": [
         61,
@@ -468,12 +507,13 @@
       "defId": 14,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "None",
         "baseHp": 630.0,
         "hpPerLevel": 109.0,
-        "baseMana": 300.0,
-        "manaPerLevel": 50.0,
-        "baseAd": 57.0,
-        "adPerLevel": 3.0,
+        "baseMana": 0.0,
+        "manaPerLevel": 0.0,
+        "baseAd": 97.0,
+        "adPerLevel": 13.5,
         "baseAp": 0.0,
         "apPerLevel": 0.0,
         "baseArmor": 34.0,
@@ -482,12 +522,14 @@
         "mrPerLevel": 2.05,
         "baseAttackSpeed": 0.658,
         "attackSpeedRatio": 0.658,
-        "attackSpeedPerLevel": 0.025,
+        "attackSpeedPerLevel": 0.0275,
+        "basicAttackWindupSec": 0.25,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 0.0
       },
       "skillLoadout": [
         66,
@@ -507,12 +549,13 @@
       "defId": 15,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Flow",
         "baseHp": 590.0,
         "hpPerLevel": 110.0,
-        "baseMana": 300.0,
-        "manaPerLevel": 50.0,
-        "baseAd": 60.0,
-        "adPerLevel": 3.0,
+        "baseMana": 0.0,
+        "manaPerLevel": 0.0,
+        "baseAd": 80.0,
+        "adPerLevel": 10.0,
         "baseAp": 0.0,
         "apPerLevel": 0.0,
         "baseArmor": 30.0,
@@ -522,11 +565,13 @@
         "baseAttackSpeed": 0.697,
         "attackSpeedRatio": 0.697,
         "attackSpeedPerLevel": 0.033,
+        "basicAttackWindupSec": 0.175,
         "baseAttackRange": 2.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 0.0
       },
       "skillLoadout": [
         71,
@@ -542,10 +587,11 @@
       "defId": 16,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "None",
         "baseHp": 620.0,
         "hpPerLevel": 105.0,
-        "baseMana": 300.0,
-        "manaPerLevel": 50.0,
+        "baseMana": 0.0,
+        "manaPerLevel": 0.0,
         "baseAd": 60.0,
         "adPerLevel": 2.0,
         "baseAp": 0.0,
@@ -557,11 +603,13 @@
         "baseAttackSpeed": 0.625,
         "attackSpeedRatio": 0.625,
         "attackSpeedPerLevel": 0.025,
+        "basicAttackWindupSec": 0.245098,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 0.0
       },
       "skillLoadout": [
         76,
@@ -577,10 +625,11 @@
       "defId": 17,
       "dataVersion": 1,
       "stats": {
+        "resourceKind": "Energy",
         "baseHp": 654.0,
         "hpPerLevel": 99.0,
-        "baseMana": 300.0,
-        "manaPerLevel": 50.0,
+        "baseMana": 200.0,
+        "manaPerLevel": 0.0,
         "baseAd": 63.0,
         "adPerLevel": 3.4,
         "baseAp": 0.0,
@@ -592,11 +641,13 @@
         "baseAttackSpeed": 0.651,
         "attackSpeedRatio": 0.651,
         "attackSpeedPerLevel": 0.033,
+        "basicAttackWindupSec": 0.25,
         "baseAttackRange": 1.5,
         "baseMoveSpeed": 5.0,
         "navArriveRadius": 0.15,
         "spatialRadius": 0.75,
-        "sightRange": 19.0
+        "sightRange": 19.0,
+        "resourceRegenPerSec": 10.0
       },
       "skillLoadout": [
         81,

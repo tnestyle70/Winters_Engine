@@ -10,12 +10,13 @@ Tools/Harness/Run-S17RhiValidation.ps1
 
 - `git diff --check`
 - `Client/Public`, `Shared`, 신규 공용 RHI renderer/resource public header의 DX11/DX12 concrete 노출 audit
-- CMake/Ninja: `WintersEngine`, `WintersElden`, `WintersEldenRingEditor`
+- CMake/Ninja: `WintersEngine`, `WintersElden`, `WintersEldenRingEditor`, `WintersLoLEditor`
 - MSBuild: `Winters.sln` Debug x64
 - runtime smoke:
   - `WintersElden.exe --scene=probe`
   - `WintersElden.exe --scene=probe --rhi=dx11`
   - `WintersEldenRingEditor.exe`
+  - `WintersLoLEditor.exe`
   - `WintersGame.exe`
 
 ## 빠른 문서/규칙 변경

@@ -6,9 +6,10 @@
 #include "Shared/GameSim/Components/RecallComponent.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/KindredSimComponent.h"
+#include "Shared/GameSim/Components/ShieldComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
-#include "Shared/GameSim/Registries/SkillScaling/SkillScalingRegistry.h"
+#include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/Shield/ShieldSystem.h"
@@ -24,14 +25,6 @@
 
 namespace
 {
-    f32_t GetRankedValue(const f32_t values[SkillScalingTable::kMaxRank], u8_t rank)
-    {
-        const u8_t clampedRank = (rank == 0)
-            ? 1
-            : ((rank > SkillScalingTable::kMaxRank) ? SkillScalingTable::kMaxRank : rank);
-        return values[clampedRank - 1];
-    }
-
     bool_t TryGetTeam(CWorld& world, EntityID entity, eTeam& outTeam)
     {
         if (world.HasComponent<ChampionComponent>(entity))
@@ -138,16 +131,11 @@ namespace
 
     u32_t ResolveDamageFlags(const DamageRequest& req)
     {
-        u32_t flags = req.flags;
-        if (const SkillScalingTable* table = CSkillScalingRegistry::Instance().FindBySkillId(req.skillId))
-            flags |= table->flags;
-        return flags;
+        return req.flags;
     }
 
     eDamageType ResolveDamageType(const DamageRequest& req)
     {
-        if (const SkillScalingTable* table = CSkillScalingRegistry::Instance().FindBySkillId(req.skillId))
-            return table->damageType;
         return req.type;
     }
 
@@ -160,25 +148,30 @@ namespace
         bool_t& outCrit)
     {
         outCrit = false;
-        if ((flags & DamageFlag_CanCrit) == 0u)
+        const bool_t bForceCrit = (flags & DamageFlag_ForceCrit) != 0u;
+        if (!bForceCrit && (flags & DamageFlag_CanCrit) == 0u)
             return amount;
         if (req.source == NULL_ENTITY || !world.HasComponent<StatComponent>(req.source))
             return amount;
 
         const auto& sourceStat = world.GetComponent<StatComponent>(req.source);
-        const f32_t chance = std::clamp(sourceStat.critChance, 0.f, 1.f);
-        if (chance <= 0.f)
-            return amount;
-
-        bool_t bCrit = false;
-        if (tc.pRng)
-            bCrit = tc.pRng->RollChance(chance);
-
-        if (!bCrit)
-            return amount;
+        if (!bForceCrit)
+        {
+            const f32_t chance = std::clamp(sourceStat.critChance, 0.f, 1.f);
+            if (chance <= 0.f || !tc.pRng || !tc.pRng->RollChance(chance))
+                return amount;
+        }
 
         outCrit = true;
-        return amount * std::max(1.f, sourceStat.critDamage);
+        const f32_t multiplier = req.critDamageMultiplierOverride > 0.f
+            ? req.critDamageMultiplierOverride
+            : sourceStat.critDamage;
+        if (bForceCrit && req.critEligibleAmountOverride > 0.f)
+        {
+            const f32_t eligible = std::min(amount, req.critEligibleAmountOverride);
+            return amount + eligible * (std::max(1.f, multiplier) - 1.f);
+        }
+        return amount * std::max(1.f, multiplier);
     }
 
     f32_t ApplyTypedResistance(
@@ -256,10 +249,12 @@ namespace
     void TryActivateYasuoPassiveShield(
         CWorld& world,
         const TickContext& tc,
+        EntityID source,
         EntityID target,
         f32_t incomingDamage)
     {
         if (incomingDamage <= 0.f ||
+            !YasuoGameSim::CanTriggerPassiveShieldFromSource(world, source) ||
             target == NULL_ENTITY ||
             !world.HasComponent<ChampionComponent>(target) ||
             !world.HasComponent<YasuoStateComponent>(target))
@@ -280,11 +275,13 @@ namespace
         }
 
         constexpr f32_t kPassiveShieldDurationSec = 3.f;
+        state.fPassiveShieldMax =
+            YasuoGameSim::ResolvePassiveShieldAmount(champion.level);
         if (CShieldSystem::Grant(
                 world,
                 tc,
                 target,
-                state.fPassiveFlowMax,
+                state.fPassiveShieldMax,
                 kPassiveShieldDurationSec))
         {
             state.fPassiveFlow = 0.f;
@@ -294,29 +291,12 @@ namespace
 
 f32_t BuildRawDamage(CWorld& world, const DamageRequest& req)
 {
-    const bool_t bHasExplicitFlat = (req.flatAmount != 0.f || req.amount != 0.f);
     f32_t flat = (req.flatAmount != 0.f) ? req.flatAmount : req.amount;
     f32_t totalAdRatio = req.adRatioOverride;
     f32_t bonusAdRatio = req.bonusAdRatioOverride;
     f32_t apRatio = req.apRatioOverride;
     f32_t targetMaxHpRatio = req.targetMaxHpRatioOverride;
     f32_t targetMissingHpRatio = req.targetMissingHpRatioOverride;
-
-    if (const SkillScalingTable* table = CSkillScalingRegistry::Instance().FindBySkillId(req.skillId))
-    {
-        if (!bHasExplicitFlat)
-            flat += GetRankedValue(table->damage, req.rank);
-        if (totalAdRatio == 0.f)
-            totalAdRatio = GetRankedValue(table->adRatio, req.rank);
-        if (bonusAdRatio == 0.f)
-            bonusAdRatio = GetRankedValue(table->bonusAdRatio, req.rank);
-        if (apRatio == 0.f)
-            apRatio = GetRankedValue(table->apRatio, req.rank);
-        if (targetMaxHpRatio == 0.f)
-            targetMaxHpRatio = GetRankedValue(table->targetMaxHpRatio, req.rank);
-        if (targetMissingHpRatio == 0.f)
-            targetMissingHpRatio = GetRankedValue(table->targetMissingHpRatio, req.rank);
-    }
 
     if (req.source != NULL_ENTITY && world.HasComponent<StatComponent>(req.source))
     {
@@ -334,6 +314,120 @@ f32_t BuildRawDamage(CWorld& world, const DamageRequest& req)
 f32_t ApplyResistance(f32_t amount, f32_t resistance)
 {
     return CCombatFormula::ApplyResistance(amount, resistance);
+}
+
+f32_t ResolvePostMitigationDamageAmount(
+    CWorld& world,
+    const DamageRequest& req,
+    f32_t rawAmount,
+    bool_t bWasCrit)
+{
+    f32_t amount = std::max(0.f, rawAmount);
+    if (bWasCrit &&
+        req.source != NULL_ENTITY &&
+        world.HasComponent<StatComponent>(req.source))
+    {
+        const StatComponent& sourceStat =
+            world.GetComponent<StatComponent>(req.source);
+        const f32_t multiplier = req.critDamageMultiplierOverride > 0.f
+            ? req.critDamageMultiplierOverride
+            : sourceStat.critDamage;
+        if ((req.flags & DamageFlag_ForceCrit) != 0u &&
+            req.critEligibleAmountOverride > 0.f)
+        {
+            const f32_t eligible = std::min(
+                amount,
+                req.critEligibleAmountOverride);
+            amount += eligible * (std::max(1.f, multiplier) - 1.f);
+        }
+        else
+        {
+            amount *= std::max(1.f, multiplier);
+        }
+    }
+
+    return ApplyTypedResistance(world, req, ResolveDamageType(req), amount);
+}
+
+bool_t WouldNonCriticalDamageRequestKill(
+    CWorld& world,
+    const TickContext& tc,
+    const DamageRequest& req)
+{
+    if ((req.flags & DamageFlag_CanCrit) != 0u ||
+        req.target == NULL_ENTITY ||
+        req.target == req.source ||
+        !world.IsAlive(req.target) ||
+        !world.HasComponent<HealthComponent>(req.target) ||
+        world.HasComponent<ViegoSoulComponent>(req.target))
+    {
+        return false;
+    }
+
+    const HealthComponent& hp = world.GetComponent<HealthComponent>(req.target);
+    if (hp.bIsDead || hp.fCurrent <= 0.f ||
+        !GameplayStateQuery::CanReceiveDamage(world, req.source, req.target))
+    {
+        return false;
+    }
+
+    eTeam targetTeam = eTeam::Neutral;
+    if (TryGetTeam(world, req.target, targetTeam) &&
+        targetTeam == req.sourceTeam &&
+        targetTeam != eTeam::Neutral)
+    {
+        return false;
+    }
+
+    f32_t amount = ApplyTypedResistance(
+        world,
+        req,
+        ResolveDamageType(req),
+        BuildRawDamage(world, req));
+
+    bool_t bYasuoShieldWillActivate = false;
+    f32_t genericShield = 0.f;
+    if (world.HasComponent<ChampionComponent>(req.target) &&
+        world.HasComponent<YasuoStateComponent>(req.target) &&
+        world.GetComponent<ChampionComponent>(req.target).id == eChampion::YASUO)
+    {
+        const YasuoStateComponent& state =
+            world.GetComponent<YasuoStateComponent>(req.target);
+        bYasuoShieldWillActivate =
+            amount > 0.f &&
+            YasuoGameSim::CanTriggerPassiveShieldFromSource(world, req.source) &&
+            state.fPassiveShieldRemaining <= 0.f &&
+            state.fPassiveFlowMax > 0.f &&
+            state.fPassiveFlow >= state.fPassiveFlowMax;
+        if (bYasuoShieldWillActivate)
+            genericShield = YasuoGameSim::ResolvePassiveShieldAmount(
+                world.GetComponent<ChampionComponent>(req.target).level);
+    }
+    if (!bYasuoShieldWillActivate &&
+        world.HasComponent<ShieldComponent>(req.target))
+    {
+        const ShieldComponent& shield = world.GetComponent<ShieldComponent>(req.target);
+        if (tc.tickIndex < shield.uExpireTick)
+            genericShield = std::max(0.f, shield.fCurrent);
+    }
+    amount = std::max(0.f, amount - genericShield);
+
+    if (world.HasComponent<AnnieSimComponent>(req.target))
+    {
+        const AnnieSimComponent& annie =
+            world.GetComponent<AnnieSimComponent>(req.target);
+        if (annie.fEShieldRemainingSec > 0.f)
+        {
+            amount = std::max(
+                0.f,
+                amount - std::max(0.f, annie.fEShieldAmount));
+        }
+    }
+
+    if (ResolveActiveHealthFloor(world, req.target, hp.fMaximum) > 0.f)
+        return false;
+
+    return amount >= hp.fCurrent;
 }
 
 DamageResult ApplyDamageRequest(CWorld& world, const TickContext& tc, const DamageRequest& req)
@@ -360,13 +454,15 @@ DamageResult ApplyDamageRequest(CWorld& world, const TickContext& tc, const Dama
         return result;
     }
 
+    result.bApplied = true;
+
     const u32_t flags = ResolveDamageFlags(req);
     const eDamageType damageType = ResolveDamageType(req);
 
     f32_t amount = BuildRawDamage(world, req);
     amount = ApplyCritIfNeeded(world, tc, req, flags, amount, result.bWasCrit);
     amount = ApplyTypedResistance(world, req, damageType, amount);
-    TryActivateYasuoPassiveShield(world, tc, req.target, amount);
+    TryActivateYasuoPassiveShield(world, tc, req.source, req.target, amount);
     amount = CShieldSystem::Absorb(
         world, tc, req.target, amount, result.bWasShielded);
     amount = ApplyAnnieEShield(world, req.target, amount, result.bWasShielded);
@@ -410,6 +506,29 @@ DamageResult ApplyDamageRequest(CWorld& world, const TickContext& tc, const Dama
     }
 
     return result;
+}
+
+bool_t PromoteDamageResultToExecution(
+    CWorld& world,
+    EntityID target,
+    DamageResult& result)
+{
+    if (!result.bApplied || result.bKilled || target == NULL_ENTITY ||
+        !world.IsAlive(target) || !world.HasComponent<HealthComponent>(target))
+    {
+        return false;
+    }
+
+    auto& hp = world.GetComponent<HealthComponent>(target);
+    if (hp.bIsDead || hp.fCurrent <= 0.f)
+        return false;
+
+    result.finalAmount += hp.fCurrent;
+    hp.fCurrent = 0.f;
+    hp.bIsDead = true;
+    result.bKilled = true;
+    MirrorHealth(world, target, hp.fCurrent, hp.fMaximum);
+    return true;
 }
 
 void EnqueueDamageRequest(CWorld& world, const DamageRequest& req)

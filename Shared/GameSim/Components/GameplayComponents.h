@@ -198,9 +198,19 @@ struct JungleMonsterTag { u8_t reserved = 0u; };
 struct NexusTag { u8_t reserved = 0u; };
 struct InhibitorTag { u8_t reserved = 0u; };
 
+struct InhibitorRespawnComponent
+{
+    f32_t fRespawnDelaySec = 300.f;
+    f32_t fRespawnTimerSec = 0.f;
+    bool_t bRespawnPending = false;
+    u8_t reserved[3]{};
+};
+
 static_assert(sizeof(JungleMonsterTag) == 1u);
 static_assert(sizeof(NexusTag) == 1u);
 static_assert(sizeof(InhibitorTag) == 1u);
+static_assert(sizeof(InhibitorRespawnComponent) == 12u);
+static_assert(std::is_trivially_copyable_v<InhibitorRespawnComponent>);
 
 // ─────────────────────────────────────────────────────────────
 // 맵 오브젝트 일반 메타 — 에디터 Inspector / Save·Load 재사용
@@ -222,7 +232,7 @@ struct ServerIdComponent
     uint32_t serverEntityId = 0;
 };
 
-//Yasuo의 고유 상태 Q Conditional 분기 + 3타 회오리 카운팅
+// Yasuo Q variant state and third-cast tornado counter.
 struct YasuoStateComponent
 {
     uint8_t qStackCount = 0;
@@ -232,16 +242,23 @@ struct YasuoStateComponent
     u8_t reservedEActiveAlignment[3]{};
     f32_t eActiveTimer = 0.f;
 
-    f32_t fPassiveFlow = 100.f;
+    f32_t fPassiveFlow = 0.f;
     f32_t fPassiveFlowMax = 100.f;
     f32_t fPassiveShieldRemaining = 0.f;
-    f32_t fPassiveShieldMax = 100.f;
+    f32_t fPassiveShieldMax = 125.f;
     f32_t fPassiveShieldTimer = 0.f;
+    f32_t fPassiveLastX = 0.f;
+    f32_t fPassiveLastZ = 0.f;
+    bool_t bPassivePositionInitialized = false;
+    u8_t reservedPassivePositionAlignment[3]{};
+    u64_t uPassiveLastObservedDiscontinuityTick = 0u;
 };
 
-static_assert(sizeof(YasuoStateComponent) == 36u);
+static_assert(sizeof(YasuoStateComponent) == 56u);
 static_assert(offsetof(YasuoStateComponent, qStackTimer) == 4u);
 static_assert(offsetof(YasuoStateComponent, eActiveTimer) == 12u);
+static_assert(offsetof(YasuoStateComponent, fPassiveLastX) == 36u);
+static_assert(offsetof(YasuoStateComponent, uPassiveLastObservedDiscontinuityTick) == 48u);
 
 //RivenStateComponent - ECS
 struct RivenStateComponent
@@ -296,6 +313,47 @@ struct JungleComponent
     uint32_t campId = 0;
     f32_t    hp = 1000.f;
     f32_t    maxHp = 1000.f;
+    Vec3     vSpawnPosition{};
+    f32_t    fRespawnDelaySec = 30.f;
+    f32_t    fRespawnTimerSec = 0.f;
+    bool_t   bRespawnPending = false;
+    u8_t     reserved[3]{};
+};
+
+enum class eObjectiveBuffKind : u8_t
+{
+    Baron = 0,
+    Elder = 1,
+    Blue = 2,
+    Red = 3,
+    Count = 4,
+};
+
+struct ObjectiveBuffComponent
+{
+    u64_t expireTicks[static_cast<u8_t>(eObjectiveBuffKind::Count)]{};
+};
+
+struct ObjectiveBurnState
+{
+    EntityID source = NULL_ENTITY;
+    u64_t expireTick = 0u;
+    u64_t nextTick = 0u;
+};
+
+struct ObjectiveBurnComponent
+{
+    ObjectiveBurnState elder{};
+    ObjectiveBurnState red{};
+};
+
+struct BaronEmpoweredMinionComponent
+{
+    f32_t baseMaxHp = 0.f;
+    f32_t baseAttackDamage = 0.f;
+    f32_t hpMultiplier = 1.f;
+    f32_t attackDamageMultiplier = 1.f;
+    f32_t scaleMultiplier = 1.f;
 };
 
 struct MinionStateComponent
@@ -469,6 +527,7 @@ enum class eStatusEffectId : uint16_t
     ZedDeathMark = 9,
     GenericAirborne = 10,
     KalistaOathswornRitual = 11,
+    ZhonyaStasis = 12,
 };
 
 enum class eStatusStackPolicy : uint8_t
@@ -489,6 +548,8 @@ inline constexpr u32_t kGameplayStateCannotAttackFlag = 1u << 6;
 inline constexpr u32_t kGameplayStateCannotCastFlag = 1u << 7;
 inline constexpr u32_t kGameplayStateAirborneFlag = 1u << 8;
 inline constexpr u32_t kGameplayStateDodgesBasicAttacksFlag = 1u << 9;
+inline constexpr u32_t kGameplayStateInvulnerableFlag = 1u << 10;
+inline constexpr u32_t kGameplayStateStasisVisualFlag = 1u << 11;
 
 inline constexpr u8_t kMaxStatusEffectInstances = 16;
 

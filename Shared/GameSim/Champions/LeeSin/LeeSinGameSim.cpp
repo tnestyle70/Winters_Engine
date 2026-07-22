@@ -8,6 +8,7 @@
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Definitions/WardDefinitions.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
+#include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
@@ -112,6 +113,8 @@ namespace
         request.skillId = static_cast<u16_t>((static_cast<u32_t>(eChampion::LEESIN) << 8) | slot);
         request.rank = rank;
         request.flags = DamageFlag_OnHit;
+        request.iSourceSlot = slot;
+        request.eSourceKind = eDamageSourceKind::Skill;
         EnqueueDamageRequest(world, request);
     }
 
@@ -120,7 +123,8 @@ namespace
         EntityID caster,
         EntityID target,
         f32_t gap,
-        f32_t durationSec)
+        f32_t durationSec,
+        bool_t bIgnoreTerrainDuringTransit = false)
     {
         if (!world.HasComponent<TransformComponent>(caster) ||
             target == NULL_ENTITY ||
@@ -149,6 +153,7 @@ namespace
             start.z + dir.z * moveDist
         };
         dash.fDurationSec = durationSec;
+        dash.bIgnoreTerrainDuringTransit = bIgnoreTerrainDuringTransit;
 
         if (world.HasComponent<LeeSinDashComponent>(caster))
             world.GetComponent<LeeSinDashComponent>(caster) = dash;
@@ -223,10 +228,10 @@ namespace
             return;
         }
 
-        const f32_t q2Damage = ResolveLeeSinSkillEffectParam(
-            ctx,
-            eSkillSlot::Q,
-            eSkillEffectParamId::BaseDamage);
+        const f32_t q2Damage = GameplayDefinitionQuery::ResolveSkillEffectParamRanked(
+            *ctx.pWorld, ctx.casterEntity, *ctx.pTickCtx, eChampion::LEESIN,
+            static_cast<u8_t>(eSkillSlot::Q), ctx.skillRank,
+            eSkillEffectParamId::BaseDamage, 95.f);
         const f32_t qDashGap = ResolveLeeSinSkillEffectParam(
             ctx,
             eSkillSlot::Q,
@@ -236,7 +241,13 @@ namespace
             eSkillSlot::Q,
             eSkillEffectParamId::DashDurationSec);
 
-        StartTargetDash(*ctx.pWorld, ctx.casterEntity, target, qDashGap, qDashDurationSec);
+        StartTargetDash(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            target,
+            qDashGap,
+            qDashDurationSec,
+            true);
         EnqueuePhysicalDamage(
             *ctx.pWorld,
             ctx.casterEntity,
@@ -301,62 +312,154 @@ namespace
             << " shield=" << shieldAmount << "\n";
     }
 
-    void ApplyTempestCrippleSlow(CWorld& world, const TickContext& tc, EntityID caster)
+    void OnE(GameplayHookContext& ctx)
     {
-        if (!world.HasComponent<TransformComponent>(caster))
+        if (!ctx.pWorld || !ctx.pTickCtx || !ctx.pCommand)
             return;
 
-        const Vec3 origin = world.GetComponent<TransformComponent>(caster).GetPosition();
-        const f32_t radius = ResolveLeeSinSkillEffectParam(
-            world,
-            tc,
-            caster,
-            eSkillSlot::E,
-            eSkillEffectParamId::Radius);
+        CWorld& world = *ctx.pWorld;
+        const TickContext& tc = *ctx.pTickCtx;
+        if (ctx.pCommand->itemId != 2u)
+        {
+            if (!world.HasComponent<TransformComponent>(ctx.casterEntity))
+                return;
+
+            const Vec3 origin =
+                world.GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
+            const f32_t radius = ResolveLeeSinSkillEffectParam(
+                ctx,
+                eSkillSlot::E,
+                eSkillEffectParamId::Radius);
+            const f32_t resolvedStageWindowSec =
+                GameplayDefinitionQuery::ResolveSkillStageWindowSec(
+                    world,
+                    ctx.casterEntity,
+                    tc,
+                    eChampion::LEESIN,
+                    static_cast<u8_t>(eSkillSlot::E));
+            const f32_t stageWindowSec =
+                resolvedStageWindowSec > 0.f ? resolvedStageWindowSec : 3.f;
+            const std::vector<EntityID> targets =
+                GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
+                    world,
+                    ctx.casterEntity,
+                    origin,
+                    radius);
+            for (EntityID target : targets)
+            {
+                EnqueuePhysicalDamage(
+                    world,
+                    ctx.casterEntity,
+                    target,
+                    ctx.casterTeam,
+                    0.f,
+                    static_cast<u8_t>(eSkillSlot::E),
+                    ctx.skillRank);
+                LeeSinTempestMarkComponent mark{};
+                mark.sourceEntity = ctx.casterEntity;
+                mark.fRemainingSec = stageWindowSec;
+                if (world.HasComponent<LeeSinTempestMarkComponent>(target))
+                    world.GetComponent<LeeSinTempestMarkComponent>(target) = mark;
+                else
+                    world.AddComponent<LeeSinTempestMarkComponent>(target, mark);
+            }
+
+            std::cout << "[LeeSinSim] E1 tempest caster="
+                << ctx.casterEntity << " targets=" << targets.size() << "\n";
+            return;
+        }
+
         const f32_t slowDurationSec = ResolveLeeSinSkillEffectParam(
-            world,
-            tc,
-            caster,
+            ctx,
             eSkillSlot::E,
             eSkillEffectParamId::SlowDurationSec);
         const f32_t slowMoveSpeedMul = ResolveLeeSinSkillEffectParam(
-            world,
-            tc,
-            caster,
+            ctx,
             eSkillSlot::E,
             eSkillEffectParamId::MoveSpeedMul);
-        const std::vector<EntityID> targets =
-            GameplayStateQuery::CollectEnemyMobileUnitsInCircle(
-                world,
-                caster,
-                origin,
-                radius);
-        for (EntityID target : targets)
+        const std::vector<EntityID> markedTargets =
+            DeterministicEntityIterator<LeeSinTempestMarkComponent>::CollectSorted(world);
+        u32_t slowedCount = 0u;
+        for (EntityID target : markedTargets)
         {
+            const LeeSinTempestMarkComponent& mark =
+                world.GetComponent<LeeSinTempestMarkComponent>(target);
+            if (mark.sourceEntity != ctx.casterEntity ||
+                mark.fRemainingSec <= 0.f ||
+                !GameplayStateQuery::CanReceiveCrowdControl(
+                    world,
+                    ctx.casterEntity,
+                    target))
+            {
+                continue;
+            }
+
             GameplayStatus::ApplySlow(
                 world,
                 tc,
                 target,
-                caster,
+                ctx.casterEntity,
                 eChampion::LEESIN,
                 eSkillSlot::E,
                 slowDurationSec,
                 slowMoveSpeedMul);
+            world.RemoveComponent<LeeSinTempestMarkComponent>(target);
+            ++slowedCount;
         }
+
+        std::cout << "[LeeSinSim] E2 cripple caster="
+            << ctx.casterEntity << " targets=" << slowedCount << "\n";
     }
 
-    void OnE(GameplayHookContext& ctx)
+    Vec3 ResolveDragonRageLanding(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target)
     {
-        if (!ctx.pWorld || !ctx.pTickCtx)
-            return;
+        const Vec3 casterPos =
+            world.GetComponent<TransformComponent>(caster).GetPosition();
+        const Vec3 targetPos =
+            world.GetComponent<TransformComponent>(target).GetPosition();
+        const Vec3 direction = WintersMath::NormalizeXZ(
+            Vec3{
+                targetPos.x - casterPos.x,
+                0.f,
+                targetPos.z - casterPos.z },
+            Vec3{ 0.f, 0.f, 1.f });
+        const Vec3 desired{
+            targetPos.x + direction.x * 10.f,
+            targetPos.y,
+            targetPos.z + direction.z * 10.f };
+        if (!tc.pWalkable)
+            return desired;
 
-        ApplyTempestCrippleSlow(
-            *ctx.pWorld,
-            *ctx.pTickCtx,
-            ctx.casterEntity);
-
-        std::cout << "[LeeSinSim] E slow caster="
-            << ctx.casterEntity << "\n";
+        Vec3 landing = targetPos;
+        const f32_t radius =
+            GameplayStateQuery::ResolveGameplayRadius(world, target);
+        if (!tc.pWalkable->TryClampMoveSegmentXZ(
+                targetPos,
+                desired,
+                radius,
+                landing))
+        {
+            landing = targetPos;
+        }
+        if (!tc.pWalkable->IsWalkableXZ(landing))
+        {
+            Vec3 resolved = landing;
+            if (tc.pWalkable->TryResolveMoveTarget(
+                    targetPos,
+                    landing,
+                    resolved))
+            {
+                landing = resolved;
+            }
+        }
+        f32_t surfaceY = landing.y;
+        if (tc.pWalkable->TrySampleHeight(landing.x, landing.z, surfaceY))
+            landing.y = surfaceY;
+        return landing;
     }
 
     void OnR(GameplayHookContext& ctx)
@@ -392,6 +495,11 @@ namespace
             rDamage,
             static_cast<u8_t>(eSkillSlot::R),
             ctx.skillRank);
+        const Vec3 landing = ResolveDragonRageLanding(
+            world,
+            *ctx.pTickCtx,
+            ctx.casterEntity,
+            target);
         GameplayStatus::ApplyAirborne(
             world,
             *ctx.pTickCtx,
@@ -399,7 +507,9 @@ namespace
             ctx.casterEntity,
             eChampion::LEESIN,
             eSkillSlot::R,
-            rAirborneDurationSec);
+            rAirborneDurationSec,
+            2.1f,
+            &landing);
 
         std::cout << "[LeeSinSim] R dragon rage caster="
             << ctx.casterEntity << " target=" << target << "\n";
@@ -543,7 +653,7 @@ namespace LeeSinGameSim
                     };
                     Vec3 guardedPosition = position;
                     bool_t bDashBlocked = false;
-                    if (tc.pWalkable)
+                    if (tc.pWalkable && !dash.bIgnoreTerrainDuringTransit)
                     {
                         const Vec3 currentPos = transform.GetLocalPosition();
                         if (!tc.pWalkable->TryClampMoveSegmentXZ(currentPos, position, 0.5f, guardedPosition))
@@ -587,6 +697,46 @@ namespace LeeSinGameSim
 
         for (EntityID entity : expiredMarks)
             world.RemoveComponent<LeeSinQMarkComponent>(entity);
+
+        std::vector<EntityID> expiredTempestMarks;
+        world.ForEach<LeeSinTempestMarkComponent>(
+            std::function<void(EntityID, LeeSinTempestMarkComponent&)>(
+                [&](EntityID entity, LeeSinTempestMarkComponent& mark)
+                {
+                    mark.fRemainingSec =
+                        std::max(0.f, mark.fRemainingSec - tc.fDt);
+                    if (mark.fRemainingSec <= 0.f ||
+                        !world.IsAlive(mark.sourceEntity))
+                    {
+                        expiredTempestMarks.push_back(entity);
+                    }
+                }));
+
+        for (EntityID entity : expiredTempestMarks)
+            world.RemoveComponent<LeeSinTempestMarkComponent>(entity);
+    }
+
+    EntityID ResolveSonicWaveMarkTarget(CWorld& world, EntityID caster)
+    {
+        EntityID resolved = NULL_ENTITY;
+        const std::vector<EntityID> targets =
+            DeterministicEntityIterator<LeeSinQMarkComponent>::CollectSorted(world);
+        for (EntityID target : targets)
+        {
+            const LeeSinQMarkComponent& mark =
+                world.GetComponent<LeeSinQMarkComponent>(target);
+            if (mark.sourceEntity != caster ||
+                mark.fRemainingSec <= 0.f ||
+                !world.IsAlive(target) ||
+                !GameplayStateQuery::CanBeTargetedBy(world, caster, target))
+            {
+                continue;
+            }
+            if (resolved != NULL_ENTITY)
+                return NULL_ENTITY;
+            resolved = target;
+        }
+        return resolved;
     }
 
     void ApplySonicWaveMark(CWorld& world, const TickContext& tc, EntityID source, EntityID target)
@@ -609,6 +759,14 @@ namespace LeeSinGameSim
             world.GetComponent<LeeSinQMarkComponent>(target) = mark;
         else
             world.AddComponent<LeeSinQMarkComponent>(target, mark);
+
+        if (world.HasComponent<SkillStateComponent>(source))
+        {
+            auto& qSlot = world.GetComponent<SkillStateComponent>(source)
+                .slots[static_cast<u8_t>(eSkillSlot::Q)];
+            qSlot.currentStage = 1u;
+            qSlot.stageWindow = markDurationSec;
+        }
 
         std::cout << "[LeeSinSim] Q1 sonic wave mark source="
             << source << " target=" << target << "\n";

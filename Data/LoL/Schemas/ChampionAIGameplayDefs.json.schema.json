@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Champion AI gameplay definitions",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "dataVersion",
+    "defaultProfile",
+    "profiles",
+    "comboPlans"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dataVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "buildHash": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "defaultProfile": {
+      "type": "object"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1
+    },
+    "comboPlans": {
+      "type": "array",
+      "minItems": 1
+    }
+  }
+}

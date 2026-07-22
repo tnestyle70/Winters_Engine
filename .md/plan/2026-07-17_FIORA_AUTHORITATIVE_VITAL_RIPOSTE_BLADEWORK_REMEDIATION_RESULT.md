@@ -1,0 +1,3 @@
+1. 예측 vs 실측: 정적 범위는 대체로 적중했다. 서버에 passive 1방향/R 4비트/W hard-CC parry/E 2타 crit 상태와 spawn·pop·clear cue가 연결됐고 클라이언트 11개 WFX JSON 및 모든 texture 경로가 유효했다. 다만 통합 리뷰에서 클라이언트 `Passive_Trigger` 상수 누락, passive cue의 BA animation 오발 가능성, 0인 W data formula가 release damage를 덮는 경로, heal 만료 프레임의 초과 tick을 추가로 발견해 보정했다. 요청에 따라 build와 인게임 실측은 수행하지 않았다.
+2. 판결: 수정 반영 — 실패 구현은 교체했으며 scoped `git diff --check`, WFX JSON parse, texture 존재 검증은 통과했다. Client/Server build와 BA/Q/W/E 방향 적중·Jax E/Viego W·R 4표식 런타임 판정은 보류 상태이므로 완료 판결은 아니다.
+3. ⑤ 갱신: EffectTrigger-only 상태는 reconnect/full snapshot 도중 활성 passive/R/W/E visual을 재구성하지 못하고, vital 2.2 크기·1.35 offset 및 W cone 체감은 화면 실측에 따라 틀릴 수 있다. 빌드 재개 후 2-client 캡처에서 server damage/CC와 visual handle 제거가 한 tick 흐름으로 확인되지 않으면 이 수정도 다시 롤백 대상이다.

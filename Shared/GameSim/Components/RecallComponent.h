@@ -4,7 +4,7 @@
 
 #include <type_traits>
 
-inline constexpr f32_t kRecallDurationSec = 2.f;
+inline constexpr f32_t kRecallDurationSec = 6.f;
 
 struct RecallComponent
 {

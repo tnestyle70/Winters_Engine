@@ -1,6 +1,5 @@
 #include "Game/ServerMinionWaveRuntime.h"
 
-#include "Game/ServerMinionTuning.h"
 #include "Manager/Navigation/NavGrid.h"
 #include "Manager/Navigation/Pathfinder.h"
 #include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
@@ -397,27 +396,6 @@ u8_t CServerMinionWaveRuntime::ResolveWaypointLane(eTeam team, u8_t lane)
 
 void CServerMinionWaveRuntime::EnqueueWave(u64_t tickIndex)
 {
-	struct MinionSpawnSlot
-	{
-		u8_t role = 0u;
-		f32_t forwardOffset = 0.f;
-		f32_t sideOffset = 0.f;
-	};
-
-	static constexpr u8_t kRoleMelee = 0u;
-	static constexpr u8_t kRoleRanged = 1u;
-	static constexpr u8_t kRoleSiege = 2u;
-	static constexpr MinionSpawnSlot kSpawnSlots[] =
-	{
-		{ kRoleMelee, 3.6f, -0.9f },
-		{ kRoleMelee, 4.8f, 0.0f },
-		{ kRoleMelee, 6.0f, 0.9f },
-		{ kRoleRanged, 0.0f, -0.9f },
-		{ kRoleRanged, 1.2f, 0.0f },
-		{ kRoleRanged, 2.4f, 0.9f },
-	};
-	// 매 siegeWavePeriod 웨이브마다 공성 미니언 1기 추가 (LoL 근사, minionWave 데이터).
-	static constexpr MinionSpawnSlot kSiegeSlot = { kRoleSiege, 7.2f, 0.0f };
 	static constexpr u8_t kLanes[] = { kLaneTop, kLaneMid, kLaneBot };
 
 	const MinionWaveDef& waveDef =
@@ -436,23 +414,22 @@ void CServerMinionWaveRuntime::EnqueueWave(u64_t tickIndex)
 		? static_cast<u32_t>(sizeof(kLanes) / sizeof(kLanes[0]))
 		: 1u;
 
-	constexpr u32_t kBaseSlotCount =
-		static_cast<u32_t>(sizeof(kSpawnSlots) / sizeof(kSpawnSlots[0]));
+	const u32_t baseSlotCount = waveDef.formationSlotCount;
 	const u32_t siegeWavePeriod =
-		waveDef.siegeWavePeriod > 0u ? waveDef.siegeWavePeriod : 3u;
+		waveDef.siegeWavePeriod;
 	const bool_t bSiegeWave = (m_waveIndex % siegeWavePeriod) == (siegeWavePeriod - 1u);
-	const u32_t kSlotCount = bSiegeWave ? kBaseSlotCount + 1u : kBaseSlotCount;
+	const u32_t slotCount = bSiegeWave ? baseSlotCount + 1u : baseSlotCount;
 
 	for (u32_t laneIndex = 0u; laneIndex < laneCount; ++laneIndex)
 	{
 		const u8_t lane = bHasStageWaypoints ? kLanes[laneIndex] : kLaneMid;
-		for (u32_t slotIndex = 0u; slotIndex < kSlotCount; ++slotIndex)
+		for (u32_t slotIndex = 0u; slotIndex < slotCount; ++slotIndex)
 		{
-			const MinionSpawnSlot& slot = slotIndex < kBaseSlotCount
-				? kSpawnSlots[slotIndex]
-				: kSiegeSlot;
+			const MinionSpawnSlotDef& slot = slotIndex < baseSlotCount
+				? waveDef.formationSlots[slotIndex]
+				: waveDef.siegeSlot;
 			Vec3 bluePos{
-				ServerMinionTuning::kWaveStartX + slot.forwardOffset,
+				waveDef.startX + slot.forwardOffset,
 				1.f,
 				slot.sideOffset
 			};
@@ -473,7 +450,7 @@ void CServerMinionWaveRuntime::EnqueueWave(u64_t tickIndex)
 			}
 
 			Vec3 redPos{
-				-ServerMinionTuning::kWaveStartX - slot.forwardOffset,
+				-waveDef.startX - slot.forwardOffset,
 				1.f,
 				slot.sideOffset
 			};
@@ -496,9 +473,9 @@ void CServerMinionWaveRuntime::EnqueueWave(u64_t tickIndex)
 			const u64_t dueTick = tickIndex +
 				static_cast<u64_t>(slotIndex) * waveDef.perMinionDelayTicks;
 			m_pendingSpawns.push_back(
-				PendingSpawn{ dueTick, SpawnRequest{ eTeam::Blue, slot.role, lane, bluePos } });
+				PendingSpawn{ dueTick, SpawnRequest{ eTeam::Blue, slot.roleType, lane, bluePos } });
 			m_pendingSpawns.push_back(
-				PendingSpawn{ dueTick, SpawnRequest{ eTeam::Red, slot.role, lane, redPos } });
+				PendingSpawn{ dueTick, SpawnRequest{ eTeam::Red, slot.roleType, lane, redPos } });
 		}
 	}
 

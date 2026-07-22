@@ -77,9 +77,9 @@
 #include "GameObject/Champion/Kalista/Kalista_Skills.h"
 #include "GameObject/Champion/Kalista/Kalista_Tuning.h"
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
+#include "GameObject/Champion/Yone/Yone_Skills.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
 #include "GameObject/Champion/Viego/Viego_FxPresets.h"
 #include "GamePlay/ChampionCatalog.h"
@@ -102,7 +102,6 @@
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/SkillDefGameDataAdapter.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -155,6 +154,20 @@ namespace
             return;
 
         pScene->GetCommandSerializer()->SendLevelSkill(*pScene->GetNetworkView(), slot);
+    }
+
+    void UI_SendInventoryReorderCommand(
+        void* pUser, u8_t sourceSlot, u8_t targetSlot, u16_t expectedItemId)
+    {
+        CScene_InGame* pScene = static_cast<CScene_InGame*>(pUser);
+        if (!pScene || !pScene->GetCommandSerializer() || !pScene->GetNetworkView())
+            return;
+
+        pScene->GetCommandSerializer()->SendReorderItem(
+            *pScene->GetNetworkView(),
+            sourceSlot,
+            targetSlot,
+            expectedItemId);
     }
 
     RHITextureHandle CreateDefaultRHITexture(IRHIDevice* pDevice, const char* pszDebugName)
@@ -363,6 +376,15 @@ bool CScene_InGame::OnEnter()
     {
         Winters::DevSmoke::Log("[InGameBootstrap] map init begin\n");
         bMapInit = m_Map.Initialize(GetSelectedMapMeshPath(), L"Shaders/Mesh3D.hlsl");
+        if (bMapInit)
+        {
+            const bool_t bGrassTintReady = m_Map.SetGrassTintMaterialByName(
+                "Maps/KitPieces/SRX/Base/Models/LevelProp/Materials/VertexDeform_inst",
+                L"Texture/MAP/output/textures/assets/maps/info/map11/grasstint_srx.png");
+            Winters::DevSmoke::Log(
+                "[InGameBootstrap] map grass tint ready=%u\n",
+                bGrassTintReady ? 1u : 0u);
+        }
         Winters::DevSmoke::Log("[InGameBootstrap] map init done ok=%u\n", bMapInit ? 1u : 0u);
     }
     ConfigureDefaultMapTransform(m_MapTransform);
@@ -411,6 +433,8 @@ bool CScene_InGame::OnEnter()
     }
     CGameInstance::Get()->UI_Set_InGameBuyItemCallback(&UI_SendBuyItemCommand, this);
     CGameInstance::Get()->UI_Set_LevelSkillCallback(&UI_SendLevelSkillCommand, this);
+    CGameInstance::Get()->UI_Set_InventoryReorderCallback(
+        &UI_SendInventoryReorderCommand, this);
 
     CMinion_Manager::Get()->Set_Enabled(!m_bNetworkAuthoritativeGameplay);
     wchar_t navGridPath[MAX_PATH] = {};
@@ -821,9 +845,17 @@ void CScene_InGame::BindPlayerToECSChampion(EntityID entity)
 
 void CScene_InGame::CreateECSEntities()
 {
+    m_PlayerEntity = NULL_ENTITY;
+    if (m_bReplayPlaybackMode)
+    {
+        CreateMapEntity();
+        Winters::DevSmoke::Log(
+            "[ECS:ReplayBootstrap] roster spawn deferred to authoritative replay snapshot\n");
+        return;
+    }
+
     MatchContext& context = Client::CLoLMatchContextRuntime::Instance().Context();
     CInGameRosterSpawner::EnsureLocalRosterFallback(context);
-    m_PlayerEntity = NULL_ENTITY;
 
     InGameRosterSpawnDesc rosterDesc{
         m_World,
@@ -887,6 +919,8 @@ EntityID CScene_InGame::SpawnChampionEntity(eChampion champion, eTeam team)
 
 void CScene_InGame::OnExit()
 {
+    ClearNetworkRecallFx();
+    Yone::Visual::ClearSoulMarkFxRuntime(m_World);
     Viego::Fx::StopAllSoulIdle(m_World);
 
     // ESC 강제 종료/메인 메뉴 이탈 포함 — 종료 산출물이 없으면 aborted로 저장
@@ -900,6 +934,7 @@ void CScene_InGame::OnExit()
 
     CGameInstance::Get()->UI_Set_InGameBuyItemCallback(nullptr, nullptr);
     CGameInstance::Get()->UI_Set_LevelSkillCallback(nullptr, nullptr);
+    CGameInstance::Get()->UI_Set_InventoryReorderCallback(nullptr, nullptr);
     CGameInstance::Get()->UI_Clear_ActorHUDState();
     CGameInstance::Get()->UI_Clear_StatusPanelState();
     CGameInstance::Get()->UI_Clear_WorldHealthBars();

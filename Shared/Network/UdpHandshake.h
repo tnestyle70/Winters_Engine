@@ -8,7 +8,7 @@
 #include <vector>
 
 constexpr size_t kUdpCookieBytes = 16u;
-constexpr size_t kUdpMaxTicketBytes = 256u;
+constexpr size_t kUdpMaxTicketBytes = 384u;
 
 using UdpCookie = std::array<u8_t, kUdpCookieBytes>;
 

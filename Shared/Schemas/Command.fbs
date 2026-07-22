@@ -13,7 +13,9 @@ enum CommandKind : ubyte {
     AIDebugControl = 9,
     Flash = 10,
     CompanionCommand = 11,
-    PracticeControl = 12
+    PracticeControl = 12,
+    ReorderItem = 13,
+    TeamPing = 14
 }
 
 enum PracticeOperation : ushort {
@@ -42,7 +44,16 @@ enum PracticeOperation : ushort {
     ReplaceControlledChampion = 22,
     ApplyStructureStatOverride = 23,
     ClearStructureStatOverrides = 24,
-    ReloadGameplayDefinitions = 25
+    ReloadGameplayDefinitions = 25,
+    ApplyJungleStatOverride = 26,
+    ClearJungleStatOverrides = 27,
+    ApplyRespawnTimeOverride = 28,
+    ClearRespawnTimeOverrides = 29,
+    ApplyMinionStatOverride = 30,
+    ClearMinionStatOverrides = 31,
+    RefillJungleHealth = 32,
+    ResetJungleMonster = 33,
+    ClearObjectiveBuffs = 34
 }
 
 struct Vec3 {

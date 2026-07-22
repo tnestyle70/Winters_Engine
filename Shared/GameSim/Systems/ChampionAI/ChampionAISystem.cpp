@@ -25,11 +25,13 @@
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
+#include "Shared/GameSim/Definitions/SkillGameplayDef.h"
 #include "Shared/GameSim/Definitions/WardDefinitions.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIBrain.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPerception.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIValuation.h"
+#include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Champions/Kalista/KalistaGameSim.h"
 #include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
@@ -50,9 +52,15 @@ namespace
     constexpr u8_t kChampionAIMidLane =
         static_cast<u8_t>(Winters::Map::eLane::Mid);
     constexpr f32_t kChampionAIMidDefenseBehindDistance = 2.25f;
+    constexpr f32_t kChampionAISafeAnchorBehindTurret = 3.f;
     constexpr f32_t kChampionAIMidDefenseFormationSpacing = 1.75f;
     constexpr u32_t kChampionAIMidDefenseFormationSlots = 5u;
     constexpr f32_t kChampionAIMidDefenseReturnRadius = 11.f;
+    constexpr f32_t kChampionAIMidDefenseThreatRadius = 20.f;
+    constexpr f32_t kChampionAIMidDefenseThreatHoldSec = 6.f;
+    constexpr f32_t kChampionAIMidTeamfightRadius = 18.f;
+    constexpr f32_t kChampionAIMidWaveAnchorRadius = 14.f;
+    constexpr f32_t kChampionAITeamPingArrivalRadius = 2.5f;
     constexpr u64_t kChampionAILastSeenMemoryTicks =
         5ull * DeterministicTime::kTicksPerSecond;
     constexpr u16_t kChampionAIRetreatBlockedMoveRecallTicks =
@@ -272,6 +280,164 @@ namespace
         return bLost;
     }
 
+    // 미드 방어선(앵커) 근방의 실제 위협(적 챔피언/미니언) 존재 여부.
+    // 포탑 상실 판정과 같은 전역 쿼리다(미니맵 근사) — 집결은 이벤트가
+    // 아니라 위협의 함수여야 래치가 영구화되지 않는다.
+    bool_t HasMidDefenseThreat(
+        CWorld& world,
+        eTeam team,
+        const Vec3& anchor)
+    {
+        const eTeam enemyTeam = EnemyTeam(team);
+        const f32_t radiusSq =
+            kChampionAIMidDefenseThreatRadius *
+            kChampionAIMidDefenseThreatRadius;
+        bool_t bThreat = false;
+
+        world.ForEach<ChampionComponent, TransformComponent>(
+            [&](EntityID e, ChampionComponent& champion, TransformComponent& transform)
+            {
+                if (bThreat ||
+                    champion.team != enemyTeam ||
+                    world.HasComponent<PracticeDummyTag>(e) ||
+                    !IsAliveTarget(world, e))
+                {
+                    return;
+                }
+
+                if (WintersMath::DistanceSqXZ(anchor, transform.GetPosition()) <= radiusSq)
+                    bThreat = true;
+            });
+        if (bThreat)
+            return true;
+
+        world.ForEach<MinionComponent, TransformComponent>(
+            [&](EntityID e, MinionComponent& minion, TransformComponent& transform)
+            {
+                if (bThreat ||
+                    minion.team != enemyTeam ||
+                    !IsAliveTarget(world, e))
+                {
+                    return;
+                }
+
+                if (WintersMath::DistanceSqXZ(anchor, transform.GetPosition()) <= radiusSq)
+                    bThreat = true;
+            });
+        return bThreat;
+    }
+
+    struct MidTeamfightSnapshot
+    {
+        Vec3 anchor{};
+        u8_t alliedCount = 0u;
+        u8_t enemyCount = 0u;
+        bool_t bEnemyMidOuterLost = false;
+    };
+
+    MidTeamfightSnapshot BuildMidTeamfightSnapshot(
+        CWorld& world,
+        EntityID self,
+        eTeam team,
+        const Vec3& fallback)
+    {
+        MidTeamfightSnapshot result{};
+        result.anchor = fallback;
+        const eTeam enemyTeam = EnemyTeam(team);
+        const u32_t turretKind = static_cast<u32_t>(
+            Winters::Map::eObjectKind::Structure_Turret);
+        const u32_t outerTier = static_cast<u32_t>(
+            Winters::Map::eTurretTier::Outer);
+        EntityID enemyOuter = NULL_ENTITY;
+
+        world.ForEach<StructureComponent, TransformComponent>(
+            [&](EntityID entity,
+                StructureComponent& structure,
+                TransformComponent& transform)
+            {
+                if (structure.team != enemyTeam ||
+                    structure.kind != turretKind ||
+                    structure.tier != outerTier ||
+                    structure.lane != kChampionAIMidLane)
+                {
+                    return;
+                }
+                if (enemyOuter == NULL_ENTITY || entity < enemyOuter)
+                {
+                    enemyOuter = entity;
+                    result.anchor = transform.GetPosition();
+                    result.bEnemyMidOuterLost = !IsAliveTarget(world, entity);
+                }
+            });
+
+        if (enemyOuter == NULL_ENTITY || !result.bEnemyMidOuterLost)
+            return result;
+
+        EntityID bestWave = NULL_ENTITY;
+        f32_t bestWaveSq =
+            kChampionAIMidWaveAnchorRadius * kChampionAIMidWaveAnchorRadius;
+        world.ForEach<MinionComponent, TransformComponent>(
+            [&](EntityID entity,
+                MinionComponent& minion,
+                TransformComponent& transform)
+            {
+                if (minion.team != team ||
+                    minion.laneType != kChampionAIMidLane ||
+                    !IsAliveTarget(world, entity))
+                {
+                    return;
+                }
+                const f32_t distanceSq = WintersMath::DistanceSqXZ(
+                    result.anchor,
+                    transform.GetPosition());
+                if (distanceSq < bestWaveSq ||
+                    (distanceSq == bestWaveSq &&
+                        (bestWave == NULL_ENTITY || entity < bestWave)))
+                {
+                    bestWave = entity;
+                    bestWaveSq = distanceSq;
+                }
+            });
+        if (bestWave != NULL_ENTITY)
+        {
+            result.anchor =
+                world.GetComponent<TransformComponent>(bestWave).GetPosition();
+        }
+
+        const f32_t radiusSq =
+            kChampionAIMidTeamfightRadius * kChampionAIMidTeamfightRadius;
+        const auto saturatingIncrement = [](u8_t& value)
+        {
+            if (value < (std::numeric_limits<u8_t>::max)())
+                ++value;
+        };
+        world.ForEach<ChampionComponent, TransformComponent>(
+            [&](EntityID entity,
+                ChampionComponent& candidate,
+                TransformComponent& transform)
+            {
+                if (world.HasComponent<PracticeDummyTag>(entity) ||
+                    !IsAliveTarget(world, entity) ||
+                    WintersMath::DistanceSqXZ(
+                        result.anchor,
+                        transform.GetPosition()) > radiusSq)
+                {
+                    return;
+                }
+
+                if (candidate.team == team)
+                {
+                    saturatingIncrement(result.alliedCount);
+                }
+                else if (candidate.team == enemyTeam &&
+                    CanChampionAIObserveTarget(world, self, team, entity))
+                {
+                    saturatingIncrement(result.enemyCount);
+                }
+            });
+        return result;
+    }
+
     Vec3 ResolveMidDefenseAnchor(
         CWorld& world,
         eTeam team,
@@ -483,6 +649,234 @@ namespace
         return world.GetComponent<SkillStateComponent>(self).slots[slot].cooldownRemaining <= 0.f;
     }
 
+    bool_t HasSufficientSkillResource(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID self,
+        eChampion champion,
+        u8_t slot)
+    {
+        const f32_t resourceCost = GameplayDefinitionQuery::ResolveSkillManaCost(
+            world,
+            self,
+            tc,
+            champion,
+            slot);
+        if (resourceCost <= 0.f)
+            return true;
+        if (!world.HasComponent<ChampionComponent>(self))
+            return false;
+
+        return world.GetComponent<ChampionComponent>(self).mana + 0.001f >=
+            resourceCost;
+    }
+
+    f32_t EstimateObservedEnemyComboDamageRatioImpl(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID self,
+        EntityID enemy,
+        f32_t enemyDistance)
+    {
+        if (self == NULL_ENTITY || enemy == NULL_ENTITY ||
+            !world.IsAlive(self) || !world.IsAlive(enemy) ||
+            !world.HasComponent<HealthComponent>(self) ||
+            !world.HasComponent<ChampionComponent>(enemy))
+        {
+            return 0.f;
+        }
+
+        const HealthComponent& selfHealth =
+            world.GetComponent<HealthComponent>(self);
+        if (selfHealth.fMaximum <= 0.001f)
+            return 0.f;
+
+        const ChampionComponent& enemyChampion =
+            world.GetComponent<ChampionComponent>(enemy);
+        f32_t estimatedDamage = 0.f;
+        const auto appendDamage = [&](DamageRequest request)
+        {
+            f32_t rawDamage = std::max(0.f, BuildRawDamage(world, request));
+            if ((request.flags & DamageFlag_CanCrit) != 0u &&
+                world.HasComponent<StatComponent>(enemy))
+            {
+                const StatComponent& stat =
+                    world.GetComponent<StatComponent>(enemy);
+                rawDamage *= 1.f +
+                    std::clamp(stat.critChance, 0.f, 1.f) *
+                    (std::max(1.f, stat.critDamage) - 1.f);
+            }
+            estimatedDamage += ResolvePostMitigationDamageAmount(
+                world,
+                request,
+                rawDamage,
+                false);
+        };
+
+        const u8_t basicAttackSlot =
+            static_cast<u8_t>(eSkillSlot::BasicAttack);
+        const f32_t basicAttackRange = ResolveAttackRange(
+            world,
+            enemy,
+            tc,
+            enemyChampion.id);
+        const bool_t bBasicAttackThreatReady =
+            GameplayStateQuery::CanAttack(world, enemy) &&
+            IsSkillReady(world, enemy, basicAttackSlot) &&
+            enemyDistance <= basicAttackRange + 0.25f;
+        if (bBasicAttackThreatReady)
+        {
+            DamageRequest basicAttack{};
+            basicAttack.source = enemy;
+            basicAttack.target = self;
+            basicAttack.sourceTeam = enemyChampion.team;
+            basicAttack.type = eDamageType::Physical;
+            basicAttack.adRatioOverride = 1.f;
+            basicAttack.eSourceKind = eDamageSourceKind::BasicAttack;
+            basicAttack.iSourceSlot = basicAttackSlot;
+            basicAttack.flags = DamageFlag_CanCrit;
+            appendDamage(basicAttack);
+        }
+
+        if (GameplayStateQuery::CanCast(world, enemy) &&
+            world.HasComponent<SkillRankComponent>(enemy))
+        {
+            const SkillRankComponent& ranks =
+                world.GetComponent<SkillRankComponent>(enemy);
+            for (u8_t slot = static_cast<u8_t>(eSkillSlot::Q);
+                slot <= static_cast<u8_t>(eSkillSlot::R);
+                ++slot)
+            {
+                const u8_t rank = ranks.ranks[slot];
+                if (rank == 0u || !IsSkillReady(world, enemy, slot))
+                    continue;
+
+                const SkillGameplayDef* skill =
+                    GameplayDefinitionQuery::FindSkill(
+                        world,
+                        enemy,
+                        tc,
+                        enemyChampion.id,
+                        slot);
+                if (!skill)
+                    continue;
+
+                const SkillStateComponent* skillState =
+                    world.HasComponent<SkillStateComponent>(enemy)
+                    ? &world.GetComponent<SkillStateComponent>(enemy)
+                    : nullptr;
+                const bool_t bRecastReady =
+                    skillState &&
+                    skillState->slots[slot].currentStage == 1u &&
+                    skillState->slots[slot].stageWindow > 0.f &&
+                    skill->stage.stageCount > 1u;
+                if (!bRecastReady &&
+                    !HasSufficientSkillResource(
+                        world,
+                        tc,
+                        enemy,
+                        enemyChampion.id,
+                        slot))
+                {
+                    continue;
+                }
+
+                const u8_t stageIndex = bRecastReady ? 1u : 0u;
+                const eTargetShape targetShape =
+                    skill->target.shape[stageIndex];
+
+                f32_t effectiveRange = GameplayDefinitionQuery::ResolveSkillRange(
+                    world,
+                    enemy,
+                    tc,
+                    enemyChampion.id,
+                    slot);
+
+                DamageRequest skillDamage{};
+                if (!GameplayDefinitionQuery::BuildSkillDamageRequest(
+                        world,
+                        enemy,
+                        self,
+                        tc,
+                        enemyChampion.id,
+                        slot,
+                        rank,
+                        enemyChampion.team,
+                        eDamageSourceKind::Skill,
+                        skillDamage))
+                {
+                    continue;
+                }
+
+                if (targetShape == eTargetShape::Self)
+                {
+                    if ((skillDamage.flags & DamageFlag_OnHit) != 0u)
+                    {
+                        if (!bBasicAttackThreatReady)
+                            continue;
+                        effectiveRange = basicAttackRange;
+                    }
+                    else
+                    {
+                        // Two-stage self skills such as Riven R1 and Jax E1
+                        // arm a later effect; the activation itself is not an
+                        // immediate hit. Count only an already-open recast.
+                        if (skill->stage.stageCount > 1u && !bRecastReady)
+                            continue;
+                        effectiveRange = std::max(
+                            effectiveRange,
+                            GameplayDefinitionQuery::ResolveSkillEffectParam(
+                                world,
+                                enemy,
+                                tc,
+                                enemyChampion.id,
+                                slot,
+                                eSkillEffectParamId::Radius));
+                        effectiveRange = std::max(
+                            effectiveRange,
+                            GameplayDefinitionQuery::ResolveSkillEffectParam(
+                                world,
+                                enemy,
+                                tc,
+                                enemyChampion.id,
+                                slot,
+                                eSkillEffectParamId::Range));
+                    }
+                }
+                else if (effectiveRange <= 0.f)
+                {
+                    effectiveRange = std::max(
+                        GameplayDefinitionQuery::ResolveSkillEffectParam(
+                            world,
+                            enemy,
+                            tc,
+                            enemyChampion.id,
+                            slot,
+                            eSkillEffectParamId::Range),
+                        GameplayDefinitionQuery::ResolveSkillEffectParam(
+                            world,
+                            enemy,
+                            tc,
+                            enemyChampion.id,
+                            slot,
+                            eSkillEffectParamId::Radius));
+                }
+
+                if (effectiveRange <= 0.f ||
+                    enemyDistance > effectiveRange + 0.25f)
+                {
+                    continue;
+                }
+                appendDamage(skillDamage);
+            }
+        }
+
+        return std::clamp(
+            estimatedDamage / selfHealth.fMaximum,
+            0.f,
+            2.f);
+    }
+
     bool_t TryFindFlashSlot(CWorld& world, EntityID self, u8_t& outSlot)
     {
         outSlot = 0u;
@@ -670,11 +1064,15 @@ namespace
     {
         if (step.slot >= static_cast<u8_t>(eSkillSlot::SLOT_END))
             return false;
+        const bool_t bSelfTargetMode =
+            step.targetMode == static_cast<u8_t>(eChampionAIComboTargetMode::Self);
         if (step.selfHpMinRatio > 0.f && ctx.selfHpRatio + 0.001f < step.selfHpMinRatio)
+            return false;
+        if (step.selfHpMaxRatio < 0.999f && ctx.selfHpRatio > step.selfHpMaxRatio)
             return false;
         if (step.enemyHpMaxRatio < 0.999f && ctx.enemyHpRatio > step.enemyHpMaxRatio)
             return false;
-        if (ctx.enemyDistance + 0.001f < step.minRange)
+        if (!bSelfTargetMode && ctx.enemyDistance + 0.001f < step.minRange)
             return false;
 
         f32_t maxRange = step.maxRange;
@@ -689,8 +1087,11 @@ namespace
                     champion,
                     step.slot);
         }
-        if (maxRange > 0.f && ctx.enemyDistance > maxRange)
+        if (!bSelfTargetMode && maxRange > 0.f && ctx.enemyDistance > maxRange)
             return false;
+
+        if (step.slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+            return ctx.bCanAttack;
 
         if (champion == eChampion::KALISTA &&
             step.slot == static_cast<u8_t>(eSkillSlot::R))
@@ -706,6 +1107,16 @@ namespace
 
         if (step.itemId == 2u)
             return IsStage2ComboStepReady(world, tc, self, champion, step, ctx);
+
+        if (!HasSufficientSkillResource(
+                world,
+                tc,
+                self,
+                champion,
+                step.slot))
+        {
+            return false;
+        }
 
         if (IsSylasHijackComboStep(step))
         {
@@ -756,6 +1167,109 @@ namespace
         }
 
         return IsSkillReady(world, self, step.slot);
+    }
+
+    bool_t PassesComboEntryHealthGate(
+        const ChampionAIComboStep& step,
+        const ChampionAIContext& ctx)
+    {
+        return !(step.selfHpMinRatio > 0.f &&
+                ctx.selfHpRatio + 0.001f < step.selfHpMinRatio) &&
+            !(step.selfHpMaxRatio < 0.999f &&
+                ctx.selfHpRatio > step.selfHpMaxRatio) &&
+            !(step.enemyHpMaxRatio < 0.999f &&
+                ctx.enemyHpRatio > step.enemyHpMaxRatio);
+    }
+
+    bool_t IsHostileComboEntryTargetMode(
+        const ChampionAIComboStep& step)
+    {
+        return step.targetMode == static_cast<u8_t>(
+                eChampionAIComboTargetMode::TargetEntity) ||
+            step.targetMode == static_cast<u8_t>(
+                eChampionAIComboTargetMode::SylasHijackTarget) ||
+            step.targetMode == static_cast<u8_t>(
+                eChampionAIComboTargetMode::SylasStolenUltimateTarget);
+    }
+
+    f32_t ResolveChampionAIEngageRange(
+        CWorld& world,
+        EntityID self,
+        const TickContext& tc,
+        eChampion champion,
+        const ChampionAIComponent& ai,
+        const ChampionAIContext& ctx)
+    {
+        if (ctx.enemyChampion == NULL_ENTITY ||
+            ai.comboTarget != NULL_ENTITY)
+        {
+            return ctx.attackRange;
+        }
+
+        const ChampionAIComboPlan& combo = GetChampionAIComboPlan(champion);
+        const u8_t count = std::min(
+            combo.stepCount,
+            static_cast<u8_t>(10u));
+        for (u8_t i = 0u; i < count; ++i)
+        {
+            const ChampionAIComboStep& step = combo.steps[i];
+            if (IsComboStepUnlearned(world, self, step) ||
+                !PassesComboEntryHealthGate(step, ctx))
+            {
+                continue;
+            }
+
+            // Recasts are continuations, never fresh engage range evidence.
+            if (step.itemId == 2u)
+                continue;
+
+            if (!IsHostileComboEntryTargetMode(step))
+            {
+                if (step.slot != static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+                    (!ctx.bCanCast ||
+                        !IsSkillReady(world, self, step.slot) ||
+                        !HasSufficientSkillResource(
+                            world,
+                            tc,
+                            self,
+                            champion,
+                            step.slot)))
+                {
+                    return ctx.attackRange;
+                }
+                continue;
+            }
+
+            if (step.slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+                return ctx.attackRange;
+            if (!ctx.bCanCast ||
+                !IsSkillReady(world, self, step.slot) ||
+                !HasSufficientSkillResource(
+                    world,
+                    tc,
+                    self,
+                    champion,
+                    step.slot))
+            {
+                return ctx.attackRange;
+            }
+
+            f32_t range = step.maxRange;
+            if (range <= 0.f)
+            {
+                range = GameplayDefinitionQuery::ResolveSkillRange(
+                    world,
+                    self,
+                    tc,
+                    champion,
+                    step.slot);
+            }
+            return std::min(
+                std::max(ctx.attackRange, range),
+                ai.championScanRange);
+        }
+
+        return ctx.attackRange;
     }
 
     enum class eChampionAIBehaviorStatus : u8_t
@@ -1108,6 +1622,7 @@ namespace
     {
         ai.comboTarget = NULL_ENTITY;
         ai.comboStep = 0u;
+        ai.bYonePostReturnUltimatePending = false;
     }
 
     bool_t ShouldContinueBasicAttackAfterCombo(
@@ -1567,6 +2082,18 @@ namespace
                 eChampionAIDecisionBlockReason::RuntimeSkillCooldown);
             return false;
         }
+        if (!bStage2 && !HasSufficientSkillResource(
+                world,
+                tc,
+                self,
+                champion,
+                slot))
+        {
+            SetChampionAIBlockReason(
+                ai,
+                eChampionAIDecisionBlockReason::StateBlocked);
+            return false;
+        }
         if (bStage2)
         {
             if (!world.HasComponent<SkillStateComponent>(self))
@@ -1588,6 +2115,11 @@ namespace
                 return false;
             }
         }
+        const bool_t bSelfTargetMode =
+            targetMode == static_cast<u8_t>(eChampionAIComboTargetMode::Self);
+        if (bSelfTargetMode)
+            target = self;
+
         if (target == NULL_ENTITY)
         {
             SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::NoTarget);
@@ -1598,12 +2130,14 @@ namespace
             SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::TargetDead);
             return false;
         }
-        if (!GameplayStateQuery::CanBeTargetedBy(world, self, target))
+        if (!bSelfTargetMode &&
+            !GameplayStateQuery::CanBeTargetedBy(world, self, target))
         {
             SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::TargetUntargetable);
             return false;
         }
-        if (!CanChampionAIObserveTarget(world, self, ai.team, target))
+        if (!bSelfTargetMode &&
+            !CanChampionAIObserveTarget(world, self, ai.team, target))
         {
             SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::TargetUntargetable);
             return false;
@@ -1622,7 +2156,7 @@ namespace
             tc,
             champion,
             slot);
-        if (range > 0.f &&
+        if (!bSelfTargetMode && range > 0.f &&
             WintersMath::DistanceSqXZ(selfPos, targetPos) > range * range)
         {
             SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::TargetOutOfRange);
@@ -1705,6 +2239,43 @@ namespace
         return true;
     }
 
+    bool_t TryEmitSkillLevelCommand(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID self,
+        ChampionAIComponent& ai,
+        ChampionComponent& champion,
+        const ChampionAIProfile& profile,
+        std::vector<GameCommand>& outCommands)
+    {
+        if (!world.HasComponent<SkillRankComponent>(self))
+            return false;
+
+        const SkillRankComponent& ranks =
+            world.GetComponent<SkillRankComponent>(self);
+        const u8_t slot = ResolveChampionAISkillLevelSlot(
+            profile,
+            ranks,
+            champion.level);
+        if (slot >= static_cast<u8_t>(eSkillSlot::SLOT_END))
+            return false;
+
+        GameCommand cmd = MakeAICommand(
+            ai,
+            tc,
+            self,
+            eCommandKind::LevelSkill);
+        cmd.slot = slot;
+        outCommands.push_back(cmd);
+        RecordChampionAICommandDebug(
+            ai,
+            NULL_ENTITY,
+            cmd.kind,
+            cmd.slot,
+            Vec3{});
+        return true;
+    }
+
     EntityID FindEnemyChampion(
         CWorld& world,
         EntityID self,
@@ -1713,7 +2284,8 @@ namespace
         f32_t range)
     {
         EntityID best = NULL_ENTITY;
-        f32_t bestSq = range * range;
+        f32_t bestScore = (std::numeric_limits<f32_t>::max)();
+        const f32_t rangeSq = range * range;
         world.ForEach<ChampionComponent, TransformComponent>(
             [&](EntityID e, ChampionComponent& champion, TransformComponent& transform)
             {
@@ -1726,9 +2298,16 @@ namespace
                     return;
 
                 const f32_t distSq = WintersMath::DistanceSqXZ(pos, transform.GetPosition());
-                if (distSq < bestSq)
+                if (distSq > rangeSq)
+                    return;
+
+                const f32_t distance = std::sqrt(std::max(0.f, distSq));
+                const f32_t hpRatio = HealthRatio(world, e);
+                const f32_t score = distance + hpRatio * range * 0.75f;
+                if (score < bestScore ||
+                    (score == bestScore && (best == NULL_ENTITY || e < best)))
                 {
-                    bestSq = distSq;
+                    bestScore = score;
                     best = e;
                 }
             });
@@ -1824,7 +2403,8 @@ namespace
         eTeam myTeam,
         u8_t lane,
         const Vec3& pos,
-        f32_t range)
+        f32_t range,
+        f32_t basicAttackDamage)
     {
         EntityID best = NULL_ENTITY;
         f32_t bestScore = -1.f;
@@ -1850,8 +2430,16 @@ namespace
                     : 1.f;
                 const f32_t distanceFit =
                     1.f - WintersMath::Clamp01(std::sqrt(std::max(0.f, distSq)) / std::max(1.f, range));
-                const f32_t score = (1.f - hpRatio) * 60.f + distanceFit * 25.f;
-                if (score > bestScore)
+                const bool_t bLastHittable =
+                    basicAttackDamage > 0.f &&
+                    minion.hp <= basicAttackDamage + 0.001f;
+                const f32_t score =
+                    (bLastHittable ? 10000.f : 0.f) +
+                    (1.f - hpRatio) * 60.f +
+                    distanceFit * 25.f -
+                    (bLastHittable ? minion.hp * 0.01f : 0.f);
+                if (score > bestScore ||
+                    (score == bestScore && (best == NULL_ENTITY || e < best)))
                 {
                     bestScore = score;
                     best = e;
@@ -2181,7 +2769,14 @@ namespace
         ctx.bCanCast = GameplayStateQuery::CanCast(world, self);
         ctx.selfHpRatio = HealthRatio(world, self);
         ctx.attackRange = ResolveAttackRange(world, self, tc, champion.id);
+        ctx.engageRange = ctx.attackRange;
         const u8_t activeLane = ResolveChampionAIActiveLane(ai);
+        ai.safeAnchor = CChampionAISystem::ResolveSafeAnchor(
+            world,
+            champion.team,
+            ai.lane,
+            ai.safeAnchor);
+        ai.retreatGoal = ai.safeAnchor;
 
         EntityID targetChampion = ai.lockedChampion;
         Vec3 targetChampionPos{};
@@ -2214,7 +2809,22 @@ namespace
             const f32_t distSq = WintersMath::DistanceSqXZ(selfPos, targetChampionPos);
             ctx.enemyDistance = std::sqrt(std::max(0.f, distSq));
             ctx.enemyHpRatio = HealthRatio(world, targetChampion);
+            ctx.observedEnemyComboDamageRatio =
+                EstimateObservedEnemyComboDamageRatioImpl(
+                    world,
+                    tc,
+                    self,
+                    targetChampion,
+                    ctx.enemyDistance);
         }
+
+        ctx.engageRange = ResolveChampionAIEngageRange(
+            world,
+            self,
+            tc,
+            champion.id,
+            ai,
+            ctx);
 
         if (ai.lastSeenEnemyChampion != NULL_ENTITY &&
             ai.lastSeenEnemyChampionTick != 0u &&
@@ -2279,7 +2889,10 @@ namespace
             champion.team,
             activeLane,
             selfPos,
-            ai.minionScanRange);
+            ai.minionScanRange,
+            world.HasComponent<StatComponent>(self)
+                ? world.GetComponent<StatComponent>(self).ad
+                : 0.f);
 
         f32_t waveDistance = 999.f;
         ctx.alliedWave = FindAlliedLaneMinion(
@@ -2287,7 +2900,7 @@ namespace
             champion.team,
             activeLane,
             selfPos,
-            std::max(80.f, ai.structureScanRange + ai.minionScanRange),
+            ai.followWaveSearchRange,
             waveDistance);
         ctx.waveDistance = waveDistance;
         ctx.bAlliedWaveNearby =
@@ -2364,6 +2977,7 @@ namespace
         ctx.bAlliedOuterTurretLost = ai.bMidDefenseActive;
         ctx.bMidLaneTurretLost = ai.bMidDefenseActive;
         ctx.midDefenseAnchor = ai.midDefenseAnchor;
+        ctx.midTeamfightAnchor = ai.midDefenseAnchor;
         if (ai.decisionTimer <= 0.f)
         {
             ctx.bAlliedOuterTurretLost =
@@ -2377,6 +2991,19 @@ namespace
                 champion.team,
                 self,
                 ai.safeAnchor);
+            const MidTeamfightSnapshot midTeamfight =
+                BuildMidTeamfightSnapshot(
+                    world,
+                    self,
+                    champion.team,
+                    ctx.midDefenseAnchor);
+            ctx.midTeamfightAnchor = midTeamfight.anchor;
+            ctx.alliedMidChampionCount = midTeamfight.alliedCount;
+            ctx.enemyMidChampionCount = midTeamfight.enemyCount;
+            ctx.bEnemyMidOuterTurretLost =
+                midTeamfight.bEnemyMidOuterLost;
+            if (ai.bMidTeamfightActive)
+                ctx.midDefenseAnchor = ctx.midTeamfightAnchor;
         }
 
         return ctx;
@@ -2457,6 +3084,29 @@ namespace
                 return false;
             }
 
+            if (!world.HasComponent<InventoryComponent>(self))
+            {
+                SetChampionAIBlockReason(
+                    ai, eChampionAIDecisionBlockReason::StateBlocked);
+                return false;
+            }
+            const auto& inventory = world.GetComponent<InventoryComponent>(self);
+            u8_t wardSlot = InventoryComponent::kMaxSlots;
+            for (u8_t slot = 0u; slot < InventoryComponent::kMaxSlots; ++slot)
+            {
+                if (inventory.itemIds[slot] == kTrinketWardItemId)
+                {
+                    wardSlot = slot;
+                    break;
+                }
+            }
+            if (wardSlot >= InventoryComponent::kMaxSlots)
+            {
+                SetChampionAIBlockReason(
+                    ai, eChampionAIDecisionBlockReason::StateBlocked);
+                return false;
+            }
+
             Vec3 targetPos{};
             if (!TryGetPosition(world, target, targetPos))
             {
@@ -2466,7 +3116,7 @@ namespace
 
             const Vec3 wardPos = ResolveWardBehindTargetPosition(selfPos, targetPos);
             GameCommand cmd = MakeAICommand(ai, tc, self, eCommandKind::UseItem);
-            cmd.slot = step.slot;
+            cmd.slot = wardSlot;
             cmd.itemId = step.itemId;
             cmd.targetEntity = NULL_ENTITY;
             cmd.groundPos = wardPos;
@@ -2559,6 +3209,24 @@ namespace
         const u8_t stepCount = std::min(combo.stepCount, static_cast<u8_t>(10u));
         const u8_t index = static_cast<u8_t>(ai.comboStep % stepCount);
         const ChampionAIComboStep& step = combo.steps[index];
+
+        // Yone's final E2 entry is a return-decision gate, not an unconditional
+        // combo cast. TryEmitYoneSoulReturnCommand owns the actual command and
+        // releases this wait when the common retreat score wins or E is about
+        // to expire. Keeping the step here prevents the combo from restarting
+        // at E1 and immediately recasting while Soul Unbound is still active.
+        if (champion.id == eChampion::YONE &&
+            step.slot == static_cast<u8_t>(eSkillSlot::E) &&
+            step.itemId == 2u &&
+            world.HasComponent<YoneSimComponent>(self) &&
+            world.GetComponent<YoneSimComponent>(self).bSoulUnboundActive)
+        {
+            SetChampionAIBlockReason(
+                ai,
+                eChampionAIDecisionBlockReason::PolicyCastInterval);
+            return true;
+        }
+
         if (IsComboStepUnlearned(world, self, step))
         {
             const u8_t nextStep = static_cast<u8_t>((index + 1u) % stepCount);
@@ -2570,8 +3238,7 @@ namespace
 
         if (!CanUseComboStep(world, tc, self, champion.id, step, ctx))
         {
-            if (bWasActive &&
-                ctx.enemyDistance > 0.f)
+            if (ctx.enemyDistance > 0.f)
             {
                 f32_t maxRange = step.maxRange;
                 if (maxRange <= 0.f)
@@ -2587,6 +3254,27 @@ namespace
                 }
                 if (maxRange <= 0.f || ctx.enemyDistance <= maxRange)
                 {
+                    const bool_t bBasicAttackReadinessPending =
+                        step.slot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+                        !ctx.bCanAttack;
+                    const bool_t bSkillReadinessPending =
+                        step.slot != static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+                        step.itemId != 2u &&
+                        HasSufficientSkillResource(
+                            world,
+                            tc,
+                            self,
+                            champion.id,
+                            step.slot) &&
+                        !IsSkillReady(world, self, step.slot);
+                    if (bBasicAttackReadinessPending || bSkillReadinessPending)
+                    {
+                        SetChampionAIBlockReason(
+                            ai,
+                            eChampionAIDecisionBlockReason::SkillCooldown);
+                        return true;
+                    }
+
                     // 사거리 안인데 조건 불충족(쿨다운/스테이지/강탈/override 등):
                     // 정지 대신 다음 step으로 진행해 콤보가 교착되지 않게 한다.
                     const u8_t nextComboStep =
@@ -2594,7 +3282,7 @@ namespace
                     ai.comboStep = nextComboStep;
                     if (nextComboStep == 0u)
                         CompleteChampionAICombo(ai, ctx);
-                    return bWasActive;
+                    return true;
                 }
 
                 Vec3 targetPos{};
@@ -2605,12 +3293,11 @@ namespace
                         eChampionAIAction::AttackChampion, "combo-attack-champion-chase",
                         outCommands
                     );
-                    return bMoveEmitted || bWasActive;
+                    return bMoveEmitted || ai.comboTarget != NULL_ENTITY;
                 }
             }
-            if (!bWasActive)
-                ClearChampionAICombo(ai);
-            return bWasActive;
+            ClearChampionAICombo(ai);
+            return false;
         }
 
         if (EmitChampionAIComboStep(world, tc, self, ai, champion, selfPos,
@@ -2793,7 +3480,48 @@ namespace
         ai.fDiveExtraBAWindow = ResolveChampionAITuningParam(
             ai.tuning.diveExtraBAWindow, 1.80f, bOverrideProfile);
         ai.fSkillCastMinInterval = ResolveChampionAITuningParam(
-            ai.tuning.skillCastMinInterval, 3.f, bOverrideProfile);
+            ai.tuning.skillCastMinInterval, 0.35f, bOverrideProfile);
+        ai.followWaveSearchRange = ResolveChampionAITuningParam(
+            ai.tuning.followWaveSearchRange, 80.f, bOverrideProfile);
+        ai.fFarmPriority = ResolveChampionAITuningParam(
+            ai.tuning.farmPriority,
+            profile.minionPressureWeight * profile.lastHitWeight,
+            bOverrideProfile);
+    }
+
+    ChampionAIValuation::ValueInput BuildChampionAIValueInput(
+        const ChampionAIComponent& ai,
+        const ChampionAIContext& ctx,
+        const ChampionAIProfile& profile)
+    {
+        ChampionAIValuation::ValueInput vin{};
+        vin.selfHpRatio = ctx.selfHpRatio;
+        vin.enemyHpRatio = ctx.enemyHpRatio;
+        vin.selfGold = ctx.selfGold;
+        vin.enemyGold = ctx.enemyGold;
+        vin.selfLevel = ctx.selfLevel;
+        vin.enemyLevel = ctx.enemyLevel;
+        vin.enemyDistance = ctx.enemyDistance;
+        vin.attackRange = ctx.attackRange;
+        vin.engageRange = ctx.engageRange;
+        vin.turretDanger = ctx.turretDanger;
+        vin.incomingComboDamageRatio =
+            ctx.observedEnemyComboDamageRatio;
+        vin.retreatHpRatio = ai.retreatHpRatio;
+        vin.reengageHpRatio = ai.reengageHpRatio;
+        vin.fightUtilityWeight = profile.aggression;
+        vin.farmUtilityWeight = ai.fFarmPriority;
+        vin.siegeUtilityWeight = profile.siegeWeight;
+        vin.turretRiskWeight = profile.turretRiskWeight;
+        vin.bEnemyChampionTargetable = ctx.bEnemyChampionTargetable;
+        vin.bAlliedWaveNearby = ctx.bAlliedWaveNearby;
+        vin.bEnemyMinionInRange = ctx.enemyMinion != NULL_ENTITY;
+        vin.bStructureExposed =
+            ctx.enemyChampion == NULL_ENTITY &&
+            ctx.enemyStructure != NULL_ENTITY &&
+            ctx.alliedWave != NULL_ENTITY &&
+            ctx.bStructureWaveTanking;
+        return vin;
     }
 
     void UpdateChampionAIDecisionEvidence(
@@ -2805,8 +3533,11 @@ namespace
         ai.fDecisionSelfHpRatio = ctx.selfHpRatio;
         ai.fDecisionEnemyHpRatio = ctx.enemyHpRatio;
         ai.fDecisionEnemyDistance = ctx.enemyDistance;
-        ai.fDecisionAttackRange = ctx.attackRange;
+        ai.fDecisionAttackRange = ctx.engageRange;
         ai.fDecisionTurretDanger = ctx.turretDanger;
+        ai.targetMinion = ctx.enemyMinion;
+        ai.alliedWave = ctx.alliedWave;
+        ai.fDecisionWaveDistance = ctx.waveDistance;
         ai.lowHpEnemyChampion = ctx.lowHpEnemyChampion;
         ai.fDecisionLowHpEnemyRatio = ctx.lowHpEnemyRatio;
         ai.fDecisionLowHpEnemyDistance = ctx.lowHpEnemyDistance;
@@ -2816,35 +3547,10 @@ namespace
             GameplayDefinitionQuery::ResolveSummonerSpellRange(
                 tc,
                 ChampionScoreComponent::kSummonerSpellFlash);
-        if (ctx.enemyChampion == NULL_ENTITY && ctx.lowHpEnemyChampion == NULL_ENTITY)
-            SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::NoTarget);
         ai.bCanAttackChampion = CanAttackChampion(ai, ctx);
 
-        ChampionAIValuation::ValueInput vin{};
-        vin.selfHpRatio = ctx.selfHpRatio;
-        vin.enemyHpRatio = ctx.enemyHpRatio;
-        vin.selfGold = ctx.selfGold;
-        vin.enemyGold = ctx.enemyGold;
-        vin.selfLevel = ctx.selfLevel;
-        vin.enemyLevel = ctx.enemyLevel;
-        vin.enemyDistance = ctx.enemyDistance;
-        vin.attackRange = ctx.attackRange;
-        vin.turretDanger = ctx.turretDanger;
-        vin.retreatHpRatio = ai.retreatHpRatio;
-        vin.reengageHpRatio = ai.reengageHpRatio;
-        vin.fightUtilityWeight = profile.aggression;
-        vin.farmUtilityWeight =
-            profile.minionPressureWeight * profile.lastHitWeight;
-        vin.siegeUtilityWeight = profile.siegeWeight;
-        vin.turretRiskWeight = profile.turretRiskWeight;
-        vin.bEnemyChampionTargetable = ctx.bEnemyChampionTargetable;
-        vin.bAlliedWaveNearby = ctx.bAlliedWaveNearby;
-        vin.bEnemyMinionInRange = (ctx.enemyMinion != NULL_ENTITY);
-        vin.bStructureExposed =
-            (ctx.enemyChampion == NULL_ENTITY &&
-                ctx.enemyStructure != NULL_ENTITY &&
-                ctx.alliedWave != NULL_ENTITY &&
-                ctx.bStructureWaveTanking);
+        const ChampionAIValuation::ValueInput vin =
+            BuildChampionAIValueInput(ai, ctx, profile);
 
         const ChampionAIValuation::UtilityScores utility =
             ChampionAIValuation::BuildUtilityScores(vin);
@@ -3038,8 +3744,22 @@ namespace
             if (!TryGetPosition(world, target, targetPos))
                 return false;
 
+            const ChampionAIProfile& profile = GetChampionAIProfile(champion.id);
+            Vec3 moveGoal = targetPos;
+            if (profile.kiteBias > 0.f &&
+                ctx.enemyDistance < profile.preferredRange * 0.85f)
+            {
+                const Vec3 away = WintersMath::DirectionXZ(targetPos, selfPos);
+                const f32_t step = std::max(0.75f, profile.kiteBias);
+                moveGoal = Vec3{
+                    selfPos.x + away.x * step,
+                    selfPos.y,
+                    selfPos.z + away.z * step
+                };
+            }
+
             return EmitMoveCommand(world, tc, self, ai, champion.id, selfPos,
-                targetPos, eChampionAIAction::AttackChampion,
+                moveGoal, eChampionAIAction::AttackChampion,
                 "post-combo-attack-champion-move", outCommands);
         }
 
@@ -3066,8 +3786,21 @@ namespace
         if (!TryGetPosition(world, target, targetPos))
             return false;
 
+        Vec3 moveGoal = targetPos;
+        if (profile.kiteBias > 0.f &&
+            ctx.enemyDistance < profile.preferredRange * 0.85f)
+        {
+            const Vec3 away = WintersMath::DirectionXZ(targetPos, selfPos);
+            const f32_t step = std::max(0.75f, profile.kiteBias);
+            moveGoal = Vec3{
+                selfPos.x + away.x * step,
+                selfPos.y,
+                selfPos.z + away.z * step
+            };
+        }
+
         return EmitMoveCommand(world, tc, self, ai, champion.id, selfPos,
-            targetPos, eChampionAIAction::AttackChampion,
+            moveGoal, eChampionAIAction::AttackChampion,
             "lane-attack-champion-move", outCommands);
     }
 
@@ -3543,6 +4276,117 @@ namespace
         if (ctx.enemyMinion == NULL_ENTITY)
             return false;
 
+        DamageRequest basicAttack{};
+        basicAttack.source = self;
+        basicAttack.target = ctx.enemyMinion;
+        basicAttack.sourceTeam = champion.team;
+        basicAttack.type = eDamageType::Physical;
+        basicAttack.adRatioOverride = 1.f;
+        basicAttack.eSourceKind = eDamageSourceKind::BasicAttack;
+        basicAttack.flags = DamageFlag_OnHit;
+        const bool_t bBasicAttackLastHit =
+            WouldNonCriticalDamageRequestKill(world, tc, basicAttack);
+
+        if (bBasicAttackLastHit &&
+            EmitBasicAttackCommand(world, tc, self, ai, champion.id, selfPos,
+                ctx.enemyMinion, eChampionAIAction::AttackMinion,
+                "lane-last-hit-minion-ba", outCommands))
+        {
+            return true;
+        }
+
+        Vec3 minionPos{};
+        if (TryGetPosition(world, ctx.enemyMinion, minionPos))
+        {
+            const f32_t minionDistance = std::sqrt(std::max(
+                0.f,
+                WintersMath::DistanceSqXZ(selfPos, minionPos)));
+            const ChampionAIProfile& profile = GetChampionAIProfile(champion.id);
+            bool_t evaluated[4]{};
+            const u8_t ruleCount = (std::min)(
+                profile.skillRuleCount,
+                static_cast<u8_t>(4u));
+            for (u8_t candidateIndex = 0u;
+                candidateIndex < ruleCount;
+                ++candidateIndex)
+            {
+                u8_t bestIndex = ruleCount;
+                f32_t bestScore = -1.f;
+                for (u8_t index = 0u; index < ruleCount; ++index)
+                {
+                    const ChampionAISkillRule& rule = profile.skillRules[index];
+                    if (evaluated[index] ||
+                        rule.slot == static_cast<u8_t>(eSkillSlot::BasicAttack) ||
+                        rule.slot == static_cast<u8_t>(eSkillSlot::R))
+                    {
+                        continue;
+                    }
+                    if (bestIndex == ruleCount || rule.score > bestScore)
+                    {
+                        bestIndex = index;
+                        bestScore = rule.score;
+                    }
+                }
+
+                if (bestIndex == ruleCount)
+                    break;
+                evaluated[bestIndex] = true;
+                const ChampionAISkillRule& rule = profile.skillRules[bestIndex];
+                const f32_t skillRange = GameplayDefinitionQuery::ResolveSkillRange(
+                    world,
+                    self,
+                    tc,
+                    champion.id,
+                    rule.slot);
+                if (skillRange <= 0.f || minionDistance > skillRange ||
+                    !IsSkillReady(world, self, rule.slot) ||
+                    !HasSufficientSkillResource(
+                        world, tc, self, champion.id, rule.slot))
+                {
+                    continue;
+                }
+
+                DamageRequest skillDamage{};
+                if (!GameplayDefinitionQuery::BuildSkillDamageRequest(
+                        world,
+                        self,
+                        ctx.enemyMinion,
+                        tc,
+                        champion.id,
+                        rule.slot,
+                        world.HasComponent<SkillRankComponent>(self)
+                            ? world.GetComponent<SkillRankComponent>(self).ranks[rule.slot]
+                            : 1u,
+                        champion.team,
+                        eDamageSourceKind::Skill,
+                        skillDamage))
+                {
+                    continue;
+                }
+                skillDamage.flags &= ~DamageFlag_CanCrit;
+                if (!WouldNonCriticalDamageRequestKill(world, tc, skillDamage))
+                    continue;
+
+                if (EmitSkillCommand(
+                        world,
+                        tc,
+                        self,
+                        ai,
+                        champion.id,
+                        selfPos,
+                        ctx.enemyMinion,
+                        rule.slot,
+                        "lane-last-hit-minion-skill",
+                        outCommands,
+                        0u,
+                        static_cast<u8_t>(eChampionAIComboTargetMode::TargetEntity),
+                        eChampionAIAction::AttackMinion))
+                {
+                    return true;
+                }
+            }
+        }
+
         if (EmitBasicAttackCommand(world, tc, self, ai, champion.id, selfPos,
             ctx.enemyMinion, eChampionAIAction::AttackMinion,
             "lane-attack-minion-ba", outCommands))
@@ -3580,6 +4424,100 @@ namespace
     }
 
     // Champion-specific combat tactics stay behind one function-pointer seam.
+    bool_t PrepareYoneTimerReturnTail(ChampionAIComponent& ai)
+    {
+        const ChampionAIComboPlan& combo =
+            GetChampionAIComboPlan(eChampion::YONE);
+        const u8_t stepCount = std::min(
+            combo.stepCount,
+            static_cast<u8_t>(10u));
+        if (stepCount == 0u || ai.comboTarget == NULL_ENTITY)
+            return false;
+
+        const u8_t currentStep = static_cast<u8_t>(ai.comboStep % stepCount);
+        for (u8_t stepIndex = currentStep;
+            stepIndex + 1u < stepCount;
+            ++stepIndex)
+        {
+            const ChampionAIComboStep& returnStep = combo.steps[stepIndex];
+            const ChampionAIComboStep& followStep = combo.steps[stepIndex + 1u];
+            if (returnStep.slot == static_cast<u8_t>(eSkillSlot::E) &&
+                returnStep.itemId == 2u &&
+                followStep.slot == static_cast<u8_t>(eSkillSlot::R))
+            {
+                // The fixed E window can expire before every authored BA at
+                // low attack speed. Preserve the normal return->R tail while
+                // dropping only the no-longer-executable middle steps.
+                ai.comboStep = stepIndex;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool_t TryEmitYoneSoulReturnCommand(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID self,
+        ChampionAIComponent& ai,
+        ChampionComponent& champion,
+        const Vec3& selfPos,
+        const ChampionAIContext& ctx,
+        std::vector<GameCommand>& outCommands)
+    {
+        if (champion.id != eChampion::YONE ||
+            !world.HasComponent<YoneSimComponent>(self))
+        {
+            return false;
+        }
+
+        const YoneSimComponent& state =
+            world.GetComponent<YoneSimComponent>(self);
+        if (!state.bSoulUnboundActive || state.bReturning)
+            return false;
+
+        const bool_t bRetreatUtilityDominates =
+            ai.fRetreatDecisionScore >= 0.50f &&
+            ai.fRetreatDecisionScore >=
+                ai.fChampionDecisionScore + ai.fChampionScoreMargin;
+        const bool_t bTimerReturn = state.soulTimerSec <= 0.75f;
+        const bool_t bTargetLost = ctx.enemyChampion == NULL_ENTITY;
+        const bool_t bSafetyReturn =
+            bRetreatUtilityDominates || bTargetLost;
+        const bool_t bShouldReturn = bTimerReturn || bSafetyReturn;
+        if (!bShouldReturn || !GameplayStateQuery::CanCast(world, self))
+            return false;
+
+        ai.bYonePostReturnUltimatePending =
+            bTimerReturn &&
+            !bSafetyReturn &&
+            PrepareYoneTimerReturnTail(ai);
+
+        ai.lastAction = eChampionAIAction::Retreat;
+        GameCommand cmd = MakeAICommand(ai, tc, self, eCommandKind::CastSkill);
+        cmd.slot = static_cast<u8_t>(eSkillSlot::E);
+        cmd.itemId = 2u;
+        cmd.targetEntity = self;
+        cmd.direction = WintersMath::DirectionXZ(selfPos, state.anchorPosition);
+        cmd.groundPos = state.anchorPosition;
+        outCommands.push_back(cmd);
+        RecordChampionAICommandDebug(
+            ai, self, cmd.kind, cmd.slot, state.anchorPosition);
+        PushChampionAIDecisionTrace(world, self, ai, tc, self, true);
+        LogChampionAICommand(
+            "yone-e-soul-return",
+            tc,
+            self,
+            ai,
+            champion.id,
+            selfPos,
+            state.anchorPosition,
+            self,
+            cmd.kind,
+            cmd.slot);
+        return true;
+    }
+
     bool_t TryExecuteYoneChampionCombat(
         CWorld& world,
         const TickContext& tc,
@@ -3593,88 +4531,26 @@ namespace
         if (champion.id != eChampion::YONE)
             return false;
 
-        const u8_t qSlot = static_cast<u8_t>(eSkillSlot::Q);
-        const u8_t wSlot = static_cast<u8_t>(eSkillSlot::W);
-        const u8_t eSlot = static_cast<u8_t>(eSkillSlot::E);
-        const u8_t rSlot = static_cast<u8_t>(eSkillSlot::R);
-
-        const YoneSimComponent* pYoneState = world.HasComponent<YoneSimComponent>(self)
-            ? &world.GetComponent<YoneSimComponent>(self)
-            : nullptr;
-        const bool_t bSoulOut =
-            pYoneState != nullptr &&
-            pYoneState->bSoulUnboundActive &&
-            !pYoneState->bReturning;
-
-        // E recast is a stage-2 command. It must bypass the AI cooldown gate
-        // and let CommandExecutor validate the active stage window.
-        if (bSoulOut)
+        if (TryEmitYoneSoulReturnCommand(
+                world, tc, self, ai, champion, selfPos, ctx, outCommands))
         {
-            const bool_t bShouldReturn =
-                pYoneState->soulTimerSec <= 0.75f ||
-                ctx.selfHpRatio <= ai.reengageHpRatio ||
-                ctx.bInsideEnemyTurretDanger ||
-                ctx.enemyChampion == NULL_ENTITY ||
-                ctx.selfHpRatio + ai.fChampionScoreMargin < ctx.enemyHpRatio;
-            if (bShouldReturn)
-            {
-                if (!GameplayStateQuery::CanCast(world, self))
-                {
-                    SetChampionAIBlockReason(
-                        ai,
-                        eChampionAIDecisionBlockReason::StateBlocked);
-                    return false;
-                }
-
-                ai.lastAction = eChampionAIAction::Retreat;
-                GameCommand cmd = MakeAICommand(ai, tc, self, eCommandKind::CastSkill);
-                cmd.slot = eSlot;
-                cmd.itemId = 2u;
-                cmd.direction = WintersMath::DirectionXZ(selfPos, pYoneState->anchorPosition);
-                cmd.groundPos = pYoneState->anchorPosition;
-                outCommands.push_back(cmd);
-                RecordChampionAICommandDebug(ai, NULL_ENTITY, cmd.kind, cmd.slot, pYoneState->anchorPosition);
-                PushChampionAIDecisionTrace(
-                    world, self, ai, tc, NULL_ENTITY, true);
-                LogChampionAICommand("yone-e-soul-return", tc, self, ai, champion.id,
-                    selfPos, pYoneState->anchorPosition, NULL_ENTITY, cmd.kind, cmd.slot);
-                return true;
-            }
+            return true;
         }
 
         const EntityID target = ctx.enemyChampion;
         if (target == NULL_ENTITY || !CanAttackChampion(ai, ctx))
             return false;
 
-        if ((ctx.enemyHpRatio <= 0.5f || bSoulOut) &&
-            EmitSkillCommand(world, tc, self, ai, champion.id, selfPos, target,
-                rSlot, "yone-r-champion", outCommands))
-        {
-            return true;
-        }
-
-        if (!bSoulOut &&
-            ctx.enemyDistance > ctx.attackRange + 0.25f &&
-            EmitSkillCommand(world, tc, self, ai, champion.id, selfPos, target,
-                eSlot, "yone-e-soul-engage", outCommands))
-        {
-            return true;
-        }
-
-        if (EmitSkillCommand(world, tc, self, ai, champion.id, selfPos, target,
-            qSlot, "yone-q-champion", outCommands))
-        {
-            return true;
-        }
-
-        if (EmitSkillCommand(world, tc, self, ai, champion.id, selfPos, target,
-            wSlot, "yone-w-champion", outCommands))
-        {
-            return true;
-        }
-
-        return EmitBasicAttackCommand(world, tc, self, ai, champion.id, selfPos, target,
-            eChampionAIAction::AttackChampion, "yone-ba-champion", outCommands);
+        return TryEmitAttackChampionCombo(
+            world,
+            tc,
+            self,
+            ai,
+            champion,
+            selfPos,
+            target,
+            ctx,
+            outCommands);
     }
 
     using ChampionCombatTacticsFn = bool_t (*)(
@@ -3800,13 +4676,91 @@ namespace
         SetChampionAIIntent(ai, eChampionAIIntent::FarmMinion);
         ClearChampionAICombo(ai);
 
-        if (TryExecuteYasuoMinionFarm(world, tc, self, ai, champion, selfPos, ctx, outCommands))
-            return;
-
         if (TryExecuteMinionFarm(world, tc, self, ai, champion, selfPos, ctx, outCommands))
             return;
 
         TryExecuteFollowWave(world, tc, self, ai, champion, selfPos, ctx, outCommands);
+    }
+
+    void ClearTeamPingObjective(ChampionAIComponent& ai)
+    {
+        ai.teamPingExpireTick = 0u;
+        ai.teamPingAnchor = {};
+        ai.teamPingKind = eTeamPingKind::None;
+        ai.bTeamPingObjectiveActive = false;
+    }
+
+    bool_t TryExecuteTeamPingObjective(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID self,
+        ChampionAIComponent& ai,
+        ChampionComponent& champion,
+        const Vec3& selfPos,
+        const ChampionAIContext& ctx,
+        std::vector<GameCommand>& outCommands)
+    {
+        if (!ai.bTeamPingObjectiveActive)
+            return false;
+
+        if (ai.comboTarget != NULL_ENTITY ||
+            (ai.diveTarget != NULL_ENTITY &&
+                ai.divePhase != eChampionAIDivePhase::None))
+        {
+            return false;
+        }
+
+        if (ai.teamPingKind == eTeamPingKind::Danger)
+        {
+            SetChampionAIIntent(ai, eChampionAIIntent::Retreat, true);
+            (void)EmitMoveCommand(
+                world,
+                tc,
+                self,
+                ai,
+                champion.id,
+                selfPos,
+                ai.safeAnchor,
+                eChampionAIAction::MoveToSafeAnchor,
+                "team-ping-danger",
+                outCommands);
+            return true;
+        }
+
+        if (ai.teamPingKind == eTeamPingKind::Assist)
+        {
+            if (ctx.enemyChampion != NULL_ENTITY)
+            {
+                ExecuteLaneCombat(
+                    world, tc, self, ai, champion, selfPos, ctx, outCommands);
+                return true;
+            }
+
+            if (HasReachedGoal(
+                    selfPos,
+                    ai.teamPingAnchor,
+                    kChampionAITeamPingArrivalRadius))
+            {
+                return true;
+            }
+
+            SetChampionAIIntent(ai, eChampionAIIntent::DefendMid, true);
+            (void)EmitMoveCommand(
+                world,
+                tc,
+                self,
+                ai,
+                champion.id,
+                selfPos,
+                ai.teamPingAnchor,
+                eChampionAIAction::FollowWave,
+                "team-ping-assist",
+                outCommands);
+            return true;
+        }
+
+        ClearTeamPingObjective(ai);
+        return false;
     }
 
     void ExecuteGroupMidDefense(
@@ -3820,6 +4774,20 @@ namespace
         std::vector<GameCommand>& outCommands)
     {
         ai.midDefenseAnchor = ctx.midDefenseAnchor;
+
+        if (ctx.enemyChampion != NULL_ENTITY)
+        {
+            ExecuteLaneCombat(
+                world,
+                tc,
+                self,
+                ai,
+                champion,
+                selfPos,
+                ctx,
+                outCommands);
+            return;
+        }
 
         if (ai.comboTarget != NULL_ENTITY ||
             (ai.diveTarget != NULL_ENTITY &&
@@ -3883,7 +4851,14 @@ namespace
         const ChampionAIContext& ctx,
         std::vector<GameCommand>& outCommands)
     {
-        if (ctx.bAlliedWaveNearby)
+        if (ctx.enemyChampion != NULL_ENTITY)
+        {
+            ExecuteLaneCombat(
+                world, tc, self, ai, champion, selfPos, ctx, outCommands);
+            return;
+        }
+
+        if (ctx.enemyMinion != NULL_ENTITY || ctx.alliedWave != NULL_ENTITY)
         {
             ai.bWaveJoined = true;
             ExecuteLaneCombat(world, tc, self, ai, champion, selfPos, ctx, outCommands);
@@ -3912,7 +4887,14 @@ namespace
         const ChampionAIContext& ctx,
         std::vector<GameCommand>& outCommands)
     {
-        if (ctx.bAlliedWaveNearby)
+        if (ctx.enemyChampion != NULL_ENTITY)
+        {
+            ExecuteLaneCombat(
+                world, tc, self, ai, champion, selfPos, ctx, outCommands);
+            return;
+        }
+
+        if (ctx.enemyMinion != NULL_ENTITY || ctx.alliedWave != NULL_ENTITY)
         {
             ai.bWaveJoined = true;
             ExecuteLaneCombat(world, tc, self, ai, champion, selfPos, ctx, outCommands);
@@ -3966,7 +4948,10 @@ namespace
             ai.state = eChampionAIState::LaneCombat;
             ai.intent = eChampionAIIntent::FarmMinion;
             if (ctx.enemyMinion == NULL_ENTITY)
-                return false;
+            {
+                SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::NoTarget);
+                return bForceAction;
+            }
             if (EmitBasicAttackCommand(world, tc, self, ai, champion.id, selfPos,
                 ctx.enemyMinion, eChampionAIAction::AttackMinion,
                 "debug-attack-minion-ba", outCommands))
@@ -3980,7 +4965,10 @@ namespace
         case eChampionAIAction::AttackChampion:
             ai.state = eChampionAIState::LaneCombat;
             if (ctx.enemyChampion == NULL_ENTITY)
-                return false;
+            {
+                SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::NoTarget);
+                return bForceAction;
+            }
             SetChampionAIIntent(ai, eChampionAIIntent::AttackChampion, true);
             ai.lockedChampion = ctx.enemyChampion;
             if (skillSlot > 0u)
@@ -3996,7 +4984,10 @@ namespace
             ai.state = eChampionAIState::LaneCombat;
             ai.intent = eChampionAIIntent::SiegeStructure;
             if (ctx.enemyStructure == NULL_ENTITY)
-                return false;
+            {
+                SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::NoTarget);
+                return bForceAction;
+            }
             if (EmitBasicAttackCommand(world, tc, self, ai, champion.id, selfPos,
                 ctx.enemyStructure, eChampionAIAction::AttackStructure,
                 "debug-attack-structure-ba", outCommands))
@@ -4018,6 +5009,120 @@ namespace
             return false;
         }
     }
+}
+
+f32_t CChampionAISystem::EstimateObservedEnemyComboDamageRatio(
+    CWorld& world,
+    const TickContext& tc,
+    EntityID self,
+    EntityID enemy,
+    f32_t enemyDistance)
+{
+    return EstimateObservedEnemyComboDamageRatioImpl(
+        world,
+        tc,
+        self,
+        enemy,
+        enemyDistance);
+}
+
+Vec3 CChampionAISystem::ResolveSafeAnchor(
+    CWorld& world,
+    eTeam team,
+    u8_t lane,
+    const Vec3& fallback)
+{
+    const u32_t turretKind =
+        static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Turret);
+    const u32_t nexusKind =
+        static_cast<u32_t>(Winters::Map::eObjectKind::Structure_Nexus);
+    const u32_t nexusTier =
+        static_cast<u32_t>(Winters::Map::eTurretTier::Nexus);
+
+    EntityID bestLaneTurret = NULL_ENTITY;
+    u32_t bestLaneTier = (std::numeric_limits<u32_t>::max)();
+    Vec3 bestLaneTurretPos{};
+
+    EntityID bestBaseTurret = NULL_ENTITY;
+    f32_t bestBaseDistanceSq = (std::numeric_limits<f32_t>::max)();
+    Vec3 bestBaseTurretPos{};
+
+    EntityID bestNexus = NULL_ENTITY;
+    Vec3 bestNexusPos{};
+
+    world.ForEach<StructureComponent, TransformComponent>(
+        [&](EntityID entity,
+            StructureComponent& structure,
+            TransformComponent& transform)
+        {
+            if (structure.team != team || !IsAliveTarget(world, entity))
+                return;
+
+            const Vec3 position = transform.GetPosition();
+            if (structure.kind == nexusKind)
+            {
+                if (bestNexus == NULL_ENTITY || entity < bestNexus)
+                {
+                    bestNexus = entity;
+                    bestNexusPos = position;
+                }
+                return;
+            }
+
+            if (structure.kind != turretKind)
+                return;
+
+            if (structure.lane == static_cast<u32_t>(lane) &&
+                (bestLaneTurret == NULL_ENTITY ||
+                    structure.tier < bestLaneTier ||
+                    (structure.tier == bestLaneTier && entity < bestLaneTurret)))
+            {
+                bestLaneTurret = entity;
+                bestLaneTier = structure.tier;
+                bestLaneTurretPos = position;
+            }
+
+            if (structure.tier == nexusTier)
+            {
+                const f32_t distanceSq =
+                    WintersMath::DistanceSqXZ(fallback, position);
+                if (bestBaseTurret == NULL_ENTITY ||
+                    distanceSq < bestBaseDistanceSq ||
+                    (distanceSq == bestBaseDistanceSq && entity < bestBaseTurret))
+                {
+                    bestBaseTurret = entity;
+                    bestBaseDistanceSq = distanceSq;
+                    bestBaseTurretPos = position;
+                }
+            }
+        });
+
+    const bool_t bHasLaneTurret = bestLaneTurret != NULL_ENTITY;
+    const bool_t bHasBaseTurret = bestBaseTurret != NULL_ENTITY;
+    if (!bHasLaneTurret && !bHasBaseTurret)
+    {
+        Vec3 result = bestNexus != NULL_ENTITY ? bestNexusPos : fallback;
+        result.y = 1.f;
+        return result;
+    }
+
+    const Vec3 turretPos = bHasLaneTurret
+        ? bestLaneTurretPos
+        : bestBaseTurretPos;
+    Vec3 baseDirection = bestNexus != NULL_ENTITY
+        ? WintersMath::DirectionXZ(turretPos, bestNexusPos)
+        : Vec3{ team == eTeam::Blue ? 1.f : -1.f, 0.f, 0.f };
+    if (baseDirection.x == 0.f && baseDirection.z == 0.f)
+    {
+        baseDirection =
+            Vec3{ team == eTeam::Blue ? 1.f : -1.f, 0.f, 0.f };
+    }
+
+    return Vec3{
+        turretPos.x + baseDirection.x * kChampionAISafeAnchorBehindTurret,
+        1.f,
+        turretPos.z + baseDirection.z * kChampionAISafeAnchorBehindTurret
+    };
 }
 
 AiDecisionTraceV1 CChampionAISystem::BuildResearchDecisionTrace(
@@ -4059,7 +5164,9 @@ AiDecisionTraceV1 CChampionAISystem::BuildResearchDecisionTrace(
         observation.enemyGold = perception.enemyGold;
         observation.enemyDistance = perception.enemyDistance;
     }
-    observation.attackRange = perception.attackRange;
+    // V1 field name is retained for wire compatibility; it records the range
+    // actually consumed by the fight utility.
+    observation.attackRange = perception.engageRange;
     observation.turretDanger = perception.turretDanger;
     if (perception.bCanMove)
         observation.capabilityFlags |= kAiObservationCanMoveFlagV1;
@@ -4104,11 +5211,49 @@ AiDecisionTraceV1 CChampionAISystem::BuildResearchDecisionTrace(
     actionMask.illegalCandidateMask =
         kAiAllCandidateBitsV1 & ~actionMask.legalCandidateMask;
 
+    const ChampionAIValuation::ValueInput valueInput =
+        BuildChampionAIValueInput(
+            ai,
+            perception,
+            GetChampionAIProfile(ai.champion));
+    const ChampionAIValuation::UtilityBreakdown breakdown =
+        ChampionAIValuation::BuildUtilityBreakdown(valueInput);
+    constexpr AiFeatureIdV1 kRetreatFeatures[4] =
+    {
+        AiFeatureIdV1::HealthPressure,
+        AiFeatureIdV1::TurretRisk,
+        AiFeatureIdV1::ObservedComboRisk,
+        AiFeatureIdV1::ClampOrThresholdAdjustment,
+    };
+    constexpr AiFeatureIdV1 kFightFeatures[4] =
+    {
+        AiFeatureIdV1::PositiveOpportunity,
+        AiFeatureIdV1::TurretRisk,
+        AiFeatureIdV1::ObservedComboRisk,
+        AiFeatureIdV1::ClampOrThresholdAdjustment,
+    };
+    constexpr AiFeatureIdV1 kFarmFeatures[4] =
+    {
+        AiFeatureIdV1::FarmOpportunity,
+        AiFeatureIdV1::ClampOrThresholdAdjustment,
+        AiFeatureIdV1::None,
+        AiFeatureIdV1::None,
+    };
+    constexpr AiFeatureIdV1 kSiegeFeatures[4] =
+    {
+        AiFeatureIdV1::StructureExposure,
+        AiFeatureIdV1::ClampOrThresholdAdjustment,
+        AiFeatureIdV1::None,
+        AiFeatureIdV1::None,
+    };
+
     auto setCandidate = [&](u8_t index,
                             AiCandidateKindV1 kind,
                             u32_t candidateBit,
                             EntityID target,
-                            f32_t score)
+                            f32_t score,
+                            const ChampionAIValuation::CandidateBreakdown& candidateBreakdown,
+                            const AiFeatureIdV1* features)
     {
         AiCandidateEvidenceV1& candidate = trace.candidates[index];
         candidate.candidateKind = static_cast<u8_t>(kind);
@@ -4120,12 +5265,32 @@ AiDecisionTraceV1 CChampionAISystem::BuildResearchDecisionTrace(
                 : 0u;
         if (candidate.targetNetEntityId != 0u)
             candidate.flags |= kAiCandidateHasTargetFlagV1;
-        candidate.contributionCount = 1u;
-        AiFeatureContributionV1& contribution = candidate.contributions[0];
-        contribution.featureId = static_cast<u16_t>(AiFeatureIdV1::UtilityScore);
-        contribution.rawValue = score;
-        contribution.weight = 1.f;
-        contribution.contribution = score;
+        candidate.contributionCount = std::min(
+            candidateBreakdown.termCount,
+            kAiFeatureContributionCapacityV1);
+        for (u8_t contributionIndex = 0u;
+            contributionIndex < candidate.contributionCount;
+            ++contributionIndex)
+        {
+            const ChampionAIValuation::UtilityTerm& source =
+                candidateBreakdown.terms[contributionIndex];
+            AiFeatureContributionV1& contribution =
+                candidate.contributions[contributionIndex];
+            contribution.featureId = static_cast<u16_t>(
+                features[contributionIndex]);
+            contribution.rawValue = source.rawValue;
+            contribution.weight = source.weight;
+            contribution.contribution = source.contribution;
+        }
+        if (candidate.contributionCount > 0u)
+        {
+            AiFeatureContributionV1& adjustment =
+                candidate.contributions[candidate.contributionCount - 1u];
+            const f32_t authoritativeAdjustment =
+                score - candidateBreakdown.score;
+            adjustment.rawValue += authoritativeAdjustment;
+            adjustment.contribution += authoritativeAdjustment;
+        }
     };
 
     setCandidate(
@@ -4133,25 +5298,33 @@ AiDecisionTraceV1 CChampionAISystem::BuildResearchDecisionTrace(
         AiCandidateKindV1::Retreat,
         kAiCandidateRetreatBitV1,
         NULL_ENTITY,
-        ai.fRetreatDecisionScore);
+        ai.fRetreatDecisionScore,
+        breakdown.retreat,
+        kRetreatFeatures);
     setCandidate(
         1u,
         AiCandidateKindV1::Fight,
         kAiCandidateFightBitV1,
         perception.enemyChampion,
-        ai.fChampionDecisionScore);
+        ai.fChampionDecisionScore,
+        breakdown.fight,
+        kFightFeatures);
     setCandidate(
         2u,
         AiCandidateKindV1::Farm,
         kAiCandidateFarmBitV1,
         perception.enemyMinion,
-        ai.fFarmDecisionScore);
+        ai.fFarmDecisionScore,
+        breakdown.farm,
+        kFarmFeatures);
     setCandidate(
         3u,
         AiCandidateKindV1::Siege,
         kAiCandidateSiegeBitV1,
         perception.enemyStructure,
-        ai.fStructureDecisionScore);
+        ai.fStructureDecisionScore,
+        breakdown.siege,
+        kSiegeFeatures);
 
     return trace;
 }
@@ -4190,6 +5363,15 @@ void CChampionAISystem::Execute(
             ai.fDiveExtraBATimer = std::max(0.f, ai.fDiveExtraBATimer - tc.fDt);
             ai.fSkillCastCooldownTimer =
                 std::max(0.f, ai.fSkillCastCooldownTimer - tc.fDt);
+            ai.midDefenseThreatHoldTimer =
+                std::max(0.f, ai.midDefenseThreatHoldTimer - tc.fDt);
+
+            if (ai.bTeamPingObjectiveActive &&
+                tc.tickIndex >= ai.teamPingExpireTick)
+            {
+                ClearTeamPingObjective(ai);
+                ai.decisionTimer = 0.f;
+            }
 
             const Vec3 selfPos = selfTf.GetPosition();
             const ChampionAIProfile& profile = GetChampionAIProfile(champion.id);
@@ -4227,12 +5409,30 @@ void CChampionAISystem::Execute(
             const bool_t bEmergencyInterrupt =
                 bEmergencySelfLowHp || bEmergencyTurretDanger;
             const bool_t bHasDebugOverride = ai.debugForcedDecisionCount > 0;
+            const bool_t bMacroRefreshDue = ai.decisionTimer <= 0.f;
             const bool_t bInfluenceRefreshDue =
-                ai.decisionTimer <= 0.f || bHasDebugOverride;
+                bMacroRefreshDue || bHasDebugOverride;
+            const bool_t bAnchorStateLocalCombatInterrupt =
+                ctx.enemyChampion != NULL_ENTITY &&
+                (ai.state == eChampionAIState::MoveToOuterTurret ||
+                    ai.state == eChampionAIState::WaitForWave ||
+                    ai.state == eChampionAIState::GroupMidDefense);
             if (ai.decisionTimer > 0.f &&
                 !bHasDebugOverride &&
-                !bEmergencyInterrupt)
+                !bEmergencyInterrupt &&
+                !bAnchorStateLocalCombatInterrupt)
             {
+                if (ctx.bCanCast)
+                {
+                    (void)TryEmitSkillLevelCommand(
+                        world,
+                        tc,
+                        self,
+                        ai,
+                        champion,
+                        profile,
+                        outCommands);
+                }
                 return;
             }
 
@@ -4250,6 +5450,43 @@ void CChampionAISystem::Execute(
                     ctx);
             }
 
+            // E2 is committed only after the authoritative Yone runtime enters
+            // the returning state. Only a normal timer return may preserve the
+            // following R step; safety returns cancel the combo.
+            if (champion.id == eChampion::YONE &&
+                world.HasComponent<YoneSimComponent>(self) &&
+                world.GetComponent<YoneSimComponent>(self).bReturning &&
+                ai.comboTarget != NULL_ENTITY)
+            {
+                const ChampionAIComboPlan& combo =
+                    GetChampionAIComboPlan(eChampion::YONE);
+                const u8_t stepCount = std::min(
+                    combo.stepCount,
+                    static_cast<u8_t>(10u));
+                const u8_t stepIndex = stepCount > 0u
+                    ? static_cast<u8_t>(ai.comboStep % stepCount)
+                    : 0u;
+                const ChampionAIComboStep& step = combo.steps[stepIndex];
+                const bool_t bPlannedReturnStep =
+                    stepCount > 0u &&
+                    step.slot == static_cast<u8_t>(eSkillSlot::E) &&
+                    step.itemId == 2u;
+                const bool_t bPostReturnUltimateStep =
+                    stepCount > 0u &&
+                    step.slot == static_cast<u8_t>(eSkillSlot::R);
+                if (ai.bYonePostReturnUltimatePending &&
+                    bPlannedReturnStep &&
+                    stepIndex + 1u < stepCount)
+                {
+                    ai.comboStep = static_cast<u8_t>(stepIndex + 1u);
+                }
+                else if (!(ai.bYonePostReturnUltimatePending &&
+                    bPostReturnUltimateStep))
+                {
+                    ClearChampionAICombo(ai);
+                }
+            }
+
             if (IsChampionAIActionLocked(world, self, champion.id, tc))
             {
                 SetChampionAIBlockReason(ai, eChampionAIDecisionBlockReason::ActionLocked);
@@ -4260,6 +5497,19 @@ void CChampionAISystem::Execute(
                     tc,
                     ai.debugLastCommandTarget,
                     false);
+                return;
+            }
+
+            if (TryEmitYoneSoulReturnCommand(
+                    world,
+                    tc,
+                    self,
+                    ai,
+                    champion,
+                    selfPos,
+                    ctx,
+                    outCommands))
+            {
                 return;
             }
 
@@ -4380,14 +5630,73 @@ void CChampionAISystem::Execute(
                 }
             }
 
-            if (!ai.bMidDefenseActive &&
+            if (TryExecuteTeamPingObjective(
+                    world,
+                    tc,
+                    self,
+                    ai,
+                    champion,
+                    selfPos,
+                    ctx,
+                    outCommands))
+            {
+                return;
+            }
+
+            if (bMacroRefreshDue &&
+                ai.bMidDefenseActive &&
+                ai.comboTarget == NULL_ENTITY &&
+                ai.divePhase == eChampionAIDivePhase::None)
+            {
+                const bool_t bShouldRefreshMidGroup =
+                    !ai.bMidTeamfightActive &&
+                    HasMidDefenseThreat(
+                        world,
+                        champion.team,
+                        ctx.midDefenseAnchor);
+                if (bShouldRefreshMidGroup)
+                {
+                    ai.midDefenseThreatHoldTimer =
+                        kChampionAIMidDefenseThreatHoldSec;
+                }
+                else if (ai.midDefenseThreatHoldTimer <= 0.f)
+                {
+                    // 위협이 사라진 방어 집결은 수명이 끝난다 — 홈 레인
+                    // 파밍/교전 루프로 복귀. 재집결은 위협 재감지가 연다.
+                    ai.bMidDefenseActive = false;
+                    ai.bMidTeamfightActive = false;
+                    ai.activeLane = ai.lane;
+                    SetChampionAIState(ai, eChampionAIState::MoveToOuterTurret);
+                    SetChampionAIIntent(ai, eChampionAIIntent::FarmMinion);
+
+                    ctx = BuildChampionAIContext(
+                        world,
+                        self,
+                        ai,
+                        champion,
+                        tc,
+                        selfPos);
+                    UpdateChampionAIDecisionEvidence(ai, tc, ctx, profile);
+                }
+            }
+
+            const bool_t bDefensiveMidGroupNeeded =
+                bMacroRefreshDue &&
                 (ctx.bAlliedOuterTurretLost || ctx.bMidLaneTurretLost) &&
+                HasMidDefenseThreat(
+                    world,
+                    champion.team,
+                    ctx.midDefenseAnchor);
+            if (!ai.bMidDefenseActive &&
+                bDefensiveMidGroupNeeded &&
                 ctx.bCanMove &&
                 ctx.enemyChampion == NULL_ENTITY &&
                 ai.comboTarget == NULL_ENTITY &&
                 ai.divePhase == eChampionAIDivePhase::None)
             {
                 ai.bMidDefenseActive = true;
+                ai.bMidTeamfightActive = false;
+                ai.midDefenseThreatHoldTimer = kChampionAIMidDefenseThreatHoldSec;
                 ai.activeLane = kChampionAIMidLane;
                 ai.midDefenseAnchor = ctx.midDefenseAnchor;
                 SetChampionAIState(ai, eChampionAIState::GroupMidDefense);

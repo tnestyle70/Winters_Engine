@@ -14,34 +14,13 @@ namespace
     constexpr u32_t kKindred_E_Cast = MakeHookId(eChampion::KINDRED, HookVariant::E_CastFrame);
     constexpr u32_t kKindred_R_Cast = MakeHookId(eChampion::KINDRED, HookVariant::R_CastFrame);
 
-    f32_t ResolveRange(u8_t slot)
-    {
-        switch (static_cast<eSkillSlot>(slot))
-        {
-        case eSkillSlot::BasicAttack: return 5.5f;
-        case eSkillSlot::Q: return 5.5f;
-        case eSkillSlot::W: return 8.f;
-        case eSkillSlot::E: return 5.5f;
-        case eSkillSlot::R: return 6.f;
-        default: return 0.f;
-        }
-    }
-
-    void RegisterSkill(u8_t slot, eTargetMode targetMode, const char* animKey, u32_t hookId)
+void RegisterSkill(u8_t slot, const char* animKey, u32_t hookId)
     {
         SkillDef s{};
         s.champ = eChampion::KINDRED;
         s.slot = slot;
-        s.targetMode = targetMode;
-        s.cooldownSec = 0.6f;
-        s.rangeMax = ResolveRange(slot);
         s.animKey = animKey;
-        s.lockDurationSec = 0.6f;
         s.bOneShot = true;
-        s.rotate = targetMode == eTargetMode::Self ? eRotateMode::None : eRotateMode::TowardsCursor;
-        s.visualCastFrame = 4.f;
-        s.visualRecoveryFrame = 12.f;
-        s.visualPlaySpeed = 1.f;
         s.castHookId = hookId;
         CSkillRegistry::Instance().Add(eChampion::KINDRED, slot, s);
     }
@@ -67,11 +46,11 @@ namespace
             cd.displayName = "Kindred";
             CChampionRegistry::Instance().Add(eChampion::KINDRED, cd);
 
-            RegisterSkill(0, eTargetMode::UnitTarget, "skinned_mesh_lamb_attack1", kKindred_BA_Cast);
-            RegisterSkill(1, eTargetMode::Direction, "skinned_mesh_lamb_spell1forward", kKindred_Q_Cast);
-            RegisterSkill(2, eTargetMode::GroundTarget, "skinned_mesh_lamb_spell2", kKindred_W_Cast);
-            RegisterSkill(3, eTargetMode::UnitTarget, "skinned_mesh_lamb_spell3", kKindred_E_Cast);
-            RegisterSkill(4, eTargetMode::GroundTarget, "skinned_mesh_lamb_spell4", kKindred_R_Cast);
+            RegisterSkill(0, "skinned_mesh_lamb_attack1", kKindred_BA_Cast);
+            RegisterSkill(1, "skinned_mesh_lamb_spell1forward", kKindred_Q_Cast);
+            RegisterSkill(2, "skinned_mesh_lamb_spell2", kKindred_W_Cast);
+            RegisterSkill(3, "skinned_mesh_lamb_spell3", kKindred_E_Cast);
+            RegisterSkill(4, "skinned_mesh_lamb_spell4", kKindred_R_Cast);
 
         }
     };

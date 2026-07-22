@@ -310,3 +310,30 @@ wstring_t CReplayRecorder::MakeDefaultPath() const
 		<< L".wrpl";
 	return ss.str();
 }
+
+wstring_t CReplayRecorder::MakeMatchPendingPath(std::string_view matchID) const
+{
+	if (matchID.size() != 36u)
+		return MakeDefaultPath();
+	for (size_t i = 0u; i < matchID.size(); ++i)
+	{
+		if (i == 8u || i == 13u || i == 18u || i == 23u)
+		{
+			if (matchID[i] != '-')
+				return MakeDefaultPath();
+			continue;
+		}
+		if (!((matchID[i] >= '0' && matchID[i] <= '9') ||
+			(matchID[i] >= 'a' && matchID[i] <= 'f')))
+		{
+			return MakeDefaultPath();
+		}
+	}
+
+	std::wstringstream path;
+	path << L"Replay/";
+	for (const char ch : matchID)
+		path << static_cast<wchar_t>(ch);
+	path << L".wrpl.pending";
+	return path.str();
+}

@@ -244,8 +244,11 @@ namespace
         request.sourceTeam = sourceTeam;
         request.type = eDamageType::Physical;
         request.flatAmount = amount;
-        request.skillId = static_cast<u16_t>((static_cast<u32_t>(eChampion::KINDRED) << 8) | slot);
-        request.rank = rank;
+        request.skillId = static_cast<u16_t>(
+            (static_cast<u32_t>(eChampion::KINDRED) << 8) | slot);
+        request.rank = rank > 0u ? rank : 1u;
+        request.iSourceSlot = slot;
+        request.eSourceKind = eDamageSourceKind::Skill;
         request.flags = DamageFlag_OnHit;
         EnqueueDamageRequest(world, request);
     }
@@ -390,6 +393,7 @@ namespace
             ctx, eSkillSlot::W, eSkillEffectParamId::EffectDurationSec);
         state.fWTickAccumulatorSec = ResolveKindredSkillEffectParam(
             ctx, eSkillSlot::W, eSkillEffectParamId::TickIntervalSec);
+        state.uWCastRank = ctx.skillRank > 0u ? ctx.skillRank : 1u;
         state.vWCenter = center;
 
         std::cout << "[KindredSim] W wolf frenzy caster="
@@ -405,6 +409,7 @@ namespace
         KindredSimComponent& state = EnsureKindredState(*ctx.pWorld, ctx.casterEntity);
         state.markedTarget = ctx.pCommand->targetEntity;
         state.mountingDreadHitCount = 0;
+        state.uECastRank = ctx.skillRank > 0u ? ctx.skillRank : 1u;
         state.fEMarkRemainingSec = ResolveKindredSkillEffectParam(
             ctx, eSkillSlot::E, eSkillEffectParamId::MarkDurationSec);
         ApplyMountingDreadSlow(
@@ -552,7 +557,7 @@ namespace KindredGameSim
                             champion.team,
                             wDamage,
                             static_cast<u8_t>(eSkillSlot::W),
-                            1);
+                            state.uWCastRank);
                     }
                 }));
     }
@@ -599,9 +604,9 @@ namespace KindredGameSim
         state.mountingDreadHitCount = 0;
         state.fEMarkRemainingSec = 0.f;
 
-        const f32_t pounceBonusDamage = ResolveKindredSkillEffectParam(
-            world, tc, caster, eSkillSlot::E,
-            eSkillEffectParamId::BaseDamage);
+        const f32_t pounceBonusDamage = GameplayDefinitionQuery::ResolveSkillFlatDamage(
+            world, caster, tc, eChampion::KINDRED,
+            static_cast<u8_t>(eSkillSlot::E), state.uECastRank, 80.f);
 
         std::cout << "[KindredSim] E wolf pounce caster="
             << caster << " target=" << target << "\n";

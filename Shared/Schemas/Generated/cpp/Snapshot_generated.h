@@ -27,6 +27,9 @@ struct EntitySnapshotBuilder;
 struct GameplayStateSnapshot;
 struct GameplayStateSnapshotBuilder;
 
+struct CommandResultSnapshot;
+struct CommandResultSnapshotBuilder;
+
 struct Snapshot;
 struct SnapshotBuilder;
 
@@ -692,7 +695,30 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_PROJECTILEDIRX = 232,
     VT_PROJECTILEDIRY = 234,
     VT_PROJECTILEDIRZ = 236,
-    VT_PROJECTILETRAVELEDDIST = 238
+    VT_PROJECTILETRAVELEDDIST = 238,
+    VT_CHAMPIONDEFINITIONKEY = 240,
+    VT_SIGHTRANGE = 242,
+    VT_RESPAWNREMAININGSEC = 244,
+    VT_RESPAWNDURATIONSEC = 246,
+    VT_AIDEBUGENEMYMINIONNET = 248,
+    VT_AIDEBUGALLIEDWAVENET = 250,
+    VT_AIDEBUGWAVEDISTANCE = 252,
+    VT_AIDEBUGWAVESUPPORTRANGE = 254,
+    VT_AIDEBUGFOLLOWWAVESEARCHRANGE = 256,
+    VT_AIDEBUGFARMPRIORITY = 258,
+    VT_AIDEBUGCANDIDATETICK = 260,
+    VT_AIDEBUGSELECTIONTICK = 262,
+    VT_AIDEBUGCANDIDATEKINDS = 264,
+    VT_AIDEBUGCANDIDATEFLAGS = 266,
+    VT_AIDEBUGCANDIDATETARGETS = 268,
+    VT_AIDEBUGCANDIDATESCORES = 270,
+    VT_AIDEBUGCANDIDATETERMCOUNTS = 272,
+    VT_AIDEBUGCANDIDATETERMFEATUREIDS = 274,
+    VT_AIDEBUGCANDIDATETERMRAWVALUES = 276,
+    VT_AIDEBUGCANDIDATETERMWEIGHTS = 278,
+    VT_AIDEBUGCANDIDATETERMCONTRIBUTIONS = 280,
+    VT_OBJECTIVESTATEFLAGS = 282,
+    VT_VISUALSCALEMULTIPLIER = 284
   };
   uint32_t netId() const {
     return GetField<uint32_t>(VT_NETID, 0);
@@ -1048,6 +1074,75 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   float projectileTraveledDist() const {
     return GetField<float>(VT_PROJECTILETRAVELEDDIST, 0.0f);
   }
+  uint32_t championDefinitionKey() const {
+    return GetField<uint32_t>(VT_CHAMPIONDEFINITIONKEY, 0);
+  }
+  float sightRange() const {
+    return GetField<float>(VT_SIGHTRANGE, 0.0f);
+  }
+  float respawnRemainingSec() const {
+    return GetField<float>(VT_RESPAWNREMAININGSEC, 0.0f);
+  }
+  float respawnDurationSec() const {
+    return GetField<float>(VT_RESPAWNDURATIONSEC, 0.0f);
+  }
+  uint32_t aiDebugEnemyMinionNet() const {
+    return GetField<uint32_t>(VT_AIDEBUGENEMYMINIONNET, 0);
+  }
+  uint32_t aiDebugAlliedWaveNet() const {
+    return GetField<uint32_t>(VT_AIDEBUGALLIEDWAVENET, 0);
+  }
+  float aiDebugWaveDistance() const {
+    return GetField<float>(VT_AIDEBUGWAVEDISTANCE, 999.0f);
+  }
+  float aiDebugWaveSupportRange() const {
+    return GetField<float>(VT_AIDEBUGWAVESUPPORTRANGE, 0.0f);
+  }
+  float aiDebugFollowWaveSearchRange() const {
+    return GetField<float>(VT_AIDEBUGFOLLOWWAVESEARCHRANGE, 0.0f);
+  }
+  float aiDebugFarmPriority() const {
+    return GetField<float>(VT_AIDEBUGFARMPRIORITY, 0.0f);
+  }
+  uint64_t aiDebugCandidateTick() const {
+    return GetField<uint64_t>(VT_AIDEBUGCANDIDATETICK, 0);
+  }
+  uint64_t aiDebugSelectionTick() const {
+    return GetField<uint64_t>(VT_AIDEBUGSELECTIONTICK, 0);
+  }
+  const ::flatbuffers::Vector<uint8_t> *aiDebugCandidateKinds() const {
+    return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_AIDEBUGCANDIDATEKINDS);
+  }
+  const ::flatbuffers::Vector<uint8_t> *aiDebugCandidateFlags() const {
+    return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_AIDEBUGCANDIDATEFLAGS);
+  }
+  const ::flatbuffers::Vector<uint32_t> *aiDebugCandidateTargets() const {
+    return GetPointer<const ::flatbuffers::Vector<uint32_t> *>(VT_AIDEBUGCANDIDATETARGETS);
+  }
+  const ::flatbuffers::Vector<float> *aiDebugCandidateScores() const {
+    return GetPointer<const ::flatbuffers::Vector<float> *>(VT_AIDEBUGCANDIDATESCORES);
+  }
+  const ::flatbuffers::Vector<uint8_t> *aiDebugCandidateTermCounts() const {
+    return GetPointer<const ::flatbuffers::Vector<uint8_t> *>(VT_AIDEBUGCANDIDATETERMCOUNTS);
+  }
+  const ::flatbuffers::Vector<uint16_t> *aiDebugCandidateTermFeatureIds() const {
+    return GetPointer<const ::flatbuffers::Vector<uint16_t> *>(VT_AIDEBUGCANDIDATETERMFEATUREIDS);
+  }
+  const ::flatbuffers::Vector<float> *aiDebugCandidateTermRawValues() const {
+    return GetPointer<const ::flatbuffers::Vector<float> *>(VT_AIDEBUGCANDIDATETERMRAWVALUES);
+  }
+  const ::flatbuffers::Vector<float> *aiDebugCandidateTermWeights() const {
+    return GetPointer<const ::flatbuffers::Vector<float> *>(VT_AIDEBUGCANDIDATETERMWEIGHTS);
+  }
+  const ::flatbuffers::Vector<float> *aiDebugCandidateTermContributions() const {
+    return GetPointer<const ::flatbuffers::Vector<float> *>(VT_AIDEBUGCANDIDATETERMCONTRIBUTIONS);
+  }
+  uint32_t objectiveStateFlags() const {
+    return GetField<uint32_t>(VT_OBJECTIVESTATEFLAGS, 0);
+  }
+  float visualScaleMultiplier() const {
+    return GetField<float>(VT_VISUALSCALEMULTIPLIER, 1.0f);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -1178,6 +1273,38 @@ struct EntitySnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<float>(verifier, VT_PROJECTILEDIRY, 4) &&
            VerifyField<float>(verifier, VT_PROJECTILEDIRZ, 4) &&
            VerifyField<float>(verifier, VT_PROJECTILETRAVELEDDIST, 4) &&
+           VerifyField<uint32_t>(verifier, VT_CHAMPIONDEFINITIONKEY, 4) &&
+           VerifyField<float>(verifier, VT_SIGHTRANGE, 4) &&
+           VerifyField<float>(verifier, VT_RESPAWNREMAININGSEC, 4) &&
+           VerifyField<float>(verifier, VT_RESPAWNDURATIONSEC, 4) &&
+           VerifyField<uint32_t>(verifier, VT_AIDEBUGENEMYMINIONNET, 4) &&
+           VerifyField<uint32_t>(verifier, VT_AIDEBUGALLIEDWAVENET, 4) &&
+           VerifyField<float>(verifier, VT_AIDEBUGWAVEDISTANCE, 4) &&
+           VerifyField<float>(verifier, VT_AIDEBUGWAVESUPPORTRANGE, 4) &&
+           VerifyField<float>(verifier, VT_AIDEBUGFOLLOWWAVESEARCHRANGE, 4) &&
+           VerifyField<float>(verifier, VT_AIDEBUGFARMPRIORITY, 4) &&
+           VerifyField<uint64_t>(verifier, VT_AIDEBUGCANDIDATETICK, 8) &&
+           VerifyField<uint64_t>(verifier, VT_AIDEBUGSELECTIONTICK, 8) &&
+           VerifyOffset(verifier, VT_AIDEBUGCANDIDATEKINDS) &&
+           verifier.VerifyVector(aiDebugCandidateKinds()) &&
+           VerifyOffset(verifier, VT_AIDEBUGCANDIDATEFLAGS) &&
+           verifier.VerifyVector(aiDebugCandidateFlags()) &&
+           VerifyOffset(verifier, VT_AIDEBUGCANDIDATETARGETS) &&
+           verifier.VerifyVector(aiDebugCandidateTargets()) &&
+           VerifyOffset(verifier, VT_AIDEBUGCANDIDATESCORES) &&
+           verifier.VerifyVector(aiDebugCandidateScores()) &&
+           VerifyOffset(verifier, VT_AIDEBUGCANDIDATETERMCOUNTS) &&
+           verifier.VerifyVector(aiDebugCandidateTermCounts()) &&
+           VerifyOffset(verifier, VT_AIDEBUGCANDIDATETERMFEATUREIDS) &&
+           verifier.VerifyVector(aiDebugCandidateTermFeatureIds()) &&
+           VerifyOffset(verifier, VT_AIDEBUGCANDIDATETERMRAWVALUES) &&
+           verifier.VerifyVector(aiDebugCandidateTermRawValues()) &&
+           VerifyOffset(verifier, VT_AIDEBUGCANDIDATETERMWEIGHTS) &&
+           verifier.VerifyVector(aiDebugCandidateTermWeights()) &&
+           VerifyOffset(verifier, VT_AIDEBUGCANDIDATETERMCONTRIBUTIONS) &&
+           verifier.VerifyVector(aiDebugCandidateTermContributions()) &&
+           VerifyField<uint32_t>(verifier, VT_OBJECTIVESTATEFLAGS, 4) &&
+           VerifyField<float>(verifier, VT_VISUALSCALEMULTIPLIER, 4) &&
            verifier.EndTable();
   }
 };
@@ -1540,6 +1667,75 @@ struct EntitySnapshotBuilder {
   void add_projectileTraveledDist(float projectileTraveledDist) {
     fbb_.AddElement<float>(EntitySnapshot::VT_PROJECTILETRAVELEDDIST, projectileTraveledDist, 0.0f);
   }
+  void add_championDefinitionKey(uint32_t championDefinitionKey) {
+    fbb_.AddElement<uint32_t>(EntitySnapshot::VT_CHAMPIONDEFINITIONKEY, championDefinitionKey, 0);
+  }
+  void add_sightRange(float sightRange) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_SIGHTRANGE, sightRange, 0.0f);
+  }
+  void add_respawnRemainingSec(float respawnRemainingSec) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_RESPAWNREMAININGSEC, respawnRemainingSec, 0.0f);
+  }
+  void add_respawnDurationSec(float respawnDurationSec) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_RESPAWNDURATIONSEC, respawnDurationSec, 0.0f);
+  }
+  void add_aiDebugEnemyMinionNet(uint32_t aiDebugEnemyMinionNet) {
+    fbb_.AddElement<uint32_t>(EntitySnapshot::VT_AIDEBUGENEMYMINIONNET, aiDebugEnemyMinionNet, 0);
+  }
+  void add_aiDebugAlliedWaveNet(uint32_t aiDebugAlliedWaveNet) {
+    fbb_.AddElement<uint32_t>(EntitySnapshot::VT_AIDEBUGALLIEDWAVENET, aiDebugAlliedWaveNet, 0);
+  }
+  void add_aiDebugWaveDistance(float aiDebugWaveDistance) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_AIDEBUGWAVEDISTANCE, aiDebugWaveDistance, 999.0f);
+  }
+  void add_aiDebugWaveSupportRange(float aiDebugWaveSupportRange) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_AIDEBUGWAVESUPPORTRANGE, aiDebugWaveSupportRange, 0.0f);
+  }
+  void add_aiDebugFollowWaveSearchRange(float aiDebugFollowWaveSearchRange) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_AIDEBUGFOLLOWWAVESEARCHRANGE, aiDebugFollowWaveSearchRange, 0.0f);
+  }
+  void add_aiDebugFarmPriority(float aiDebugFarmPriority) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_AIDEBUGFARMPRIORITY, aiDebugFarmPriority, 0.0f);
+  }
+  void add_aiDebugCandidateTick(uint64_t aiDebugCandidateTick) {
+    fbb_.AddElement<uint64_t>(EntitySnapshot::VT_AIDEBUGCANDIDATETICK, aiDebugCandidateTick, 0);
+  }
+  void add_aiDebugSelectionTick(uint64_t aiDebugSelectionTick) {
+    fbb_.AddElement<uint64_t>(EntitySnapshot::VT_AIDEBUGSELECTIONTICK, aiDebugSelectionTick, 0);
+  }
+  void add_aiDebugCandidateKinds(::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> aiDebugCandidateKinds) {
+    fbb_.AddOffset(EntitySnapshot::VT_AIDEBUGCANDIDATEKINDS, aiDebugCandidateKinds);
+  }
+  void add_aiDebugCandidateFlags(::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> aiDebugCandidateFlags) {
+    fbb_.AddOffset(EntitySnapshot::VT_AIDEBUGCANDIDATEFLAGS, aiDebugCandidateFlags);
+  }
+  void add_aiDebugCandidateTargets(::flatbuffers::Offset<::flatbuffers::Vector<uint32_t>> aiDebugCandidateTargets) {
+    fbb_.AddOffset(EntitySnapshot::VT_AIDEBUGCANDIDATETARGETS, aiDebugCandidateTargets);
+  }
+  void add_aiDebugCandidateScores(::flatbuffers::Offset<::flatbuffers::Vector<float>> aiDebugCandidateScores) {
+    fbb_.AddOffset(EntitySnapshot::VT_AIDEBUGCANDIDATESCORES, aiDebugCandidateScores);
+  }
+  void add_aiDebugCandidateTermCounts(::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> aiDebugCandidateTermCounts) {
+    fbb_.AddOffset(EntitySnapshot::VT_AIDEBUGCANDIDATETERMCOUNTS, aiDebugCandidateTermCounts);
+  }
+  void add_aiDebugCandidateTermFeatureIds(::flatbuffers::Offset<::flatbuffers::Vector<uint16_t>> aiDebugCandidateTermFeatureIds) {
+    fbb_.AddOffset(EntitySnapshot::VT_AIDEBUGCANDIDATETERMFEATUREIDS, aiDebugCandidateTermFeatureIds);
+  }
+  void add_aiDebugCandidateTermRawValues(::flatbuffers::Offset<::flatbuffers::Vector<float>> aiDebugCandidateTermRawValues) {
+    fbb_.AddOffset(EntitySnapshot::VT_AIDEBUGCANDIDATETERMRAWVALUES, aiDebugCandidateTermRawValues);
+  }
+  void add_aiDebugCandidateTermWeights(::flatbuffers::Offset<::flatbuffers::Vector<float>> aiDebugCandidateTermWeights) {
+    fbb_.AddOffset(EntitySnapshot::VT_AIDEBUGCANDIDATETERMWEIGHTS, aiDebugCandidateTermWeights);
+  }
+  void add_aiDebugCandidateTermContributions(::flatbuffers::Offset<::flatbuffers::Vector<float>> aiDebugCandidateTermContributions) {
+    fbb_.AddOffset(EntitySnapshot::VT_AIDEBUGCANDIDATETERMCONTRIBUTIONS, aiDebugCandidateTermContributions);
+  }
+  void add_objectiveStateFlags(uint32_t objectiveStateFlags) {
+    fbb_.AddElement<uint32_t>(EntitySnapshot::VT_OBJECTIVESTATEFLAGS, objectiveStateFlags, 0);
+  }
+  void add_visualScaleMultiplier(float visualScaleMultiplier) {
+    fbb_.AddElement<float>(EntitySnapshot::VT_VISUALSCALEMULTIPLIER, visualScaleMultiplier, 1.0f);
+  }
   explicit EntitySnapshotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1670,11 +1866,57 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshot(
     float projectileDirX = 0.0f,
     float projectileDirY = 0.0f,
     float projectileDirZ = 0.0f,
-    float projectileTraveledDist = 0.0f) {
+    float projectileTraveledDist = 0.0f,
+    uint32_t championDefinitionKey = 0,
+    float sightRange = 0.0f,
+    float respawnRemainingSec = 0.0f,
+    float respawnDurationSec = 0.0f,
+    uint32_t aiDebugEnemyMinionNet = 0,
+    uint32_t aiDebugAlliedWaveNet = 0,
+    float aiDebugWaveDistance = 999.0f,
+    float aiDebugWaveSupportRange = 0.0f,
+    float aiDebugFollowWaveSearchRange = 0.0f,
+    float aiDebugFarmPriority = 0.0f,
+    uint64_t aiDebugCandidateTick = 0,
+    uint64_t aiDebugSelectionTick = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> aiDebugCandidateKinds = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> aiDebugCandidateFlags = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint32_t>> aiDebugCandidateTargets = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<float>> aiDebugCandidateScores = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint8_t>> aiDebugCandidateTermCounts = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<uint16_t>> aiDebugCandidateTermFeatureIds = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<float>> aiDebugCandidateTermRawValues = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<float>> aiDebugCandidateTermWeights = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<float>> aiDebugCandidateTermContributions = 0,
+    uint32_t objectiveStateFlags = 0,
+    float visualScaleMultiplier = 1.0f) {
   EntitySnapshotBuilder builder_(_fbb);
+  builder_.add_aiDebugSelectionTick(aiDebugSelectionTick);
+  builder_.add_aiDebugCandidateTick(aiDebugCandidateTick);
   builder_.add_actionLockEndTick(actionLockEndTick);
   builder_.add_actionStartTick(actionStartTick);
   builder_.add_poseStartTick(poseStartTick);
+  builder_.add_visualScaleMultiplier(visualScaleMultiplier);
+  builder_.add_objectiveStateFlags(objectiveStateFlags);
+  builder_.add_aiDebugCandidateTermContributions(aiDebugCandidateTermContributions);
+  builder_.add_aiDebugCandidateTermWeights(aiDebugCandidateTermWeights);
+  builder_.add_aiDebugCandidateTermRawValues(aiDebugCandidateTermRawValues);
+  builder_.add_aiDebugCandidateTermFeatureIds(aiDebugCandidateTermFeatureIds);
+  builder_.add_aiDebugCandidateTermCounts(aiDebugCandidateTermCounts);
+  builder_.add_aiDebugCandidateScores(aiDebugCandidateScores);
+  builder_.add_aiDebugCandidateTargets(aiDebugCandidateTargets);
+  builder_.add_aiDebugCandidateFlags(aiDebugCandidateFlags);
+  builder_.add_aiDebugCandidateKinds(aiDebugCandidateKinds);
+  builder_.add_aiDebugFarmPriority(aiDebugFarmPriority);
+  builder_.add_aiDebugFollowWaveSearchRange(aiDebugFollowWaveSearchRange);
+  builder_.add_aiDebugWaveSupportRange(aiDebugWaveSupportRange);
+  builder_.add_aiDebugWaveDistance(aiDebugWaveDistance);
+  builder_.add_aiDebugAlliedWaveNet(aiDebugAlliedWaveNet);
+  builder_.add_aiDebugEnemyMinionNet(aiDebugEnemyMinionNet);
+  builder_.add_respawnDurationSec(respawnDurationSec);
+  builder_.add_respawnRemainingSec(respawnRemainingSec);
+  builder_.add_sightRange(sightRange);
+  builder_.add_championDefinitionKey(championDefinitionKey);
   builder_.add_projectileTraveledDist(projectileTraveledDist);
   builder_.add_projectileDirZ(projectileDirZ);
   builder_.add_projectileDirY(projectileDirY);
@@ -1912,7 +2154,30 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
     float projectileDirX = 0.0f,
     float projectileDirY = 0.0f,
     float projectileDirZ = 0.0f,
-    float projectileTraveledDist = 0.0f) {
+    float projectileTraveledDist = 0.0f,
+    uint32_t championDefinitionKey = 0,
+    float sightRange = 0.0f,
+    float respawnRemainingSec = 0.0f,
+    float respawnDurationSec = 0.0f,
+    uint32_t aiDebugEnemyMinionNet = 0,
+    uint32_t aiDebugAlliedWaveNet = 0,
+    float aiDebugWaveDistance = 999.0f,
+    float aiDebugWaveSupportRange = 0.0f,
+    float aiDebugFollowWaveSearchRange = 0.0f,
+    float aiDebugFarmPriority = 0.0f,
+    uint64_t aiDebugCandidateTick = 0,
+    uint64_t aiDebugSelectionTick = 0,
+    const std::vector<uint8_t> *aiDebugCandidateKinds = nullptr,
+    const std::vector<uint8_t> *aiDebugCandidateFlags = nullptr,
+    const std::vector<uint32_t> *aiDebugCandidateTargets = nullptr,
+    const std::vector<float> *aiDebugCandidateScores = nullptr,
+    const std::vector<uint8_t> *aiDebugCandidateTermCounts = nullptr,
+    const std::vector<uint16_t> *aiDebugCandidateTermFeatureIds = nullptr,
+    const std::vector<float> *aiDebugCandidateTermRawValues = nullptr,
+    const std::vector<float> *aiDebugCandidateTermWeights = nullptr,
+    const std::vector<float> *aiDebugCandidateTermContributions = nullptr,
+    uint32_t objectiveStateFlags = 0,
+    float visualScaleMultiplier = 1.0f) {
   auto skillCooldowns__ = skillCooldowns ? _fbb.CreateVector<float>(*skillCooldowns) : 0;
   auto skillCooldownDurations__ = skillCooldownDurations ? _fbb.CreateVector<float>(*skillCooldownDurations) : 0;
   auto skillRanks__ = skillRanks ? _fbb.CreateVector<uint8_t>(*skillRanks) : 0;
@@ -1921,6 +2186,15 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
   auto summonerSpellCooldowns__ = summonerSpellCooldowns ? _fbb.CreateVector<float>(*summonerSpellCooldowns) : 0;
   auto summonerSpellCooldownDurations__ = summonerSpellCooldownDurations ? _fbb.CreateVector<float>(*summonerSpellCooldownDurations) : 0;
   auto aiDebugTrace__ = aiDebugTrace ? _fbb.CreateVector<::flatbuffers::Offset<Shared::Schema::AIDebugTraceRow>>(*aiDebugTrace) : 0;
+  auto aiDebugCandidateKinds__ = aiDebugCandidateKinds ? _fbb.CreateVector<uint8_t>(*aiDebugCandidateKinds) : 0;
+  auto aiDebugCandidateFlags__ = aiDebugCandidateFlags ? _fbb.CreateVector<uint8_t>(*aiDebugCandidateFlags) : 0;
+  auto aiDebugCandidateTargets__ = aiDebugCandidateTargets ? _fbb.CreateVector<uint32_t>(*aiDebugCandidateTargets) : 0;
+  auto aiDebugCandidateScores__ = aiDebugCandidateScores ? _fbb.CreateVector<float>(*aiDebugCandidateScores) : 0;
+  auto aiDebugCandidateTermCounts__ = aiDebugCandidateTermCounts ? _fbb.CreateVector<uint8_t>(*aiDebugCandidateTermCounts) : 0;
+  auto aiDebugCandidateTermFeatureIds__ = aiDebugCandidateTermFeatureIds ? _fbb.CreateVector<uint16_t>(*aiDebugCandidateTermFeatureIds) : 0;
+  auto aiDebugCandidateTermRawValues__ = aiDebugCandidateTermRawValues ? _fbb.CreateVector<float>(*aiDebugCandidateTermRawValues) : 0;
+  auto aiDebugCandidateTermWeights__ = aiDebugCandidateTermWeights ? _fbb.CreateVector<float>(*aiDebugCandidateTermWeights) : 0;
+  auto aiDebugCandidateTermContributions__ = aiDebugCandidateTermContributions ? _fbb.CreateVector<float>(*aiDebugCandidateTermContributions) : 0;
   return Shared::Schema::CreateEntitySnapshot(
       _fbb,
       netId,
@@ -2040,7 +2314,30 @@ inline ::flatbuffers::Offset<EntitySnapshot> CreateEntitySnapshotDirect(
       projectileDirX,
       projectileDirY,
       projectileDirZ,
-      projectileTraveledDist);
+      projectileTraveledDist,
+      championDefinitionKey,
+      sightRange,
+      respawnRemainingSec,
+      respawnDurationSec,
+      aiDebugEnemyMinionNet,
+      aiDebugAlliedWaveNet,
+      aiDebugWaveDistance,
+      aiDebugWaveSupportRange,
+      aiDebugFollowWaveSearchRange,
+      aiDebugFarmPriority,
+      aiDebugCandidateTick,
+      aiDebugSelectionTick,
+      aiDebugCandidateKinds__,
+      aiDebugCandidateFlags__,
+      aiDebugCandidateTargets__,
+      aiDebugCandidateScores__,
+      aiDebugCandidateTermCounts__,
+      aiDebugCandidateTermFeatureIds__,
+      aiDebugCandidateTermRawValues__,
+      aiDebugCandidateTermWeights__,
+      aiDebugCandidateTermContributions__,
+      objectiveStateFlags,
+      visualScaleMultiplier);
 }
 
 struct GameplayStateSnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
@@ -2235,6 +2532,98 @@ inline ::flatbuffers::Offset<GameplayStateSnapshot> CreateGameplayStateSnapshot(
   return builder_.Finish();
 }
 
+struct CommandResultSnapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
+  typedef CommandResultSnapshotBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_COMMANDSEQUENCE = 4,
+    VT_STATE = 6,
+    VT_REASON = 8,
+    VT_AUTHORITATIVESKILLSLOT = 10,
+    VT_AUTHORITATIVESKILLSTAGE = 12,
+    VT_STAGEWINDOWENDTICK = 14
+  };
+  uint32_t commandSequence() const {
+    return GetField<uint32_t>(VT_COMMANDSEQUENCE, 0);
+  }
+  uint8_t state() const {
+    return GetField<uint8_t>(VT_STATE, 0);
+  }
+  uint16_t reason() const {
+    return GetField<uint16_t>(VT_REASON, 0);
+  }
+  uint8_t authoritativeSkillSlot() const {
+    return GetField<uint8_t>(VT_AUTHORITATIVESKILLSLOT, 255);
+  }
+  uint8_t authoritativeSkillStage() const {
+    return GetField<uint8_t>(VT_AUTHORITATIVESKILLSTAGE, 0);
+  }
+  uint64_t stageWindowEndTick() const {
+    return GetField<uint64_t>(VT_STAGEWINDOWENDTICK, 0);
+  }
+  template <bool B = false>
+  bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint32_t>(verifier, VT_COMMANDSEQUENCE, 4) &&
+           VerifyField<uint8_t>(verifier, VT_STATE, 1) &&
+           VerifyField<uint16_t>(verifier, VT_REASON, 2) &&
+           VerifyField<uint8_t>(verifier, VT_AUTHORITATIVESKILLSLOT, 1) &&
+           VerifyField<uint8_t>(verifier, VT_AUTHORITATIVESKILLSTAGE, 1) &&
+           VerifyField<uint64_t>(verifier, VT_STAGEWINDOWENDTICK, 8) &&
+           verifier.EndTable();
+  }
+};
+
+struct CommandResultSnapshotBuilder {
+  typedef CommandResultSnapshot Table;
+  ::flatbuffers::FlatBufferBuilder &fbb_;
+  ::flatbuffers::uoffset_t start_;
+  void add_commandSequence(uint32_t commandSequence) {
+    fbb_.AddElement<uint32_t>(CommandResultSnapshot::VT_COMMANDSEQUENCE, commandSequence, 0);
+  }
+  void add_state(uint8_t state) {
+    fbb_.AddElement<uint8_t>(CommandResultSnapshot::VT_STATE, state, 0);
+  }
+  void add_reason(uint16_t reason) {
+    fbb_.AddElement<uint16_t>(CommandResultSnapshot::VT_REASON, reason, 0);
+  }
+  void add_authoritativeSkillSlot(uint8_t authoritativeSkillSlot) {
+    fbb_.AddElement<uint8_t>(CommandResultSnapshot::VT_AUTHORITATIVESKILLSLOT, authoritativeSkillSlot, 255);
+  }
+  void add_authoritativeSkillStage(uint8_t authoritativeSkillStage) {
+    fbb_.AddElement<uint8_t>(CommandResultSnapshot::VT_AUTHORITATIVESKILLSTAGE, authoritativeSkillStage, 0);
+  }
+  void add_stageWindowEndTick(uint64_t stageWindowEndTick) {
+    fbb_.AddElement<uint64_t>(CommandResultSnapshot::VT_STAGEWINDOWENDTICK, stageWindowEndTick, 0);
+  }
+  explicit CommandResultSnapshotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  ::flatbuffers::Offset<CommandResultSnapshot> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = ::flatbuffers::Offset<CommandResultSnapshot>(end);
+    return o;
+  }
+};
+
+inline ::flatbuffers::Offset<CommandResultSnapshot> CreateCommandResultSnapshot(
+    ::flatbuffers::FlatBufferBuilder &_fbb,
+    uint32_t commandSequence = 0,
+    uint8_t state = 0,
+    uint16_t reason = 0,
+    uint8_t authoritativeSkillSlot = 255,
+    uint8_t authoritativeSkillStage = 0,
+    uint64_t stageWindowEndTick = 0) {
+  CommandResultSnapshotBuilder builder_(_fbb);
+  builder_.add_stageWindowEndTick(stageWindowEndTick);
+  builder_.add_commandSequence(commandSequence);
+  builder_.add_reason(reason);
+  builder_.add_authoritativeSkillStage(authoritativeSkillStage);
+  builder_.add_authoritativeSkillSlot(authoritativeSkillSlot);
+  builder_.add_state(state);
+  return builder_.Finish();
+}
+
 struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   typedef SnapshotBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -2258,7 +2647,14 @@ struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_TOOLREVISION = 38,
     VT_SIMPAUSED = 40,
     VT_SIMSPEEDMUL = 42,
-    VT_GAMEPLAYSTATES = 44
+    VT_GAMEPLAYSTATES = 44,
+    VT_LASTCOMMANDRESULTSEQ = 46,
+    VT_LASTCOMMANDRESULTSTATE = 48,
+    VT_LASTCOMMANDRESULTREASON = 50,
+    VT_AUTHORITATIVESKILLSLOT = 52,
+    VT_AUTHORITATIVESKILLSTAGE = 54,
+    VT_STAGEWINDOWENDTICK = 56,
+    VT_COMMANDRESULTS = 58
   };
   uint64_t serverTick() const {
     return GetField<uint64_t>(VT_SERVERTICK, 0);
@@ -2323,6 +2719,27 @@ struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *gameplayStates() const {
     return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *>(VT_GAMEPLAYSTATES);
   }
+  uint32_t lastCommandResultSeq() const {
+    return GetField<uint32_t>(VT_LASTCOMMANDRESULTSEQ, 0);
+  }
+  uint8_t lastCommandResultState() const {
+    return GetField<uint8_t>(VT_LASTCOMMANDRESULTSTATE, 0);
+  }
+  uint16_t lastCommandResultReason() const {
+    return GetField<uint16_t>(VT_LASTCOMMANDRESULTREASON, 0);
+  }
+  uint8_t authoritativeSkillSlot() const {
+    return GetField<uint8_t>(VT_AUTHORITATIVESKILLSLOT, 255);
+  }
+  uint8_t authoritativeSkillStage() const {
+    return GetField<uint8_t>(VT_AUTHORITATIVESKILLSTAGE, 0);
+  }
+  uint64_t stageWindowEndTick() const {
+    return GetField<uint64_t>(VT_STAGEWINDOWENDTICK, 0);
+  }
+  const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>> *commandResults() const {
+    return GetPointer<const ::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>> *>(VT_COMMANDRESULTS);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -2351,6 +2768,15 @@ struct Snapshot FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyOffset(verifier, VT_GAMEPLAYSTATES) &&
            verifier.VerifyVector(gameplayStates()) &&
            verifier.VerifyVectorOfTables(gameplayStates()) &&
+           VerifyField<uint32_t>(verifier, VT_LASTCOMMANDRESULTSEQ, 4) &&
+           VerifyField<uint8_t>(verifier, VT_LASTCOMMANDRESULTSTATE, 1) &&
+           VerifyField<uint16_t>(verifier, VT_LASTCOMMANDRESULTREASON, 2) &&
+           VerifyField<uint8_t>(verifier, VT_AUTHORITATIVESKILLSLOT, 1) &&
+           VerifyField<uint8_t>(verifier, VT_AUTHORITATIVESKILLSTAGE, 1) &&
+           VerifyField<uint64_t>(verifier, VT_STAGEWINDOWENDTICK, 8) &&
+           VerifyOffset(verifier, VT_COMMANDRESULTS) &&
+           verifier.VerifyVector(commandResults()) &&
+           verifier.VerifyVectorOfTables(commandResults()) &&
            verifier.EndTable();
   }
 };
@@ -2422,6 +2848,27 @@ struct SnapshotBuilder {
   void add_gameplayStates(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>> gameplayStates) {
     fbb_.AddOffset(Snapshot::VT_GAMEPLAYSTATES, gameplayStates);
   }
+  void add_lastCommandResultSeq(uint32_t lastCommandResultSeq) {
+    fbb_.AddElement<uint32_t>(Snapshot::VT_LASTCOMMANDRESULTSEQ, lastCommandResultSeq, 0);
+  }
+  void add_lastCommandResultState(uint8_t lastCommandResultState) {
+    fbb_.AddElement<uint8_t>(Snapshot::VT_LASTCOMMANDRESULTSTATE, lastCommandResultState, 0);
+  }
+  void add_lastCommandResultReason(uint16_t lastCommandResultReason) {
+    fbb_.AddElement<uint16_t>(Snapshot::VT_LASTCOMMANDRESULTREASON, lastCommandResultReason, 0);
+  }
+  void add_authoritativeSkillSlot(uint8_t authoritativeSkillSlot) {
+    fbb_.AddElement<uint8_t>(Snapshot::VT_AUTHORITATIVESKILLSLOT, authoritativeSkillSlot, 255);
+  }
+  void add_authoritativeSkillStage(uint8_t authoritativeSkillStage) {
+    fbb_.AddElement<uint8_t>(Snapshot::VT_AUTHORITATIVESKILLSTAGE, authoritativeSkillStage, 0);
+  }
+  void add_stageWindowEndTick(uint64_t stageWindowEndTick) {
+    fbb_.AddElement<uint64_t>(Snapshot::VT_STAGEWINDOWENDTICK, stageWindowEndTick, 0);
+  }
+  void add_commandResults(::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>>> commandResults) {
+    fbb_.AddOffset(Snapshot::VT_COMMANDRESULTS, commandResults);
+  }
   explicit SnapshotBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -2455,8 +2902,16 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshot(
     uint64_t toolRevision = 0,
     bool simPaused = false,
     float simSpeedMul = 1.0f,
-    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>> gameplayStates = 0) {
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>> gameplayStates = 0,
+    uint32_t lastCommandResultSeq = 0,
+    uint8_t lastCommandResultState = 0,
+    uint16_t lastCommandResultReason = 0,
+    uint8_t authoritativeSkillSlot = 255,
+    uint8_t authoritativeSkillStage = 0,
+    uint64_t stageWindowEndTick = 0,
+    ::flatbuffers::Offset<::flatbuffers::Vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>>> commandResults = 0) {
   SnapshotBuilder builder_(_fbb);
+  builder_.add_stageWindowEndTick(stageWindowEndTick);
   builder_.add_toolRevision(toolRevision);
   builder_.add_branchId(branchId);
   builder_.add_timelineEpoch(timelineEpoch);
@@ -2464,11 +2919,14 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshot(
   builder_.add_rngState(rngState);
   builder_.add_serverTimeMs(serverTimeMs);
   builder_.add_serverTick(serverTick);
+  builder_.add_commandResults(commandResults);
+  builder_.add_lastCommandResultSeq(lastCommandResultSeq);
   builder_.add_gameplayStates(gameplayStates);
   builder_.add_simSpeedMul(simSpeedMul);
   builder_.add_yourNetId(yourNetId);
   builder_.add_lastAckedCommandSeq(lastAckedCommandSeq);
   builder_.add_entities(entities);
+  builder_.add_lastCommandResultReason(lastCommandResultReason);
   builder_.add_redBarons(redBarons);
   builder_.add_blueBarons(blueBarons);
   builder_.add_redDragons(redDragons);
@@ -2477,6 +2935,9 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshot(
   builder_.add_blueDestroyedTurrets(blueDestroyedTurrets);
   builder_.add_redTotalKills(redTotalKills);
   builder_.add_blueTotalKills(blueTotalKills);
+  builder_.add_authoritativeSkillStage(authoritativeSkillStage);
+  builder_.add_authoritativeSkillSlot(authoritativeSkillSlot);
+  builder_.add_lastCommandResultState(lastCommandResultState);
   builder_.add_simPaused(simPaused);
   return builder_.Finish();
 }
@@ -2503,9 +2964,17 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshotDirect(
     uint64_t toolRevision = 0,
     bool simPaused = false,
     float simSpeedMul = 1.0f,
-    const std::vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *gameplayStates = nullptr) {
+    const std::vector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>> *gameplayStates = nullptr,
+    uint32_t lastCommandResultSeq = 0,
+    uint8_t lastCommandResultState = 0,
+    uint16_t lastCommandResultReason = 0,
+    uint8_t authoritativeSkillSlot = 255,
+    uint8_t authoritativeSkillStage = 0,
+    uint64_t stageWindowEndTick = 0,
+    const std::vector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>> *commandResults = nullptr) {
   auto entities__ = entities ? _fbb.CreateVector<::flatbuffers::Offset<Shared::Schema::EntitySnapshot>>(*entities) : 0;
   auto gameplayStates__ = gameplayStates ? _fbb.CreateVector<::flatbuffers::Offset<Shared::Schema::GameplayStateSnapshot>>(*gameplayStates) : 0;
+  auto commandResults__ = commandResults ? _fbb.CreateVector<::flatbuffers::Offset<Shared::Schema::CommandResultSnapshot>>(*commandResults) : 0;
   return Shared::Schema::CreateSnapshot(
       _fbb,
       serverTick,
@@ -2528,7 +2997,14 @@ inline ::flatbuffers::Offset<Snapshot> CreateSnapshotDirect(
       toolRevision,
       simPaused,
       simSpeedMul,
-      gameplayStates__);
+      gameplayStates__,
+      lastCommandResultSeq,
+      lastCommandResultState,
+      lastCommandResultReason,
+      authoritativeSkillSlot,
+      authoritativeSkillStage,
+      stageWindowEndTick,
+      commandResults__);
 }
 
 inline const Shared::Schema::Snapshot *GetSnapshot(const void *buf) {

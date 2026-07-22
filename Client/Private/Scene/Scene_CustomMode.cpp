@@ -214,6 +214,8 @@ void CScene_CustomMode::StartMatchLoadingScene()
 		return;
 
 	m_bSceneTransitionStarted = true;
+	CGameSessionClient::Instance().Disconnect();
+	Client::CLoLMatchContextRuntime::Instance().Reset();
 	auto pLoadingMatch = CScene_MatchLoading::Create(
 		[]() -> std::unique_ptr<IScene>
 		{

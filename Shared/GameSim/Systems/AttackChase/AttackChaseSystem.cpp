@@ -16,6 +16,7 @@
 #include "Shared/GameSim/Core/World/World.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 
 namespace
@@ -139,9 +140,10 @@ namespace
         }
 
         moveTarget.target = resolvedTarget;
-        moveTarget.arriveRadius =
-            std::max(MoveTargetComponent{}.arriveRadius,
-                effectiveRange - kAttackChaseArriveSlack);
+        moveTarget.arriveRadius = AttackChaseGeometry::ResolveMoveArriveRadius(
+            effectiveRange,
+            target,
+            resolvedTarget);
         moveTarget.pathIndex = 0;
         moveTarget.bHasTarget = true;
 
@@ -248,6 +250,18 @@ namespace
 
         return cmd;
     }
+}
+
+f32_t AttackChaseGeometry::ResolveMoveArriveRadius(
+    f32_t effectiveRange,
+    const Vec3& targetPosition,
+    const Vec3& resolvedMoveTarget)
+{
+    const f32_t resolvedTargetOffset = std::sqrt(
+        WintersMath::DistanceSqXZ(targetPosition, resolvedMoveTarget));
+    return (std::max)(
+        MoveTargetComponent{}.arriveRadius,
+        effectiveRange - resolvedTargetOffset - kAttackChaseArriveSlack);
 }
 
 void CAttackChaseSystem::Execute(CWorld& world, const TickContext& tc,
@@ -361,7 +375,8 @@ void CAttackChaseSystem::Execute(CWorld& world, const TickContext& tc,
                 }
                 outCommands.push_back(MakeBasicAttackCommand(
                     tc, entity, chase.target, chase.sequenceNum, selfPos, targetPos));
-                world.RemoveComponent<AttackChaseComponent>(entity);
+                if (!chase.bSustain)
+                    world.RemoveComponent<AttackChaseComponent>(entity);
             }
             continue;
         }

@@ -66,6 +66,8 @@ private:
     bool m_bVSyncRequested = false;
     bool m_bPresentationVSync = false;
     uint32 m_uTargetFPS = 60;
+    uint32 m_uRunSeconds = 0;               // 0이면 무제한. 무인 프로파일링 자동 종료용
+    bool m_bProfileCaptureOnExit = false;   // 자동 종료 직전 타임라인 JSON 캡처
 
     static CEngineApp* m_spInstance;
 

@@ -6,7 +6,10 @@
 #include "Shared/GameSim/Champions/Jax/JaxGameSim.h"
 #include "Shared/GameSim/Champions/Kalista/KalistaGameSim.h"
 #include "Shared/GameSim/Champions/Kindred/KindredGameSim.h"
+#include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
+#include "Shared/GameSim/Champions/Zed/ZedGameSim.h"
 #include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/AttackChaseComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/CombatActionComponent.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
@@ -262,10 +265,8 @@ namespace
             return false;
 
         const eChampion resolvedChampion = ResolveChampion(world, source);
-        if (resolvedChampion != eChampion::ASHE &&
-            resolvedChampion != eChampion::EZREAL &&
-            resolvedChampion != eChampion::KALISTA &&
-            tc.pWalkable &&
+        if (tc.pWalkable &&
+            GameplayStateQuery::ShouldApplyBasicAttackSegmentGate(world, source) &&
             !GameplayStateQuery::IsAttackSegmentGateExemptTarget(world, target) &&
             world.HasComponent<TransformComponent>(source) &&
             world.HasComponent<TransformComponent>(target))
@@ -302,6 +303,7 @@ namespace
         request.sourceTeam = sourceTeam;
         request.type = eDamageType::Physical;
         request.flatAmount = damage;
+        request.critEligibleAmountOverride = damage;
         request.iSourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
         request.eSourceKind = eDamageSourceKind::BasicAttack;
         request.flags = DamageFlag_OnHit | DamageFlag_CanCrit | DamageFlag_CanLifesteal;
@@ -327,6 +329,22 @@ namespace
         if (!bProjectileImpactDeferred)
         {
             EnqueueDamageRequest(world, request);
+            if ((action.uFlags & CombatActionFlags::SylasPassive) != 0u)
+            {
+                SylasGameSim::EnqueuePassiveBasicAttackAreaDamage(
+                    world,
+                    tc,
+                    source,
+                    target);
+            }
+            if ((action.uFlags & CombatActionFlags::ZedPassive) != 0u)
+            {
+                ZedGameSim::EnqueuePassiveBasicAttackDamage(
+                    world,
+                    tc,
+                    source,
+                    target);
+            }
         }
 
         if (bProjectileImpactDeferred && resolvedChampion == eChampion::ASHE)
@@ -403,6 +421,8 @@ void CCombatActionSystem::Execute(CWorld& world, const TickContext& tc)
                 entity,
                 action.vQueuedMoveTarget,
                 action.vQueuedMoveDirection);
+            if (world.HasComponent<AttackChaseComponent>(entity))
+                world.RemoveComponent<AttackChaseComponent>(entity);
             world.RemoveComponent<CombatActionComponent>(entity);
             continue;
         }

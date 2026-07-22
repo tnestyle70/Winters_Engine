@@ -17,6 +17,7 @@ struct ProjectileVisualDesc
     f32_t fYawOffset = 0.f;
     // 부착 큐(박힌 창 등)를 히트마다 랜덤 각도/오프셋으로 분산시킨다 (누적 시각화).
     bool_t bAttachedCueRandomJitter = false;
+    bool_t bSuppressMeshDirectionalYaw = false;
 };
 
 namespace ProjectileVisualCatalog

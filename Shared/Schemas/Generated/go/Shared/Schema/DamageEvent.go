@@ -125,8 +125,20 @@ func (rcv *DamageEvent) MutateSkillId(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(16, n)
 }
 
+func (rcv *DamageEvent) Flags() uint16 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *DamageEvent) MutateFlags(n uint16) bool {
+	return rcv._tab.MutateUint16Slot(18, n)
+}
+
 func DamageEventStart(builder *flatbuffers.Builder) {
-	builder.StartObject(7)
+	builder.StartObject(8)
 }
 func DamageEventAddSourceNet(builder *flatbuffers.Builder, sourceNet uint32) {
 	builder.PrependUint32Slot(0, sourceNet, 0)
@@ -148,6 +160,9 @@ func DamageEventAddBKilled(builder *flatbuffers.Builder, bKilled bool) {
 }
 func DamageEventAddSkillId(builder *flatbuffers.Builder, skillId uint16) {
 	builder.PrependUint16Slot(6, skillId, 0)
+}
+func DamageEventAddFlags(builder *flatbuffers.Builder, flags uint16) {
+	builder.PrependUint16Slot(7, flags, 0)
 }
 func DamageEventEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "dataVersion": 1,
-  "buildHash": 276254117,
+  "buildHash": 4237932526,
   "xpCurve": [
     280.0,
     380.0,
@@ -62,14 +62,35 @@
       "growthIntervalSec": 90.0
     }
   },
-  "turretGold": 250.0,
+  "turretGold": 1500.0,
+  "turretTeamGold": 1000.0,
   "jungle": {
-    "smallCampGold": 35.0,
-    "smallCampXP": 75.0,
-    "epicGold": 150.0,
-    "epicXP": 250.0,
-    "baronGold": 300.0,
-    "baronXP": 600.0
+    "smallCampGold": 80.0,
+    "smallCampXP": 240.0,
+    "epicGold": 0.0,
+    "epicXP": 0.0,
+    "baronGold": 0.0,
+    "baronXP": 0.0
+  },
+  "objectives": {
+    "teamGoldPerChampion": 2000.0,
+    "teamLevelGrant": 3,
+    "buffDurationSec": 300.0,
+    "baronRecallDurationMultiplier": 0.5,
+    "baronAuraRadius": 12.0,
+    "baronMinionHpMultiplier": 3.0,
+    "baronMinionAttackDamageMultiplier": 2.0,
+    "baronMinionScaleMultiplier": 2.0,
+    "elderAttackDamageMultiplier": 1.7,
+    "elderBurnDurationSec": 3.0,
+    "elderBurnTickIntervalSec": 1.0,
+    "elderBurnTargetMaxHpRatioPerTick": 0.01,
+    "elderExecuteThresholdRatio": 0.2,
+    "blueManaRegenPerSec": 10.0,
+    "redHealthRegenPerSec": 10.0,
+    "redBurnDurationSec": 3.0,
+    "redBurnTickIntervalSec": 1.0,
+    "redBurnDamagePerTick": 10.0
   },
   "passiveGold": {
     "startTick": 3300,
@@ -78,6 +99,6 @@
   },
   "timers": {
     "assistCreditWindowSec": 10.0,
-    "recallDurationSec": 2.0
+    "recallDurationSec": 6.0
   }
 }

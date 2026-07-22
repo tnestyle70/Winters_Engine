@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "buildHash": 276254117,
+  "schemaVersion": 2,
+  "buildHash": 3200529822,
   "skills": [
     {
       "key": "skill.annie.basic_attack",
@@ -8,15 +8,22 @@
       "defId": 1,
       "ownerChampionDefId": 1,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 6.25
@@ -25,15 +32,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.8,
-          0.6
+          0.7
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -42,15 +86,30 @@
       "defId": 2,
       "ownerChampionDefId": 1,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 40.0
+        "manaByRank": [
+          40.0,
+          40.0,
+          40.0,
+          40.0,
+          40.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -59,8 +118,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.4,
-          0.6
+          0.4
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -88,7 +158,53 @@
             "id": "shieldDurationSec",
             "value": 3.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -97,15 +213,30 @@
       "defId": 3,
       "ownerChampionDefId": 1,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 60.0
+        "manaByRank": [
+          60.0,
+          60.0,
+          60.0,
+          60.0,
+          60.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 6.25
@@ -114,8 +245,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -135,7 +277,53 @@
             "id": "stunDurationSec",
             "value": 1.25
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            115.0,
+            150.0,
+            185.0,
+            220.0,
+            255.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -144,15 +332,26 @@
       "defId": 4,
       "ownerChampionDefId": 1,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Ground",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 100.0
+        "manaByRank": [
+          100.0,
+          100.0,
+          100.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -161,8 +360,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.2,
-          0.6
+          0.9
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -190,7 +400,41 @@
             "id": "stunDurationSec",
             "value": 1.25
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            225.0,
+            300.0,
+            375.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       },
       "summonPolicy": {
         "params": [
@@ -251,15 +495,30 @@
       "defId": 5,
       "ownerChampionDefId": 1,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 70.0
+        "manaByRank": [
+          70.0,
+          70.0,
+          70.0,
+          70.0,
+          70.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -268,8 +527,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -297,7 +567,53 @@
             "id": "stunDurationSec",
             "value": 1.25
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            115.0,
+            160.0,
+            205.0,
+            250.0,
+            295.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -306,15 +622,22 @@
       "defId": 6,
       "ownerChampionDefId": 2,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 1.72
+        "secondsByRank": [
+          1.7200000286102295
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -323,8 +646,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.7,
-          0.6
+          0.7
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -340,7 +674,33 @@
             "id": "speed",
             "value": 18.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -349,59 +709,51 @@
       "defId": 7,
       "ownerChampionDefId": 2,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
-      },
-      "cooldown": {
-        "seconds": 3.0
-      },
-      "range": {
-        "maximum": 25.0
-      },
-      "stage": {
-        "count": 1,
-        "windowSeconds": 0.0,
-        "lockSeconds": [
-          0.5,
-          0.6
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
         ]
       },
-      "effect": {
-        "scalingTableId": 0,
-        "gameplayPolicyId": 0,
-        "replicatedCueId": 0,
-        "params": []
-      }
-    },
-    {
-      "key": "skill.ashe.q",
-      "definitionKey": 1385036790,
-      "defId": 8,
-      "ownerChampionDefId": 2,
-      "slot": 1,
-      "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
-      },
-      "cost": {
-        "mana": 50.0
-      },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
-        "maximum": 0.0
+        "maximum": 400.0
       },
       "stage": {
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -410,12 +762,127 @@
         "replicatedCueId": 0,
         "params": [
           {
-            "id": "baseDamage",
-            "value": 20.0
+            "id": "radius",
+            "value": 10.0
           },
           {
+            "id": "range",
+            "value": 400.0
+          },
+          {
+            "id": "speed",
+            "value": 24.0
+          }
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "key": "skill.ashe.q",
+      "definitionKey": 1385036790,
+      "defId": 8,
+      "ownerChampionDefId": 2,
+      "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
+      },
+      "cooldown": {
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
+          {
             "id": "effectDurationSec",
-            "value": 4.0
+            "value": 5.0
           },
           {
             "id": "maxStacks",
@@ -425,7 +892,53 @@
             "id": "slowDurationSec",
             "value": 1.5
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -434,15 +947,26 @@
       "defId": 9,
       "ownerChampionDefId": 2,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 100.0
+        "manaByRank": [
+          100.0,
+          100.0,
+          100.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 200.0
@@ -451,8 +975,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          1.0
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -476,7 +1011,41 @@
             "id": "stunDurationSec",
             "value": 2.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            250.0,
+            250.0,
+            250.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -485,15 +1054,30 @@
       "defId": 10,
       "ownerChampionDefId": 2,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 75.0
+        "manaByRank": [
+          75.0,
+          75.0,
+          75.0,
+          75.0,
+          75.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 9.0
@@ -502,8 +1086,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -531,7 +1126,53 @@
             "id": "speed",
             "value": 24.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            45.0,
+            45.0,
+            45.0,
+            45.0,
+            45.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -540,15 +1181,22 @@
       "defId": 11,
       "ownerChampionDefId": 3,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.5
+        "secondsByRank": [
+          0.5
+        ]
       },
       "range": {
         "maximum": 5.5
@@ -557,8 +1205,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.65,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -582,7 +1241,33 @@
             "id": "stackWindowSec",
             "value": 6.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -591,15 +1276,30 @@
       "defId": 12,
       "ownerChampionDefId": 3,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Ground",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 70.0
+        "manaByRank": [
+          70.0,
+          70.0,
+          70.0,
+          70.0,
+          70.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 4.75
@@ -608,8 +1308,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.25,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          0.25
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -634,10 +1345,6 @@
             "value": 0.25
           },
           {
-            "id": "cooldownReductionPerRank",
-            "value": 3.0
-          },
-          {
             "id": "damagePerRank",
             "value": 50.0
           },
@@ -653,7 +1360,53 @@
             "id": "speed",
             "value": 20.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            80.0,
+            130.0,
+            180.0,
+            230.0,
+            280.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            0.6,
+            0.6,
+            0.6,
+            0.6,
+            0.6
+          ],
+          "apRatioByRank": [
+            0.75,
+            0.75,
+            0.75,
+            0.75,
+            0.75
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -662,15 +1415,30 @@
       "defId": 13,
       "ownerChampionDefId": 3,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 28.0
+        "manaByRank": [
+          28.0,
+          31.0,
+          34.0,
+          37.0,
+          40.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 12.0
@@ -679,8 +1447,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.25,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          0.25
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -701,10 +1480,6 @@
             "value": 0.25
           },
           {
-            "id": "cooldownReductionPerRank",
-            "value": 0.25
-          },
-          {
             "id": "cooldownRefundSec",
             "value": 1.5
           },
@@ -717,10 +1492,6 @@
             "value": 0.6
           },
           {
-            "id": "manaCostPerRank",
-            "value": 3.0
-          },
-          {
             "id": "speed",
             "value": 20.0
           },
@@ -728,7 +1499,55 @@
             "id": "totalAdRatio",
             "value": 1.3
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            200.0,
+            200.0,
+            200.0,
+            200.0,
+            300.0
+          ],
+          "totalAdRatioByRank": [
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -737,15 +1556,26 @@
       "defId": 14,
       "ownerChampionDefId": 3,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 100.0
+        "manaByRank": [
+          100.0,
+          100.0,
+          100.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 250.0
@@ -754,8 +1584,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          1.0
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -768,10 +1609,6 @@
             "value": 1.1
           },
           {
-            "id": "baseDamage",
-            "value": 350.0
-          },
-          {
             "id": "bonusAdRatio",
             "value": 1.0
           },
@@ -780,30 +1617,56 @@
             "value": 1.0
           },
           {
-            "id": "cooldownReductionPerRank",
-            "value": 15.0
-          },
-          {
-            "id": "damagePerRank",
-            "value": 200.0
-          },
-          {
             "id": "halfWidth",
             "value": 1.6
           },
           {
             "id": "nonEpicBaseDamage",
-            "value": 150.0
-          },
-          {
-            "id": "nonEpicDamagePerRank",
-            "value": 75.0
+            "values": [
+              150.0,
+              225.0,
+              300.0
+            ]
           },
           {
             "id": "speed",
             "value": 20.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            350.0,
+            550.0,
+            750.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "apRatioByRank": [
+            1.1,
+            1.1,
+            1.1
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -812,15 +1675,30 @@
       "defId": 15,
       "ownerChampionDefId": 3,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 12.0
@@ -829,8 +1707,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.25,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          0.25
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -874,7 +1763,53 @@
             "id": "speed",
             "value": 17.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            80.0,
+            135.0,
+            190.0,
+            245.0,
+            300.0
+          ],
+          "totalAdRatioByRank": [
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "apRatioByRank": [
+            0.9,
+            0.9,
+            0.9,
+            0.9,
+            0.9
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -883,15 +1818,22 @@
       "defId": 16,
       "ownerChampionDefId": 4,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 1.67
+        "secondsByRank": [
+          1.6699999570846558
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -900,42 +1842,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
-        ]
-      },
-      "effect": {
-        "scalingTableId": 0,
-        "gameplayPolicyId": 0,
-        "replicatedCueId": 0,
-        "params": []
-      }
-    },
-    {
-      "key": "skill.fiora.e",
-      "definitionKey": 1690986934,
-      "defId": 17,
-      "ownerChampionDefId": 4,
-      "slot": 3,
-      "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
-      },
-      "cost": {
-        "mana": 40.0
-      },
-      "cooldown": {
-        "seconds": 3.0
-      },
-      "range": {
-        "maximum": 0.0
-      },
-      "stage": {
-        "count": 1,
-        "windowSeconds": 0.0,
-        "lockSeconds": [
-          0.4,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -944,9 +1863,112 @@
         "replicatedCueId": 0,
         "params": [
           {
-            "id": "baseDamage",
-            "value": 30.0
+            "id": "acquireRange",
+            "value": 8.0
           },
+          {
+            "id": "lifetimeSec",
+            "value": 8.0
+          },
+          {
+            "id": "respawnSec",
+            "value": 1.5
+          },
+          {
+            "id": "sideDotThreshold",
+            "value": 0.55
+          },
+          {
+            "id": "targetMaxHpRatio",
+            "value": 0.03
+          }
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "key": "skill.fiora.e",
+      "definitionKey": 1690986934,
+      "defId": 17,
+      "ownerChampionDefId": 4,
+      "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
+      "target": {
+        "shape": "Self",
+        "resolvePolicy": "Direct"
+      },
+      "cost": {
+        "manaByRank": [
+          40.0,
+          40.0,
+          40.0,
+          40.0,
+          40.0
+        ]
+      },
+      "cooldown": {
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
+      },
+      "range": {
+        "maximum": 0.0
+      },
+      "stage": {
+        "count": 1,
+        "windowSeconds": 0.0,
+        "lockSeconds": [
+          0.4
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
+        ]
+      },
+      "effect": {
+        "scalingTableId": 0,
+        "gameplayPolicyId": 0,
+        "replicatedCueId": 0,
+        "params": [
           {
             "id": "effectDurationSec",
             "value": 5.0
@@ -955,7 +1977,55 @@
             "id": "maxStacks",
             "value": 2.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            30.0,
+            30.0,
+            30.0,
+            30.0,
+            30.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -964,15 +2034,30 @@
       "defId": 18,
       "ownerChampionDefId": 4,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 20.0
+        "manaByRank": [
+          20.0,
+          20.0,
+          20.0,
+          20.0,
+          20.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 4.0
@@ -981,8 +2066,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.5
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1010,7 +2106,55 @@
             "id": "range",
             "value": 4.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            70.0,
+            70.0,
+            70.0,
+            70.0,
+            70.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1019,15 +2163,26 @@
       "defId": 19,
       "ownerChampionDefId": 4,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 100.0
+        "manaByRank": [
+          100.0,
+          100.0,
+          100.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 5.0
@@ -1036,8 +2191,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          2.0,
-          0.6
+          1.2
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1048,8 +2214,62 @@
           {
             "id": "baseDamage",
             "value": 80.0
+          },
+          {
+            "id": "challengeDurationSec",
+            "value": 8.0
+          },
+          {
+            "id": "healAmount",
+            "value": 40.0
+          },
+          {
+            "id": "healDurationSec",
+            "value": 5.0
+          },
+          {
+            "id": "healIntervalSec",
+            "value": 0.5
+          },
+          {
+            "id": "healRadius",
+            "value": 6.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            80.0,
+            80.0,
+            80.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1058,25 +2278,51 @@
       "defId": 20,
       "ownerChampionDefId": 4,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
-        "maximum": 0.0
+        "maximum": 6.5
       },
       "stage": {
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.5,
-          0.6
+          1.5
+        ],
+        "commandLockSeconds": [
+          1.5
+        ],
+        "movePolicies": [
+          "StationaryChannel"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1093,14 +2339,56 @@
             "value": 0.8
           },
           {
-            "id": "range",
-            "value": 6.0
-          },
-          {
             "id": "slowDurationSec",
             "value": 1.5
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            80.0,
+            80.0,
+            80.0,
+            80.0,
+            80.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1109,15 +2397,22 @@
       "defId": 21,
       "ownerChampionDefId": 5,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -1126,15 +2421,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1143,15 +2475,30 @@
       "defId": 22,
       "ownerChampionDefId": 5,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 1.65
@@ -1160,15 +2507,72 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          3.0,
-          0.6
+          3.0
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1177,15 +2581,30 @@
       "defId": 23,
       "ownerChampionDefId": 5,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -1194,15 +2613,72 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
-          0.6
+          0.45
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1211,15 +2687,26 @@
       "defId": 24,
       "ownerChampionDefId": 5,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 4.0
@@ -1228,8 +2715,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.5,
-          0.6
+          1.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1249,7 +2747,41 @@
             "id": "missingHealthDamageRatio",
             "value": 0.25
           }
-        ]
+        ],
+        "damage": {
+          "type": "True",
+          "flags": [],
+          "flatByRank": [
+            150.0,
+            300.0,
+            450.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.25,
+            0.25,
+            0.25
+          ]
+        }
       }
     },
     {
@@ -1258,15 +2790,30 @@
       "defId": 25,
       "ownerChampionDefId": 5,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -1275,15 +2822,72 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1292,15 +2896,22 @@
       "defId": 26,
       "ownerChampionDefId": 6,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 2.1
@@ -1309,15 +2920,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.46,
-          0.6
+          0.466667
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1326,15 +2974,30 @@
       "defId": 27,
       "ownerChampionDefId": 6,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0
+        ]
       },
       "range": {
         "maximum": 9.0
@@ -1345,6 +3008,22 @@
         "lockSeconds": [
           0.9,
           0.45
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.0
+        ],
+        "movePolicies": [
+          "Allow",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -1354,11 +3033,15 @@
         "params": [
           {
             "id": "baseDamage",
-            "value": 70.0
+            "value": 30.0
           },
           {
             "id": "damagePerRank",
-            "value": 30.0
+            "value": 40.0
+          },
+          {
+            "id": "markDurationSec",
+            "value": 5.0
           },
           {
             "id": "radius",
@@ -1368,7 +3051,53 @@
             "id": "stunDurationSec",
             "value": 0.75
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            70.0,
+            110.0,
+            150.0,
+            190.0,
+            230.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1377,15 +3106,30 @@
       "defId": 28,
       "ownerChampionDefId": 6,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 20.0
+        "manaByRank": [
+          15.0,
+          15.0,
+          15.0,
+          15.0,
+          15.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          5.0,
+          4.0,
+          3.0,
+          2.5,
+          2.0
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -1394,8 +3138,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.36,
-          0.6
+          0.36
+        ],
+        "commandLockSeconds": [
+          0.36
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1405,21 +3160,70 @@
         "params": [
           {
             "id": "baseDamage",
-            "value": 45.0
+            "value": 5.0
           },
           {
             "id": "damagePerRank",
-            "value": 25.0
-          },
-          {
-            "id": "dashDurationSec",
-            "value": 0.25
+            "value": 20.0
           },
           {
             "id": "gap",
             "value": 1.35
+          },
+          {
+            "id": "speed",
+            "value": 14.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            50.0,
+            83.0,
+            200.0,
+            200.0,
+            200.0
+          ],
+          "totalAdRatioByRank": [
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1428,15 +3232,26 @@
       "defId": 29,
       "ownerChampionDefId": 6,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 100.0
+        "manaByRank": [
+          100.0,
+          100.0,
+          100.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          125.0,
+          105.0,
+          85.0
+        ]
       },
       "range": {
         "maximum": 12.0
@@ -1445,8 +3260,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.65,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1456,7 +3282,7 @@
         "params": [
           {
             "id": "baseDamage",
-            "value": 250.0
+            "value": 125.0
           },
           {
             "id": "disarmDurationSec",
@@ -1465,6 +3291,10 @@
           {
             "id": "effectDurationSec",
             "value": 2.5
+          },
+          {
+            "id": "markDurationSec",
+            "value": 5.0
           },
           {
             "id": "moveSpeedMul",
@@ -1490,7 +3320,41 @@
             "id": "speed",
             "value": 15.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            125.0,
+            200.0,
+            275.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.7,
+            0.7,
+            0.7
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1499,15 +3363,30 @@
       "defId": 30,
       "ownerChampionDefId": 6,
       "slot": 2,
+      "input": {
+        "activation": "PressRelease"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 70.0
+        "manaByRank": [
+          70.0,
+          75.0,
+          80.0,
+          85.0,
+          90.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          6.0,
+          5.0,
+          5.0,
+          5.0,
+          4.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -1518,6 +3397,22 @@
         "lockSeconds": [
           5.0,
           0.4
+        ],
+        "commandLockSeconds": [
+          4.0,
+          0.0
+        ],
+        "movePolicies": [
+          "StationaryChannel",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          true,
+          false
         ]
       },
       "effect": {
@@ -1527,11 +3422,11 @@
         "params": [
           {
             "id": "baseDamage",
-            "value": 30.0
+            "value": 0.0
           },
           {
             "id": "damagePerRank",
-            "value": 40.0
+            "value": 10.0
           },
           {
             "id": "halfWidth",
@@ -1541,6 +3436,68 @@
             "id": "range",
             "value": 6.0
           }
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            80.0,
+            120.0,
+            160.0,
+            180.0,
+            200.0
+          ],
+          "totalAdRatioByRank": [
+            2.0,
+            0.4,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.5,
+            0.5,
+            0.5,
+            0.5,
+            0.5
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "charge": {
+        "maxHoldSec": 4.0,
+        "autoRelease": true,
+        "rangeScale": [
+          1.0,
+          1.0
+        ],
+        "damageScale": [
+          1.0,
+          3.0
+        ],
+        "stunSeconds": [
+          0.0,
+          0.0
         ]
       }
     },
@@ -1550,15 +3507,22 @@
       "defId": 31,
       "ownerChampionDefId": 7,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 1.67
+        "secondsByRank": [
+          1.6699999570846558
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -1567,15 +3531,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1584,15 +3585,30 @@
       "defId": 32,
       "ownerChampionDefId": 7,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
         "shape": "Self",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -1603,6 +3619,22 @@
         "lockSeconds": [
           2.0,
           0.7
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.0
+        ],
+        "movePolicies": [
+          "Allow",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          true,
+          false
         ]
       },
       "effect": {
@@ -1622,7 +3654,53 @@
             "id": "stunDurationSec",
             "value": 1.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            60.0,
+            60.0,
+            60.0,
+            60.0,
+            60.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1631,15 +3709,30 @@
       "defId": 33,
       "ownerChampionDefId": 7,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 65.0
+        "manaByRank": [
+          65.0,
+          65.0,
+          65.0,
+          65.0,
+          65.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 7.0
@@ -1648,8 +3741,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.6
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1669,7 +3773,53 @@
             "id": "gap",
             "value": 1.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            70.0,
+            70.0,
+            70.0,
+            70.0,
+            70.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1678,15 +3828,26 @@
       "defId": 34,
       "ownerChampionDefId": 7,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 100.0
+        "manaByRank": [
+          100.0,
+          100.0,
+          100.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -1695,8 +3856,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1704,10 +3876,6 @@
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
         "params": [
-          {
-            "id": "baseDamage",
-            "value": 70.0
-          },
           {
             "id": "effectDurationSec",
             "value": 8.0
@@ -1716,7 +3884,43 @@
             "id": "maxStacks",
             "value": 3.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            70.0,
+            70.0,
+            70.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1725,15 +3929,30 @@
       "defId": 35,
       "ownerChampionDefId": 7,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 30.0
+        "manaByRank": [
+          30.0,
+          30.0,
+          30.0,
+          30.0,
+          30.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -1742,8 +3961,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          false
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1752,14 +3982,58 @@
         "replicatedCueId": 0,
         "params": [
           {
-            "id": "baseDamage",
-            "value": 45.0
-          },
-          {
             "id": "effectDurationSec",
             "value": 5.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            45.0,
+            45.0,
+            45.0,
+            45.0,
+            45.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1768,15 +4042,22 @@
       "defId": 36,
       "ownerChampionDefId": 8,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.5
+        "secondsByRank": [
+          0.5
+        ]
       },
       "range": {
         "maximum": 5.5
@@ -1785,15 +4066,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1802,15 +4120,30 @@
       "defId": 37,
       "ownerChampionDefId": 8,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 30.0
+        "manaByRank": [
+          30.0,
+          30.0,
+          30.0,
+          30.0,
+          30.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 12.0
@@ -1819,8 +4152,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.4,
-          0.6
+          0.4
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1828,6 +4172,16 @@
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
         "params": [
+          {
+            "id": "damagePerSpear",
+            "values": [
+              30.0,
+              30.0,
+              40.0,
+              50.0,
+              60.0
+            ]
+          },
           {
             "id": "moveSpeedMul",
             "value": 0.55
@@ -1840,7 +4194,53 @@
             "id": "stunDurationSec",
             "value": 1.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            20.0,
+            20.0,
+            20.0,
+            20.0,
+            20.0
+          ],
+          "totalAdRatioByRank": [
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1849,15 +4249,30 @@
       "defId": 38,
       "ownerChampionDefId": 8,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          5.0,
+          4.0,
+          1.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 16.5
@@ -1866,8 +4281,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.3,
-          0.6
+          0.3
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1887,7 +4313,55 @@
             "id": "speed",
             "value": 27.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            70.0,
+            100.0,
+            200.0,
+            300.0,
+            350.0
+          ],
+          "totalAdRatioByRank": [
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1896,15 +4370,30 @@
       "defId": 39,
       "ownerChampionDefId": 8,
       "slot": 4,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Direction",
-        "resolvePolicy": "Direct"
+        "shape": "Self",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Self",
+          "Direction"
+        ]
       },
       "cost": {
-        "mana": 100.0
+        "manaByRank": [
+          100.0,
+          100.0,
+          100.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -1915,6 +4404,22 @@
         "lockSeconds": [
           0.5,
           0.45
+        ],
+        "commandLockSeconds": [
+          0.266666667,
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock",
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -1938,7 +4443,41 @@
             "id": "radius",
             "value": 2.5
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -1947,15 +4486,30 @@
       "defId": 40,
       "ownerChampionDefId": 8,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 12.0
@@ -1964,8 +4518,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -1981,7 +4546,53 @@
             "id": "range",
             "value": 12.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       },
       "summonPolicy": {
         "params": [
@@ -2010,15 +4621,22 @@
       "defId": 41,
       "ownerChampionDefId": 9,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 5.5
@@ -2027,15 +4645,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2044,15 +4699,30 @@
       "defId": 42,
       "ownerChampionDefId": 9,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 70.0
+        "manaByRank": [
+          70.0,
+          70.0,
+          70.0,
+          70.0,
+          70.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 5.5
@@ -2061,8 +4731,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2070,10 +4751,6 @@
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
         "params": [
-          {
-            "id": "baseDamage",
-            "value": 80.0
-          },
           {
             "id": "markDurationSec",
             "value": 4.0
@@ -2090,7 +4767,55 @@
             "id": "slowDurationSec",
             "value": 1.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            80.0,
+            80.0,
+            80.0,
+            80.0,
+            80.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2099,15 +4824,30 @@
       "defId": 43,
       "ownerChampionDefId": 9,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 35.0
+        "manaByRank": [
+          35.0,
+          35.0,
+          35.0,
+          35.0,
+          35.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 5.5
@@ -2116,15 +4856,72 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2133,15 +4930,26 @@
       "defId": 44,
       "ownerChampionDefId": 9,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Ground",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 100.0
+        "manaByRank": [
+          100.0,
+          100.0,
+          100.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -2150,8 +4958,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2179,7 +4998,41 @@
             "id": "radius",
             "value": 6.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2188,15 +5041,30 @@
       "defId": 45,
       "ownerChampionDefId": 9,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 40.0
+        "manaByRank": [
+          40.0,
+          40.0,
+          40.0,
+          40.0,
+          40.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 8.0
@@ -2205,8 +5073,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2230,7 +5109,53 @@
             "id": "tickIntervalSec",
             "value": 0.6
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            35.0,
+            35.0,
+            35.0,
+            35.0,
+            35.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2239,15 +5164,22 @@
       "defId": 46,
       "ownerChampionDefId": 10,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -2256,15 +5188,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2273,15 +5242,30 @@
       "defId": 47,
       "ownerChampionDefId": 10,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          5.0,
+          5.0,
+          5.0
+        ]
       },
       "range": {
         "maximum": 4.0
@@ -2292,6 +5276,22 @@
         "lockSeconds": [
           0.6,
           0.45
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.0
+        ],
+        "movePolicies": [
+          "Allow",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -2311,7 +5311,53 @@
             "id": "slowDurationSec",
             "value": 1.5
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            200.0,
+            200.0,
+            200.0,
+            200.0,
+            200.0
+          ],
+          "totalAdRatioByRank": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2320,15 +5366,34 @@
       "defId": 48,
       "ownerChampionDefId": 10,
       "slot": 1,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Direction",
+          "Unit"
+        ]
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 11.0
@@ -2339,6 +5404,22 @@
         "lockSeconds": [
           0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667,
+          0.6
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -2348,7 +5429,13 @@
         "params": [
           {
             "id": "baseDamage",
-            "value": 95.0
+            "values": [
+              95.0,
+              95.0,
+              150.0,
+              200.0,
+              200.0
+            ]
           },
           {
             "id": "dashDurationSec",
@@ -2362,7 +5449,55 @@
             "id": "markDurationSec",
             "value": 3.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            55.0,
+            80.0,
+            150.0,
+            200.0,
+            200.0
+          ],
+          "totalAdRatioByRank": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2371,15 +5506,26 @@
       "defId": 49,
       "ownerChampionDefId": 10,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          15.0,
+          15.0,
+          10.0
+        ]
       },
       "range": {
         "maximum": 3.0
@@ -2388,8 +5534,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2405,7 +5562,41 @@
             "id": "baseDamage",
             "value": 150.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            350.0,
+            400.0,
+            500.0
+          ],
+          "totalAdRatioByRank": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2414,15 +5605,34 @@
       "defId": 50,
       "ownerChampionDefId": 10,
       "slot": 2,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Unit",
+          "Self"
+        ]
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 7.0
@@ -2433,6 +5643,22 @@
         "lockSeconds": [
           0.6,
           0.45
+        ],
+        "commandLockSeconds": [
+          0.6,
+          0.0
+        ],
+        "movePolicies": [
+          "ForcedMotion",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -2456,7 +5682,53 @@
             "id": "shieldDurationSec",
             "value": 3.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2465,15 +5737,22 @@
       "defId": 51,
       "ownerChampionDefId": 11,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -2482,15 +5761,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2499,15 +5815,30 @@
       "defId": 52,
       "ownerChampionDefId": 11,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -2516,15 +5847,72 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2533,15 +5921,30 @@
       "defId": 53,
       "ownerChampionDefId": 11,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -2550,15 +5953,72 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2567,15 +6027,26 @@
       "defId": 54,
       "ownerChampionDefId": 11,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 100.0
+        "manaByRank": [
+          100.0,
+          100.0,
+          100.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -2584,8 +6055,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2605,7 +6087,41 @@
             "id": "moveSpeedMul",
             "value": 1.35
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2614,15 +6130,30 @@
       "defId": 55,
       "ownerChampionDefId": 11,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          50.0,
+          50.0,
+          50.0,
+          50.0,
+          50.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -2631,15 +6162,72 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2648,15 +6236,22 @@
       "defId": 56,
       "ownerChampionDefId": 12,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -2665,15 +6260,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2682,15 +6314,30 @@
       "defId": 57,
       "ownerChampionDefId": 12,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -2699,8 +6346,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2716,7 +6374,53 @@
             "id": "shieldDurationSec",
             "value": 3.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2725,15 +6429,30 @@
       "defId": 58,
       "ownerChampionDefId": 12,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 4.5
@@ -2742,8 +6461,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.45,
-          0.6
+          0.45
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2761,9 +6491,55 @@
           },
           {
             "id": "stackWindowSec",
-            "value": 4.0
+            "value": 2.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2772,15 +6548,30 @@
       "defId": 59,
       "ownerChampionDefId": 12,
       "slot": 4,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Direction",
-        "resolvePolicy": "Direct"
+        "shape": "Self",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Self",
+          "Direction"
+        ]
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -2791,6 +6582,22 @@
         "lockSeconds": [
           0.8,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.0
+        ],
+        "movePolicies": [
+          "Allow",
+          "Allow"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -2822,7 +6629,41 @@
             "id": "range",
             "value": 10.5
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            100.0,
+            150.0,
+            200.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2831,15 +6672,30 @@
       "defId": 60,
       "ownerChampionDefId": 12,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 0.0
@@ -2848,8 +6704,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -2865,7 +6732,53 @@
             "id": "stunDurationSec",
             "value": 0.75
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2874,15 +6787,22 @@
       "defId": 61,
       "ownerChampionDefId": 13,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -2891,15 +6811,73 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "apRatio",
+            "value": 0.6
+          },
+          {
+            "id": "baseDamage",
+            "value": 60.0
+          },
+          {
+            "id": "maxStacks",
+            "value": 3.0
+          },
+          {
+            "id": "radius",
+            "value": 2.75
+          },
+          {
+            "id": "stackWindowSec",
+            "value": 5.0
+          }
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2908,15 +6886,30 @@
       "defId": 62,
       "ownerChampionDefId": 13,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 65.0
+        "manaByRank": [
+          65.0,
+          65.0,
+          65.0,
+          65.0,
+          65.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -2927,6 +6920,22 @@
         "lockSeconds": [
           0.35,
           0.5
+        ],
+        "commandLockSeconds": [
+          0.35,
+          0.5
+        ],
+        "movePolicies": [
+          "ForcedMotion",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -2978,7 +6987,53 @@
             "id": "targetDashDurationSec",
             "value": 0.22
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            65.0,
+            90.0,
+            115.0,
+            140.0,
+            165.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -2987,15 +7042,30 @@
       "defId": 63,
       "ownerChampionDefId": 13,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 55.0
+        "manaByRank": [
+          55.0,
+          55.0,
+          55.0,
+          55.0,
+          55.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 4.0
@@ -3004,15 +7074,81 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.55,
-          0.6
+          0.55
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "formationDelaySec",
+            "value": 0.5
+          },
+          {
+            "id": "radius",
+            "value": 1.65
+          }
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            70.0,
+            95.0,
+            120.0,
+            145.0,
+            170.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3021,15 +7157,26 @@
       "defId": 64,
       "ownerChampionDefId": 13,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 75.0
+        "manaByRank": [
+          75.0,
+          75.0,
+          75.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 10.0
@@ -3038,8 +7185,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.8,
-          0.6
+          0.8
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3055,7 +7213,41 @@
             "id": "range",
             "value": 10.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3064,15 +7256,30 @@
       "defId": 65,
       "ownerChampionDefId": 13,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 65.0
+        "manaByRank": [
+          65.0,
+          65.0,
+          65.0,
+          65.0,
+          65.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 5.0
@@ -3081,15 +7288,77 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.45,
-          0.6
+          0.45
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "healDamageRatio",
+            "value": 0.5
+          }
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            75.0,
+            100.0,
+            125.0,
+            150.0,
+            175.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3098,15 +7367,22 @@
       "defId": 66,
       "ownerChampionDefId": 14,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -3115,15 +7391,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.75,
-          0.6
+          0.75
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3132,15 +7445,30 @@
       "defId": 67,
       "ownerChampionDefId": 14,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          6.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -3149,8 +7477,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.75,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3174,7 +7513,53 @@
             "id": "tickIntervalSec",
             "value": 0.1
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3183,15 +7568,30 @@
       "defId": 68,
       "ownerChampionDefId": 14,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          5.0,
+          4.5,
+          4.0,
+          3.5,
+          3.0
+        ]
       },
       "range": {
         "maximum": 5.5
@@ -3200,8 +7600,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
-          0.6
+          0.45
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3211,13 +7622,59 @@
         "params": [
           {
             "id": "baseDamage",
-            "value": 65.0
+            "value": 25.0
           },
           {
             "id": "radius",
             "value": 0.9
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            80.0,
+            100.0,
+            200.0,
+            200.0,
+            200.0
+          ],
+          "totalAdRatioByRank": [
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3226,15 +7683,26 @@
       "defId": 69,
       "ownerChampionDefId": 14,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Ground",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          120.0,
+          100.0,
+          80.0
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -3243,8 +7711,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.8,
-          0.6
+          0.8
+        ],
+        "commandLockSeconds": [
+          0.8
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3254,7 +7733,7 @@
         "params": [
           {
             "id": "baseDamage",
-            "value": 150.0
+            "value": 0.0
           },
           {
             "id": "dashDurationSec",
@@ -3272,7 +7751,41 @@
             "id": "slowDurationSec",
             "value": 1.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            300.0,
+            400.0,
+            500.0
+          ],
+          "totalAdRatioByRank": [
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.12,
+            0.16,
+            0.2
+          ]
+        }
       }
     },
     {
@@ -3281,18 +7794,33 @@
       "defId": 70,
       "ownerChampionDefId": 14,
       "slot": 2,
+      "input": {
+        "activation": "PressRelease"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          5.0,
+          5.0,
+          5.0,
+          5.0,
+          5.0
+        ]
       },
       "range": {
-        "maximum": 4.0
+        "maximum": 5.0
       },
       "stage": {
         "count": 2,
@@ -3300,6 +7828,22 @@
         "lockSeconds": [
           0.7,
           0.3
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.3
+        ],
+        "movePolicies": [
+          "Allow",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          true,
+          false
         ]
       },
       "effect": {
@@ -3309,7 +7853,7 @@
         "params": [
           {
             "id": "baseDamage",
-            "value": 55.0
+            "value": 80.0
           },
           {
             "id": "dashDurationSec",
@@ -3321,8 +7865,70 @@
           },
           {
             "id": "stunDurationSec",
-            "value": 0.75
+            "value": 2.0
           }
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            80.0,
+            135.0,
+            190.0,
+            245.0,
+            300.0
+          ],
+          "totalAdRatioByRank": [
+            1.0,
+            1.0,
+            1.0,
+            2.0,
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "charge": {
+        "maxHoldSec": 4.0,
+        "autoRelease": true,
+        "rangeScale": [
+          0.5,
+          1.0
+        ],
+        "damageScale": [
+          1.0,
+          1.0
+        ],
+        "stunSeconds": [
+          0.25,
+          2.0
         ]
       }
     },
@@ -3332,15 +7938,22 @@
       "defId": 71,
       "ownerChampionDefId": 15,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.6
+        "secondsByRank": [
+          0.6000000238418579
+        ]
       },
       "range": {
         "maximum": 2.5
@@ -3349,15 +7962,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3366,15 +8016,30 @@
       "defId": 72,
       "ownerChampionDefId": 15,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Unit",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          0.10000000149011612,
+          0.10000000149011612,
+          0.10000000149011612,
+          0.10000000149011612,
+          0.10000000149011612
+        ]
       },
       "range": {
         "maximum": 4.75
@@ -3383,8 +8048,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.4,
-          0.6
+          0.4
+        ],
+        "commandLockSeconds": [
+          0.4
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3416,7 +8092,53 @@
             "id": "markDurationSec",
             "value": 10.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Magic",
+          "flags": [],
+          "flatByRank": [
+            200.0,
+            200.0,
+            200.0,
+            200.0,
+            200.0
+          ],
+          "totalAdRatioByRank": [
+            1.0,
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3425,15 +8147,30 @@
       "defId": 73,
       "ownerChampionDefId": 15,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          2.0,
+          1.5,
+          1.5
+        ]
       },
       "range": {
         "maximum": 5.0
@@ -3442,8 +8179,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.5,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3456,12 +8204,14 @@
             "value": 1.25
           },
           {
-            "id": "baseDamage",
-            "value": 60.0
-          },
-          {
             "id": "dashAreaDamage",
-            "value": 70.0
+            "values": [
+              70.0,
+              90.0,
+              200.0,
+              250.0,
+              300.0
+            ]
           },
           {
             "id": "dashAreaRadius",
@@ -3485,7 +8235,13 @@
           },
           {
             "id": "tornadoDamage",
-            "value": 100.0
+            "values": [
+              100.0,
+              120.0,
+              200.0,
+              250.0,
+              300.0
+            ]
           },
           {
             "id": "tornadoDurationSec",
@@ -3499,7 +8255,55 @@
             "id": "tornadoSpeed",
             "value": 18.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            60.0,
+            80.0,
+            200.0,
+            250.0,
+            300.0
+          ],
+          "totalAdRatioByRank": [
+            2.0,
+            2.0,
+            2.0,
+            2.0,
+            2.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3508,15 +8312,26 @@
       "defId": 74,
       "ownerChampionDefId": 15,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 14.0
@@ -3525,8 +8340,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.6
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3546,7 +8372,41 @@
             "id": "gap",
             "value": 1.1
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            200.0,
+            200.0,
+            200.0
+          ],
+          "totalAdRatioByRank": [
+            3.0,
+            3.0,
+            3.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3555,15 +8415,30 @@
       "defId": 75,
       "ownerChampionDefId": 15,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 4.0
@@ -3572,8 +8447,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.25,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3601,7 +8487,53 @@
             "id": "rectWidth",
             "value": 0.5
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3610,15 +8542,22 @@
       "defId": 76,
       "ownerChampionDefId": 16,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.75
+        "secondsByRank": [
+          0.75
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -3627,15 +8566,52 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.9,
-          0.6
+          0.75
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3644,15 +8620,30 @@
       "defId": 77,
       "ownerChampionDefId": 16,
       "slot": 3,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 4.0
@@ -3663,6 +8654,22 @@
         "lockSeconds": [
           0.75,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.75,
+          0.6
+        ],
+        "movePolicies": [
+          "ForcedMotion",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -3682,7 +8689,53 @@
             "id": "effectDurationSec",
             "value": 5.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3691,15 +8744,30 @@
       "defId": 78,
       "ownerChampionDefId": 16,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 4.75
@@ -3708,8 +8776,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.9,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3725,7 +8804,55 @@
             "id": "radius",
             "value": 0.85
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "OnHit"
+          ],
+          "flatByRank": [
+            75.0,
+            75.0,
+            75.0,
+            75.0,
+            75.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3734,15 +8861,26 @@
       "defId": 79,
       "ownerChampionDefId": 16,
       "slot": 4,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Direction",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 10.0
@@ -3751,8 +8889,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.2,
-          0.6
+          1.2
+        ],
+        "commandLockSeconds": [
+          1.2
+        ],
+        "movePolicies": [
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3784,7 +8933,41 @@
             "id": "radius",
             "value": 1.7
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            150.0,
+            150.0,
+            150.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3793,15 +8976,30 @@
       "defId": 80,
       "ownerChampionDefId": 16,
       "slot": 2,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 6.0
@@ -3810,8 +9008,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.9,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3827,7 +9036,53 @@
             "id": "radius",
             "value": 1.5
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            65.0,
+            65.0,
+            65.0,
+            65.0,
+            65.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3836,15 +9091,22 @@
       "defId": 81,
       "ownerChampionDefId": 17,
       "slot": 0,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Unit",
         "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 0.5
+        "secondsByRank": [
+          0.5
+        ]
       },
       "range": {
         "maximum": 1.5
@@ -3853,15 +9115,61 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          1.0,
-          0.6
+          0.65
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
         "scalingTableId": 0,
         "gameplayPolicyId": 0,
         "replicatedCueId": 0,
-        "params": []
+        "params": [
+          {
+            "id": "missingHealthDamageRatio",
+            "value": 0.1
+          },
+          {
+            "id": "targetHealthThresholdRatio",
+            "value": 0.5
+          }
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [
+            "CanCrit",
+            "CanLifesteal",
+            "OnHit"
+          ],
+          "flatByRank": [
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            1.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3870,15 +9178,30 @@
       "defId": 82,
       "ownerChampionDefId": 17,
       "slot": 3,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
         "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 50.0
+        "manaByRank": [
+          40.0,
+          40.0,
+          40.0,
+          40.0,
+          40.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 2.5
@@ -3887,8 +9210,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.6,
           0.6
+        ],
+        "commandLockSeconds": [
+          0.0
+        ],
+        "movePolicies": [
+          "Allow"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3916,7 +9250,53 @@
             "id": "slowDurationSec",
             "value": 1.5
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            65.0,
+            85.0,
+            105.0,
+            125.0,
+            145.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3925,15 +9305,30 @@
       "defId": 83,
       "ownerChampionDefId": 17,
       "slot": 1,
+      "input": {
+        "activation": "Press"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Direction",
+        "resolvePolicy": "Direct"
       },
       "cost": {
-        "mana": 75.0
+        "manaByRank": [
+          75.0,
+          70.0,
+          65.0,
+          60.0,
+          55.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 9.0
@@ -3942,8 +9337,19 @@
         "count": 1,
         "windowSeconds": 0.0,
         "lockSeconds": [
-          0.7,
-          0.6
+          0.5
+        ],
+        "commandLockSeconds": [
+          0.266666667
+        ],
+        "movePolicies": [
+          "QueueUntilUnlock"
+        ],
+        "createsActionState": [
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false
         ]
       },
       "effect": {
@@ -3965,9 +9371,55 @@
           },
           {
             "id": "speed",
-            "value": 24.0
+            "value": 12.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            70.0,
+            95.0,
+            120.0,
+            145.0,
+            170.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     },
     {
@@ -3976,25 +9428,56 @@
       "defId": 84,
       "ownerChampionDefId": 17,
       "slot": 4,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
         "shape": "Unit",
-        "resolvePolicy": "Direct"
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Unit",
+          "Self"
+        ]
       },
       "cost": {
-        "mana": 0.0
+        "manaByRank": [
+          0.0,
+          0.0,
+          0.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 6.25
       },
       "stage": {
-        "count": 1,
-        "windowSeconds": 0.0,
+        "count": 2,
+        "windowSeconds": 4.0,
         "lockSeconds": [
           1.5,
-          0.6
+          0.25
+        ],
+        "commandLockSeconds": [
+          1.5,
+          0.25
+        ],
+        "movePolicies": [
+          "ForcedMotion",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -4004,7 +9487,7 @@
         "params": [
           {
             "id": "effectDurationSec",
-            "value": 5.0
+            "value": 4.0
           },
           {
             "id": "gap",
@@ -4015,14 +9498,44 @@
             "value": 3.0
           },
           {
-            "id": "missingHealthDamageRatio",
-            "value": 0.3
-          },
-          {
             "id": "vanishDurationSec",
             "value": 0.75
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.3,
+            0.3,
+            0.3
+          ]
+        }
       }
     },
     {
@@ -4031,25 +9544,60 @@
       "defId": 85,
       "ownerChampionDefId": 17,
       "slot": 2,
+      "input": {
+        "activation": "PressRecast"
+      },
       "target": {
-        "shape": "Self",
-        "resolvePolicy": "Contextual"
+        "shape": "Ground",
+        "resolvePolicy": "StageDependent",
+        "shapes": [
+          "Ground",
+          "Self"
+        ]
       },
       "cost": {
-        "mana": 40.0
+        "manaByRank": [
+          40.0,
+          35.0,
+          30.0,
+          25.0,
+          20.0
+        ]
       },
       "cooldown": {
-        "seconds": 3.0
+        "secondsByRank": [
+          3.0,
+          3.0,
+          3.0,
+          3.0,
+          3.0
+        ]
       },
       "range": {
         "maximum": 6.5
       },
       "stage": {
         "count": 2,
-        "windowSeconds": 5.0,
+        "windowSeconds": 4.0,
         "lockSeconds": [
           0.5,
           0.25
+        ],
+        "commandLockSeconds": [
+          0.0,
+          0.25
+        ],
+        "movePolicies": [
+          "Allow",
+          "ForcedMotion"
+        ],
+        "createsActionState": [
+          true,
+          true
+        ],
+        "presentationLoopWhileActive": [
+          false,
+          false
         ]
       },
       "effect": {
@@ -4059,9 +9607,55 @@
         "params": [
           {
             "id": "effectDurationSec",
-            "value": 5.0
+            "value": 4.0
           }
-        ]
+        ],
+        "damage": {
+          "type": "Physical",
+          "flags": [],
+          "flatByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "totalAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "bonusAdRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "apRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMaxHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "targetMissingHpRatioByRank": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
       }
     }
   ]

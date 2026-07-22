@@ -38,11 +38,13 @@ enum class CommandKind : uint8_t {
   Flash = 10,
   CompanionCommand = 11,
   PracticeControl = 12,
+  ReorderItem = 13,
+  TeamPing = 14,
   MIN = None,
-  MAX = PracticeControl
+  MAX = TeamPing
 };
 
-inline const CommandKind (&EnumValuesCommandKind())[13] {
+inline const CommandKind (&EnumValuesCommandKind())[15] {
   static const CommandKind values[] = {
     CommandKind::None,
     CommandKind::Move,
@@ -56,13 +58,15 @@ inline const CommandKind (&EnumValuesCommandKind())[13] {
     CommandKind::AIDebugControl,
     CommandKind::Flash,
     CommandKind::CompanionCommand,
-    CommandKind::PracticeControl
+    CommandKind::PracticeControl,
+    CommandKind::ReorderItem,
+    CommandKind::TeamPing
   };
   return values;
 }
 
 inline const char * const *EnumNamesCommandKind() {
-  static const char * const names[14] = {
+  static const char * const names[16] = {
     "None",
     "Move",
     "CastSkill",
@@ -76,13 +80,15 @@ inline const char * const *EnumNamesCommandKind() {
     "Flash",
     "CompanionCommand",
     "PracticeControl",
+    "ReorderItem",
+    "TeamPing",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameCommandKind(CommandKind e) {
-  if (::flatbuffers::IsOutRange(e, CommandKind::None, CommandKind::PracticeControl)) return "";
+  if (::flatbuffers::IsOutRange(e, CommandKind::None, CommandKind::TeamPing)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesCommandKind()[index];
 }
@@ -114,11 +120,20 @@ enum class PracticeOperation : uint16_t {
   ApplyStructureStatOverride = 23,
   ClearStructureStatOverrides = 24,
   ReloadGameplayDefinitions = 25,
+  ApplyJungleStatOverride = 26,
+  ClearJungleStatOverrides = 27,
+  ApplyRespawnTimeOverride = 28,
+  ClearRespawnTimeOverrides = 29,
+  ApplyMinionStatOverride = 30,
+  ClearMinionStatOverrides = 31,
+  RefillJungleHealth = 32,
+  ResetJungleMonster = 33,
+  ClearObjectiveBuffs = 34,
   MIN = None,
-  MAX = ReloadGameplayDefinitions
+  MAX = ClearObjectiveBuffs
 };
 
-inline const PracticeOperation (&EnumValuesPracticeOperation())[26] {
+inline const PracticeOperation (&EnumValuesPracticeOperation())[35] {
   static const PracticeOperation values[] = {
     PracticeOperation::None,
     PracticeOperation::SetEnabled,
@@ -145,13 +160,22 @@ inline const PracticeOperation (&EnumValuesPracticeOperation())[26] {
     PracticeOperation::ReplaceControlledChampion,
     PracticeOperation::ApplyStructureStatOverride,
     PracticeOperation::ClearStructureStatOverrides,
-    PracticeOperation::ReloadGameplayDefinitions
+    PracticeOperation::ReloadGameplayDefinitions,
+    PracticeOperation::ApplyJungleStatOverride,
+    PracticeOperation::ClearJungleStatOverrides,
+    PracticeOperation::ApplyRespawnTimeOverride,
+    PracticeOperation::ClearRespawnTimeOverrides,
+    PracticeOperation::ApplyMinionStatOverride,
+    PracticeOperation::ClearMinionStatOverrides,
+    PracticeOperation::RefillJungleHealth,
+    PracticeOperation::ResetJungleMonster,
+    PracticeOperation::ClearObjectiveBuffs
   };
   return values;
 }
 
 inline const char * const *EnumNamesPracticeOperation() {
-  static const char * const names[27] = {
+  static const char * const names[36] = {
     "None",
     "SetEnabled",
     "SetOptions",
@@ -178,13 +202,22 @@ inline const char * const *EnumNamesPracticeOperation() {
     "ApplyStructureStatOverride",
     "ClearStructureStatOverrides",
     "ReloadGameplayDefinitions",
+    "ApplyJungleStatOverride",
+    "ClearJungleStatOverrides",
+    "ApplyRespawnTimeOverride",
+    "ClearRespawnTimeOverrides",
+    "ApplyMinionStatOverride",
+    "ClearMinionStatOverrides",
+    "RefillJungleHealth",
+    "ResetJungleMonster",
+    "ClearObjectiveBuffs",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNamePracticeOperation(PracticeOperation e) {
-  if (::flatbuffers::IsOutRange(e, PracticeOperation::None, PracticeOperation::ReloadGameplayDefinitions)) return "";
+  if (::flatbuffers::IsOutRange(e, PracticeOperation::None, PracticeOperation::ClearObjectiveBuffs)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesPracticeOperation()[index];
 }

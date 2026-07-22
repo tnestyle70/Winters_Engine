@@ -106,3 +106,13 @@ const ItemDef* GameplayDefinitionPack::FindItems(std::size_t& outCount) const
     outCount = 0u;
     return nullptr;
 }
+
+const RuneGameplayDef* GameplayDefinitionPack::FindRune(eRuneId legacyRuneId) const
+{
+    for (std::size_t index = 0u; index < runeCount; ++index)
+    {
+        if (runes[index].legacyRuneId == legacyRuneId)
+            return &runes[index];
+    }
+    return nullptr;
+}

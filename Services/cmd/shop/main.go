@@ -37,7 +37,7 @@ func main() {
 	}
 	defer db.Close()
 
-	writer := messaging.NewWriter(cfg.Kafka.Brokers, messaging.TopicPlayerEvents)
+	writer := messaging.NewWriter(cfg.Kafka.Brokers, messaging.TopicPlayerEvents, cfg.Kafka.UseTLS)
 	defer writer.Close()
 
 	repo := shop.NewRepository(db)

@@ -5,6 +5,7 @@
 #include "Shared/GameSim/Components/ChampionAssistCredit.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Components/JungleAIComponent.h"
+#include "Shared/GameSim/Components/InventoryComponent.h"
 #include "Shared/GameSim/Components/MatchScore.h"
 #include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
@@ -17,12 +18,24 @@
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
+#include "Shared/GameSim/Systems/Item/ItemEffectSystem.h"
 #include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/Shield/ShieldSystem.h"
+#include "Shared/GameSim/Systems/Buff/BuffSystem.h"
+#include "Shared/GameSim/Champions/Fiora/FioraGameSim.h"
+#include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
+#include "Shared/GameSim/Champions/Sylas/SylasGameSim.h"
+#include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
+#include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
 // Viego Soul Spawn
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionPack.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
+#include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
+
+#include <algorithm>
+#include <cmath>
 
 namespace
 {
@@ -43,9 +56,156 @@ namespace
         return kAssistCreditWindowTicks;
     }
 
-    bool_t IsYasuoPassiveShieldReady(CWorld& world, EntityID target)
+    void AccumulateBasicAttackItemOnHit(CWorld& world, DamageRequest& request)
     {
+        if (request.eSourceKind != eDamageSourceKind::BasicAttack ||
+            (request.flags & DamageFlag_OnHit) == 0u ||
+            request.source == NULL_ENTITY ||
+            !world.HasComponent<InventoryComponent>(request.source))
+        {
+            return;
+        }
+
+        const InventoryComponent& inventory =
+            world.GetComponent<InventoryComponent>(request.source);
+        for (u8_t index = 0u;
+            index < inventory.count && index < InventoryComponent::kMaxSlots;
+            ++index)
+        {
+            const ItemDef* item =
+                CItemRegistry::Instance().Find(inventory.itemIds[index]);
+            if (!item || !item->onHitDamage.bValid)
+                continue;
+
+            const DamageFormulaDef& formula = item->onHitDamage;
+            if (formula.type != request.type)
+                continue;
+
+            request.flatAmount += ResolveDamageFormulaRankedValue(
+                formula, formula.flatByRank, 1u);
+            request.adRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.totalAdRatioByRank, 1u);
+            request.bonusAdRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.bonusAdRatioByRank, 1u);
+            request.apRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.apRatioByRank, 1u);
+            request.targetMaxHpRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.targetMaxHpRatioByRank, 1u);
+            request.targetMissingHpRatioOverride += ResolveDamageFormulaRankedValue(
+                formula, formula.targetMissingHpRatioByRank, 1u);
+        }
+    }
+
+    bool_t UsesParamDrivenDamageVariant(eChampion champion, u8_t slot)
+    {
+        return
+            (champion == eChampion::YASUO && slot == static_cast<u8_t>(eSkillSlot::Q)) ||
+            (champion == eChampion::KALISTA && slot == static_cast<u8_t>(eSkillSlot::E)) ||
+            (champion == eChampion::LEESIN && slot == static_cast<u8_t>(eSkillSlot::Q)) ||
+            (champion == eChampion::EZREAL && slot == static_cast<u8_t>(eSkillSlot::R));
+    }
+
+    void ApplyDataDrivenSkillFormula(
+        CWorld& world,
+        const TickContext& tc,
+        DamageRequest& request)
+    {
+        if (request.eSourceKind == eDamageSourceKind::BasicAttack ||
+            request.eSourceKind == eDamageSourceKind::Item ||
+            (request.flags & DamageFlag_YoneSoulEcho) != 0u ||
+            request.skillId == 0u)
+        {
+            return;
+        }
+
+        const u8_t slot = request.iSourceSlot != 0u
+            ? request.iSourceSlot
+            : static_cast<u8_t>(request.skillId & 0xffu);
+        const u32_t championValue = static_cast<u32_t>(request.skillId >> 8u);
+        if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack) ||
+            championValue == 0u ||
+            championValue >= static_cast<u32_t>(eChampion::END))
+        {
+            return;
+        }
+
+        const eChampion champion = static_cast<eChampion>(championValue);
+        DamageRequest resolved{};
+        const f32_t skillDamageScale =
+            std::isfinite(request.skillDamageScale) && request.skillDamageScale >= 0.f
+            ? request.skillDamageScale
+            : 1.f;
+		if (UsesParamDrivenDamageVariant(champion, slot))
+		{
+			// These skills own a custom flat component (stacks, recast, piercing
+			// falloff, or variant damage). Preserve that flat value while still
+			// consuming the canonical AD/AP/HP ratios edited in the data pack.
+			if (GameplayDefinitionQuery::BuildSkillDamageRequest(
+				world,
+				request.source,
+				request.target,
+				tc,
+				champion,
+				slot,
+				request.rank,
+				request.sourceTeam,
+				eDamageSourceKind::Skill,
+				resolved))
+			{
+				request.adRatioOverride =
+					resolved.adRatioOverride * skillDamageScale;
+				request.bonusAdRatioOverride =
+					resolved.bonusAdRatioOverride * skillDamageScale;
+				request.apRatioOverride =
+					resolved.apRatioOverride * skillDamageScale;
+				request.targetMaxHpRatioOverride =
+					resolved.targetMaxHpRatioOverride * skillDamageScale;
+				request.targetMissingHpRatioOverride =
+					resolved.targetMissingHpRatioOverride * skillDamageScale;
+			}
+			request.flatAmount *= skillDamageScale;
+			request.skillDamageScale = skillDamageScale;
+			return;
+		}
+
+        if (GameplayDefinitionQuery::BuildSkillDamageRequest(
+                world,
+                request.source,
+                request.target,
+                tc,
+                champion,
+                slot,
+                request.rank,
+                request.sourceTeam,
+                eDamageSourceKind::Skill,
+                resolved))
+        {
+            resolved.flatAmount *= skillDamageScale;
+            resolved.adRatioOverride *= skillDamageScale;
+            resolved.bonusAdRatioOverride *= skillDamageScale;
+            resolved.apRatioOverride *= skillDamageScale;
+            resolved.targetMaxHpRatioOverride *= skillDamageScale;
+            resolved.targetMissingHpRatioOverride *= skillDamageScale;
+            resolved.skillDamageScale = skillDamageScale;
+            request = resolved;
+        }
+        else
+        {
+            request.flatAmount *= skillDamageScale;
+            request.skillDamageScale = skillDamageScale;
+        }
+    }
+
+    bool_t IsYasuoPassiveShieldReady(
+        CWorld& world,
+        const DamageRequest& request,
+        f32_t& outFlowBefore)
+    {
+        outFlowBefore = 0.f;
+        const EntityID target = request.target;
         if (target == NULL_ENTITY ||
+            !YasuoGameSim::CanTriggerPassiveShieldFromSource(
+                world, request.source) ||
             !world.HasComponent<ChampionComponent>(target) ||
             !world.HasComponent<YasuoStateComponent>(target))
         {
@@ -56,6 +216,7 @@ namespace
             world.GetComponent<ChampionComponent>(target);
         const YasuoStateComponent& state =
             world.GetComponent<YasuoStateComponent>(target);
+        outFlowBefore = state.fPassiveFlow;
         return champion.id == eChampion::YASUO &&
             state.fPassiveShieldRemaining <= 0.f &&
             state.fPassiveFlowMax > 0.f &&
@@ -320,10 +481,14 @@ namespace
         // (클라이언트 파괴 배너/연출이 이 이벤트 하나에 걸려 있다).
         const bool_t bChampionSource =
             world.HasComponent<ChampionComponent>(request.source);
-        const bool_t bStructureKill =
+        const bool_t bMinionSource =
+            world.HasComponent<MinionComponent>(request.source) ||
+            world.HasComponent<MinionStateComponent>(request.source);
+        const bool_t bSupportedMinionTarget =
+            objectKind == eKillFeedObjectKind::Champion ||
             objectKind == eKillFeedObjectKind::Turret ||
             objectKind == eKillFeedObjectKind::Inhibitor;
-        if (!bChampionSource && !bStructureKill)
+        if (!bChampionSource && !(bMinionSource && bSupportedMinionTarget))
             return;
 
         ReplicatedEventComponent event{};
@@ -419,12 +584,69 @@ void CDamageQueueSystem::Execute(CWorld& world, const TickContext& tc)
         if (!world.IsAlive(entity) || !world.HasComponent<DamageRequestComponent>(entity))
             continue;
 
-        const DamageRequest request = world.GetComponent<DamageRequestComponent>(entity);
+        DamageRequest request = world.GetComponent<DamageRequestComponent>(entity);
+        ApplyDataDrivenSkillFormula(world, tc, request);
+        const DamageRequest yoneStorageRequest = request;
+        AccumulateBasicAttackItemOnHit(world, request);
+        ItemOnHitResolution itemOnHit{};
+        CItemEffectSystem::PrepareOnHitDamage(world, tc, request, itemOnHit);
+        f32_t yasuoFlowBefore = 0.f;
         const bool_t bYasuoPassiveShieldReady =
-            IsYasuoPassiveShieldReady(world, request.target);
-        const DamageResult result = ApplyDamageRequest(world, tc, request);
-        if (bYasuoPassiveShieldReady && result.bWasShielded)
+            IsYasuoPassiveShieldReady(world, request, yasuoFlowBefore);
+        const bool_t bFioraForcedCrit =
+            FioraGameSim::PrepareDamageRequest(world, request);
+        DamageResult result = ApplyDamageRequest(world, tc, request);
+        CBuffSystem::OnDamageResolved(world, tc, request, result);
+        CItemEffectSystem::OnDamageLanded(
+            world, tc, request, itemOnHit, result.bApplied);
+        if (bFioraForcedCrit && result.finalAmount > 0.f)
+            result.bWasCrit = true;
+        FioraGameSim::OnDamageResolved(world, tc, request, result);
+        IreliaGameSim::OnDamageResolved(world, tc, request, result);
+        SylasGameSim::OnDamageResolved(world, tc, request, result);
+        DamageResult yoneStorageResult = result;
+        if ((yoneStorageRequest.eSourceKind == eDamageSourceKind::BasicAttack ||
+                yoneStorageRequest.eSourceKind == eDamageSourceKind::Skill) &&
+            result.finalAmount > 0.f)
+        {
+            const f32_t baseRawDamage = std::max(
+                0.f,
+                BuildRawDamage(world, yoneStorageRequest));
+            const f32_t totalRawDamage = std::max(
+                0.f,
+                BuildRawDamage(world, request));
+            const f32_t itemRawDamage = std::max(
+                0.f,
+                totalRawDamage - baseRawDamage);
+            const f32_t basePostMitigation =
+                ResolvePostMitigationDamageAmount(
+                    world,
+                    request,
+                    baseRawDamage,
+                    result.bWasCrit);
+            const f32_t itemPostMitigation =
+                ResolvePostMitigationDamageAmount(
+                    world,
+                    request,
+                    itemRawDamage,
+                    result.bWasCrit);
+            yoneStorageResult.finalAmount = std::clamp(
+                result.finalAmount - itemPostMitigation,
+                0.f,
+                basePostMitigation);
+        }
+        YoneGameSim::OnDamageResolved(
+            world,
+            tc,
+            yoneStorageRequest,
+            yoneStorageResult);
+        if (bYasuoPassiveShieldReady && result.bWasShielded &&
+            world.HasComponent<YasuoStateComponent>(request.target) &&
+            world.GetComponent<YasuoStateComponent>(request.target)
+                    .fPassiveFlow < yasuoFlowBefore)
+        {
             EnqueueYasuoPassiveShieldVisual(world, tc, request.target);
+        }
 
         if (result.finalAmount > 0.f && request.target != NULL_ENTITY)
         {

@@ -1,0 +1,25 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Yone.E.SoulMark",
+  "emitters": [
+    {
+      "name": "e_soul_mark_head",
+      "render_type": "Billboard",
+      "blend_mode": "AlphaBlend",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Yone/particles/yone_base_e_mark.png",
+      "max_particles": 1,
+      "spawn_rate": 0.0,
+      "lifetime": 5.0,
+      "fade_in": 0.05,
+      "fade_out": 0.15,
+      "width": 1.25,
+      "height": 1.25,
+      "color": [0.75, 0.92, 1.35, 1.0],
+      "attach_offset": [0.0, 2.35, 0.0],
+      "billboard": true,
+      "blockable_by_wind_wall": false
+    }
+  ]
+}

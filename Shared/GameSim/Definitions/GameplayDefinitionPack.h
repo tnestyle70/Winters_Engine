@@ -6,6 +6,7 @@
 #include "Shared/GameSim/Definitions/DataPackManifest.h"
 #include "Shared/GameSim/Definitions/EconomyGameplayDef.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
+#include "Shared/GameSim/Definitions/RuneGameplayDef.h"
 #include "Shared/GameSim/Definitions/SkillGameplayDef.h"
 #include "Shared/GameSim/Definitions/SummonerSpellGameplayDef.h"
 
@@ -22,6 +23,8 @@ struct GameplayDefinitionPack
     const EconomyGameplayDef* economy = nullptr;
     const ItemDef* items = nullptr;
     std::size_t itemCount = 0u;
+    const RuneGameplayDef* runes = nullptr;
+    std::size_t runeCount = 0u;
 
     const ChampionGameplayDef* FindChampion(ChampionDefId id) const;
     const ChampionGameplayDef* FindChampion(DefinitionKey key) const;
@@ -34,4 +37,5 @@ struct GameplayDefinitionPack
     const EconomyGameplayDef* FindEconomy() const;
     // 장착된 아이템 정의 배열만 반환 (outCount 채움). 없으면 nullptr = 컴파일된 기본 표 폴백.
     const ItemDef* FindItems(std::size_t& outCount) const;
+    const RuneGameplayDef* FindRune(eRuneId legacyRuneId) const;
 };

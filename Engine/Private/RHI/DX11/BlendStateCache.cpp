@@ -1,4 +1,5 @@
 #include "RHI/DX11/BlendStateCache.h"
+#include "Core/Profiler/RenderFrameStats.h"
 
 std::unique_ptr<CBlendStateCache> CBlendStateCache::Create(ID3D11Device* pDevice)
 {
@@ -72,6 +73,7 @@ HRESULT CBlendStateCache::Initialize(ID3D11Device* pDevice)
 
 void CBlendStateCache::Bind(ID3D11DeviceContext* pContext, eBlendPreset preset) const
 {
+    RenderFrameStats::AddBindBlend();
     const f32_t blendFactor[4] = { 0.f, 0.f, 0.f, 0.f };
     pContext->OMSetBlendState(m_pStates[(size_t)preset].Get(), blendFactor, 0xFFFFFFFFu);
 }

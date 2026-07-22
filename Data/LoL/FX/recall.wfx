@@ -1,0 +1,22 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Recall.Channel",
+  "emitters": [
+    {
+      "name": "recall_ground_ring",
+      "render_type": "GroundDecal",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_buff_mult.png",
+      "lifetime": 6.0,
+      "fade_in": 0.12,
+      "fade_out": 0.35,
+      "width": 5.3,
+      "height": 5.3,
+      "color": [0.45, 0.75, 1.35, 0.90],
+      "attach_offset": [0.0, 0.02, 0.0],
+      "billboard": false
+    }
+  ]
+}

@@ -12,9 +12,9 @@ import (
 	"github.com/go-chi/chi/v5"
 	"winters-backend/internal/matchmaking"
 	jwtauth "winters-backend/pkg/auth"
-	"winters-backend/pkg/cache"
 	"winters-backend/pkg/config"
 	"winters-backend/pkg/database"
+	"winters-backend/pkg/matchticket"
 	"winters-backend/pkg/messaging"
 	"winters-backend/pkg/middleware"
 )
@@ -38,25 +38,36 @@ func main() {
 	}
 	defer db.Close()
 
-	rdb, err := cache.NewClient(ctx, cfg.Redis)
-	if err != nil {
-		slog.Error("failed to connect redis", "error", err)
-		os.Exit(1)
-	}
-	defer rdb.Close()
-
-	writer := messaging.NewWriter(cfg.Kafka.Brokers, messaging.TopicMatchEvents)
+	writer := messaging.NewWriter(cfg.Kafka.Brokers, messaging.TopicMatchEvents, cfg.Kafka.UseTLS)
 	defer writer.Close()
 
-	svc := matchmaking.NewService(db, rdb, writer)
-	handler := matchmaking.NewHandler(svc)
+	ticketSigner, err := matchticket.NewSigner(
+		cfg.GameSession.TicketSecret,
+		cfg.GameSession.TicketTTL)
+	if err != nil {
+		slog.Error("failed to configure match tickets", "error", err)
+		os.Exit(1)
+	}
+	svc := matchmaking.NewService(
+		db,
+		writer,
+		ticketSigner,
+		matchmaking.GameAllocation{
+			Host:          cfg.GameSession.Host,
+			Port:          cfg.GameSession.Port,
+			Transport:     cfg.GameSession.Transport,
+			GameSessionID: cfg.GameSession.GameSessionID,
+		},
+		cfg.GameSession.MatchMaxSize)
+	handler := matchmaking.NewHandler(svc, cfg.GameSession.InternalTokenSecret)
 
-	go svc.RunMatcher(ctx)
+	go svc.RunOutboxPublisher(ctx)
 
 	jwtMgr := jwtauth.NewJWTManager(cfg.JWT.AccessSecret, cfg.JWT.RefreshSecret, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Recovery, middleware.Logging)
+	r.Mount("/internal", handler.InternalRoutes())
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.JWTAuth(jwtMgr))
 		r.Mount("/matchmaking", handler.Routes())

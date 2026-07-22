@@ -10,6 +10,7 @@
 #include "Shared/GameSim/Core/Ecs/VisionSystem.h"
 
 #include "Shared/GameSim/Components/ActionStateComponent.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/AreaAuraComponent.h"
 #include "Shared/GameSim/Components/AsheSimComponent.h"
@@ -26,6 +27,7 @@
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/ItemRuntimeComponent.h"
 #include "Shared/GameSim/Components/IreliaSimComponent.h"
 #include "Shared/GameSim/Components/JaxSimComponent.h"
 #include "Shared/GameSim/Components/JungleAIComponent.h"
@@ -300,8 +302,12 @@ namespace
 		reg.Register<PositionDiscontinuityComponent>(
 			"PositionDiscontinuityComponent");
 		reg.Register<InhibitorTag>("InhibitorTag");
+		reg.Register<InhibitorRespawnComponent>("InhibitorRespawnComponent");
 		reg.Register<JungleComponent>("JungleComponent");
 		reg.Register<JungleMonsterTag>("JungleMonsterTag");
+		reg.Register<ObjectiveBuffComponent>("ObjectiveBuffComponent");
+		reg.Register<ObjectiveBurnComponent>("ObjectiveBurnComponent");
+		reg.Register<BaronEmpoweredMinionComponent>("BaronEmpoweredMinionComponent");
 		reg.Register<MinionComponent>("MinionComponent");
 		reg.Register<MinionStateComponent>("MinionStateComponent");
 		reg.Register<NexusTag>("NexusTag");
@@ -313,6 +319,7 @@ namespace
 		reg.Register<PracticeSpawnedTag>("PracticeSpawnedTag");
 		reg.Register<RivenStateComponent>("RivenStateComponent");
 		reg.Register<SkillStateComponent>("SkillStateComponent");
+		reg.Register<SkillChargeStateComponent>("SkillChargeStateComponent");
 		reg.Register<StatusEffectComponent>("StatusEffectComponent");
 		reg.Register<StructureComponent>("StructureComponent");
 		reg.Register<StructureProjectileComponent>("StructureProjectileComponent");
@@ -346,7 +353,9 @@ namespace
 		reg.Register<FormOverrideComponent>("FormOverrideComponent");
 		reg.Register<GoldComponent>("GoldComponent");
 		reg.Register<InventoryComponent>("InventoryComponent");
+		reg.Register<ItemRuntimeComponent>("ItemRuntimeComponent");
 		reg.Register<IreliaSimComponent>("IreliaSimComponent");
+		reg.Register<IreliaMarkComponent>("IreliaMarkComponent");
 		reg.Register<JaxSimComponent>("JaxSimComponent");
 		reg.Register<JungleAIComponent>("JungleAIComponent");
 		reg.Register<KalistaFateCallCarriedComponent>("KalistaFateCallCarriedComponent");
@@ -361,6 +370,7 @@ namespace
 		reg.Register<LeeSinDashComponent>("LeeSinDashComponent");
 		reg.Register<LeeSinQMarkComponent>("LeeSinQMarkComponent");
 		reg.Register<LeeSinSimComponent>("LeeSinSimComponent");
+		reg.Register<LeeSinTempestMarkComponent>("LeeSinTempestMarkComponent");
 		reg.Register<LeeSinWardOwnerComponent>("LeeSinWardOwnerComponent");
 		reg.Register<MasterYiSimComponent>("MasterYiSimComponent");
 		reg.Register<MatchScoreComponent>("MatchScoreComponent");
@@ -380,10 +390,12 @@ namespace
 		reg.Register<StatComponent>("StatComponent");
 		reg.Register<SylasDashComponent>("SylasDashComponent");
 		reg.Register<SylasSimComponent>("SylasSimComponent");
+		reg.Register<SylasQExplosionComponent>("SylasQExplosionComponent");
 		reg.Register<ViegoSimComponent>("ViegoSimComponent");
 		reg.Register<ViegoSoulComponent>("ViegoSoulComponent");
 		reg.Register<WaypointPatrolComponent>("WaypointPatrolComponent");
 		reg.Register<YoneSimComponent>("YoneSimComponent");
+		reg.Register<YoneSoulMarkComponent>("YoneSoulMarkComponent");
 		reg.Register<ZedDeathMarkComponent>("ZedDeathMarkComponent");
 		reg.Register<ZedSimComponent>("ZedSimComponent");
 		reg.Register<ZedVanishComponent>("ZedVanishComponent");

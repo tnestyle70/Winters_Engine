@@ -213,7 +213,7 @@ function Invoke-RuntimeSmoke {
     $failed = $false
 
     $tests = @(
-        @{ Name = "WintersElden_probe_dx12"; Exe = "EldenRingClient\Bin\$Configuration\WintersElden.exe"; Args = @("--scene=probe"); Cwd = "EldenRingClient\Bin\$Configuration" },
+        @{ Name = "WintersElden_probe_default"; Exe = "EldenRingClient\Bin\$Configuration\WintersElden.exe"; Args = @("--scene=probe"); Cwd = "EldenRingClient\Bin\$Configuration" },
         @{ Name = "WintersElden_probe_dx11"; Exe = "EldenRingClient\Bin\$Configuration\WintersElden.exe"; Args = @("--scene=probe", "--rhi=dx11"); Cwd = "EldenRingClient\Bin\$Configuration" },
         @{ Name = "WintersEldenRingEditor"; Exe = "EldenRingEditor\Bin\$Configuration\WintersEldenRingEditor.exe"; Args = @(); Cwd = "EldenRingEditor\Bin\$Configuration" },
         @{ Name = "WintersGame"; Exe = "Client\Bin\$Configuration\WintersGame.exe"; Args = @(); Cwd = "Client\Bin\$Configuration" },

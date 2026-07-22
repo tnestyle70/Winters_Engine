@@ -17,71 +17,26 @@ namespace
     constexpr u32_t kLeeSin_E_Cast = MakeHookId(eChampion::LEESIN, HookVariant::E_CastFrame);
     constexpr u32_t kLeeSin_R_Cast = MakeHookId(eChampion::LEESIN, HookVariant::R_CastFrame);
 
-    f32_t ResolveRange(u8_t slot)
-    {
-        switch (static_cast<eSkillSlot>(slot))
-        {
-        case eSkillSlot::BasicAttack: return 1.5f;
-        case eSkillSlot::Q: return 11.f;
-        case eSkillSlot::W: return 7.f;
-        case eSkillSlot::E: return 4.f;
-        case eSkillSlot::R: return 3.f;
-        default: return 0.f;
-        }
-    }
-
-    void RegisterSkill(u8_t slot, eTargetMode targetMode, const char* animKey, u32_t hookId)
+void RegisterSkill(u8_t slot, const char* animKey, u32_t hookId)
     {
         SkillDef s{};
         s.champ = eChampion::LEESIN;
         s.slot = slot;
-        s.targetMode = targetMode;
-        s.cooldownSec = 0.6f;
-        s.rangeMax = ResolveRange(slot);
         s.animKey = animKey;
-        s.lockDurationSec = 0.6f;
         s.bOneShot = true;
-        s.rotate = targetMode == eTargetMode::Self ? eRotateMode::None : eRotateMode::TowardsCursor;
-        s.visualCastFrame = 4.f;
-        s.visualRecoveryFrame = 12.f;
-        s.visualPlaySpeed = 1.f;
         s.castHookId = hookId;
         if (slot == static_cast<u8_t>(eSkillSlot::Q))
         {
-            s.stageCount = 2;
-            s.stage2TargetMode = eTargetMode::UnitTarget;
             s.stage2AnimKey = "skinned_mesh_spell1_b";
-            s.stage2LockSec = 0.6f;
-            s.stage2Rotate = eRotateMode::TowardsTarget;
-            s.stageWindowSec = 3.f;
-            s.stage2VisualCastFrame = 4.f;
-            s.stage2VisualRecoveryFrame = 12.f;
-            s.stage2VisualPlaySpeed = 1.f;
-        }
+            }
         else if (slot == static_cast<u8_t>(eSkillSlot::W))
         {
-            s.stageCount = 2;
-            s.stage2TargetMode = eTargetMode::Self;
             s.stage2AnimKey = "skinned_mesh_spell2b_idle";
-            s.stage2LockSec = 0.45f;
-            s.stage2Rotate = eRotateMode::None;
-            s.stageWindowSec = 3.f;
-            s.stage2VisualCastFrame = 4.f;
-            s.stage2VisualRecoveryFrame = 12.f;
-            s.stage2VisualPlaySpeed = 1.f;
-        }
+            }
         else if (slot == static_cast<u8_t>(eSkillSlot::E))
         {
-            s.stageCount = 2;
-            s.stage2TargetMode = eTargetMode::Self;
             s.stage2AnimKey = "skinned_mesh_spell3_b_idle";
-            s.stage2LockSec = 0.45f;
-            s.stage2Rotate = eRotateMode::None;
-            s.stageWindowSec = 3.f;
-            s.stage2VisualCastFrame = 4.f;
-            s.stage2VisualRecoveryFrame = 12.f;
-            s.stage2VisualPlaySpeed = 1.f;
-        }
+            }
         CSkillRegistry::Instance().Add(eChampion::LEESIN, slot, s);
     }
 
@@ -106,11 +61,11 @@ namespace
             cd.displayName = "LeeSin";
             CChampionRegistry::Instance().Add(eChampion::LEESIN, cd);
 
-            RegisterSkill(0, eTargetMode::UnitTarget, "skinned_mesh_attack1", kLeeSin_BA_Cast);
-            RegisterSkill(1, eTargetMode::Direction, "skinned_mesh_spell1_cast", kLeeSin_Q_Cast);
-            RegisterSkill(2, eTargetMode::UnitTarget, "skinned_mesh_spell2_fly", kLeeSin_W_Cast);
-            RegisterSkill(3, eTargetMode::Self, "skinned_mesh_spell3_cast", kLeeSin_E_Cast);
-            RegisterSkill(4, eTargetMode::UnitTarget, "skinned_mesh_spell4a", kLeeSin_R_Cast);
+            RegisterSkill(0, "skinned_mesh_attack1", kLeeSin_BA_Cast);
+            RegisterSkill(1, "skinned_mesh_spell1_cast", kLeeSin_Q_Cast);
+            RegisterSkill(2, "skinned_mesh_spell2_fly", kLeeSin_W_Cast);
+            RegisterSkill(3, "skinned_mesh_spell3_cast", kLeeSin_E_Cast);
+            RegisterSkill(4, "skinned_mesh_spell4a", kLeeSin_R_Cast);
 
             CVisualHookRegistry::Instance().Register(kLeeSin_Q_Cast, &LeeSin::Visual::OnQCastFrame);
             CVisualHookRegistry::Instance().Register(kLeeSin_W_Cast, &LeeSin::Visual::OnWCastFrame);

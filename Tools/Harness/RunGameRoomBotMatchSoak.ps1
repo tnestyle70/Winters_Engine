@@ -163,13 +163,20 @@ try {
         # authoritative input identical without replay path collisions.
         $roomId = 2401
         $output = [System.Collections.Generic.List[string]]::new()
-        & $executablePath $TickCount $Seed $roomId `
-            $HeartbeatTicks $PrivateLimitMiB 2>&1 | ForEach-Object {
-                $line = $_.ToString()
-                $output.Add($line)
-                Write-Host $line
-            }
-        $exitCode = $LASTEXITCODE
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        try {
+            & $executablePath $TickCount $Seed $roomId `
+                $HeartbeatTicks $PrivateLimitMiB 2>&1 | ForEach-Object {
+                    $line = $_.ToString()
+                    $output.Add($line)
+                    Write-Host $line
+                }
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
         $outputPath = Join-Path $runDirectory "soak_output.txt"
         $output | Set-Content -LiteralPath $outputPath -Encoding utf8
         if ($exitCode -ne 0) {

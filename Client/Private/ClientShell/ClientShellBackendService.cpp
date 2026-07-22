@@ -2,11 +2,30 @@
 
 #include "ClientShell/ClientShellDataStore.h"
 
+#include <cstdlib>
+#include <utility>
+
 namespace
 {
 	constexpr const char* PROFILE_SERVICE_URL = "http://127.0.0.1:8084";
 	constexpr const char* SHOP_SERVICE_URL = "http://127.0.0.1:8086";
 	constexpr const char* MATCH_SERVICE_URL = "http://127.0.0.1:8083";
+	constexpr const char* REPLAY_SERVICE_URL = "http://127.0.0.1:8087";
+
+	std::string ReadServiceURL(const char* variable, const char* fallback)
+	{
+		char* value = nullptr;
+		size_t length = 0u;
+		if (_dupenv_s(&value, &length, variable) != 0 ||
+			!value || length <= 1u)
+		{
+			std::free(value);
+			return fallback;
+		}
+		std::string result(value, length - 1u);
+		std::free(value);
+		return result;
+	}
 }
 
 CClientShellBackendService& CClientShellBackendService::Instance()
@@ -30,13 +49,18 @@ void CClientShellBackendService::ConfigureFromSession(const CClientShellSession&
 	m_pProfileClient = Client::CProfileClient::Create(PROFILE_SERVICE_URL);
 	m_pShopClient = Client::CShopClient::Create(SHOP_SERVICE_URL);
 	m_pMatchClient = Client::CMatchClient::Create(MATCH_SERVICE_URL);
+	m_pReplayClient = Client::CReplayClient::Create(
+		ReadServiceURL("WINTERS_REPLAY_SERVICE_URL", REPLAY_SERVICE_URL));
 	m_pProfileClient->SetAuthToken(session.GetAccessToken());
 	m_pShopClient->SetAuthToken(session.GetAccessToken());
 	m_pMatchClient->SetAuthToken(session.GetAccessToken());
+	m_pReplayClient->SetAuthToken(session.GetAccessToken());
 
 	m_strUserID = session.GetUserID();
 	m_bConfigured = true;
 	m_bInitialSyncRequested = false;
+	m_vCloudReplayItems.clear();
+	++m_uReplayLibraryRevision;
 	m_strStatus = "Backend shell ready";
 }
 
@@ -66,8 +90,13 @@ void CClientShellBackendService::ProcessCallbacks()
 		m_pShopClient->ProcessCallbacks();
 	if (m_pMatchClient)
 		m_pMatchClient->ProcessCallbacks();
+	if (m_pReplayClient)
+		m_pReplayClient->ProcessCallbacks();
 
 	TryFinishDeferredReset();
+	TryStartPostMatchRefresh();
+	if (m_bMatchHistoryRefreshPending && !m_bProfileRequestInFlight)
+		RequestMatchHistory();
 }
 
 void CClientShellBackendService::RequestInitialSync()
@@ -76,27 +105,30 @@ void CClientShellBackendService::RequestInitialSync()
 		return;
 
 	m_bInitialSyncRequested = true;
-	const u32_t uGeneration = m_uGeneration;
+	RequestProfileSync();
+	RequestStorefrontSync();
+}
 
-	// 자기 프로필은 JWT claims 기반 /profile/me — client가 user id를 보내지 않는다.
-	if (m_pProfileClient)
-	{
-		m_bProfileRequestInFlight = true;
-		m_pProfileClient->GetMyProfile(
-			[this, uGeneration](const Client::ProfileData& profile)
+void CClientShellBackendService::RequestProfileSync()
+{
+	if (!m_bConfigured || !m_pProfileClient || m_bProfileRequestInFlight)
+		return;
+
+	m_bProfileRequestInFlight = true;
+	const u32_t uGeneration = m_uGeneration;
+	m_pProfileClient->GetMyProfile(
+		[this, uGeneration](const Client::ProfileData& profile)
 			{
 				m_bProfileRequestInFlight = false;
 				if (uGeneration == m_uGeneration)
 				{
 					CClientShellDataStore::Instance().ApplyProfileData(profile);
-					m_strStatus = profile.error.empty() ? "Profile synced" : "Profile sync failed: " + profile.error;
+					m_strStatus = profile.error.empty()
+						? "Profile synced"
+						: "Profile sync failed: " + profile.error;
 				}
 				TryFinishDeferredReset();
 			});
-	}
-
-	// RP·상품·소유권은 storefront 하나의 원자 스냅샷 — items/inventory 조합 race 제거.
-	RequestStorefrontSync();
 }
 
 void CClientShellBackendService::RequestStorefrontSync()
@@ -132,7 +164,13 @@ void CClientShellBackendService::RequestMatchHistory()
 {
 	if (!m_bConfigured || !m_pProfileClient)
 		return;
+	if (m_bProfileRequestInFlight)
+	{
+		m_bMatchHistoryRefreshPending = true;
+		return;
+	}
 
+	m_bMatchHistoryRefreshPending = false;
 	const u32_t uGeneration = m_uGeneration;
 	m_bProfileRequestInFlight = true;
 	m_pProfileClient->GetMyHistory(
@@ -145,37 +183,141 @@ void CClientShellBackendService::RequestMatchHistory()
 		});
 }
 
-void CClientShellBackendService::RequestReportMatchResult(bool_t bVictory)
+void CClientShellBackendService::RequestReplayLibrary()
 {
-	// 비회원/백엔드 미실행이면 보고하지 않는다 — 게임 흐름은 로컬 전적만으로 완결 (S035).
-	if (!m_bConfigured || !m_pProfileClient)
+	if (!m_bConfigured || !m_pReplayClient || m_bReplayRequestInFlight)
 		return;
 
+	m_bReplayRequestInFlight = true;
 	const u32_t uGeneration = m_uGeneration;
-	m_bProfileRequestInFlight = true;
-	m_pProfileClient->ReportMyMatch(
-		bVictory,
-		[this, uGeneration](const Client::MatchReportResult& result)
+	m_pReplayClient->ListMine(
+		[this, uGeneration](const Client::ReplayPageResult& result)
 		{
-			m_bProfileRequestInFlight = false;
+			m_bReplayRequestInFlight = false;
 			if (uGeneration == m_uGeneration)
 			{
-				if (result.success)
+				if (result.error.empty())
 				{
-					m_strStatus = "Match reported";
-					// MMR/RP가 바뀌었으니 다음 메인메뉴 진입 sync가 최신 값을 받도록
-					// 프로필/상점 재요청 래치를 푼다.
-					m_bInitialSyncRequested = false;
+					m_vCloudReplayItems = result.items;
+					++m_uReplayLibraryRevision;
+					m_strStatus = "Cloud replay library synced";
 				}
 				else
 				{
-					m_strStatus = result.error.empty()
-						? "Match report failed"
-						: "Match report failed: " + result.error;
+					m_strStatus = "Replay sync failed: " + result.error;
 				}
 			}
 			TryFinishDeferredReset();
 		});
+}
+
+void CClientShellBackendService::RequestPostMatchRefresh()
+{
+	if (!m_bConfigured)
+		return;
+
+	m_bPostMatchRefreshPending = true;
+	TryStartPostMatchRefresh();
+}
+
+void CClientShellBackendService::TryStartPostMatchRefresh()
+{
+	if (!m_bConfigured || HasInFlightRequests())
+		return;
+
+	if (m_bPostMatchRefreshPending)
+	{
+		m_bPostMatchRefreshPending = false;
+		RequestProfileSync();
+		RequestStorefrontSync();
+		RequestReplayLibrary();
+		RequestMatchHistory();
+		return;
+	}
+}
+
+void CClientShellBackendService::RequestReplayDownload(
+	const Client::CloudReplayItem& item)
+{
+	BeginReplayDownload(item, false);
+}
+
+void CClientShellBackendService::RequestReplayPlayback(
+	const Client::CloudReplayItem& item)
+{
+	BeginReplayDownload(item, true);
+}
+
+void CClientShellBackendService::BeginReplayDownload(
+	const Client::CloudReplayItem& item,
+	bool_t bOpenAfterDownload)
+{
+	if (!m_bConfigured || !m_pReplayClient || m_bReplayRequestInFlight)
+		return;
+	if (item.perspectiveNetId == 0u)
+	{
+		m_strStatus = "Replay account perspective is unavailable";
+		return;
+	}
+
+	m_bReplayRequestInFlight = true;
+	m_strStatus = bOpenAfterDownload
+		? "Preparing replay playback..."
+		: "Downloading replay...";
+	const u32_t uGeneration = m_uGeneration;
+	const u32_t uPlaybackIntent = bOpenAfterDownload
+		? ++m_uReplayPlaybackIntent
+		: m_uReplayPlaybackIntent;
+	m_pReplayClient->DownloadMine(
+		item,
+		m_strUserID,
+		[this, uGeneration, uPlaybackIntent, bOpenAfterDownload](
+			const Client::ReplayDownloadResult& result)
+		{
+			m_bReplayRequestInFlight = false;
+			if (uGeneration == m_uGeneration)
+			{
+				if (result.success)
+				{
+					++m_uReplayLibraryRevision;
+					m_strStatus = "Replay downloaded to account cache";
+					if (bOpenAfterDownload &&
+						uPlaybackIntent == m_uReplayPlaybackIntent)
+					{
+						m_strReadyReplayPlaybackPath = result.localPath;
+						m_uReadyReplayPerspectiveNetId =
+							result.perspectiveNetId;
+					}
+				}
+				else
+				{
+					m_strStatus = result.error.empty()
+						? "Replay download failed"
+						: "Replay download failed: " + result.error;
+				}
+			}
+			TryFinishDeferredReset();
+		});
+}
+
+bool_t CClientShellBackendService::ConsumeReplayPlaybackPath(
+	wstring_t& outPath,
+	u32_t& outPerspectiveNetId)
+{
+	if (m_strReadyReplayPlaybackPath.empty())
+		return false;
+	outPath = std::move(m_strReadyReplayPlaybackPath);
+	outPerspectiveNetId = m_uReadyReplayPerspectiveNetId;
+	m_strReadyReplayPlaybackPath.clear();
+	m_uReadyReplayPerspectiveNetId = 0u;
+	return !outPath.empty();
+}
+
+void CClientShellBackendService::CancelReplayPlaybackIntent()
+{
+	++m_uReplayPlaybackIntent;
+	m_strReadyReplayPlaybackPath.clear();
+	m_uReadyReplayPerspectiveNetId = 0u;
 }
 
 void CClientShellBackendService::RequestPurchase(const std::string& itemId)
@@ -212,6 +354,7 @@ void CClientShellBackendService::RequestPurchase(const std::string& itemId)
 
 void CClientShellBackendService::RequestJoinQueue()
 {
+	CClientShellSession::Instance().ClearMatchAssignment();
 	const std::string strQueueName = CClientShellDataStore::Instance().GetLobbyState().strQueueName.empty()
 		? "Queue"
 		: CClientShellDataStore::Instance().GetLobbyState().strQueueName;
@@ -226,13 +369,13 @@ void CClientShellBackendService::RequestJoinQueue()
 
 	if (m_bMatchRequestInFlight)
 	{
-		m_strStatus = "Matchmaking request already in flight";
+		m_strStatus = "Custom lobby request already in flight";
 		return;
 	}
 
 	CClientShellDataStore::Instance().SetLobbySearching(strQueueName);
 	m_bMatchRequestInFlight = true;
-	m_strStatus = "Joining queue...";
+	m_strStatus = "Joining custom lobby...";
 
 	const u32_t uGeneration = m_uGeneration;
 	m_pMatchClient->JoinQueue(
@@ -276,10 +419,10 @@ void CClientShellBackendService::RequestPollMatchStatus()
 
 void CClientShellBackendService::RequestLeaveQueue()
 {
-	CClientShellDataStore::Instance().SetLobbyIdle();
-
 	if (!m_bConfigured || !m_pMatchClient)
 	{
+		CClientShellSession::Instance().ClearMatchAssignment();
+		CClientShellDataStore::Instance().SetLobbyIdle();
 		m_strStatus = "Left offline queue";
 		return;
 	}
@@ -300,8 +443,16 @@ void CClientShellBackendService::RequestLeaveQueue()
 			m_bMatchRequestInFlight = false;
 			if (uGeneration == m_uGeneration)
 			{
-				CClientShellDataStore::Instance().SetLobbyIdle();
-				m_strStatus = status.error.empty() ? "Left queue" : "Leave queue failed: " + status.error;
+				if (status.error.empty())
+				{
+					CClientShellSession::Instance().ClearMatchAssignment();
+					CClientShellDataStore::Instance().SetLobbyIdle();
+					m_strStatus = "Left queue";
+				}
+				else
+				{
+					m_strStatus = "Leave queue failed: " + status.error;
+				}
 			}
 			TryFinishDeferredReset();
 		});
@@ -312,7 +463,8 @@ bool_t CClientShellBackendService::HasInFlightRequests() const
 	return m_bProfileRequestInFlight
 		|| m_bStoreRequestInFlight
 		|| m_bPurchaseRequestInFlight
-		|| m_bMatchRequestInFlight;
+		|| m_bMatchRequestInFlight
+		|| m_bReplayRequestInFlight;
 }
 
 void CClientShellBackendService::ApplyMatchStatus(const Client::MatchStatus& status)
@@ -320,22 +472,28 @@ void CClientShellBackendService::ApplyMatchStatus(const Client::MatchStatus& sta
 	if (!status.error.empty())
 	{
 		CClientShellDataStore::Instance().SetLobbyIdle();
-		m_strStatus = "Matchmaking failed: " + status.error;
+		m_strStatus = "Custom lobby join failed: " + status.error;
 		return;
 	}
 
 	if (status.status == "matched" || !status.matchId.empty())
 	{
+		MatchAssignment assignment{};
+		assignment.strMatchID = status.matchId;
+		assignment.strGameSessionID = status.gameSessionId;
+		assignment.strHost = status.host;
+		assignment.iPort = status.port;
+		assignment.strTransport = status.transport;
+		assignment.strPlayerTicket = status.playerTicket;
+		assignment.iExpiresAtUnix = status.expiresAt;
+		CClientShellSession::Instance().SetMatchAssignment(assignment);
 		CClientShellDataStore::Instance().SetLobbyMatched(status.matchId);
-		m_strStatus = "Match found";
+		m_strStatus = "Custom lobby ready";
 		return;
 	}
 
-	const std::string strQueueName = CClientShellDataStore::Instance().GetLobbyState().strQueueName.empty()
-		? "Online Queue"
-		: CClientShellDataStore::Instance().GetLobbyState().strQueueName;
-	CClientShellDataStore::Instance().SetLobbySearching(strQueueName);
-	m_strStatus = status.status.empty() ? "Searching for match" : "Queue status: " + status.status;
+	CClientShellDataStore::Instance().SetLobbyIdle();
+	m_strStatus = status.status.empty() ? "Custom lobby unavailable" : "Lobby status: " + status.status;
 }
 
 void CClientShellBackendService::DestroyClients()
@@ -343,10 +501,18 @@ void CClientShellBackendService::DestroyClients()
 	m_pProfileClient.reset();
 	m_pShopClient.reset();
 	m_pMatchClient.reset();
+	m_pReplayClient.reset();
+	m_vCloudReplayItems.clear();
+	m_strReadyReplayPlaybackPath.clear();
+	m_uReadyReplayPerspectiveNetId = 0u;
+	++m_uReplayPlaybackIntent;
 	m_bProfileRequestInFlight = false;
 	m_bStoreRequestInFlight = false;
 	m_bPurchaseRequestInFlight = false;
 	m_bMatchRequestInFlight = false;
+	m_bReplayRequestInFlight = false;
+	m_bPostMatchRefreshPending = false;
+	m_bMatchHistoryRefreshPending = false;
 	m_bResetAfterCallbacks = false;
 }
 

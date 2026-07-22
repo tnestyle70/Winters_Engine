@@ -2,6 +2,7 @@
 #include "AssetFormat/Mesh/WMeshFormat.h"
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
 // Assimp 전방선언 (Engine.dll 은 Assimp 의존 없음 — Tools 프로젝트에서만 링크)
 struct aiScene;
@@ -16,6 +17,7 @@ namespace Winters::Asset
         float fScale       = 1.f;
 
         const std::unordered_map<std::string, uint32_t>* pSkelNameToIdx = nullptr;
+        const std::unordered_set<std::string>* pExcludedMaterialNames = nullptr;
     };
 
     class CWMeshWriter

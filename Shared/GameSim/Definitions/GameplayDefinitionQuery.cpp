@@ -1,6 +1,7 @@
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
 #include "Shared/GameSim/Components/SkillLoadoutComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
@@ -9,7 +10,6 @@
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionPack.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 
 #include <algorithm>
@@ -71,31 +71,26 @@ namespace
     // P1 데이터 폴백 가시화: pack miss가 legacy ChampionGameDataDB로 조용히 흘러가면
     // 깨진 데이터 팩이 미묘하게 다른 champion 동작으로만 나타난다 (WINTERS_DATA_ARCHITECTURE.md).
     // 이 카운터를 0으로 만드는 것이 legacy DB 삭제의 게이트다.
-    void LogPackFallback(const char* pWhat, eChampion champion, u8_t slot)
-    {
-        static u32_t s_packFallbackLogCount = 0;
-        if (s_packFallbackLogCount >= 32u)
-            return;
-        char msg[160]{};
-        sprintf_s(msg,
-            "[Data] pack miss -> legacy %s champ=%u slot=%u\n",
-            pWhat,
-            static_cast<u32_t>(champion),
-            static_cast<u32_t>(slot));
-        WintersOutputAIDebugStringA(msg);
-        ++s_packFallbackLogCount;
-    }
-
-    eChampion ResolveLegacyFallbackChampion(
+    void ReportMissingGameplayDefinition(
         CWorld& world,
         EntityID entity,
         eChampion fallbackChampion,
         const char* pWhat,
         u8_t slot)
     {
-        const eChampion champion = ResolveChampionFallback(world, entity, fallbackChampion);
-        LogPackFallback(pWhat, champion, slot);
-        return champion;
+        static u32_t s_missingDefinitionLogCount = 0;
+        if (s_missingDefinitionLogCount >= 32u)
+            return;
+        const eChampion champion =
+            ResolveChampionFallback(world, entity, fallbackChampion);
+        char msg[160]{};
+        sprintf_s(msg,
+            "[Data] required definition missing: %s champ=%u slot=%u\n",
+            pWhat,
+            static_cast<u32_t>(champion),
+            static_cast<u32_t>(slot));
+        WintersOutputAIDebugStringA(msg);
+        ++s_missingDefinitionLogCount;
     }
 
     u64_t ResolveTicksFromSeconds(f32_t seconds)
@@ -120,6 +115,36 @@ namespace
                 return rank;
         }
         return 1u;
+    }
+
+    bool_t TryResolvePracticeSkillEffectOverride(
+        CWorld& world,
+        EntityID entity,
+        u8_t slot,
+        eSkillEffectParamId param,
+        f32_t& outValue)
+    {
+        if (entity == NULL_ENTITY ||
+            !world.HasComponent<PracticeSkillEffectOverrideComponent>(entity))
+        {
+            return false;
+        }
+
+        const auto& overrides =
+            world.GetComponent<PracticeSkillEffectOverrideComponent>(entity);
+        const u8_t count = (std::min)(
+            overrides.count,
+            PracticeSkillEffectOverrideComponent::kMaxEntries);
+        for (u8_t index = 0u; index < count; ++index)
+        {
+            const auto& entry = overrides.entries[index];
+            if (entry.slot == slot && entry.paramId == static_cast<u8_t>(param))
+            {
+                outValue = entry.value;
+                return true;
+            }
+        }
+        return false;
     }
 
     const SkillGameplayDef* FindSkillInChampion(
@@ -241,8 +266,9 @@ namespace GameplayDefinitionQuery
             return champion->stats.baseAttackRange;
         }
 
-        return ChampionGameDataDB::BuildStat(
-            ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "attack-range", 0xFFu)).attackRange;
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "attack-range", 0xFFu);
+        return 0.f;
     }
 
     f32_t ResolveSkillRange(
@@ -262,9 +288,9 @@ namespace GameplayDefinitionQuery
             return ResolveAttackRange(world, entity, tc, fallbackChampion);
         }
 
-        return ChampionGameDataDB::ResolveSkillRange(
-            ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "skill-range", slot),
-            slot);
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "skill-range", slot);
+        return 0.f;
     }
 
     f32_t ResolveSkillCooldown(
@@ -274,28 +300,26 @@ namespace GameplayDefinitionQuery
         eChampion fallbackChampion,
         u8_t slot)
     {
+        // Practice-only live override outranks the pack value. -1 = unset;
+        // the id is never authored in packs so the fallback passes through.
+        const f32_t cooldownOverrideSec = ResolveSkillEffectParam(
+            world, entity, tc, fallbackChampion, slot,
+            eSkillEffectParamId::CooldownSecOverride, -1.f);
+        if (cooldownOverrideSec >= 0.f)
+            return cooldownOverrideSec;
+
         if (const SkillGameplayDef* skill = FindSkill(world, entity, tc, fallbackChampion, slot))
         {
-            // world-aware 오버로드 경유: practice 오버라이드(op 10)가 CooldownReductionPerRank 를
-            // 보낼 때 수락-후-무시되던 데드존 수정. 오버라이드 없으면 팩 effect 값 그대로.
-            const f32_t reductionPerRank = ResolveSkillEffectParam(
-                world,
-                entity,
-                tc,
-                fallbackChampion,
-                slot,
-                eSkillEffectParamId::CooldownReductionPerRank,
-                0.f);
-            const f32_t rankIndex = static_cast<f32_t>(
-                ResolveSkillRankForScaling(world, entity, slot) - 1u);
-            return (std::max)(
-                0.f,
-                skill->cooldown.cooldownSec - reductionPerRank * rankIndex);
+            const u8_t rank = ResolveSkillRankForScaling(world, entity, slot);
+            const u8_t count = std::clamp<u8_t>(
+                skill->cooldown.rankCount, 1u, kSkillRankValueMax);
+            const u8_t index = static_cast<u8_t>(std::clamp<u8_t>(rank, 1u, count) - 1u);
+            return (std::max)(0.f, skill->cooldown.cooldownSecByRank[index]);
         }
 
-        return ChampionGameDataDB::ResolveSkillCooldown(
-            ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "skill-cooldown", slot),
-            slot);
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "skill-cooldown", slot);
+        return 0.f;
     }
 
     f32_t ResolveSkillManaCost(
@@ -312,18 +336,11 @@ namespace GameplayDefinitionQuery
             fallbackChampion,
             slot))
         {
-            // world-aware 오버로드 경유: ManaCostPerRank practice 오버라이드 데드존 수정 (위 쿨다운과 동일).
-            const f32_t perRank = ResolveSkillEffectParam(
-                world,
-                entity,
-                tc,
-                fallbackChampion,
-                slot,
-                eSkillEffectParamId::ManaCostPerRank,
-                0.f);
-            const f32_t rankIndex = static_cast<f32_t>(
-                ResolveSkillRankForScaling(world, entity, slot) - 1u);
-            return (std::max)(0.f, skill->cost.manaCost + perRank * rankIndex);
+            const u8_t rank = ResolveSkillRankForScaling(world, entity, slot);
+            const u8_t count = std::clamp<u8_t>(
+                skill->cost.rankCount, 1u, kSkillRankValueMax);
+            const u8_t index = static_cast<u8_t>(std::clamp<u8_t>(rank, 1u, count) - 1u);
+            return (std::max)(0.f, skill->cost.manaCostByRank[index]);
         }
 
         return 0.f;
@@ -338,23 +355,11 @@ namespace GameplayDefinitionQuery
         eSkillEffectParamId param,
         f32_t fallbackValue)
     {
-        if (entity != NULL_ENTITY &&
-            world.HasComponent<PracticeSkillEffectOverrideComponent>(entity))
+        f32_t overrideValue = 0.f;
+        if (TryResolvePracticeSkillEffectOverride(
+                world, entity, slot, param, overrideValue))
         {
-            const auto& overrides =
-                world.GetComponent<PracticeSkillEffectOverrideComponent>(entity);
-            const u8_t count = (std::min)(
-                overrides.count,
-                PracticeSkillEffectOverrideComponent::kMaxEntries);
-            for (u8_t index = 0u; index < count; ++index)
-            {
-                const auto& entry = overrides.entries[index];
-                if (entry.slot == slot &&
-                    entry.paramId == static_cast<u8_t>(param))
-                {
-                    return entry.value;
-                }
-            }
+            return overrideValue;
         }
 
         if (const SkillGameplayDef* skill = FindSkill(world, entity, tc, fallbackChampion, slot))
@@ -363,6 +368,159 @@ namespace GameplayDefinitionQuery
         }
 
         return fallbackValue;
+    }
+
+    f32_t ResolveSkillEffectParamRanked(
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        u8_t rank,
+        eSkillEffectParamId param,
+        f32_t fallbackValue)
+    {
+        f32_t overrideValue = 0.f;
+        if (TryResolvePracticeSkillEffectOverride(
+                world, entity, slot, param, overrideValue))
+        {
+            return overrideValue;
+        }
+
+        if (const SkillGameplayDef* skill = FindSkill(
+                world, entity, tc, fallbackChampion, slot))
+        {
+            return ::ResolveSkillEffectParamRanked(
+                skill->effect, param, rank, fallbackValue);
+        }
+
+        return fallbackValue;
+    }
+
+    f32_t ResolveSkillFlatDamage(
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        u8_t rank,
+        f32_t fallbackValue)
+    {
+        if (const SkillGameplayDef* skill = FindSkill(
+                world, entity, tc, fallbackChampion, slot))
+        {
+            const f32_t flatOverride = ResolveSkillEffectParam(
+                world, entity, tc, fallbackChampion, slot,
+                eSkillEffectParamId::DamageFlatOverride, -1.f);
+            if (flatOverride >= 0.f)
+                return flatOverride;
+            if (skill->effect.damage.bValid)
+            {
+                return ResolveDamageFormulaRankedValue(
+                    skill->effect.damage,
+                    skill->effect.damage.flatByRank,
+                    rank);
+            }
+        }
+
+        return fallbackValue;
+    }
+
+    f32_t ResolveSkillTargetMissingHpRatio(
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        u8_t rank,
+        f32_t fallbackValue)
+    {
+        if (const SkillGameplayDef* skill = FindSkill(
+                world, entity, tc, fallbackChampion, slot))
+        {
+            const f32_t ratioOverride = ResolveSkillEffectParam(
+                world, entity, tc, fallbackChampion, slot,
+                eSkillEffectParamId::MissingHealthDamageRatio, -1.f);
+            if (ratioOverride >= 0.f)
+                return ratioOverride;
+            if (skill->effect.damage.bValid)
+            {
+                return ResolveDamageFormulaRankedValue(
+                    skill->effect.damage,
+                    skill->effect.damage.targetMissingHpRatioByRank,
+                    rank);
+            }
+        }
+
+        return fallbackValue;
+    }
+
+    bool_t BuildSkillDamageRequest(
+        CWorld& world,
+        EntityID source,
+        EntityID target,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        u8_t rank,
+        eTeam sourceTeam,
+        eDamageSourceKind sourceKind,
+        DamageRequest& outRequest)
+    {
+        const SkillGameplayDef* skill =
+            FindSkill(world, source, tc, fallbackChampion, slot);
+        if (!skill || !skill->effect.damage.bValid)
+            return false;
+
+        const DamageFormulaDef& formula = skill->effect.damage;
+        outRequest = {};
+        outRequest.source = source;
+        outRequest.target = target;
+        outRequest.sourceTeam = sourceTeam;
+        outRequest.type = formula.type;
+        outRequest.flatAmount = ResolveDamageFormulaRankedValue(
+            formula, formula.flatByRank, rank);
+        // Practice-only live override for the formula flat component.
+        // -1 = unset; single value applies to every rank.
+        const f32_t flatOverride = ResolveSkillEffectParam(
+            world, source, tc, fallbackChampion, slot,
+            eSkillEffectParamId::DamageFlatOverride, -1.f);
+        if (flatOverride >= 0.f)
+            outRequest.flatAmount = flatOverride;
+        outRequest.adRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.totalAdRatioByRank, rank);
+        outRequest.bonusAdRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.bonusAdRatioByRank, rank);
+        outRequest.apRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.apRatioByRank, rank);
+        outRequest.targetMaxHpRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.targetMaxHpRatioByRank, rank);
+        outRequest.targetMissingHpRatioOverride = ResolveDamageFormulaRankedValue(
+            formula, formula.targetMissingHpRatioByRank, rank);
+        f32_t formulaOverride = 0.f;
+        if (TryResolvePracticeSkillEffectOverride(
+                world, source, slot, eSkillEffectParamId::TotalAdRatio, formulaOverride))
+            outRequest.adRatioOverride = formulaOverride;
+        if (TryResolvePracticeSkillEffectOverride(
+                world, source, slot, eSkillEffectParamId::BonusAdRatio, formulaOverride))
+            outRequest.bonusAdRatioOverride = formulaOverride;
+        if (TryResolvePracticeSkillEffectOverride(
+                world, source, slot, eSkillEffectParamId::ApRatio, formulaOverride))
+            outRequest.apRatioOverride = formulaOverride;
+        if (TryResolvePracticeSkillEffectOverride(
+                world, source, slot, eSkillEffectParamId::TargetMaxHpRatio, formulaOverride))
+            outRequest.targetMaxHpRatioOverride = formulaOverride;
+        if (TryResolvePracticeSkillEffectOverride(
+                world, source, slot,
+                eSkillEffectParamId::MissingHealthDamageRatio, formulaOverride))
+            outRequest.targetMissingHpRatioOverride = formulaOverride;
+        outRequest.skillId = static_cast<u16_t>(
+            (static_cast<u32_t>(fallbackChampion) << 8u) | slot);
+        outRequest.rank = rank > 0u ? rank : 1u;
+        outRequest.iSourceSlot = slot;
+        outRequest.eSourceKind = sourceKind;
+        outRequest.flags = formula.flags;
+        return true;
     }
 
     f32_t ResolveSummonPolicyParam(
@@ -397,18 +555,17 @@ namespace GameplayDefinitionQuery
             const u8_t stageIndex = static_cast<u8_t>((std::min)(
                 static_cast<u8_t>(stageNumber - 1u),
                 static_cast<u8_t>(kSkillAtomStageMax - 1u)));
-            lockTicks = ResolveTicksFromSeconds(skill->stage.lockDurationSec[stageIndex]);
+            lockTicks = ResolveTicksFromSeconds(skill->stage.commandLockSec[stageIndex]);
         }
         else
         {
-            lockTicks = ChampionGameDataDB::ResolveSkillActionLockTicks(
-                ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "skill-lock-ticks", slot),
-                slot,
-                stage);
+            ReportMissingGameplayDefinition(
+                world, entity, fallbackChampion, "skill-lock-ticks", slot);
         }
 
         const eSkillActionMovePolicy policy =
-            ResolveSkillActionMovePolicy(fallbackChampion, slot, stage);
+            ResolveSkillActionMovePolicy(
+                world, entity, tc, fallbackChampion, slot, stage);
         if (policy == eSkillActionMovePolicy::Allow)
             return 0u;
         if (policy == eSkillActionMovePolicy::QueueUntilUnlock)
@@ -420,105 +577,52 @@ namespace GameplayDefinitionQuery
     }
 
     eSkillActionMovePolicy ResolveSkillActionMovePolicy(
-        eChampion champion,
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
         u8_t slot,
         u8_t stage)
     {
         if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
             return eSkillActionMovePolicy::Allow;
 
-        const u8_t q = static_cast<u8_t>(eSkillSlot::Q);
-        const u8_t w = static_cast<u8_t>(eSkillSlot::W);
-        const u8_t e = static_cast<u8_t>(eSkillSlot::E);
-        const u8_t r = static_cast<u8_t>(eSkillSlot::R);
-
-        switch (champion)
+        if (const SkillGameplayDef* skill =
+            FindSkill(world, entity, tc, fallbackChampion, slot))
         {
-        case eChampion::ANNIE:
-            return slot == e
-                ? eSkillActionMovePolicy::Allow
-                : eSkillActionMovePolicy::QueueUntilUnlock;
-        case eChampion::ASHE:
-            return (slot == q || slot == e)
-                ? eSkillActionMovePolicy::Allow
-                : eSkillActionMovePolicy::QueueUntilUnlock;
-        case eChampion::EZREAL:
-            return slot == e
-                ? eSkillActionMovePolicy::ForcedMotion
-                : eSkillActionMovePolicy::QueueUntilUnlock;
-        case eChampion::FIORA:
-            if (slot == q) return eSkillActionMovePolicy::ForcedMotion;
-            if (slot == w) return eSkillActionMovePolicy::StationaryChannel;
-            return eSkillActionMovePolicy::Allow;
-        case eChampion::GAREN:
-            return slot == r
-                ? eSkillActionMovePolicy::QueueUntilUnlock
-                : eSkillActionMovePolicy::Allow;
-        case eChampion::IRELIA:
-            if (slot == q) return eSkillActionMovePolicy::ForcedMotion;
-            if (slot == w && stage <= 1u)
-                return eSkillActionMovePolicy::StationaryChannel;
-            if (slot == e) return eSkillActionMovePolicy::Allow;
-            return eSkillActionMovePolicy::QueueUntilUnlock;
-        case eChampion::JAX:
-            return slot == q
-                ? eSkillActionMovePolicy::ForcedMotion
-                : eSkillActionMovePolicy::Allow;
-        case eChampion::KALISTA:
-            return (slot == q || slot == w || slot == r)
-                ? eSkillActionMovePolicy::QueueUntilUnlock
-                : eSkillActionMovePolicy::Allow;
-        case eChampion::KINDRED:
-            return eSkillActionMovePolicy::Allow;
-        case eChampion::LEESIN:
-            if (slot == q && stage >= 2u)
-                return eSkillActionMovePolicy::ForcedMotion;
-            if (slot == w && stage <= 1u)
-                return eSkillActionMovePolicy::ForcedMotion;
-            if (slot == w && stage >= 2u)
-                return eSkillActionMovePolicy::Allow;
-            return (slot == e)
-                ? eSkillActionMovePolicy::Allow
-                : eSkillActionMovePolicy::QueueUntilUnlock;
-        case eChampion::MASTERYI:
-            return eSkillActionMovePolicy::Allow;
-        case eChampion::RIVEN:
-            return (slot == q || slot == w)
-                ? eSkillActionMovePolicy::QueueUntilUnlock
-                : eSkillActionMovePolicy::Allow;
-        case eChampion::SYLAS:
-            if (slot == e)
-                return eSkillActionMovePolicy::ForcedMotion;
-            return (slot == q || slot == r)
-                ? eSkillActionMovePolicy::QueueUntilUnlock
-                : eSkillActionMovePolicy::Allow;
-        case eChampion::VIEGO:
-            if (slot == w)
-                return stage >= 2u
-                    ? eSkillActionMovePolicy::ForcedMotion
-                    : eSkillActionMovePolicy::Allow;
-            if (slot == r) return eSkillActionMovePolicy::ForcedMotion;
-            if (slot == e) return eSkillActionMovePolicy::Allow;
-            return eSkillActionMovePolicy::QueueUntilUnlock;
-        case eChampion::YASUO:
-            if (slot == e || slot == r)
-                return eSkillActionMovePolicy::ForcedMotion;
-            return slot == w
-                ? eSkillActionMovePolicy::Allow
-                : eSkillActionMovePolicy::QueueUntilUnlock;
-        case eChampion::YONE:
-            if (slot == e || slot == r)
-                return eSkillActionMovePolicy::ForcedMotion;
-            return eSkillActionMovePolicy::QueueUntilUnlock;
-        case eChampion::ZED:
-            if ((slot == w && stage >= 2u) || slot == r)
-                return eSkillActionMovePolicy::ForcedMotion;
-            return (slot == w || slot == e)
-                ? eSkillActionMovePolicy::Allow
-                : eSkillActionMovePolicy::QueueUntilUnlock;
-        default:
-            return eSkillActionMovePolicy::QueueUntilUnlock;
+            const u8_t stageNumber = stage > 0u ? stage : 1u;
+            const u8_t stageIndex = static_cast<u8_t>((std::min)(
+                static_cast<u8_t>(stageNumber - 1u),
+                static_cast<u8_t>(kSkillAtomStageMax - 1u)));
+            return skill->stage.movePolicy[stageIndex];
         }
+
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "skill-move-policy", slot);
+        return eSkillActionMovePolicy::QueueUntilUnlock;
+    }
+
+    bool_t ShouldCreateSkillActionState(
+        CWorld& world,
+        EntityID entity,
+        const TickContext& tc,
+        eChampion fallbackChampion,
+        u8_t slot,
+        u8_t stage)
+    {
+        if (const SkillGameplayDef* skill =
+            FindSkill(world, entity, tc, fallbackChampion, slot))
+        {
+            const u8_t stageNumber = stage > 0u ? stage : 1u;
+            const u8_t stageIndex = static_cast<u8_t>((std::min)(
+                static_cast<u8_t>(stageNumber - 1u),
+                static_cast<u8_t>(kSkillAtomStageMax - 1u)));
+            return skill->stage.bCreatesActionState[stageIndex];
+        }
+
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "skill-action-state", slot);
+        return true;
     }
 
     bool_t IsSkillTwoStage(
@@ -533,9 +637,9 @@ namespace GameplayDefinitionQuery
             return skill->stage.stageCount >= 2u;
         }
 
-        return ChampionGameDataDB::IsSkillTwoStage(
-            ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "skill-two-stage", slot),
-            slot);
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "skill-two-stage", slot);
+        return false;
     }
 
     f32_t ResolveSkillStageWindowSec(
@@ -550,9 +654,9 @@ namespace GameplayDefinitionQuery
             return skill->stage.stageWindowSec;
         }
 
-        return ChampionGameDataDB::ResolveSkillStageWindowSec(
-            ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "skill-stage-window", slot),
-            slot);
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "skill-stage-window", slot);
+        return 0.f;
     }
 
     f32_t ResolveSummonerSpellRange(const TickContext& tc, u16_t legacySpellId)
@@ -594,8 +698,9 @@ namespace GameplayDefinitionQuery
             return dash->distance;
         }
 
-        return ChampionGameDataDB::ResolvePassiveDashDistance(
-            ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "passive-dash-distance", 0xFFu));
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "passive-dash-distance", 0xFFu);
+        return 0.f;
     }
 
     f32_t ResolvePassiveDashDurationSec(
@@ -609,8 +714,9 @@ namespace GameplayDefinitionQuery
             return dash->durationSec;
         }
 
-        return ChampionGameDataDB::ResolvePassiveDashDurationSec(
-            ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "passive-dash-duration", 0xFFu));
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "passive-dash-duration", 0xFFu);
+        return 0.f;
     }
 
     f32_t ResolvePassiveDashInputGraceSec(
@@ -624,8 +730,9 @@ namespace GameplayDefinitionQuery
             return dash->inputGraceSec;
         }
 
-        return ChampionGameDataDB::ResolvePassiveDashInputGraceSec(
-            ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "passive-dash-grace-sec", 0xFFu));
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "passive-dash-grace-sec", 0xFFu);
+        return 0.f;
     }
 
     u64_t ResolvePassiveDashInputGraceTicks(
@@ -639,7 +746,8 @@ namespace GameplayDefinitionQuery
             return ResolveTicksFromSeconds(dash->inputGraceSec);
         }
 
-        return ChampionGameDataDB::ResolvePassiveDashInputGraceTicks(
-            ResolveLegacyFallbackChampion(world, entity, fallbackChampion, "passive-dash-grace-ticks", 0xFFu));
+        ReportMissingGameplayDefinition(
+            world, entity, fallbackChampion, "passive-dash-grace-ticks", 0xFFu);
+        return 0u;
     }
 }

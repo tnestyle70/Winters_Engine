@@ -8,6 +8,7 @@
 #include "GameObject/FX/FxBillboardComponent.h"
 #include "GameObject/FX/FxBeamSystem.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
 #include "Renderer/PlaneRenderer.h"
 #include "Renderer/RHIFxSpriteRenderer.h"
 #include "Renderer/FxShaderConstants.h"
@@ -30,6 +31,18 @@ namespace
         return type == eFxRenderType::Billboard ||
             type == eFxRenderType::GroundDecal ||
             type == eFxRenderType::ShockwaveRing;
+    }
+
+    bool_t IsDeadFxAttachment(CWorld& world, EntityID entity)
+    {
+        if (entity == NULL_ENTITY ||
+            !world.HasComponent<HealthComponent>(entity))
+        {
+            return false;
+        }
+        const HealthComponent& health =
+            world.GetComponent<HealthComponent>(entity);
+        return health.bIsDead || health.fCurrent <= 0.f;
     }
 
     constexpr f32_t kFxRenderNearDistance = 8.f;
@@ -282,7 +295,7 @@ void CFxSystem::Update(CWorld& world, f32_t fTimeDelta)
     WINTERS_PROFILE_SCOPE("Fx::Update");
 
     std::vector<EntityID> vecDelete;
-    //ForEach ?⑥닔濡?EntityID??FxBillboardComponent瑜??쒗쉶?섎㈃???낅뜲?댄듃瑜??댁???
+    //ForEach
     world.ForEach<FxBillboardComponent>(
         std::function<void(EntityID, FxBillboardComponent&)>(
             [&](EntityID e, FxBillboardComponent& fx)
@@ -299,6 +312,13 @@ void CFxSystem::Update(CWorld& world, f32_t fTimeDelta)
                 }
 
                 fx.fElapsed += fEffectiveDelta;
+
+                if (fx.bDestroyWhenAttachInvalid &&
+                    IsDeadFxAttachment(world, fx.attachTo))
+                {
+                    vecDelete.push_back(e);
+                    return;
+                }
 
                 Vec3 vResolvedAnchor{};
                 if (FxAnchor::TryResolveWorldPosition(

@@ -4,20 +4,15 @@
 #include "GameRoomInternal.h"
 
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
-#include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
-
-#include "Shared/GameSim/Components/GameplayComponents.h"
-#include "ECS/Components/TransformComponent.h"
+#include "Shared/GameSim/Systems/ChampionAI/ChampionAISystem.h"
 
 #include <algorithm>
 #include <cstdio>
-#include <limits>
 
 namespace
 {
-    constexpr f32_t kChampionAISafeAnchorBehindTurret = 3.f;
     constexpr u8_t kChampionAIMidLane =
         static_cast<u8_t>(Winters::Map::eLane::Mid);
 }
@@ -56,103 +51,11 @@ Vec3 CGameRoom::ResolveChampionAILaneGoal(eTeam team, u8_t lane) const
 
 Vec3 CGameRoom::ResolveChampionAISafeAnchor(eTeam team, u8_t lane)
 {
-    Vec3 best = GetGameSimLaneGatherPosition(lane, TeamByte(team));
-    bool_t bFound = false;
-    u32_t bestTier = std::numeric_limits<u32_t>::max();
-    f32_t bestScore = std::numeric_limits<f32_t>::max();
-    EntityID bestEntity = std::numeric_limits<EntityID>::max();
-    const u8_t waypointLane = CServerMinionWaveRuntime::ResolveWaypointLane(team, lane);
-    const u32_t waypointCount = GetServerMinionWaypointCount(team, waypointLane);
-
-    auto getWaypoint = [&](u32_t index)
-    {
-        return GetServerMinionWaypoint(team, waypointLane, index);
-    };
-
-    auto scoreLaneDistance = [&](const Vec3& pos) -> f32_t
-        {
-            if (waypointCount >= 2u)
-            {
-                f32_t score = std::numeric_limits<f32_t>::max();
-                for (u32_t i = 1u; i < waypointCount; ++i)
-                {
-                    f32_t t = 0.f;
-                    const f32_t distSq = WintersMath::DistanceSqPointToSegmentXZ(
-                        pos,
-                        getWaypoint(i - 1u),
-                        getWaypoint(i),
-                        &t,
-                        std::numeric_limits<f32_t>::epsilon());
-                    score = std::min(score, distSq);
-                }
-                return score;
-            }
-
-            if (waypointCount == 1u)
-                return WintersMath::DistanceSqXZ(pos, getWaypoint(0u));
-
-            return WintersMath::DistanceSqXZ(pos, best);
-        };
-
-    m_world.ForEach<StructureComponent, TransformComponent, HealthComponent>(
-        [&](EntityID entity, StructureComponent& structure, TransformComponent& transform,
-            HealthComponent& health)
-        {
-            if (structure.team != team)
-                return;
-            if (structure.kind != kStructureKindTurret)
-                return;
-            if (structure.lane != lane)
-                return;
-            if (health.bIsDead || health.fCurrent <= 0.f)
-                return;
-
-            const Vec3 towerPos = transform.GetPosition();
-            const f32_t score = scoreLaneDistance(towerPos);
-            const bool_t bBetter =
-                structure.tier < bestTier ||
-                (structure.tier == bestTier && score < bestScore) ||
-                (structure.tier == bestTier && score == bestScore && entity < bestEntity);
-            if (bBetter)
-            {
-                bestTier = structure.tier;
-                bestScore = score;
-                bestEntity = entity;
-                best = towerPos;
-                bFound = true;
-            }
-        });
-
-    if (bFound && waypointCount >= 2u)
-    {
-        const Vec3 start = getWaypoint(0u);
-        const Vec3 next = getWaypoint(1u);
-        const Vec3 laneDir = NormalizeXZOrForward(
-            Vec3{ next.x - start.x, 0.f, next.z - start.z },
-            team);
-        best = Vec3{
-            best.x - laneDir.x * kChampionAISafeAnchorBehindTurret,
-            best.y,
-            best.z - laneDir.z * kChampionAISafeAnchorBehindTurret
-        };
-    }
-    else if (bFound)
-    {
-        best.x += (team == eTeam::Blue)
-            ? -kChampionAISafeAnchorBehindTurret
-            : kChampionAISafeAnchorBehindTurret;
-    }
-    else if (waypointCount > 1u)
-    {
-        best = getWaypoint(1u);
-    }
-    else if (waypointCount > 0u)
-    {
-        best = getWaypoint(0u);
-    }
-
-    best.y = 1.f;
-    return best;
+    return CChampionAISystem::ResolveSafeAnchor(
+        m_world,
+        team,
+        lane,
+        GetGameSimLaneGatherPosition(lane, TeamByte(team)));
 }
 
 void CGameRoom::RefreshChampionAIGoals()

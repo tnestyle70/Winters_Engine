@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -80,7 +80,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WINTERS_ENGINE_EXPORTS;IMGUI_API=__declspec(dllexport);WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WINTERS_ENGINE_EXPORTS;IMGUI_API=__declspec(dllexport);WIN32;NDEBUG;_WINDOWS;_USRDLL;WINTERS_PROFILING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
@@ -308,13 +308,10 @@
     <ClCompile Include="..\Private\ECS\SystemScheduler.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\CoreSystems.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\BehaviorTreeSystem.cpp" />
-    <ClCompile Include="..\Private\ECS\Systems\EntityBlueprint.cpp" />
-    <ClCompile Include="..\Private\ECS\Systems\EntityBlueprintRegistry.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\MCTSSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\NavigationThrottleSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\NavigationSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\SpatialHashSystem.cpp" />
-    <ClCompile Include="..\Private\ECS\Systems\StatusEffectSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="..\Private\ECS\Systems\VisionSystem.cpp" />
     <ClCompile Include="..\Private\FX\DeterministicRandom.cpp" />
@@ -367,6 +364,7 @@
     <ClCompile Include="..\Private\RHI\DX11\BlendStateCache.cpp" />
     <ClCompile Include="..\Private\RHI\DX11\SamplerStateCache.cpp" />
     <ClCompile Include="..\Private\RHI\DX12\DX12Device.cpp" />
+    <ClCompile Include="..\Private\RHI\RHIBackendRegistry.cpp" />
     <ClCompile Include="..\Private\Scene\Scene_Manager.cpp" />
     <ClCompile Include="..\Private\Sound\Sound_Manager.cpp" />
     <ClCompile Include="..\Private\Timer_Manager.cpp" />
@@ -391,9 +389,11 @@
   <ItemGroup>
     <ClInclude Include="..\Private\Manager\UI\ActorHUDPanel.h" />
     <ClInclude Include="..\Private\RHI\DX12\DX12Device.h" />
+    <ClInclude Include="..\Private\RHI\RHIBackendRegistry.h" />
     <ClInclude Include="..\Public\Manager\UI\ActorHUDAssets.h" />
     <ClInclude Include="..\Public\Manager\UI\ActorHUDState.h" />
     <ClInclude Include="..\Public\Manager\UI\StatusPanelState.h" />
+    <ClInclude Include="..\Public\Manager\UI\UIResourceKind.h" />
     <ClInclude Include="..\Public\Manager\UI\WorldHealthBarState.h" />
     <ClInclude Include="..\Public\AssetFormat\Anim\WAnimFormat.h" />
     <ClInclude Include="..\Public\AssetFormat\Anim\WAnimLoader.h" />
@@ -445,13 +445,10 @@
     <ClInclude Include="..\Public\ECS\Components\TransformComponent.h" />
     <ClInclude Include="..\Public\ECS\Systems\BehaviorTreeSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\CoreSystems.h" />
-    <ClInclude Include="..\Public\ECS\Systems\EntityBlueprint.h" />
-    <ClInclude Include="..\Public\ECS\Systems\EntityBlueprintRegistry.h" />
     <ClInclude Include="..\Public\ECS\Systems\MCTSSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\NavigationThrottleSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\NavigationSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\SpatialHashSystem.h" />
-    <ClInclude Include="..\Public\ECS\Systems\StatusEffectSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\TransformSystem.h" />
     <ClInclude Include="..\Public\ECS\Systems\VisionSystem.h" />
     <ClInclude Include="..\Public\Editor\ImGuiLayer.h" />

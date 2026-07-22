@@ -1,0 +1,20 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Fiora.R.Ring",
+  "emitters": [{
+    "name": "r_healzone_ring",
+    "render_type": "GroundDecal",
+    "blend_mode": "AlphaBlend",
+    "depth_mode": "DepthTestWriteOff",
+    "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_r_healzone_ring.png",
+    "lifetime": 8.0,
+    "fade_in": 0.10,
+    "fade_out": 0.50,
+    "width": 12.1,
+    "height": 12.1,
+    "color": [0.95, 0.75, 0.28, 0.75],
+    "attach_offset": [0.0, 0.05, 0.0],
+    "billboard": false
+  }]
+}

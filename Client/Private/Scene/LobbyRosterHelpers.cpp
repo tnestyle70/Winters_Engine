@@ -92,6 +92,7 @@ bool_t CanLaunchLocalGameplay(eMatchLaunchRuntimeMode eMode)
 void EnsureLobbyChampionCatalogReady()
 {
 	static bool_t s_bBootstrapped = false;
+
 	if (!s_bBootstrapped)
 	{
 		BootstrapChampionModules();

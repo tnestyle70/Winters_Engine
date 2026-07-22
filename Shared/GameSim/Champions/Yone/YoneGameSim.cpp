@@ -1,13 +1,16 @@
 #include "Shared/GameSim/Champions/Yone/YoneGameSim.h"
 
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/PoseActionStateHelpers.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
+#include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/YoneSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
+#include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -62,6 +65,14 @@ namespace
     }();
 
     constexpr f32_t kYoneUltimateAirborneArcHeight = 2.1f;
+    constexpr f32_t kYoneSoulEchoRatioByRank[5] =
+    {
+        0.25f,
+        0.275f,
+        0.30f,
+        0.325f,
+        0.35f,
+    };
 
     YoneSimComponent& EnsureYoneState(CWorld& world, EntityID caster)
     {
@@ -245,7 +256,13 @@ namespace
         action.queuedMoveDirection = queuedMoveDirection;
     }
 
-    void EmitYoneEVisualEvent(CWorld& world, EntityID caster, const TickContext& tc, u8_t stage)
+    void EmitYoneEVisualEvent(
+        CWorld& world,
+        EntityID caster,
+        const TickContext& tc,
+        u8_t stage,
+        EntityID target = NULL_ENTITY,
+        f32_t durationSec = 0.7f)
     {
         Vec3 position{};
         Vec3 direction{ 0.f, 0.f, 1.f };
@@ -264,6 +281,7 @@ namespace
         ReplicatedEventComponent event{};
         event.kind = eReplicatedEventKind::EffectTrigger;
         event.sourceEntity = caster;
+        event.targetEntity = target;
         event.effectId = MakeGameplayHookId(eChampion::YONE, GameplayHookVariant::E_CastFrame);
         event.slot = static_cast<u8_t>(eSkillSlot::E);
         event.rank = 1;
@@ -273,9 +291,67 @@ namespace
             static_cast<u16_t>(eSkillSlot::E));
         event.position = position;
         event.direction = direction;
-        event.durationMs = 700;
+        event.durationMs = static_cast<u16_t>(std::clamp(
+            durationSec * 1000.f,
+            0.f,
+            65535.f));
         event.startTick = tc.tickIndex;
         EnqueueReplicatedEvent(world, event);
+    }
+
+    f32_t ResolveYoneSoulEchoRatio(u8_t rank)
+    {
+        const u8_t clampedRank = std::clamp<u8_t>(rank, 1u, 5u);
+        return kYoneSoulEchoRatioByRank[clampedRank - 1u];
+    }
+
+    void ClearYoneSoulMarks(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        bool_t bDetonate)
+    {
+        const auto targets =
+            DeterministicEntityIterator<YoneSoulMarkComponent>::CollectSorted(world);
+        const eTeam casterTeam =
+            GameplayStateQuery::ResolveEntityTeam(world, caster);
+        for (EntityID target : targets)
+        {
+            if (!world.IsAlive(target) ||
+                !world.HasComponent<YoneSoulMarkComponent>(target))
+            {
+                continue;
+            }
+
+            const YoneSoulMarkComponent mark =
+                world.GetComponent<YoneSoulMarkComponent>(target);
+            if (mark.sourceEntity != caster)
+                continue;
+
+            if (bDetonate &&
+                mark.storedPostMitigationDamage > 0.f &&
+                GameplayStateQuery::CanReceiveDamage(world, caster, target))
+            {
+                DamageRequest echo{};
+                echo.source = caster;
+                echo.target = target;
+                echo.sourceTeam = casterTeam;
+                echo.type = eDamageType::True;
+                echo.flatAmount = mark.storedPostMitigationDamage *
+                    ResolveYoneSoulEchoRatio(mark.sourceERank);
+                echo.skillId = static_cast<u16_t>(
+                    (static_cast<u32_t>(eChampion::YONE) << 8u) |
+                    static_cast<u8_t>(eSkillSlot::E));
+                echo.rank = mark.sourceERank;
+                echo.iSourceSlot = static_cast<u8_t>(eSkillSlot::E);
+                echo.eSourceKind = eDamageSourceKind::Skill;
+                echo.flags = DamageFlag_YoneSoulEcho;
+                EnqueueDamageRequest(world, echo);
+            }
+
+            EmitYoneEVisualEvent(world, caster, tc, 4u, target, 0.f);
+            world.RemoveComponent<YoneSoulMarkComponent>(target);
+        }
     }
 
     void StartSoulReturn(CWorld& world, EntityID caster, const TickContext* pTickCtx,
@@ -294,12 +370,20 @@ namespace
         if (!pTickCtx)
             return;
 
+        ClearYoneSoulMarks(world, *pTickCtx, caster, true);
+
         const f32_t dashDurationSec = ResolveYoneSkillEffectParam(
             world,
             *pTickCtx,
             caster,
             eSkillSlot::E,
             eSkillEffectParamId::DashDurationSec);
+
+        // Soul return replaces any active knock-up/gather trajectory. Leaving
+        // ForcedMotionComponent alive would let StatusEffectSystem overwrite
+        // the anchor snap on the following tick.
+        if (world.HasComponent<ForcedMotionComponent>(caster))
+            world.RemoveComponent<ForcedMotionComponent>(caster);
 
         state.bReturning = true;
         StartDash(world, caster, state.anchorPosition, dashDurationSec, eYoneDashKind::SoulReturn);
@@ -335,6 +419,8 @@ namespace
             request.flatAmount = damage;
             request.skillId = skillId;
             request.rank = rank;
+            request.iSourceSlot = static_cast<u8_t>(skillId & 0xffu);
+            request.eSourceKind = eDamageSourceKind::Skill;
             request.flags = DamageFlag_OnHit;
             EnqueueDamageRequest(world, request);
         }
@@ -543,6 +629,7 @@ namespace
 
         state.bSoulUnboundActive = true;
         state.bReturning = false;
+        state.sourceERank = std::max<u8_t>(1u, ctx.skillRank);
         state.soulDurationSec = soulDurationSec;
         state.soulTimerSec = state.soulDurationSec;
         state.anchorPosition = origin;
@@ -617,8 +704,29 @@ namespace
 
 namespace YoneGameSim
 {
-    void CancelRuntime(CWorld& world, EntityID caster)
+    void CancelRuntime(
+        CWorld& world,
+        EntityID caster,
+        const TickContext* pTickCtx)
     {
+        if (pTickCtx)
+        {
+            ClearYoneSoulMarks(world, *pTickCtx, caster, false);
+        }
+        else
+        {
+            const auto markedTargets =
+                DeterministicEntityIterator<YoneSoulMarkComponent>::CollectSorted(world);
+            for (EntityID target : markedTargets)
+            {
+                if (world.IsAlive(target) &&
+                    world.HasComponent<YoneSoulMarkComponent>(target) &&
+                    world.GetComponent<YoneSoulMarkComponent>(target).sourceEntity == caster)
+                {
+                    world.RemoveComponent<YoneSoulMarkComponent>(target);
+                }
+            }
+        }
         if (world.HasComponent<YoneDashComponent>(caster))
             world.RemoveComponent<YoneDashComponent>(caster);
         if (world.HasComponent<YoneSimComponent>(caster))
@@ -634,6 +742,84 @@ namespace YoneGameSim
         }
 
         return 1;
+    }
+
+    void OnDamageResolved(
+        CWorld& world,
+        const TickContext& tc,
+        const DamageRequest& request,
+        const DamageResult& result)
+    {
+        if (result.finalAmount <= 0.f ||
+            request.source == NULL_ENTITY ||
+            request.target == NULL_ENTITY ||
+            (request.flags & DamageFlag_YoneSoulEcho) != 0u ||
+            (request.eSourceKind != eDamageSourceKind::BasicAttack &&
+                request.eSourceKind != eDamageSourceKind::Skill) ||
+            (request.type != eDamageType::Physical &&
+                request.type != eDamageType::Magic) ||
+            !world.IsAlive(request.source) ||
+            !world.IsAlive(request.target) ||
+            !world.HasComponent<ChampionComponent>(request.source) ||
+            !world.HasComponent<ChampionComponent>(request.target) ||
+            !world.HasComponent<YoneSimComponent>(request.source))
+        {
+            return;
+        }
+
+        const ChampionComponent& sourceChampion =
+            world.GetComponent<ChampionComponent>(request.source);
+        const ChampionComponent& targetChampion =
+            world.GetComponent<ChampionComponent>(request.target);
+        const YoneSimComponent& state =
+            world.GetComponent<YoneSimComponent>(request.source);
+        if (sourceChampion.id != eChampion::YONE ||
+            sourceChampion.team == targetChampion.team ||
+            !state.bSoulUnboundActive ||
+            state.bReturning)
+        {
+            return;
+        }
+
+        const bool_t bExistingMark =
+            world.HasComponent<YoneSoulMarkComponent>(request.target) &&
+            world.GetComponent<YoneSoulMarkComponent>(request.target)
+                    .sourceEntity == request.source;
+        YoneSoulMarkComponent mark = bExistingMark
+            ? world.GetComponent<YoneSoulMarkComponent>(request.target)
+            : YoneSoulMarkComponent{};
+        mark.sourceEntity = request.source;
+        mark.storedPostMitigationDamage += result.finalAmount;
+        mark.remainingSec = state.soulTimerSec;
+        mark.sourceERank = state.sourceERank;
+
+        if (world.HasComponent<YoneSoulMarkComponent>(request.target))
+            world.GetComponent<YoneSoulMarkComponent>(request.target) = mark;
+        else
+            world.AddComponent<YoneSoulMarkComponent>(request.target, mark);
+
+        if (!bExistingMark)
+        {
+            EmitYoneEVisualEvent(
+                world,
+                request.source,
+                tc,
+                3u,
+                request.target,
+                mark.remainingSec);
+        }
+
+        if (result.bKilled)
+        {
+            EmitYoneEVisualEvent(
+                world,
+                request.source,
+                tc,
+                4u,
+                request.target,
+                0.f);
+            world.RemoveComponent<YoneSoulMarkComponent>(request.target);
+        }
     }
 
     void RegisterHooks()
@@ -657,13 +843,78 @@ namespace YoneGameSim
 
     void Tick(CWorld& world, const TickContext& tc)
     {
+        const auto yoneEntities =
+            DeterministicEntityIterator<YoneSimComponent>::CollectSorted(world);
+        for (EntityID entity : yoneEntities)
+        {
+            if (!world.IsAlive(entity) ||
+                !world.HasComponent<YoneSimComponent>(entity))
+            {
+                continue;
+            }
+
+            const bool_t bDead =
+                world.HasComponent<HealthComponent>(entity) &&
+                (world.GetComponent<HealthComponent>(entity).bIsDead ||
+                    world.GetComponent<HealthComponent>(entity).fCurrent <= 0.f);
+            if (!bDead)
+                continue;
+
+            ClearYoneSoulMarks(world, tc, entity, false);
+            if (world.HasComponent<YoneDashComponent>(entity))
+                world.RemoveComponent<YoneDashComponent>(entity);
+            world.GetComponent<YoneSimComponent>(entity) = YoneSimComponent{};
+        }
+
+        const auto markedTargets =
+            DeterministicEntityIterator<YoneSoulMarkComponent>::CollectSorted(world);
+        for (EntityID target : markedTargets)
+        {
+            if (!world.IsAlive(target) ||
+                !world.HasComponent<YoneSoulMarkComponent>(target))
+            {
+                continue;
+            }
+
+            const YoneSoulMarkComponent mark =
+                world.GetComponent<YoneSoulMarkComponent>(target);
+            const bool_t bTargetDead =
+                world.HasComponent<HealthComponent>(target) &&
+                (world.GetComponent<HealthComponent>(target).bIsDead ||
+                    world.GetComponent<HealthComponent>(target).fCurrent <= 0.f);
+            const bool_t bSourceInactive =
+                mark.sourceEntity == NULL_ENTITY ||
+                !world.IsAlive(mark.sourceEntity) ||
+                !world.HasComponent<YoneSimComponent>(mark.sourceEntity) ||
+                !world.GetComponent<YoneSimComponent>(mark.sourceEntity)
+                    .bSoulUnboundActive;
+            if (!bTargetDead && !bSourceInactive)
+                continue;
+
+            if (mark.sourceEntity != NULL_ENTITY &&
+                world.IsAlive(mark.sourceEntity))
+            {
+                EmitYoneEVisualEvent(
+                    world,
+                    mark.sourceEntity,
+                    tc,
+                    4u,
+                    target,
+                    0.f);
+            }
+            world.RemoveComponent<YoneSoulMarkComponent>(target);
+        }
+
         std::vector<EntityID> finishedDashes;
         world.ForEach<YoneDashComponent, TransformComponent>(
             std::function<void(EntityID, YoneDashComponent&, TransformComponent&)>(
                 [&](EntityID entity, YoneDashComponent& dash, TransformComponent& transform)
                 {
-                    if (!GameplayStateQuery::CanMove(world, entity) ||
-                        world.HasComponent<ForcedMotionComponent>(entity))
+                    const bool_t bSoulReturn =
+                        dash.kind == eYoneDashKind::SoulReturn;
+                    if (!bSoulReturn &&
+                        (!GameplayStateQuery::CanMove(world, entity) ||
+                            world.HasComponent<ForcedMotionComponent>(entity)))
                     {
                         finishedDashes.push_back(entity);
                         return;
@@ -721,19 +972,13 @@ namespace YoneGameSim
 
         for (EntityID entity : finishedDashes)
         {
-            if (world.HasComponent<ForcedMotionComponent>(entity))
+            const bool_t bFinishedSoulReturn =
+                world.HasComponent<YoneDashComponent>(entity) &&
+                world.GetComponent<YoneDashComponent>(entity).kind ==
+                    eYoneDashKind::SoulReturn;
+            if (world.HasComponent<ForcedMotionComponent>(entity) &&
+                !bFinishedSoulReturn)
             {
-                if (world.HasComponent<YoneDashComponent>(entity))
-                {
-                    const auto dash = world.GetComponent<YoneDashComponent>(entity);
-                    if (dash.kind == eYoneDashKind::SoulReturn &&
-                        world.HasComponent<YoneSimComponent>(entity))
-                    {
-                        auto& state = world.GetComponent<YoneSimComponent>(entity);
-                        state.bReturning = false;
-                        state.soulTimerSec = 0.f;
-                    }
-                }
                 world.RemoveComponent<YoneDashComponent>(entity);
                 continue;
             }
@@ -780,12 +1025,6 @@ namespace YoneGameSim
                 {
                     if (!state.bSoulUnboundActive || state.bReturning)
                         return;
-                    if (world.HasComponent<ForcedMotionComponent>(entity) ||
-                        !GameplayStateQuery::CanMove(world, entity))
-                    {
-                        return;
-                    }
-
                     state.soulTimerSec = std::max(0.f, state.soulTimerSec - tc.fDt);
                     if (state.soulTimerSec <= 0.f)
                         StartSoulReturn(world, entity, &tc, true);

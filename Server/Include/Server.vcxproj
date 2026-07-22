@@ -45,6 +45,10 @@
     <IntDir>$(ProjectDir)..\Bin\Intermediate\Release\</IntDir>
     <TargetName>WintersServer</TargetName>
     <LocalDebuggerWorkingDirectory>$(MSBuildThisFileDirectory)..\..\</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerCommandArguments>--net-transport=udp</LocalDebuggerCommandArguments>
+    <LocalDebuggerEnvironment>WINTERS_GAME_SESSION_ID=winters-local-game-session&#xA;WINTERS_MATCH_TICKET_SECRET=winters-match-ticket-secret-change-in-production&#xA;WINTERS_MATCHMAKING_SERVICE_URL=http://127.0.0.1:8083&#xA;WINTERS_MATCHMAKING_INTERNAL_TOKEN=winters-matchmaking-internal-token-change-in-production&#xA;WINTERS_REPLAY_SERVICE_URL=http://127.0.0.1:8087&#xA;WINTERS_REPLAY_INTERNAL_TOKEN=winters-replay-internal-token-change-in-production</LocalDebuggerEnvironment>
+    <LocalDebuggerMergeEnvironment>true</LocalDebuggerMergeEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -103,6 +107,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Private\Backend\ReplayUploadQueue.cpp" />
     <ClCompile Include="..\Private\Data\Generated\LoLGameplayDefinitions.generated.cpp" />
     <ClCompile Include="..\Private\Data\RuntimeGameplayDefinitionOverlay.cpp" />
     <ClCompile Include="..\Private\Game\Factory\ChampionSimComponentTable.cpp" />
@@ -144,6 +149,7 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClCompile Include="..\Private\Security\LagCompensation.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Public\Backend\ReplayUploadQueue.h" />
     <ClInclude Include="..\Public\Game\CommandIngress.h" />
     <ClInclude Include="..\Public\Game\GameRoom.h" />
     <ClInclude Include="..\Public\Game\LobbyAuthority.h" />
@@ -157,7 +163,6 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Game\ServerAICommandProducer.h" />
     <ClInclude Include="..\Public\Game\ServerEntry.h" />
     <ClInclude Include="..\Public\Game\ServerMinionFlowField.h" />
-    <ClInclude Include="..\Public\Game\ServerMinionTuning.h" />
     <ClInclude Include="..\Public\Game\ServerMinionWaveRuntime.h" />
     <ClInclude Include="..\Public\Game\ServerProjectileAuthority.h" />
     <ClInclude Include="..\Public\Game\SessionBinding.h" />
@@ -172,6 +177,8 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
     <ClInclude Include="..\Public\Network\Session_Manager.h" />
     <ClInclude Include="..\Public\Network\UdpIocpCore.h" />
     <ClInclude Include="..\Public\Security\LagCompensation.h" />
+    <ClInclude Include="..\Private\Data\LoLGameplayDefinitionPack.h" />
+    <ClInclude Include="..\Private\Data\ThirdParty\json.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\Engine\Include\Engine.vcxproj">
@@ -186,8 +193,5 @@ if exist "$(MSBuildThisFileDirectory)..\..\EngineSDK\bin\$(Configuration)\*.pdb"
       <Project>{E5555555-5555-5555-5555-555555555555}</Project>
     </ProjectReference>
   </ItemGroup>
-  <Target Name="FlatcCodegen" BeforeTargets="ClCompile">
-    <Exec Command="&quot;$(MSBuildThisFileDirectory)..\..\Shared\Schemas\run_codegen.bat&quot;" />
-  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

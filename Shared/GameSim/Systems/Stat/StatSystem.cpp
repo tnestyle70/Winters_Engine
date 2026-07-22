@@ -8,13 +8,16 @@
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
+#include "Shared/GameSim/Components/ItemRuntimeComponent.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
+#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Systems/Combat/CombatFormula.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
+#include "Shared/GameSim/Systems/Buff/BuffSystem.h"
 
 #include <algorithm>
+#include <cmath>
 
 #ifdef min
 #undef min
@@ -122,7 +125,12 @@ namespace
             case eItemStatOverrideField::FlatMr: stats.flatMr = entry.value; break;
             case eItemStatOverrideField::BonusAttackSpeed: stats.bonusAttackSpeed = entry.value; break;
             case eItemStatOverrideField::CritChance: stats.critChance = entry.value; break;
+            case eItemStatOverrideField::CritDamageBonus: stats.critDamageBonus = entry.value; break;
             case eItemStatOverrideField::AbilityHaste: stats.abilityHaste = entry.value; break;
+            case eItemStatOverrideField::PercentMoveSpeed: stats.percentMoveSpeed = entry.value; break;
+            case eItemStatOverrideField::ArmorPenPercent: stats.armorPenPercent = entry.value; break;
+            case eItemStatOverrideField::BonusArmorPenPercent: stats.bonusArmorPenPercent = entry.value; break;
+            case eItemStatOverrideField::MagicPenPercent: stats.magicPenPercent = entry.value; break;
             case eItemStatOverrideField::FlatMoveSpeed: stats.flatMoveSpeed = entry.value; break;
             case eItemStatOverrideField::LifeSteal: stats.lifeSteal = entry.value; break;
             case eItemStatOverrideField::FlatMagicPen: stats.flatMagicPen = entry.value; break;
@@ -145,6 +153,8 @@ namespace
         stat.level = resolvedLevel;
         stat.hpMax = CCombatFormula::ResolveStatAtLevel(def.baseHp, def.hpPerLevel, resolvedLevel);
         stat.manaMax = CCombatFormula::ResolveStatAtLevel(def.baseMana, def.manaPerLevel, resolvedLevel);
+        stat.resourceKind = def.resourceKind;
+        stat.resourceRegenPerSec = def.resourceRegenPerSec;
 
         stat.baseAd = CCombatFormula::ResolveStatAtLevel(def.baseAd, def.adPerLevel, resolvedLevel);
         stat.bonusAd = 0.f;
@@ -204,14 +214,14 @@ StatComponent CStatSystem::BuildBaseStats(
 
 void CStatSystem::Recompute(CWorld& world, EntityID entity, StatComponent& stat)
 {
-    ChampionStatsDef def = CChampionStatsRegistry::Instance().Resolve(stat.championId);
+    ChampionStatsDef def = BuildDefaultChampionStatsDef(stat.championId);
     ApplyPracticeChampionStatOverrides(world, entity, def);
 
     const u8_t level = (stat.level > 0) ? stat.level : 1;
     const u32_t oldBuffHash = stat.buffMaskHash;
     const u32_t oldItemHash = stat.itemMaskHash;
     stat = BuildBaseStats(def, level);
-    ApplyRuntimeModifiers(world, entity, stat, oldBuffHash, oldItemHash);
+    ApplyRuntimeModifiers(world, entity, stat, oldBuffHash, oldItemHash, nullptr);
 }
 
 void CStatSystem::Recompute(
@@ -241,18 +251,15 @@ void CStatSystem::Recompute(
         {
             char msg[128]{};
             sprintf_s(msg,
-                "[Data] stat recompute pack miss champ=%u -> legacy registry\n",
+                "[Data] required stat definition missing champ=%u\n",
                 static_cast<u32_t>(stat.championId));
             WintersOutputAIDebugStringA(msg);
             ++s_statPackMissLogCount;
         }
-        ChampionStatsDef legacyDef =
-            CChampionStatsRegistry::Instance().Resolve(stat.championId);
-        ApplyPracticeChampionStatOverrides(world, entity, legacyDef);
-        stat = BuildBaseStats(legacyDef, level);
+        return;
     }
 
-    ApplyRuntimeModifiers(world, entity, stat, oldBuffHash, oldItemHash);
+    ApplyRuntimeModifiers(world, entity, stat, oldBuffHash, oldItemHash, &definitions);
 }
 
 void CStatSystem::ApplyRuntimeModifiers(
@@ -260,7 +267,8 @@ void CStatSystem::ApplyRuntimeModifiers(
     EntityID entity,
     StatComponent& stat,
     u32_t oldBuffHash,
-    u32_t oldItemHash)
+    u32_t oldItemHash,
+    const GameplayDefinitionPack* pDefinitions)
 {
     stat.buffMaskHash = oldBuffHash;
     stat.itemMaskHash = oldItemHash;
@@ -269,6 +277,8 @@ void CStatSystem::ApplyRuntimeModifiers(
     if (world.HasComponent<InventoryComponent>(entity))
     {
         const InventoryComponent& inventory = world.GetComponent<InventoryComponent>(entity);
+        const ItemRuntimeComponent* pItemRuntime =
+            world.TryGetComponent<ItemRuntimeComponent>(entity);
         for (u8_t i = 0; i < inventory.count && i < InventoryComponent::kMaxSlots; ++i)
         {
             const ItemDef* pItem = CItemRegistry::Instance().Find(inventory.itemIds[i]);
@@ -281,11 +291,17 @@ void CStatSystem::ApplyRuntimeModifiers(
             stat.bonusAd += itemStats.flatAd;
             stat.ap += itemStats.flatAp;
             stat.hpMax += itemStats.flatHealth;
-            stat.manaMax += itemStats.flatMana;
+            if (stat.resourceKind == eChampionResourceKind::Mana)
+            {
+                stat.manaMax += itemStats.flatMana;
+                if (pItemRuntime && pItemRuntime->slots[i].itemId == pItem->itemId)
+                    stat.manaMax += static_cast<f32_t>(pItemRuntime->slots[i].bonusMana);
+            }
             stat.bonusArmor += itemStats.flatArmor;
             stat.bonusMr += itemStats.flatMr;
             stat.bonusAttackSpeed += itemStats.bonusAttackSpeed;
             stat.critChance += itemStats.critChance;
+            stat.critDamage += itemStats.critDamageBonus;
             stat.abilityHaste += itemStats.abilityHaste;
             stat.armorPenPercent += itemStats.armorPenPercent;
             stat.bonusArmorPenPercent += itemStats.bonusArmorPenPercent;
@@ -295,6 +311,17 @@ void CStatSystem::ApplyRuntimeModifiers(
             stat.moveSpeed += itemStats.flatMoveSpeed * kLoLDistanceToWorldScale;
             stat.lifesteal += itemStats.lifeSteal;
             fItemMoveSpeedMul *= (1.f + itemStats.percentMoveSpeed);
+        }
+
+        for (u8_t i = 0; i < inventory.count && i < InventoryComponent::kMaxSlots; ++i)
+        {
+            const ItemDef* pItem = CItemRegistry::Instance().Find(inventory.itemIds[i]);
+            if (pItem &&
+                stat.resourceKind == eChampionResourceKind::Mana &&
+                pItem->maxManaBonusAdRatio > 0.f)
+            {
+                stat.bonusAd += stat.manaMax * pItem->maxManaBonusAdRatio;
+            }
         }
     }
     stat.moveSpeed *= fItemMoveSpeedMul;
@@ -318,6 +345,16 @@ void CStatSystem::ApplyRuntimeModifiers(
     }
 
     stat.ad = stat.baseAd + stat.bonusAd;
+    if (CBuffSystem::HasObjectiveBuff(world, entity, eObjectiveBuffKind::Elder))
+    {
+        ObjectiveGameplayDef tuning{};
+        if (pDefinitions)
+        {
+            if (const EconomyGameplayDef* economy = pDefinitions->FindEconomy())
+                tuning = economy->objectives;
+        }
+        stat.ad *= tuning.elderAttackDamageMultiplier;
+    }
     stat.armor = stat.baseArmor + stat.bonusArmor;
     stat.mr = stat.baseMr + stat.bonusMr;
     stat.attackSpeed = CCombatFormula::ResolveAttackSpeed(
@@ -383,5 +420,37 @@ void CStatSystem::Execute(CWorld& world, const GameplayDefinitionPack& definitio
         auto& stat = world.GetComponent<StatComponent>(entity);
         if (stat.bDirty)
             Recompute(world, entity, stat, definitions);
+    }
+}
+
+void CStatSystem::TickResourceRegeneration(CWorld& world, const TickContext& tc)
+{
+    const auto entities = DeterministicEntityIterator<StatComponent>::CollectSorted(world);
+    for (EntityID entity : entities)
+    {
+        const StatComponent& stat = world.GetComponent<StatComponent>(entity);
+        const bool_t bRegeneratesOverTime =
+            stat.resourceKind == eChampionResourceKind::Mana ||
+            stat.resourceKind == eChampionResourceKind::Energy;
+        if (!bRegeneratesOverTime ||
+            stat.resourceRegenPerSec <= 0.f ||
+            !world.HasComponent<ChampionComponent>(entity) ||
+            !world.HasComponent<HealthComponent>(entity))
+        {
+            continue;
+        }
+
+        const HealthComponent& health = world.GetComponent<HealthComponent>(entity);
+        if (health.bIsDead || health.fCurrent <= 0.f)
+            continue;
+
+        ChampionComponent& champion = world.GetComponent<ChampionComponent>(entity);
+        champion.maxMana = (std::max)(0.f, stat.manaMax);
+        if (!std::isfinite(champion.mana))
+            champion.mana = 0.f;
+        champion.mana = (std::clamp)(
+            champion.mana + stat.resourceRegenPerSec * tc.fDt,
+            0.f,
+            champion.maxMana);
     }
 }

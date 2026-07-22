@@ -5,7 +5,6 @@
 #include "GameObject/ChampionDef.h"
 #include "GameObject/SkillDef.h"
 #include "GameObject/Champion/Fiora/Fiora_Skills.h"
-#include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 
 #include <Windows.h>
 
@@ -16,6 +15,10 @@ namespace
     constexpr u32_t kFio_W_Cast  = MakeHookId(eChampion::FIORA, HookVariant::W_CastFrame);
     constexpr u32_t kFio_E_Cast  = MakeHookId(eChampion::FIORA, HookVariant::E_CastFrame);
     constexpr u32_t kFio_R_Cast  = MakeHookId(eChampion::FIORA, HookVariant::R_CastFrame);
+    constexpr u32_t kFio_Passive = MakeHookId(eChampion::FIORA, HookVariant::Passive_Trigger);
+    constexpr u32_t kFio_W_Recovery = MakeHookId(eChampion::FIORA, HookVariant::W_Recovery);
+    constexpr u32_t kFio_E_Recovery = MakeHookId(eChampion::FIORA, HookVariant::E_Recovery);
+    constexpr u32_t kFio_R_Recovery = MakeHookId(eChampion::FIORA, HookVariant::R_Recovery);
 
     struct FioraAutoRegister
     {
@@ -44,12 +47,8 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::FIORA; s.slot = 0;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = 0.6f; s.rangeMax = 1.5f; s.manaCost = 0.f;
                 s.animKey = "attack1";
-                s.lockDurationSec = 1.0f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
-                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kFio_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 0, s);
             }
@@ -57,12 +56,8 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::FIORA; s.slot = 1;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = 1.5f; s.rangeMax = 4.0f; s.manaCost = 0.f;
                 s.animKey = "spell1";
-                s.lockDurationSec = 0.5f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 4.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kFio_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 1, s);
             }
@@ -70,12 +65,8 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::FIORA; s.slot = 2;
-                s.targetMode = eTargetMode::Self;
-                s.cooldownSec = 12.f; s.rangeMax = 0.f; s.manaCost = 0.f;
                 s.animKey = "spell2";
-                s.lockDurationSec = 1.5f; s.bOneShot = true;
-                s.rotate = eRotateMode::None;
-                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 18.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kFio_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 2, s);
             }
@@ -83,12 +74,8 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::FIORA; s.slot = 3;
-                s.targetMode = eTargetMode::Self;
-                s.cooldownSec = 13.f; s.rangeMax = 0.f; s.manaCost = 0.f;
                 s.animKey = "attack1";
-                s.lockDurationSec = 0.4f; s.bOneShot = true;
-                s.rotate = eRotateMode::None;
-                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 8.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kFio_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 3, s);
             }
@@ -96,31 +83,20 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::FIORA; s.slot = 4;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = 80.f; s.rangeMax = 5.0f; s.manaCost = 100.f;
                 s.animKey = "channel";
-                s.lockDurationSec = 2.0f; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
-                s.visualCastFrame = 18.f; s.visualRecoveryFrame = 36.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kFio_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::FIORA, 4, s);
             }
 
-            // Fiora gameplay is now handled by the shared hook path below.
-            // Registering the same cast hook into CSkillHookRegistry makes
-            // Scene_InGame dispatch damage twice: GameplayHook -> SkillHook.
-
-            CGameplayHookRegistry::Instance().Register(kFio_BA_Cast, &Fiora::Gameplay::OnCastFrame_BA);
-            CGameplayHookRegistry::Instance().Register(kFio_Q_Cast,  &Fiora::Gameplay::OnCastFrame_Q);
-            CGameplayHookRegistry::Instance().Register(kFio_W_Cast,  &Fiora::Gameplay::OnCastFrame_W);
-            CGameplayHookRegistry::Instance().Register(kFio_E_Cast,  &Fiora::Gameplay::OnCastFrame_E);
-            CGameplayHookRegistry::Instance().Register(kFio_R_Cast,  &Fiora::Gameplay::OnCastFrame_R);
-
-            CVisualHookRegistry::Instance().Register(kFio_BA_Cast, &Fiora::Visual::OnCastFrame_BA_Visual);
             CVisualHookRegistry::Instance().Register(kFio_Q_Cast,  &Fiora::Visual::OnCastFrame_Q_Visual);
             CVisualHookRegistry::Instance().Register(kFio_W_Cast,  &Fiora::Visual::OnCastFrame_W_Visual);
             CVisualHookRegistry::Instance().Register(kFio_E_Cast,  &Fiora::Visual::OnCastFrame_E_Visual);
             CVisualHookRegistry::Instance().Register(kFio_R_Cast,  &Fiora::Visual::OnCastFrame_R_Visual);
+            CVisualHookRegistry::Instance().Register(kFio_Passive, &Fiora::Visual::OnPassiveTrigger_Visual);
+            CVisualHookRegistry::Instance().Register(kFio_W_Recovery, &Fiora::Visual::OnRecovery_W_Visual);
+            CVisualHookRegistry::Instance().Register(kFio_E_Recovery, &Fiora::Visual::OnRecovery_E_Visual);
+            CVisualHookRegistry::Instance().Register(kFio_R_Recovery, &Fiora::Visual::OnRecovery_R_Visual);
 
         }
     };

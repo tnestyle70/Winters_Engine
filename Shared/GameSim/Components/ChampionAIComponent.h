@@ -5,10 +5,12 @@
 #include "Shared/GameSim/Core/Ecs/Entity.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
+#include "Shared/GameSim/Definitions/TeamPingDef.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIInfluenceMap.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIResearchTypes.h"
 
 #include <cstddef>
+#include <type_traits>
 
 struct ChampionAIShadowPolicyArtifactV1;
 
@@ -102,8 +104,15 @@ enum class eChampionAITuningId : u8_t
 	DiveScanRange,
 	DiveExtraBAWindow,
 	SkillCastMinInterval,
+	FollowWaveSearchRange,
+	FarmPriority,
 	Count,
 };
+
+static_assert(static_cast<u8_t>(eChampionAITuningId::SkillCastMinInterval) == 14u);
+static_assert(static_cast<u8_t>(eChampionAITuningId::FollowWaveSearchRange) == 15u);
+static_assert(static_cast<u8_t>(eChampionAITuningId::FarmPriority) == 16u);
+static_assert(static_cast<u8_t>(eChampionAITuningId::Count) == 17u);
 
 struct ChampionAIDecisionTraceEntry
 {
@@ -182,7 +191,62 @@ struct ChampionAITuning
 	ChampionAITuningParam diveScanRange{ 11.f, 11.f, 1.f, 40.f, false };
 	ChampionAITuningParam diveExtraBAWindow{ 1.80f, 1.80f, 0.f, 5.f, false };
 	ChampionAITuningParam skillCastMinInterval{ 5.f, 5.f, 0.f, 15.f, false };
+	ChampionAITuningParam followWaveSearchRange{ 80.f, 80.f, 10.f, 120.f, false };
+	ChampionAITuningParam farmPriority{ 1.f, 1.f, 0.f, 3.f, false };
 };
+
+inline ChampionAITuningParam* ResolveChampionAITuningParam(
+	ChampionAITuning& tuning,
+	eChampionAITuningId tuningId)
+{
+	switch (tuningId)
+	{
+	case eChampionAITuningId::ChampionScanRange:
+		return &tuning.championScanRange;
+	case eChampionAITuningId::MinionScanRange:
+		return &tuning.minionScanRange;
+	case eChampionAITuningId::StructureScanRange:
+		return &tuning.structureScanRange;
+	case eChampionAITuningId::LeashRange:
+		return &tuning.leashRange;
+	case eChampionAITuningId::RetreatHpRatio:
+		return &tuning.retreatHpRatio;
+	case eChampionAITuningId::ReengageHpRatio:
+		return &tuning.reengageHpRatio;
+	case eChampionAITuningId::ChampionScoreMargin:
+		return &tuning.championScoreMargin;
+	case eChampionAITuningId::TurretDangerThreshold:
+		return &tuning.turretDangerThreshold;
+	case eChampionAITuningId::PostComboBASelfHpMinRatio:
+		return &tuning.postComboBASelfHpMinRatio;
+	case eChampionAITuningId::PostComboBAEnemyHpMargin:
+		return &tuning.postComboBAEnemyHpMargin;
+	case eChampionAITuningId::PostComboBAWindow:
+		return &tuning.postComboBAWindow;
+	case eChampionAITuningId::LowHpExecuteThreshold:
+		return &tuning.lowHpExecuteThreshold;
+	case eChampionAITuningId::DiveScanRange:
+		return &tuning.diveScanRange;
+	case eChampionAITuningId::DiveExtraBAWindow:
+		return &tuning.diveExtraBAWindow;
+	case eChampionAITuningId::SkillCastMinInterval:
+		return &tuning.skillCastMinInterval;
+	case eChampionAITuningId::FollowWaveSearchRange:
+		return &tuning.followWaveSearchRange;
+	case eChampionAITuningId::FarmPriority:
+		return &tuning.farmPriority;
+	default:
+		return nullptr;
+	}
+}
+
+inline const ChampionAITuningParam* ResolveChampionAITuningParam(
+	const ChampionAITuning& tuning,
+	eChampionAITuningId tuningId)
+{
+	return ResolveChampionAITuningParam(
+		const_cast<ChampionAITuning&>(tuning), tuningId);
+}
 
 inline constexpr u32_t kChampionAIActionBitMoveToSafeAnchor = 1u << 0;
 inline constexpr u32_t kChampionAIActionBitFollowWave = 1u << 1;
@@ -285,6 +349,9 @@ struct ChampionAIComponent
 	f32_t fDiveExtraBATimer = 0.f;
 	f32_t fSkillCastMinInterval = 3.f;
 	f32_t fSkillCastCooldownTimer = 0.f;
+	f32_t followWaveSearchRange = 80.f;
+	f32_t fFarmPriority = 1.f;
+	f32_t fDecisionWaveDistance = 999.f;
 	f32_t fRetreatDecisionScore = 0.f;
 	f32_t fChampionDecisionScore = 0.f;
 	f32_t fFarmDecisionScore = 0.f;
@@ -328,16 +395,32 @@ struct ChampionAIComponent
 	u8_t debugForcedDecisionCount = 0;
 	bool_t bDebugForceAction = false;
 	u8_t reservedTail[3]{};
+
+	f32_t midDefenseThreatHoldTimer = 0.f;
+	bool_t bMidTeamfightActive = false;
+	bool_t bYonePostReturnUltimatePending = false;
+	u8_t reservedMidDefenseAlignment[2]{};
+
+	u64_t teamPingExpireTick = 0u;
+	Vec3 teamPingAnchor{};
+	eTeamPingKind teamPingKind = eTeamPingKind::None;
+	bool_t bTeamPingObjectiveActive = false;
+	u8_t reservedTeamPingAlignment[2]{};
 };
 
 static_assert(sizeof(ChampionAITuningParam) == 20u);
 static_assert(offsetof(ChampionAITuningParam, bOverride) == 16u);
-static_assert(sizeof(ChampionAITuning) == 304u);
+static_assert(sizeof(ChampionAITuning) == 344u);
+static_assert(std::is_trivially_copyable_v<ChampionAITuning>);
 static_assert(offsetof(ChampionAIComponent, laneGoal) == 12u);
 static_assert(offsetof(ChampionAIComponent, decisionTimer) == 116u);
-static_assert(offsetof(ChampionAIComponent, debugLastCommandTarget) == 572u);
-static_assert(offsetof(ChampionAIComponent, nextCommandSequence) == 2900u);
-static_assert(sizeof(ChampionAIComponent) == 2928u);
+static_assert(offsetof(ChampionAIComponent, debugLastCommandTarget) == 624u);
+static_assert(offsetof(ChampionAIComponent, nextCommandSequence) == 2956u);
+static_assert(offsetof(ChampionAIComponent, teamPingExpireTick) == 2992u);
+static_assert(offsetof(ChampionAIComponent, teamPingAnchor) == 3000u);
+static_assert(offsetof(ChampionAIComponent, teamPingKind) == 3012u);
+static_assert(sizeof(ChampionAIComponent) == 3016u);
+static_assert(std::is_trivially_copyable_v<ChampionAIComponent>);
 
 // Research capture is diagnostic evidence, not authoritative gameplay state.
 // Keep it outside ChampionAIComponent so checkpoint blobs do not retain a
@@ -406,6 +489,12 @@ struct ChampionAIDebugComponent
 	f32_t fPostComboBATimer = 0.f;
 	f32_t fSkillCastMinInterval = 5.f;
 	f32_t fSkillCastCooldownTimer = 0.f;
+	u32_t enemyMinionNetId = 0u;
+	u32_t alliedWaveNetId = 0u;
+	f32_t fWaveDistance = 999.f;
+	f32_t fWaveSupportRange = 0.f;
+	f32_t fFollowWaveSearchRange = 0.f;
+	f32_t fFarmPriority = 0.f;
 	u32_t lastCommandSequence = 0u;
 	u16_t lastExecutorReason = 0u;
 	u8_t lastExecutorState = static_cast<u8_t>(AiExecutorStateV1::Unknown);
@@ -414,4 +503,7 @@ struct ChampionAIDebugComponent
 	Vec3 lastCommandPos{ 0.f, 0.f, 0.f };
 	ChampionAIDecisionTraceEntry debugDecisionTrace[kChampionAIDebugTraceCapacity] = {};
 	u8_t debugDecisionTraceCount = 0u;
+	u64_t utilityCandidateTick = 0u;
+	u64_t utilitySelectionTick = 0u;
+	AiDecisionTraceV1 utilityDecision = ChampionAIResearch::MakeDecisionTraceV1();
 };

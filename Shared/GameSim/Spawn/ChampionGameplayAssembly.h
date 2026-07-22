@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Shared/GameSim/Core/Ecs/Entity.h"
-#include "Shared/GameSim/Definitions/ChampionStatsDef.h"
 #include "Shared/GameSim/Definitions/SpawnLoadoutPolicyDef.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "WintersMath.h"
@@ -21,7 +20,6 @@ struct ChampionAssemblyContext
     bool_t bAssignBotSkillRanks = false;
     SpawnLoadoutPolicyDef loadout{};    // startGold/startLevel/startRune/startRuneCount/respawnDelaySec
     const ChampionGameplayDef* pDef = nullptr; // 있으면 우선, 없으면 fallbackStats 사용
-    ChampionStatsDef fallbackStats{};
 };
 
 namespace ChampionGameplayAssembly

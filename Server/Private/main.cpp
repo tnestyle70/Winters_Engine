@@ -1,14 +1,19 @@
 #include "Core/JobCounter.h"
+#include "Backend/ReplayUploadQueue.h"
 #include "Game/GameRoom.h"
 #include "Game/ServerEntry.h"
 #include "Network/IOCPCore.h"
 #include "Network/ServerSessionHub.h"
 #include "Network/UdpIocpCore.h"
+#include "Shared/Network/UdpHandshake.h"
+#include "Server/Private/Data/ThirdParty/json.hpp"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
 
 #include <WinSock2.h>
+#include <Windows.h>
 #include <bcrypt.h>
 #include <atomic>
+#include <array>
 #include <cerrno>
 #include <chrono>
 #include <cstdlib>
@@ -21,6 +26,7 @@
 #include <span>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
@@ -47,9 +53,13 @@ namespace
         eJobExecutionMode jobMode = eJobExecutionMode::ThreadOnly;
         u32_t jobWorkerCount = 1u;
         bool_t bUdpDevAllowEmptyTicket = false;
+        std::string matchTicketSecret;
+        std::string gameSessionID;
+        u64_t matchTicketTTLSeconds = 300u;
     };
 
     constexpr u32_t kMaxJobWorkerCount = 256u;
+    constexpr u32_t kMaxMatchTicketTTLSeconds = 3600u;
 
     u32_t DefaultJobWorkerCount()
     {
@@ -80,6 +90,43 @@ namespace
         return true;
     }
 
+    bool_t ParseMatchTicketTTL(const char* text, u64_t& outValue)
+    {
+        if (!text || text[0] == '\0')
+            return false;
+
+        errno = 0;
+        char* pEnd = nullptr;
+        const unsigned long value = std::strtoul(text, &pEnd, 10);
+        if (errno == ERANGE || pEnd == text || *pEnd != '\0' ||
+            value == 0ul || value > kMaxMatchTicketTTLSeconds)
+        {
+            return false;
+        }
+
+        outValue = static_cast<u64_t>(value);
+        return true;
+    }
+
+    bool_t ReadEnvironmentVariable(
+        const char* name,
+        std::string& outValue)
+    {
+        char* value = nullptr;
+        size_t valueLength = 0u;
+        const errno_t result = _dupenv_s(&value, &valueLength, name);
+        if (result != 0 || !value || valueLength <= 1u)
+        {
+            std::free(value);
+            outValue.clear();
+            return false;
+        }
+
+        outValue.assign(value, valueLength - 1u);
+        std::free(value);
+        return true;
+    }
+
     bool_t UsesTcp(eServerNetworkMode mode)
     {
         return mode == eServerNetworkMode::Tcp ||
@@ -90,6 +137,51 @@ namespace
     {
         return mode == eServerNetworkMode::Udp ||
             mode == eServerNetworkMode::Dual;
+    }
+
+    struct Win32HandleCloser
+    {
+        void operator()(void* value) const noexcept
+        {
+            if (value)
+                ::CloseHandle(static_cast<HANDLE>(value));
+        }
+    };
+
+    using ScopedWin32Handle = std::unique_ptr<void, Win32HandleCloser>;
+
+    bool_t AcquireAuthenticatedUdpInstanceGuard(
+        const ServerRuntimeOptions& runtimeOptions,
+        ScopedWin32Handle& outGuard)
+    {
+        outGuard.reset();
+        if (!UsesUdp(runtimeOptions.networkMode) ||
+            runtimeOptions.bUdpDevAllowEmptyTicket)
+        {
+            return true;
+        }
+
+        constexpr const wchar_t* kMutexName =
+            L"Local\\WintersServer.AuthenticatedUdp9000";
+        HANDLE const rawHandle = ::CreateMutexW(nullptr, FALSE, kMutexName);
+        const DWORD createError = ::GetLastError();
+        if (!rawHandle)
+        {
+            std::cerr << "[ERROR] Failed to create authenticated UDP instance guard error="
+                << createError << '\n';
+            return false;
+        }
+
+        ScopedWin32Handle guard(rawHandle);
+        if (createError == ERROR_ALREADY_EXISTS)
+        {
+            std::cerr << "[ERROR] Another authenticated UDP WintersServer is already running; "
+                "startup stopped before backend reconciliation\n";
+            return false;
+        }
+
+        outGuard = std::move(guard);
+        return true;
     }
 
     const char* NetworkModeName(eServerNetworkMode mode)
@@ -133,6 +225,26 @@ namespace
 
         outOptions = {};
         outOptions.jobWorkerCount = DefaultJobWorkerCount();
+        ReadEnvironmentVariable(
+            "WINTERS_MATCH_TICKET_SECRET",
+            outOptions.matchTicketSecret);
+        ReadEnvironmentVariable(
+            "WINTERS_GAME_SESSION_ID",
+            outOptions.gameSessionID);
+        std::string ticketTTL;
+        if (ReadEnvironmentVariable(
+            "WINTERS_MATCH_TICKET_TTL_SECONDS",
+            ticketTTL))
+        {
+            if (!ParseMatchTicketTTL(
+                ticketTTL.c_str(),
+                outOptions.matchTicketTTLSeconds))
+            {
+                std::cerr << "[ERROR] WINTERS_MATCH_TICKET_TTL_SECONDS expects an integer from 1 to "
+                    << kMaxMatchTicketTTLSeconds << '\n';
+                return false;
+            }
+        }
 
         bool_t bSawNetwork = false;
         bool_t bSawJobMode = false;
@@ -230,10 +342,19 @@ namespace
         }
 #endif
         if (UsesUdp(outOptions.networkMode) &&
-            !outOptions.bUdpDevAllowEmptyTicket)
+            !outOptions.bUdpDevAllowEmptyTicket &&
+            outOptions.matchTicketSecret.size() < 32u)
         {
             std::cerr << "[ERROR] UDP startup requires a ticket validator; "
-                "only --udp-dev-allow-empty-ticket is wired in Debug builds\n";
+                "set WINTERS_MATCH_TICKET_SECRET to at least 32 bytes or use "
+                "--udp-dev-allow-empty-ticket in Debug\n";
+            return false;
+        }
+        if (UsesUdp(outOptions.networkMode) &&
+            !outOptions.bUdpDevAllowEmptyTicket &&
+            outOptions.gameSessionID.empty())
+        {
+            std::cerr << "[ERROR] Authenticated UDP startup requires WINTERS_GAME_SESSION_ID\n";
             return false;
         }
         return true;
@@ -499,6 +620,275 @@ namespace
         return true;
     }
 
+    bool_t DecodeBase64Url(
+        std::string_view encoded,
+        std::vector<u8_t>& outBytes)
+    {
+        if (encoded.empty() || encoded.size() % 4u == 1u)
+            return false;
+
+        outBytes.clear();
+        outBytes.reserve((encoded.size() * 3u) / 4u);
+        u32_t bits = 0u;
+        u32_t bitCount = 0u;
+        for (const char ch : encoded)
+        {
+            u32_t value = 0u;
+            if (ch >= 'A' && ch <= 'Z')
+                value = static_cast<u32_t>(ch - 'A');
+            else if (ch >= 'a' && ch <= 'z')
+                value = static_cast<u32_t>(ch - 'a' + 26);
+            else if (ch >= '0' && ch <= '9')
+                value = static_cast<u32_t>(ch - '0' + 52);
+            else if (ch == '-')
+                value = 62u;
+            else if (ch == '_')
+                value = 63u;
+            else
+                return false;
+
+            bits = (bits << 6u) | value;
+            bitCount += 6u;
+            if (bitCount >= 8u)
+            {
+                bitCount -= 8u;
+                outBytes.push_back(static_cast<u8_t>(bits >> bitCount));
+                bits &= bitCount == 0u ? 0u : (1u << bitCount) - 1u;
+            }
+        }
+
+        return bitCount == 0u || bits == 0u;
+    }
+
+    bool_t ComputeHmacSha256(
+        std::string_view secret,
+        std::string_view message,
+        std::array<u8_t, 32u>& outDigest)
+    {
+        BCRYPT_ALG_HANDLE algorithm = nullptr;
+        BCRYPT_HASH_HANDLE hash = nullptr;
+        DWORD objectLength = 0u;
+        DWORD hashLength = 0u;
+        DWORD written = 0u;
+
+        NTSTATUS status = BCryptOpenAlgorithmProvider(
+            &algorithm,
+            BCRYPT_SHA256_ALGORITHM,
+            nullptr,
+            BCRYPT_ALG_HANDLE_HMAC_FLAG);
+        if (status < 0)
+            return false;
+
+        status = BCryptGetProperty(
+            algorithm,
+            BCRYPT_OBJECT_LENGTH,
+            reinterpret_cast<PUCHAR>(&objectLength),
+            sizeof(objectLength),
+            &written,
+            0u);
+        if (status >= 0)
+        {
+            status = BCryptGetProperty(
+                algorithm,
+                BCRYPT_HASH_LENGTH,
+                reinterpret_cast<PUCHAR>(&hashLength),
+                sizeof(hashLength),
+                &written,
+                0u);
+        }
+
+        std::vector<u8_t> object;
+        if (status >= 0 && hashLength == outDigest.size())
+        {
+            object.resize(objectLength);
+            status = BCryptCreateHash(
+                algorithm,
+                &hash,
+                object.data(),
+                static_cast<ULONG>(object.size()),
+                const_cast<PUCHAR>(reinterpret_cast<const UCHAR*>(secret.data())),
+                static_cast<ULONG>(secret.size()),
+                0u);
+        }
+        else if (status >= 0)
+        {
+            status = static_cast<NTSTATUS>(-1);
+        }
+
+        if (status >= 0)
+        {
+            status = BCryptHashData(
+                hash,
+                const_cast<PUCHAR>(reinterpret_cast<const UCHAR*>(message.data())),
+                static_cast<ULONG>(message.size()),
+                0u);
+        }
+        if (status >= 0)
+        {
+            status = BCryptFinishHash(
+                hash,
+                outDigest.data(),
+                static_cast<ULONG>(outDigest.size()),
+                0u);
+        }
+
+        if (hash != nullptr)
+            BCryptDestroyHash(hash);
+        BCryptCloseAlgorithmProvider(algorithm, 0u);
+        return status >= 0;
+    }
+
+    bool_t ConstantTimeEquals(
+        std::span<const u8_t> lhs,
+        std::span<const u8_t> rhs)
+    {
+        if (lhs.size() != rhs.size())
+            return false;
+
+        u8_t difference = 0u;
+        for (size_t i = 0u; i < lhs.size(); ++i)
+            difference |= lhs[i] ^ rhs[i];
+        return difference == 0u;
+    }
+
+    bool_t IsCanonicalUuid(std::string_view value)
+    {
+        if (value.size() != 36u)
+            return false;
+        for (size_t i = 0u; i < value.size(); ++i)
+        {
+            if (i == 8u || i == 13u || i == 18u || i == 23u)
+            {
+                if (value[i] != '-')
+                    return false;
+                continue;
+            }
+            if (!((value[i] >= '0' && value[i] <= '9') ||
+                (value[i] >= 'a' && value[i] <= 'f')))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool_t VerifyMatchTicket(
+        std::span<const u8_t> ticketBytes,
+        std::string_view secret,
+        std::string_view expectedGameSessionID,
+        u64_t maximumTTLSeconds,
+        UdpAuthenticatedIdentity& outIdentity)
+    {
+        outIdentity = {};
+		if (ticketBytes.empty() || ticketBytes.size() > kUdpMaxTicketBytes ||
+            secret.size() < 32u || expectedGameSessionID.empty())
+        {
+            return false;
+        }
+
+        const std::string ticket(
+            reinterpret_cast<const char*>(ticketBytes.data()),
+            ticketBytes.size());
+        const size_t firstDot = ticket.find('.');
+        const size_t secondDot = firstDot == std::string::npos
+            ? std::string::npos
+            : ticket.find('.', firstDot + 1u);
+        if (firstDot != 2u || ticket.substr(0u, firstDot) != "v1" ||
+            secondDot == std::string::npos ||
+            ticket.find('.', secondDot + 1u) != std::string::npos)
+        {
+            return false;
+        }
+
+        const std::string_view unsignedTicket(ticket.data(), secondDot);
+        const std::string_view encodedPayload(
+            ticket.data() + firstDot + 1u,
+            secondDot - firstDot - 1u);
+        const std::string_view encodedSignature(
+            ticket.data() + secondDot + 1u,
+            ticket.size() - secondDot - 1u);
+
+        std::vector<u8_t> signature;
+        std::array<u8_t, 32u> expectedSignature{};
+        if (!DecodeBase64Url(encodedSignature, signature) ||
+            signature.size() != expectedSignature.size() ||
+            !ComputeHmacSha256(secret, unsignedTicket, expectedSignature) ||
+            !ConstantTimeEquals(signature, expectedSignature))
+        {
+            return false;
+        }
+
+        std::vector<u8_t> payload;
+        if (!DecodeBase64Url(encodedPayload, payload) || payload.empty())
+            return false;
+
+        try
+        {
+            const nlohmann::json document = nlohmann::json::parse(
+                payload.begin(),
+                payload.end(),
+                nullptr,
+                false);
+            if (document.is_discarded() || !document.is_object() ||
+                !document.contains("m") || !document["m"].is_string() ||
+                !document.contains("u") || !document["u"].is_string() ||
+                !document.contains("g") || !document["g"].is_string() ||
+				!document.contains("n") || !document["n"].is_number_integer() ||
+                !document.contains("e") || !document["e"].is_number_integer())
+            {
+                return false;
+            }
+
+            const std::string matchID = document["m"].get<std::string>();
+            const std::string userID = document["u"].get<std::string>();
+            const std::string gameSessionID = document["g"].get<std::string>();
+			const i64_t gameSessionGeneration = document["n"].get<i64_t>();
+            const i64_t expiresAt = document["e"].get<i64_t>();
+            const i64_t now = static_cast<i64_t>(
+                std::chrono::duration_cast<std::chrono::seconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count());
+            if (!IsCanonicalUuid(matchID) || !IsCanonicalUuid(userID) ||
+                gameSessionID != expectedGameSessionID || expiresAt <= now ||
+				gameSessionGeneration <= 0 ||
+                expiresAt > now + static_cast<i64_t>(maximumTTLSeconds) + 1)
+            {
+                return false;
+            }
+
+            outIdentity.matchID = matchID;
+            outIdentity.userID = userID;
+            outIdentity.gameSessionID = gameSessionID;
+			outIdentity.gameSessionGeneration =
+				static_cast<u64_t>(gameSessionGeneration);
+            outIdentity.expiresAtUnix = static_cast<u64_t>(expiresAt);
+            outIdentity.bAuthenticated = true;
+            return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
+
+    CUdpIocpCore::TicketValidator CreateMatchTicketValidator(
+        const ServerRuntimeOptions& options)
+    {
+        return [
+            secret = options.matchTicketSecret,
+            gameSessionID = options.gameSessionID,
+            maximumTTLSeconds = options.matchTicketTTLSeconds](
+                std::span<const u8_t> ticket,
+                UdpAuthenticatedIdentity& outIdentity)
+        {
+            return VerifyMatchTicket(
+                ticket,
+                secret,
+                gameSessionID,
+                maximumTTLSeconds,
+                outIdentity);
+        };
+    }
+
     u64_t ParseSha256Prefix(const std::string& value)
     {
         u64_t prefix = 0u;
@@ -604,6 +994,14 @@ int main(int argc, char** argv)
     if (!ParseRuntimeOptions(argc, argv, runtimeOptions))
         return 5;
 
+    ScopedWin32Handle authenticatedUdpInstanceGuard;
+    if (!AcquireAuthenticatedUdpInstanceGuard(
+        runtimeOptions,
+        authenticatedUdpInstanceGuard))
+    {
+        return 9;
+    }
+
     const u32_t smokeSeconds = ParseSmokeSeconds(argc, argv);
     std::shared_ptr<const ChampionAIShadowPolicyArtifactV1> shadowPolicy;
     if (!LoadChampionAIShadowPolicyOptions(argc, argv, shadowPolicy))
@@ -648,13 +1046,30 @@ int main(int argc, char** argv)
     {
         udpCore = std::make_unique<CUdpIocpCore>();
 #if defined(_DEBUG)
-        udpCore->SetTicketValidator(
-            [](std::span<const u8_t> ticket)
+        if (runtimeOptions.bUdpDevAllowEmptyTicket)
+        {
+            udpCore->SetTicketValidator(
+            [](std::span<const u8_t> ticket, UdpAuthenticatedIdentity& identity)
             {
-                return ticket.empty();
+                if (!ticket.empty())
+                    return false;
+                identity.matchID = "local-debug";
+                identity.userID = "local-debug";
+                identity.gameSessionID = "local-game-1";
+				identity.gameSessionGeneration = 1u;
+                identity.bAuthenticated = true;
+                return true;
             });
-        std::cout << "[Server] UDP empty-ticket development authentication enabled\n";
+            std::cout << "[Server] UDP empty-ticket development authentication enabled\n";
+        }
+        else
 #endif
+        {
+            udpCore->SetTicketValidator(
+                CreateMatchTicketValidator(runtimeOptions));
+            std::cout << "[Server] UDP signed match-ticket authentication enabled"
+                << " gameSession=" << runtimeOptions.gameSessionID << std::endl;
+        }
     }
 
     g_pRoom = room.get();
@@ -670,6 +1085,28 @@ int main(int argc, char** argv)
         WSACleanup();
         return 7;
     }
+
+    CReplayUploadQueue& replayUploadQueue = CReplayUploadQueue::Instance();
+    if (!replayUploadQueue.StartFromEnvironment())
+    {
+        std::cerr << "[ERROR] Replay upload environment is invalid\n";
+        sessionHub.BeginShutdown();
+        sessionHub.Detach();
+        g_pRoom = nullptr;
+        CServerEntry::Shutdown();
+        udpCore.reset();
+        tcpCore.reset();
+        room.reset();
+        WSACleanup();
+        return 8;
+    }
+    if (replayUploadQueue.IsEnabled())
+        std::cout << "[Server] Replay upload queue enabled" << std::endl;
+    else
+        std::cout << "[Server] Replay upload queue disabled; local artifacts only" << std::endl;
+
+    room->SetCompletedGameSessionGenerationFloor(
+        replayUploadQueue.GetGameSessionGenerationFloor());
 
     room->Start();
 
@@ -700,6 +1137,7 @@ int main(int argc, char** argv)
         if (udpCore)
             udpCore->Shutdown();
         room->Stop();
+        replayUploadQueue.Shutdown(false);
         const bool_t bDetached = sessionHub.Detach();
         if (!bDetached)
             std::cerr << "[ERROR] ServerSessionHub detach failed\n";
@@ -723,7 +1161,7 @@ int main(int argc, char** argv)
         << NetworkModeName(runtimeOptions.networkMode)
         << " jobMode=" << JobModeName(runtimeOptions.jobMode)
         << " jobWorkers=" << runtimeOptions.jobWorkerCount
-        << " endpoint=0.0.0.0:9000\n";
+        << " endpoint=0.0.0.0:9000" << std::endl;
     if (udpCore)
     {
         std::cout << "[Server] UDP is a development vertical slice: "

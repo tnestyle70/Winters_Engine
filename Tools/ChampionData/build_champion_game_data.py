@@ -10,6 +10,8 @@ from pathlib import Path
 
 SKILL_SLOT_COUNT = 5
 SKILL_STAGE_MAX = 2
+SKILL_RANK_VALUE_MAX = 5
+RESOURCE_KINDS = {"Mana", "Energy", "None", "Flow"}
 STAT_FIELDS = {
     "baseHp": 600.0,
     "hpPerLevel": 100.0,
@@ -26,6 +28,7 @@ STAT_FIELDS = {
     "baseAttackSpeed": 0.60,
     "attackSpeedRatio": 0.60,
     "attackSpeedPerLevel": 0.025,
+    "basicAttackWindupSec": 0.0,
     "baseAttackRange": 5.5,
     "baseMoveSpeed": 5.0,
     "navArriveRadius": 0.15,
@@ -35,7 +38,13 @@ STAT_FIELDS = {
 
 STAGE_FIELDS = {
     "lockDurationSec": 0.6,
+    "commandLockSec": 0.0,
 }
+
+TARGET_MODES = {"Self", "UnitTarget", "GroundTarget", "Direction"}
+INPUT_ACTIVATIONS = {"Press", "PressRecast", "PressRelease"}
+MOVE_POLICIES = {"Allow", "QueueUntilUnlock", "StationaryChannel", "ForcedMotion"}
+FACING_MODES = {"None", "TowardsTarget", "TowardsCommandDirection"}
 
 
 def fail(message: str) -> None:
@@ -63,6 +72,12 @@ def as_enum_name(value: object, path: str) -> str:
     return value
 
 
+def as_bool(value: object, path: str) -> bool:
+    if not isinstance(value, bool):
+        fail(f"{path} must be a boolean")
+    return value
+
+
 def cpp_float(value: float) -> str:
     if value == 0.0:
         return "0.f"
@@ -79,10 +94,84 @@ def enum_value(enum_type: str, raw: str) -> str:
 def normalize_stage(stage: dict, path: str) -> dict:
     if not isinstance(stage, dict):
         fail(f"{path} must be an object")
-    return {
+    result = {
         key: as_float(stage.get(key, default), f"{path}.{key}")
         for key, default in STAGE_FIELDS.items()
     }
+    result["targetMode"] = as_enum_name(stage.get("targetMode"), f"{path}.targetMode")
+    if result["targetMode"] not in TARGET_MODES:
+        fail(f"{path}.targetMode must be one of {sorted(TARGET_MODES)}")
+    default_facing = {
+        "Self": "None",
+        "UnitTarget": "TowardsTarget",
+        "GroundTarget": "TowardsCommandDirection",
+        "Direction": "TowardsCommandDirection",
+    }[result["targetMode"]]
+    result["facingMode"] = as_enum_name(
+        stage.get("facingMode", default_facing), f"{path}.facingMode")
+    if result["facingMode"] not in FACING_MODES:
+        fail(f"{path}.facingMode must be one of {sorted(FACING_MODES)}")
+    result["movePolicy"] = as_enum_name(stage.get("movePolicy"), f"{path}.movePolicy")
+    if result["movePolicy"] not in MOVE_POLICIES:
+        fail(f"{path}.movePolicy must be one of {sorted(MOVE_POLICIES)}")
+    result["createsActionState"] = as_bool(
+        stage.get("createsActionState", True), f"{path}.createsActionState")
+    result["presentationLoopWhileActive"] = as_bool(
+        stage.get("presentationLoopWhileActive", False),
+        f"{path}.presentationLoopWhileActive")
+    return result
+
+
+def normalize_charge(value: object, path: str) -> dict | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        fail(f"{path} must be an object")
+    max_hold_sec = as_float(value.get("maxHoldSec"), f"{path}.maxHoldSec")
+    if max_hold_sec <= 0.0:
+        fail(f"{path}.maxHoldSec must be positive")
+
+    def pair(field: str, default: tuple[float, float]) -> list[float]:
+        source = value.get(field, list(default))
+        if not isinstance(source, list) or len(source) != 2:
+            fail(f"{path}.{field} must contain exactly two numbers")
+        values = [as_float(item, f"{path}.{field}[{index}]") for index, item in enumerate(source)]
+        if values[0] < 0.0 or values[1] < values[0]:
+            fail(f"{path}.{field} must be non-negative and monotonic")
+        return values
+
+    return {
+        "maxHoldSec": max_hold_sec,
+        "autoRelease": as_bool(value.get("autoRelease", True), f"{path}.autoRelease"),
+        "rangeScale": pair("rangeScale", (1.0, 1.0)),
+        "damageScale": pair("damageScale", (1.0, 1.0)),
+        "stunSeconds": pair("stunSeconds", (0.0, 0.0)),
+    }
+
+
+def normalize_rank_values(
+        skill: dict,
+        field: str,
+        slot: int,
+        path: str,
+        default: float) -> list[float]:
+    expected_count = 1 if slot == 0 else (3 if slot == 4 else 5)
+    array_field = f"{field}ByRank"
+    if array_field in skill:
+        source = skill[array_field]
+        if not isinstance(source, list) or len(source) != expected_count:
+            fail(f"{path}.{array_field} must contain {expected_count} values")
+        values = [
+            as_float(value, f"{path}.{array_field}[{index}]")
+            for index, value in enumerate(source)
+        ]
+    else:
+        value = as_float(skill.get(field, default), f"{path}.{field}")
+        values = [value] * expected_count
+
+    if any(value < 0.0 for value in values):
+        fail(f"{path}.{array_field} values must be non-negative")
+    return values
 
 
 def normalize_skill(skill: dict, champion: str, index: int) -> dict:
@@ -101,24 +190,51 @@ def normalize_skill(skill: dict, champion: str, index: int) -> dict:
     raw_stages = skill.get("stages", [])
     if not isinstance(raw_stages, list):
         fail(f"{path}.stages must be an array")
+    if len(raw_stages) != stage_count:
+        fail(f"{path}.stages must contain exactly stageCount ({stage_count}) entries")
 
-    stages = []
-    for stage_index in range(SKILL_STAGE_MAX):
-        source = raw_stages[stage_index] if stage_index < len(raw_stages) else {}
-        stages.append(normalize_stage(source, f"{path}.stages[{stage_index}]"))
+    target_mode = as_enum_name(
+        skill.get("targetMode", "Self"), f"{path}.targetMode")
+    if target_mode not in TARGET_MODES:
+        fail(f"{path}.targetMode must be one of {sorted(TARGET_MODES)}")
+    input_activation = as_enum_name(
+        skill.get("activationMode", "Press"), f"{path}.activationMode")
+    if input_activation not in INPUT_ACTIVATIONS:
+        fail(f"{path}.activationMode must be one of {sorted(INPUT_ACTIVATIONS)}")
+    if stage_count > 1 and "activationMode" not in skill:
+        fail(f"{path}.activationMode is required for multi-stage skills")
+    if stage_count == 1 and input_activation != "Press":
+        fail(f"{path}.activationMode must be Press for single-stage skills")
+
+    stages = [
+        normalize_stage(source, f"{path}.stages[{stage_index}]")
+        for stage_index, source in enumerate(raw_stages)
+    ]
+    if stages[0]["targetMode"] != target_mode:
+        fail(
+            f"{path}.targetMode must match {path}.stages[0].targetMode")
+
+    cooldown_by_rank = normalize_rank_values(
+        skill, "cooldownSec", slot, path, 0.0)
+    mana_by_rank = normalize_rank_values(
+        skill, "manaCost", slot, path, 0.0)
 
     return {
         "slot": slot,
-        "targetMode": as_enum_name(skill.get("targetMode", "Self"), f"{path}.targetMode"),
+        "activationMode": input_activation,
+        "targetMode": target_mode,
         "stageCount": stage_count,
         "stageWindowSec": as_float(skill.get("stageWindowSec", 0.0), f"{path}.stageWindowSec"),
-        "cooldownSec": as_float(skill.get("cooldownSec", 0.0), f"{path}.cooldownSec"),
+        "cooldownSec": cooldown_by_rank[0],
+        "cooldownSecByRank": cooldown_by_rank,
         "rangeMax": as_float(skill.get("rangeMax", 0.0), f"{path}.rangeMax"),
-        "manaCost": as_float(skill.get("manaCost", 0.0), f"{path}.manaCost"),
+        "manaCost": mana_by_rank[0],
+        "manaCostByRank": mana_by_rank,
         "skillId": as_int(skill.get("skillId", 0), f"{path}.skillId"),
         "scalingTableId": as_int(skill.get("scalingTableId", 0), f"{path}.scalingTableId"),
         "gameplayPolicyId": as_int(skill.get("gameplayPolicyId", 0), f"{path}.gameplayPolicyId"),
         "visualCueId": as_int(skill.get("visualCueId", 0), f"{path}.visualCueId"),
+        "charge": normalize_charge(skill.get("charge"), f"{path}.charge"),
         "stages": stages,
     }
 
@@ -170,9 +286,18 @@ def normalize_champion(champion: dict, index: int) -> dict:
     stats_source = champion.get("stats", {})
     if not isinstance(stats_source, dict):
         fail(f"champions[{name}].stats must be an object")
+    resource_kind = stats_source.get("resourceKind")
+    if resource_kind not in RESOURCE_KINDS:
+        fail(f"champions[{name}].stats.resourceKind must be one of {sorted(RESOURCE_KINDS)}")
     stats = {
-        key: as_float(stats_source.get(key, default), f"champions[{name}].stats.{key}")
-        for key, default in STAT_FIELDS.items()
+        "resourceKind": resource_kind,
+        **{
+            key: as_float(stats_source.get(key, default), f"champions[{name}].stats.{key}")
+            for key, default in STAT_FIELDS.items()
+        },
+        "resourceRegenPerSec": as_float(
+            stats_source.get("resourceRegenPerSec"),
+            f"champions[{name}].stats.resourceRegenPerSec"),
     }
 
     raw_skills = champion.get("skills", [])
@@ -213,7 +338,7 @@ def normalize_root(root: dict) -> dict:
         seen.add(name)
 
     return {
-        "schemaVersion": as_int(root.get("schemaVersion", 1), "schemaVersion"),
+        "schemaVersion": as_int(root.get("schemaVersion", 2), "schemaVersion"),
         "champions": normalized_champions,
     }
 
@@ -245,9 +370,15 @@ def append_skill(lines: list[str], skill: dict) -> None:
     lines.append(f"        auto& skill{slot} = data.skills[{slot}];")
     lines.append(f"        skill{slot}.bValid = true;")
     lines.append(f"        skill{slot}.slot = {slot}u;")
+    lines.append(f"        skill{slot}.inputActivation = {enum_value('eSkillInputActivation', skill['activationMode'])};")
     lines.append(f"        skill{slot}.targetMode = {enum_value('eTargetMode', skill['targetMode'])};")
     lines.append(f"        skill{slot}.stageCount = {skill['stageCount']}u;")
     lines.append(f"        skill{slot}.stageWindowSec = {cpp_float(skill['stageWindowSec'])};")
+    lines.append(f"        skill{slot}.rankCount = {len(skill['cooldownSecByRank'])}u;")
+    for rank, value in enumerate(skill["cooldownSecByRank"]):
+        lines.append(f"        skill{slot}.cooldownSecByRank[{rank}] = {cpp_float(value)};")
+    for rank, value in enumerate(skill["manaCostByRank"]):
+        lines.append(f"        skill{slot}.manaCostByRank[{rank}] = {cpp_float(value)};")
     lines.append(f"        skill{slot}.cooldownSec = {cpp_float(skill['cooldownSec'])};")
     lines.append(f"        skill{slot}.rangeMax = {cpp_float(skill['rangeMax'])};")
     lines.append(f"        skill{slot}.manaCost = {cpp_float(skill['manaCost'])};")
@@ -256,9 +387,27 @@ def append_skill(lines: list[str], skill: dict) -> None:
     lines.append(f"        skill{slot}.gameplayPolicyId = {skill['gameplayPolicyId']}u;")
     lines.append(f"        skill{slot}.visualCueId = {skill['visualCueId']}u;")
 
+    charge = skill["charge"]
+    if charge is not None:
+        lines.append(f"        skill{slot}.charge.bEnabled = true;")
+        lines.append(f"        skill{slot}.charge.bAutoRelease = {'true' if charge['autoRelease'] else 'false'};")
+        lines.append(f"        skill{slot}.charge.maxHoldSec = {cpp_float(charge['maxHoldSec'])};")
+        lines.append(f"        skill{slot}.charge.minRangeScale = {cpp_float(charge['rangeScale'][0])};")
+        lines.append(f"        skill{slot}.charge.maxRangeScale = {cpp_float(charge['rangeScale'][1])};")
+        lines.append(f"        skill{slot}.charge.minDamageScale = {cpp_float(charge['damageScale'][0])};")
+        lines.append(f"        skill{slot}.charge.maxDamageScale = {cpp_float(charge['damageScale'][1])};")
+        lines.append(f"        skill{slot}.charge.minStunSec = {cpp_float(charge['stunSeconds'][0])};")
+        lines.append(f"        skill{slot}.charge.maxStunSec = {cpp_float(charge['stunSeconds'][1])};")
+
     for stage_index, stage in enumerate(skill["stages"]):
         lines.append(f"        auto& stage{slot}_{stage_index} = skill{slot}.stages[{stage_index}];")
+        lines.append(f"        stage{slot}_{stage_index}.targetMode = {enum_value('eTargetMode', stage['targetMode'])};")
+        lines.append(f"        stage{slot}_{stage_index}.facingMode = {enum_value('eSkillFacingMode', stage['facingMode'])};")
         lines.append(f"        stage{slot}_{stage_index}.lockDurationSec = {cpp_float(stage['lockDurationSec'])};")
+        lines.append(f"        stage{slot}_{stage_index}.commandLockSec = {cpp_float(stage['commandLockSec'])};")
+        lines.append(f"        stage{slot}_{stage_index}.movePolicy = {enum_value('eSkillActionMovePolicy', stage['movePolicy'])};")
+        lines.append(f"        stage{slot}_{stage_index}.bCreatesActionState = {'true' if stage['createsActionState'] else 'false'};")
+        lines.append(f"        stage{slot}_{stage_index}.bPresentationLoopWhileActive = {'true' if stage['presentationLoopWhileActive'] else 'false'};")
 
 
 def append_passive_dash(lines: list[str], passive_dash: dict | None) -> None:
@@ -291,6 +440,10 @@ def emit_cpp(data: dict, build_hash: int) -> str:
         lines.append("        data.authoringHash = kGeneratedChampionGameDataBuildHash;")
         lines.append(f"        data.stats.championId = {enum_value('eChampion', name)};")
         for key, value in champion["stats"].items():
+            if key == "resourceKind":
+                lines.append(
+                    f"        data.stats.resourceKind = eChampionResourceKind::{value};")
+                continue
             lines.append(f"        data.stats.{key} = {cpp_float(value)};")
         for skill in champion["skills"]:
             append_skill(lines, skill)

@@ -12,6 +12,7 @@ struct JungleAIComponent
 	bool_t bAggro = false;
 	bool_t bHasAnchor = false;
 	bool_t bReturning = false;
+	bool_t bStationary = false;
 	f32_t aggroRange = 0.f;
 	f32_t leashRange = 0.f;
 	f32_t anchorX = 0.f;

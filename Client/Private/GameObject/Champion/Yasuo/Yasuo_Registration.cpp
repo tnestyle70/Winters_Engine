@@ -27,15 +27,8 @@ namespace
                 SkillDef s{};
                 s.champ = eChampion::YASUO;
                 s.slot = 0;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = 0.6f;
-                s.rangeMax = 2.5f;
-                s.manaCost = 0.f;
                 s.animKey = "attack1";
-                s.lockDurationSec = 0.5f;
-                s.visualPlaySpeed = 0.85f;
                 s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
                 CSkillRegistry::Instance().Add(eChampion::YASUO, 0, s);
             }
 
@@ -43,15 +36,8 @@ namespace
                 SkillDef s{};
                 s.champ = eChampion::YASUO;
                 s.slot = 1;
-                s.targetMode = eTargetMode::Conditional;
-                s.cooldownSec = 0.6f;
-                s.rangeMax = 5.f;
-                s.manaCost = 0.f;
                 s.animKey = "spell1";
-                s.lockDurationSec = 0.5f;
-                s.visualPlaySpeed = 0.85f;
                 s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
                 s.keySwapHookId = kYas_Q_KeySwap;
                 s.onCastAcceptedHookId = kYas_Q_OnCastAccepted;
                 CSkillRegistry::Instance().Add(eChampion::YASUO, 1, s);
@@ -61,14 +47,8 @@ namespace
                 SkillDef s{};
                 s.champ = eChampion::YASUO;
                 s.slot = 2;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = 0.6f;
-                s.rangeMax = 4.f;
-                s.manaCost = 0.f;
                 s.animKey = "spell2";
-                s.lockDurationSec = 0.25f;
                 s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
                 s.onCastAcceptedHookId = kYas_W_OnCastAccepted;
                 CSkillRegistry::Instance().Add(eChampion::YASUO, 2, s);
             }
@@ -77,14 +57,8 @@ namespace
                 SkillDef s{};
                 s.champ = eChampion::YASUO;
                 s.slot = 3;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = 0.6f;
-                s.rangeMax = 4.75f;
-                s.manaCost = 0.f;
                 s.animKey = "spell3";
-                s.lockDurationSec = 0.4f;
                 s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
                 s.onCastAcceptedHookId = kYas_E_OnCastAccepted;
                 CSkillRegistry::Instance().Add(eChampion::YASUO, 3, s);
             }
@@ -93,14 +67,8 @@ namespace
                 SkillDef s{};
                 s.champ = eChampion::YASUO;
                 s.slot = 4;
-                s.targetMode = eTargetMode::Self;
-                s.cooldownSec = 0.6f;
-                s.rangeMax = 14.f;
-                s.manaCost = 0.f;
                 s.animKey = "spell4";
-                s.lockDurationSec = 0.6f;
                 s.bOneShot = true;
-                s.rotate = eRotateMode::None;
                 s.onCastAcceptedHookId = kYas_R_OnCastAccepted;
                 CSkillRegistry::Instance().Add(eChampion::YASUO, 4, s);
             }

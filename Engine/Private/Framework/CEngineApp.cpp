@@ -5,11 +5,11 @@
 #include "Scene/Scene_Manager.h"
 #include "WintersPaths.h"
 #include "ProfilerAPI.h"
+#include "RHI/RHIBackendRegistry.h"
 #include "RHI/DX11/CDX11Device.h"
 #include "RHI/DX11/DX11Shader.h"
 #include "RHI/DX11/DX11Pipeline.h"
 #include "RHI/DX11/BlendStateCache.h"
-#include "RHI/DX12/DX12Device.h"
 
 #pragma push_macro("new")
 #undef new
@@ -17,6 +17,8 @@
 #pragma pop_macro("new")
 
 #include <chrono>
+#include <cstring>
+#include <string>
 #include <thread>
 #include <timeapi.h>
 
@@ -74,6 +76,420 @@ namespace
         return config.vsync && config.targetFPS == 0u;
     }
 
+    const char* EngineRHIBackendName(eEngineRHIBackend backend)
+    {
+        switch (backend)
+        {
+        case eEngineRHIBackend::Auto: return "Auto";
+        case eEngineRHIBackend::DX12: return "DX12";
+        case eEngineRHIBackend::DX11: return "DX11";
+        case eEngineRHIBackend::Null: return "Null";
+        case eEngineRHIBackend::Vulkan: return "Vulkan";
+        case eEngineRHIBackend::Metal: return "Metal";
+        case eEngineRHIBackend::Xbox: return "Xbox";
+        case eEngineRHIBackend::PS5: return "PS5";
+        default: return "Unknown";
+        }
+    }
+
+    const char* RHIBackendName(eRHIBackend backend)
+    {
+        switch (backend)
+        {
+        case eRHIBackend::DX11: return "DX11";
+        case eRHIBackend::DX12: return "DX12";
+        case eRHIBackend::Vulkan: return "Vulkan";
+        case eRHIBackend::Metal: return "Metal";
+        case eRHIBackend::Xbox: return "Xbox";
+        case eRHIBackend::PS5: return "PS5";
+        default: return "Unknown";
+        }
+    }
+
+    const char* RHIFeatureTierName(eRHIFeatureTier tier)
+    {
+        switch (tier)
+        {
+        case eRHIFeatureTier::LegacyDX11: return "LegacyDX11";
+        case eRHIFeatureTier::ExplicitDesktop: return "ExplicitDesktop";
+        case eRHIFeatureTier::MobileTiled: return "MobileTiled";
+        case eRHIFeatureTier::Console: return "Console";
+        default: return "Unknown";
+        }
+    }
+
+    std::wstring ReadProcessEnvironmentValue(const wchar_t* pName)
+    {
+        if (!pName)
+            return {};
+
+        const DWORD required = GetEnvironmentVariableW(pName, nullptr, 0);
+        if (required == 0)
+            return {};
+
+        std::wstring value(required, L'\0');
+        const DWORD written = GetEnvironmentVariableW(
+            pName,
+            value.data(),
+            required);
+        if (written == 0 || written >= required)
+            return {};
+
+        value.resize(written);
+        return value;
+    }
+
+    struct RHIBufferTransitionProbeResult
+    {
+        const char* pStatus = "not_run";
+        u64_t emittedBarrierCount = 0;
+        const char* pValidation = "not_run";
+    };
+
+    RHIBufferTransitionProbeResult RunRHIBufferTransitionProbe(IRHIDevice& device)
+    {
+        RHIBufferTransitionProbeResult result{};
+        RHIBufferDesc bufferDesc{};
+        bufferDesc.sizeBytes = 256;
+        bufferDesc.usage = eRHIBufferUsage::Vertex;
+        bufferDesc.memoryUsage = eRHIMemoryUsage::Default;
+        bufferDesc.debugName = "RHI Buffer Transition Probe";
+
+        const RHIBufferHandle buffer = device.CreateBuffer(bufferDesc);
+        if (!buffer.IsValid())
+        {
+            result.pStatus = "create_buffer_failed";
+            return result;
+        }
+
+        IRHICommandList* pCommandList = device.GetFrameCommandList();
+        if (!pCommandList)
+        {
+            result.pStatus = "command_list_unavailable";
+            return result;
+        }
+
+        pCommandList->Begin();
+        device.BeginFrame(0.0f, 0.0f, 0.0f, 1.0f);
+        const bool_t toCopyDest = pCommandList->TransitionResource(
+            buffer,
+            eRHIResourceState::CopyDest);
+        const bool_t toVertex = pCommandList->TransitionResource(
+            buffer,
+            eRHIResourceState::VertexConstant);
+        pCommandList->End();
+        device.EndFrame();
+        if (!device.WaitIdle())
+        {
+            result.pStatus = "idle_wait_failed";
+            return result;
+        }
+
+        const RHICommandListDiagnostics diagnostics =
+            pCommandList->GetDiagnostics();
+        result.emittedBarrierCount =
+            diagnostics.emittedResourceBarrierCount;
+
+        const RHICapabilities capabilities = device.GetCapabilities();
+        if (capabilities.apiRequiresExplicitResourceStates)
+        {
+            result.pValidation = diagnostics.validationAvailable
+                ? (diagnostics.validationErrorCount == 0 ? "pass" : "fail")
+                : "unavailable";
+
+            if (result.emittedBarrierCount != 2)
+                result.pStatus = "barrier_count_mismatch";
+            else if (diagnostics.validationErrorCount != 0)
+                result.pStatus = "validation_failed";
+#if defined(_DEBUG)
+            else if (!diagnostics.validationAvailable)
+                result.pStatus = "validation_unavailable";
+#endif
+            else
+                result.pStatus = toCopyDest && toVertex
+                    ? "pass"
+                    : "transition_failed";
+        }
+        else
+        {
+            result.pValidation = "not_applicable";
+            result.pStatus = toCopyDest && toVertex &&
+                result.emittedBarrierCount == 0
+                ? "pass"
+                : "semantic_noop_mismatch";
+        }
+
+        return result;
+    }
+
+    struct RHITextureTransitionProbeResult
+    {
+        const char* pStatus = "not_run";
+        u64_t emittedBarrierCount = 0;
+        const char* pValidation = "not_run";
+    };
+
+    RHITextureTransitionProbeResult RunRHITextureTransitionProbe(IRHIDevice& device)
+    {
+        RHITextureTransitionProbeResult result{};
+        RHITextureDesc textureDesc{};
+        textureDesc.width = 2;
+        textureDesc.height = 2;
+        textureDesc.depth = 1;
+        textureDesc.mipLevels = 1;
+        textureDesc.format = eRHIFormat::R8G8B8A8_UNorm;
+        textureDesc.usageFlags =
+            static_cast<u32_t>(eRHITextureUsage::ShaderResource);
+        textureDesc.debugName = "RHI Texture Transition Probe";
+
+        constexpr u32_t kUnsupportedUsageFlags[] =
+        {
+            static_cast<u32_t>(eRHITextureUsage::RenderTarget),
+            static_cast<u32_t>(eRHITextureUsage::DepthStencil),
+            static_cast<u32_t>(eRHITextureUsage::UnorderedAccess),
+            static_cast<u32_t>(eRHITextureUsage::ShaderResource) |
+                static_cast<u32_t>(eRHITextureUsage::RenderTarget),
+        };
+        for (u32_t usageFlags : kUnsupportedUsageFlags)
+        {
+            RHITextureDesc invalidUsageDesc = textureDesc;
+            invalidUsageDesc.usageFlags = usageFlags;
+            if (device.CreateTexture(invalidUsageDesc).IsValid())
+            {
+                result.pStatus = "unsupported_usage_accepted";
+                return result;
+            }
+        }
+
+        RHITextureDesc invalidDepthDesc = textureDesc;
+        invalidDepthDesc.depth = 2;
+        if (device.CreateTexture(invalidDepthDesc).IsValid())
+        {
+            result.pStatus = "unsupported_depth_accepted";
+            return result;
+        }
+
+        const u32_t texels[4] =
+        {
+            0xFFFFFFFFu, 0xFF000000u,
+            0xFF000000u, 0xFFFFFFFFu,
+        };
+        const RHITextureHandle texture = device.CreateTexture(
+            textureDesc,
+            texels,
+            textureDesc.width * static_cast<u32_t>(sizeof(u32_t)));
+        if (!texture.IsValid())
+        {
+            result.pStatus = "create_texture_failed";
+            return result;
+        }
+
+        IRHICommandList* pCommandList = device.GetFrameCommandList();
+        if (!pCommandList)
+        {
+            result.pStatus = "command_list_unavailable";
+            return result;
+        }
+
+        pCommandList->Begin();
+        device.BeginFrame(0.0f, 0.0f, 0.0f, 1.0f);
+        constexpr eRHIResourceState kRejectedStates[] =
+        {
+            eRHIResourceState::Common,
+            eRHIResourceState::VertexConstant,
+            eRHIResourceState::IndexBuffer,
+            eRHIResourceState::RenderTarget,
+            eRHIResourceState::DepthRead,
+            eRHIResourceState::DepthWrite,
+            eRHIResourceState::UnorderedAccess,
+            eRHIResourceState::CopySource,
+            eRHIResourceState::Present,
+        };
+        bool_t rejectedStates = true;
+        for (eRHIResourceState state : kRejectedStates)
+        {
+            if (pCommandList->TransitionResource(texture, state))
+                rejectedStates = false;
+        }
+
+        const bool_t toCopyDest = pCommandList->TransitionResource(
+            texture,
+            eRHIResourceState::CopyDest);
+        const bool_t toShaderResource = pCommandList->TransitionResource(
+            texture,
+            eRHIResourceState::ShaderResource);
+        pCommandList->End();
+        device.EndFrame();
+        if (!device.WaitIdle())
+        {
+            result.pStatus = "idle_wait_failed";
+            return result;
+        }
+
+        const RHICommandListDiagnostics diagnostics =
+            pCommandList->GetDiagnostics();
+        result.emittedBarrierCount =
+            diagnostics.emittedResourceBarrierCount;
+
+        const RHICapabilities capabilities = device.GetCapabilities();
+        if (capabilities.apiRequiresExplicitResourceStates)
+        {
+            result.pValidation = diagnostics.validationAvailable
+                ? (diagnostics.validationErrorCount == 0 ? "pass" : "fail")
+                : "unavailable";
+
+            if (!rejectedStates)
+                result.pStatus = "unsupported_state_accepted";
+            else if (result.emittedBarrierCount != 2)
+                result.pStatus = "barrier_count_mismatch";
+            else if (diagnostics.validationErrorCount != 0)
+                result.pStatus = "validation_failed";
+#if defined(_DEBUG)
+            else if (!diagnostics.validationAvailable)
+                result.pStatus = "validation_unavailable";
+#endif
+            else
+                result.pStatus = toCopyDest && toShaderResource
+                    ? "pass"
+                    : "transition_failed";
+        }
+        else
+        {
+            result.pValidation = "not_applicable";
+            result.pStatus = rejectedStates &&
+                toCopyDest && toShaderResource &&
+                result.emittedBarrierCount == 0
+                ? "pass"
+                : "semantic_noop_mismatch";
+        }
+
+        return result;
+    }
+
+    bool_t WriteRHISelectionProbeReport(
+        const std::wstring& path,
+        eEngineRHIBackend requested,
+        const char* pModule,
+        const char* pSelected,
+        const char* pStatus,
+        const char* pReason,
+        bool_t bFallbackUsed,
+        const char* pFallbackReason,
+        const RHICapabilities* pCapabilities,
+        const RHIBufferTransitionProbeResult* pBufferTransitionProbe,
+        const RHITextureTransitionProbeResult* pTextureTransitionProbe)
+    {
+        if (path.empty() || !pModule || !pSelected || !pStatus ||
+            !pReason || !pFallbackReason)
+        {
+            return false;
+        }
+
+        const std::wstring sourceValue = ReadProcessEnvironmentValue(
+            L"WINTERS_INTERNAL_RHI_REQUEST_SOURCE");
+        const char* pSource = "unknown";
+        if (_wcsicmp(sourceValue.c_str(), L"command-line") == 0)
+            pSource = "command-line";
+        else if (_wcsicmp(sourceValue.c_str(), L"environment") == 0)
+            pSource = "environment";
+        else if (_wcsicmp(sourceValue.c_str(), L"default") == 0)
+            pSource = "default";
+
+        const char* pCapabilityBackend = pCapabilities
+            ? RHIBackendName(pCapabilities->backend)
+            : "None";
+        const char* pFeatureTier = pCapabilities
+            ? RHIFeatureTierName(pCapabilities->featureTier)
+            : "None";
+        const char* pCompute = pCapabilities && pCapabilities->supportsCompute ? "yes" : "no";
+        const char* pAsyncCompute =
+            pCapabilities && pCapabilities->supportsAsyncCompute ? "yes" : "no";
+        const char* pBindless = pCapabilities && pCapabilities->supportsBindless ? "yes" : "no";
+        const char* pResourceTransitions =
+            pCapabilities && pCapabilities->supportsResourceTransitions ? "yes" : "no";
+        const char* pApiRequiresExplicitStates =
+            pCapabilities && pCapabilities->apiRequiresExplicitResourceStates ? "yes" : "no";
+        const u32_t frameResourceSlots =
+            pCapabilities ? pCapabilities->frameResourceSlotCount : 0u;
+
+        const char* pBufferTransitionStatus = pBufferTransitionProbe
+            ? pBufferTransitionProbe->pStatus
+            : "not_run";
+        const u64_t bufferTransitionBarriers = pBufferTransitionProbe
+            ? pBufferTransitionProbe->emittedBarrierCount
+            : 0;
+        const char* pBufferTransitionValidation = pBufferTransitionProbe
+            ? pBufferTransitionProbe->pValidation
+            : "not_run";
+
+        const char* pTextureTransitionStatus = pTextureTransitionProbe
+            ? pTextureTransitionProbe->pStatus
+            : "not_run";
+        const u64_t textureTransitionBarriers = pTextureTransitionProbe
+            ? pTextureTransitionProbe->emittedBarrierCount
+            : 0;
+        const char* pTextureTransitionValidation = pTextureTransitionProbe
+            ? pTextureTransitionProbe->pValidation
+            : "not_run";
+
+        char report[1536]{};
+        sprintf_s(
+            report,
+            "source=%s\nrequested=%s\nmodule=%s\nselected=%s\n"
+            "status=%s\nreason=%s\nfallback=%s\nfallback_reason=%s\n"
+            "capability_backend=%s\nfeature_tier=%s\n"
+            "supports_compute=%s\nsupports_async_compute=%s\n"
+            "supports_bindless=%s\nsupports_resource_transitions=%s\n"
+            "api_requires_explicit_states=%s\nframe_resource_slots=%u\n"
+            "buffer_transition_probe=%s\nbuffer_transition_barriers=%llu\n"
+            "buffer_transition_validation=%s\n"
+            "texture_transition_probe=%s\ntexture_transition_barriers=%llu\n"
+            "texture_transition_validation=%s\n",
+            pSource,
+            EngineRHIBackendName(requested),
+            pModule,
+            pSelected,
+            pStatus,
+            pReason,
+            bFallbackUsed ? "yes" : "no",
+            pFallbackReason,
+            pCapabilityBackend,
+            pFeatureTier,
+            pCompute,
+            pAsyncCompute,
+            pBindless,
+            pResourceTransitions,
+            pApiRequiresExplicitStates,
+            frameResourceSlots,
+            pBufferTransitionStatus,
+            static_cast<unsigned long long>(bufferTransitionBarriers),
+            pBufferTransitionValidation,
+            pTextureTransitionStatus,
+            static_cast<unsigned long long>(textureTransitionBarriers),
+            pTextureTransitionValidation);
+
+        HANDLE file = CreateFileW(
+            path.c_str(),
+            GENERIC_WRITE,
+            FILE_SHARE_READ,
+            nullptr,
+            CREATE_ALWAYS,
+            FILE_ATTRIBUTE_NORMAL,
+            nullptr);
+        if (file == INVALID_HANDLE_VALUE)
+            return false;
+
+        DWORD bytesWritten = 0;
+        const BOOL written = WriteFile(
+            file,
+            report,
+            static_cast<DWORD>(std::strlen(report)),
+            &bytesWritten,
+            nullptr);
+        CloseHandle(file);
+        return written && bytesWritten == std::strlen(report);
+    }
+
     void BuildProfilerCapturePath(char* pOut, size_t sizeBytes)
     {
         CreateDirectoryW(L"Profiles", nullptr);
@@ -86,28 +502,6 @@ namespace
             st.wMilliseconds);
     }
 
-    std::unique_ptr<IRHIDevice> CreateDX11DeviceForWindow(CWin32Window& window, const EngineConfig& config)
-    {
-        DeviceDesc devDesc;
-        devDesc.hwnd       = window.GetHandle();
-        devDesc.width      = config.windowWidth;
-        devDesc.height     = config.windowHeight;
-        devDesc.vsync      = ShouldUsePresentationVSync(config);
-        devDesc.fullscreen = config.fullscreen;
-        return CDX11Device::Create(devDesc);
-    }
-
-    std::unique_ptr<IRHIDevice> CreateDX12DeviceForWindow(CWin32Window& window,
-        const EngineConfig& config)
-    {
-        DX12DeviceDesc devDesc;
-        devDesc.hwnd = window.GetHandle();
-        devDesc.width = config.windowWidth;
-        devDesc.height = config.windowHeight;
-        devDesc.vsync = ShouldUsePresentationVSync(config);
-        devDesc.fullscreen = config.fullscreen;
-        return CDX12Device::Create(devDesc);
-    }
 }
 
 CEngineApp::CEngineApp() = default;
@@ -129,6 +523,20 @@ bool CEngineApp::Initialize(IWintersApp* pGameApp, const EngineConfig& config)
     m_uTargetFPS = config.targetFPS;
     m_bVSyncRequested = config.vsync;
     m_bPresentationVSync = ShouldUsePresentationVSync(config);
+    m_uRunSeconds = config.runSeconds;
+    m_bProfileCaptureOnExit = config.profileCaptureOnExit;
+
+    const std::wstring rhiProbeReportPath = ReadProcessEnvironmentValue(
+        L"WINTERS_RHI_PROBE_PATH");
+    const bool_t bRHIProbeOnly = !rhiProbeReportPath.empty();
+
+    char requestedTrace[160]{};
+    sprintf_s(
+        requestedTrace,
+        "[CEngineApp] RHI requested=%s fallback=%s\n",
+        EngineRHIBackendName(config.rhiBackend),
+        config.allowRHIFallback ? "allowed" : "disabled");
+    OutputDebugStringA(requestedTrace);
 
     if (config.vsync && m_uTargetFPS > 0u)
     {
@@ -144,61 +552,114 @@ bool CEngineApp::Initialize(IWintersApp* pGameApp, const EngineConfig& config)
     if (!m_Window.Create(wndDesc))
     {
         OutputDebugStringA("[CEngineApp] Window creation failed\n");
+        WriteRHISelectionProbeReport(
+            rhiProbeReportPath,
+            config.rhiBackend,
+            "None",
+            "None",
+            "window_creation_failed",
+            "window_creation_failed",
+            false,
+            "none",
+            nullptr,
+            nullptr,
+            nullptr);
         return false;
     }
 
-    const auto tryDX11 = [&]() -> bool_t
-    {
-        m_pDevice = CreateDX11DeviceForWindow(m_Window, config);
-        if (m_pDevice)
-            OutputDebugStringA("[CEngineApp] RHI backend selected: DX11\n");
-        return m_pDevice != nullptr;
-    };
+    RHIBackendCreateDesc rhiCreateDesc{};
+    rhiCreateDesc.nativeWindow = m_Window.GetHandle();
+    rhiCreateDesc.width = config.windowWidth;
+    rhiCreateDesc.height = config.windowHeight;
+    rhiCreateDesc.vsync = ShouldUsePresentationVSync(config);
+    rhiCreateDesc.fullscreen = config.fullscreen;
 
-    const auto tryDX12 = [&]() -> bool_t
-    {
-        m_pDevice = CreateDX12DeviceForWindow(m_Window, config);
-        if (m_pDevice)
-            OutputDebugStringA("[CEngineApp] RHI backend selected: DX12\n");
-        return m_pDevice != nullptr;
-    };
+    const eEngineRHIBackend primaryBackend =
+        config.rhiBackend == eEngineRHIBackend::Auto
+        ? eEngineRHIBackend::DX11
+        : config.rhiBackend;
 
-    switch (config.rhiBackend)
+    RHIBackendCreateResult createResult =
+        CRHIBackendRegistry::CreateDevice(primaryBackend, rhiCreateDesc);
+    bool_t bFallbackUsed = false;
+    std::string fallbackReason = "none";
+
+    if (!createResult.Succeeded() && config.allowRHIFallback &&
+        primaryBackend != eEngineRHIBackend::DX11)
     {
-    case eEngineRHIBackend::DX12:
-        tryDX12();
-        break;
-    case eEngineRHIBackend::DX11:
-    case eEngineRHIBackend::Auto:
-        tryDX11();
-        break;
-    default:
-        OutputDebugStringA("[CEngineApp] Requested RHI backend is not implemented on this platform\n");
-        break;
+        bFallbackUsed = true;
+        fallbackReason = createResult.reason;
+        OutputDebugStringA("[CEngineApp] Falling back to DX11 backend\n");
+        createResult = CRHIBackendRegistry::CreateDevice(
+            eEngineRHIBackend::DX11,
+            rhiCreateDesc);
     }
 
-    if (!m_pDevice && config.allowRHIFallback && config.rhiBackend != eEngineRHIBackend::DX11)
+    if (createResult.Succeeded())
     {
-        OutputDebugStringA("[CEngineApp] Falling back to DX11 legacy backend\n");
-        tryDX11();
+        m_pDevice = std::move(createResult.pDevice);
+
+        char selectedTrace[192]{};
+        sprintf_s(
+            selectedTrace,
+            "[CEngineApp] RHI module=%s selected=%s reason=%s\n",
+            createResult.moduleName.c_str(),
+            RHIBackendName(m_pDevice->GetBackend()),
+            createResult.reason.c_str());
+        OutputDebugStringA(selectedTrace);
     }
 
     if (!m_pDevice)
     {
-        MessageBoxW(m_Window.GetHandle(),
-            L"RHI device initialization failed.\n"
-            L"Check the selected backend and graphics driver support.",
-            L"[CEngineApp] RHI initialization failed", MB_OK | MB_ICONERROR);
+        WriteRHISelectionProbeReport(
+            rhiProbeReportPath,
+            config.rhiBackend,
+            createResult.moduleName.c_str(),
+            "None",
+            RHIBackendCreateStatusName(createResult.status),
+            createResult.reason.c_str(),
+            bFallbackUsed,
+            fallbackReason.c_str(),
+            nullptr,
+            nullptr,
+            nullptr);
+        if (!bRHIProbeOnly)
+        {
+            MessageBoxW(m_Window.GetHandle(),
+                L"RHI device initialization failed.\n"
+                L"Check the selected backend and graphics driver support.",
+                L"[CEngineApp] RHI initialization failed", MB_OK | MB_ICONERROR);
+        }
         return false;
-#if 0
-        MessageBoxW(m_Window.GetHandle(),
-            L"DX11 ?붾컮?댁뒪 珥덇린?붿뿉 ?ㅽ뙣?덉뒿?덈떎.\n"
-            L"洹몃옒??移대뱶媛 D3D11??吏?먰븯?붿? ?뺤씤?섏꽭??",
-            L"[CEngineApp] DX11 珥덇린???ㅽ뙣", MB_OK | MB_ICONERROR);
-        return false;
-#endif
     }
 
+    RHIBufferTransitionProbeResult bufferTransitionProbe{};
+    RHITextureTransitionProbeResult textureTransitionProbe{};
+    if (bRHIProbeOnly)
+    {
+        bufferTransitionProbe = RunRHIBufferTransitionProbe(*m_pDevice);
+        textureTransitionProbe = RunRHITextureTransitionProbe(*m_pDevice);
+    }
+
+    const RHICapabilities capabilities = m_pDevice->GetCapabilities();
+    WriteRHISelectionProbeReport(
+        rhiProbeReportPath,
+        config.rhiBackend,
+        createResult.moduleName.c_str(),
+        RHIBackendName(m_pDevice->GetBackend()),
+        RHIBackendCreateStatusName(createResult.status),
+        createResult.reason.c_str(),
+        bFallbackUsed,
+        fallbackReason.c_str(),
+        &capabilities,
+        bRHIProbeOnly ? &bufferTransitionProbe : nullptr,
+        bRHIProbeOnly ? &textureTransitionProbe : nullptr);
+    if (bRHIProbeOnly)
+    {
+        m_bRunning = false;
+        return std::strcmp(bufferTransitionProbe.pStatus, "pass") == 0 &&
+            std::strcmp(textureTransitionProbe.pStatus, "pass") == 0;
+    }
 
     m_bSceneRuntimeEnabled = true;
     m_bDX11RuntimeEnabled = (m_pDevice->GetBackend() == eRHIBackend::DX11);
@@ -377,6 +838,15 @@ int32 CEngineApp::Run()
             std::chrono::duration_cast<std::chrono::microseconds>(frameEnd - runStart).count());
         WINTERS_PROFILE_GAUGE("Frame::WallUs", wallUs);
         WINTERS_PROFILE_GAUGE("Frame::RunElapsedUs", runElapsedUs);
+
+        // 무인 프로파일링 하네스: N초 경과 시 (옵션) 타임라인 캡처 후 자동 종료.
+        if (m_bRunning && m_uRunSeconds > 0u &&
+            runElapsedUs >= static_cast<uint64_t>(m_uRunSeconds) * 1000000ull)
+        {
+            if (m_bProfileCaptureOnExit)
+                bSaveProfilerJson = true;
+            m_bRunning = false;
+        }
 
         CGameInstance::Get()->Profiler_End();
         WINTERS_PROFILE_FRAME_MARK;

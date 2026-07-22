@@ -57,6 +57,7 @@ When a task touches these areas, preserve the sequence unless the user explicitl
 
 ## High-Risk Mistakes
 
+- Do not replace current F4-saved canonical gameplay JSON with numeric examples from an older plan, result, test fixture, or generated file. Recook generated outputs from the current source; freeze an exact editable value only when the user explicitly declares that balance baseline immutable.
 - Do not make a client-only visual fix that changes gameplay truth.
 - Do not add a debug flag that silently changes normal F5 runtime behavior.
 - Do not hide roster, map, minion, or champion systems with forced flags unless the user explicitly asks for a temporary local visual lab.

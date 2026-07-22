@@ -60,8 +60,11 @@ void YoneFx::SpawnMortalSteel(CWorld& world, Engine::CFxStaticMeshRenderer* pRen
 void YoneFx::SpawnSpiritCleave(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
     EntityID caster, const Vec3& vOrigin, const Vec3& vForward)
 {
+    const Vec3 vVisualForward = WintersMath::RotateXZ(
+        NormalizeForward(vForward),
+        -WintersMath::kPi * 0.5f);
     PlayCue(world, kCueSpiritCleave,
-        MakeCue(caster, pRenderer, vOrigin, vForward));
+        MakeCue(caster, pRenderer, vOrigin, vVisualForward));
 }
 
 void YoneFx::SpawnSoulOut(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,

@@ -2,6 +2,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <d3d11.h>
+#include <d3d11_1.h>   // ID3DUserDefinedAnnotation (GPU 패스 마커)
 #include <dxgi.h>
 #include <wrl/client.h>   // Microsoft::WRL::ComPtr — SDK 배포 시 Client 가 PCH 없이 이 헤더를 직접 파싱하므로 명시 필요
 #include "RHI/CRHIResourceTable.h"
@@ -51,6 +52,9 @@ public:
     void    BeginFrame(f32_t r = 0.f, f32_t g = 1.f,
                        f32_t b = 1.f, f32_t a = 1.f) override;
     void    EndFrame() override;
+    bool_t  WaitIdle() override;
+    void    BeginGpuPass(const char* pName) override;
+    void    EndGpuPass() override;
 
     // ── 접근자 ───────────────────────────────────────────────
     // 렌더러 내부에서만 사용. Client에는 노출 안 됨.
@@ -58,7 +62,8 @@ public:
     ID3D11DeviceContext*    GetContext()   const { return m_pContext.Get();         }
     ID3D11RenderTargetView* GetBackRTV()   const { return m_pRenderTargetView.Get();}
     ID3D11DepthStencilView* GetDSV()       const { return m_pDepthStencilView.Get();}
-    eRHIBackend             GetBackend() const override { return eRHIBackend::DX11; }
+    eRHIBackend GetBackend() const override { return eRHIBackend::DX11; }
+    RHICapabilities GetCapabilities() const override { return m_Capabilities; }
     void* GetNativeHandle(eNativeHandleType type) const override
     {
         switch (type)
@@ -120,7 +125,8 @@ private:
     CDX11Device();
 
     bool Initialize(const DeviceDesc& desc);
-    bool    CreateDeviceAndSwapChain(const DeviceDesc& desc);
+    void InitializeCapabilities();
+    bool CreateDeviceAndSwapChain(const DeviceDesc& desc);
     bool    CreateRenderTarget();
     bool    CreateDepthStencil(uint32 width, uint32 height);
     bool    CreateGpuTimingQueries();
@@ -135,17 +141,26 @@ private:
     
     D3D11_VIEWPORT  m_Viewport  = {};
     bool            m_bVSync    = true;
+    bool_t          m_bFrameRecording = false;
     uint32          m_Width     = 1280;
     uint32          m_Height    = 720;
 
     // GPU 프레임 타임스탬프: disjoint+begin/end 쿼리를 N슬롯 링으로 두고
     // 수 프레임 지연 후 non-blocking readback 한다 (GPU::FrameUs 카운터).
+    // 같은 disjoint 아래에 패스별 begin/end 쌍(BeginGpuPass)과
+    // 파이프라인 통계 쿼리를 함께 실어 패스 분해/프리미티브 카운트를 얻는다.
     static constexpr uint32 kGpuTimingSlots = 4u;
+    static constexpr uint32 kMaxGpuPassesPerFrame = 16u;
     struct GpuTimingSlot
     {
         Microsoft::WRL::ComPtr<ID3D11Query> pDisjoint;
         Microsoft::WRL::ComPtr<ID3D11Query> pBegin;
         Microsoft::WRL::ComPtr<ID3D11Query> pEnd;
+        Microsoft::WRL::ComPtr<ID3D11Query> pPipelineStats;
+        Microsoft::WRL::ComPtr<ID3D11Query> pPassBegin[kMaxGpuPassesPerFrame];
+        Microsoft::WRL::ComPtr<ID3D11Query> pPassEnd[kMaxGpuPassesPerFrame];
+        const char* passNames[kMaxGpuPassesPerFrame] = {};
+        uint32 uPassCount = 0;
         uint64_t uSourceRHIFrame = 0;
         bool bPending = false;
     };
@@ -153,6 +168,9 @@ private:
     uint32          m_uGpuTimingWriteIndex = 0;
     uint64_t        m_uGpuTimingFrameSerial = 0;
     bool            m_bGpuTimingReady = false;
+    bool            m_bGpuFrameTimingActive = false;
+    bool            m_bGpuPassOpen = false;
+    Microsoft::WRL::ComPtr<ID3DUserDefinedAnnotation> m_pAnnotation;
 
     CRHIResourceTable<IRHIPipelineState, RHIPipelineTag> m_PipelineTable;
     CRHIResourceTable<IRHIRenderPass, RHIRenderPassTag> m_RenderPassTable;
@@ -161,4 +179,5 @@ private:
 
     std::unique_ptr<ResourceTables> m_pTables;
     std::unique_ptr<CDX11FrameCommandList> m_pFrameCommandList;
+    RHICapabilities m_Capabilities{};
 };

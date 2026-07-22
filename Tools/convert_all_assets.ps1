@@ -88,6 +88,50 @@ function Convert-Static([string]$SourcePath) {
     }
 }
 
+function Convert-Map([string]$SourcePath) {
+    $source = Get-FullPath $SourcePath
+    if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+        Write-Output "[SKIP] $source not found"
+        $script:FAIL++
+        return
+    }
+
+    $dir = Split-Path -Parent $source
+    $base = [System.IO.Path]::GetFileNameWithoutExtension($source)
+    $visualMesh = Join-Path $dir "$base.wmesh"
+    $visualMat = Join-Path $dir "$base.wmat"
+    $surfaceMesh = Join-Path $dir "${base}_surface.wmesh"
+    $surfaceMat = Join-Path $dir "${base}_surface.wmat"
+    if (Test-OutputsCurrent $source @($visualMesh, $visualMat, $surfaceMesh, $surfaceMat)) {
+        Write-Output "[UP-TO-DATE] $source"
+        return
+    }
+
+    $foliageMaterial = "Maps/KitPieces/SRX/Base/Models/LevelProp/Materials/VertexDeform_inst"
+    $foliageTexture = "Texture/MAP/output/textures/assets/maps/kitpieces/srx/textures/sru_brush.png"
+    $materialRemap = "$foliageMaterial=$foliageTexture"
+
+    if (-not (Invoke-Converter @(
+        "mesh", $source,
+        "--pretransform",
+        "--material-remap", $materialRemap,
+        "-o", $visualMesh))) {
+        $script:FAIL++
+        return
+    }
+
+    if (-not (Invoke-Converter @(
+        "mesh", $source,
+        "--pretransform",
+        "--exclude-material", $foliageMaterial,
+        "-o", $surfaceMesh))) {
+        $script:FAIL++
+        return
+    }
+
+    $script:OK++
+}
+
 function Convert-SkinnedModel([string]$ModelPath) {
     $model = Get-FullPath $ModelPath
     if (-not (Test-Path -LiteralPath $model -PathType Leaf)) {
@@ -134,6 +178,25 @@ function Convert-Champ([string]$ChampRoot, [string]$Champion, [string]$Fbx) {
     Convert-SkinnedModel (Join-Path $dir $Fbx)
 }
 
+function Repair-YasuoQ3([string]$ChampRoot) {
+    $yasuoRoot = Join-Path $ChampRoot "Yasuo"
+    $source = Join-Path $yasuoRoot "yasuo_fixed.fbx"
+    $clip = Join-Path $yasuoRoot "anims\skinned_mesh_yasuo_spell1_wind.wanim"
+    $skeleton = Join-Path $yasuoRoot "yasuo_fixed.wskel"
+    $repair = Join-Path $PSScriptRoot "Anim\patch_wanim_root_track.py"
+    if (-not (Test-Path -LiteralPath $source -PathType Leaf)) {
+        return
+    }
+    if (-not (Test-Path -LiteralPath $clip -PathType Leaf) -or
+        -not (Test-Path -LiteralPath $skeleton -PathType Leaf)) {
+        throw "Yasuo Q3 repair inputs are missing after cook"
+    }
+    & python $repair $clip $skeleton
+    if ($LASTEXITCODE -ne 0) {
+        throw "Yasuo Q3 WAnim repair failed ($LASTEXITCODE)"
+    }
+}
+
 function Convert-StaticTree([string]$TreeRoot) {
     if (-not (Test-Path -LiteralPath $TreeRoot -PathType Container)) {
         return
@@ -159,6 +222,7 @@ function Convert-ParticleFbxTree([string]$TreeRoot) {
 function Convert-Champions([string]$ChampRoot) {
     Convert-Champ $ChampRoot "Irelia" "irelia_fixed.fbx"
     Convert-Champ $ChampRoot "Yasuo" "yasuo_fixed.fbx"
+    Repair-YasuoQ3 $ChampRoot
     Convert-Champ $ChampRoot "Sylas" "sylas.fbx"
     Convert-Champ $ChampRoot "Viego" "viego_fixed.fbx"
     Convert-Champ $ChampRoot "Kalista" "kalista.fbx"
@@ -211,6 +275,16 @@ function Convert-Objects([string]$ObjRoot) {
 
 $championsOnly = $Mode -ieq "champions"
 $minionsOnly = $Mode -ieq "minions"
+$mapsOnly = $Mode -ieq "maps"
+
+if ($mapsOnly) {
+    Convert-Map (Join-Path $ResourceSrc "MAP\output\sr_base_flip.glb")
+    Write-Output "OK=$script:OK FAIL=$script:FAIL"
+    if ($script:FAIL -gt 0) {
+        exit 1
+    }
+    exit 0
+}
 
 if ($minionsOnly) {
     Convert-Minions (Join-Path $ResourceSrc "Object")
@@ -227,9 +301,9 @@ if (Test-Path -LiteralPath $LegacyCharSrc -PathType Container) {
 }
 
 if (-not $championsOnly) {
-    Convert-Static (Join-Path $ResourceSrc "MAP\output\sr_base_flip.glb")
+    Convert-Map (Join-Path $ResourceSrc "MAP\output\sr_base_flip.glb")
     if (Test-Path -LiteralPath (Join-Path $LegacyResourceSrc "MAP") -PathType Container) {
-        Convert-Static (Join-Path $LegacyResourceSrc "MAP\output\sr_base_flip.glb")
+        Convert-Map (Join-Path $LegacyResourceSrc "MAP\output\sr_base_flip.glb")
     }
 
     Convert-Objects (Join-Path $ResourceSrc "Object")

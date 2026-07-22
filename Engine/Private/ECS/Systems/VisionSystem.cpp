@@ -113,6 +113,18 @@ std::unique_ptr<CVisionSystem> CVisionSystem::Create(CSpatialIndex* pIndex,
     return p;
 }
 
+void CVisionSystem::DescribeAccess(CSystemAccessBuilder& builder) const
+{
+    // 모든 GetComponent는 HasComponent/ForEach 가드 뒤에서만 호출되므로
+    // 스토어 lazy-insert 경로는 타지 않는다. FoW 텍스처는 시스템 소유 CPU
+    // 버퍼이고 SpatialIndex/ConcealmentIndex 조회는 읽기 전용이다.
+    builder.Write<VisibilityComponent>()
+        .Read<TransformComponent>()
+        .Read<SpatialAgentComponent>()
+        .Read<VisionSourceComponent>()
+        .Read<VisionConeComponent>();
+}
+
 void CVisionSystem::Execute(CWorld& world, f32_t fTimeDelta)
 {
     WINTERS_PROFILE_SCOPE("Vision::Execute");

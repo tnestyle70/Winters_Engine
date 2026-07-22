@@ -27,6 +27,22 @@ Definitions/*     LoLGameplayDefinitions LoLVisualDefinitions
 - **레벨 스케일링**: 성장 수치(hpPerLevel 등)는 ChampionStatBlock(ServerPrivate pack)이 소유, `CStatSystem::BuildBaseStats`가 레벨 적용, 결과는 StatComponent로 복제. 클라는 성장 공식을 재계산하지 않는다.
 - **애니메이션 수치의 이원화 (규칙)**: *게임플레이 타이밍*(lock duration, windup, 스테이지 윈도)은 ServerPrivate pack → 서버 tick이 판정. *비주얼 재생*(animKey, visualCastFrame, visualPlaySpeed)은 ClientPublic — 서버가 준 action 시작/종료 tick 안에서 클라가 연출. 클라 비주얼 프레임이 서버 판정을 만들면 안 되고, 서버 타이밍이 클라 팩에 복사되면 drift 위험(§3-4).
 
+### 1-1. F4 canonical authoring과 runtime/codegen 흐름
+
+값 권위 순서는 다음과 같다.
+
+1. 사용자가 F4 `Save & Hot Load`로 저장한 현재 canonical JSON
+2. 같은 JSON을 정규화·검증해 만든 generated JSON/C++와 build hash
+3. 과거 PLAN/RESULT의 숫자와 테스트 fixture는 역사·구조 설명이며 값 권위가 아니다
+
+F4가 직접 저장하는 canonical 파일은 `Data/Gameplay/ChampionGameData/champions.json`, `Data/LoL/ServerPrivate/Gameplay/SkillEffectGameplayDefs.json`, `SpawnObjectGameplayDefs.json`, `EconomyGameplayDefs.json` 네 개다. 같은 gameplay 디렉터리의 `ChampionGameplayDefs.json`과 `SkillGameplayDefs.json`은 generated output이므로 authoring source로 사용하지 않는다.
+
+Debug 즉시 반영은 `ChampionTuner draft -> ValidateBalanceDraft -> stale-source 비교 -> 4파일 temp/backup 원자 저장 -> SetEnabled + ReloadGameplayDefinitions GameCommand -> room-host/_DEBUG gate -> TryReloadRuntimeGameplayDefinitions -> active runtime pack publish -> current actor refresh -> Snapshot toolRevision ack` 순서다. 서버 reload는 위 네 파일 외에도 summoner/item/rune/AI canonical 파일을 다시 읽어 완전한 runtime pack을 만든다.
+
+지속 반영은 current canonical JSON에서 `Build-LoLDefinitionPack.py`와 `build_champion_game_data.py`를 실행해 파생 JSON, manifest/build hash, Server/Client generated C++, legacy Shared generated 데이터를 recook한 뒤 빌드한다. `--check` 실패는 generated가 current source와 다르다는 뜻이지 source를 generated나 과거 fixture 값으로 되돌리라는 뜻이 아니다.
+
+서버 매 tick은 `GetActiveLoLGameplayDefinitionPack()`을 `TickContext.pDefinitions`에 주입한다. `GameplayDefinitionQuery`와 champion GameSim은 여기서 rank-aware damage/param을 조회하고 `DamageRequest -> DamageQueue/DamagePipeline`이 결과를 만든다. Client는 이 수치를 gameplay truth로 재계산하지 않고 Snapshot/Event와 ClientPublic visual definition으로 표현한다.
+
 ## 2. 2026-07-09 적용분 (이 문서와 함께 반영됨)
 
 - **폴백 가시화 (P1)** — legacy 삭제의 게이트 계측. "pack miss → legacy/fabricated 값" 지점 16곳에 bounded 트레이스:

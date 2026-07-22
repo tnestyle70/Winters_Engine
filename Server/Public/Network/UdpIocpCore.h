@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 #include <span>
+#include <string>
 #include <vector>
 
 enum class eUdpSendResult : u8_t
@@ -27,6 +28,16 @@ struct UdpServerInboundFrame
     ePacketType type = ePacketType::None;
     u32_t messageSequence = 0;
     std::vector<u8_t> payload;
+};
+
+struct UdpAuthenticatedIdentity
+{
+    std::string matchID;
+    std::string userID;
+    std::string gameSessionID;
+	u64_t gameSessionGeneration = 0;
+    u64_t expiresAtUnix = 0;
+    bool_t bAuthenticated = false;
 };
 
 struct UdpServerMetrics
@@ -56,8 +67,14 @@ struct UdpServerMetrics
 class CUdpIocpCore final
 {
 public:
-    using TicketValidator = std::function<bool(std::span<const u8_t>)>;
-    using ConnectionCallback = std::function<void(u64_t, u32_t, bool)>;
+    using TicketValidator = std::function<bool(
+        std::span<const u8_t>,
+        UdpAuthenticatedIdentity&)>;
+    using ConnectionCallback = std::function<void(
+        u64_t,
+        u32_t,
+        bool,
+        const UdpAuthenticatedIdentity&)>;
     using FrameCallback = std::function<void(UdpServerInboundFrame)>;
 
     CUdpIocpCore();

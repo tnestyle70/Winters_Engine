@@ -4,10 +4,15 @@
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Champions/Ezreal/EzrealGameSim.h"
+#include "Shared/GameSim/Champions/LeeSin/LeeSinGameSim.h"
 #include "Shared/GameSim/Components/BuffComponent.h"
+#include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
 #include "Shared/GameSim/Components/EzrealSimComponent.h"
+#include "Shared/GameSim/Components/LeeSinSimComponent.h"
 #include "Shared/GameSim/Components/NetEntityIdComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
+#include "Shared/GameSim/Components/SkillRankComponent.h"
+#include "Shared/GameSim/Components/SkillLoadoutComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Systems/Buff/BuffSystem.h"
@@ -16,6 +21,7 @@
 #include "Shared/GameSim/Systems/ReplicatedEventSerializer/ReplicatedEventSerializer.h"
 #include "Shared/GameSim/Systems/Stat/StatSystem.h"
 #include "Shared/GameSim/Systems/Turret/TurretAISystem.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 
 #pragma push_macro("min")
 #pragma push_macro("max")
@@ -61,6 +67,20 @@ public:
         room.Phase_ServerProjectiles(tc);
     }
 
+    static void RunCommandPhase(CGameRoom& room, TickContext& tc)
+    {
+        room.Phase_ExecuteCommands(tc);
+    }
+
+    static const SkillCommandFeedback* FindFeedback(
+        CGameRoom& room, u32_t sessionId, u8_t slot)
+    {
+        const auto found = room.m_lastCommandFeedbackBySession.find(sessionId);
+        if (found == room.m_lastCommandFeedbackBySession.end() || slot >= 5u)
+            return nullptr;
+        return &found->second[slot];
+    }
+
     static EntityID SpawnStructureProjectile(
         CWorld& world,
         EntityID source,
@@ -98,6 +118,9 @@ public:
 
 namespace
 {
+    static_assert((kProjectileTargetMobileUnits &
+        static_cast<u8_t>(ProjectileTarget_Structure)) == 0u);
+
     struct ObservingCommandExecutor final : ICommandExecutor
     {
         EntityID observedEntity = NULL_ENTITY;
@@ -177,9 +200,26 @@ namespace
         champion.maxHp = health.fMaximum;
         world.AddComponent<ChampionComponent>(entity, champion);
 
-        StatComponent stat{};
-        stat.championId = championId;
-        stat.level = 1u;
+        const GameplayDefinitionPack& definitions =
+            ServerData::GetActiveLoLGameplayDefinitionPack();
+        const ChampionGameplayDef* championDef =
+            definitions.FindChampion(championId);
+        if (!championDef)
+            return NULL_ENTITY;
+
+        ChampionDefinitionComponent identity{};
+        identity.championDefId = championDef->id;
+        world.AddComponent<ChampionDefinitionComponent>(entity, identity);
+
+        SkillLoadoutComponent loadout{};
+        for (u8_t slot = 0u; slot < kChampionSkillSlotCount; ++slot)
+            loadout.skills[slot] = championDef->skillLoadout[slot];
+        world.AddComponent<SkillLoadoutComponent>(entity, loadout);
+
+        StatComponent stat = CStatSystem::BuildBaseStats(
+            championDef->stats,
+            championDef->legacyChampion,
+            1u);
         world.AddComponent<StatComponent>(entity, stat);
 
         SpatialAgentComponent spatial{};
@@ -214,14 +254,48 @@ namespace
         turret.team = team;
         world.AddComponent<TurretComponent>(entity, turret);
 
+        const TurretAIGameDef& turretDef =
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack()
+                .structure.turretAI;
         TurretAIComponent ai{};
-        ai.attackDamage = 150.f;
-        ai.projectileSpeed = 18.f;
+        ai.attackRange = turretDef.attackRange;
+        ai.attackCooldownMax = turretDef.attackCooldownMax;
+        ai.attackDamage = turretDef.attackDamage;
+        ai.projectileSpeed = turretDef.projectileSpeed;
         world.AddComponent<TurretAIComponent>(entity, ai);
 
         if (BindNetworkEntity(world, entityMap, entity) == NULL_NET_ENTITY)
             return NULL_ENTITY;
         return entity;
+    }
+
+    bool_t RebuildSpatialIndex(CWorld& world)
+    {
+        if (!world.Get_SpatialIndex())
+            world.Initialize_Spatial(DefaultSpatialGridDesc());
+
+        CSpatialIndex* pSpatial = world.Get_SpatialIndex();
+        if (!pSpatial)
+            return false;
+        pSpatial->Rebuild(world);
+        return true;
+    }
+
+    std::vector<EntityID> CollectStructureProjectiles(CWorld& world)
+    {
+        return DeterministicEntityIterator<StructureProjectileComponent>::CollectSorted(world);
+    }
+
+    void PushTowerAggroNotification(
+        CWorld& world,
+        EntityID attacker,
+        EntityID victim)
+    {
+        TowerAggroNotifyComponent notify{};
+        notify.attackerEntity = attacker;
+        notify.victimEntity = victim;
+        notify.priorityDuration = 2.f;
+        world.AddComponent<TowerAggroNotifyComponent>(world.CreateEntity(), notify);
     }
 
     TickContext MakeTickContext(
@@ -234,6 +308,7 @@ namespace
         tc.fSimulatedTimeSec = DeterministicTime::TickToSec(tickIndex);
         tc.pEntityMap = &CGameRoomIntegrationProbeAccess::EntityMap(room);
         tc.pWalkable = &room;
+        tc.pDefinitions = &ServerData::GetActiveLoLGameplayDefinitionPack();
         return tc;
     }
 
@@ -381,6 +456,184 @@ namespace
 
         entityMap.Unbind(serialized.projectileNetToUnbind);
         return entityMap.ToNet(replacement) == replacementNet;
+    }
+
+    bool_t CheckTurretConfiguredRangeBoundary()
+    {
+        auto room = CGameRoomIntegrationProbeAccess::CreateRoom(9106u);
+        CWorld& world = CGameRoomIntegrationProbeAccess::World(*room);
+        EntityIdMap& entityMap =
+            CGameRoomIntegrationProbeAccess::EntityMap(*room);
+
+        const EntityID turret = SpawnTurret(
+            world, entityMap, eTeam::Red, Vec3{});
+        const f32_t configuredRange =
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack()
+                .structure.turretAI.attackRange;
+        const EntityID target = SpawnChampion(
+            world,
+            entityMap,
+            eChampion::EZREAL,
+            eTeam::Blue,
+            Vec3{ configuredRange, 0.f, 0.f });
+        if (turret == NULL_ENTITY ||
+            target == NULL_ENTITY ||
+            configuredRange <= 0.f ||
+            !RebuildSpatialIndex(world))
+        {
+            return false;
+        }
+
+        auto system = GameplayTurret::CTurretAISystem::Create();
+        system->Execute(world, DeterministicTime::kFixedDt);
+        std::vector<EntityID> projectiles = CollectStructureProjectiles(world);
+        if (projectiles.size() != 1u ||
+            world.GetComponent<TurretAIComponent>(turret).attackTargetId !=
+                target)
+        {
+            return false;
+        }
+
+        for (EntityID projectile : projectiles)
+            world.DestroyEntity(projectile);
+        world.GetComponent<TransformComponent>(target).SetPosition(
+            Vec3{ configuredRange + 0.25f, 0.f, 0.f });
+        world.GetComponent<TurretAIComponent>(turret).attackCooldown = 0.f;
+        if (!RebuildSpatialIndex(world))
+            return false;
+
+        system->Execute(world, DeterministicTime::kFixedDt);
+        return world.GetComponent<TurretAIComponent>(turret).attackTargetId ==
+                NULL_ENTITY &&
+            world.GetComponent<TurretComponent>(turret).targetId ==
+                NULL_ENTITY &&
+            CollectStructureProjectiles(world).empty();
+    }
+
+    bool_t CheckTurretRemoteAggroRejected()
+    {
+        auto room = CGameRoomIntegrationProbeAccess::CreateRoom(9107u);
+        CWorld& world = CGameRoomIntegrationProbeAccess::World(*room);
+        EntityIdMap& entityMap =
+            CGameRoomIntegrationProbeAccess::EntityMap(*room);
+
+        const EntityID turret = SpawnTurret(
+            world, entityMap, eTeam::Red, Vec3{});
+        const EntityID victim = SpawnChampion(
+            world,
+            entityMap,
+            eChampion::EZREAL,
+            eTeam::Red,
+            Vec3{ 2.f, 0.f, 0.f });
+        const EntityID attacker = SpawnChampion(
+            world,
+            entityMap,
+            eChampion::EZREAL,
+            eTeam::Blue,
+            Vec3{ 40.f, 0.f, 0.f });
+        if (turret == NULL_ENTITY ||
+            victim == NULL_ENTITY ||
+            attacker == NULL_ENTITY ||
+            !RebuildSpatialIndex(world))
+        {
+            return false;
+        }
+
+        DamageRequest request{};
+        request.source = attacker;
+        request.target = victim;
+        request.sourceTeam = eTeam::Blue;
+        request.type = eDamageType::Magic;
+        request.eSourceKind = eDamageSourceKind::Skill;
+        request.rank = 1u;
+        request.flatAmount = 50.f;
+        request.skillId = static_cast<u16_t>(
+            (static_cast<u32_t>(eChampion::EZREAL) << 8u) |
+            static_cast<u32_t>(eSkillSlot::R));
+        request.iSourceSlot = static_cast<u8_t>(eSkillSlot::R);
+        world.AddComponent<DamageRequestComponent>(
+            world.CreateEntity(),
+            request);
+
+        const f32_t victimHealthBefore =
+            world.GetComponent<HealthComponent>(victim).fCurrent;
+        TickContext damageTick = MakeTickContext(*room, 50u);
+        CDamageQueueSystem::Execute(world, damageTick);
+        const std::vector<EntityID> notifications =
+            DeterministicEntityIterator<TowerAggroNotifyComponent>::CollectSorted(
+                world);
+        if (notifications.size() != 1u ||
+            world.GetComponent<HealthComponent>(victim).fCurrent >=
+                victimHealthBefore)
+        {
+            return false;
+        }
+
+        auto system = GameplayTurret::CTurretAISystem::Create();
+        system->Execute(world, DeterministicTime::kFixedDt);
+        const TurretAIComponent& ai =
+            world.GetComponent<TurretAIComponent>(turret);
+        return ai.aggroTargetId == NULL_ENTITY &&
+            ai.attackTargetId == NULL_ENTITY &&
+            CollectStructureProjectiles(world).empty();
+    }
+
+    bool_t CheckTurretAggroDropsOnRangeExit()
+    {
+        auto room = CGameRoomIntegrationProbeAccess::CreateRoom(9108u);
+        CWorld& world = CGameRoomIntegrationProbeAccess::World(*room);
+        EntityIdMap& entityMap =
+            CGameRoomIntegrationProbeAccess::EntityMap(*room);
+
+        const EntityID turret = SpawnTurret(
+            world, entityMap, eTeam::Red, Vec3{});
+        const EntityID victim = SpawnChampion(
+            world,
+            entityMap,
+            eChampion::EZREAL,
+            eTeam::Red,
+            Vec3{ 2.f, 0.f, 0.f });
+        const EntityID attacker = SpawnChampion(
+            world,
+            entityMap,
+            eChampion::EZREAL,
+            eTeam::Blue,
+            Vec3{ 7.f, 0.f, 0.f });
+        if (turret == NULL_ENTITY ||
+            victim == NULL_ENTITY ||
+            attacker == NULL_ENTITY ||
+            !RebuildSpatialIndex(world))
+        {
+            return false;
+        }
+
+        PushTowerAggroNotification(world, attacker, victim);
+        auto system = GameplayTurret::CTurretAISystem::Create();
+        system->Execute(world, DeterministicTime::kFixedDt);
+        std::vector<EntityID> projectiles = CollectStructureProjectiles(world);
+        if (projectiles.size() != 1u ||
+            world.GetComponent<TurretAIComponent>(turret).aggroTargetId !=
+                attacker)
+        {
+            return false;
+        }
+
+        const EntityID firstProjectile = projectiles.front();
+        world.GetComponent<TransformComponent>(attacker).SetPosition(
+            Vec3{ 20.f, 0.f, 0.f });
+        world.GetComponent<TurretAIComponent>(turret).attackCooldown = 0.f;
+        if (!RebuildSpatialIndex(world))
+            return false;
+
+        system->Execute(world, DeterministicTime::kFixedDt);
+        const TurretAIComponent& ai =
+            world.GetComponent<TurretAIComponent>(turret);
+        const std::vector<EntityID> remainingProjectiles =
+            CollectStructureProjectiles(world);
+        return ai.aggroTargetId == NULL_ENTITY &&
+            ai.attackTargetId == NULL_ENTITY &&
+            remainingProjectiles.size() == 1u &&
+            remainingProjectiles.front() == firstProjectile;
     }
 
     bool_t CheckSkillProjectileGameRoomLifecycle()
@@ -833,10 +1086,188 @@ namespace
         CGameRoomIntegrationProbeAccess::SetTickIndex(*room, 180u);
         CGameRoomIntegrationProbeAccess::RunFullTick(*room);
 
-        return observerPtr->callCount == 1u &&
+        const bool_t bPass = observerPtr->callCount == 1u &&
             observerPtr->bObservedPassiveAbsent &&
             std::fabs(observerPtr->observedBonusAttackSpeed) <= 0.0001f &&
             room->GetCurrentTickIndex() == 181u;
+        if (!bPass)
+        {
+            std::printf(
+                "[GameRoomProjectileIntegration][Passive] calls=%u absent=%u bonus=%.3f tick=%llu\n",
+                observerPtr->callCount,
+                static_cast<u32_t>(observerPtr->bObservedPassiveAbsent),
+                observerPtr->observedBonusAttackSpeed,
+                static_cast<unsigned long long>(room->GetCurrentTickIndex()));
+        }
+        return bPass;
+    }
+
+    bool_t CheckLeeSinQAuthorityLifecycle()
+    {
+        constexpr u32_t kSessionId = 77u;
+        constexpr u8_t kQSlot = static_cast<u8_t>(eSkillSlot::Q);
+        auto room = CGameRoomIntegrationProbeAccess::CreateRoom(9110u);
+        CGameRoomIntegrationProbeAccess::EnterInGame(*room);
+        CGameRoomIntegrationProbeAccess::SetExecutor(
+            *room, CDefaultCommandExecutor::Create());
+        CWorld& world = CGameRoomIntegrationProbeAccess::World(*room);
+        EntityIdMap& entityMap = CGameRoomIntegrationProbeAccess::EntityMap(*room);
+        LeeSinGameSim::RegisterHooks();
+
+        const EntityID source = SpawnChampion(
+            world, entityMap, eChampion::LEESIN, eTeam::Blue, Vec3{});
+        const EntityID target = SpawnChampion(
+            world, entityMap, eChampion::EZREAL, eTeam::Red,
+            Vec3{ 0.2f, 0.f, 0.f });
+        if (source == NULL_ENTITY || target == NULL_ENTITY)
+        {
+            std::printf("[GameRoomProjectileIntegration][LeeQ] spawn failed\n");
+            return false;
+        }
+        world.AddComponent<SkillStateComponent>(source, SkillStateComponent{});
+        SkillRankComponent ranks{};
+        ranks.ranks[kQSlot] = 1u;
+        world.AddComponent<SkillRankComponent>(source, ranks);
+        world.GetComponent<ChampionComponent>(source).mana = 1000.f;
+        if (!RebuildSpatialIndex(world))
+        {
+            std::printf("[GameRoomProjectileIntegration][LeeQ] spatial rebuild failed\n");
+            return false;
+        }
+
+        GameCommand q1{};
+        q1.kind = eCommandKind::CastSkill;
+        q1.issuerEntity = source;
+        q1.sourceSessionId = kSessionId;
+        q1.sequenceNum = 1u;
+        q1.slot = kQSlot;
+        q1.itemId = 1u;
+        q1.groundPos = Vec3{ 5.f, 0.f, 0.f };
+        q1.direction = Vec3{ 1.f, 0.f, 0.f };
+        TickContext castTick = MakeTickContext(*room, 100u);
+        CGameRoomIntegrationProbeAccess::PushCommand(*room, q1);
+        CGameRoomIntegrationProbeAccess::RunCommandPhase(*room, castTick);
+
+        auto projectiles =
+            DeterministicEntityIterator<SkillProjectileComponent>::CollectSorted(world);
+        if (projectiles.size() != 1u)
+        {
+            const SkillCommandFeedback* q1Feedback =
+                CGameRoomIntegrationProbeAccess::FindFeedback(
+                    *room, kSessionId, kQSlot);
+            std::printf(
+                "[GameRoomProjectileIntegration][LeeQ] Q1 projectile count=%zu feedback=%u/%u\n",
+                projectiles.size(),
+                q1Feedback ? static_cast<u32_t>(q1Feedback->result.state) : 99u,
+                q1Feedback ? static_cast<u32_t>(q1Feedback->result.reason) : 99u);
+            return false;
+        }
+        const EntityID projectile = projectiles.front();
+        const SkillProjectileComponent before =
+            world.GetComponent<SkillProjectileComponent>(projectile);
+        if (before.kind != eProjectileKind::LeeSinQ ||
+            std::fabs(before.speed - 19.2f) > 0.0001f ||
+            before.bCollidesWithTerrain ||
+            !before.bBlockedByProjectileBarriers)
+        {
+            std::printf(
+                "[GameRoomProjectileIntegration][LeeQ] projectile contract kind=%u speed=%.3f terrain=%u barrier=%u\n",
+                static_cast<u32_t>(before.kind),
+                before.speed,
+                static_cast<u32_t>(before.bCollidesWithTerrain),
+                static_cast<u32_t>(before.bBlockedByProjectileBarriers));
+            return false;
+        }
+
+        bool_t bUnitHit = false;
+        for (u64_t tick = 101u; tick < 109u && !bUnitHit; ++tick)
+        {
+            TickContext projectileTick = MakeTickContext(*room, tick);
+            CGameRoomIntegrationProbeAccess::RunProjectilePhase(
+                *room, projectileTick);
+            ReplicatedEventComponent hit{};
+            bUnitHit = FindProjectileEvent(
+                world, projectile, eReplicatedEventKind::ProjectileHit, hit) &&
+                hit.eContactReason == ProjectileContactReason::UnitHit;
+        }
+        if (!bUnitHit ||
+            !world.HasComponent<LeeSinQMarkComponent>(target) ||
+            world.GetComponent<LeeSinQMarkComponent>(target).sourceEntity != source)
+        {
+            std::printf(
+                "[GameRoomProjectileIntegration][LeeQ] hit=%u mark=%u sourceMatch=%u\n",
+                static_cast<u32_t>(bUnitHit),
+                static_cast<u32_t>(world.HasComponent<LeeSinQMarkComponent>(target)),
+                static_cast<u32_t>(world.HasComponent<LeeSinQMarkComponent>(target) &&
+                    world.GetComponent<LeeSinQMarkComponent>(target).sourceEntity == source));
+            return false;
+        }
+        auto& qSlot = world.GetComponent<SkillStateComponent>(source).slots[kQSlot];
+        if (qSlot.currentStage != 1u || qSlot.stageWindow <= 0.f)
+        {
+            std::printf(
+                "[GameRoomProjectileIntegration][LeeQ] Q1 stage=%u window=%.3f\n",
+                static_cast<u32_t>(qSlot.currentStage), qSlot.stageWindow);
+            return false;
+        }
+
+        GameCommand q2 = q1;
+        q2.sequenceNum = 2u;
+        q2.itemId = 2u;
+        q2.targetEntity = NULL_ENTITY;
+        TickContext q2Tick = MakeTickContext(*room, 109u);
+        CGameRoomIntegrationProbeAccess::PushCommand(*room, q2);
+        CGameRoomIntegrationProbeAccess::RunCommandPhase(*room, q2Tick);
+        const SkillCommandFeedback* accepted =
+            CGameRoomIntegrationProbeAccess::FindFeedback(
+                *room, kSessionId, kQSlot);
+        if (!accepted ||
+            accepted->result.state != eCommandExecutionState::Accepted ||
+            world.HasComponent<LeeSinQMarkComponent>(target) ||
+            !world.HasComponent<LeeSinDashComponent>(source) ||
+            !world.GetComponent<LeeSinDashComponent>(source)
+                .bIgnoreTerrainDuringTransit)
+        {
+            std::printf(
+                "[GameRoomProjectileIntegration][LeeQ] Q2 feedback=%u/%u mark=%u dash=%u ignore=%u\n",
+                accepted ? static_cast<u32_t>(accepted->result.state) : 99u,
+                accepted ? static_cast<u32_t>(accepted->result.reason) : 99u,
+                static_cast<u32_t>(world.HasComponent<LeeSinQMarkComponent>(target)),
+                static_cast<u32_t>(world.HasComponent<LeeSinDashComponent>(source)),
+                static_cast<u32_t>(world.HasComponent<LeeSinDashComponent>(source) &&
+                    world.GetComponent<LeeSinDashComponent>(source)
+                        .bIgnoreTerrainDuringTransit));
+            return false;
+        }
+
+        qSlot.currentStage = 1u;
+        qSlot.stageWindow = 2.f;
+        q2.sequenceNum = 3u;
+        TickContext rejectedTick = MakeTickContext(*room, 146u);
+        CGameRoomIntegrationProbeAccess::PushCommand(*room, q2);
+        CGameRoomIntegrationProbeAccess::RunCommandPhase(*room, rejectedTick);
+        const SkillCommandFeedback* rejected =
+            CGameRoomIntegrationProbeAccess::FindFeedback(
+                *room, kSessionId, kQSlot);
+        const bool_t bRejectedPreserved = rejected &&
+            rejected->result.state == eCommandExecutionState::Rejected &&
+            rejected->result.reason == eCommandExecutionReason::ChampionRuleBlocked &&
+            rejected->authoritativeSkillStage == 1u &&
+            rejected->stageWindowEndTick > rejectedTick.tickIndex &&
+            qSlot.currentStage == 1u && qSlot.stageWindow > 0.f;
+        if (!bRejectedPreserved)
+        {
+            std::printf(
+                "[GameRoomProjectileIntegration][LeeQ] invalid Q2 feedback=%u/%u authStage=%u end=%llu tick=%llu localStage=%u window=%.3f\n",
+                rejected ? static_cast<u32_t>(rejected->result.state) : 99u,
+                rejected ? static_cast<u32_t>(rejected->result.reason) : 99u,
+                rejected ? static_cast<u32_t>(rejected->authoritativeSkillStage) : 99u,
+                rejected ? static_cast<unsigned long long>(rejected->stageWindowEndTick) : 0ull,
+                static_cast<unsigned long long>(rejectedTick.tickIndex),
+                static_cast<u32_t>(qSlot.currentStage),
+                qSlot.stageWindow);
+        }
+        return bRejectedPreserved;
     }
 }
 
@@ -849,19 +1280,31 @@ int main()
     const bool_t bStructureGenerationPass =
         CheckStructureProjectileTargetGenerationSafety();
     const bool_t bPassivePass = CheckPassiveExpiryBeforeFirstCommand();
+    const bool_t bTurretRangePass = CheckTurretConfiguredRangeBoundary();
+    const bool_t bRemoteAggroPass = CheckTurretRemoteAggroRejected();
+    const bool_t bAggroExitPass = CheckTurretAggroDropsOnRangeExit();
+    const bool_t bLeeSinQPass = CheckLeeSinQAuthorityLifecycle();
     const bool_t bPass = bSkillPass &&
         bStructurePass &&
         bSkillGenerationPass &&
         bStructureGenerationPass &&
-        bPassivePass;
+        bPassivePass &&
+        bTurretRangePass &&
+        bRemoteAggroPass &&
+        bAggroExitPass &&
+        bLeeSinQPass;
 
     std::printf(
-        "[GameRoomProjectileIntegration] %s: skill=%u structure=%u skill_generation=%u structure_generation=%u passive_pre_command=%u\n",
+        "[GameRoomProjectileIntegration] %s: skill=%u structure=%u skill_generation=%u structure_generation=%u passive_pre_command=%u turret_range=%u remote_aggro=%u aggro_exit=%u leesin_q=%u\n",
         bPass ? "PASS" : "FAIL",
         static_cast<u32_t>(bSkillPass),
         static_cast<u32_t>(bStructurePass),
         static_cast<u32_t>(bSkillGenerationPass),
         static_cast<u32_t>(bStructureGenerationPass),
-        static_cast<u32_t>(bPassivePass));
+        static_cast<u32_t>(bPassivePass),
+        static_cast<u32_t>(bTurretRangePass),
+        static_cast<u32_t>(bRemoteAggroPass),
+        static_cast<u32_t>(bAggroExitPass),
+        static_cast<u32_t>(bLeeSinQPass));
     return bPass ? 0 : 1;
 }

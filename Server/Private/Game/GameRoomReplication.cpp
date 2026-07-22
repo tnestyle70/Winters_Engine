@@ -1,5 +1,6 @@
 #include "Game/GameRoom.h"
 
+#include "Backend/ReplayUploadQueue.h"
 #include "Game/ReplicationEmitter.h"
 #include "Game/ReplayRecorder.h"
 #include "Game/SnapshotBuilder.h"
@@ -7,6 +8,7 @@
 
 #include <Windows.h>
 
+#include <filesystem>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -28,7 +30,9 @@ void CGameRoom::FinalizeReplayRecorder()
     }
 
     std::string error;
-    const wstring_t path = m_pReplayRecorder->MakeDefaultPath();
+    const wstring_t path = m_matchID.empty()
+        ? m_pReplayRecorder->MakeDefaultPath()
+        : m_pReplayRecorder->MakeMatchPendingPath(m_matchID);
     if (m_pReplayRecorder->SaveToFile(path, error))
     {
         m_bReplayFinalized = true;
@@ -42,6 +46,70 @@ void CGameRoom::FinalizeReplayRecorder()
         const wstring_t msg = ss.str();
         OutputDebugStringW(msg.c_str());
         std::wcout << msg;
+
+        bool_t bHasCompleteRoster = !m_authenticatedParticipants.empty();
+        ReplayUploadArtifact artifact{};
+        artifact.path = path;
+        artifact.matchID = m_matchID;
+        artifact.formatVersion = Winters::Replay::kReplayVersion;
+        artifact.tickRate = m_pReplayRecorder->GetTickRate();
+        artifact.recordCount = m_pReplayRecorder->GetRecordCount();
+        artifact.snapshotCount = m_pReplayRecorder->GetSnapshotCount();
+        artifact.eventCount = m_pReplayRecorder->GetEventCount();
+        artifact.commandCount = m_pReplayRecorder->GetCommandCount();
+        artifact.firstTick = m_pReplayRecorder->GetFirstTick();
+        artifact.lastTick = m_pReplayRecorder->GetLastTick();
+        for (const auto& [userID, participant] : m_authenticatedParticipants)
+        {
+            if (participant.team == 0xFFu ||
+                participant.perspectiveNetId == NULL_NET_ENTITY ||
+                m_winningTeam == 0xFFu)
+            {
+                bHasCompleteRoster = false;
+                break;
+            }
+            ReplayUploadParticipant uploadParticipant{};
+            uploadParticipant.userID = userID;
+            uploadParticipant.result = participant.team == m_winningTeam
+                ? "win"
+                : "loss";
+            uploadParticipant.perspectiveNetId = participant.perspectiveNetId;
+            artifact.participants.push_back(std::move(uploadParticipant));
+        }
+
+        std::error_code sizeError;
+        artifact.sizeBytes = std::filesystem::file_size(path, sizeError);
+        if (artifact.matchID.empty())
+        {
+            std::cerr << "[ReplayUpload] skipped reason=missing_authenticated_match_identity"
+                << " path=" << std::filesystem::path(path).string() << '\n';
+        }
+        else if (!bHasCompleteRoster)
+        {
+            std::cerr << "[ReplayUpload] skipped reason=incomplete_authenticated_roster"
+                << " match=" << artifact.matchID
+                << " participants=" << artifact.participants.size() << '\n';
+        }
+        else if (sizeError)
+        {
+            std::cerr << "[ReplayUpload] skipped reason=file_size_failed"
+                << " match=" << artifact.matchID << '\n';
+        }
+        else
+        {
+            const std::string queuedMatchID = artifact.matchID;
+            const size_t participantCount = artifact.participants.size();
+            if (CReplayUploadQueue::Instance().Enqueue(std::move(artifact)))
+            {
+                std::cout << "[ReplayUpload] queued match=" << queuedMatchID
+                    << " participants=" << participantCount << std::endl;
+            }
+            else
+            {
+                std::cerr << "[ReplayUpload] retained reason=queue_disabled_full_or_persist_failed"
+                    << " match=" << queuedMatchID << '\n';
+            }
+        }
         return;
     }
 
@@ -136,7 +204,8 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
         const auto replaySnapshot = m_pSnapBuilder->Build(
             m_world, m_entityMap, tc.tickIndex,
             ResolveServerGameTimeMs(tc.tickIndex),
-            m_rng.GetState(), 0u, NULL_NET_ENTITY,
+            m_rng.GetState(), 0u, std::array<SkillCommandFeedback, 5u>{},
+            NULL_NET_ENTITY,
             m_timelineEpoch,
             m_timelineBranchId,
             m_toolRevision,
@@ -166,6 +235,11 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
         const auto ackIt = m_lastSimCommandSeqBySession.find(sid);
         const u32_t lastSimCommandSeq =
             (ackIt != m_lastSimCommandSeqBySession.end()) ? ackIt->second : 0u;
+        const auto feedbackIt = m_lastCommandFeedbackBySession.find(sid);
+        const std::array<SkillCommandFeedback, 5u> feedback =
+            feedbackIt != m_lastCommandFeedbackBySession.end()
+                ? feedbackIt->second
+                : std::array<SkillCommandFeedback, 5u>{};
 
         auto snapshot = m_pSnapBuilder->Build(
             m_world,
@@ -174,6 +248,7 @@ void CGameRoom::Phase_BroadcastSnapshot(TickContext& tc)
             ResolveServerGameTimeMs(tc.tickIndex),
             m_rng.GetState(),
             lastSimCommandSeq,
+            feedback,
             m_entityMap.ToNet(controlledEntity),
             m_timelineEpoch,
             m_timelineBranchId,

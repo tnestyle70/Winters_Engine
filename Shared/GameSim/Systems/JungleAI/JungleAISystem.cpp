@@ -7,13 +7,19 @@
 #include "Shared/GameSim/Components/JungleAIComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillStateComponent.h"
+#include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Components/PoseActionStateHelpers.h"
+#include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
 #include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "WintersMath.h"
+
+#include <algorithm>
+#include <limits>
 
 namespace
 {
@@ -68,6 +74,61 @@ namespace
 
         if (world.HasComponent<MoveTargetComponent>(entity))
             world.GetComponent<MoveTargetComponent>(entity) = MoveTargetComponent{};
+    }
+
+    bool_t UpdateJungleRespawn(
+        CWorld& world, EntityID entity, JungleComponent& jungle,
+        JungleAIComponent& ai, f32_t deltaSeconds, u64_t tickIndex)
+    {
+        if (!world.HasComponent<HealthComponent>(entity))
+            return true;
+        HealthComponent& health = world.GetComponent<HealthComponent>(entity);
+        const bool_t bDead = health.bIsDead || health.fCurrent <= 0.f;
+        if (!bDead)
+        {
+            if (jungle.bRespawnPending)
+            {
+                jungle.bRespawnPending = false;
+                jungle.fRespawnTimerSec = 0.f;
+                if (!world.HasComponent<TargetableTag>(entity))
+                    world.AddComponent<TargetableTag>(entity);
+            }
+            return true;
+        }
+        if (!jungle.bRespawnPending)
+        {
+            jungle.bRespawnPending = true;
+            jungle.fRespawnTimerSec = jungle.fRespawnDelaySec;
+            ClearJungleAggro(world, entity, ai);
+            ai.bReturning = false;
+            if (world.HasComponent<CombatActionComponent>(entity))
+                world.RemoveComponent<CombatActionComponent>(entity);
+            GameplayStatus::ClearStatusEffects(world, entity);
+            if (world.HasComponent<TargetableTag>(entity))
+                world.RemoveComponent<TargetableTag>(entity);
+        }
+        jungle.fRespawnTimerSec = std::max(
+            0.f, jungle.fRespawnTimerSec - std::max(0.f, deltaSeconds));
+        if (jungle.fRespawnTimerSec > 0.f)
+            return false;
+
+        jungle.bRespawnPending = false;
+        health.fMaximum = jungle.maxHp;
+        health.fCurrent = jungle.maxHp;
+        health.bIsDead = false;
+        jungle.hp = jungle.maxHp;
+        if (world.HasComponent<TransformComponent>(entity))
+            world.GetComponent<TransformComponent>(entity).SetPosition(
+                jungle.vSpawnPosition);
+        if (world.HasComponent<SkillStateComponent>(entity))
+            world.GetComponent<SkillStateComponent>(entity) = SkillStateComponent{};
+        ClearJungleAggro(world, entity, ai);
+        ai.attackSequence = 0u;
+        ai.bReturning = false;
+        if (!world.HasComponent<TargetableTag>(entity))
+            world.AddComponent<TargetableTag>(entity);
+        SetPoseState(world, entity, ePoseStateId::Idle, tickIndex, true);
+        return true;
     }
 
     constexpr f32_t kJungleReturnArriveRadius = 0.5f;
@@ -181,6 +242,57 @@ namespace
         return best;
     }
 
+    EntityID FindChampionInEffectiveAttackRange(
+        CWorld& world,
+        EntityID jungle,
+        const Vec3& selfPos,
+        EntityID preferred)
+    {
+        f32_t baseRange = 5.5f;
+        if (world.HasComponent<StatComponent>(jungle))
+        {
+            const f32_t configured =
+                world.GetComponent<StatComponent>(jungle).attackRange;
+            if (configured > 0.f)
+                baseRange = configured;
+        }
+        const f32_t sourceRadius =
+            GameplayStateQuery::ResolveGameplayRadius(world, jungle);
+        const auto isInRange = [&](EntityID candidate, f32_t& outDistanceSq)
+        {
+            if (!IsValidChampionTarget(world, jungle, candidate))
+                return false;
+            const Vec3 targetPos =
+                world.GetComponent<TransformComponent>(candidate).GetLocalPosition();
+            outDistanceSq = DistanceSqXZ(targetPos, selfPos.x, selfPos.z);
+            const f32_t effectiveRange = baseRange + sourceRadius +
+                GameplayStateQuery::ResolveGameplayRadius(world, candidate);
+            return outDistanceSq <= effectiveRange * effectiveRange;
+        };
+
+        f32_t preferredDistanceSq = 0.f;
+        if (preferred != NULL_ENTITY &&
+            isInRange(preferred, preferredDistanceSq))
+        {
+            return preferred;
+        }
+
+        EntityID best = NULL_ENTITY;
+        f32_t bestDistanceSq = (std::numeric_limits<f32_t>::max)();
+        const auto champions =
+            DeterministicEntityIterator<ChampionComponent>::CollectSorted(world);
+        for (EntityID candidate : champions)
+        {
+            f32_t distanceSq = 0.f;
+            if (isInRange(candidate, distanceSq) && distanceSq < bestDistanceSq)
+            {
+                best = candidate;
+                bestDistanceSq = distanceSq;
+            }
+        }
+        return best;
+    }
+
     GameCommand MakeJungleBasicAttackCommand(
         const TickContext& tc,
         EntityID issuer,
@@ -218,12 +330,10 @@ void CJungleAISystem::Execute(CWorld& world, const TickContext& tc,
 
         auto& ai = world.GetComponent<JungleAIComponent>(entity);
 
-        if (!IsAlive(world, entity))
-        {
-            ClearJungleAggro(world, entity, ai);
-            ai.bReturning = false;
+        auto& jungle = world.GetComponent<JungleComponent>(entity);
+        if (!UpdateJungleRespawn(
+                world, entity, jungle, ai, tc.fDt, tc.tickIndex))
             continue;
-        }
 
         if (!world.HasComponent<TransformComponent>(entity))
             continue;
@@ -237,6 +347,48 @@ void CJungleAISystem::Execute(CWorld& world, const TickContext& tc,
             ai.anchorX = selfPos.x;
             ai.anchorZ = selfPos.z;
             ai.bHasAnchor = true;
+        }
+
+        if (ai.bStationary)
+        {
+            auto& transform = world.GetComponent<TransformComponent>(entity);
+            Vec3 anchored = transform.GetLocalPosition();
+            anchored.x = ai.anchorX;
+            anchored.z = ai.anchorZ;
+            transform.SetPosition(anchored);
+            ai.bReturning = false;
+
+            if (world.HasComponent<AttackChaseComponent>(entity))
+                world.RemoveComponent<AttackChaseComponent>(entity);
+            if (world.HasComponent<MoveTargetComponent>(entity))
+                world.GetComponent<MoveTargetComponent>(entity) = MoveTargetComponent{};
+
+            if (!ai.bAggro)
+            {
+                ai.target = NULL_ENTITY;
+                continue;
+            }
+
+            ai.target = FindChampionInEffectiveAttackRange(
+                world, entity, anchored, ai.target);
+            if (ai.target == NULL_ENTITY ||
+                HasActiveAttackWork(world, entity) ||
+                !IsBasicAttackReady(world, entity))
+            {
+                continue;
+            }
+
+            const Vec3 targetPos =
+                world.GetComponent<TransformComponent>(ai.target).GetLocalPosition();
+            ++ai.attackSequence;
+            outCommands.push_back(MakeJungleBasicAttackCommand(
+                tc,
+                entity,
+                ai.target,
+                ai.attackSequence,
+                anchored,
+                targetPos));
+            continue;
         }
 
         // 복귀 중에는 전투를 무시하고 캠프로 걷는다. 도착 시 해제.

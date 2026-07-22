@@ -1,5 +1,7 @@
 # Render Graph v2 — 차세대 렌더 파이프라인 (코드베이스 반영) — **rev 2**
 
+> **2026-07-15 동기화 판정: 역사 자료.** 이 문서는 같은 본문 안에서 ECS World 직접 접근과 `RenderWorldSnapshot` 전용 계약을 동시에 제시하고, 현재 Winters RHI에 없는 API 및 DXGI format을 공용 graph desc에 노출한다. 실제 다음 구현 지시는 `.md/plan/2026-07-15_UNREAL_SYNCED_RHI_RENDER_GRAPH_DX12_VULKAN_PLAN.md`를 권위로 삼는다. 첫 slice는 single-thread, snapshot-only, `eRHIResourceState` 기반 dependency/transition 원장으로 제한하며 transient aliasing, Fiber 병렬 실행, Vulkan 완료를 주장하지 않는다.
+
 **작성일**: 2026-05-04
 **rev 2 (2026-05-04, Codex 검토 반영)**: ① `IRHIDevice::TextureHandle` → `RHITextureHandle` (RHIHandles.h:58) ② Pass 의 ECS World 직접 의존 → **RenderWorldSnapshot** 패턴
 **v1 폐기**: [`RENDER_GRAPH_PLAN.md`](RENDER_GRAPH_PLAN.md) — Engine/Header 경로 + raw DX11 중심 stale.

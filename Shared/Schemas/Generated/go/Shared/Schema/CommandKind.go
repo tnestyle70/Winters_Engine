@@ -20,6 +20,8 @@ const (
 	CommandKindFlash            CommandKind = 10
 	CommandKindCompanionCommand CommandKind = 11
 	CommandKindPracticeControl  CommandKind = 12
+	CommandKindReorderItem      CommandKind = 13
+	CommandKindTeamPing         CommandKind = 14
 )
 
 var EnumNamesCommandKind = map[CommandKind]string{
@@ -36,6 +38,8 @@ var EnumNamesCommandKind = map[CommandKind]string{
 	CommandKindFlash:            "Flash",
 	CommandKindCompanionCommand: "CompanionCommand",
 	CommandKindPracticeControl:  "PracticeControl",
+	CommandKindReorderItem:      "ReorderItem",
+	CommandKindTeamPing:         "TeamPing",
 }
 
 var EnumValuesCommandKind = map[string]CommandKind{
@@ -52,6 +56,8 @@ var EnumValuesCommandKind = map[string]CommandKind{
 	"Flash":            CommandKindFlash,
 	"CompanionCommand": CommandKindCompanionCommand,
 	"PracticeControl":  CommandKindPracticeControl,
+	"ReorderItem":      CommandKindReorderItem,
+	"TeamPing":         CommandKindTeamPing,
 }
 
 func (v CommandKind) String() string {

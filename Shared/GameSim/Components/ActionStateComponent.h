@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
+#include "Shared/GameSim/Definitions/SkillTypes.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
 
@@ -18,14 +19,6 @@ enum class eActionStateId : u16_t
     Recall = 30,
     DeathStart = 50,
     ViegoConsumeSoul = 60,
-};
-
-enum class eSkillActionMovePolicy : u8_t
-{
-    Allow = 0,
-    QueueUntilUnlock = 1,
-    StationaryChannel = 2,
-    ForcedMotion = 3,
 };
 
 struct ActionStateComponent

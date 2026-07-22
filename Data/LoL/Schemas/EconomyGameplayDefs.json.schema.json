@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Economy gameplay definitions",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "dataVersion",
+    "xpCurve",
+    "championKill",
+    "minions",
+    "turretGold",
+    "turretTeamGold",
+    "jungle",
+    "objectives",
+    "passiveGold",
+    "timers"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dataVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "buildHash": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "xpCurve": {
+      "type": "array",
+      "minItems": 1
+    },
+    "championKill": {
+      "type": "object"
+    },
+    "minions": {
+      "type": "object"
+    },
+    "turretGold": {
+      "type": "number"
+    },
+    "turretTeamGold": {
+      "type": "number"
+    },
+    "jungle": {
+      "type": "object"
+    },
+    "objectives": {
+      "type": "object",
+      "required": [
+        "teamGoldPerChampion",
+        "teamLevelGrant",
+        "buffDurationSec",
+        "baronRecallDurationMultiplier",
+        "baronAuraRadius",
+        "baronMinionHpMultiplier",
+        "baronMinionAttackDamageMultiplier",
+        "baronMinionScaleMultiplier",
+        "elderAttackDamageMultiplier",
+        "elderBurnDurationSec",
+        "elderBurnTickIntervalSec",
+        "elderBurnTargetMaxHpRatioPerTick",
+        "elderExecuteThresholdRatio",
+        "blueManaRegenPerSec",
+        "redHealthRegenPerSec",
+        "redBurnDurationSec",
+        "redBurnTickIntervalSec",
+        "redBurnDamagePerTick"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "teamGoldPerChampion": { "type": "number", "minimum": 0 },
+        "teamLevelGrant": { "type": "integer", "minimum": 0, "maximum": 18 },
+        "buffDurationSec": { "type": "number", "minimum": 0 },
+        "baronRecallDurationMultiplier": { "type": "number", "minimum": 0 },
+        "baronAuraRadius": { "type": "number", "minimum": 0 },
+        "baronMinionHpMultiplier": { "type": "number", "minimum": 0 },
+        "baronMinionAttackDamageMultiplier": { "type": "number", "minimum": 0 },
+        "baronMinionScaleMultiplier": { "type": "number", "minimum": 0 },
+        "elderAttackDamageMultiplier": { "type": "number", "minimum": 0 },
+        "elderBurnDurationSec": { "type": "number", "minimum": 0 },
+        "elderBurnTickIntervalSec": { "type": "number", "exclusiveMinimum": 0 },
+        "elderBurnTargetMaxHpRatioPerTick": { "type": "number", "minimum": 0, "maximum": 1 },
+        "elderExecuteThresholdRatio": { "type": "number", "minimum": 0, "maximum": 1 },
+        "blueManaRegenPerSec": { "type": "number", "minimum": 0 },
+        "redHealthRegenPerSec": { "type": "number", "minimum": 0 },
+        "redBurnDurationSec": { "type": "number", "minimum": 0 },
+        "redBurnTickIntervalSec": { "type": "number", "exclusiveMinimum": 0 },
+        "redBurnDamagePerTick": { "type": "number", "minimum": 0 }
+      }
+    },
+    "passiveGold": {
+      "type": "object"
+    },
+    "timers": {
+      "type": "object"
+    }
+  }
+}

@@ -32,7 +32,9 @@ namespace
 						input.bCanAttackStructure) ||
 					(ai.intent == eChampionAIIntent::Retreat &&
 						input.fRetreatScore >= 0.35f) ||
-					ai.intent == eChampionAIIntent::FarmMinion)
+					(ai.intent == eChampionAIIntent::FarmMinion &&
+						!input.bCanAttackChampion &&
+						!input.bCanAttackStructure))
 					return ai.intent;
 			}
 
@@ -95,10 +97,11 @@ namespace
 			ai.intentHoldTimer = ai.intentHoldDuration * kCommitScale;
 
 			// 근소 열세까지는 교전 후보 유지 — 동률·미세 열세에서 무조건 파밍 금지.
-			const bool_t bHpAdvantage =
-				ai.fDecisionSelfHpRatio + kHpDisadvantageTolerance >=
+			const bool_t bWithinSevereHpDisadvantageLimit =
+				ai.fDecisionSelfHpRatio + kSevereHpDisadvantageTolerance >=
 					ai.fDecisionEnemyHpRatio;
-			if (input.bCanAttackChampion && bHpAdvantage &&
+			if (input.bCanAttackChampion &&
+				bWithinSevereHpDisadvantageLimit &&
 				input.fChampionScore >=
 					input.fFarmScore + ai.fChampionScoreMargin &&
 				input.fChampionScore >= input.fStructureScore)
@@ -118,8 +121,8 @@ namespace
 	private:
 		// 사람처럼 결정을 더 오래 유지하는 배율
 		static constexpr f32_t kCommitScale = 1.5f;
-		// 체력 하드게이트 완화 폭 — 이 이상 열세면 신규 교전을 열지 않는다.
-		static constexpr f32_t kHpDisadvantageTolerance = 0.12f;
+		// 심각한 체력 열세에서만 신규 교전을 차단하고, 일반 열세는 utility가 판정한다.
+		static constexpr f32_t kSevereHpDisadvantageTolerance = 0.30f;
 	};
 
 	// 외부 판단 모듈(플래너/학습 정책) 연동 지점.

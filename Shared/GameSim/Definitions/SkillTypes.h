@@ -25,6 +25,21 @@ enum class eSkillFacingMode : uint8_t
     TowardsCommandDirection,
 };
 
+enum class eSkillInputActivation : uint8_t
+{
+    Press = 0,
+    PressRecast = 1,
+    PressRelease = 2,
+};
+
+enum class eSkillActionMovePolicy : uint8_t
+{
+    Allow = 0,
+    QueueUntilUnlock = 1,
+    StationaryChannel = 2,
+    ForcedMotion = 3,
+};
+
 // Legacy compatibility. Delete after SkillDef/SkillTable readers are gone.
 enum class eTargetMode : uint8_t
 {
@@ -32,7 +47,6 @@ enum class eTargetMode : uint8_t
     UnitTarget,
     GroundTarget,
     Direction,
-    Conditional,
 };
 
 enum class eSkillSlot : uint8_t

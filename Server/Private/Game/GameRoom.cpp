@@ -1,6 +1,5 @@
 #include "Game/GameRoom.h"
 
-#include "Game/ServerMinionTuning.h"
 #include "Game/SnapshotBuilder.h"
 #include "Game/ReplayRecorder.h"
 #include "GameRoomSmokeRoster.h"
@@ -58,8 +57,6 @@
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 #include "Shared/GameSim/Definitions/StageData.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
@@ -193,6 +190,7 @@ namespace
         ai.bCanAttackChampion = false;
         ai.bPostComboBAAllowed = false;
         ai.bMidDefenseActive = false;
+        ai.midDefenseThreatHoldTimer = 0.f;
     }
 }
 
@@ -292,9 +290,18 @@ void CGameRoom::Phase_ServerDeathAndRespawn(TickContext& tc)
         {
             const SpawnLoadoutPolicyDef& spawnPolicy =
                 ServerData::GetActiveLoLSpawnObjectDefinitionPack().spawnLoadout;
+            const u8_t level = champion.level < 1u
+                ? 1u
+                : (std::min)(champion.level, SpawnLoadoutPolicyDef::kRespawnLevelCount);
+            const f32_t respawnDelay = spawnPolicy.ResolveRespawnDelaySec(
+                level,
+                static_cast<f32_t>(tc.tickIndex) /
+                    static_cast<f32_t>(DeterministicTime::kTicksPerSecond),
+                m_bPracticeModeEnabled,
+                m_PracticeRespawnSecondsByLevel.data());
             respawn.bPending = true;
-            respawn.respawnDelay = spawnPolicy.respawnDelaySec;
-            respawn.respawnTimer = spawnPolicy.respawnDelaySec;
+            respawn.respawnDelay = respawnDelay;
+            respawn.respawnTimer = respawnDelay;
 
             GameplayStatus::ClearStatusEffects(m_world, entity);
 
@@ -436,8 +443,6 @@ void CGameRoom::InitializeServerSimSystems()
     m_pSpatialSystem = Engine::CSpatialHashSystem::Create();
     m_pTurretAI = GameplayTurret::CTurretAISystem::Create();
 
-    RegisterDefaultChampionSkillScalingTables();
-
     // 활성 정의 팩의 경제 값으로 보상/XP 레지스트리 재적재 (팩 미장착 시 ctor 기본값 유지).
     if (const EconomyGameplayDef* pEconomy =
         ServerData::GetActiveLoLGameplayDefinitionPack().FindEconomy())
@@ -474,6 +479,12 @@ void CGameRoom::InitializeServerSimSystems()
 
 void CGameRoom::ResetMatchStateLocked()
 {
+    if (m_bGameEnded)
+    {
+        m_lastCompletedGameSessionGeneration = (std::max)(
+            m_lastCompletedGameSessionGeneration,
+            m_gameSessionGeneration);
+    }
     // 월드 통째 교체 — 파괴된 구조물/미니언/챔피언/이벤트 엔티티 전부 소멸.
     // 스테이지/내비/웨이포인트/구조물 스폰은 SpawnServerGameplayObjects가 자기완결이라
     // m_bGameplayObjectsSpawned 가드만 풀면 다음 매치 시작(bBeginLoading) 때 재구축된다.
@@ -492,6 +503,14 @@ void CGameRoom::ResetMatchStateLocked()
     m_pReplayRecorder = CReplayRecorder::Create(m_roomId, 30);
     m_bReplayFinalized = false;
     m_bGameEnded = false;
+    m_matchID.clear();
+    m_gameSessionID.clear();
+	m_gameSessionGeneration = 0u;
+    m_pendingReadyMatchID.clear();
+    m_pendingReadyGameSessionID.clear();
+    m_userIDBySession.clear();
+    m_authenticatedParticipants.clear();
+    m_winningTeam = 0xFFu;
 
     m_pSpatialSystem = Engine::CSpatialHashSystem::Create();
     m_pTurretAI = GameplayTurret::CTurretAISystem::Create();
@@ -500,6 +519,8 @@ void CGameRoom::ResetMatchStateLocked()
     m_pendingExecCommands.clear();
     m_pendingReplayCommands.clear();
     m_bPracticeModeEnabled = false;
+    m_PracticeRespawnSecondsByLevel.fill(0.f);
+    m_PracticeMinionAttackDamage.Clear();
     m_PracticeSpawnedEntities.clear();
     m_PendingPracticeControlChange = {};
 
@@ -516,6 +537,7 @@ void CGameRoom::ResetMatchStateLocked()
     m_sessionBinding = CSessionBinding{};
     m_lastBroadcastActionSeq.clear();
     m_lastSimCommandSeqBySession.clear();
+    m_lastCommandFeedbackBySession.clear();
 
     m_bGameplayObjectsSpawned = false;
     m_serverMinionWaves.Clear();
@@ -524,6 +546,14 @@ void CGameRoom::ResetMatchStateLocked()
     InitializeLobbyAuthority();
 
     OutputServerAITrace("[GameRoom] Match reset after game end; lobby back to SeatSelect\n");
+}
+
+void CGameRoom::SetCompletedGameSessionGenerationFloor(u64_t generation)
+{
+    std::lock_guard stateLock(m_stateMutex);
+    m_lastCompletedGameSessionGeneration = (std::max)(
+        m_lastCompletedGameSessionGeneration,
+        generation);
 }
 
 u64_t CGameRoom::ResolveServerGameTimeMs(u64_t iServerTick)

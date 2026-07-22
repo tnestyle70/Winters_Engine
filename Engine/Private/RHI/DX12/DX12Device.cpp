@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstring>
 #include <d3dcompiler.h>
+#include <d3d12sdklayers.h>
 #include <deque>
 #include <string>
 #include <utility>
@@ -186,6 +187,143 @@ namespace
         default:
             return D3D12_RESOURCE_STATE_COMMON;
         }
+    }
+
+    bool_t IsSupportedDX12BufferState(eRHIResourceState state)
+    {
+        switch (state)
+        {
+        case eRHIResourceState::Common:
+        case eRHIResourceState::VertexConstant:
+        case eRHIResourceState::IndexBuffer:
+        case eRHIResourceState::ShaderResource:
+        case eRHIResourceState::CopyDest:
+        case eRHIResourceState::CopySource:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool_t IsUploadHeapCompatibleBufferState(eRHIResourceState state)
+    {
+        switch (state)
+        {
+        case eRHIResourceState::VertexConstant:
+        case eRHIResourceState::IndexBuffer:
+        case eRHIResourceState::ShaderResource:
+        case eRHIResourceState::CopySource:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool_t TryToDX12BufferState(
+        eRHIResourceState state,
+        D3D12_RESOURCE_STATES& outState)
+    {
+        switch (state)
+        {
+        case eRHIResourceState::Common:
+            outState = D3D12_RESOURCE_STATE_COMMON;
+            return true;
+        case eRHIResourceState::VertexConstant:
+            outState = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+            return true;
+        case eRHIResourceState::IndexBuffer:
+            outState = D3D12_RESOURCE_STATE_INDEX_BUFFER;
+            return true;
+        case eRHIResourceState::ShaderResource:
+            outState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+                D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            return true;
+        case eRHIResourceState::CopyDest:
+            outState = D3D12_RESOURCE_STATE_COPY_DEST;
+            return true;
+        case eRHIResourceState::CopySource:
+            outState = D3D12_RESOURCE_STATE_COPY_SOURCE;
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool_t IsShaderResourceOnlyTextureUsage(u32_t usageFlags)
+    {
+        return usageFlags == static_cast<u32_t>(eRHITextureUsage::ShaderResource);
+    }
+
+    bool_t TryToDX12TextureState(
+        eRHIResourceState state,
+        D3D12_RESOURCE_STATES& outState)
+    {
+        switch (state)
+        {
+        case eRHIResourceState::ShaderResource:
+            outState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+                D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+            return true;
+        case eRHIResourceState::CopyDest:
+            outState = D3D12_RESOURCE_STATE_COPY_DEST;
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool_t TryGetDX12ValidationMessageCount(
+        ID3D12Device* pDevice,
+        u64_t& outCount)
+    {
+        outCount = 0;
+        if (!pDevice)
+            return false;
+
+        Microsoft::WRL::ComPtr<ID3D12InfoQueue> pInfoQueue;
+        if (FAILED(pDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue))))
+            return false;
+
+        outCount = pInfoQueue->GetNumStoredMessagesAllowedByRetrievalFilter();
+        return true;
+    }
+
+    u32_t CountDX12ValidationErrorsSince(
+        ID3D12Device* pDevice,
+        u64_t firstMessage)
+    {
+        if (!pDevice)
+            return 0;
+
+        Microsoft::WRL::ComPtr<ID3D12InfoQueue> pInfoQueue;
+        if (FAILED(pDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue))))
+            return 0;
+
+        const u64_t messageCount =
+            pInfoQueue->GetNumStoredMessagesAllowedByRetrievalFilter();
+        u32_t errorCount = 0;
+        for (u64_t index = firstMessage; index < messageCount; ++index)
+        {
+            SIZE_T messageSize = 0;
+            if (FAILED(pInfoQueue->GetMessage(index, nullptr, &messageSize)) ||
+                messageSize == 0)
+            {
+                continue;
+            }
+
+            std::vector<u8_t> storage(messageSize);
+            D3D12_MESSAGE* pMessage =
+                reinterpret_cast<D3D12_MESSAGE*>(storage.data());
+            if (FAILED(pInfoQueue->GetMessage(index, pMessage, &messageSize)))
+                continue;
+
+            if (pMessage->Severity == D3D12_MESSAGE_SEVERITY_ERROR ||
+                pMessage->Severity == D3D12_MESSAGE_SEVERITY_CORRUPTION)
+            {
+                ++errorCount;
+            }
+        }
+        return errorCount;
     }
 
     D3D12_PRIMITIVE_TOPOLOGY_TYPE ToDX12TopologyType(eRHIPrimitiveTopology topology)
@@ -787,8 +925,29 @@ public:
     {
     }
 
-    void Begin() override {}
+    void Begin() override
+    {
+        m_Diagnostics = {};
+        m_bValidationAvailable = m_Owner.m_bDebugLayerEnabled &&
+            TryGetDX12ValidationMessageCount(
+                m_Owner.m_pDevice.Get(),
+                m_uValidationMessageBaseline);
+    }
+
     void End() override {}
+
+    RHICommandListDiagnostics GetDiagnostics() const override
+    {
+        RHICommandListDiagnostics diagnostics = m_Diagnostics;
+        diagnostics.validationAvailable = m_bValidationAvailable;
+        if (m_bValidationAvailable)
+        {
+            diagnostics.validationErrorCount = CountDX12ValidationErrorsSince(
+                m_Owner.m_pDevice.Get(),
+                m_uValidationMessageBaseline);
+        }
+        return diagnostics;
+    }
 
     void BeginRenderPass(RHIRenderPassHandle) override {}
     void EndRenderPass() override {}
@@ -988,8 +1147,110 @@ public:
         pResource->Unmap(0, nullptr);
     }
 
-    void TransitionResource(RHIBufferHandle, eRHIResourceState) override {}
-    void TransitionResource(RHITextureHandle, eRHIResourceState) override {}
+    bool_t TransitionResource(
+        RHIBufferHandle handle,
+        eRHIResourceState newState) override
+    {
+        if (!m_Owner.m_pTables || !m_Owner.m_pCommandList ||
+            !m_Owner.m_bFrameRecording)
+        {
+            OutputDebugStringA(
+                "[CDX12FrameCommandList] buffer transition rejected: frame is not recording\n");
+            return false;
+        }
+
+        CDX12Buffer* pBuffer = m_Owner.m_pTables->bufferTable.Lookup(handle);
+        if (!pBuffer)
+        {
+            OutputDebugStringA(
+                "[CDX12FrameCommandList] buffer transition rejected: invalid handle\n");
+            return false;
+        }
+
+        if (!IsSupportedDX12BufferState(newState))
+        {
+            OutputDebugStringA(
+                "[CDX12FrameCommandList] buffer transition rejected: unsupported state\n");
+            return false;
+        }
+
+        if (pBuffer->uploadHeap)
+        {
+            if (!IsUploadHeapCompatibleBufferState(newState))
+            {
+                OutputDebugStringA(
+                    "[CDX12FrameCommandList] upload buffer transition rejected: "
+                    "GENERIC_READ is fixed\n");
+                return false;
+            }
+            return true;
+        }
+
+        D3D12_RESOURCE_STATES targetState = D3D12_RESOURCE_STATE_COMMON;
+        if (!TryToDX12BufferState(newState, targetState))
+            return false;
+
+        ID3D12Resource* pResource = GetDX12BufferResource(
+            *pBuffer,
+            m_Owner.m_iFrameIndex);
+        if (!pResource)
+            return false;
+
+        if (pBuffer->state == targetState)
+            return true;
+
+        const D3D12_RESOURCE_BARRIER barrier = MakeTransitionBarrier(
+            pResource,
+            pBuffer->state,
+            targetState);
+        m_Owner.m_pCommandList->ResourceBarrier(1, &barrier);
+        ++m_Diagnostics.emittedResourceBarrierCount;
+        pBuffer->state = targetState;
+        return true;
+    }
+
+    bool_t TransitionResource(
+        RHITextureHandle handle,
+        eRHIResourceState newState) override
+    {
+        if (!m_Owner.m_pTables || !m_Owner.m_pCommandList ||
+            !m_Owner.m_bFrameRecording)
+        {
+            OutputDebugStringA(
+                "[CDX12FrameCommandList] texture transition rejected: frame is not recording\n");
+            return false;
+        }
+
+        CDX12Texture* pTexture =
+            m_Owner.m_pTables->textureTable.Lookup(handle);
+        if (!pTexture || !pTexture->pResource ||
+            !IsShaderResourceOnlyTextureUsage(pTexture->desc.usageFlags))
+        {
+            OutputDebugStringA(
+                "[CDX12FrameCommandList] texture transition rejected: invalid texture or usage\n");
+            return false;
+        }
+
+        D3D12_RESOURCE_STATES targetState = D3D12_RESOURCE_STATE_COMMON;
+        if (!TryToDX12TextureState(newState, targetState))
+        {
+            OutputDebugStringA(
+                "[CDX12FrameCommandList] texture transition rejected: unsupported state\n");
+            return false;
+        }
+
+        if (pTexture->state == targetState)
+            return true;
+
+        const D3D12_RESOURCE_BARRIER barrier = MakeTransitionBarrier(
+            pTexture->pResource.Get(),
+            pTexture->state,
+            targetState);
+        m_Owner.m_pCommandList->ResourceBarrier(1, &barrier);
+        ++m_Diagnostics.emittedResourceBarrierCount;
+        pTexture->state = targetState;
+        return true;
+    }
 
     void* GetNativeHandle(eNativeHandleType type) const override
     {
@@ -1002,6 +1263,9 @@ public:
 private:
     CDX12Device& m_Owner;
     CDX12PipelineState* m_pCurrentPipeline = nullptr;
+    RHICommandListDiagnostics m_Diagnostics{};
+    u64_t m_uValidationMessageBaseline = 0;
+    bool_t m_bValidationAvailable = false;
 };
 
 CDX12Device::CDX12Device()
@@ -1223,8 +1487,14 @@ RHITextureHandle CDX12Device::CreateTexture(
     const void* pInitialData,
     u32_t rowPitchBytes)
 {
-    if (!m_pDevice || !m_pTables || desc.width == 0 || desc.height == 0)
+    if (!m_pDevice || !m_pTables ||
+        desc.width == 0 || desc.height == 0 || desc.depth != 1 ||
+        !IsShaderResourceOnlyTextureUsage(desc.usageFlags))
+    {
+        OutputDebugStringA(
+            "[CDX12Device] CreateTexture rejected: only ShaderResource 2D usage is implemented\n");
         return {};
+    }
 
     if (m_bFrameRecording && pInitialData)
     {
@@ -1808,8 +2078,19 @@ bool_t CDX12Device::Initialize(const DX12DeviceDesc& desc)
     if (!CreateDescriptorHeaps())
         return false;
 
+    InitializeCapabilities();
+
     OutputDebugStringA("[CDX12Device] DX12 device/swapchain ready\n");
     return true;
+}
+
+void CDX12Device::InitializeCapabilities()
+{
+    m_Capabilities = {};
+    m_Capabilities.backend = eRHIBackend::DX12;
+    m_Capabilities.featureTier = eRHIFeatureTier::ExplicitDesktop;
+    m_Capabilities.apiRequiresExplicitResourceStates = true;
+    m_Capabilities.frameResourceSlotCount = kFrameCount;
 }
 
 bool_t CDX12Device::CreateDescriptorHeaps()
@@ -1866,6 +2147,7 @@ bool_t CDX12Device::CreateDevice(const DX12DeviceDesc& desc)
     if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&pDebug))))
     {
         pDebug->EnableDebugLayer();
+        m_bDebugLayerEnabled = true;
         factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
     }
 #endif
@@ -2123,6 +2405,36 @@ void CDX12Device::EndFrame()
 
     m_iFrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
     m_bFrameRecording = false;
+}
+
+bool_t CDX12Device::WaitIdle()
+{
+    if (!m_pCommandQueue || !m_pFence || !m_hFenceEvent)
+        return false;
+
+    const u64_t fenceValue = m_uNextFenceValue++;
+    if (FAILED(m_pCommandQueue->Signal(m_pFence.Get(), fenceValue)))
+        return false;
+
+    u64_t completedValue = m_pFence->GetCompletedValue();
+    if (completedValue == UINT64_MAX)
+        return false;
+
+    if (completedValue < fenceValue)
+    {
+        if (FAILED(m_pFence->SetEventOnCompletion(fenceValue, m_hFenceEvent)))
+            return false;
+        if (WaitForSingleObject(m_hFenceEvent, INFINITE) != WAIT_OBJECT_0)
+            return false;
+    }
+
+    completedValue = m_pFence->GetCompletedValue();
+    if (completedValue == UINT64_MAX || completedValue < fenceValue)
+        return false;
+
+    for (u64_t& frameFenceValue : m_uFrameFenceValues)
+        frameFenceValue = 0;
+    return true;
 }
 
 void CDX12Device::WaitForFenceValue(u64_t fenceValue)

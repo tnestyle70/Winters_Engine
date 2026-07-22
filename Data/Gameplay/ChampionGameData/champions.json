@@ -1,25 +1,28 @@
 {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "champions": [
         {
             "champion": "IRELIA",
             "dataVersion": 1,
             "stats": {
-                "baseHp": 590.0,
-                "hpPerLevel": 124.0,
+                "baseHp": 630.0,
+                "hpPerLevel": 115.0,
                 "baseMana": 350.0,
                 "manaPerLevel": 50.0,
-                "baseAd": 65.0,
-                "adPerLevel": 3.5,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
+                "baseAd": 85.0,
+                "adPerLevel": 10.5,
                 "baseAp": 0.0,
                 "apPerLevel": 0.0,
                 "baseArmor": 36.0,
                 "armorPerLevel": 4.7,
-                "baseMr": 32.0,
+                "baseMr": 30.0,
                 "mrPerLevel": 2.05,
                 "baseAttackSpeed": 0.656,
                 "attackSpeedRatio": 0.656,
                 "attackSpeedPerLevel": 0.025,
+                "basicAttackWindupSec": 0.2,
                 "baseAttackRange": 2.1,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -32,7 +35,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
+                    "cooldownSec": 0.6000000238418579,
                     "rangeMax": 2.1,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -41,85 +44,180 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.46
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.466667,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
                     ]
                 },
                 {
                     "slot": 1,
-                    "targetMode": "Conditional",
+                    "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
+                    "cooldownSec": 5.0,
+                    "cooldownSecByRank": [
+                        5.0,
+                        4.0,
+                        3.0,
+                        2.5,
+                        2.0
+                    ],
                     "rangeMax": 6.0,
-                    "manaCost": 20.0,
+                    "manaCost": 15.0,
+                    "manaCostByRank": [
+                        15.0,
+                        15.0,
+                        15.0,
+                        15.0,
+                        15.0
+                    ],
                     "skillId": 0,
                     "scalingTableId": 0,
                     "gameplayPolicyId": 0,
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.36
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.36,
+                            "commandLockSec": 0.36,
+                            "movePolicy": "ForcedMotion"
                         }
                     ]
                 },
                 {
                     "slot": 2,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 2,
                     "stageWindowSec": 4.0,
-                    "cooldownSec": 3.0,
+                    "cooldownSec": 6.0,
+                    "cooldownSecByRank": [
+                        6.0,
+                        5.0,
+                        5.0,
+                        5.0,
+                        4.0
+                    ],
                     "rangeMax": 0.0,
                     "manaCost": 70.0,
+                    "manaCostByRank": [
+                        70.0,
+                        75.0,
+                        80.0,
+                        85.0,
+                        90.0
+                    ],
                     "skillId": 0,
                     "scalingTableId": 0,
                     "gameplayPolicyId": 0,
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 5.0
+                            "targetMode": "Direction",
+                            "lockDurationSec": 5.0,
+                            "commandLockSec": 4.0,
+                            "movePolicy": "StationaryChannel",
+                            "presentationLoopWhileActive": true
                         },
                         {
-                            "lockDurationSec": 0.4
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.4,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
-                    ]
+                    ],
+                    "activationMode": "PressRelease",
+                    "charge": {
+                        "maxHoldSec": 4.0,
+                        "autoRelease": true,
+                        "rangeScale": [
+                            1.0,
+                            1.0
+                        ],
+                        "damageScale": [
+                            1.0,
+                            3.0
+                        ],
+                        "stunSeconds": [
+                            0.0,
+                            0.0
+                        ]
+                    }
                 },
                 {
                     "slot": 3,
-                    "targetMode": "Conditional",
+                    "targetMode": "GroundTarget",
                     "stageCount": 2,
                     "stageWindowSec": 3.5,
-                    "cooldownSec": 3.0,
+                    "cooldownSec": 5.0,
+                    "cooldownSecByRank": [
+                        5.0,
+                        5.0,
+                        5.0,
+                        5.0,
+                        5.0
+                    ],
                     "rangeMax": 9.0,
                     "manaCost": 50.0,
+                    "manaCostByRank": [
+                        50.0,
+                        50.0,
+                        50.0,
+                        50.0,
+                        50.0
+                    ],
                     "skillId": 0,
                     "scalingTableId": 0,
                     "gameplayPolicyId": 0,
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.9
+                            "targetMode": "GroundTarget",
+                            "lockDurationSec": 0.9,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         },
                         {
-                            "lockDurationSec": 0.45
+                            "targetMode": "GroundTarget",
+                            "lockDurationSec": 0.45,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
-                    ]
+                    ],
+                    "activationMode": "PressRecast"
                 },
                 {
                     "slot": 4,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
+                    "cooldownSec": 125.0,
+                    "cooldownSecByRank": [
+                        125.0,
+                        105.0,
+                        85.0
+                    ],
                     "rangeMax": 12.0,
                     "manaCost": 100.0,
+                    "manaCostByRank": [
+                        100.0,
+                        100.0,
+                        100.0
+                    ],
                     "skillId": 0,
                     "scalingTableId": 0,
                     "gameplayPolicyId": 0,
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.65
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.65,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
                     ]
                 }
@@ -131,10 +229,12 @@
             "stats": {
                 "baseHp": 590.0,
                 "hpPerLevel": 110.0,
-                "baseMana": 300.0,
-                "manaPerLevel": 50.0,
-                "baseAd": 60.0,
-                "adPerLevel": 3.0,
+                "baseMana": 0.0,
+                "manaPerLevel": 0.0,
+                "resourceKind": "Flow",
+                "resourceRegenPerSec": 0.0,
+                "baseAd": 80.0,
+                "adPerLevel": 10.0,
                 "baseAp": 0.0,
                 "apPerLevel": 0.0,
                 "baseArmor": 30.0,
@@ -144,6 +244,7 @@
                 "baseAttackSpeed": 0.697,
                 "attackSpeedRatio": 0.697,
                 "attackSpeedPerLevel": 0.033,
+                "basicAttackWindupSec": 0.175,
                 "baseAttackRange": 2.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -156,7 +257,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
+                    "cooldownSec": 0.6000000238418579,
                     "rangeMax": 2.5,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -165,8 +266,14 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
                     ]
                 },
                 {
@@ -183,8 +290,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        2.0,
+                        1.5,
+                        1.5
                     ]
                 },
                 {
@@ -201,16 +318,26 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.25
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.25,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 3,
-                    "targetMode": "Conditional",
+                    "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
+                    "cooldownSec": 0.10000000149011612,
                     "rangeMax": 4.75,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -219,13 +346,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.4
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.4,
+                            "commandLockSec": 0.4,
+                            "movePolicy": "ForcedMotion"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.10000000149011612,
+                        0.10000000149011612,
+                        0.10000000149011612,
+                        0.10000000149011612,
+                        0.10000000149011612
                     ]
                 },
                 {
                     "slot": 4,
-                    "targetMode": "Conditional",
+                    "targetMode": "Self",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -237,8 +374,16 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.6,
+                            "movePolicy": "ForcedMotion"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -251,6 +396,8 @@
                 "hpPerLevel": 114.0,
                 "baseMana": 300.0,
                 "manaPerLevel": 45.0,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
                 "baseAd": 61.0,
                 "adPerLevel": 3.25,
                 "baseAp": 0.0,
@@ -262,6 +409,7 @@
                 "baseAttackSpeed": 0.694,
                 "attackSpeedRatio": 0.694,
                 "attackSpeedPerLevel": 0.045,
+                "basicAttackWindupSec": 0.25,
                 "baseAttackRange": 5.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -283,8 +431,14 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.5
                     ]
                 },
                 {
@@ -292,7 +446,7 @@
                     "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
+                    "cooldownSec": 5.0,
                     "rangeMax": 16.5,
                     "manaCost": 50.0,
                     "skillId": 0,
@@ -301,8 +455,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.3
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.3,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        5.0,
+                        4.0,
+                        1.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -319,8 +483,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -337,13 +511,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.4
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.4,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 4,
-                    "targetMode": "Direction",
+                    "targetMode": "Self",
                     "stageCount": 2,
                     "stageWindowSec": 4.0,
                     "cooldownSec": 3.0,
@@ -355,11 +539,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         },
                         {
-                            "lockDurationSec": 0.45
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.45,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ],
@@ -375,8 +571,10 @@
             "stats": {
                 "baseHp": 690.0,
                 "hpPerLevel": 98.0,
-                "baseMana": 300.0,
-                "manaPerLevel": 50.0,
+                "baseMana": 0.0,
+                "manaPerLevel": 0.0,
+                "resourceKind": "None",
+                "resourceRegenPerSec": 0.0,
                 "baseAd": 69.0,
                 "adPerLevel": 4.5,
                 "baseAp": 0.0,
@@ -388,6 +586,7 @@
                 "baseAttackSpeed": 0.625,
                 "attackSpeedRatio": 0.625,
                 "attackSpeedPerLevel": 0.034,
+                "basicAttackWindupSec": 0.25,
                 "baseAttackRange": 1.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -400,7 +599,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
+                    "cooldownSec": 0.6000000238418579,
                     "rangeMax": 1.5,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -409,13 +608,19 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.0
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.65,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
                     ]
                 },
                 {
                     "slot": 1,
-                    "targetMode": "Conditional",
+                    "targetMode": "Self",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -427,13 +632,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.45,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 2,
-                    "targetMode": "Conditional",
+                    "targetMode": "Self",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -445,13 +660,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 3,
-                    "targetMode": "Conditional",
+                    "targetMode": "Self",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -463,8 +688,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 3.0
+                            "targetMode": "Self",
+                            "lockDurationSec": 3.0,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -481,8 +716,16 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.5
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 1.5,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -493,8 +736,10 @@
             "stats": {
                 "baseHp": 654.0,
                 "hpPerLevel": 99.0,
-                "baseMana": 300.0,
-                "manaPerLevel": 50.0,
+                "baseMana": 200.0,
+                "manaPerLevel": 0.0,
+                "resourceKind": "Energy",
+                "resourceRegenPerSec": 10.0,
                 "baseAd": 63.0,
                 "adPerLevel": 3.4,
                 "baseAp": 0.0,
@@ -506,6 +751,7 @@
                 "baseAttackSpeed": 0.651,
                 "attackSpeedRatio": 0.651,
                 "attackSpeedPerLevel": 0.033,
+                "basicAttackWindupSec": 0.25,
                 "baseAttackRange": 1.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -527,35 +773,98 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.0
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.65,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.5
                     ]
                 },
                 {
                     "slot": 1,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
                     "rangeMax": 9.0,
-                    "manaCost": 75.0,
+                    "manaCostByRank": [
+                        75.0,
+                        70.0,
+                        65.0,
+                        60.0,
+                        55.0
+                    ],
                     "skillId": 0,
                     "scalingTableId": 0,
                     "gameplayPolicyId": 0,
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.7
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 2,
-                    "targetMode": "Conditional",
+                    "targetMode": "GroundTarget",
                     "stageCount": 2,
-                    "stageWindowSec": 5.0,
+                    "stageWindowSec": 4.0,
                     "cooldownSec": 3.0,
                     "rangeMax": 6.5,
+                    "manaCostByRank": [
+                        40.0,
+                        35.0,
+                        30.0,
+                        25.0,
+                        20.0
+                    ],
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "GroundTarget",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        },
+                        {
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.25,
+                            "commandLockSec": 0.25,
+                            "movePolicy": "ForcedMotion"
+                        }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                },
+                {
+                    "slot": 3,
+                    "targetMode": "Self",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 2.5,
                     "manaCost": 40.0,
                     "skillId": 0,
                     "scalingTableId": 0,
@@ -563,36 +872,25 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
-                        },
-                        {
-                            "lockDurationSec": 0.25
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
-                    ]
-                },
-                {
-                    "slot": 3,
-                    "targetMode": "Conditional",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 2.5,
-                    "manaCost": 50.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 4,
                     "targetMode": "UnitTarget",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
+                    "stageCount": 2,
+                    "stageWindowSec": 4.0,
                     "cooldownSec": 3.0,
                     "rangeMax": 6.25,
                     "manaCost": 0.0,
@@ -602,8 +900,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.5
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 1.5,
+                            "commandLockSec": 1.5,
+                            "movePolicy": "ForcedMotion"
+                        },
+                        {
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.25,
+                            "commandLockSec": 0.25,
+                            "movePolicy": "ForcedMotion"
                         }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -614,8 +927,10 @@
             "stats": {
                 "baseHp": 630.0,
                 "hpPerLevel": 100.0,
-                "baseMana": 300.0,
-                "manaPerLevel": 50.0,
+                "baseMana": 0.0,
+                "manaPerLevel": 0.0,
+                "resourceKind": "None",
+                "resourceRegenPerSec": 0.0,
                 "baseAd": 64.0,
                 "adPerLevel": 3.0,
                 "baseAp": 0.0,
@@ -627,6 +942,7 @@
                 "baseAttackSpeed": 0.625,
                 "attackSpeedRatio": 0.625,
                 "attackSpeedPerLevel": 0.034,
+                "basicAttackWindupSec": 0.25,
                 "baseAttackRange": 1.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -639,7 +955,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
+                    "cooldownSec": 0.6000000238418579,
                     "rangeMax": 1.5,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -648,8 +964,14 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.0
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.65,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
                     ]
                 },
                 {
@@ -666,8 +988,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.45
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.45,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -684,13 +1016,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 3,
-                    "targetMode": "Conditional",
+                    "targetMode": "Self",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -702,13 +1044,24 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Self",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 4,
-                    "targetMode": "Direction",
+                    "targetMode": "Self",
                     "stageCount": 2,
                     "stageWindowSec": 15.0,
                     "cooldownSec": 3.0,
@@ -720,11 +1073,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.8
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.8,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         },
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -737,6 +1102,8 @@
                 "hpPerLevel": 102.0,
                 "baseMana": 375.0,
                 "manaPerLevel": 70.0,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
                 "baseAd": 60.0,
                 "adPerLevel": 2.75,
                 "baseAp": 0.0,
@@ -748,6 +1115,7 @@
                 "baseAttackSpeed": 0.625,
                 "attackSpeedRatio": 0.625,
                 "attackSpeedPerLevel": 0.025,
+                "basicAttackWindupSec": 0.25,
                 "baseAttackRange": 5.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -769,8 +1137,14 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.65
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.65,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.5
                     ]
                 },
                 {
@@ -778,16 +1152,31 @@
                     "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ],
                     "rangeMax": 12.0,
-                    "manaCost": 28.0,
+                    "manaCostByRank": [
+                        28.0,
+                        31.0,
+                        34.0,
+                        37.0,
+                        40.0
+                    ],
                     "skillId": 0,
                     "scalingTableId": 0,
                     "gameplayPolicyId": 0,
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.25
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.25,
+                            "commandLockSec": 0.25,
+                            "movePolicy": "QueueUntilUnlock"
                         }
                     ]
                 },
@@ -805,8 +1194,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.25
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.25,
+                            "commandLockSec": 0.25,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -823,8 +1222,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.25
+                            "targetMode": "GroundTarget",
+                            "lockDurationSec": 0.25,
+                            "commandLockSec": 0.25,
+                            "movePolicy": "ForcedMotion"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -841,8 +1250,16 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.0
+                            "targetMode": "Direction",
+                            "lockDurationSec": 1.0,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -855,6 +1272,8 @@
                 "hpPerLevel": 99.0,
                 "baseMana": 300.0,
                 "manaPerLevel": 50.0,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
                 "baseAd": 66.0,
                 "adPerLevel": 3.3,
                 "baseAp": 0.0,
@@ -866,6 +1285,7 @@
                 "baseAttackSpeed": 0.69,
                 "attackSpeedRatio": 0.69,
                 "attackSpeedPerLevel": 0.032,
+                "basicAttackWindupSec": 0.25,
                 "baseAttackRange": 1.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -878,7 +1298,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 1.67,
+                    "cooldownSec": 1.6699999570846558,
                     "rangeMax": 1.5,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -887,13 +1307,19 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.0
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.65,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        1.6699999570846558
                     ]
                 },
                 {
                     "slot": 1,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -905,17 +1331,27 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.5,
+                            "movePolicy": "ForcedMotion"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 2,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
-                    "rangeMax": 0.0,
+                    "rangeMax": 6.5,
                     "manaCost": 50.0,
                     "skillId": 0,
                     "scalingTableId": 0,
@@ -923,13 +1359,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.5
+                            "targetMode": "Direction",
+                            "lockDurationSec": 1.5,
+                            "commandLockSec": 1.5,
+                            "movePolicy": "StationaryChannel"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 3,
-                    "targetMode": "Conditional",
+                    "targetMode": "Self",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -941,8 +1387,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.4
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.4,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -959,8 +1415,16 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 2.0
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 1.2,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -973,6 +1437,8 @@
                 "hpPerLevel": 103.0,
                 "baseMana": 300.0,
                 "manaPerLevel": 50.0,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
                 "baseAd": 68.0,
                 "adPerLevel": 3.375,
                 "baseAp": 0.0,
@@ -984,6 +1450,7 @@
                 "baseAttackSpeed": 0.638,
                 "attackSpeedRatio": 0.638,
                 "attackSpeedPerLevel": 0.034,
+                "basicAttackWindupSec": 0.25,
                 "baseAttackRange": 1.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -996,7 +1463,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 1.67,
+                    "cooldownSec": 1.6699999570846558,
                     "rangeMax": 1.5,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -1005,13 +1472,19 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.0
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.65,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        1.6699999570846558
                     ]
                 },
                 {
                     "slot": 1,
-                    "targetMode": "Conditional",
+                    "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -1023,13 +1496,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.6,
+                            "movePolicy": "ForcedMotion"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 2,
-                    "targetMode": "Conditional",
+                    "targetMode": "Self",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -1041,8 +1524,19 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow",
+                            "createsActionState": false
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -1059,374 +1553,26 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 2.0
+                            "targetMode": "Self",
+                            "lockDurationSec": 2.0,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow",
+                            "presentationLoopWhileActive": true
                         },
                         {
-                            "lockDurationSec": 0.7
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.7,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
-                    ]
-                },
-                {
-                    "slot": 4,
-                    "targetMode": "Conditional",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 0.0,
-                    "manaCost": 100.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "champion": "LEESIN",
-            "dataVersion": 1,
-            "stats": {
-                "baseHp": 645.0,
-                "hpPerLevel": 108.0,
-                "baseMana": 300.0,
-                "manaPerLevel": 50.0,
-                "baseAd": 66.0,
-                "adPerLevel": 3.7,
-                "baseAp": 0.0,
-                "apPerLevel": 0.0,
-                "baseArmor": 34.0,
-                "armorPerLevel": 4.7,
-                "baseMr": 32.0,
-                "mrPerLevel": 2.05,
-                "baseAttackSpeed": 0.651,
-                "attackSpeedRatio": 0.651,
-                "attackSpeedPerLevel": 0.03,
-                "baseAttackRange": 1.5,
-                "baseMoveSpeed": 5.0,
-                "navArriveRadius": 0.15,
-                "spatialRadius": 0.75,
-                "sightRange": 19.0
-            },
-            "skills": [
-                {
-                    "slot": 0,
-                    "targetMode": "UnitTarget",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
-                    "rangeMax": 1.5,
-                    "manaCost": 0.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                },
-                {
-                    "slot": 1,
-                    "targetMode": "Conditional",
-                    "stageCount": 2,
-                    "stageWindowSec": 3.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 11.0,
-                    "manaCost": 50.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        },
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                },
-                {
-                    "slot": 2,
-                    "targetMode": "Conditional",
-                    "stageCount": 2,
-                    "stageWindowSec": 3.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 7.0,
-                    "manaCost": 50.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        },
-                        {
-                            "lockDurationSec": 0.45
-                        }
-                    ]
-                },
-                {
-                    "slot": 3,
-                    "targetMode": "Conditional",
-                    "stageCount": 2,
-                    "stageWindowSec": 3.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 4.0,
-                    "manaCost": 50.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        },
-                        {
-                            "lockDurationSec": 0.45
-                        }
-                    ]
-                },
-                {
-                    "slot": 4,
-                    "targetMode": "UnitTarget",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 3.0,
-                    "manaCost": 0.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "champion": "KINDRED",
-            "dataVersion": 1,
-            "stats": {
-                "baseHp": 610.0,
-                "hpPerLevel": 99.0,
-                "baseMana": 300.0,
-                "manaPerLevel": 50.0,
-                "baseAd": 65.0,
-                "adPerLevel": 3.25,
-                "baseAp": 0.0,
-                "apPerLevel": 0.0,
-                "baseArmor": 29.0,
-                "armorPerLevel": 4.7,
-                "baseMr": 30.0,
-                "mrPerLevel": 1.3,
-                "baseAttackSpeed": 0.625,
-                "attackSpeedRatio": 0.625,
-                "attackSpeedPerLevel": 0.034,
-                "baseAttackRange": 5.5,
-                "baseMoveSpeed": 5.0,
-                "navArriveRadius": 0.15,
-                "spatialRadius": 0.75,
-                "sightRange": 19.0
-            },
-            "skills": [
-                {
-                    "slot": 0,
-                    "targetMode": "UnitTarget",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
-                    "rangeMax": 5.5,
-                    "manaCost": 0.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                },
-                {
-                    "slot": 1,
-                    "targetMode": "Conditional",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 5.5,
-                    "manaCost": 35.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                },
-                {
-                    "slot": 2,
-                    "targetMode": "Conditional",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 8.0,
-                    "manaCost": 40.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                },
-                {
-                    "slot": 3,
-                    "targetMode": "Conditional",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 5.5,
-                    "manaCost": 70.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                },
-                {
-                    "slot": 4,
-                    "targetMode": "GroundTarget",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 6.0,
-                    "manaCost": 100.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "champion": "MASTERYI",
-            "dataVersion": 1,
-            "stats": {
-                "baseHp": 669.0,
-                "hpPerLevel": 105.0,
-                "baseMana": 300.0,
-                "manaPerLevel": 50.0,
-                "baseAd": 65.0,
-                "adPerLevel": 2.5,
-                "baseAp": 0.0,
-                "apPerLevel": 0.0,
-                "baseArmor": 33.0,
-                "armorPerLevel": 4.7,
-                "baseMr": 32.0,
-                "mrPerLevel": 2.05,
-                "baseAttackSpeed": 0.679,
-                "attackSpeedRatio": 0.679,
-                "attackSpeedPerLevel": 0.025,
-                "baseAttackRange": 1.5,
-                "baseMoveSpeed": 5.0,
-                "navArriveRadius": 0.15,
-                "spatialRadius": 0.75,
-                "sightRange": 19.0
-            },
-            "skills": [
-                {
-                    "slot": 0,
-                    "targetMode": "UnitTarget",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
-                    "rangeMax": 1.5,
-                    "manaCost": 0.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                },
-                {
-                    "slot": 1,
-                    "targetMode": "Conditional",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 6.0,
-                    "manaCost": 50.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                },
-                {
-                    "slot": 2,
-                    "targetMode": "Conditional",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 0.0,
-                    "manaCost": 50.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
-                    ]
-                },
-                {
-                    "slot": 3,
-                    "targetMode": "Conditional",
-                    "stageCount": 1,
-                    "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 0.0,
-                    "manaCost": 0.0,
-                    "skillId": 0,
-                    "scalingTableId": 0,
-                    "gameplayPolicyId": 0,
-                    "visualCueId": 0,
-                    "stages": [
-                        {
-                            "lockDurationSec": 0.6
-                        }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -1443,8 +1589,539 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            ]
+        },
+        {
+            "champion": "LEESIN",
+            "dataVersion": 1,
+            "stats": {
+                "baseHp": 645.0,
+                "hpPerLevel": 108.0,
+                "baseMana": 200.0,
+                "manaPerLevel": 0.0,
+                "resourceKind": "Energy",
+                "resourceRegenPerSec": 10.0,
+                "baseAd": 85.0,
+                "adPerLevel": 8.699999809265137,
+                "baseAp": 0.0,
+                "apPerLevel": 0.0,
+                "baseArmor": 34.0,
+                "armorPerLevel": 4.7,
+                "baseMr": 32.0,
+                "mrPerLevel": 2.05,
+                "baseAttackSpeed": 0.651,
+                "attackSpeedRatio": 0.651,
+                "attackSpeedPerLevel": 0.03,
+                "basicAttackWindupSec": 0.166667,
+                "baseAttackRange": 1.5,
+                "baseMoveSpeed": 5.0,
+                "navArriveRadius": 0.15,
+                "spatialRadius": 0.75,
+                "sightRange": 19.0
+            },
+            "skills": [
+                {
+                    "slot": 0,
+                    "targetMode": "UnitTarget",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 0.6000000238418579,
+                    "rangeMax": 1.5,
+                    "manaCost": 0.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
+                    ]
+                },
+                {
+                    "slot": 1,
+                    "targetMode": "Direction",
+                    "stageCount": 2,
+                    "stageWindowSec": 3.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 11.0,
+                    "manaCost": 50.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
+                        },
+                        {
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.6,
+                            "movePolicy": "ForcedMotion"
+                        }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                },
+                {
+                    "slot": 2,
+                    "targetMode": "UnitTarget",
+                    "stageCount": 2,
+                    "stageWindowSec": 3.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 7.0,
+                    "manaCost": 50.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.6,
+                            "movePolicy": "ForcedMotion"
+                        },
+                        {
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.45,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                },
+                {
+                    "slot": 3,
+                    "targetMode": "Self",
+                    "stageCount": 2,
+                    "stageWindowSec": 3.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 4.0,
+                    "manaCost": 50.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        },
+                        {
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.45,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        5.0,
+                        5.0,
+                        5.0
+                    ]
+                },
+                {
+                    "slot": 4,
+                    "targetMode": "UnitTarget",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 15.0,
+                    "rangeMax": 3.0,
+                    "manaCost": 0.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        15.0,
+                        15.0,
+                        10.0
+                    ]
+                }
+            ]
+        },
+        {
+            "champion": "KINDRED",
+            "dataVersion": 1,
+            "stats": {
+                "baseHp": 610.0,
+                "hpPerLevel": 99.0,
+                "baseMana": 300.0,
+                "manaPerLevel": 50.0,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
+                "baseAd": 65.0,
+                "adPerLevel": 3.25,
+                "baseAp": 0.0,
+                "apPerLevel": 0.0,
+                "baseArmor": 29.0,
+                "armorPerLevel": 4.7,
+                "baseMr": 30.0,
+                "mrPerLevel": 1.3,
+                "baseAttackSpeed": 0.625,
+                "attackSpeedRatio": 0.625,
+                "attackSpeedPerLevel": 0.034,
+                "basicAttackWindupSec": 0.166667,
+                "baseAttackRange": 5.5,
+                "baseMoveSpeed": 5.0,
+                "navArriveRadius": 0.15,
+                "spatialRadius": 0.75,
+                "sightRange": 19.0
+            },
+            "skills": [
+                {
+                    "slot": 0,
+                    "targetMode": "UnitTarget",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 0.6000000238418579,
+                    "rangeMax": 5.5,
+                    "manaCost": 0.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
+                    ]
+                },
+                {
+                    "slot": 1,
+                    "targetMode": "Direction",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 5.5,
+                    "manaCost": 35.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                },
+                {
+                    "slot": 2,
+                    "targetMode": "GroundTarget",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 8.0,
+                    "manaCost": 40.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "GroundTarget",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                },
+                {
+                    "slot": 3,
+                    "targetMode": "UnitTarget",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 5.5,
+                    "manaCost": 70.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                },
+                {
+                    "slot": 4,
+                    "targetMode": "GroundTarget",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 6.0,
+                    "manaCost": 100.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "GroundTarget",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            ]
+        },
+        {
+            "champion": "MASTERYI",
+            "dataVersion": 1,
+            "stats": {
+                "baseHp": 669.0,
+                "hpPerLevel": 105.0,
+                "baseMana": 300.0,
+                "manaPerLevel": 50.0,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
+                "baseAd": 65.0,
+                "adPerLevel": 2.5,
+                "baseAp": 0.0,
+                "apPerLevel": 0.0,
+                "baseArmor": 33.0,
+                "armorPerLevel": 4.7,
+                "baseMr": 32.0,
+                "mrPerLevel": 2.05,
+                "baseAttackSpeed": 0.679,
+                "attackSpeedRatio": 0.679,
+                "attackSpeedPerLevel": 0.025,
+                "basicAttackWindupSec": 0.166667,
+                "baseAttackRange": 1.5,
+                "baseMoveSpeed": 5.0,
+                "navArriveRadius": 0.15,
+                "spatialRadius": 0.75,
+                "sightRange": 19.0
+            },
+            "skills": [
+                {
+                    "slot": 0,
+                    "targetMode": "UnitTarget",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 0.6000000238418579,
+                    "rangeMax": 1.5,
+                    "manaCost": 0.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
+                    ]
+                },
+                {
+                    "slot": 1,
+                    "targetMode": "UnitTarget",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 6.0,
+                    "manaCost": 50.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                },
+                {
+                    "slot": 2,
+                    "targetMode": "Self",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 0.0,
+                    "manaCost": 50.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                },
+                {
+                    "slot": 3,
+                    "targetMode": "Self",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 0.0,
+                    "manaCost": 0.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                },
+                {
+                    "slot": 4,
+                    "targetMode": "Self",
+                    "stageCount": 1,
+                    "stageWindowSec": 0.0,
+                    "cooldownSec": 3.0,
+                    "rangeMax": 0.0,
+                    "manaCost": 100.0,
+                    "skillId": 0,
+                    "scalingTableId": 0,
+                    "gameplayPolicyId": 0,
+                    "visualCueId": 0,
+                    "stages": [
+                        {
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
+                        }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -1457,6 +2134,8 @@
                 "hpPerLevel": 102.0,
                 "baseMana": 418.0,
                 "manaPerLevel": 25.0,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
                 "baseAd": 50.0,
                 "adPerLevel": 2.65,
                 "baseAp": 0.0,
@@ -1468,6 +2147,7 @@
                 "baseAttackSpeed": 0.625,
                 "attackSpeedRatio": 0.625,
                 "attackSpeedPerLevel": 0.02,
+                "basicAttackWindupSec": 0.25,
                 "baseAttackRange": 6.25,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -1480,7 +2160,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
+                    "cooldownSec": 0.6000000238418579,
                     "rangeMax": 6.25,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -1489,8 +2169,14 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.8
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.7,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
                     ]
                 },
                 {
@@ -1507,8 +2193,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -1525,13 +2221,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 3,
-                    "targetMode": "Conditional",
+                    "targetMode": "Self",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -1543,8 +2249,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.4
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.4,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -1561,8 +2277,16 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.2
+                            "targetMode": "GroundTarget",
+                            "lockDurationSec": 0.9,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -1575,6 +2299,8 @@
                 "hpPerLevel": 101.0,
                 "baseMana": 280.0,
                 "manaPerLevel": 35.0,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
                 "baseAd": 59.0,
                 "adPerLevel": 2.95,
                 "baseAp": 0.0,
@@ -1586,6 +2312,7 @@
                 "baseAttackSpeed": 0.658,
                 "attackSpeedRatio": 0.658,
                 "attackSpeedPerLevel": 0.0333,
+                "basicAttackWindupSec": 0.208333,
                 "baseAttackRange": 6.0,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -1598,7 +2325,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 1.72,
+                    "cooldownSec": 1.7200000286102295,
                     "rangeMax": 6.0,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -1607,13 +2334,19 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.7
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.7,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        1.7200000286102295
                     ]
                 },
                 {
                     "slot": 1,
-                    "targetMode": "Conditional",
+                    "targetMode": "Self",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -1625,8 +2358,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Self",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -1643,17 +2386,27 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 3,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
-                    "rangeMax": 25.0,
+                    "rangeMax": 400.0,
                     "manaCost": 0.0,
                     "skillId": 0,
                     "scalingTableId": 0,
@@ -1661,8 +2414,18 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -1679,8 +2442,16 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.0
+                            "targetMode": "Direction",
+                            "lockDurationSec": 1.0,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -1691,10 +2462,12 @@
             "stats": {
                 "baseHp": 630.0,
                 "hpPerLevel": 109.0,
-                "baseMana": 300.0,
-                "manaPerLevel": 50.0,
-                "baseAd": 57.0,
-                "adPerLevel": 3.0,
+                "baseMana": 0.0,
+                "manaPerLevel": 0.0,
+                "resourceKind": "None",
+                "resourceRegenPerSec": 0.0,
+                "baseAd": 97.0,
+                "adPerLevel": 13.5,
                 "baseAp": 0.0,
                 "apPerLevel": 0.0,
                 "baseArmor": 34.0,
@@ -1703,7 +2476,8 @@
                 "mrPerLevel": 2.05,
                 "baseAttackSpeed": 0.658,
                 "attackSpeedRatio": 0.658,
-                "attackSpeedPerLevel": 0.025,
+                "attackSpeedPerLevel": 0.0275,
+                "basicAttackWindupSec": 0.25,
                 "baseAttackRange": 1.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -1720,7 +2494,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
+                    "cooldownSec": 0.6000000238418579,
                     "rangeMax": 1.5,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -1729,16 +2503,29 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.75
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.75,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
                     ]
                 },
                 {
                     "slot": 1,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
+                    "cooldownSec": 5.0,
+                    "cooldownSecByRank": [
+                        5.0,
+                        4.5,
+                        4.0,
+                        3.5,
+                        3.0
+                    ],
                     "rangeMax": 5.5,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -1747,7 +2534,10 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.45,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
                     ]
                 },
@@ -1756,8 +2546,15 @@
                     "targetMode": "Direction",
                     "stageCount": 2,
                     "stageWindowSec": 4.0,
-                    "cooldownSec": 3.0,
-                    "rangeMax": 4.0,
+                    "cooldownSec": 5.0,
+                    "cooldownSecByRank": [
+                        5.0,
+                        5.0,
+                        5.0,
+                        5.0,
+                        5.0
+                    ],
+                    "rangeMax": 5.0,
                     "manaCost": 0.0,
                     "skillId": 0,
                     "scalingTableId": 0,
@@ -1765,19 +2562,50 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.7
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.7,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow",
+                            "presentationLoopWhileActive": true
                         },
                         {
-                            "lockDurationSec": 0.3
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.3,
+                            "commandLockSec": 0.3,
+                            "movePolicy": "ForcedMotion"
                         }
-                    ]
+                    ],
+                    "activationMode": "PressRelease",
+                    "charge": {
+                        "maxHoldSec": 4.0,
+                        "autoRelease": true,
+                        "rangeScale": [
+                            0.5,
+                            1.0
+                        ],
+                        "damageScale": [
+                            1.0,
+                            1.0
+                        ],
+                        "stunSeconds": [
+                            0.25,
+                            2.0
+                        ]
+                    }
                 },
                 {
                     "slot": 3,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
+                    "cooldownSec": 6.0,
+                    "cooldownSecByRank": [
+                        6.0,
+                        5.0,
+                        5.0,
+                        5.0,
+                        5.0
+                    ],
                     "rangeMax": 6.0,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -1786,7 +2614,10 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.75
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
                     ]
                 },
@@ -1795,7 +2626,12 @@
                     "targetMode": "GroundTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 3.0,
+                    "cooldownSec": 120.0,
+                    "cooldownSecByRank": [
+                        120.0,
+                        100.0,
+                        80.0
+                    ],
                     "rangeMax": 6.0,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -1804,7 +2640,10 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.8
+                            "targetMode": "GroundTarget",
+                            "lockDurationSec": 0.8,
+                            "commandLockSec": 0.8,
+                            "movePolicy": "ForcedMotion"
                         }
                     ]
                 }
@@ -1816,8 +2655,10 @@
             "stats": {
                 "baseHp": 620.0,
                 "hpPerLevel": 105.0,
-                "baseMana": 300.0,
-                "manaPerLevel": 50.0,
+                "baseMana": 0.0,
+                "manaPerLevel": 0.0,
+                "resourceKind": "None",
+                "resourceRegenPerSec": 0.0,
                 "baseAd": 60.0,
                 "adPerLevel": 2.0,
                 "baseAp": 0.0,
@@ -1829,6 +2670,7 @@
                 "baseAttackSpeed": 0.625,
                 "attackSpeedRatio": 0.625,
                 "attackSpeedPerLevel": 0.025,
+                "basicAttackWindupSec": 0.245098,
                 "baseAttackRange": 1.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -1850,13 +2692,19 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.9
+                            "targetMode": "UnitTarget",
+                            "lockDurationSec": 0.75,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.75
                     ]
                 },
                 {
                     "slot": 1,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -1868,13 +2716,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.9
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 2,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -1886,13 +2744,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.9
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 3,
-                    "targetMode": "Conditional",
+                    "targetMode": "Direction",
                     "stageCount": 2,
                     "stageWindowSec": 5.0,
                     "cooldownSec": 3.0,
@@ -1904,8 +2772,26 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.75
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.75,
+                            "commandLockSec": 0.75,
+                            "movePolicy": "ForcedMotion"
+                        },
+                        {
+                            "targetMode": "Direction",
+                            "facingMode": "None",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.6,
+                            "movePolicy": "ForcedMotion"
                         }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -1922,8 +2808,16 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 1.2
+                            "targetMode": "Direction",
+                            "lockDurationSec": 1.2,
+                            "commandLockSec": 1.2,
+                            "movePolicy": "ForcedMotion"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]
@@ -1936,6 +2830,8 @@
                 "hpPerLevel": 115.0,
                 "baseMana": 400.0,
                 "manaPerLevel": 70.0,
+                "resourceKind": "Mana",
+                "resourceRegenPerSec": 3.0,
                 "baseAd": 61.0,
                 "adPerLevel": 3.0,
                 "baseAp": 0.0,
@@ -1947,6 +2843,7 @@
                 "baseAttackSpeed": 0.645,
                 "attackSpeedRatio": 0.645,
                 "attackSpeedPerLevel": 0.034,
+                "basicAttackWindupSec": 0.166667,
                 "baseAttackRange": 1.5,
                 "baseMoveSpeed": 5.0,
                 "navArriveRadius": 0.15,
@@ -1959,7 +2856,7 @@
                     "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
-                    "cooldownSec": 0.6,
+                    "cooldownSec": 0.6000000238418579,
                     "rangeMax": 1.5,
                     "manaCost": 0.0,
                     "skillId": 0,
@@ -1968,13 +2865,20 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.6
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.6,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        0.6000000238418579
                     ]
                 },
                 {
                     "slot": 1,
-                    "targetMode": "Conditional",
+                    "targetMode": "GroundTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -1986,13 +2890,23 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.55
+                            "targetMode": "GroundTarget",
+                            "lockDurationSec": 0.55,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
                     "slot": 2,
-                    "targetMode": "Conditional",
+                    "targetMode": "UnitTarget",
                     "stageCount": 1,
                     "stageWindowSec": 0.0,
                     "cooldownSec": 3.0,
@@ -2004,8 +2918,19 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.45
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.45,
+                            "commandLockSec": 0.0,
+                            "movePolicy": "Allow"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -2022,11 +2947,25 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.35
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.35,
+                            "commandLockSec": 0.35,
+                            "movePolicy": "ForcedMotion"
                         },
                         {
-                            "lockDurationSec": 0.5
+                            "targetMode": "Direction",
+                            "lockDurationSec": 0.5,
+                            "commandLockSec": 0.5,
+                            "movePolicy": "ForcedMotion"
                         }
+                    ],
+                    "activationMode": "PressRecast",
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 },
                 {
@@ -2043,8 +2982,17 @@
                     "visualCueId": 0,
                     "stages": [
                         {
-                            "lockDurationSec": 0.8
+                            "targetMode": "UnitTarget",
+                            "facingMode": "TowardsCommandDirection",
+                            "lockDurationSec": 0.8,
+                            "commandLockSec": 0.266666667,
+                            "movePolicy": "QueueUntilUnlock"
                         }
+                    ],
+                    "cooldownSecByRank": [
+                        3.0,
+                        3.0,
+                        3.0
                     ]
                 }
             ]

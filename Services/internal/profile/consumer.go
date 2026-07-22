@@ -9,6 +9,17 @@ import (
 	"winters-backend/pkg/messaging"
 )
 
+const completedMatchRewardRP int64 = 1000
+
+func rewardRPForMatchResult(result string) int64 {
+	switch result {
+	case "win", "loss", "draw":
+		return completedMatchRewardRP
+	default:
+		return 0
+	}
+}
+
 type Consumer struct {
 	repo   *Repository
 	reader *kafka.Reader
@@ -35,18 +46,9 @@ func (c *Consumer) handleMessage(ctx context.Context, msg kafka.Message) error {
 	}
 
 	for _, p := range event.Players {
-		if err := c.repo.InsertMatchHistory(ctx, p.UserID, event.MatchID, p); err != nil {
-			slog.Error("insert match record", "user_id", p.UserID, "error", err)
-			continue
-		}
-
-		if err := c.repo.UpdatePlayerStats(ctx, p.UserID, p); err != nil {
-			slog.Error("update player stats", "user_id", p.UserID, "error", err)
-			continue
-		}
-
-		if err := c.repo.InvalidateCache(ctx, p.UserID); err != nil {
-			slog.Warn("invalidate cache", "user_id", p.UserID, "error", err)
+		rpReward := rewardRPForMatchResult(p.Result)
+		if err := c.repo.ReportMatch(ctx, p.UserID, event.MatchID, p, rpReward); err != nil {
+			return err
 		}
 	}
 

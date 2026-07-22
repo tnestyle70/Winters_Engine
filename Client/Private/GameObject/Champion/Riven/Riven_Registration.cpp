@@ -29,17 +29,40 @@ namespace
         }
     }
 
+    SkillDef MakeRivenClientSkill(u8_t slot)
+    {
+        SkillDef def{};
+        def.champ = eChampion::RIVEN;
+        def.slot = slot;
+        switch (static_cast<eSkillSlot>(slot))
+        {
+        case eSkillSlot::Q:
+            def.animKey = "spell1";
+            break;
+        case eSkillSlot::W:
+            def.animKey = "spell2";
+            break;
+        case eSkillSlot::E:
+            def.animKey = "spell3";
+            break;
+        case eSkillSlot::R:
+            def.animKey = "spell4a";
+            break;
+        default:
+            def.animKey = "attack1";
+            def.stage2AnimKey = "attack1_ult";
+            break;
+        }
+        return def;
+    }
+
     struct RivenAutoRegister
     {
         RivenAutoRegister()
         {
             for (u8_t slot = 0; slot < static_cast<u8_t>(eSkillSlot::SLOT_END); ++slot)
             {
-                const SkillDef* legacy = FindSkillDef(eChampion::RIVEN, slot);
-                if (!legacy)
-                    continue;
-
-                SkillDef s = *legacy;
+                SkillDef s = MakeRivenClientSkill(slot);
                 if (slot == static_cast<u8_t>(eSkillSlot::Q))
                 {
                     s.keySwapHookId = kRiven_Q_KeySwap;
@@ -49,15 +72,7 @@ namespace
                 {
                     if (slot == static_cast<u8_t>(eSkillSlot::R))
                     {
-                        s.targetMode = eTargetMode::Self;
-                        s.stageCount = 2u;
-                        s.stage2TargetMode = eTargetMode::Direction;
                         s.stage2AnimKey = "spell4b";
-                        s.stage2LockSec = 0.6f;
-                        s.stage2Rotate = eRotateMode::TowardsCursor;
-                        s.stageWindowSec = 15.f;
-                        s.stage2VisualCastFrame = 6.f;
-                        s.stage2VisualRecoveryFrame = 14.f;
                     }
                     s.castHookId = ResolveRivenCastHook(slot);
                 }

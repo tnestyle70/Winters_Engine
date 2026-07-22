@@ -1,4 +1,4 @@
-// Scene_InGameRender.cpp — CScene_InGame의 프레임 렌더 오케스트레이션 책임 TU.
+﻿// Scene_InGameRender.cpp — CScene_InGame의 프레임 렌더 오케스트레이션 책임 TU.
 // Stage 1 (mechanical split): Scene_InGame.cpp에서 verbatim 이동. 동작/시그니처/호출순서 불변.
 // 설계: .md/plan/refactor/15_INGAME_SCENE_THINNING_DESIGN.md
 #define _CRT_SECURE_NO_WARNINGS
@@ -11,6 +11,7 @@
 #include "Replay/ReplayPlayer.h"
 
 #include <Windows.h>
+#include <unordered_set>
 #include "Scene/GameplayQuery.h"
 #include "Scene/InGameRosterSpawner.h"
 #include "Scene/RenderVisibilityFilter.h"
@@ -73,7 +74,6 @@
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
@@ -95,7 +95,6 @@
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/SkillDefGameDataAdapter.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -109,7 +108,6 @@
 #pragma pop_macro("min")
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
-#include "ECS/Systems/StatusEffectSystem.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
@@ -199,6 +197,21 @@ namespace
     {
         if (!pRenderer)
             return;
+
+        static std::unordered_set<ModelRenderer*> s_StasisRenderers;
+        const bool_t bStasis =
+            world.HasComponent<ReplicatedStateComponent>(entity) &&
+            (world.GetComponent<ReplicatedStateComponent>(entity)
+                .gameplayStateFlags & kGameplayStateStasisVisualFlag) != 0u;
+        if (bStasis)
+        {
+            pRenderer->SetMaterialOverrideColor(
+                Vec4{ 1.30f, 0.82f, 0.18f, 1.f }, true);
+            s_StasisRenderers.insert(pRenderer);
+            return;
+        }
+        if (s_StasisRenderers.erase(pRenderer) > 0u)
+            pRenderer->ClearMaterialOverrideColor();
 
         if (world.HasComponent<ViegoSoulComponent>(entity))
         {
@@ -360,9 +373,22 @@ void CScene_InGame::OnRender()
     const u8_t localTeam = UI::QueryLocalTeam(m_World);
     const bool_t bRevealAllForPlayback = ShouldRevealAllForPlayback();
 
+    // GPU 패스 스코프: 주석 마커 + 패스별 타임스탬프 (이름 리터럴이 게이지 이름으로 저장된다).
+    const auto beginGpuPass = [&](const char* pName)
+    {
+        if (pDevice)
+            pDevice->BeginGpuPass(pName);
+    };
+    const auto endGpuPass = [&]()
+    {
+        if (pDevice)
+            pDevice->EndGpuPass();
+    };
+
     if (!bRHISceneOnly && bUseDX11RHI && m_pNormalPass && bSSAOEnabled)
     {
         WINTERS_PROFILE_SCOPE("Render::NormalPass");
+        beginGpuPass("GPU::NormalPass");
         m_pNormalPass->Begin(pDevice);
 
         m_Map.UpdateCamera(vp, cameraWorld);
@@ -410,15 +436,18 @@ void CScene_InGame::OnRender()
             });
 
         m_pNormalPass->End(pDevice);
+        endGpuPass();
 
         if (m_pSSAOPass && m_pSSAOPass->GetEnabled())
         {
             WINTERS_PROFILE_SCOPE("Render::SSAO");
+            beginGpuPass("GPU::SSAO");
             m_pSSAOPass->Execute(
                 pDevice,
                 m_pNormalPass->GetDepthSRVNative(),
                 m_pNormalPass->GetNormalSRVNative(),
                 vp);
+            endGpuPass();
 
             if (m_pSSAOPass->GetOutputSRVNative())
                 pAmbientOcclusionSRV = m_pSSAOPass->GetOutputSRVNative();
@@ -428,6 +457,7 @@ void CScene_InGame::OnRender()
     {
         WINTERS_PROFILE_SCOPE("Map::Render");
         WINTERS_PROFILE_COUNT("Map::MeshCount", m_Map.GetMeshCount());
+        beginGpuPass("GPU::Map");
 
         {
             WINTERS_PROFILE_SCOPE("Map::UpdateCamera");
@@ -461,10 +491,12 @@ void CScene_InGame::OnRender()
             WINTERS_PROFILE_SCOPE("Map::DrawFrustumCulled");
             m_Map.RenderFrustumCulled(vp);
         }
+        endGpuPass();
     }
 
     {
         WINTERS_PROFILE_SCOPE("Champion::Render");
+        beginGpuPass("GPU::Champions");
         if (bRHISceneOnly)
         {
             WINTERS_PROFILE_SCOPE("Champion::RHISceneSnapshot");
@@ -535,11 +567,13 @@ void CScene_InGame::OnRender()
 
             renderChampionPass(false);
         }
+        endGpuPass();
     }
 
     if (bRHISceneOnly)
     {
         WINTERS_PROFILE_SCOPE("SceneObjects::RHISceneSnapshot");
+        beginGpuPass("GPU::Units");
 
         RenderWorldSnapshot snapshot{};
         snapshot.view.matViewProjection = vp;
@@ -563,10 +597,12 @@ void CScene_InGame::OnRender()
 
         if (appendedCount > 0)
             m_pRHISceneRenderer->Render(pDevice, snapshot);
+        endGpuPass();
     }
 
     if (!bRHISceneOnly)
     {
+        beginGpuPass("GPU::Units");
         {
             WINTERS_PROFILE_SCOPE("Structure::Render");
             CStructure_Manager::Get()->Render(vp, cameraWorld, pAmbientOcclusionSRV, bRevealAllForPlayback);
@@ -585,11 +621,13 @@ void CScene_InGame::OnRender()
             WINTERS_PROFILE_SCOPE("AmbientProp::Render");
             CAmbientProp_Manager::Get()->Render(vp, cameraWorld);
         }
+        endGpuPass();
     }
 
     if (!bRHISceneOnly && !bUseDX12RHI && m_pContactShadowPlane)
     {
         WINTERS_PROFILE_SCOPE("ContactShadow::Render");
+        beginGpuPass("GPU::Shadows");
         m_World.ForEach<ChampionComponent, RenderComponent, TransformComponent>(
             [&](EntityID e, ChampionComponent&, RenderComponent& rc, TransformComponent& tf)
             {
@@ -605,11 +643,13 @@ void CScene_InGame::OnRender()
                     BuildContactShadowWorld(tf, 1.22f, 0.055f));
                 m_pContactShadowPlane->Render(pDevice, vp);
             });
+        endGpuPass();
     }
 
     if (!bRHISceneOnly)
     {
         WINTERS_PROFILE_SCOPE("ViegoSoul::TransparentRender");
+        beginGpuPass("GPU::Transparent");
         std::vector<EntityID> souls;
         m_World.ForEach<ViegoSoulComponent>(
             [&](EntityID entity, ViegoSoulComponent&)
@@ -670,11 +710,13 @@ void CScene_InGame::OnRender()
                 rc.pRenderer->RenderFrustumCulled(vp);
             }
         }
+        endGpuPass();
     }
 
     if (!bRevealAllForPlayback && m_pFogOfWarRenderer)
     {
         WINTERS_PROFILE_SCOPE("FogOfWar::Render");
+        beginGpuPass("GPU::FoW");
         const Engine::CVisionSystem::FowProjection Projection =
             m_pVisionSystem
                 ? m_pVisionSystem->GetFowProjection()
@@ -686,6 +728,7 @@ void CScene_InGame::OnRender()
             Projection.vWorldAtUv10,
             Projection.vWorldAtUv01,
             0.05f);
+        endGpuPass();
     }
 
     {
@@ -698,24 +741,30 @@ void CScene_InGame::OnRender()
         RenderAttackRangePreview(*this, vp, pDevice, bUseDX12RHI);
     }
 
+    beginGpuPass("GPU::FX");
     if (m_pFxMeshSystem && m_pCamera)
         m_pFxMeshSystem->Render(m_World, m_pCamera.get());
     if (m_pFxBeamSystem && m_pCamera)
         m_pFxBeamSystem->Render(m_World, m_pCamera.get());
     if (m_pFxSystem && m_pCamera)
         m_pFxSystem->Render(m_World, m_pCamera.get());
+    endGpuPass();
 
     if (bUseDX11RHI && m_pPostFxPass && m_pPostFxPass->GetEnabled())
     {
         WINTERS_PROFILE_SCOPE("Render::PostFx");
+        beginGpuPass("GPU::PostFx");
         const Engine::PostFxParams params = m_pPostFxPass->GetParams();
         WINTERS_PROFILE_COUNT("PostFx::BloomEnabled", params.bBloomEnabled ? 1u : 0u);
         m_pPostFxPass->Execute(pDevice);
+        endGpuPass();
     }
 
     {
         WINTERS_PROFILE_SCOPE("UIOverlay::Render");
+        beginGpuPass("GPU::HUD");
         CGameInstance::Get()->UI_Render_Overlay(vp);
+        endGpuPass();
     }
 
     {

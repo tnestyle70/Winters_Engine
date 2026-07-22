@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rune gameplay definitions",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "dataVersion",
+    "runes"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "dataVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "buildHash": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "runes": {
+      "type": "array",
+      "minItems": 1
+    }
+  }
+}

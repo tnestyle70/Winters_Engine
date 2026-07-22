@@ -1,7 +1,11 @@
 #include "Platform/CWin32Window.h"
 #include "Core/CInput.h"
+#include "WintersPaths.h"
 
 #include <windowsx.h>
+#include <wincodec.h>
+#include <wrl/client.h>
+#include <cstdio>
 
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -23,6 +27,168 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam
 // 클래스 이름을 바꾸면 예전에 등록된(흰색 hbrBackground 등) 윈도우 클래스와 충돌하지 않음.
 static constexpr WStr CLASS_NAME = L"WintersWindowClass_D3D_v3";
 static constexpr DWORD WINDOW_STYLE = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
+
+namespace
+{
+    // CUI_Manager::m_fCursorSize(32px)와 일치해야 소프트웨어 커서와 크기가 같다.
+    constexpr int32 kCursorImageSize = 32;
+
+    class CScopedCOMInit final
+    {
+    public:
+        CScopedCOMInit()
+        {
+            const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+            m_bNeedsUninit = SUCCEEDED(hr);
+        }
+
+        ~CScopedCOMInit()
+        {
+            if (m_bNeedsUninit)
+                CoUninitialize();
+        }
+
+    private:
+        bool m_bNeedsUninit = false;
+    };
+
+    void LogCursorImageFailure(const char* pStage, const wchar_t* pPath, HRESULT hr)
+    {
+        char msg[512]{};
+        sprintf_s(msg, "[CWin32Window] cursor image FAIL: %s hr=0x%08X path=%ls\n",
+            pStage,
+            static_cast<unsigned>(hr),
+            pPath ? pPath : L"(null)");
+        OutputDebugStringA(msg);
+    }
+
+    // PNG → 32x32 straight-alpha BGRA → HCURSOR.
+    // 핫스팟 (0,0): 소프트웨어 커서(CUI_Manager::DrawMouseCursor)가 텍스처의
+    // 좌상단을 마우스 좌표에 앵커하므로 하드웨어 커서도 동일해야 한다.
+    HCURSOR CreateCursorImageFromPng(const wchar_t* pPath)
+    {
+        CScopedCOMInit comInit;
+
+        Microsoft::WRL::ComPtr<IWICImagingFactory2> pFactory;
+        HRESULT hr = CoCreateInstance(
+            CLSID_WICImagingFactory2,
+            nullptr,
+            CLSCTX_INPROC_SERVER,
+            IID_PPV_ARGS(&pFactory));
+        if (FAILED(hr))
+        {
+            LogCursorImageFailure("CoCreateInstance(WICImagingFactory2)", pPath, hr);
+            return nullptr;
+        }
+
+        Microsoft::WRL::ComPtr<IWICBitmapDecoder> pDecoder;
+        hr = pFactory->CreateDecoderFromFilename(
+            pPath, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &pDecoder);
+        if (FAILED(hr))
+        {
+            LogCursorImageFailure("CreateDecoderFromFilename", pPath, hr);
+            return nullptr;
+        }
+
+        Microsoft::WRL::ComPtr<IWICBitmapFrameDecode> pFrame;
+        hr = pDecoder->GetFrame(0, &pFrame);
+        if (FAILED(hr))
+        {
+            LogCursorImageFailure("GetFrame", pPath, hr);
+            return nullptr;
+        }
+
+        Microsoft::WRL::ComPtr<IWICBitmapScaler> pScaler;
+        hr = pFactory->CreateBitmapScaler(&pScaler);
+        if (FAILED(hr))
+        {
+            LogCursorImageFailure("CreateBitmapScaler", pPath, hr);
+            return nullptr;
+        }
+
+        hr = pScaler->Initialize(
+            pFrame.Get(), kCursorImageSize, kCursorImageSize,
+            WICBitmapInterpolationModeFant);
+        if (FAILED(hr))
+        {
+            LogCursorImageFailure("Scaler.Initialize", pPath, hr);
+            return nullptr;
+        }
+
+        Microsoft::WRL::ComPtr<IWICFormatConverter> pConverter;
+        hr = pFactory->CreateFormatConverter(&pConverter);
+        if (FAILED(hr))
+        {
+            LogCursorImageFailure("CreateFormatConverter", pPath, hr);
+            return nullptr;
+        }
+
+        // CreateIconIndirect는 straight-alpha BGRA DIB를 받는다 (SDL/GLFW와 동일).
+        hr = pConverter->Initialize(
+            pScaler.Get(),
+            GUID_WICPixelFormat32bppBGRA,
+            WICBitmapDitherTypeNone,
+            nullptr,
+            0.0,
+            WICBitmapPaletteTypeCustom);
+        if (FAILED(hr))
+        {
+            LogCursorImageFailure("FormatConverter.Initialize", pPath, hr);
+            return nullptr;
+        }
+
+        BITMAPINFO bmi = {};
+        bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bmi.bmiHeader.biWidth = kCursorImageSize;
+        bmi.bmiHeader.biHeight = -kCursorImageSize;  // top-down: WIC 행 순서와 일치
+        bmi.bmiHeader.biPlanes = 1;
+        bmi.bmiHeader.biBitCount = 32;
+        bmi.bmiHeader.biCompression = BI_RGB;
+
+        void* pBits = nullptr;
+        HBITMAP hColor = CreateDIBSection(nullptr, &bmi, DIB_RGB_COLORS, &pBits, nullptr, 0);
+        if (!hColor || !pBits)
+        {
+            LogCursorImageFailure("CreateDIBSection", pPath, HRESULT_FROM_WIN32(GetLastError()));
+            if (hColor)
+                DeleteObject(hColor);
+            return nullptr;
+        }
+
+        const UINT rowPitchBytes = kCursorImageSize * 4u;
+        hr = pConverter->CopyPixels(
+            nullptr, rowPitchBytes, rowPitchBytes * kCursorImageSize,
+            static_cast<BYTE*>(pBits));
+        if (FAILED(hr))
+        {
+            LogCursorImageFailure("CopyPixels", pPath, hr);
+            DeleteObject(hColor);
+            return nullptr;
+        }
+
+        HBITMAP hMask = CreateBitmap(kCursorImageSize, kCursorImageSize, 1, 1, nullptr);
+        if (!hMask)
+        {
+            LogCursorImageFailure("CreateBitmap(mask)", pPath, HRESULT_FROM_WIN32(GetLastError()));
+            DeleteObject(hColor);
+            return nullptr;
+        }
+
+        ICONINFO iconInfo = {};
+        iconInfo.fIcon = FALSE;  // FALSE = 커서 (핫스팟 사용)
+        iconInfo.xHotspot = 0;
+        iconInfo.yHotspot = 0;
+        iconInfo.hbmMask = hMask;
+        iconInfo.hbmColor = hColor;
+        HCURSOR hCursor = CreateIconIndirect(&iconInfo);
+        if (!hCursor)
+            LogCursorImageFailure("CreateIconIndirect", pPath, HRESULT_FROM_WIN32(GetLastError()));
+
+        DeleteObject(hMask);
+        DeleteObject(hColor);
+        return hCursor;
+    }
+}
 
 bool CWin32Window::Create(const WindowDesc& desc)
 {
@@ -104,6 +270,11 @@ void CWin32Window::Destroy()
     }
     SetSystemCursorVisible(true);
     UnregisterClassW(CLASS_NAME, GetModuleHandleW(nullptr));
+    if (m_hCursorImage)
+    {
+        DestroyCursor(m_hCursorImage);
+        m_hCursorImage = nullptr;
+    }
 }
 
 void CWin32Window::SetSystemCursorVisible(bool bVisible)
@@ -114,12 +285,43 @@ void CWin32Window::SetSystemCursorVisible(bool bVisible)
     if (bVisible)
     {
         while (::ShowCursor(TRUE) < 0) {}
+        // 다음 WM_SETCURSOR(마우스 이동)를 기다리지 않고 즉시 커스텀 이미지 표시.
+        if (m_hCursorImage)
+            ::SetCursor(m_hCursorImage);
     }
     else
     {
         while (::ShowCursor(FALSE) >= 0) {}
     }
     m_bSystemCursorVisible = bVisible;
+}
+
+bool CWin32Window::SetCursorImageFromFile(const wchar_t* pPath)
+{
+    if (!pPath || pPath[0] == 0)
+        return false;
+
+    wchar_t resolvedPath[MAX_PATH] = {};
+    const wchar_t* pLoadPath = pPath;
+    if (WintersResolveContentPath(pPath, resolvedPath, MAX_PATH))
+        pLoadPath = resolvedPath;
+
+    HCURSOR hCursor = CreateCursorImageFromPng(pLoadPath);
+    if (!hCursor)
+        return false;
+
+    if (m_hCursorImage)
+        DestroyCursor(m_hCursorImage);
+    m_hCursorImage = hCursor;
+
+    // DefWindowProc가 모든 WM_SETCURSOR에서 클래스 커서를 적용하므로
+    // (ImGui는 NoMouseCursorChange로 개입하지 않음) 이 한 번의 등록으로 유지된다.
+    if (m_hWnd)
+        SetClassLongPtrW(m_hWnd, GCLP_HCURSOR, reinterpret_cast<LONG_PTR>(m_hCursorImage));
+    if (m_bSystemCursorVisible)
+        ::SetCursor(m_hCursorImage);
+
+    return true;
 }
 
 bool CWin32Window::PumpMessages(uint32 maxMessages)

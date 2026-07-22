@@ -41,4 +41,8 @@ struct EngineConfig
     // ── 렌더링 ───────────────────────────────────────────────
     bool     vsync        = true;    // Present VSync 사용 여부
     uint32   targetFPS    = 60;      // CPU frame limiter. 0이면 제한 없음
+
+    // ── 프로파일링 하네스 ────────────────────────────────────
+    uint32   runSeconds   = 0;       // 0이면 무제한. N초 경과 시 자동 종료
+    bool     profileCaptureOnExit = false; // 자동 종료 직전 프로파일러 타임라인 JSON 캡처
 };

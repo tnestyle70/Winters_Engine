@@ -29,7 +29,8 @@ struct LobbyCommand FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_TEAM = 8,
     VT_CHAMPIONID = 10,
     VT_BOTDIFFICULTY = 12,
-    VT_VALUE = 14
+    VT_VALUE = 14,
+    VT_CHAMPIONDEFINITIONKEY = 16
   };
   Shared::Schema::LobbyCommandKind kind() const {
     return static_cast<Shared::Schema::LobbyCommandKind>(GetField<uint8_t>(VT_KIND, 0));
@@ -49,6 +50,9 @@ struct LobbyCommand FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint32_t value() const {
     return GetField<uint32_t>(VT_VALUE, 0);
   }
+  uint32_t championDefinitionKey() const {
+    return GetField<uint32_t>(VT_CHAMPIONDEFINITIONKEY, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -58,6 +62,7 @@ struct LobbyCommand FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_CHAMPIONID, 1) &&
            VerifyField<uint8_t>(verifier, VT_BOTDIFFICULTY, 1) &&
            VerifyField<uint32_t>(verifier, VT_VALUE, 4) &&
+           VerifyField<uint32_t>(verifier, VT_CHAMPIONDEFINITIONKEY, 4) &&
            verifier.EndTable();
   }
 };
@@ -84,6 +89,9 @@ struct LobbyCommandBuilder {
   void add_value(uint32_t value) {
     fbb_.AddElement<uint32_t>(LobbyCommand::VT_VALUE, value, 0);
   }
+  void add_championDefinitionKey(uint32_t championDefinitionKey) {
+    fbb_.AddElement<uint32_t>(LobbyCommand::VT_CHAMPIONDEFINITIONKEY, championDefinitionKey, 0);
+  }
   explicit LobbyCommandBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -102,8 +110,10 @@ inline ::flatbuffers::Offset<LobbyCommand> CreateLobbyCommand(
     uint8_t team = 0,
     uint8_t championId = 0,
     uint8_t botDifficulty = 0,
-    uint32_t value = 0) {
+    uint32_t value = 0,
+    uint32_t championDefinitionKey = 0) {
   LobbyCommandBuilder builder_(_fbb);
+  builder_.add_championDefinitionKey(championDefinitionKey);
   builder_.add_value(value);
   builder_.add_botDifficulty(botDifficulty);
   builder_.add_championId(championId);

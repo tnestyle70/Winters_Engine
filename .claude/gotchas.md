@@ -4,6 +4,8 @@ Mistake-prevention log shared by `CLAUDE.md` and `AGENTS.md`. Add an entry only 
 
 Format: `YYYY-MM-DD - [Area] mistake -> prevention rule/check`.
 
+- 2026-07-22 - [F4 canonical authoring] F4 `Save & Hot Load`가 저장한 canonical JSON을 과거 PLAN/RESULT의 예시 수치나 hard-coded 회귀 fixture로 덮으면 사용자의 최신 밸런스 작업이 유실된다 -> F4가 직접 저장하는 `Data/Gameplay/ChampionGameData/champions.json`, `Data/LoL/ServerPrivate/Gameplay/SkillEffectGameplayDefs.json`, `SpawnObjectGameplayDefs.json`, `EconomyGameplayDefs.json`만 현재 authoring truth로 취급한다. 같은 폴더의 `ChampionGameplayDefs.json`, `SkillGameplayDefs.json`과 generated C++/manifest는 파생물이다. 생성물 stale은 source rollback이 아니라 current source recook으로 해결하고, 사용자가 명시적으로 동결하지 않은 F4-editable exact 값은 테스트에 고정하지 않는다.
+
 - 2026-07-20 - [Release local launch] Release build 성공과 authenticated game-server 실행 성공은 별개다. VS가 Server를 인자 없이 실행하면 기본 TCP 9000이 MinIO와 충돌하고 Backend ticket의 UDP/session 계약도 불일치하며, 중복 서버가 bind 실패 전에 기존 capacity를 정리할 수도 있다 -> local Release는 추적되는 VS 프로필과 capture launcher 모두 `winters-local-game-session` + UDP + 동일 개발용 인증 환경을 사용하고, Backend reconciliation 전 authenticated UDP 단일 인스턴스 guard를 획득하며, 검증 시 TCP 9000=MinIO와 UDP 9000=WintersServer가 동시에 존재하는지 확인한다.
 
 - 2026-07-20 - [Custom lobby vs replay ACL] Account별 Replay 지급 요구를 인원 수 기반 matchmaking 요구로 해석하면, 원래 즉시 입장하던 Custom Lobby 앞에 불필요한 assembly window/Redis queue가 생겨 Release 진입을 지연·분할한다 -> 고정 로컬 서버의 Custom Lobby는 첫 계정부터 즉시 동일한 open lobby ticket을 발급하고 host Start가 roster를 닫는다. Replay는 matchmaking이 아니라 경기 종료 artifact의 실제 인증 참가자 명단으로 `match_participants`와 account ACL을 만든다. 촬영 인원 수(1..10)는 검증 파라미터일 뿐 매치 생성 조건이 아니며, 이 경로에서 Redis `matchmaking:*` key, 시간창, cancel/poll UX를 추가하지 않는다.

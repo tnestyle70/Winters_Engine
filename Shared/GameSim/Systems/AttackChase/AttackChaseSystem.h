@@ -6,6 +6,14 @@
 
 class CWorld;
 
+namespace AttackChaseGeometry
+{
+    f32_t ResolveMoveArriveRadius(
+        f32_t effectiveRange,
+        const Vec3& targetPosition,
+        const Vec3& resolvedMoveTarget);
+}
+
 class CAttackChaseSystem final
 {
 public:

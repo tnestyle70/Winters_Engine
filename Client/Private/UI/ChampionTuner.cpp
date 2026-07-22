@@ -1,4 +1,7 @@
 #include "Network/Client/ClientNetwork.h"
+#include "Network/Client/SnapshotApplier.h"
+#include "Client/Private/Data/LoLVisualDefinitionPack.h"
+#include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "UI/ChampionTuner.h"
 
 #include "Core/CInput.h"
@@ -13,9 +16,7 @@
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/ManaComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/SkillAtomData.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "WintersPaths.h"
 
@@ -36,14 +37,28 @@
 #include <stdexcept>
 #include <string>
 #include <system_error>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace
 {
 	using json = nlohmann::json;
+	using ordered_json = nlohmann::ordered_json;
 
 	constexpr const char* kDefaultOverridePath =
 		"Resource/Config/Practice/practice_balance_overrides.json";
+	constexpr const wchar_t* kChampionBalanceDataPath =
+		L"Data\\Gameplay\\ChampionGameData\\champions.json";
+	constexpr const wchar_t* kSkillEffectBalanceDataPath =
+		L"Data\\LoL\\ServerPrivate\\Gameplay\\SkillEffectGameplayDefs.json";
+	constexpr const wchar_t* kSpawnObjectBalanceDataPath =
+		L"Data\\LoL\\ServerPrivate\\Gameplay\\SpawnObjectGameplayDefs.json";
+	constexpr const wchar_t* kEconomyBalanceDataPath =
+		L"Data\\LoL\\ServerPrivate\\Gameplay\\EconomyGameplayDefs.json";
+	constexpr f32_t kMinionAttackRangeMin = 0.1f;
+	constexpr f32_t kMinionAttackRangeMax = 100.f;
+	constexpr f32_t kAdRatioAuthoringMax = 10.f;
 	constexpr size_t kMaxPracticeOverrides = 32u;
 
 	struct ParamOption
@@ -52,7 +67,7 @@ namespace
 		eSkillEffectParamId id = eSkillEffectParamId::None;
 	};
 
-	constexpr std::array<ParamOption, 14> kParamOptions =
+	constexpr std::array<ParamOption, 69> kParamOptions =
 	{
 		ParamOption{ "BaseDamage", eSkillEffectParamId::BaseDamage },
 		ParamOption{ "DamagePerRank", eSkillEffectParamId::DamagePerRank },
@@ -62,12 +77,67 @@ namespace
 		ParamOption{ "StunDurationSec", eSkillEffectParamId::StunDurationSec },
 		ParamOption{ "SlowDurationSec", eSkillEffectParamId::SlowDurationSec },
 		ParamOption{ "AirborneDurationSec", eSkillEffectParamId::AirborneDurationSec },
+		ParamOption{ "MarkDurationSec", eSkillEffectParamId::MarkDurationSec },
+		ParamOption{ "StackWindowSec", eSkillEffectParamId::StackWindowSec },
+		ParamOption{ "Gap", eSkillEffectParamId::Gap },
 		ParamOption{ "DashDistance", eSkillEffectParamId::DashDistance },
 		ParamOption{ "DashDurationSec", eSkillEffectParamId::DashDurationSec },
+		ParamOption{ "TargetDashDurationSec", eSkillEffectParamId::TargetDashDurationSec },
+		ParamOption{ "HalfAngleCos", eSkillEffectParamId::HalfAngleCos },
 		ParamOption{ "Radius", eSkillEffectParamId::Radius },
+		ParamOption{ "ShieldDurationSec", eSkillEffectParamId::ShieldDurationSec },
+		ParamOption{ "ShieldBaseAmount", eSkillEffectParamId::ShieldBaseAmount },
+		ParamOption{ "ShieldAmountPerRank", eSkillEffectParamId::ShieldAmountPerRank },
+		ParamOption{ "ShieldArmorPerRank", eSkillEffectParamId::ShieldArmorPerRank },
+		ParamOption{ "DashDelaySec", eSkillEffectParamId::DashDelaySec },
 		ParamOption{ "EffectDurationSec", eSkillEffectParamId::EffectDurationSec },
+		ParamOption{ "TickIntervalSec", eSkillEffectParamId::TickIntervalSec },
+		ParamOption{ "RefreshDurationSec", eSkillEffectParamId::RefreshDurationSec },
+		ParamOption{ "VanishDurationSec", eSkillEffectParamId::VanishDurationSec },
+		ParamOption{ "MissingHealthDamageRatio", eSkillEffectParamId::MissingHealthDamageRatio },
+		ParamOption{ "TargetHealthThresholdRatio", eSkillEffectParamId::TargetHealthThresholdRatio },
+		ParamOption{ "AcquireRange", eSkillEffectParamId::AcquireRange },
+		ParamOption{ "LifetimeSec", eSkillEffectParamId::LifetimeSec },
+		ParamOption{ "RespawnSec", eSkillEffectParamId::RespawnSec },
+		ParamOption{ "SideDotThreshold", eSkillEffectParamId::SideDotThreshold },
+		ParamOption{ "TargetMaxHpRatio", eSkillEffectParamId::TargetMaxHpRatio },
+		ParamOption{ "ChallengeDurationSec", eSkillEffectParamId::ChallengeDurationSec },
+		ParamOption{ "HealDurationSec", eSkillEffectParamId::HealDurationSec },
+		ParamOption{ "HealRadius", eSkillEffectParamId::HealRadius },
+		ParamOption{ "HealIntervalSec", eSkillEffectParamId::HealIntervalSec },
+		ParamOption{ "HealAmount", eSkillEffectParamId::HealAmount },
+		ParamOption{ "MinHealthAmount", eSkillEffectParamId::MinHealthAmount },
+		ParamOption{ "HealBaseAmount", eSkillEffectParamId::HealBaseAmount },
+		ParamOption{ "HealAmountPerRank", eSkillEffectParamId::HealAmountPerRank },
+		ParamOption{ "RectLength", eSkillEffectParamId::RectLength },
+		ParamOption{ "RectWidth", eSkillEffectParamId::RectWidth },
+		ParamOption{ "HalfWidth", eSkillEffectParamId::HalfWidth },
+		ParamOption{ "DisarmDurationSec", eSkillEffectParamId::DisarmDurationSec },
+		ParamOption{ "TornadoSpeed", eSkillEffectParamId::TornadoSpeed },
+		ParamOption{ "TornadoDurationSec", eSkillEffectParamId::TornadoDurationSec },
+		ParamOption{ "TornadoRadius", eSkillEffectParamId::TornadoRadius },
+		ParamOption{ "TornadoDamage", eSkillEffectParamId::TornadoDamage },
+		ParamOption{ "DashAreaRadius", eSkillEffectParamId::DashAreaRadius },
+		ParamOption{ "DashAreaDamage", eSkillEffectParamId::DashAreaDamage },
 		ParamOption{ "BonusAd", eSkillEffectParamId::BonusAd },
 		ParamOption{ "BonusAttackSpeed", eSkillEffectParamId::BonusAttackSpeed },
+		ParamOption{ "TotalAdRatio", eSkillEffectParamId::TotalAdRatio },
+		ParamOption{ "BonusAdRatio", eSkillEffectParamId::BonusAdRatio },
+		ParamOption{ "ApRatio", eSkillEffectParamId::ApRatio },
+		ParamOption{ "NonEpicBaseDamage", eSkillEffectParamId::NonEpicBaseDamage },
+		ParamOption{ "NonEpicDamagePerRank", eSkillEffectParamId::NonEpicDamagePerRank },
+		ParamOption{ "CooldownRefundSec", eSkillEffectParamId::CooldownRefundSec },
+		ParamOption{ "ManaRestoreFlat", eSkillEffectParamId::ManaRestoreFlat },
+		ParamOption{ "CastTimeSec", eSkillEffectParamId::CastTimeSec },
+		ParamOption{ "ManaCostPerRank", eSkillEffectParamId::ManaCostPerRank },
+		ParamOption{ "CooldownReductionPerRank", eSkillEffectParamId::CooldownReductionPerRank },
+		ParamOption{ "MaxStacks", eSkillEffectParamId::MaxStacks },
+		ParamOption{ "RectLengthPerRank", eSkillEffectParamId::RectLengthPerRank },
+		ParamOption{ "FormationDelaySec", eSkillEffectParamId::FormationDelaySec },
+		ParamOption{ "DamagePerSpear", eSkillEffectParamId::DamagePerSpear },
+		ParamOption{ "CooldownSecOverride", eSkillEffectParamId::CooldownSecOverride },
+		ParamOption{ "DamageFlatOverride", eSkillEffectParamId::DamageFlatOverride },
+		ParamOption{ "HealDamageRatio", eSkillEffectParamId::HealDamageRatio },
 	};
 
 	struct StatOption
@@ -102,7 +172,7 @@ namespace
 		eItemStatOverrideField id = eItemStatOverrideField::None;
 	};
 
-	constexpr std::array<ItemFieldOption, 14> kItemFieldOptions =
+	constexpr std::array<ItemFieldOption, 19> kItemFieldOptions =
 	{
 		ItemFieldOption{ "Price", eItemStatOverrideField::Price },
 		ItemFieldOption{ "FlatAd", eItemStatOverrideField::FlatAd },
@@ -118,6 +188,11 @@ namespace
 		ItemFieldOption{ "LifeSteal", eItemStatOverrideField::LifeSteal },
 		ItemFieldOption{ "FlatMagicPen", eItemStatOverrideField::FlatMagicPen },
 		ItemFieldOption{ "Lethality", eItemStatOverrideField::Lethality },
+		ItemFieldOption{ "CritDamageBonus", eItemStatOverrideField::CritDamageBonus },
+		ItemFieldOption{ "PercentMoveSpeed", eItemStatOverrideField::PercentMoveSpeed },
+		ItemFieldOption{ "ArmorPenPercent", eItemStatOverrideField::ArmorPenPercent },
+		ItemFieldOption{ "BonusArmorPenPercent", eItemStatOverrideField::BonusArmorPenPercent },
+		ItemFieldOption{ "MagicPenPercent", eItemStatOverrideField::MagicPenPercent },
 	};
 
 	struct StatOverrideRow
@@ -164,14 +239,39 @@ namespace
 		eChampion championId = static_cast<eChampion>(0);
 	};
 
+	struct BalanceDataDraft
+	{
+		std::filesystem::path championPath{};
+		std::filesystem::path skillEffectPath{};
+		std::filesystem::path spawnObjectPath{};
+		std::filesystem::path economyPath{};
+		std::string championSource{};
+		std::string skillEffectSource{};
+		std::string spawnObjectSource{};
+		std::string economySource{};
+		ordered_json champions{};
+		ordered_json skillEffects{};
+		ordered_json spawnObjects{};
+		ordered_json economy{};
+		int championIndex = 0;
+		int skillSlot = 1;
+		int minionRole = 0;
+		int jungleSubKind = 0;
+		bool_t bLoaded = false;
+		bool_t bChampionDirty = false;
+		bool_t bSkillEffectDirty = false;
+		bool_t bSpawnObjectDirty = false;
+		bool_t bEconomyDirty = false;
+		u32_t pendingHotLoadSequence = 0u;
+		u64_t expectedToolRevision = 0u;
+	};
+
 	struct PracticeToolState
 	{
 		PracticeToolState()
 		{
 			strncpy_s(path, kDefaultOverridePath, _TRUNCATE);
 			strncpy_s(profileName, "Designer Scratch", _TRUNCATE);
-			overrides.push_back({ 1u, 0, 100.f });
-			overrides.push_back({ 1u, 1, 25.f });
 		}
 
 		char path[512]{};
@@ -181,6 +281,7 @@ namespace
 		std::string status = "Ready.";
 		u32_t lastSequence = 0u;
 		bool_t bLoadedOnce = false;
+		BalanceDataDraft balanceData{};
 
 		bool_t bInfiniteHealth = false;
 		bool_t bInfiniteMana = false;
@@ -209,6 +310,24 @@ namespace
 		int spawnChampionId = 1;
 		int spawnChampionTeam = 1;
 		int spawnChampionBrain = 1;
+
+		// -1 = 미설정(팩 값 유지). 단일값이 전 랭크에 적용된다.
+		f32_t skillCooldownDraft[4] = { -1.f, -1.f, -1.f, -1.f };
+		f32_t skillDamageDraft[4] = { -1.f, -1.f, -1.f, -1.f };
+		f32_t minionAttackDamageDraft[4] = { 40.f, 60.f, 40.f, 100.f };
+		bool_t minionAttackDamageEnabled[4] = { false, false, false, false };
+		f32_t jungleMaxHpDraft = 1000.f;
+		f32_t jungleAttackDamageDraft = 50.f;
+		f32_t structureTurretHpDraft = 3000.f;
+		f32_t structureInhibitorHpDraft = 3000.f;
+		f32_t structureNexusHpDraft = 5000.f;
+		f32_t structureTurretDamageDraft = 150.f;
+		int balanceCategory = static_cast<int>(
+			UI::eBalanceTunerCategory::Champions);
+		f32_t respawnSecondsByLevel[18] = {
+			10.f, 10.f, 12.f, 12.f, 14.f, 16.f, 20.f, 25.f, 28.f,
+			32.5f, 35.f, 37.5f, 40.f, 42.5f, 45.f, 47.5f, 50.f, 52.5f
+		};
 	};
 
 	PracticeToolState g_PracticeTool{};
@@ -237,7 +356,9 @@ namespace
 		}
 	}
 
-	f32_t ResolveItemFieldBaseline(const ItemDef& item, int fieldIndex)
+	f32_t ResolveItemFieldBaseline(
+		const ClientData::ShopItemPresentationDefinition& item,
+		int fieldIndex)
 	{
 		switch (kItemFieldOptions[static_cast<size_t>(fieldIndex)].id)
 		{
@@ -250,7 +371,12 @@ namespace
 		case eItemStatOverrideField::FlatMr: return item.stats.flatMr;
 		case eItemStatOverrideField::BonusAttackSpeed: return item.stats.bonusAttackSpeed;
 		case eItemStatOverrideField::CritChance: return item.stats.critChance;
+		case eItemStatOverrideField::CritDamageBonus: return item.stats.critDamageBonus;
 		case eItemStatOverrideField::AbilityHaste: return item.stats.abilityHaste;
+		case eItemStatOverrideField::PercentMoveSpeed: return item.stats.percentMoveSpeed;
+		case eItemStatOverrideField::ArmorPenPercent: return item.stats.armorPenPercent;
+		case eItemStatOverrideField::BonusArmorPenPercent: return item.stats.bonusArmorPenPercent;
+		case eItemStatOverrideField::MagicPenPercent: return item.stats.magicPenPercent;
 		case eItemStatOverrideField::FlatMoveSpeed: return item.stats.flatMoveSpeed;
 		case eItemStatOverrideField::LifeSteal: return item.stats.lifeSteal;
 		case eItemStatOverrideField::FlatMagicPen: return item.stats.flatMagicPen;
@@ -528,12 +654,51 @@ namespace
 				}
 			}
 
+			f32_t parsedMinionDamage[4] = { 40.f, 60.f, 40.f, 100.f };
+			bool_t parsedMinionEnabled[4] = { false, false, false, false };
+			if (root.contains("minionAttackDamage") &&
+				root["minionAttackDamage"].is_array())
+			{
+				for (const json& source : root["minionAttackDamage"])
+				{
+					if (!source.is_object() ||
+						!source.contains("role") || !source["role"].is_number_integer() ||
+						!source.contains("value") || !source["value"].is_number())
+					{
+						throw std::runtime_error(
+							"each minionAttackDamage row requires role and numeric value");
+					}
+					const int role = source["role"].get<int>();
+					const f32_t value = source["value"].get<f32_t>();
+					if (role < 0 || role >= 4 || !std::isfinite(value) || value < 0.f)
+						throw std::runtime_error("minionAttackDamage row is invalid");
+					parsedMinionDamage[role] = value;
+					parsedMinionEnabled[role] = true;
+				}
+			}
+
 			const std::string profile =
 				root.value("profileName", std::string{ "Designer Scratch" });
 			strncpy_s(state.profileName, profile.c_str(), _TRUNCATE);
 			state.overrides = std::move(parsed);
 			state.statOverrides = std::move(parsedStats);
 			state.itemOverrides = std::move(parsedItems);
+			for (int role = 0; role < 4; ++role)
+			{
+				state.minionAttackDamageDraft[role] = parsedMinionDamage[role];
+				state.minionAttackDamageEnabled[role] = parsedMinionEnabled[role];
+			}
+			for (f32_t& draft : state.skillDamageDraft)
+				draft = -1.f;
+			for (const OverrideRow& row : state.overrides)
+			{
+				if (row.slot >= 1u && row.slot <= 4u &&
+					kParamOptions[row.paramIndex].id ==
+						eSkillEffectParamId::DamageFlatOverride)
+				{
+					state.skillDamageDraft[row.slot - 1u] = row.value;
+				}
+			}
 			state.resolvedPath = resolved;
 			state.status = "Loaded JSON. Values are local until Apply is sent to the server.";
 			return true;
@@ -623,6 +788,23 @@ namespace
 					{ "value", row.value },
 				});
 		}
+		root["minionAttackDamage"] = json::array();
+		for (int role = 0; role < 4; ++role)
+		{
+			if (!state.minionAttackDamageEnabled[role])
+				continue;
+			const f32_t value = state.minionAttackDamageDraft[role];
+			if (!std::isfinite(value) || value < 0.f)
+			{
+				state.status = "Save failed: a minion attack damage value is invalid.";
+				return false;
+			}
+			root["minionAttackDamage"].push_back(
+				{
+					{ "role", role },
+					{ "value", value },
+				});
+		}
 
 		std::ofstream file{ resolved, std::ios::trunc };
 		if (!file.is_open())
@@ -643,6 +825,31 @@ namespace
 		return true;
 	}
 
+	void SyncEssentialSkillRows(PracticeToolState& state)
+	{
+		const int flatDamageIndex = FindParamIndex("DamageFlatOverride");
+		state.overrides.erase(
+			std::remove_if(
+				state.overrides.begin(),
+				state.overrides.end(),
+				[&](const OverrideRow& row)
+				{
+					return row.slot >= 1u && row.slot <= 4u &&
+						row.paramIndex == flatDamageIndex;
+				}),
+			state.overrides.end());
+
+		for (int slotIndex = 0; slotIndex < 4; ++slotIndex)
+		{
+			if (state.skillDamageDraft[slotIndex] < 0.f)
+				continue;
+			state.overrides.push_back(
+				{ static_cast<u8_t>(slotIndex + 1),
+				  flatDamageIndex,
+				  state.skillDamageDraft[slotIndex] });
+		}
+	}
+
 	bool_t CanSendPracticeCommand(CScene_InGame* pScene)
 	{
 		if (!pScene || !pScene->IsNetworkAuthoritativeGameplay())
@@ -654,7 +861,65 @@ namespace
 			pNetwork->IsConnected();
 	}
 
-	void SendPracticeCommand(
+	struct HotLoadAvailability
+	{
+		bool_t bAvailable = false;
+		const char* pMessage = nullptr;
+	};
+
+	HotLoadAvailability ResolveHotLoadAvailability(CScene_InGame* pScene)
+	{
+#if !defined(_DEBUG)
+		(void)pScene;
+		return {
+			false,
+			"Hot Load unavailable: Release Client. Run Debug Client + Debug Server as room host."
+		};
+#else
+		if (!pScene || !pScene->IsNetworkAuthoritativeGameplay())
+		{
+			return {
+				false,
+				"Hot Load unavailable: this scene is not server-authoritative."
+			};
+		}
+		if (!pScene->GetCommandSerializer())
+		{
+			return {
+				false,
+				"Hot Load unavailable: the practice command sender is not ready."
+			};
+		}
+		CClientNetwork* pNetwork = pScene->GetNetworkView();
+		if (!pNetwork)
+		{
+			return {
+				false,
+				"Hot Load unavailable: the authoritative network session is missing."
+			};
+		}
+		if (!pNetwork->IsConnected())
+		{
+			return {
+				false,
+				"Hot Load unavailable: the authoritative network session is disconnected."
+			};
+		}
+		if (!pScene->GetSnapshotApplier())
+		{
+			return {
+				false,
+				"Hot Load unavailable: the server acknowledgement tracker is not ready."
+			};
+		}
+		return {
+			true,
+			"Hot Load ready. The Debug server accepts this command from the room host only."
+		};
+#endif
+	}
+
+	u32_t SendPracticeCommand(
 		CScene_InGame* pScene,
 		PracticeToolState& state,
 		ePracticeOperation operation,
@@ -667,7 +932,7 @@ namespace
 		if (!CanSendPracticeCommand(pScene))
 		{
 			state.status = "Command not sent: connect to a server-authoritative Debug match.";
-			return;
+			return 0u;
 		}
 
 		const u32_t sequence = pScene->GetCommandSerializer()->SendPracticeControl(
@@ -681,11 +946,12 @@ namespace
 		if (sequence == 0u)
 		{
 			state.status = "Command not sent: client-side payload validation failed.";
-			return;
+			return 0u;
 		}
 
 		state.lastSequence = sequence;
 		state.status = "Command sent. Confirm the result through the observed server snapshot.";
+		return sequence;
 	}
 
 	ObservedPlayer ReadObservedPlayer(const CScene_InGame* pScene)
@@ -796,6 +1062,13 @@ namespace
 
 	void RenderOverrideTable(CScene_InGame* pScene, PracticeToolState& state)
 	{
+		ImGui::TextWrapped(
+			"Effect overrides are temporary scalar/variant parameters. Ranked damage formulas "
+			"are canonical in ServerPrivate/Gameplay/SkillEffectGameplayDefs.json and are "
+			"applied through the server definition reload path.");
+		ImGui::TextWrapped(
+			"Practice JSON is a session draft. Release truth changes only after canonical JSON "
+			"validation, codegen, SimLab, and build succeed.");
 		if (ImGui::InputText("JSON Path", state.path, std::size(state.path)))
 			state.resolvedPath.clear();
 		ImGui::InputText("Profile", state.profileName, std::size(state.profileName));
@@ -971,16 +1244,1813 @@ namespace
 				ePracticeOperation::ReloadGameplayDefinitions,
 				0.f, 0u, 0u, {}, NULL_NET_ENTITY);
 			state.status =
-				"Definition reload requested: champions.json / SkillEffectGameplayDefs.json / SummonerSpellGameplayDefs.json";
+				"Definition reload requested: champions / skill effects / spells / economy / items / spawns";
 		}
 		ImGui::EndDisabled();
 		ImGui::SameLine();
 		ImGui::TextDisabled("JSON 저장 -> 이 버튼 -> 즉시 반영 (Debug 서버)");
 	}
+
+	std::string ToLowerAscii(std::string value)
+	{
+		for (char& ch : value)
+		{
+			if (ch >= 'A' && ch <= 'Z')
+				ch = static_cast<char>(ch - 'A' + 'a');
+		}
+		return value;
+	}
+
+	u32_t BalanceFnv1a32(const std::string& value)
+	{
+		u32_t hash = 2166136261u;
+		for (const char ch : value)
+		{
+			hash ^= static_cast<u8_t>(ch);
+			hash *= 16777619u;
+		}
+		return hash;
+	}
+
+	bool_t ReadTextFile(
+		const std::filesystem::path& path,
+		std::string& outText)
+	{
+		std::ifstream input(path, std::ios::binary);
+		if (!input.is_open())
+			return false;
+		outText.assign(
+			std::istreambuf_iterator<char>(input),
+			std::istreambuf_iterator<char>());
+		return input.good() || input.eof();
+	}
+
+	bool_t ResolveBalanceDataPath(
+		const wchar_t* pRelative,
+		std::filesystem::path& outPath,
+		std::string& outError)
+	{
+		wchar_t resolved[MAX_PATH]{};
+		if (!WintersResolveContentPath(pRelative, resolved, MAX_PATH))
+		{
+			outError = "Workspace Data file not found.";
+			return false;
+		}
+		outPath = resolved;
+		return true;
+	}
+
+	bool_t ReadOrderedJson(
+		const std::filesystem::path& path,
+		std::string& outSource,
+		ordered_json& outDocument,
+		std::string& outError)
+	{
+		if (!ReadTextFile(path, outSource))
+		{
+			outError = "Read failed: " + path.filename().string();
+			return false;
+		}
+		outDocument = ordered_json::parse(outSource, nullptr, false);
+		if (outDocument.is_discarded())
+		{
+			outError = "JSON parse failed: " + path.filename().string();
+			return false;
+		}
+		return true;
+	}
+
+	const char* SkillSlotToken(int slot)
+	{
+		static const char* const kTokens[5] = {
+			"basic_attack", "q", "w", "e", "r"
+		};
+		return slot >= 0 && slot < 5 ? kTokens[slot] : "";
+	}
+
+	int SkillRankCount(int slot)
+	{
+		if (slot == 0)
+			return 1;
+		return slot == 4 ? 3 : 5;
+	}
+
+	bool_t IsRankedDamageParam(
+		const std::string& effectKey,
+		const char* pParam)
+	{
+		return
+			(effectKey == "skill.yasuo.q" &&
+				(std::strcmp(pParam, "tornadoDamage") == 0 ||
+				 std::strcmp(pParam, "dashAreaDamage") == 0)) ||
+			(effectKey == "skill.leesin.q" &&
+				std::strcmp(pParam, "baseDamage") == 0) ||
+			(effectKey == "skill.kalista.e" &&
+				std::strcmp(pParam, "damagePerSpear") == 0) ||
+			(effectKey == "skill.ezreal.r" &&
+				std::strcmp(pParam, "nonEpicBaseDamage") == 0);
+	}
+
+	const char* RankedDamageParamLabel(
+		const std::string& effectKey,
+		const char* pParam)
+	{
+		if (effectKey == "skill.yasuo.q")
+		{
+			if (std::strcmp(pParam, "tornadoDamage") == 0)
+				return "Q3 Tornado Flat Damage";
+			if (std::strcmp(pParam, "dashAreaDamage") == 0)
+				return "EQ Flat Damage";
+		}
+		if (effectKey == "skill.leesin.q")
+			return "Q2 Recast Flat Damage";
+		if (effectKey == "skill.kalista.e")
+			return "Damage Per Spear";
+		if (effectKey == "skill.ezreal.r")
+			return "Non-Epic Flat Damage";
+		return pParam;
+	}
+
+	ordered_json* FindChampionEntry(BalanceDataDraft& draft)
+	{
+		if (!draft.champions.contains("champions") ||
+			!draft.champions["champions"].is_array() ||
+			draft.champions["champions"].empty())
+		{
+			return nullptr;
+		}
+		auto& champions = draft.champions["champions"];
+		draft.championIndex = std::clamp(
+			draft.championIndex, 0, static_cast<int>(champions.size()) - 1);
+		return &champions[static_cast<size_t>(draft.championIndex)];
+	}
+
+	ordered_json* FindChampionSkill(ordered_json& champion, int slot)
+	{
+		if (!champion.contains("skills") || !champion["skills"].is_array())
+			return nullptr;
+		for (ordered_json& skill : champion["skills"])
+		{
+			if (skill.value("slot", -1) == slot)
+				return &skill;
+		}
+		return nullptr;
+	}
+
+	ordered_json* FindSkillEffect(
+		BalanceDataDraft& draft,
+		const std::string& championName,
+		int slot)
+	{
+		if (!draft.skillEffects.contains("skillEffects") ||
+			!draft.skillEffects["skillEffects"].is_array())
+		{
+			return nullptr;
+		}
+		const std::string key =
+			"skill." + ToLowerAscii(championName) + "." + SkillSlotToken(slot);
+		for (ordered_json& effect : draft.skillEffects["skillEffects"])
+		{
+			if (effect.value("key", std::string{}) == key)
+				return &effect;
+		}
+		return nullptr;
+	}
+
+	ordered_json* FindMinionEntry(BalanceDataDraft& draft, int role)
+	{
+		if (!draft.spawnObjects.contains("minions") ||
+			!draft.spawnObjects["minions"].is_array())
+		{
+			return nullptr;
+		}
+		for (ordered_json& minion : draft.spawnObjects["minions"])
+		{
+			if (minion.value("roleType", -1) == role)
+				return &minion;
+		}
+		return nullptr;
+	}
+
+	bool_t ValidateNumber(
+		const ordered_json& node,
+		const char* pField,
+		f32_t minValue,
+		f32_t maxValue,
+		std::string& outError,
+		const std::string& owner)
+	{
+		if (!node.contains(pField) || !node[pField].is_number())
+		{
+			outError = owner + "." + pField + " must be a number";
+			return false;
+		}
+		const f32_t value = node[pField].get<f32_t>();
+		if (!std::isfinite(value) || value < minValue || value > maxValue)
+		{
+			outError = owner + "." + pField + " is out of range";
+			return false;
+		}
+		return true;
+	}
+
+	bool_t ValidateRankArray(
+		const ordered_json& node,
+		const char* pField,
+		int rankCount,
+		f32_t minValue,
+		f32_t maxValue,
+		std::string& outError,
+		const std::string& owner)
+	{
+		if (!node.contains(pField) || !node[pField].is_array() ||
+			static_cast<int>(node[pField].size()) != rankCount)
+		{
+			outError = owner + "." + pField + " rank count mismatch";
+			return false;
+		}
+		for (const ordered_json& valueNode : node[pField])
+		{
+			if (!valueNode.is_number())
+			{
+				outError = owner + "." + pField + " contains a non-number";
+				return false;
+			}
+			const f32_t value = valueNode.get<f32_t>();
+			if (!std::isfinite(value) || value < minValue || value > maxValue)
+			{
+				outError = owner + "." + pField + " is out of range";
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool_t EnsureCooldownRanks(
+		ordered_json& skill,
+		int rankCount,
+		std::string& outError,
+		const std::string& owner)
+	{
+		if (skill.contains("cooldownSecByRank"))
+		{
+			return ValidateRankArray(
+				skill, "cooldownSecByRank", rankCount, 0.f, 3600.f,
+				outError, owner);
+		}
+		if (!ValidateNumber(
+			skill, "cooldownSec", 0.f, 3600.f, outError, owner))
+		{
+			return false;
+		}
+		const f32_t value = skill["cooldownSec"].get<f32_t>();
+		skill["cooldownSecByRank"] = ordered_json::array();
+		for (int rank = 0; rank < rankCount; ++rank)
+			skill["cooldownSecByRank"].push_back(value);
+		return true;
+	}
+
+	bool_t ValidateBalanceDraft(BalanceDataDraft& draft, std::string& outError)
+	{
+		if (!draft.champions.contains("champions") ||
+			!draft.champions["champions"].is_array() ||
+			draft.champions["champions"].empty() ||
+			!draft.skillEffects.contains("skillEffects") ||
+			!draft.skillEffects["skillEffects"].is_array() ||
+			!draft.spawnObjects.contains("minions") ||
+			!draft.spawnObjects["minions"].is_array() ||
+			!draft.economy.contains("jungle") ||
+			!draft.economy["jungle"].is_object() ||
+			!draft.economy.contains("objectives") ||
+			!draft.economy["objectives"].is_object())
+		{
+			outError = "Balance JSON is missing champions, skillEffects, minions, jungle, or objectives.";
+			return false;
+		}
+
+		std::unordered_map<std::string, ordered_json*> effectByKey;
+		std::unordered_map<u32_t, std::string> hashOwners;
+		for (ordered_json& effect : draft.skillEffects["skillEffects"])
+		{
+			const std::string key = effect.value("key", std::string{});
+			if (key.empty() || effectByKey.contains(key))
+			{
+				outError = "Duplicate or empty skill effect key: " + key;
+				return false;
+			}
+			effectByKey.emplace(key, &effect);
+			const u32_t hash = BalanceFnv1a32(key);
+			const auto [it, inserted] = hashOwners.emplace(hash, key);
+			if (!inserted && it->second != key)
+			{
+				outError = "Definition hash collision: " + it->second + " / " + key;
+				return false;
+			}
+		}
+
+		static const char* const kStatFields[] = {
+			"baseHp", "hpPerLevel", "baseMana", "manaPerLevel",
+			"baseAd", "adPerLevel", "baseAp", "apPerLevel",
+			"baseArmor", "armorPerLevel", "baseMr", "mrPerLevel",
+			"baseAttackSpeed", "attackSpeedPerLevel", "attackSpeedRatio",
+			"resourceRegenPerSec"
+		};
+		static const char* const kDamageFields[] = {
+			"flatByRank", "totalAdRatioByRank", "bonusAdRatioByRank",
+			"apRatioByRank", "targetMaxHpRatioByRank",
+			"targetMissingHpRatioByRank"
+		};
+
+		std::unordered_set<std::string> championNames;
+		for (ordered_json& champion : draft.champions["champions"])
+		{
+			const std::string name = champion.value("champion", std::string{});
+			const std::string token = ToLowerAscii(name);
+			if (token.empty() || !championNames.emplace(token).second)
+			{
+				outError = "Duplicate or empty champion name: " + name;
+				return false;
+			}
+			const std::string championKey = "champion." + token;
+			const u32_t championHash = BalanceFnv1a32(championKey);
+			const auto [hashIt, hashInserted] =
+				hashOwners.emplace(championHash, championKey);
+			if (!hashInserted && hashIt->second != championKey)
+			{
+				outError = "Definition hash collision: " + hashIt->second +
+					" / " + championKey;
+				return false;
+			}
+
+			if (!champion.contains("stats") || !champion["stats"].is_object())
+			{
+				outError = name + ".stats missing";
+				return false;
+			}
+			for (const char* pField : kStatFields)
+			{
+				if (!ValidateNumber(
+					champion["stats"], pField, 0.f, 1000000.f,
+					outError, name + ".stats"))
+				{
+					return false;
+				}
+			}
+
+			if (!champion.contains("skills") || !champion["skills"].is_array())
+			{
+				outError = name + ".skills missing";
+				return false;
+			}
+			bool_t slots[5]{};
+			for (ordered_json& skill : champion["skills"])
+			{
+				const int slot = skill.value("slot", -1);
+				if (slot < 0 || slot >= 5 || slots[slot])
+				{
+					outError = name + " has duplicate or invalid skill slot";
+					return false;
+				}
+				slots[slot] = true;
+				const int rankCount = slot == 0 ? 1 : SkillRankCount(slot);
+				if (!EnsureCooldownRanks(
+					skill, rankCount, outError,
+					name + "." + SkillSlotToken(slot)))
+				{
+					return false;
+				}
+				if (!ValidateNumber(
+					skill, "rangeMax", 0.f, 500.f, outError,
+					name + "." + SkillSlotToken(slot)))
+				{
+					return false;
+				}
+				// Keep legacy scalar readers in sync while the rank table remains the
+				// canonical editor representation.
+				if (skill.contains("cooldownSec"))
+				{
+					skill["cooldownSec"] = skill["cooldownSecByRank"][0];
+				}
+
+				const std::string effectKey =
+					"skill." + token + "." + SkillSlotToken(slot);
+				const auto effectIt = effectByKey.find(effectKey);
+				if (effectIt == effectByKey.end())
+				{
+					outError = "Missing skill effect: " + effectKey;
+					return false;
+				}
+				ordered_json& effect = *effectIt->second;
+				if (!effect.contains("damage") || !effect["damage"].is_object())
+				{
+					outError = effectKey + ".damage missing";
+					return false;
+				}
+				for (const char* pField : kDamageFields)
+				{
+					if (!ValidateRankArray(
+						effect["damage"], pField, rankCount,
+						-1000000.f, 1000000.f, outError,
+						effectKey + ".damage"))
+					{
+						return false;
+					}
+				}
+				if (effect.contains("params") && effect["params"].is_object())
+				{
+					ordered_json& params = effect["params"];
+					static const char* const kRankedDamageParams[] = {
+						"baseDamage", "damagePerSpear", "tornadoDamage",
+						"dashAreaDamage", "nonEpicBaseDamage"
+					};
+					for (const char* pParam : kRankedDamageParams)
+					{
+						if (IsRankedDamageParam(effectKey, pParam) &&
+							!ValidateRankArray(
+								params, pParam, rankCount, 0.f, 1000000.f,
+								outError, effectKey + ".params"))
+						{
+							return false;
+						}
+					}
+					struct ParamRange
+					{
+						const char* pField;
+						f32_t maxValue;
+					};
+					static const ParamRange kPresentMechanics[] = {
+						{ "radius", 100.f },
+						{ "formationDelaySec", 10.f },
+						{ "healDamageRatio", 5.f },
+					};
+					for (const ParamRange& range : kPresentMechanics)
+					{
+						if (params.contains(range.pField) &&
+							!ValidateNumber(
+								params, range.pField, 0.f, range.maxValue,
+								outError, effectKey + ".params"))
+						{
+							return false;
+						}
+					}
+				}
+			}
+			for (bool_t bPresent : slots)
+			{
+				if (!bPresent)
+				{
+					outError = name + " must contain skill slots 0..4 exactly once";
+					return false;
+				}
+			}
+		}
+
+		bool_t laneRoles[4]{};
+		for (ordered_json& minion : draft.spawnObjects["minions"])
+		{
+			const int role = minion.value("roleType", -1);
+			if (role < 0)
+			{
+				outError = "minions[].roleType invalid";
+				return false;
+			}
+			if (role < 4)
+			{
+				if (laneRoles[role])
+				{
+					outError = "Duplicate lane minion role";
+					return false;
+				}
+				laneRoles[role] = true;
+				if (!ValidateNumber(
+					minion, "maxHp", 1.f, 1000000.f, outError,
+					"minions[" + std::to_string(role) + "]") ||
+					!ValidateNumber(
+						minion, "attackDamage", 0.f, 1000000.f, outError,
+						"minions[" + std::to_string(role) + "]") ||
+					!ValidateNumber(
+						minion, "attackRange",
+						kMinionAttackRangeMin, kMinionAttackRangeMax, outError,
+						"minions[" + std::to_string(role) + "]"))
+				{
+					return false;
+				}
+			}
+		}
+		for (bool_t bPresent : laneRoles)
+		{
+			if (!bPresent)
+			{
+				outError = "Lane minion roles 0..3 must exist";
+				return false;
+			}
+		}
+
+		if (!draft.spawnObjects.contains("structure") ||
+			!draft.spawnObjects["structure"].is_object() ||
+			!draft.spawnObjects["structure"].contains("turretAI") ||
+			!draft.spawnObjects["structure"]["turretAI"].is_object())
+		{
+			outError = "structure.turretAI missing";
+			return false;
+		}
+		if (!ValidateNumber(
+			draft.spawnObjects["structure"], "turretMaxHp", 1.f, 1000000.f,
+			outError, "structure") ||
+			!ValidateNumber(
+				draft.spawnObjects["structure"]["turretAI"],
+				"attackDamage", 0.f, 1000000.f, outError,
+				"structure.turretAI") ||
+			!ValidateNumber(
+				draft.spawnObjects["structure"]["turretAI"],
+				"nexusAttackDamage", 0.f, 1000000.f, outError,
+				"structure.turretAI"))
+		{
+			return false;
+		}
+
+		if (!draft.spawnObjects.contains("jungleCamps") ||
+			!draft.spawnObjects["jungleCamps"].is_array())
+		{
+			outError = "jungleCamps missing";
+			return false;
+		}
+		for (ordered_json& camp : draft.spawnObjects["jungleCamps"])
+		{
+			const int subKind = camp.value("subKind", -1);
+			if (subKind < 0 || subKind > 10 ||
+				!ValidateNumber(camp, "maxHp", 1.f, 1000000.f, outError, "jungleCamp") ||
+				!ValidateNumber(camp, "attackDamage", 0.f, 1000000.f, outError, "jungleCamp") ||
+				!ValidateNumber(camp, "baseArmor", 0.f, 1000000.f, outError, "jungleCamp") ||
+				!ValidateNumber(camp, "baseMr", 0.f, 1000000.f, outError, "jungleCamp"))
+			{
+				return false;
+			}
+		}
+
+		ordered_json& jungleRewards = draft.economy["jungle"];
+		static const char* const kJungleRewardFields[] = {
+			"smallCampGold", "smallCampXP", "epicGold", "epicXP", "baronGold", "baronXP"
+		};
+		for (const char* pField : kJungleRewardFields)
+		{
+			if (!ValidateNumber(jungleRewards, pField, 0.f, 1000000.f, outError, "jungle"))
+				return false;
+		}
+		ordered_json& objectives = draft.economy["objectives"];
+		static const char* const kObjectiveFields[] = {
+			"teamGoldPerChampion", "buffDurationSec", "baronRecallDurationMultiplier",
+			"baronAuraRadius", "baronMinionHpMultiplier",
+			"baronMinionAttackDamageMultiplier", "baronMinionScaleMultiplier",
+			"elderAttackDamageMultiplier", "elderBurnDurationSec",
+			"elderBurnTickIntervalSec", "elderBurnTargetMaxHpRatioPerTick",
+			"elderExecuteThresholdRatio", "blueManaRegenPerSec",
+			"redHealthRegenPerSec", "redBurnDurationSec",
+			"redBurnTickIntervalSec", "redBurnDamagePerTick"
+		};
+		for (const char* pField : kObjectiveFields)
+		{
+			if (!ValidateNumber(objectives, pField, 0.f, 1000000.f, outError, "objectives"))
+				return false;
+		}
+		if (!ValidateNumber(
+			objectives, "elderBurnTickIntervalSec", 0.001f, 1000000.f,
+			outError, "objectives") ||
+			!ValidateNumber(
+				objectives, "redBurnTickIntervalSec", 0.001f, 1000000.f,
+				outError, "objectives") ||
+			!ValidateNumber(
+				objectives, "elderBurnTargetMaxHpRatioPerTick", 0.f, 1.f,
+				outError, "objectives") ||
+			!ValidateNumber(
+				objectives, "elderExecuteThresholdRatio", 0.f, 1.f,
+				outError, "objectives"))
+		{
+			return false;
+		}
+		if (!objectives.contains("teamLevelGrant") ||
+			!objectives["teamLevelGrant"].is_number_integer())
+		{
+			outError = "objectives.teamLevelGrant must be an integer";
+			return false;
+		}
+		const int levelGrant = objectives["teamLevelGrant"].get<int>();
+		if (levelGrant < 0 || levelGrant > 18)
+		{
+			outError = "objectives.teamLevelGrant must be in [0, 18]";
+			return false;
+		}
+		return true;
+	}
+
+	bool_t LoadBalanceData(PracticeToolState& state)
+	{
+		BalanceDataDraft loaded{};
+		loaded.championIndex = state.balanceData.championIndex;
+		loaded.skillSlot = state.balanceData.skillSlot;
+		loaded.minionRole = state.balanceData.minionRole;
+		loaded.jungleSubKind = state.balanceData.jungleSubKind;
+		std::string error;
+		if (!ResolveBalanceDataPath(
+			kChampionBalanceDataPath, loaded.championPath, error) ||
+			!ResolveBalanceDataPath(
+				kSkillEffectBalanceDataPath, loaded.skillEffectPath, error) ||
+			!ResolveBalanceDataPath(
+				kSpawnObjectBalanceDataPath, loaded.spawnObjectPath, error) ||
+			!ResolveBalanceDataPath(
+				kEconomyBalanceDataPath, loaded.economyPath, error) ||
+			!ReadOrderedJson(
+				loaded.championPath, loaded.championSource,
+				loaded.champions, error) ||
+			!ReadOrderedJson(
+				loaded.skillEffectPath, loaded.skillEffectSource,
+				loaded.skillEffects, error) ||
+			!ReadOrderedJson(
+				loaded.spawnObjectPath, loaded.spawnObjectSource,
+				loaded.spawnObjects, error) ||
+			!ReadOrderedJson(
+				loaded.economyPath, loaded.economySource,
+				loaded.economy, error) ||
+			!ValidateBalanceDraft(loaded, error))
+		{
+			state.status = "Balance draft load failed: " + error;
+			state.balanceData.bLoaded = false;
+			return false;
+		}
+		loaded.bLoaded = true;
+		state.balanceData = std::move(loaded);
+		state.status = "Balance Data JSON loaded.";
+		return true;
+	}
+
+	struct PendingBalanceWrite
+	{
+		std::filesystem::path path{};
+		std::filesystem::path tempPath{};
+		std::filesystem::path backupPath{};
+		std::string* pSource = nullptr;
+		ordered_json* pDocument = nullptr;
+		int indent = 2;
+		std::string serialized{};
+	};
+
+	void CleanupPendingWrites(std::vector<PendingBalanceWrite>& writes)
+	{
+		for (PendingBalanceWrite& write : writes)
+		{
+			std::error_code ec;
+			std::filesystem::remove(write.tempPath, ec);
+			std::filesystem::remove(write.backupPath, ec);
+		}
+	}
+
+	bool_t SaveBalanceData(PracticeToolState& state)
+	{
+		BalanceDataDraft& draft = state.balanceData;
+		std::string error;
+		if (!draft.bLoaded || !ValidateBalanceDraft(draft, error))
+		{
+			state.status = "Save blocked: " + error;
+			return false;
+		}
+
+		std::vector<PendingBalanceWrite> writes;
+		if (draft.bChampionDirty)
+			writes.push_back({ draft.championPath, {}, {}, &draft.championSource, &draft.champions, 4 });
+		if (draft.bSkillEffectDirty)
+			writes.push_back({ draft.skillEffectPath, {}, {}, &draft.skillEffectSource, &draft.skillEffects, 2 });
+		if (draft.bSpawnObjectDirty)
+			writes.push_back({ draft.spawnObjectPath, {}, {}, &draft.spawnObjectSource, &draft.spawnObjects, 2 });
+		if (draft.bEconomyDirty)
+			writes.push_back({ draft.economyPath, {}, {}, &draft.economySource, &draft.economy, 2 });
+
+		for (PendingBalanceWrite& write : writes)
+		{
+			std::string diskSource;
+			if (!ReadTextFile(write.path, diskSource) || diskSource != *write.pSource)
+			{
+				state.status = "Save blocked: " + write.path.filename().string() +
+					" changed outside F4. Use Reload JSON.";
+				return false;
+			}
+			write.serialized = write.pDocument->dump(write.indent) + "\n";
+			const ordered_json parsed =
+				ordered_json::parse(write.serialized, nullptr, false);
+			if (parsed.is_discarded())
+			{
+				state.status = "Save blocked: serialized JSON preflight failed.";
+				return false;
+			}
+			write.tempPath = write.path;
+			write.tempPath += L".balance.tmp";
+			write.backupPath = write.path;
+			write.backupPath += L".balance.bak";
+			std::ofstream output(write.tempPath, std::ios::binary | std::ios::trunc);
+			if (!output.is_open())
+			{
+				CleanupPendingWrites(writes);
+				state.status = "Save failed: cannot write " +
+					write.path.filename().string();
+				return false;
+			}
+			output.write(
+				write.serialized.data(),
+				static_cast<std::streamsize>(write.serialized.size()));
+			output.close();
+			if (!output)
+			{
+				CleanupPendingWrites(writes);
+				state.status = "Save failed: temp write incomplete.";
+				return false;
+			}
+		}
+
+		for (PendingBalanceWrite& write : writes)
+		{
+			std::error_code ec;
+			std::filesystem::copy_file(
+				write.path, write.backupPath,
+				std::filesystem::copy_options::overwrite_existing, ec);
+			if (ec)
+			{
+				CleanupPendingWrites(writes);
+				state.status = "Save failed: backup creation failed.";
+				return false;
+			}
+		}
+
+		bool_t bReplacedAll = true;
+		for (PendingBalanceWrite& write : writes)
+		{
+			if (!MoveFileExW(
+				write.tempPath.c_str(), write.path.c_str(),
+				MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+			{
+				bReplacedAll = false;
+				break;
+			}
+		}
+		if (!bReplacedAll)
+		{
+			for (PendingBalanceWrite& write : writes)
+			{
+				std::error_code ec;
+				if (std::filesystem::exists(write.backupPath, ec))
+				{
+					std::filesystem::copy_file(
+						write.backupPath, write.path,
+						std::filesystem::copy_options::overwrite_existing, ec);
+				}
+			}
+			CleanupPendingWrites(writes);
+			state.status = "Save failed: JSON transaction rolled back.";
+			return false;
+		}
+
+		for (PendingBalanceWrite& write : writes)
+			*write.pSource = write.serialized;
+		CleanupPendingWrites(writes);
+		draft.bChampionDirty = false;
+		draft.bSkillEffectDirty = false;
+		draft.bSpawnObjectDirty = false;
+		draft.bEconomyDirty = false;
+		state.status = writes.empty()
+			? "No file changes; requesting server hot load."
+			: "Data JSON saved; requesting server hot load.";
+		return true;
+	}
 }
 
 namespace UI
 {
+	void CChampionTuner::Open(eBalanceTunerCategory category)
+	{
+		g_PracticeTool.balanceCategory = static_cast<int>(category);
+	}
+
+	void CChampionTuner::Render(CScene_InGame* pScene)
+	{
+		if (!pScene)
+			return;
+
+		PracticeToolState& state = g_PracticeTool;
+		if (!state.bLoadedOnce)
+		{
+			state.bLoadedOnce = true;
+			LoadBalanceData(state);
+		}
+
+		const CSnapshotApplier* pSnapshot = pScene->GetSnapshotApplier();
+		if (state.balanceData.pendingHotLoadSequence != 0u && pSnapshot &&
+			pSnapshot->GetLastAckedCommandSequence() >=
+				state.balanceData.pendingHotLoadSequence)
+		{
+			const u64_t toolRevision = pSnapshot->GetTimelineState().toolRevision;
+			if (toolRevision >= state.balanceData.expectedToolRevision)
+				state.status = "Hot load applied by the authoritative server.";
+			else
+			{
+				state.status =
+					"Hot load rejected by the server. It requires a Debug server "
+					"and room host; check the server data error log.";
+			}
+			state.balanceData.pendingHotLoadSequence = 0u;
+		}
+
+		const HotLoadAvailability hotLoadAvailability =
+			ResolveHotLoadAvailability(pScene);
+		const bool_t bCanHotLoad = hotLoadAvailability.bAvailable;
+
+		ImGui::SetNextWindowPos(ImVec2(500.f, 70.f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(1180.f, 650.f), ImGuiCond_FirstUseEver);
+		if (!ImGui::Begin("Balance"))
+		{
+			ImGui::End();
+			return;
+		}
+
+		BalanceDataDraft& draft = state.balanceData;
+		if (!draft.bLoaded)
+		{
+			ImGui::TextColored(
+				ImVec4(1.f, 0.45f, 0.25f, 1.f), "%s", state.status.c_str());
+			if (ImGui::Button("Reload JSON"))
+				LoadBalanceData(state);
+			ImGui::End();
+			return;
+		}
+
+		ordered_json* pChampion = FindChampionEntry(draft);
+		if (!pChampion)
+		{
+			ImGui::TextColored(ImVec4(1.f, 0.3f, 0.3f, 1.f), "Champion data is unavailable.");
+			ImGui::End();
+			return;
+		}
+
+		auto& champions = draft.champions["champions"];
+		const auto DrawChampionSelector = [&]()
+		{
+			pChampion = FindChampionEntry(draft);
+			const std::string selectedName =
+				pChampion->value("champion", std::string("Unknown"));
+			ImGui::SetNextItemWidth(260.f);
+			if (ImGui::BeginCombo("Champion", selectedName.c_str()))
+			{
+				for (size_t index = 0u; index < champions.size(); ++index)
+				{
+					const std::string name =
+						champions[index].value("champion", std::string("Unknown"));
+					const bool_t bSelected =
+						draft.championIndex == static_cast<int>(index);
+					if (ImGui::Selectable(name.c_str(), bSelected))
+						draft.championIndex = static_cast<int>(index);
+					if (bSelected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+			pChampion = FindChampionEntry(draft);
+		};
+
+		const auto EditFloat = [](
+			ordered_json& owner,
+			const char* pField,
+			const char* pLabel,
+			bool_t& bDirty,
+			const char* pFormat = "%.3f")
+		{
+			f32_t value = owner.value(pField, 0.f);
+			ImGui::PushID(pField);
+			bool_t changed = false;
+			if (pLabel && pLabel[0] == '#' && pLabel[1] == '#')
+			{
+				ImGui::SetNextItemWidth(-1.f);
+				changed = ImGui::InputFloat(
+					pLabel, &value, 0.f, 0.f, pFormat);
+			}
+			else if (ImGui::BeginTable(
+				"##EditFloatRow", 2,
+				ImGuiTableFlags_SizingStretchProp |
+					ImGuiTableFlags_NoSavedSettings))
+			{
+				ImGui::TableSetupColumn(
+					"Label", ImGuiTableColumnFlags_WidthFixed, 190.f);
+				ImGui::TableSetupColumn(
+					"Value", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextColumn();
+				ImGui::AlignTextToFramePadding();
+				ImGui::TextUnformatted(pLabel);
+				ImGui::TableNextColumn();
+				ImGui::SetNextItemWidth(-1.f);
+				changed = ImGui::InputFloat(
+					"##Value", &value, 0.f, 0.f, pFormat);
+				ImGui::EndTable();
+			}
+			if (changed && std::isfinite(value))
+			{
+				owner[pField] = value;
+				bDirty = true;
+			}
+			ImGui::PopID();
+		};
+
+		const auto EditDragFloat = [](
+			ordered_json& owner,
+			const char* pField,
+			const char* pLabel,
+			f32_t dragSpeed,
+			f32_t minValue,
+			f32_t maxValue,
+			const char* pFormat,
+			bool_t& bDirty)
+		{
+			f32_t value = owner.value(pField, 0.f);
+			ImGui::PushID(pField);
+			bool_t changed = false;
+			if (pLabel && pLabel[0] == '#' && pLabel[1] == '#')
+			{
+				ImGui::SetNextItemWidth(-1.f);
+				changed = ImGui::DragFloat(
+					pLabel,
+					&value,
+					dragSpeed,
+					minValue,
+					maxValue,
+					pFormat,
+					ImGuiSliderFlags_AlwaysClamp);
+			}
+			else if (ImGui::BeginTable(
+				"##EditDragFloatRow", 2,
+				ImGuiTableFlags_SizingStretchProp |
+					ImGuiTableFlags_NoSavedSettings))
+			{
+				ImGui::TableSetupColumn(
+					"Label", ImGuiTableColumnFlags_WidthFixed, 190.f);
+				ImGui::TableSetupColumn(
+					"Value", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableNextColumn();
+				ImGui::AlignTextToFramePadding();
+				ImGui::TextUnformatted(pLabel);
+				ImGui::TableNextColumn();
+				ImGui::SetNextItemWidth(-1.f);
+				changed = ImGui::DragFloat(
+					"##Value",
+					&value,
+					dragSpeed,
+					minValue,
+					maxValue,
+					pFormat,
+					ImGuiSliderFlags_AlwaysClamp);
+				ImGui::EndTable();
+			}
+			if (changed && std::isfinite(value))
+			{
+				owner[pField] = value;
+				bDirty = true;
+			}
+			ImGui::PopID();
+		};
+
+		if (ImGui::BeginTabBar("BalanceDataTabs"))
+		{
+			if (ImGui::BeginTabItem("Champions"))
+			{
+				state.balanceCategory = static_cast<int>(eBalanceTunerCategory::Champions);
+				DrawChampionSelector();
+				ordered_json& stats = (*pChampion)["stats"];
+				struct StatRow
+				{
+					const char* pLabel;
+					const char* pBase;
+					const char* pGrowth;
+				};
+				static const StatRow kRows[] = {
+					{ "Health", "baseHp", "hpPerLevel" },
+					{ "Mana / Energy", "baseMana", "manaPerLevel" },
+					{ "Attack Damage", "baseAd", "adPerLevel" },
+					{ "Ability Power", "baseAp", "apPerLevel" },
+					{ "Armor", "baseArmor", "armorPerLevel" },
+					{ "Magic Resist", "baseMr", "mrPerLevel" },
+					{ "Attack Speed", "baseAttackSpeed", "attackSpeedPerLevel" },
+				};
+				if (ImGui::BeginTable(
+					"ChampionStats", 3,
+					ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg))
+				{
+					ImGui::TableSetupColumn("Stat", ImGuiTableColumnFlags_WidthFixed, 180.f);
+					ImGui::TableSetupColumn("Base");
+					ImGui::TableSetupColumn("Per Level");
+					ImGui::TableHeadersRow();
+					for (const StatRow& row : kRows)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted(row.pLabel);
+						ImGui::TableSetColumnIndex(1);
+						EditFloat(stats, row.pBase, "##Base", draft.bChampionDirty);
+						ImGui::TableSetColumnIndex(2);
+						EditFloat(stats, row.pGrowth, "##Growth", draft.bChampionDirty);
+					}
+					ImGui::EndTable();
+				}
+				ImGui::SeparatorText("Attack / Resource");
+				EditFloat(
+					stats, "attackSpeedRatio", "Attack Speed Ratio",
+					draft.bChampionDirty);
+				EditFloat(
+					stats, "resourceRegenPerSec", "Resource Regen / Sec",
+					draft.bChampionDirty);
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Skills"))
+			{
+				state.balanceCategory = static_cast<int>(eBalanceTunerCategory::Skills);
+				DrawChampionSelector();
+				static const char* const kSkillNames[5] = {
+					"Passive / Basic Attack", "Q", "W", "E", "R"
+				};
+				int skillIndex = std::clamp(draft.skillSlot, 0, 4);
+				ImGui::SetNextItemWidth(180.f);
+				if (ImGui::Combo("Skill", &skillIndex, kSkillNames, 5))
+					draft.skillSlot = skillIndex;
+				ImGui::TextDisabled("Double-click to type an exact value.");
+				const int rankCount = SkillRankCount(draft.skillSlot);
+				ordered_json* pSkill = FindChampionSkill(*pChampion, draft.skillSlot);
+				const std::string championName =
+					pChampion->value("champion", std::string{});
+				ordered_json* pEffect =
+					FindSkillEffect(draft, championName, draft.skillSlot);
+				if (!pSkill || !pEffect)
+				{
+					ImGui::TextColored(
+						ImVec4(1.f, 0.3f, 0.3f, 1.f), "Skill JSON mapping is missing.");
+				}
+				else
+				{
+					std::string validationError;
+					EnsureCooldownRanks(
+						*pSkill, rankCount, validationError,
+						championName + "." + SkillSlotToken(draft.skillSlot));
+					ordered_json& damage = (*pEffect)["damage"];
+					const std::string effectKey =
+						pEffect->value("key", std::string{});
+					if (!pEffect->contains("params") || !(*pEffect)["params"].is_object())
+						(*pEffect)["params"] = ordered_json::object();
+					ordered_json& params = (*pEffect)["params"];
+					static const std::unordered_set<std::string> kDamageExecutionMissing = {
+						"skill.riven.q", "skill.riven.w",
+						"skill.masteryi.q", "skill.masteryi.e"
+					};
+					const bool_t bDamageExecutionMissing =
+						kDamageExecutionMissing.contains(effectKey);
+					const bool_t bNonDamagingSkill = effectKey == "skill.masteryi.w";
+					const bool_t bDisableDamageRows =
+						bDamageExecutionMissing || bNonDamagingSkill;
+					if (bDamageExecutionMissing)
+					{
+						ImGui::TextColored(
+							ImVec4(1.f, 0.45f, 0.2f, 1.f),
+							"Server damage execution: NOT_IMPLEMENTED");
+					}
+					else if (bNonDamagingSkill)
+					{
+						ImGui::TextDisabled("Non-damaging skill: damage rows are read-only.");
+					}
+					const auto DrawRankRow = [&](const char* pLabel,
+						ordered_json& owner, const char* pField, f32_t dragSpeed,
+						f32_t minValue, f32_t maxValue, const char* pFormat, bool_t bDisabled,
+						bool_t& bDirty)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted(pLabel);
+						for (int rank = 0; rank < 5; ++rank)
+						{
+							ImGui::TableSetColumnIndex(rank + 1);
+							if (rank >= rankCount)
+							{
+								ImGui::TextDisabled("-");
+								continue;
+							}
+							if (bDisabled)
+							{
+								ImGui::TextDisabled("Unavailable");
+								continue;
+							}
+							f32_t value = owner[pField][rank].get<f32_t>();
+							ImGui::PushID(pField);
+							ImGui::PushID(rank);
+							ImGui::SetNextItemWidth(-1.f);
+							if (ImGui::DragFloat(
+								"##Value",
+								&value,
+								dragSpeed,
+								minValue,
+								maxValue,
+								pFormat,
+								ImGuiSliderFlags_AlwaysClamp) && std::isfinite(value))
+							{
+								owner[pField][rank] = value;
+								bDirty = true;
+							}
+							ImGui::PopID();
+							ImGui::PopID();
+						}
+					};
+
+					EditDragFloat(
+						*pSkill, "rangeMax", "Skill Range (m)",
+						0.1f, 0.f, 500.f, "%.1f m", draft.bChampionDirty);
+					const char* pFlatDamageLabel = "Flat Damage";
+					if (effectKey == "skill.yasuo.q")
+						pFlatDamageLabel = "Q1/Q2 Flat Damage";
+					else if (effectKey == "skill.leesin.q")
+						pFlatDamageLabel = "Q1 Flat Damage";
+					else if (effectKey == "skill.kalista.e")
+						pFlatDamageLabel = "Rend Base Damage";
+					else if (effectKey == "skill.ezreal.r")
+						pFlatDamageLabel = "Champion / Epic Flat Damage";
+
+					if (ImGui::BeginTable(
+						"SkillBalance", 6,
+						ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg |
+							ImGuiTableFlags_ScrollX))
+					{
+						ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed, 190.f);
+						for (int rank = 1; rank <= 5; ++rank)
+						{
+							const std::string label = "Rank " + std::to_string(rank);
+							ImGui::TableSetupColumn(label.c_str(), ImGuiTableColumnFlags_WidthFixed, 155.f);
+						}
+						ImGui::TableHeadersRow();
+						DrawRankRow(
+							"Cooldown (sec)", *pSkill, "cooldownSecByRank",
+							0.1f, 0.f, 300.f, "%.1f s", false, draft.bChampionDirty);
+						DrawRankRow(
+							pFlatDamageLabel, damage, "flatByRank",
+							1.f, 0.f, 2000.f, "%.0f", bDisableDamageRows,
+							draft.bSkillEffectDirty);
+						static const char* const kRankedDamageParams[] = {
+							"baseDamage", "damagePerSpear", "tornadoDamage",
+							"dashAreaDamage", "nonEpicBaseDamage"
+						};
+						for (const char* pParam : kRankedDamageParams)
+						{
+							if (!IsRankedDamageParam(effectKey, pParam))
+								continue;
+							DrawRankRow(
+								RankedDamageParamLabel(effectKey, pParam),
+								params, pParam, 1.f, 0.f, 2000.f, "%.0f",
+								bDisableDamageRows, draft.bSkillEffectDirty);
+						}
+						DrawRankRow(
+							"Total AD Ratio", damage, "totalAdRatioByRank",
+							0.01f, 0.f, kAdRatioAuthoringMax, "%.2f", bDisableDamageRows,
+							draft.bSkillEffectDirty);
+						DrawRankRow(
+							"Bonus AD Ratio", damage, "bonusAdRatioByRank",
+							0.01f, 0.f, kAdRatioAuthoringMax, "%.2f", bDisableDamageRows,
+							draft.bSkillEffectDirty);
+						DrawRankRow(
+							"AP Ratio", damage, "apRatioByRank",
+							0.01f, 0.f, 5.f, "%.2f", bDisableDamageRows,
+							draft.bSkillEffectDirty);
+						DrawRankRow(
+							"Target Max HP Ratio", damage, "targetMaxHpRatioByRank",
+							0.01f, 0.f, 5.f, "%.2f", bDisableDamageRows,
+							draft.bSkillEffectDirty);
+						DrawRankRow(
+							"Missing HP Ratio", damage, "targetMissingHpRatioByRank",
+							0.01f, 0.f, 5.f, "%.2f", bDisableDamageRows,
+							draft.bSkillEffectDirty);
+						ImGui::EndTable();
+					}
+					ImGui::TextDisabled(
+						"Raw = Flat + Total AD Ratio x final Total AD + Bonus AD Ratio x Bonus AD.");
+					ImGui::TextDisabled(
+						"Armor / Magic Resist is applied after raw damage. Ratio 1.0 = 100%%.");
+
+					struct ConditionalDamageEditor
+					{
+						const char* pField;
+						const char* pLabel;
+						f32_t maxValue;
+					};
+					std::vector<ConditionalDamageEditor> conditionalEditors;
+					if (effectKey == "skill.fiora.basic_attack")
+					{
+						conditionalEditors.push_back({
+							"targetMaxHpRatio", "Vital Target Max HP Ratio", 5.f });
+					}
+					else if (effectKey == "skill.sylas.basic_attack")
+					{
+						conditionalEditors.push_back({
+							"baseDamage", "Petricite Burst Flat Damage", 2000.f });
+						conditionalEditors.push_back({
+							"apRatio", "Petricite Burst AP Ratio", 5.f });
+					}
+					else if (effectKey == "skill.zed.basic_attack")
+					{
+						conditionalEditors.push_back({
+							"missingHealthDamageRatio",
+							"Contempt Missing HP Ratio", 5.f });
+						conditionalEditors.push_back({
+							"targetHealthThresholdRatio",
+							"Target Health Threshold Ratio", 1.f });
+					}
+					if (!conditionalEditors.empty())
+					{
+						ImGui::SeparatorText("Conditional Damage Mechanics");
+						for (const ConditionalDamageEditor& editor : conditionalEditors)
+						{
+							if (!params.contains(editor.pField) ||
+								!params[editor.pField].is_number())
+							{
+								continue;
+							}
+							const bool_t bFlat = std::strcmp(editor.pField, "baseDamage") == 0;
+							EditDragFloat(
+								params, editor.pField, editor.pLabel,
+								bFlat ? 1.f : 0.01f, 0.f, editor.maxValue,
+								bFlat ? "%.1f" : "%.2f", draft.bSkillEffectDirty);
+						}
+					}
+
+					struct MechanicParamEditor
+					{
+						const char* pField;
+						const char* pLabel;
+						f32_t dragSpeed;
+						f32_t maxValue;
+						const char* pFormat;
+					};
+					static const MechanicParamEditor kMechanicEditors[] = {
+						{ "radius", "Effect Radius / Half Width (m)", 0.05f, 100.f, "%.2f m" },
+						{ "formationDelaySec", "Delay (sec)", 0.05f, 10.f, "%.2f s" },
+						{ "healDamageRatio", "Heal / Damage Ratio", 0.01f, 5.f, "%.2f" },
+					};
+					bool_t bHasMechanicParam = false;
+					for (const MechanicParamEditor& editor : kMechanicEditors)
+						bHasMechanicParam = bHasMechanicParam || params.contains(editor.pField);
+					if (bHasMechanicParam)
+					{
+						ImGui::SeparatorText("Effect Mechanics");
+						for (const MechanicParamEditor& editor : kMechanicEditors)
+						{
+							if (!params.contains(editor.pField) ||
+								!params[editor.pField].is_number())
+							{
+								continue;
+							}
+							EditDragFloat(
+								params, editor.pField, editor.pLabel,
+								editor.dragSpeed, 0.f, editor.maxValue,
+								editor.pFormat, draft.bSkillEffectDirty);
+						}
+					}
+				}
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Minions"))
+			{
+				state.balanceCategory = static_cast<int>(eBalanceTunerCategory::Minions);
+				static const char* const kRoles[4] = { "Melee", "Ranged", "Siege", "Super" };
+				ImGui::SetNextItemWidth(220.f);
+				ImGui::Combo("Role", &draft.minionRole, kRoles, 4);
+				if (ordered_json* pMinion = FindMinionEntry(draft, draft.minionRole))
+				{
+					EditFloat(
+						*pMinion, "maxHp", "Max Health",
+						draft.bSpawnObjectDirty, "%.2f");
+					EditFloat(
+						*pMinion, "attackDamage", "Attack Damage",
+						draft.bSpawnObjectDirty, "%.2f");
+					EditDragFloat(
+						*pMinion, "attackRange", "Attack Range",
+						0.1f, kMinionAttackRangeMin, kMinionAttackRangeMax,
+						"%.1f", draft.bSpawnObjectDirty);
+				}
+				ImGui::TextDisabled("Lane roles 0..3 only; summon role 4 is preserved.");
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Towers"))
+			{
+				state.balanceCategory = static_cast<int>(eBalanceTunerCategory::Towers);
+				ordered_json& structure = draft.spawnObjects["structure"];
+				ordered_json& turretAI = structure["turretAI"];
+				EditFloat(
+					structure, "turretMaxHp", "Turret Max Health",
+					draft.bSpawnObjectDirty, "%.2f");
+				EditFloat(
+					turretAI, "attackDamage", "Turret Attack Damage",
+					draft.bSpawnObjectDirty, "%.2f");
+				EditFloat(
+					turretAI, "nexusAttackDamage", "Nexus Turret Attack Damage",
+					draft.bSpawnObjectDirty, "%.2f");
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Objectives"))
+			{
+				state.balanceCategory = static_cast<int>(eBalanceTunerCategory::Objectives);
+				static const char* const kCampNames[] = {
+					"Baron", "Elder Dragon", "Blue Buff", "Red Buff", "Krug",
+					"Gromp", "Wolf", "Razorbeak", "Razorbeak Mini", "Wolf Mini", "Krug Mini"
+				};
+				ImGui::SetNextItemWidth(240.f);
+				ImGui::Combo("Jungle Monster", &draft.jungleSubKind, kCampNames, 11);
+				ordered_json* pCamp = nullptr;
+				for (ordered_json& camp : draft.spawnObjects["jungleCamps"])
+				{
+					if (camp.value("subKind", -1) == draft.jungleSubKind)
+					{
+						pCamp = &camp;
+						break;
+					}
+				}
+				if (pCamp)
+				{
+					ImGui::SeparatorText("Monster Combat");
+					EditFloat(*pCamp, "maxHp", "Max Health", draft.bSpawnObjectDirty, "%.0f");
+					EditFloat(*pCamp, "attackDamage", "Attack Damage", draft.bSpawnObjectDirty, "%.1f");
+					EditFloat(*pCamp, "baseArmor", "Armor", draft.bSpawnObjectDirty, "%.1f");
+					EditFloat(*pCamp, "baseMr", "Magic Resist", draft.bSpawnObjectDirty, "%.1f");
+					EditDragFloat(
+						*pCamp, "respawnDelaySec", "Respawn Time (sec)",
+						0.5f, 1.f, 600.f, "%.1f s", draft.bSpawnObjectDirty);
+				}
+
+				ImGui::BeginDisabled(!bCanHotLoad);
+				if (ImGui::Button("Refill Health"))
+				{
+					SendPracticeCommand(pScene, state,
+						ePracticeOperation::RefillJungleHealth, 0.f,
+						static_cast<u32_t>(draft.jungleSubKind + 1));
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Reset Monster"))
+				{
+					SendPracticeCommand(pScene, state,
+						ePracticeOperation::ResetJungleMonster, 0.f,
+						static_cast<u32_t>(draft.jungleSubKind + 1));
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Clear All Objective Buffs"))
+				{
+					SendPracticeCommand(pScene, state,
+						ePracticeOperation::ClearObjectiveBuffs);
+				}
+				ImGui::EndDisabled();
+				ImGui::TextDisabled(
+					"Refill preserves combat state. Reset returns the selected camp to its anchor."
+				);
+
+				ordered_json& rewards = draft.economy["jungle"];
+				ImGui::SeparatorText("Regular Jungle Rewards");
+				EditFloat(rewards, "smallCampGold", "Gold / Kill", draft.bEconomyDirty, "%.0f");
+				EditFloat(rewards, "smallCampXP", "XP / Kill", draft.bEconomyDirty, "%.0f");
+
+				ordered_json& objectives = draft.economy["objectives"];
+				ImGui::SeparatorText("Shared Objective Reward / Duration");
+				EditFloat(objectives, "teamGoldPerChampion", "Gold / Team Champion", draft.bEconomyDirty, "%.0f");
+				int levelGrant = objectives.value("teamLevelGrant", 3);
+				ImGui::SetNextItemWidth(-1.f);
+				if (ImGui::InputInt("Levels / Team Champion", &levelGrant))
+				{
+					objectives["teamLevelGrant"] = std::clamp(levelGrant, 0, 18);
+					draft.bEconomyDirty = true;
+				}
+				EditFloat(objectives, "buffDurationSec", "Buff Duration (sec)", draft.bEconomyDirty, "%.1f");
+
+				ImGui::SeparatorText("Baron");
+				EditFloat(objectives, "baronRecallDurationMultiplier", "Recall Duration Multiplier", draft.bEconomyDirty, "%.2f");
+				EditFloat(objectives, "baronAuraRadius", "Minion Aura Radius", draft.bEconomyDirty, "%.1f");
+				EditFloat(objectives, "baronMinionHpMultiplier", "Minion Health Multiplier", draft.bEconomyDirty, "%.2f");
+				EditFloat(objectives, "baronMinionAttackDamageMultiplier", "Minion AD Multiplier", draft.bEconomyDirty, "%.2f");
+				EditFloat(objectives, "baronMinionScaleMultiplier", "Minion Visual Scale", draft.bEconomyDirty, "%.2f");
+
+				ImGui::SeparatorText("Elder Dragon");
+				EditFloat(objectives, "elderAttackDamageMultiplier", "Total AD Multiplier", draft.bEconomyDirty, "%.2f");
+				EditFloat(objectives, "elderBurnDurationSec", "Burn Duration (sec)", draft.bEconomyDirty, "%.2f");
+				EditFloat(objectives, "elderBurnTickIntervalSec", "Burn Tick Interval (sec)", draft.bEconomyDirty, "%.2f");
+				EditFloat(objectives, "elderBurnTargetMaxHpRatioPerTick", "Burn Target Max HP / Tick", draft.bEconomyDirty, "%.3f");
+				EditFloat(objectives, "elderExecuteThresholdRatio", "Execute Health Ratio", draft.bEconomyDirty, "%.3f");
+
+				ImGui::SeparatorText("Blue / Red");
+				EditFloat(objectives, "blueManaRegenPerSec", "Blue Mana / Sec", draft.bEconomyDirty, "%.1f");
+				EditFloat(objectives, "redHealthRegenPerSec", "Red Health / Sec", draft.bEconomyDirty, "%.1f");
+				EditFloat(objectives, "redBurnDurationSec", "Red Burn Duration (sec)", draft.bEconomyDirty, "%.2f");
+				EditFloat(objectives, "redBurnTickIntervalSec", "Red Burn Tick Interval (sec)", draft.bEconomyDirty, "%.2f");
+				EditFloat(objectives, "redBurnDamagePerTick", "Red Burn Damage / Tick", draft.bEconomyDirty, "%.1f");
+				ImGui::EndTabItem();
+			}
+			ImGui::EndTabBar();
+		}
+
+		ImGui::Separator();
+		const bool_t bHotLoadPending = draft.pendingHotLoadSequence != 0u;
+		ImGui::BeginDisabled(!bCanHotLoad || !draft.bLoaded || bHotLoadPending);
+		if (ImGui::Button("Save & Hot Load", ImVec2(160.f, 0.f)) &&
+			SaveBalanceData(state))
+		{
+			const u64_t beforeRevision = pSnapshot
+				? pSnapshot->GetTimelineState().toolRevision
+				: 0u;
+			const u32_t enableSequence = SendPracticeCommand(
+				pScene, state, ePracticeOperation::SetEnabled, 1.f);
+			const u32_t reloadSequence = SendPracticeCommand(
+				pScene, state, ePracticeOperation::ReloadGameplayDefinitions);
+			if (enableSequence != 0u && reloadSequence != 0u)
+			{
+				draft.pendingHotLoadSequence = reloadSequence;
+				draft.expectedToolRevision = beforeRevision + 2u;
+				state.status = "Saved. Waiting for authoritative hot-load confirmation.";
+			}
+		}
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+		{
+			ImGui::SetTooltip(
+				"Validate and save the four JSON files, then ask the authoritative "
+				"Debug server to reload them. The room host is required.");
+		}
+		ImGui::EndDisabled();
+		ImGui::SameLine();
+		ImGui::BeginDisabled(bHotLoadPending);
+		if (ImGui::Button("Reload JSON", ImVec2(130.f, 0.f)))
+		{
+			if (draft.bChampionDirty || draft.bSkillEffectDirty ||
+				draft.bSpawnObjectDirty || draft.bEconomyDirty)
+			{
+				ImGui::OpenPopup("Discard unsaved F4 edits?");
+			}
+			else
+			{
+				LoadBalanceData(state);
+			}
+		}
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+		{
+			ImGui::SetTooltip(
+				"Reread the four JSON files. This discards unsaved F4 edits and "
+				"does not change server values by itself.");
+		}
+		ImGui::EndDisabled();
+
+		if (ImGui::BeginPopupModal(
+			"Discard unsaved F4 edits?",
+			nullptr,
+			ImGuiWindowFlags_AlwaysAutoResize))
+		{
+			ImGui::TextUnformatted(
+				"Reload JSON discards unsaved F4 values and rereads the four data files.");
+			if (ImGui::Button("Discard & Reload"))
+			{
+				LoadBalanceData(state);
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel"))
+				ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+		}
+
+		if (bCanHotLoad)
+			ImGui::TextDisabled("%s", hotLoadAvailability.pMessage);
+		else
+			ImGui::TextColored(
+				ImVec4(1.f, 0.6f, 0.2f, 1.f),
+				"%s",
+				hotLoadAvailability.pMessage);
+		ImGui::TextDisabled("Release persistence requires data cook + build.");
+		ImGui::TextWrapped("%s", state.status.c_str());
+		ImGui::End();
+	}
+
+#if 0 // Superseded current-champion override surface.
+	void CChampionTuner::Render(CScene_InGame* pScene)
+	{
+		if (!pScene)
+			return;
+
+		PracticeToolState& state = g_PracticeTool;
+		if (!state.bLoadedOnce)
+		{
+			state.bLoadedOnce = true;
+			LoadOverrides(state);
+		}
+
+		const ObservedPlayer observed = ReadObservedPlayer(pScene);
+		const bool_t bCanSend = CanSendPracticeCommand(pScene);
+		const ChampionStatsDef baselineDef =
+			BuildDefaultChampionStatsDef(observed.championId);
+
+		const auto StatValue = [&](int statIndex)
+		{
+			const StatOverrideRow* pRow = FindStatOverrideRow(state, statIndex);
+			return pRow ? pRow->value : ResolveStatBaseline(baselineDef, statIndex);
+		};
+		const auto ApplyEssentialStats = [&]()
+		{
+			SendPracticeCommand(
+				pScene, state, ePracticeOperation::ClearChampionStatOverrides);
+			for (const StatOverrideRow& row : state.statOverrides)
+			{
+				if (row.statIndex < 0 || row.statIndex >= 14)
+					continue;
+				SendPracticeCommand(
+					pScene,
+					state,
+					ePracticeOperation::ApplyChampionStatOverride,
+					row.value,
+					0u,
+					static_cast<u8_t>(kStatOptions[row.statIndex].id));
+			}
+		};
+		const auto ApplyEssentialSkills = [&]()
+		{
+			SendPracticeCommand(
+				pScene, state, ePracticeOperation::ClearSkillEffectOverrides);
+			for (int slotIndex = 0; slotIndex < 4; ++slotIndex)
+			{
+				if (state.skillDamageDraft[slotIndex] < 0.f)
+					continue;
+				SendPracticeCommand(
+					pScene,
+					state,
+					ePracticeOperation::ApplySkillEffectOverride,
+					state.skillDamageDraft[slotIndex],
+					static_cast<u32_t>(eSkillEffectParamId::DamageFlatOverride),
+					static_cast<u8_t>(slotIndex + 1));
+			}
+		};
+		const auto ApplyEssentialMinions = [&]()
+		{
+			SendPracticeCommand(
+				pScene, state, ePracticeOperation::ClearMinionStatOverrides);
+			for (int role = 0; role < 4; ++role)
+			{
+				if (!state.minionAttackDamageEnabled[role])
+					continue;
+				SendPracticeCommand(
+					pScene,
+					state,
+					ePracticeOperation::ApplyMinionStatOverride,
+					state.minionAttackDamageDraft[role],
+					static_cast<u32_t>(role),
+					static_cast<u8_t>(eMinionStatOverrideId::AttackDamage));
+			}
+		};
+
+		ImGui::SetNextWindowPos(ImVec2(560.f, 100.f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImVec2(640.f, 520.f), ImGuiCond_FirstUseEver);
+		if (!ImGui::Begin("Balance"))
+		{
+			ImGui::End();
+			return;
+		}
+
+		if (!bCanSend)
+		{
+			ImGui::TextColored(
+				ImVec4(1.f, 0.55f, 0.25f, 1.f),
+				"Connect to a server-authoritative Debug match to apply values.");
+		}
+		else if (observed.bValid)
+		{
+			ImGui::TextDisabled(
+				"Current champion | Level %u",
+				static_cast<u32_t>(observed.level));
+		}
+
+		if (ImGui::BeginTabBar("BalanceEssentials"))
+		{
+			if (ImGui::BeginTabItem("Champion Damage"))
+			{
+				state.balanceCategory = static_cast<int>(
+					eBalanceTunerCategory::ChampionDamage);
+				ImGui::TextDisabled(
+					"Base AD changes basic attacks. Skill values replace only the flat part.");
+				if (ImGui::BeginTable(
+					"ChampionDamageTable",
+					3,
+					ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg))
+				{
+					ImGui::TableSetupColumn("Damage", ImGuiTableColumnFlags_WidthFixed, 150.f);
+					ImGui::TableSetupColumn("Custom", ImGuiTableColumnFlags_WidthFixed, 80.f);
+					ImGui::TableSetupColumn("Value");
+					ImGui::TableHeadersRow();
+
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextUnformatted("Base AD");
+					ImGui::TableSetColumnIndex(1);
+					ImGui::TextDisabled("auto");
+					ImGui::TableSetColumnIndex(2);
+					f32_t baseAd = StatValue(4);
+					ImGui::SetNextItemWidth(-1.f);
+					if (ImGui::InputFloat("##BaseAD", &baseAd, 0.f, 0.f, "%.2f") &&
+						std::isfinite(baseAd) && baseAd >= 0.f)
+					{
+						UpsertStatOverrideRow(
+							state, 4, baseAd, ResolveStatBaseline(baselineDef, 4));
+					}
+
+					static const char* const kSkillLabels[4] = {
+						"Q Flat Damage", "W Flat Damage", "E Flat Damage", "R Flat Damage"
+					};
+					for (int slotIndex = 0; slotIndex < 4; ++slotIndex)
+					{
+						ImGui::PushID(slotIndex + 21000);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted(kSkillLabels[slotIndex]);
+						ImGui::TableSetColumnIndex(1);
+						bool enabled = state.skillDamageDraft[slotIndex] >= 0.f;
+						if (ImGui::Checkbox("##Custom", &enabled))
+							state.skillDamageDraft[slotIndex] = enabled ? 0.f : -1.f;
+						ImGui::TableSetColumnIndex(2);
+						if (enabled)
+						{
+							ImGui::SetNextItemWidth(-1.f);
+							ImGui::InputFloat(
+								"##Value",
+								&state.skillDamageDraft[slotIndex],
+								0.f,
+								0.f,
+								"%.2f");
+						}
+						else
+						{
+							ImGui::TextDisabled("Pack value");
+						}
+						ImGui::PopID();
+					}
+					ImGui::EndTable();
+				}
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Growth"))
+			{
+				state.balanceCategory = static_cast<int>(eBalanceTunerCategory::Growth);
+				struct GrowthRow
+				{
+					const char* pLabel;
+					int baseIndex;
+					int growthIndex;
+				};
+				static const GrowthRow kGrowthRows[7] = {
+					{ "Health", 0, 1 },
+					{ "Mana", 2, 3 },
+					{ "Attack Damage", 4, 5 },
+					{ "Ability Power", 6, 7 },
+					{ "Armor", 8, 9 },
+					{ "Magic Resist", 10, 11 },
+					{ "Attack Speed", 12, 13 },
+				};
+
+				if (ImGui::BeginTable(
+					"GrowthTable",
+					3,
+					ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg))
+				{
+					ImGui::TableSetupColumn("Stat", ImGuiTableColumnFlags_WidthFixed, 150.f);
+					ImGui::TableSetupColumn("Base");
+					ImGui::TableSetupColumn("Per Level");
+					ImGui::TableHeadersRow();
+					for (int rowIndex = 0; rowIndex < 7; ++rowIndex)
+					{
+						const GrowthRow& row = kGrowthRows[rowIndex];
+						ImGui::PushID(rowIndex + 22000);
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::TextUnformatted(row.pLabel);
+						const int indices[2] = { row.baseIndex, row.growthIndex };
+						for (int column = 0; column < 2; ++column)
+						{
+							const int statIndex = indices[column];
+							f32_t value = StatValue(statIndex);
+							ImGui::TableSetColumnIndex(column + 1);
+							ImGui::SetNextItemWidth(-1.f);
+							ImGui::PushID(column);
+							if (ImGui::InputFloat("##Value", &value, 0.f, 0.f, "%.3f") &&
+								std::isfinite(value) && value >= 0.f)
+							{
+								UpsertStatOverrideRow(
+									state,
+									statIndex,
+									value,
+									ResolveStatBaseline(baselineDef, statIndex));
+							}
+							ImGui::PopID();
+						}
+						ImGui::PopID();
+					}
+					ImGui::EndTable();
+				}
+				ImGui::EndTabItem();
+			}
+
+			if (ImGui::BeginTabItem("Minions"))
+			{
+				state.balanceCategory = static_cast<int>(eBalanceTunerCategory::Minions);
+				static const char* const kRoleNames[4] = {
+					"Melee", "Ranged", "Siege", "Super"
+				};
+				ImGui::SetNextItemWidth(220.f);
+				ImGui::Combo("Role", &state.minionRole, kRoleNames, 4);
+				bool enabled = state.minionAttackDamageEnabled[state.minionRole];
+				if (ImGui::Checkbox("Use custom attack damage", &enabled))
+					state.minionAttackDamageEnabled[state.minionRole] = enabled;
+				if (enabled)
+				{
+					ImGui::SetNextItemWidth(220.f);
+					if (ImGui::InputFloat(
+						"Attack Damage",
+						&state.minionAttackDamageDraft[state.minionRole],
+						0.f,
+						0.f,
+						"%.2f"))
+					{
+						state.minionAttackDamageEnabled[state.minionRole] = true;
+					}
+				}
+				else
+				{
+					ImGui::TextDisabled("Active pack value + normal time growth");
+				}
+				ImGui::EndTabItem();
+			}
+			ImGui::EndTabBar();
+		}
+
+		ImGui::Separator();
+		ImGui::BeginDisabled(!bCanSend || !observed.bValid);
+		if (ImGui::Button("Save & Apply", ImVec2(150.f, 0.f)))
+		{
+			SyncEssentialSkillRows(state);
+			if (SaveOverrides(state))
+			{
+				SendPracticeCommand(pScene, state, ePracticeOperation::SetEnabled, 1.f);
+				ApplyEssentialSkills();
+				ApplyEssentialStats();
+				ApplyEssentialMinions();
+				state.status = "Saved and applied to the authoritative server.";
+			}
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Restore This Category", ImVec2(190.f, 0.f)))
+		{
+			const eBalanceTunerCategory category =
+				static_cast<eBalanceTunerCategory>(state.balanceCategory);
+			if (category == eBalanceTunerCategory::ChampionDamage)
+			{
+				for (f32_t& draft : state.skillDamageDraft)
+					draft = -1.f;
+				if (StatOverrideRow* pBaseAd = FindStatOverrideRow(state, 4))
+				{
+					state.statOverrides.erase(
+						state.statOverrides.begin() +
+						(pBaseAd - state.statOverrides.data()));
+				}
+				ApplyEssentialSkills();
+				ApplyEssentialStats();
+			}
+			else if (category == eBalanceTunerCategory::Growth)
+			{
+				state.statOverrides.erase(
+					std::remove_if(
+						state.statOverrides.begin(),
+						state.statOverrides.end(),
+						[](const StatOverrideRow& row)
+						{
+							return row.statIndex >= 0 && row.statIndex < 14;
+						}),
+					state.statOverrides.end());
+				ApplyEssentialStats();
+			}
+			else
+			{
+				for (bool_t& roleEnabled : state.minionAttackDamageEnabled)
+					roleEnabled = false;
+				ApplyEssentialMinions();
+			}
+			SyncEssentialSkillRows(state);
+			SaveOverrides(state);
+			state.status = "Category restored to active pack values.";
+		}
+		ImGui::EndDisabled();
+		ImGui::TextDisabled("%s", state.status.c_str());
+		ImGui::End();
+	}
+#endif
+
+#if 0 // Legacy all-in-one practice surface retained as backend reference only.
+
 	void CChampionTuner::Render(CScene_InGame* pScene)
 	{
 		if (!pScene)
@@ -1031,6 +3101,9 @@ namespace UI
 		ImGui::TextWrapped(
 			"Commands are accepted only by the Debug room host. This panel never mutates "
 			"client ECS state; every result must return through server snapshots.");
+		ImGui::TextDisabled(
+			"F4 categories cover skills, champion stats, items, units/structures, respawn, and runtime tools. "
+			"F5('8') remains the focused Attack Speed Lab; F9 is AI Debug.");
 		if (!bCanSend)
 		{
 			ImGui::TextColored(
@@ -1056,7 +3129,28 @@ namespace UI
 		}
 		ImGui::EndDisabled();
 
-		if (ImGui::CollapsingHeader(
+		static const char* const kCategoryLabels[] = {
+			"Skills", "Champion", "Items", "Units & Structures",
+			"Respawn", "Runtime", "All"
+		};
+		ImGui::SetNextItemWidth(220.f);
+		ImGui::Combo(
+			"Category",
+			&state.balanceCategory,
+			kCategoryLabels,
+			IM_ARRAYSIZE(kCategoryLabels));
+		const eBalanceTunerCategory category =
+			static_cast<eBalanceTunerCategory>(state.balanceCategory);
+		const bool_t bShowAll = category == eBalanceTunerCategory::All;
+		const bool_t bShowSkills = bShowAll || category == eBalanceTunerCategory::Skills;
+		const bool_t bShowChampion = bShowAll || category == eBalanceTunerCategory::Champion;
+		const bool_t bShowItems = bShowAll || category == eBalanceTunerCategory::Items;
+		const bool_t bShowUnits =
+			bShowAll || category == eBalanceTunerCategory::UnitsAndStructures;
+		const bool_t bShowRespawn = bShowAll || category == eBalanceTunerCategory::Respawn;
+		const bool_t bShowRuntime = bShowAll || category == eBalanceTunerCategory::Runtime;
+
+		if (bShowRuntime && ImGui::CollapsingHeader(
 			"Simulation Time",
 			ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -1159,7 +3253,7 @@ namespace UI
 				"use Step/Resume to continue; bots re-decide from the restored state.");
 		}
 
-		if (ImGui::CollapsingHeader("Spawn Champion (Practice)"))
+		if (bShowRuntime && ImGui::CollapsingHeader("Spawn Champion (Practice)"))
 		{
 			static const char* const kChampionNames[] = {
 				"Irelia", "Yasuo", "Kalista", "Sylas", "Viego", "Annie", "Ashe",
@@ -1219,7 +3313,7 @@ namespace UI
 				"Sylas dummy is reserved by the smoke roster.");
 		}
 
-		if (ImGui::CollapsingHeader(
+		if (bShowRuntime && ImGui::CollapsingHeader(
 			"Player Options",
 			ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -1304,7 +3398,7 @@ namespace UI
 			ImGui::EndDisabled();
 		}
 
-		if (ImGui::CollapsingHeader(
+		if (bShowRuntime && ImGui::CollapsingHeader(
 			"Teleport",
 			ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -1365,7 +3459,7 @@ namespace UI
 			}
 		}
 
-		if (ImGui::CollapsingHeader("Champion Stats (Live)"))
+		if (bShowChampion && ImGui::CollapsingHeader("Champion Stats (Live)"))
 		{
 			ImGui::TextDisabled(
 				"Full stat sheet. Baseline = champions.json table; edited fields become server overrides.");
@@ -1373,7 +3467,7 @@ namespace UI
 				"Target = 'Target NetId' above (0 = self). Sheet baseline shows your champion's values.");
 
 			const ChampionStatsDef baselineDef =
-				ChampionGameDataDB::ResolveStats(observed.championId);
+				BuildDefaultChampionStatsDef(observed.championId);
 			for (int statIndex = 0; statIndex < static_cast<int>(kStatOptions.size()); ++statIndex)
 			{
 				const f32_t baseline = ResolveStatBaseline(baselineDef, statIndex);
@@ -1434,13 +3528,14 @@ namespace UI
 			ImGui::EndDisabled();
 		}
 
-		if (ImGui::CollapsingHeader("Item Balance (Live)"))
+		if (bShowItems && ImGui::CollapsingHeader("Item Balance (Live)"))
 		{
 			ImGui::TextDisabled(
 				"Full field sheet per item: every stat listed, +0 fields included. Price gates BuyItem.");
 
-			const ItemDef* pSheetItem =
-				CItemRegistry::Instance().Find(static_cast<u16_t>(state.sheetItemId));
+			const ClientData::ShopItemPresentationDefinition* pSheetItem =
+				ClientData::FindShopItemPresentationDefinition(
+					static_cast<u16_t>(state.sheetItemId));
 			char itemLabel[96]{};
 			std::snprintf(itemLabel, sizeof(itemLabel), "%d %s",
 				state.sheetItemId,
@@ -1453,6 +3548,8 @@ namespace UI
 				{
 					const Client::LoLShopEditorEntryView view =
 						Client::GetLoLShopEditorEntry(entry);
+					if (!view.bRegistered)
+						continue;
 					char optionLabel[96]{};
 					std::snprintf(optionLabel, sizeof(optionLabel), "%u %s",
 						static_cast<u32_t>(view.iItemId),
@@ -1533,15 +3630,43 @@ namespace UI
 			ImGui::EndDisabled();
 		}
 
-		if (ImGui::CollapsingHeader("Shop Layout"))
+		if (bShowItems && ImGui::CollapsingHeader("Shop Layout"))
 		{
 			ImGui::TextDisabled(
-				"Client-side shop arrangement. Purchases stay server-validated by item id.");
+				"Every PNG in Resource/Texture/UI/Items is listed. Purchases stay server-validated by ItemDef.");
+			ImGui::TextDisabled(
+				"Edit Resource/UI/Lua/itemshop_catalog.lua for exact x/y/order/section placement.");
+
+			static char shopFilter[96]{};
+			ImGui::SetNextItemWidth(260.f);
+			ImGui::InputText("Filter##ShopCatalog", shopFilter, sizeof(shopFilter));
+			if (ImGui::Button("Rescan Item PNG Folder"))
+			{
+				Client::ReloadLoLShopEditorCatalog();
+				Client::ReapplyLoLShopItems(*CGameInstance::Get());
+				state.status = "Item PNG folder rescanned and Lua shop reloaded.";
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Reload Lua Layout"))
+			{
+				CGameInstance::Get()->UI_Reload_Lua();
+				state.status = "itemshop_catalog.lua reloaded.";
+			}
 
 			const u32_t entryCount = Client::GetLoLShopEditorEntryCount();
+			ImGui::Text("Catalog: %u PNG assets", entryCount);
+			ImGui::BeginChild("ShopCatalogEntries", ImVec2(0.f, 360.f), true);
 			for (u32_t index = 0u; index < entryCount; ++index)
 			{
 				const Client::LoLShopEditorEntryView view = Client::GetLoLShopEditorEntry(index);
+				const char* assetKey = view.pAssetKey ? view.pAssetKey : "";
+				const char* displayName = view.pDisplayName ? view.pDisplayName : assetKey;
+				if (shopFilter[0] != '\0' &&
+					std::strstr(assetKey, shopFilter) == nullptr &&
+					std::strstr(displayName, shopFilter) == nullptr)
+				{
+					continue;
+				}
 				ImGui::PushID(static_cast<int>(index) + 12000);
 				if (ImGui::ArrowButton("##ShopUp", ImGuiDir_Up))
 					Client::MoveLoLShopEditorEntry(index, true);
@@ -1553,11 +3678,21 @@ namespace UI
 				if (ImGui::Checkbox("##ShopEnabled", &bEnabled))
 					Client::SetLoLShopEditorEntryEnabled(index, bEnabled);
 				ImGui::SameLine();
-				ImGui::Text("%u  %s",
+				ImGui::Text("%u  [%s]  %s  (%s, %u gold)",
 					static_cast<u32_t>(view.iItemId),
-					view.pDisplayName ? view.pDisplayName : "?");
+					view.bRegistered ? "server" : "resource",
+					displayName,
+					view.pSection ? view.pSection : "resource",
+					static_cast<u32_t>(view.iPrice));
+				if (view.bRegistered)
+				{
+					ImGui::SameLine();
+					if (ImGui::SmallButton("Balance"))
+						state.sheetItemId = view.iItemId;
+				}
 				ImGui::PopID();
 			}
+			ImGui::EndChild();
 
 			if (ImGui::Button("Apply Shop Layout"))
 			{
@@ -1566,7 +3701,7 @@ namespace UI
 			}
 		}
 
-		if (ImGui::CollapsingHeader(
+		if (bShowUnits && ImGui::CollapsingHeader(
 			"Minion Spawn",
 			ImGuiTreeNodeFlags_DefaultOpen))
 		{
@@ -1617,15 +3752,228 @@ namespace UI
 			ImGui::EndDisabled();
 		}
 
-		if (ImGui::CollapsingHeader(
+		if (bShowSkills && ImGui::CollapsingHeader(
 			"Skill Effect Overrides",
 			ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			RenderOverrideTable(pScene, state);
 		}
 
+		if (bShowSkills && ImGui::CollapsingHeader("Skill Balance (Live)"))
+		{
+			ImGui::TextDisabled(
+				"Per-slot cooldown / flat-damage override. -1 = keep pack value. "
+				"Single value applies to every rank.");
+			ImGui::TextDisabled(
+				"Target = 'Target NetId' above (0 = self). Rank tables stay in JSON + Reload Definitions.");
+
+			static const char* const kCooldownLabels[4] =
+			{ "Q CooldownSec", "W CooldownSec", "E CooldownSec", "R CooldownSec" };
+			static const char* const kDamageLabels[4] =
+			{ "Q FlatDamage", "W FlatDamage", "E FlatDamage", "R FlatDamage" };
+			for (int slotIndex = 0; slotIndex < 4; ++slotIndex)
+			{
+				ImGui::PushID(slotIndex + 9500);
+				ImGui::SetNextItemWidth(120.f);
+				ImGui::InputFloat(
+					kCooldownLabels[slotIndex],
+					&state.skillCooldownDraft[slotIndex], 0.f, 0.f, "%.2f");
+				ImGui::SameLine(0.f, 24.f);
+				ImGui::SetNextItemWidth(120.f);
+				ImGui::InputFloat(
+					kDamageLabels[slotIndex],
+					&state.skillDamageDraft[slotIndex], 0.f, 0.f, "%.1f");
+				ImGui::PopID();
+			}
+
+			const NetEntityId skillTarget =
+				state.overrideTargetNetId > 0
+				? static_cast<NetEntityId>(state.overrideTargetNetId)
+				: NULL_NET_ENTITY;
+			ImGui::BeginDisabled(!bCanSend);
+			if (ImGui::Button("Apply Skill Balance"))
+			{
+				for (int slotIndex = 0; slotIndex < 4; ++slotIndex)
+				{
+					const u8_t skillSlot = static_cast<u8_t>(slotIndex + 1);
+					if (state.skillCooldownDraft[slotIndex] >= 0.f)
+					{
+						SendPracticeCommand(
+							pScene, state, ePracticeOperation::ApplySkillEffectOverride,
+							state.skillCooldownDraft[slotIndex],
+							static_cast<u32_t>(eSkillEffectParamId::CooldownSecOverride),
+							skillSlot, {}, skillTarget);
+					}
+					if (state.skillDamageDraft[slotIndex] >= 0.f)
+					{
+						SendPracticeCommand(
+							pScene, state, ePracticeOperation::ApplySkillEffectOverride,
+							state.skillDamageDraft[slotIndex],
+							static_cast<u32_t>(eSkillEffectParamId::DamageFlatOverride),
+							skillSlot, {}, skillTarget);
+					}
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Clear ALL Skill Overrides"))
+			{
+				SendPracticeCommand(
+					pScene, state, ePracticeOperation::ClearSkillEffectOverrides,
+					0.f, 0u, 0u, {}, skillTarget);
+				for (int slotIndex = 0; slotIndex < 4; ++slotIndex)
+				{
+					state.skillCooldownDraft[slotIndex] = -1.f;
+					state.skillDamageDraft[slotIndex] = -1.f;
+				}
+			}
+			ImGui::EndDisabled();
+			ImGui::TextDisabled(
+				"Clear removes every skill-effect override on the target, "
+				"including rows from the table above.");
+		}
+
+		if (bShowRespawn && ImGui::CollapsingHeader(
+			"Respawn By Level",
+			ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::TextDisabled(
+				"Base seconds by champion level. Standard game-time scaling is applied on death.");
+			for (int levelIndex = 0; levelIndex < 18; ++levelIndex)
+			{
+				ImGui::PushID(levelIndex + 9700);
+				char label[32]{};
+				sprintf_s(label, "Level %d", levelIndex + 1);
+				ImGui::SetNextItemWidth(120.f);
+				ImGui::InputFloat(
+					label,
+					&state.respawnSecondsByLevel[levelIndex],
+					0.f,
+					0.f,
+					"%.2f sec");
+				ImGui::PopID();
+			}
+
+			ImGui::BeginDisabled(!bCanSend);
+			if (ImGui::Button("Apply All Respawn Levels"))
+			{
+				for (int levelIndex = 0; levelIndex < 18; ++levelIndex)
+				{
+					SendPracticeCommand(
+						pScene,
+						state,
+						ePracticeOperation::ApplyRespawnTimeOverride,
+						state.respawnSecondsByLevel[levelIndex],
+						0u,
+						static_cast<u8_t>(levelIndex + 1));
+				}
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Restore Respawn Pack Values"))
+			{
+				constexpr f32_t kPackRespawnSeconds[18] = {
+					10.f, 10.f, 12.f, 12.f, 14.f, 16.f, 20.f, 25.f, 28.f,
+					32.5f, 35.f, 37.5f, 40.f, 42.5f, 45.f, 47.5f, 50.f, 52.5f
+				};
+				for (int levelIndex = 0; levelIndex < 18; ++levelIndex)
+					state.respawnSecondsByLevel[levelIndex] = kPackRespawnSeconds[levelIndex];
+				SendPracticeCommand(
+					pScene, state, ePracticeOperation::ClearRespawnTimeOverrides);
+			}
+			ImGui::EndDisabled();
+		}
+
+		if (bShowUnits && ImGui::CollapsingHeader("Jungle Balance (Live)"))
+		{
+			ImGui::TextDisabled(
+				"All jungle monsters at once. MaxHp also updates dead camps' cached max.");
+			ImGui::SetNextItemWidth(140.f);
+			ImGui::InputFloat("Jungle MaxHp", &state.jungleMaxHpDraft, 0.f, 0.f, "%.0f");
+			ImGui::SameLine();
+			ImGui::BeginDisabled(!bCanSend);
+			if (ImGui::Button("Apply##JungleHp"))
+			{
+				SendPracticeCommand(
+					pScene, state, ePracticeOperation::ApplyJungleStatOverride,
+					state.jungleMaxHpDraft, 0u,
+					static_cast<u8_t>(eJungleStatOverrideId::MaxHp));
+			}
+			ImGui::EndDisabled();
+
+			ImGui::SetNextItemWidth(140.f);
+			ImGui::InputFloat(
+				"Jungle AttackDamage", &state.jungleAttackDamageDraft, 0.f, 0.f, "%.1f");
+			ImGui::SameLine();
+			ImGui::BeginDisabled(!bCanSend);
+			if (ImGui::Button("Apply##JungleAd"))
+			{
+				SendPracticeCommand(
+					pScene, state, ePracticeOperation::ApplyJungleStatOverride,
+					state.jungleAttackDamageDraft, 0u,
+					static_cast<u8_t>(eJungleStatOverrideId::AttackDamage));
+			}
+			ImGui::EndDisabled();
+
+			ImGui::BeginDisabled(!bCanSend);
+			if (ImGui::Button("Restore Jungle Pack Values"))
+			{
+				SendPracticeCommand(
+					pScene, state, ePracticeOperation::ClearJungleStatOverrides);
+			}
+			ImGui::EndDisabled();
+		}
+
+		if (bShowUnits && ImGui::CollapsingHeader("Structure Balance (Live)"))
+		{
+			ImGui::TextDisabled(
+				"Server-authoritative structure HP and turret damage overrides.");
+
+			struct StructureFieldRow
+			{
+				const char* pLabel;
+				f32_t* pDraft;
+				eStructureStatOverrideId id;
+			};
+			const StructureFieldRow structureRows[4] =
+			{
+				{ "Turret MaxHp", &state.structureTurretHpDraft,
+					eStructureStatOverrideId::TurretMaxHp },
+				{ "Inhibitor MaxHp", &state.structureInhibitorHpDraft,
+					eStructureStatOverrideId::InhibitorMaxHp },
+				{ "Nexus MaxHp", &state.structureNexusHpDraft,
+					eStructureStatOverrideId::NexusMaxHp },
+				{ "Turret AttackDamage", &state.structureTurretDamageDraft,
+					eStructureStatOverrideId::TurretAttackDamage },
+			};
+			for (int rowIndex = 0; rowIndex < 4; ++rowIndex)
+			{
+				const StructureFieldRow& row = structureRows[rowIndex];
+				ImGui::PushID(rowIndex + 9600);
+				ImGui::SetNextItemWidth(140.f);
+				ImGui::InputFloat(row.pLabel, row.pDraft, 0.f, 0.f, "%.0f");
+				ImGui::SameLine();
+				ImGui::BeginDisabled(!bCanSend);
+				if (ImGui::Button("Apply"))
+				{
+					SendPracticeCommand(
+						pScene, state, ePracticeOperation::ApplyStructureStatOverride,
+						*row.pDraft, 0u, static_cast<u8_t>(row.id));
+				}
+				ImGui::EndDisabled();
+				ImGui::PopID();
+			}
+
+			ImGui::BeginDisabled(!bCanSend);
+			if (ImGui::Button("Restore Structure Pack Values"))
+			{
+				SendPracticeCommand(
+					pScene, state, ePracticeOperation::ClearStructureStatOverrides);
+			}
+			ImGui::EndDisabled();
+		}
+
 		ImGui::Separator();
 		ImGui::TextWrapped("Status: %s", state.status.c_str());
 		ImGui::End();
 	}
+#endif
 }

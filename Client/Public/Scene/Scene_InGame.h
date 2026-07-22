@@ -70,7 +70,9 @@ class CScene_InGame final : public IScene
 {
 public:
     CScene_InGame();
-    explicit CScene_InGame(const wstring_t& replayPath);
+    explicit CScene_InGame(
+        const wstring_t& replayPath,
+        u32_t replayPerspectiveNetId = NULL_NET_ENTITY);
     ~CScene_InGame() override;
 
     bool OnEnter()              override;
@@ -256,7 +258,9 @@ public:
     bool_t IsWalkableMoveSegment(const Vec3& from, const Vec3& to, f32_t radiusWorld = 0.f) const;
     bool_t TryResolveNearestWalkablePosition(const Vec3& rawPos, Vec3& outPos, int32_t maxRadius = 8) const;
     void RebuildClientPathNavGrid();
+    bool_t ApplyReplaySpectatorFocus();
     void UpdateReplayPlayback(f32_t dt);
+    bool_t SeekReplayToTick(u64_t targetTick);
     void DrawReplayControlPanel();
     bool_t SendStopReplayRequest();
 
@@ -266,7 +270,7 @@ private:
     bool_t m_bShowWfxEffectTool = false;
     bool_t m_bShowModelAnimPanel = false;
     bool_t m_bShowAttackSpeedLab = false;
-    bool_t m_bShowStructureTuner = false;
+    bool_t m_bShowBalanceTuner = false;
     bool_t m_bShowReplayControl = false;
     bool_t m_bShowLegacyInGameDebug = false;
     bool_t m_bShowRenderDebug = false;
@@ -298,9 +302,11 @@ private:
     unique_ptr<CCommandSerializer> m_pCommandSerializer;
     bool_t m_bReplayPlaybackMode = false;
     wstring_t m_strReplayPath;
+    NetEntityId m_replayPerspectiveNetId = NULL_NET_ENTITY;
     unique_ptr<CReplayPlayer> m_pReplayPlayer;
     std::string m_strReplayStatus;
     bool_t m_bReplayStopRequested = false;
+    f32_t m_fReplayAutoReturnRemainingSec = -1.f;
 
     // S030: 게임 종료(넥서스 파괴) / 설정창 메인 메뉴 복귀 / 종료 산출물 저장
     bool_t m_bGameEndActive = false;
@@ -365,6 +371,7 @@ private:
     bool_t m_bDashActive = false;
     f32_t m_fDashElapsed = 0.f;
     f32_t m_fDashDuration = 0.3f; //Tuner Available
+    f32_t m_fDashSpeed = 0.f;
     f32_t m_fDashMeleeRange = 1.5f;
     Vec3 m_vDashStart = {};
     Vec3 m_vDashEnd = {};
@@ -451,7 +458,8 @@ private:
     void UpdateLocalPassiveDash(f32_t dt);
 
     bool DispatchSkillInput(uint8_t slot, u8_t requestedStage = 0);
-    void SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& cmd, u8_t skillStage = 1);
+    eSkillInputActivation ResolveLocalSkillInputActivation(u8_t slot);
+    bool_t SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& cmd, u8_t skillStage = 1);
     void ProtectNetworkAttackYaw(CClientNetwork* pNetworkView, u32_t commandSeq, const Vec3& facingTarget);
     void DriveNetworkAttackIntent(bool& outSkipGroundMove);
     void ApplyLocalPrediction(
@@ -503,6 +511,14 @@ private:
         u64_t serverTimeMs,
         u32_t lastAckedCommandSeq,
         u32_t localNetId);
+    void OnAuthoritativeCommandResult(
+        u64_t serverTick,
+        u32_t commandSequence,
+        u8_t state,
+        u16_t reason,
+        u8_t authoritativeSkillSlot,
+        u8_t authoritativeSkillStage,
+        u64_t stageWindowEndTick);
     void RebaseNetworkTimeline(
         const SnapshotTimelineState& previous,
         const SnapshotTimelineState& next,
@@ -528,6 +544,9 @@ private:
     std::unordered_map<EntityID, Vec3>   m_NetworkChampionPrevPos{};
     std::unordered_map<EntityID, f32_t>  m_NetworkChampionMoveGraceSec{};
     std::unordered_map<EntityID, bool_t> m_NetworkChampionMoving{};
+    bool_t m_bPlayerVoiceMoveInitialized = false;
+    f32_t  m_fPlayerVoiceMoveDelayRemainingSec = 0.f;
+    u32_t  m_uPlayerVoiceSelectionCounter = 0u;
 
     struct NetworkSnapshotInterpState
     {
@@ -555,6 +574,7 @@ private:
     };
     std::deque<NetworkMovePrediction> m_NetworkMovePredictions{};
     u32_t m_uLastAckedMovePredictionSeq = 0;
+    u32_t m_uLastSkillCommandResultSeq[5]{};
     f32_t m_fLocalCorrectionBlendSec = 0.08f;
     struct NetworkActionAnimationState
     {
@@ -577,6 +597,9 @@ private:
         std::string transitionRunAnim{};
     };
     std::unordered_map<EntityID, NetworkActionAnimationState> m_NetworkActionAnimStates{};
+    std::unordered_map<EntityID, EntityHandle> m_NetworkRecallFxHandles{};
+    std::unordered_map<EntityID, u8_t> m_NetworkChampionLevels{};
+    u64_t m_uNetworkChampionLevelSnapshotTick = 0u;
     EntityID m_PlayerEntity = NULL_ENTITY;
     EntityID m_MapEntity = NULL_ENTITY;
 
@@ -585,6 +608,10 @@ private:
     void InitializeNetworkSession();
     bool_t PumpNetwork();
     void ReplayLastNetworkHelloIfShared();
+    void StartNetworkRecallFx(EntityID entity);
+    void StopNetworkRecallFx(EntityID entity);
+    void ClearNetworkRecallFx();
+    void SyncNetworkChampionLevelUpFx();
 
     std::unique_ptr<CFxSystem>                       m_pFxSystem;
     std::unique_ptr<CFxBeamSystem>                   m_pFxBeamSystem;

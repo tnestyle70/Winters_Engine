@@ -184,6 +184,29 @@ table EntitySnapshot {
     projectileDirY:float;
     projectileDirZ:float;
     projectileTraveledDist:float;
+    championDefinitionKey:uint;
+    sightRange:float;
+    respawnRemainingSec:float;
+    respawnDurationSec:float;
+    aiDebugEnemyMinionNet:uint;
+    aiDebugAlliedWaveNet:uint;
+    aiDebugWaveDistance:float = 999.0;
+    aiDebugWaveSupportRange:float;
+    aiDebugFollowWaveSearchRange:float;
+    aiDebugFarmPriority:float;
+    aiDebugCandidateTick:ulong;
+    aiDebugSelectionTick:ulong;
+    aiDebugCandidateKinds:[ubyte];
+    aiDebugCandidateFlags:[ubyte];
+    aiDebugCandidateTargets:[uint];
+    aiDebugCandidateScores:[float];
+    aiDebugCandidateTermCounts:[ubyte];
+    aiDebugCandidateTermFeatureIds:[ushort];
+    aiDebugCandidateTermRawValues:[float];
+    aiDebugCandidateTermWeights:[float];
+    aiDebugCandidateTermContributions:[float];
+    objectiveStateFlags:uint;
+    visualScaleMultiplier:float = 1.0;
 }
 
 enum GameplayStateKind : ushort {
@@ -212,6 +235,15 @@ table GameplayStateSnapshot {
     magnitude1:float;
 }
 
+table CommandResultSnapshot {
+    commandSequence:uint = 0;
+    state:ubyte = 0;
+    reason:ushort = 0;
+    authoritativeSkillSlot:ubyte = 255;
+    authoritativeSkillStage:ubyte = 0;
+    stageWindowEndTick:ulong = 0;
+}
+
 table Snapshot {
     serverTick:ulong;
     serverTimeMs:ulong;
@@ -238,6 +270,16 @@ table Snapshot {
     simPaused:bool = false;
     simSpeedMul:float = 1.0;
     gameplayStates:[GameplayStateSnapshot];
+
+    // Append-only command execution feedback. Older snapshots decode these as
+    // zero/Unknown, and older readers ignore them.
+    lastCommandResultSeq:uint = 0;
+    lastCommandResultState:ubyte = 0;
+    lastCommandResultReason:ushort = 0;
+    authoritativeSkillSlot:ubyte = 255;
+    authoritativeSkillStage:ubyte = 0;
+    stageWindowEndTick:ulong = 0;
+    commandResults:[CommandResultSnapshot];
 }
 
 root_type Snapshot;

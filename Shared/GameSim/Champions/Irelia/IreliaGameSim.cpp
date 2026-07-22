@@ -1,12 +1,16 @@
 #include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
 
+#include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/IreliaSimComponent.h"
+#include "Shared/GameSim/Components/SkillStateComponent.h"
+#include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
+#include "Shared/GameSim/Definitions/SkillGameplayDef.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -18,6 +22,7 @@
 #include "Shared/GameSim/Core/Ecs/TransformComponent.h"
 #include "Shared/GameSim/Systems/Move/DashArrival.h"
 
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -27,6 +32,26 @@ namespace
     constexpr u8_t kIreliaREffectStageHit = 2u;
     constexpr u8_t kIreliaREffectStageWall = 3u;
     constexpr u8_t kIreliaREffectStageWallMark = 4u;
+    constexpr f32_t kIreliaQKillResetCooldownSec = 0.1f;
+    constexpr u16_t kIreliaQSkillId =
+        static_cast<u16_t>((static_cast<u32_t>(eChampion::IRELIA) << 8) | 1u);
+
+    bool_t TryResolveIreliaQTargetSideLanding(
+        const TickContext& tc,
+        const Vec3& targetPos,
+        const Vec3& rawLanding,
+        Vec3& outLanding)
+    {
+        outLanding = rawLanding;
+        if (!tc.pWalkable)
+            return true;
+        if (tc.pWalkable->IsWalkableXZ(rawLanding))
+            return true;
+
+        return tc.pWalkable->TryResolveMoveTarget(
+                targetPos, rawLanding, outLanding) &&
+            tc.pWalkable->IsWalkableXZ(outLanding);
+    }
 
     f32_t ResolveIreliaSkillEffectParam(
         CWorld& world,
@@ -72,7 +97,15 @@ namespace
             world.GetComponent<MoveTargetComponent>(entity).bHasTarget = false;
     }
 
-    void EnqueuePhysicalDamage(CWorld& world, EntityID source, EntityID target, eTeam team, f32_t amount, u16_t skillId, u8_t rank)
+    void EnqueuePhysicalDamage(
+        CWorld& world,
+        EntityID source,
+        EntityID target,
+        eTeam team,
+        f32_t amount,
+        u16_t skillId,
+        u8_t rank,
+        f32_t skillDamageScale = 1.f)
     {
         if (target == NULL_ENTITY || !world.IsAlive(target))
             return;
@@ -85,6 +118,9 @@ namespace
         request.flatAmount = amount;
         request.skillId = skillId;
         request.rank = rank;
+        request.iSourceSlot = static_cast<u8_t>(skillId & 0x00ffu);
+        request.eSourceKind = eDamageSourceKind::Skill;
+        request.skillDamageScale = skillDamageScale;
         EnqueueDamageRequest(world, request);
     }
 
@@ -96,13 +132,84 @@ namespace
         return world.GetComponent<IreliaSimComponent>(caster);
     }
 
-    Vec3 Lerp(const Vec3& a, const Vec3& b, f32_t t)
+    void LimitIreliaQCooldown(CWorld& world, EntityID caster, f32_t cooldownSec)
     {
-        return Vec3{
-            a.x + (b.x - a.x) * t,
-            a.y + (b.y - a.y) * t,
-            a.z + (b.z - a.z) * t
-        };
+        if (!world.HasComponent<SkillStateComponent>(caster))
+            return;
+
+        auto& q = world.GetComponent<SkillStateComponent>(caster)
+            .slots[static_cast<u8_t>(eSkillSlot::Q)];
+        const f32_t limited = std::max(0.f, cooldownSec);
+        q.cooldownRemaining = std::min(q.cooldownRemaining, limited);
+        q.cooldownDuration = std::min(q.cooldownDuration, limited);
+    }
+
+    void ReleaseIreliaQAction(CWorld& world, const TickContext& tc, EntityID caster)
+    {
+        if (!world.HasComponent<ActionStateComponent>(caster))
+            return;
+
+        auto& action = world.GetComponent<ActionStateComponent>(caster);
+        if (action.sourceChampion == eChampion::IRELIA &&
+            action.sourceSlot == static_cast<u8_t>(eSkillSlot::Q))
+        {
+            action.lockEndTick = std::min(action.lockEndTick, tc.tickIndex);
+            action.movePolicy = eSkillActionMovePolicy::Allow;
+        }
+    }
+
+    void ApplyIreliaMark(CWorld& world, const TickContext& tc, EntityID source, EntityID target, eSkillSlot slot)
+    {
+        if (source == NULL_ENTITY || target == NULL_ENTITY || !world.IsAlive(target))
+            return;
+
+        const f32_t markDurationSec = ResolveIreliaSkillEffectParam(
+            world, tc, source, slot, eSkillEffectParamId::MarkDurationSec);
+        if (markDurationSec <= 0.f)
+            return;
+
+        IreliaMarkComponent mark{};
+        mark.sourceEntity = source;
+        mark.fRemainingSec = markDurationSec;
+
+        if (world.HasComponent<IreliaMarkComponent>(target))
+            world.GetComponent<IreliaMarkComponent>(target) = mark;
+        else
+            world.AddComponent<IreliaMarkComponent>(target, mark);
+    }
+
+    void ResolveIreliaQImpact(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target,
+        u8_t rank)
+    {
+        if (target == NULL_ENTITY || !world.IsAlive(target) ||
+            !world.HasComponent<HealthComponent>(target))
+        {
+            return;
+        }
+
+        const auto& health = world.GetComponent<HealthComponent>(target);
+        if (health.bIsDead || health.fCurrent <= 0.f)
+            return;
+
+        const eTeam casterTeam = world.HasComponent<ChampionComponent>(caster)
+            ? world.GetComponent<ChampionComponent>(caster).team
+            : eTeam::Neutral;
+        EnqueuePhysicalDamage(
+            world,
+            caster,
+            target,
+            casterTeam,
+            ResolveIreliaSkillEffectParam(
+                world, tc, caster, eSkillSlot::Q, eSkillEffectParamId::BaseDamage) +
+            ResolveIreliaSkillEffectParam(
+                world, tc, caster, eSkillSlot::Q, eSkillEffectParamId::DamagePerRank) *
+                static_cast<f32_t>(rank),
+            kIreliaQSkillId,
+            rank);
     }
 
     Vec3 ResolveRForward(CWorld& world, EntityID caster, const GameCommand* pCommand)
@@ -377,6 +484,7 @@ namespace
                     state.rWaveDir,
                     static_cast<u16_t>(rWallDurationSec * 1000.f),
                     tc);
+                ApplyIreliaMark(world, tc, caster, hitTarget, eSkillSlot::R);
                 StartRWall(world, tc, caster, state, false, rWallDurationSec);
                 return;
             }
@@ -436,6 +544,7 @@ namespace
                         state.rWaveDir,
                         static_cast<u16_t>(rDisarmSec * 1000.f),
                         tc);
+                    ApplyIreliaMark(world, tc, caster, target, eSkillSlot::R);
                 }));
     }
 
@@ -458,33 +567,28 @@ namespace
         const Vec3 casterPos = casterTf.GetPosition();
         const Vec3 targetPos = world.GetComponent<TransformComponent>(cmd.targetEntity).GetPosition();
         const f32_t dashStopGap = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::Gap);
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Gap,
+            IreliaGameSim::kQStopGapFallback);
         const Vec3 endPos = IreliaGameSim::ResolveQDashEndPos(casterPos, targetPos, dashStopGap);
 
         IreliaSimComponent& state = GetIreliaState(world, ctx.casterEntity);
         state.dashStartPos = casterPos;
         state.dashEndPos = endPos;
-        state.dashElapsedSec = 0.f;
-        state.dashDurationSec = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::DashDurationSec);
+        state.dashSpeed = ResolveIreliaSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Speed,
+            IreliaGameSim::kQBaseDashSpeedFallback);
+        if (world.HasComponent<StatComponent>(ctx.casterEntity))
+            state.dashSpeed += world.GetComponent<StatComponent>(ctx.casterEntity).moveSpeed;
+        state.dashSpeed = std::max(0.01f, state.dashSpeed);
         state.dashTarget = cmd.targetEntity;
+        state.qRank = ctx.skillRank;
         state.bDashActive = true;
 
         ClearMove(world, ctx.casterEntity);
-
-        const f32_t qBaseDamage = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::BaseDamage);
-        const f32_t qDamagePerRank = ResolveIreliaSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::DamagePerRank);
-
-        EnqueuePhysicalDamage(
-            world,
-            ctx.casterEntity,
-            cmd.targetEntity,
-            ctx.casterTeam,
-            qBaseDamage + qDamagePerRank * static_cast<f32_t>(ctx.skillRank),
-            static_cast<u16_t>((static_cast<u32_t>(eChampion::IRELIA) << 8) | 1u),
-            ctx.skillRank);
 
         std::cout << "[IreliaSim] Q dash caster=" << ctx.casterEntity
             << " target=" << cmd.targetEntity
@@ -512,12 +616,36 @@ namespace
             ctx, eSkillSlot::W, eSkillEffectParamId::BaseDamage);
         const f32_t wDamagePerRank = ResolveIreliaSkillEffectParam(
             ctx, eSkillSlot::W, eSkillEffectParamId::DamagePerRank);
-        const f32_t wRange = ResolveIreliaSkillEffectParam(
+        f32_t wRange = ResolveIreliaSkillEffectParam(
             ctx, eSkillSlot::W, eSkillEffectParamId::Range);
         const f32_t wHalfWidth = ResolveIreliaSkillEffectParam(
             ctx, eSkillSlot::W, eSkillEffectParamId::HalfWidth);
-        const f32_t damage =
+        f32_t damage =
             wBaseDamage + wDamagePerRank * static_cast<f32_t>(ctx.skillRank);
+        f32_t skillDamageScale = 1.f;
+        if (world.HasComponent<SkillChargeStateComponent>(ctx.casterEntity))
+        {
+            const f32_t ratio =
+                world.GetComponent<SkillChargeStateComponent>(
+                    ctx.casterEntity).chargeRatio;
+            if (const SkillGameplayDef* skill = GameplayDefinitionQuery::FindSkill(
+                world,
+                ctx.casterEntity,
+                *ctx.pTickCtx,
+                eChampion::IRELIA,
+                static_cast<u8_t>(eSkillSlot::W)))
+            {
+                const f32_t rangeScale = ResolveSkillChargeValue(
+                    skill->charge.minRangeScale,
+                    skill->charge.maxRangeScale,
+                    ratio);
+                skillDamageScale = ResolveSkillChargeValue(
+                    skill->charge.minDamageScale,
+                    skill->charge.maxDamageScale,
+                    ratio);
+                wRange *= rangeScale;
+            }
+        }
 
         auto tryHit = [&](EntityID target, eTeam team, const Vec3& targetPos)
         {
@@ -547,7 +675,8 @@ namespace
                 ctx.casterTeam,
                 damage,
                 static_cast<u16_t>((static_cast<u32_t>(eChampion::IRELIA) << 8) | 2u),
-                ctx.skillRank);
+                ctx.skillRank,
+                skillDamageScale);
         };
 
         world.ForEach<ChampionComponent, TransformComponent>(
@@ -595,9 +724,6 @@ namespace
 
         const Vec3 a = state.blade1Pos;
         const Vec3 b = state.blade2Pos;
-        const f32_t dx = b.x - a.x;
-        const f32_t dz = b.z - a.z;
-        const f32_t segLenSq = dx * dx + dz * dz + 0.000001f;
         const f32_t beamRadius = ResolveIreliaSkillEffectParam(
             ctx, eSkillSlot::E, eSkillEffectParamId::Radius);
         const f32_t stunSec = ResolveIreliaSkillEffectParam(
@@ -607,40 +733,31 @@ namespace
         const f32_t eDamagePerRank = ResolveIreliaSkillEffectParam(
             ctx, eSkillSlot::E, eSkillEffectParamId::DamagePerRank);
 
-        world.ForEach<ChampionComponent, TransformComponent>(
-            std::function<void(EntityID, ChampionComponent&, TransformComponent&)>(
-                [&](EntityID target, ChampionComponent& champion, TransformComponent& tf)
-                {
-                    if (champion.team == ctx.casterTeam)
-                        return;
+        const std::vector<EntityID> targets =
+            GameplayStateQuery::CollectEnemyMobileUnitsInSegment(
+                world, ctx.casterEntity, a, b, beamRadius);
+        for (EntityID target : targets)
+        {
+            GameplayStatus::ApplyStun(
+                world,
+                *ctx.pTickCtx,
+                target,
+                ctx.casterEntity,
+                eChampion::IRELIA,
+                eSkillSlot::E,
+                stunSec);
 
-                    const Vec3 pos = tf.GetPosition();
-                    f32_t u = ((pos.x - a.x) * dx + (pos.z - a.z) * dz) / segLenSq;
-                    if (u < 0.f) u = 0.f;
-                    if (u > 1.f) u = 1.f;
+            EnqueuePhysicalDamage(
+                world,
+                ctx.casterEntity,
+                target,
+                ctx.casterTeam,
+                eBaseDamage + eDamagePerRank * static_cast<f32_t>(ctx.skillRank),
+                static_cast<u16_t>((static_cast<u32_t>(eChampion::IRELIA) << 8) | 3u),
+                ctx.skillRank);
 
-                    const Vec3 closest{ a.x + dx * u, pos.y, a.z + dz * u };
-                    if (WintersMath::DistanceSqXZ(pos, closest) > beamRadius * beamRadius)
-                        return;
-
-                    GameplayStatus::ApplyStun(
-                        world,
-                        *ctx.pTickCtx,
-                        target,
-                        ctx.casterEntity,
-                        eChampion::IRELIA,
-                        eSkillSlot::E,
-                        stunSec);
-
-                    EnqueuePhysicalDamage(
-                        world,
-                        ctx.casterEntity,
-                        target,
-                        ctx.casterTeam,
-                        eBaseDamage + eDamagePerRank * static_cast<f32_t>(ctx.skillRank),
-                        static_cast<u16_t>((static_cast<u32_t>(eChampion::IRELIA) << 8) | 3u),
-                        ctx.skillRank);
-                }));
+            ApplyIreliaMark(world, *ctx.pTickCtx, ctx.casterEntity, target, eSkillSlot::E);
+        }
 
         state.blade1Pos = {};
         state.blade2Pos = {};
@@ -675,6 +792,67 @@ namespace
 
 namespace IreliaGameSim
 {
+    bool_t CanCastBladesurge(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID target)
+    {
+        if (caster == NULL_ENTITY || target == NULL_ENTITY ||
+            !world.IsAlive(caster) || !world.IsAlive(target) ||
+            !world.HasComponent<TransformComponent>(caster) ||
+            !world.HasComponent<TransformComponent>(target) ||
+            !world.HasComponent<HealthComponent>(target) ||
+            !GameplayStateQuery::CanBeTargetedBy(world, caster, target))
+        {
+            return false;
+        }
+
+        const HealthComponent& health =
+            world.GetComponent<HealthComponent>(target);
+        if (health.bIsDead || health.fCurrent <= 0.f)
+            return false;
+
+        const Vec3 casterPos =
+            world.GetComponent<TransformComponent>(caster).GetLocalPosition();
+        const Vec3 targetPos =
+            world.GetComponent<TransformComponent>(target).GetLocalPosition();
+        const f32_t range = GameplayDefinitionQuery::ResolveSkillRange(
+            world,
+            caster,
+            tc,
+            eChampion::IRELIA,
+            static_cast<u8_t>(eSkillSlot::Q));
+        const f32_t effectiveRange = range +
+            GameplayStateQuery::ResolveGameplayRadius(world, caster) +
+            GameplayStateQuery::ResolveGameplayRadius(world, target);
+        if (range <= 0.f ||
+            WintersMath::DistanceSqXZ(casterPos, targetPos) >
+                effectiveRange * effectiveRange)
+        {
+            return false;
+        }
+
+        const f32_t gap = ResolveIreliaSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::Q,
+            eSkillEffectParamId::Gap,
+            kQStopGapFallback);
+        const Vec3 rawLanding = ResolveQDashEndPos(
+            casterPos, targetPos, gap);
+        Vec3 landing{};
+        if (!TryResolveIreliaQTargetSideLanding(
+                tc, targetPos, rawLanding, landing))
+        {
+            return false;
+        }
+        const f32_t maxLandingDistance = gap + 1.5f;
+        return WintersMath::DistanceSqXZ(landing, targetPos) <=
+            maxLandingDistance * maxLandingDistance;
+    }
+
     void Tick(CWorld& world, const TickContext& tc)
     {
         world.ForEach<IreliaSimComponent, TransformComponent>(
@@ -683,78 +861,158 @@ namespace IreliaGameSim
                 {
                     if (state.bDashActive)
                     {
-                        if (!GameplayStateQuery::CanMove(world, entity) ||
-                            world.HasComponent<ForcedMotionComponent>(entity))
+                        const EntityID target = state.dashTarget;
+                        const bool_t bCancelled =
+                            !GameplayStateQuery::CanMove(world, entity) ||
+                            world.HasComponent<ForcedMotionComponent>(entity) ||
+                            target == NULL_ENTITY ||
+                            !world.IsAlive(target) ||
+                            !world.HasComponent<TransformComponent>(target) ||
+                            !world.HasComponent<HealthComponent>(target) ||
+                            world.GetComponent<HealthComponent>(target).bIsDead ||
+                            world.GetComponent<HealthComponent>(target).fCurrent <= 0.f;
+                        if (bCancelled)
                         {
+                            SnapDashArrivalToWalkable(
+                                world, tc, entity, state.dashStartPos);
                             state.bDashActive = false;
-                            state.dashElapsedSec = 0.f;
-                            state.dashDurationSec = 0.f;
+                            state.dashSpeed = 0.f;
                             state.dashTarget = NULL_ENTITY;
-                            TickRWave(world, tc, entity, state);
-                            return;
+                            state.qRank = 0u;
+                            ReleaseIreliaQAction(world, tc, entity);
                         }
-
-                        ClearMove(world, entity);
-
-                        const f32_t duration = state.dashDurationSec > 0.01f
-                            ? state.dashDurationSec
-                            : ResolveIreliaSkillEffectParam(
+                        else
+                        {
+                            ClearMove(world, entity);
+                            const Vec3 currentPos = transform.GetLocalPosition();
+                            const Vec3 targetPos = world.GetComponent<TransformComponent>(target)
+                                .GetLocalPosition();
+                            const f32_t gap = ResolveIreliaSkillEffectParam(
                                 world,
                                 tc,
                                 entity,
                                 eSkillSlot::Q,
-                                eSkillEffectParamId::DashDurationSec);
-                        state.dashElapsedSec += tc.fDt;
-
-                        f32_t t = state.dashElapsedSec / duration;
-                        if (t < 0.f) t = 0.f;
-                        if (t > 1.f) t = 1.f;
-
-                        const Vec3 desiredPos = Lerp(state.dashStartPos, state.dashEndPos, t);
-                        Vec3 guardedPos = desiredPos;
-                        bool_t bDashBlocked = false;
-                        if (tc.pWalkable)
-                        {
-                            const Vec3 currentPos = transform.GetLocalPosition();
-                            if (!tc.pWalkable->TryClampMoveSegmentXZ(currentPos, desiredPos, 0.5f, guardedPos))
+                                eSkillEffectParamId::Gap,
+                                IreliaGameSim::kQStopGapFallback);
+                            const Vec3 rawEnd =
+                                ResolveQDashEndPos(currentPos, targetPos, gap);
+                            Vec3 desiredEnd{};
+                            if (!TryResolveIreliaQTargetSideLanding(
+                                    tc, targetPos, rawEnd, desiredEnd))
                             {
-                                guardedPos = currentPos;
-                                bDashBlocked = true;
+                                SnapDashArrivalToWalkable(
+                                    world, tc, entity, state.dashStartPos);
+                                state.bDashActive = false;
+                                state.dashSpeed = 0.f;
+                                state.dashTarget = NULL_ENTITY;
+                                state.qRank = 0u;
+                                ReleaseIreliaQAction(world, tc, entity);
+                                return;
                             }
-                            else if (WintersMath::DistanceSqXZ(guardedPos, desiredPos) > 0.0001f)
+                            state.dashEndPos = desiredEnd;
+
+                            const Vec3 delta{
+                                desiredEnd.x - currentPos.x,
+                                0.f,
+                                desiredEnd.z - currentPos.z };
+                            const f32_t remaining = std::sqrtf(
+                                delta.x * delta.x + delta.z * delta.z);
+                            const f32_t step = state.dashSpeed * tc.fDt;
+                            const bool_t bContact =
+                                remaining <= step || remaining <= 0.0001f;
+                            const Vec3 desiredPos = bContact
+                                ? desiredEnd
+                                : Vec3{
+                                    currentPos.x + delta.x * (step / remaining),
+                                    currentPos.y,
+                                    currentPos.z + delta.z * (step / remaining) };
+                            transform.SetPosition(desiredPos);
+
+                            const Vec3 dir = WintersMath::NormalizeXZ(delta);
+                            if (dir.x * dir.x + dir.z * dir.z > 0.0001f)
                             {
-                                bDashBlocked = true;
+                                const Vec3 rot = transform.GetRotation();
+                                transform.SetRotation({
+                                    rot.x,
+                                    ResolveChampionVisualYawNear(
+                                        eChampion::IRELIA, dir, rot.y),
+                                    rot.z });
                             }
-                        }
 
-                        transform.SetPosition(guardedPos);
-
-                        const Vec3 dir = WintersMath::NormalizeXZ(Vec3{
-                            state.dashEndPos.x - state.dashStartPos.x,
-                            0.f,
-                            state.dashEndPos.z - state.dashStartPos.z
-                        });
-                        if (dir.x * dir.x + dir.z * dir.z > 0.0001f)
-                        {
-                            Vec3 rot = transform.GetRotation();
-                            transform.SetRotation({
-                                rot.x,
-                                ResolveChampionVisualYawNear(eChampion::IRELIA, dir, rot.y),
-                                rot.z });
-                        }
-
-                        if (t >= 1.f || bDashBlocked)
-                        {
-                            SnapDashArrivalToWalkable(world, tc, entity, state.dashStartPos);
-                            state.bDashActive = false;
-                            state.dashElapsedSec = 0.f;
-                            state.dashDurationSec = 0.f;
-                            state.dashTarget = NULL_ENTITY;
+                            if (bContact)
+                            {
+                                const u8_t impactRank = state.qRank;
+                                state.bDashActive = false;
+                                state.dashSpeed = 0.f;
+                                state.dashTarget = NULL_ENTITY;
+                                state.qRank = 0u;
+                                const Vec3 finalPos = transform.GetLocalPosition();
+                                const f32_t maxImpactDistance = gap + 1.5f;
+                                const bool_t bValidArrival =
+                                    (!tc.pWalkable ||
+                                        tc.pWalkable->IsWalkableXZ(finalPos)) &&
+                                    WintersMath::DistanceSqXZ(finalPos, targetPos) <=
+                                        maxImpactDistance * maxImpactDistance;
+                                ReleaseIreliaQAction(world, tc, entity);
+                                if (bValidArrival)
+                                {
+                                    ResolveIreliaQImpact(
+                                        world, tc, entity, target, impactRank);
+                                }
+                            }
                         }
                     }
 
                     TickRWave(world, tc, entity, state);
                 }));
+
+        std::vector<EntityID> expiredMarks;
+        world.ForEach<IreliaMarkComponent>(
+            std::function<void(EntityID, IreliaMarkComponent&)>(
+                [&](EntityID entity, IreliaMarkComponent& mark)
+                {
+                    mark.fRemainingSec = std::max(0.f, mark.fRemainingSec - tc.fDt);
+                    if (mark.fRemainingSec <= 0.f || !world.IsAlive(mark.sourceEntity))
+                        expiredMarks.push_back(entity);
+                }));
+
+        for (EntityID entity : expiredMarks)
+            world.RemoveComponent<IreliaMarkComponent>(entity);
+    }
+
+    void OnDamageResolved(
+        CWorld& world,
+        const TickContext&,
+        const DamageRequest& request,
+        const DamageResult& result)
+    {
+        if (!result.bApplied || request.source == NULL_ENTITY ||
+            request.target == NULL_ENTITY ||
+            request.eSourceKind != eDamageSourceKind::Skill ||
+            request.iSourceSlot != static_cast<u8_t>(eSkillSlot::Q) ||
+            request.skillId != kIreliaQSkillId ||
+            !world.HasComponent<ChampionComponent>(request.source) ||
+            world.GetComponent<ChampionComponent>(request.source).id != eChampion::IRELIA)
+        {
+            return;
+        }
+
+        if (world.HasComponent<IreliaMarkComponent>(request.target))
+        {
+            const auto& mark = world.GetComponent<IreliaMarkComponent>(request.target);
+            if (mark.sourceEntity == request.source && mark.fRemainingSec > 0.f)
+            {
+                world.RemoveComponent<IreliaMarkComponent>(request.target);
+                LimitIreliaQCooldown(world, request.source, 0.f);
+            }
+        }
+
+        if (result.bKilled &&
+            GameplayStateQuery::IsMobileCombatUnit(world, request.target))
+        {
+            LimitIreliaQCooldown(
+                world, request.source, kIreliaQKillResetCooldownSec);
+        }
     }
 
     void RegisterHooks()

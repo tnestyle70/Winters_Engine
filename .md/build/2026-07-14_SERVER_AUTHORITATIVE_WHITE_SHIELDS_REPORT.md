@@ -1,5 +1,7 @@
 # Session - Server-Authoritative White Shields (2026-07-14)
 
+> Current status (2026-07-20): the common server-authoritative shield amount, absorption, three-second duration, snapshot bridge, and white effective-health bar remain current. The white WFX palette for Lee Sin W1 and Riven E is superseded by the explicit champion-specific green palette in `2026-07-20_LEESIN_RIVEN_WFX_TINT_REGRESSION_RESULT.md`; Yasuo passive WFX remains white.
+
 ## Outcome
 
 Yasuo passive, Riven E, and Lee Sin W1 now share one deterministic server-authoritative shield path. The server owns amount, absorption, replacement, and exact expiry; the existing snapshot `shield` field transports remaining effective health; local and world health bars render the remaining amount as a semi-transparent white segment; and the three actor-attached shield WFX use white RGB and a three-second authored lifetime.

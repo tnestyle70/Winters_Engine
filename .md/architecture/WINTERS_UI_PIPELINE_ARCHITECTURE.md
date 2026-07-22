@@ -66,6 +66,7 @@ Client/Elden/UI
 - `Shared/GameSim`과 Server는 UI를 모른다. gameplay truth를 Snapshot/Event/ViewState로 넘길 뿐이다.
 - Runtime HUD는 `CUIRoot -> CUIObject -> Widget -> UIRenderContext -> CUIRenderer`로 그린다.
 - ImGui는 tuner/debug/editor와 임시 text adapter에만 사용한다.
+- ImGui 도구의 정보 구조, 행동 예산, 권위 적용, 시각 검증은 `WINTERS_IMGUI_TOOL_DESIGN_GUIDE.md`를 따른다.
 - 새 gameplay HUD는 `ImDrawList` 직접 호출로 시작하지 않는다.
 
 ## 데이터 책임

@@ -449,7 +449,7 @@ namespace Engine
         lua_Integer OutputIndex = 1;
         for (const LuaShopItemView& Item : pHost->m_ShopItems)
         {
-            if (!Item.Enabled)
+            if (!Item.Enabled || !Item.Purchasable)
                 continue;
 
             lua_newtable(pState);

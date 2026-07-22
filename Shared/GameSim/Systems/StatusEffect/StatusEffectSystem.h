@@ -26,5 +26,6 @@ namespace GameplayStatus
 	void TickStatusEffects(CWorld& world, const TickContext& tc);
 	void TickForcedMotions(CWorld& world, const TickContext& tc);
 	void ClearStatusEffects(CWorld& world, EntityID entity);
+	void CleanseCrowdControlEffects(CWorld& world, EntityID entity);
 	void RebuildGameplayState(CWorld& world, EntityID entity);
 }

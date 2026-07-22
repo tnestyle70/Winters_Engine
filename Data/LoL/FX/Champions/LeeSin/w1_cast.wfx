@@ -14,7 +14,7 @@
       "fade_out": 0.36,
       "width": 2.85,
       "height": 2.85,
-      "color": [1.0, 1.0, 1.0, 0.38],
+      "color": [0.72, 1.0, 0.78, 0.38],
       "attach_offset": [0.0, 0.06, 0.0],
       "billboard": false
     },
@@ -29,7 +29,7 @@
       "fade_out": 0.50,
       "width": 2.35,
       "height": 2.35,
-      "color": [1.0, 1.0, 1.0, 0.55],
+      "color": [0.68, 1.0, 0.84, 0.55],
       "attach_offset": [0.0, 1.05, 0.0],
       "billboard": true
     },
@@ -45,7 +45,7 @@
       "fade_out": 0.50,
       "width": 2.55,
       "height": 2.55,
-      "color": [1.0, 1.0, 1.0, 0.44],
+      "color": [0.36, 0.98, 1.0, 0.44],
       "attach_offset": [0.0, 1.08, 0.0],
       "billboard": true
     },
@@ -61,7 +61,7 @@
       "fade_out": 0.34,
       "width": 1.86,
       "height": 1.86,
-      "color": [1.0, 1.0, 1.0, 0.58],
+      "color": [1.0, 0.78, 0.24, 0.58],
       "attach_offset": [0.0, 1.08, 0.0],
       "billboard": true
     },
@@ -77,7 +77,7 @@
       "fade_out": 0.34,
       "width": 1.58,
       "height": 1.58,
-      "color": [1.0, 1.0, 1.0, 0.46],
+      "color": [0.92, 0.82, 0.44, 0.46],
       "attach_offset": [0.0, 1.04, 0.0],
       "uv_scroll": [0.0, -0.20],
       "billboard": true

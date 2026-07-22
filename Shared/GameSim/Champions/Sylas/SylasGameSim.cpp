@@ -2,16 +2,21 @@
 
 #include "Shared/GameSim/Core/Debug/SimDebugOutput.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
+#include "Shared/GameSim/Components/DamageRequestComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
+#include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/SylasSimComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
+#include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
+#include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
+#include "Shared/GameSim/Systems/ReplicatedEventQueue/ReplicatedEventQueue.h"
 #include "Shared/GameSim/Systems/SpellbookFormOverride/SpellbookFormOverrideSystem.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
@@ -27,9 +32,6 @@
 
 namespace
 {
-    constexpr u8_t kSylasPassiveMaxStacks = 3u;
-    constexpr f32_t kSylasPassiveWindowSec = 4.0f;
-
     f32_t ResolveSylasSkillEffectParam(
         CWorld& world,
         const TickContext& tc,
@@ -68,6 +70,67 @@ namespace
             fallbackValue);
     }
 
+    u16_t MakeSylasSkillId(u8_t slot)
+    {
+        return static_cast<u16_t>(
+            (static_cast<u32_t>(eChampion::SYLAS) << 8) |
+            static_cast<u32_t>(slot));
+    }
+
+    void EmitSylasEffect(
+        CWorld& world,
+        EntityID source,
+        EntityID target,
+        u8_t slot,
+        u8_t rank,
+        u8_t stage,
+        const Vec3& position,
+        const Vec3& direction,
+        u16_t durationMs,
+        u64_t startTick)
+    {
+        u16_t hookVariant = GameplayHookVariant::BA_CastFrame;
+        switch (static_cast<eSkillSlot>(slot))
+        {
+        case eSkillSlot::Q: hookVariant = GameplayHookVariant::Q_CastFrame; break;
+        case eSkillSlot::W: hookVariant = GameplayHookVariant::W_CastFrame; break;
+        case eSkillSlot::E: hookVariant = GameplayHookVariant::E_CastFrame; break;
+        case eSkillSlot::R: hookVariant = GameplayHookVariant::R_CastFrame; break;
+        default: break;
+        }
+
+        ReplicatedEventComponent event{};
+        event.kind = eReplicatedEventKind::EffectTrigger;
+        event.sourceEntity = source;
+        event.targetEntity = target;
+        event.effectId = MakeGameplayHookId(
+            eChampion::SYLAS,
+            hookVariant);
+        event.skillId = MakeSylasSkillId(slot);
+        event.slot = slot;
+        event.rank = rank;
+        event.flags = static_cast<u16_t>(
+            (static_cast<u16_t>(stage & 0x0fu) << 12) |
+            (static_cast<u16_t>(rank & 0x0fu) << 8) |
+            static_cast<u16_t>(slot));
+        event.position = position;
+        event.direction = direction;
+        event.durationMs = durationMs;
+        event.startTick = startTick;
+        EnqueueReplicatedEvent(world, event);
+    }
+
+    eTeam ResolveTeam(CWorld& world, EntityID entity)
+    {
+        if (entity != NULL_ENTITY && world.HasComponent<ChampionComponent>(entity))
+            return world.GetComponent<ChampionComponent>(entity).team;
+        if (entity != NULL_ENTITY && world.HasComponent<MinionComponent>(entity))
+            return world.GetComponent<MinionComponent>(entity).team;
+        if (entity != NULL_ENTITY && world.HasComponent<StructureComponent>(entity))
+            return world.GetComponent<StructureComponent>(entity).team;
+        return eTeam::Neutral;
+    }
+
     void ClearMove(CWorld& world, EntityID entity)
     {
         if (!world.HasComponent<MoveTargetComponent>(entity))
@@ -77,6 +140,163 @@ namespace
         move.bHasTarget = false;
         move.pathCount = 0;
         move.pathIndex = 0;
+    }
+
+    void TickPendingQExplosions(CWorld& world, const TickContext& tc)
+    {
+        const auto pendingEntities =
+            DeterministicEntityIterator<SylasQExplosionComponent>::CollectSorted(world);
+        for (const EntityID pendingEntity : pendingEntities)
+        {
+            if (!world.IsAlive(pendingEntity) ||
+                !world.HasComponent<SylasQExplosionComponent>(pendingEntity))
+            {
+                continue;
+            }
+
+            const SylasQExplosionComponent pending =
+                world.GetComponent<SylasQExplosionComponent>(pendingEntity);
+            if (tc.tickIndex < pending.uDetonateTick)
+                continue;
+
+            world.RemoveComponent<SylasQExplosionComponent>(pendingEntity);
+            if (!world.IsAlive(pending.hCaster) ||
+                pending.hCaster.GetIndex() != pendingEntity ||
+                !world.HasComponent<ChampionComponent>(pendingEntity))
+            {
+                continue;
+            }
+
+            const EntityID caster = pendingEntity;
+            const eTeam casterTeam =
+                world.GetComponent<ChampionComponent>(caster).team;
+            const f32_t radius = std::max(0.f, ResolveSylasSkillEffectParam(
+                world,
+                tc,
+                caster,
+                eSkillSlot::Q,
+                eSkillEffectParamId::Radius,
+                1.65f));
+            const f32_t radiusSq = radius * radius;
+            const u8_t rank = std::max<u8_t>(1u, pending.uRank);
+
+            const auto targets =
+                DeterministicEntityIterator<HealthComponent>::CollectSorted(world);
+            for (const EntityID target : targets)
+            {
+                if (target == caster ||
+                    !world.IsAlive(target) ||
+                    !world.HasComponent<TransformComponent>(target))
+                {
+                    continue;
+                }
+
+                const HealthComponent& health =
+                    world.GetComponent<HealthComponent>(target);
+                if (health.bIsDead || health.fCurrent <= 0.f ||
+                    ResolveTeam(world, target) == casterTeam ||
+                    !GameplayStateQuery::CanBeTargetedBy(world, caster, target) ||
+                    !GameplayStateQuery::CanReceiveDamage(world, caster, target) ||
+                    WintersMath::DistanceSqXZ(
+                        pending.vCenter,
+                        world.GetComponent<TransformComponent>(target).GetPosition()) > radiusSq)
+                {
+                    continue;
+                }
+
+                DamageRequest request{};
+                if (GameplayDefinitionQuery::BuildSkillDamageRequest(
+                    world,
+                    caster,
+                    target,
+                    tc,
+                    eChampion::SYLAS,
+                    static_cast<u8_t>(eSkillSlot::Q),
+                    rank,
+                    casterTeam,
+                    eDamageSourceKind::Skill,
+                    request))
+                {
+                    EnqueueDamageRequest(world, request);
+                }
+            }
+
+            EmitSylasEffect(
+                world,
+                caster,
+                NULL_ENTITY,
+                static_cast<u8_t>(eSkillSlot::Q),
+                rank,
+                2u,
+                pending.vCenter,
+                {},
+                620u,
+                tc.tickIndex);
+        }
+    }
+
+    void OnQ(GameplayHookContext& ctx)
+    {
+        if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx ||
+            ctx.casterEntity == NULL_ENTITY ||
+            !ctx.pWorld->IsAlive(ctx.casterEntity))
+        {
+            return;
+        }
+
+        const f32_t delaySec = std::max(0.f, ResolveSylasSkillEffectParam(
+            ctx,
+            eSkillSlot::Q,
+            eSkillEffectParamId::FormationDelaySec,
+            0.5f));
+        const f32_t tickSec = std::max(0.0001f, ctx.pTickCtx->fDt);
+        const u64_t delayTicks = static_cast<u64_t>(
+            std::max(1.0, std::ceil(static_cast<double>(delaySec / tickSec))));
+
+        SylasQExplosionComponent pending{};
+        pending.hCaster = ctx.pWorld->GetEntityHandle(ctx.casterEntity);
+        pending.vCenter = ctx.pCommand->groundPos;
+        pending.uDetonateTick = ctx.pTickCtx->tickIndex + delayTicks;
+        pending.uRank = std::max<u8_t>(1u, ctx.skillRank);
+        if (ctx.pWorld->HasComponent<SylasQExplosionComponent>(ctx.casterEntity))
+            ctx.pWorld->GetComponent<SylasQExplosionComponent>(ctx.casterEntity) = pending;
+        else
+            ctx.pWorld->AddComponent<SylasQExplosionComponent>(ctx.casterEntity, pending);
+    }
+
+    void OnW(GameplayHookContext& ctx)
+    {
+        if (!ctx.pWorld || !ctx.pCommand || !ctx.pTickCtx)
+            return;
+
+        CWorld& world = *ctx.pWorld;
+        const EntityID target = ctx.pCommand->targetEntity;
+        if (target == NULL_ENTITY || !world.IsAlive(target) ||
+            !world.HasComponent<HealthComponent>(target) ||
+            world.GetComponent<HealthComponent>(target).bIsDead ||
+            world.GetComponent<HealthComponent>(target).fCurrent <= 0.f ||
+            ResolveTeam(world, target) == ctx.casterTeam ||
+            !GameplayStateQuery::CanBeTargetedBy(world, ctx.casterEntity, target) ||
+            !GameplayStateQuery::CanReceiveDamage(world, ctx.casterEntity, target))
+        {
+            return;
+        }
+
+        DamageRequest request{};
+        if (GameplayDefinitionQuery::BuildSkillDamageRequest(
+            world,
+            ctx.casterEntity,
+            target,
+            *ctx.pTickCtx,
+            eChampion::SYLAS,
+            static_cast<u8_t>(eSkillSlot::W),
+            std::max<u8_t>(1u, ctx.skillRank),
+            ctx.casterTeam,
+            eDamageSourceKind::Skill,
+            request))
+        {
+            EnqueueDamageRequest(world, request);
+        }
     }
 
     Vec3 ResolveCommandDirection(const GameplayHookContext& ctx)
@@ -419,6 +639,24 @@ namespace
         if (!CanHijackUltimateInternal(world, tc, caster, target))
             return;
 
+        const Vec3 casterPos = world.GetComponent<TransformComponent>(caster).GetPosition();
+        const Vec3 targetPos = world.GetComponent<TransformComponent>(target).GetPosition();
+        const Vec3 direction = WintersMath::DirectionXZ(
+            casterPos,
+            targetPos,
+            ResolveCommandDirection(ctx));
+        EmitSylasEffect(
+            world,
+            caster,
+            target,
+            static_cast<u8_t>(eSkillSlot::R),
+            ctx.skillRank,
+            1u,
+            targetPos,
+            direction,
+            500u,
+            tc.tickIndex);
+
         SpellbookOverrideComponent spellbook{};
         spellbook.sourceChampion = ResolveHijackSourceChampion(world, target);
         spellbook.sourceSlot = static_cast<u8_t>(eSkillSlot::R);
@@ -457,6 +695,10 @@ namespace SylasGameSim
             return;
 
         CGameplayHookRegistry::Instance().Register(
+            MakeGameplayHookId(eChampion::SYLAS, GameplayHookVariant::Q_CastFrame), &OnQ);
+        CGameplayHookRegistry::Instance().Register(
+            MakeGameplayHookId(eChampion::SYLAS, GameplayHookVariant::W_CastFrame), &OnW);
+        CGameplayHookRegistry::Instance().Register(
             MakeGameplayHookId(eChampion::SYLAS, GameplayHookVariant::E_CastFrame), &OnE);
         CGameplayHookRegistry::Instance().Register(
             MakeGameplayHookId(eChampion::SYLAS, GameplayHookVariant::R_CastFrame), &OnR);
@@ -466,6 +708,8 @@ namespace SylasGameSim
 
     void Tick(CWorld& world, const TickContext& tc)
     {
+        TickPendingQExplosions(world, tc);
+
         world.ForEach<SylasSimComponent>(
             std::function<void(EntityID, SylasSimComponent&)>(
                 [&](EntityID, SylasSimComponent& sylas)
@@ -551,17 +795,78 @@ namespace SylasGameSim
         return CanHijackUltimateInternal(world, tc, caster, target);
     }
 
-    void ArmPassiveOnSkillCast(CWorld& world, EntityID caster)
+    void OnDamageResolved(
+        CWorld& world,
+        const TickContext& tc,
+        const DamageRequest& request,
+        const DamageResult& result)
+    {
+        const u8_t slot = request.iSourceSlot != 0u
+            ? request.iSourceSlot
+            : static_cast<u8_t>(request.skillId & 0xffu);
+        if (static_cast<eChampion>(request.skillId >> 8u) != eChampion::SYLAS ||
+            slot != static_cast<u8_t>(eSkillSlot::W) ||
+            result.finalAmount <= 0.f ||
+            request.source == NULL_ENTITY ||
+            !world.IsAlive(request.source) ||
+            !world.HasComponent<HealthComponent>(request.source))
+        {
+            return;
+        }
+
+        HealthComponent& health = world.GetComponent<HealthComponent>(request.source);
+        if (health.bIsDead || health.fCurrent <= 0.f)
+            return;
+
+        const f32_t ratio = std::max(0.f, ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            request.source,
+            eSkillSlot::W,
+            eSkillEffectParamId::HealDamageRatio,
+            0.f));
+        health.fCurrent = std::min(
+            health.fMaximum,
+            health.fCurrent + result.finalAmount * ratio);
+        if (world.HasComponent<ChampionComponent>(request.source))
+        {
+            ChampionComponent& champion =
+                world.GetComponent<ChampionComponent>(request.source);
+            champion.hp = health.fCurrent;
+            champion.maxHp = health.fMaximum;
+        }
+    }
+
+    void ArmPassiveOnSkillCast(CWorld& world, const TickContext& tc, EntityID caster)
     {
         if (caster == NULL_ENTITY || !world.IsAlive(caster))
             return;
+
+        const f32_t maxStacksValue = ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::MaxStacks,
+            0.f);
+        const u32_t maxStacks = static_cast<u32_t>(std::clamp(
+            std::round(maxStacksValue),
+            1.f,
+            255.f));
+        const f32_t stackWindowSec = std::max(0.f, ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::StackWindowSec,
+            0.f));
 
         SylasSimComponent& sylas = world.HasComponent<SylasSimComponent>(caster)
             ? world.GetComponent<SylasSimComponent>(caster)
             : world.AddComponent<SylasSimComponent>(caster, SylasSimComponent{});
         sylas.passiveStacks = static_cast<u8_t>(
-            std::min<u32_t>(kSylasPassiveMaxStacks, sylas.passiveStacks + 1u));
-        sylas.passiveRemainingSec = kSylasPassiveWindowSec;
+            std::min<u32_t>(maxStacks, sylas.passiveStacks + 1u));
+        sylas.passiveRemainingSec = stackWindowSec;
     }
 
     bool_t TryConsumePassiveBasicAttack(CWorld& world, EntityID caster)
@@ -580,9 +885,84 @@ namespace SylasGameSim
         --sylas.passiveStacks;
         if (sylas.passiveStacks == 0u)
             sylas.passiveRemainingSec = 0.f;
-        else
-            sylas.passiveRemainingSec = kSylasPassiveWindowSec;
         return true;
+    }
+
+    void EnqueuePassiveBasicAttackAreaDamage(
+        CWorld& world,
+        const TickContext& tc,
+        EntityID caster,
+        EntityID primaryTarget)
+    {
+        if (caster == NULL_ENTITY ||
+            primaryTarget == NULL_ENTITY ||
+            !world.IsAlive(caster) ||
+            !world.HasComponent<TransformComponent>(caster) ||
+            !world.HasComponent<ChampionComponent>(caster))
+        {
+            return;
+        }
+
+        const f32_t radius = std::max(0.f, ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::Radius,
+            0.f));
+        const f32_t baseDamage = std::max(0.f, ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::BaseDamage,
+            0.f));
+        const f32_t apRatio = std::max(0.f, ResolveSylasSkillEffectParam(
+            world,
+            tc,
+            caster,
+            eSkillSlot::BasicAttack,
+            eSkillEffectParamId::ApRatio,
+            0.f));
+        const Vec3 center = world.GetComponent<TransformComponent>(caster).GetPosition();
+        const eTeam sourceTeam = ResolveTeam(world, caster);
+
+        const auto targets =
+            DeterministicEntityIterator<HealthComponent>::CollectSorted(world);
+        for (EntityID target : targets)
+        {
+            if (target == caster ||
+                !world.IsAlive(target) ||
+                !world.HasComponent<TransformComponent>(target) ||
+                !GameplayStateQuery::CanReceiveDamage(world, caster, target))
+            {
+                continue;
+            }
+
+            const HealthComponent& health = world.GetComponent<HealthComponent>(target);
+            if (health.bIsDead || health.fCurrent <= 0.f)
+                continue;
+            const eTeam targetTeam = ResolveTeam(world, target);
+            if (targetTeam == sourceTeam && targetTeam != eTeam::Neutral)
+                continue;
+
+            const Vec3 targetPos =
+                world.GetComponent<TransformComponent>(target).GetPosition();
+            if (WintersMath::DistanceSqXZ(center, targetPos) > radius * radius)
+                continue;
+
+            DamageRequest request{};
+            request.source = caster;
+            request.target = target;
+            request.sourceTeam = sourceTeam;
+            request.type = eDamageType::Magic;
+            request.flatAmount = baseDamage;
+            request.apRatioOverride = apRatio;
+            request.iSourceSlot = static_cast<u8_t>(eSkillSlot::BasicAttack);
+            request.eSourceKind = eDamageSourceKind::Skill;
+            request.flags = DamageFlag_None;
+            EnqueueDamageRequest(world, request);
+        }
     }
 
     void ApplyChainHit(CWorld& world, const TickContext& tc, EntityID source, EntityID target)

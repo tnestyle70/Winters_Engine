@@ -1,6 +1,7 @@
 param(
     [ValidateSet("Debug", "Release")]
-    [string]$Configuration = "Debug"
+    [string]$Configuration = "Debug",
+    [switch]$RequireComplete
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,17 +36,32 @@ try {
     Invoke-Checked "Definition pack freshness" {
         python Tools/LoLData/Build-LoLDefinitionPack.py --check
     }
+    Invoke-Checked "Champion schema mutation contract" {
+        python Tools/LoLData/Test-ChampionGameDataSchema.py
+    }
+    Invoke-Checked "Protected WFX tint regression" {
+        python Tools/LoLData/Test-WfxTintRegression.py
+    }
     Invoke-Checked "Legacy ownership audit" {
         powershell -ExecutionPolicy Bypass -File Tools/LoLData/Collect-LoLLegacyDataAudit.ps1
     }
+    Invoke-Checked "Draft round-trip" {
+        powershell -ExecutionPolicy Bypass -File Tools/LoLData/Test-LoLDataDrivenDraftRoundTrip.ps1 -Root $Root -NoWrite
+    }
     Invoke-Checked "Data-driven goal status" {
-        powershell -ExecutionPolicy Bypass -File Tools/LoLData/Get-LoLDataDrivenGoalStatus.ps1
+        if ($RequireComplete) {
+            powershell -ExecutionPolicy Bypass -File Tools/LoLData/Get-LoLDataDrivenGoalStatus.ps1 `
+                -NoWrite -FailWhenIncomplete
+        }
+        else {
+            powershell -ExecutionPolicy Bypass -File Tools/LoLData/Get-LoLDataDrivenGoalStatus.ps1 -NoWrite
+        }
     }
     Invoke-Checked "Raw product asset path audit" {
         powershell -ExecutionPolicy Bypass -File Tools/LoLData/FindRawAssetPaths.ps1
     }
     Invoke-Checked "Client visual timing parity" {
-        powershell -ExecutionPolicy Bypass -File Tools/LoLData/Export-LoLChampionVisualTimingSeed.ps1
+        powershell -ExecutionPolicy Bypass -File Tools/LoLData/Export-LoLChampionVisualTimingSeed.ps1 -Check
     }
 
     $Projects = @(

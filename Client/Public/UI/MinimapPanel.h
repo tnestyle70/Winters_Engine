@@ -99,9 +99,10 @@ namespace UI
     public:
         static bool_t PrewarmChampionPortrait(eChampion champion);
         static void PrewarmChampionPortraits();
-        static bool_t DrawTunerImGui(
+        static bool_t DrawTunerContentsImGui(
             bool_t bProjectionSyncAvailable,
             MinimapProjection& OutAppliedProjection);
+        static bool_t SaveTunerSettings();
         static void RenderRuntime(const MinimapFrameState& State);
         static void ShutdownRuntime();
     };

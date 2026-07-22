@@ -1,0 +1,22 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Objective.Elder.BasicAttack",
+  "emitters": [
+    {
+      "name": "elder_basic_attack_burst",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Character/Annie/particles/annie_hiteffect.png",
+      "lifetime": 0.45,
+      "fade_in": 0.02,
+      "fade_out": 0.24,
+      "width": 2.4,
+      "height": 2.4,
+      "color": [2.4, 0.42, 0.06, 0.90],
+      "attach_offset": [0.0, 1.0, 0.0],
+      "billboard": true
+    }
+  ]
+}

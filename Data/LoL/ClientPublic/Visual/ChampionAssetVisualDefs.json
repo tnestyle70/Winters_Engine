@@ -2,6 +2,122 @@
   "schemaVersion": 1,
   "models": [
     {
+      "key": "champion.model.annie",
+      "champion": "ANNIE",
+      "displayName": "Annie",
+      "animPrefix": "",
+      "idleAnimation": "annie_2012_idle1",
+      "runAnimation": "annie_2012_run",
+      "basicAttackAnimation": "annie_2012_attack1",
+      "basicAttackRange": 6.25,
+      "mesh": "Texture/Character/Annie/annie.fbx",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Annie/annie_base_2012_cm.png",
+      "textureSlots": [
+        "Texture/Character/Annie/annie_base_2012_cm.png",
+        "Texture/Character/Annie/annie_base_2012_cm.png",
+        "Texture/Character/Annie/annie_base_2012_cm.png",
+        "Texture/Character/Annie/annie_base_2012_cm.png",
+        "Texture/Character/Annie/annie_base_2012_cm.png",
+        "Texture/Character/Annie/annie_base_2012_cm.png",
+        "Texture/Character/Annie/annie_base_2012_cm.png",
+        "Texture/Character/Annie/annie_base_2012_cm.png"
+      ],
+      "spawnPosition": [
+        36.0,
+        1.0,
+        0.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.ashe",
+      "champion": "ASHE",
+      "displayName": "Ashe",
+      "animPrefix": "ashe_",
+      "idleAnimation": "idle1",
+      "runAnimation": "run",
+      "basicAttackAnimation": "attack1",
+      "basicAttackRange": 6.0,
+      "mesh": "Texture/Character/Ashe/ashe.fbx",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Ashe/ashe_base_2011_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Ashe/ashe_base_2011_tx_cm.png",
+        "Texture/Character/Ashe/ashe_base_2011_tx_cm.png",
+        "Texture/Character/Ashe/ashe_base_2011_tx_cm.png",
+        "Texture/Character/Ashe/ashe_base_2011_tx_cm.png",
+        "Texture/Character/Ashe/ashe_base_2011_tx_cm.png",
+        "Texture/Character/Ashe/ashe_base_2011_tx_cm.png",
+        "Texture/Character/Ashe/ashe_base_2011_tx_cm.png",
+        "Texture/Character/Ashe/ashe_base_2011_tx_cm.png"
+      ],
+      "spawnPosition": [
+        39.0,
+        1.0,
+        0.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.ezreal",
+      "champion": "EZREAL",
+      "displayName": "Ezreal",
+      "animPrefix": "ezreal_",
+      "idleAnimation": "idle",
+      "runAnimation": "run",
+      "basicAttackAnimation": "attack1",
+      "basicAttackRange": 5.5,
+      "mesh": "Texture/Character/Ezreal/ezreal.fbx",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Ezreal/ezreal_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Ezreal/ezreal_base_tx_cm.png",
+        "Texture/Character/Ezreal/ezreal_base_tx_cm.png",
+        "Texture/Character/Ezreal/ezreal_base_tx_cm.png",
+        "Texture/Character/Ezreal/ezreal_base_tx_cm.png",
+        "Texture/Character/Ezreal/ezreal_base_tx_cm.png",
+        "Texture/Character/Ezreal/ezreal_base_tx_cm.png",
+        "Texture/Character/Ezreal/ezreal_base_tx_cm.png",
+        "Texture/Character/Ezreal/ezreal_base_tx_cm.png"
+      ],
+      "spawnPosition": [
+        27.0,
+        1.0,
+        0.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.fiora",
+      "champion": "FIORA",
+      "displayName": "Fiora",
+      "animPrefix": "fiora_",
+      "idleAnimation": "idle1",
+      "runAnimation": "run",
+      "basicAttackAnimation": "attack1",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Fiora/fiora.fbx",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Fiora/fiora_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Fiora/fiora_base_tx_cm.png",
+        "Texture/Character/Fiora/fiora_base_tx_cm.png",
+        "Texture/Character/Fiora/fiora_base_tx_cm.png",
+        "Texture/Character/Fiora/fiora_base_tx_cm.png",
+        "Texture/Character/Fiora/fiora_base_tx_cm.png",
+        "Texture/Character/Fiora/fiora_base_tx_cm.png",
+        "Texture/Character/Fiora/fiora_base_tx_cm.png",
+        "Texture/Character/Fiora/fiora_base_tx_cm.png"
+      ],
+      "spawnPosition": [
+        30.0,
+        1.0,
+        0.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
       "key": "champion.model.garen",
       "champion": "GAREN",
       "displayName": "Garen",
@@ -21,6 +137,60 @@
         33.0,
         1.0,
         -6.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.irelia",
+      "champion": "IRELIA",
+      "displayName": "Irelia",
+      "animPrefix": "irelia_",
+      "idleAnimation": "idle_01",
+      "runAnimation": "run_base",
+      "basicAttackAnimation": "attack_01",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Irelia/irelia_fixed.wmesh",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Irelia/irelia_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Irelia/irelia_base_blades_tx_cm.png",
+        "Texture/Character/Irelia/irelia_base_tx_cm.png",
+        "Texture/Character/Irelia/irelia_base_tx_cm.png",
+        "Texture/Character/Irelia/irelia_base_blades_tx_cm.png"
+      ],
+      "spawnPosition": [
+        24.0,
+        1.0,
+        -6.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.jax",
+      "champion": "JAX",
+      "displayName": "Jax",
+      "animPrefix": "",
+      "idleAnimation": "idle1_v04",
+      "runAnimation": "jax_run2",
+      "basicAttackAnimation": "attack_1",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Jax/jax.fbx",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Jax/jax_base_body_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Jax/jax_base_body_tx_cm.png",
+        "Texture/Character/Jax/jax_base_body_tx_cm.png",
+        "Texture/Character/Jax/jax_base_body_tx_cm.png",
+        "Texture/Character/Jax/jax_base_fish_tx_cm.png",
+        "Texture/Character/Jax/jax_base_weapon_tx_cm.png",
+        "Texture/Character/Jax/jax_base_body_tx_cm.png",
+        "Texture/Character/Jax/jax_base_body_tx_cm.png",
+        "Texture/Character/Jax/jax_base_body_tx_cm.png"
+      ],
+      "spawnPosition": [
+        33.0,
+        1.0,
+        0.0
       ],
       "spawnScale": 0.01
     },
@@ -49,6 +219,93 @@
       "spawnScale": 0.01
     },
     {
+      "key": "champion.model.kindred",
+      "champion": "KINDRED",
+      "displayName": "Kindred",
+      "animPrefix": "",
+      "idleAnimation": "skinned_mesh_lamb_idle",
+      "runAnimation": "skinned_mesh_lamb_run",
+      "basicAttackAnimation": "skinned_mesh_lamb_attack1",
+      "basicAttackRange": 5.5,
+      "mesh": "Texture/Character/Kindred/kindred.fbx",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Kindred/kindred_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Kindred/kindred_base_tx_cm.png",
+        "Texture/Character/Kindred/kindred_base_tx_cm.png",
+        "Texture/Character/Kindred/kindred_base_tx_cm.png",
+        "Texture/Character/Kindred/kindred_base_tx_cm.png",
+        "Texture/Character/Kindred/kindred_base_tx_cm.png",
+        "Texture/Character/Kindred/kindred_base_tx_cm.png",
+        "Texture/Character/Kindred/kindred_base_tx_cm.png",
+        "Texture/Character/Kindred/kindred_base_tx_cm.png"
+      ],
+      "spawnPosition": [
+        42.0,
+        1.0,
+        0.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.leesin",
+      "champion": "LEESIN",
+      "displayName": "LeeSin",
+      "animPrefix": "",
+      "idleAnimation": "skinned_mesh_idle_passive",
+      "runAnimation": "skinned_mesh_run_base",
+      "basicAttackAnimation": "skinned_mesh_attack1",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/LeeSin/leesin.fbx",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/LeeSin/leesin_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/LeeSin/leesin_base_tx_cm.png",
+        "Texture/Character/LeeSin/leesin_base_tx_cm.png",
+        "Texture/Character/LeeSin/leesin_base_tx_cm.png",
+        "Texture/Character/LeeSin/leesin_base_tx_cm.png",
+        "Texture/Character/LeeSin/leesin_base_tx_cm.png",
+        "Texture/Character/LeeSin/leesin_base_tx_cm.png",
+        "Texture/Character/LeeSin/leesin_base_tx_cm.png",
+        "Texture/Character/LeeSin/leesin_base_tx_cm.png"
+      ],
+      "spawnPosition": [
+        39.0,
+        1.0,
+        0.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.masteryi",
+      "champion": "MASTERYI",
+      "displayName": "MasterYi",
+      "animPrefix": "",
+      "idleAnimation": "skinned_mesh_masteryi_2013_idle1",
+      "runAnimation": "skinned_mesh_masteryi_2013_run",
+      "basicAttackAnimation": "skinned_mesh_masteryi_2013_attack1",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/MasterYi/masteryi.fbx",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/MasterYi/masteryi_2013_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/MasterYi/masteryi_2013_tx_cm.png",
+        "Texture/Character/MasterYi/masteryi_2013_tx_cm.png",
+        "Texture/Character/MasterYi/masteryi_2013_tx_cm.png",
+        "Texture/Character/MasterYi/masteryi_2013_tx_cm.png",
+        "Texture/Character/MasterYi/masteryi_2013_tx_cm.png",
+        "Texture/Character/MasterYi/masteryi_2013_tx_cm.png",
+        "Texture/Character/MasterYi/masteryi_2013_tx_cm.png",
+        "Texture/Character/MasterYi/masteryi_2013_tx_cm.png"
+      ],
+      "spawnPosition": [
+        45.0,
+        1.0,
+        0.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
       "key": "champion.model.riven",
       "champion": "RIVEN",
       "displayName": "Riven",
@@ -66,7 +323,7 @@
         1.0,
         0.0
       ],
-      "spawnScale": 0.015
+      "spawnScale": 0.0165
     },
     {
       "key": "champion.model.sylas",
@@ -144,6 +401,35 @@
         27.0,
         1.0,
         -6.0
+      ],
+      "spawnScale": 0.01
+    },
+    {
+      "key": "champion.model.yone",
+      "champion": "YONE",
+      "displayName": "Yone",
+      "animPrefix": "yone_",
+      "idleAnimation": "idle1",
+      "runAnimation": "run1",
+      "basicAttackAnimation": "attack1",
+      "basicAttackRange": 1.5,
+      "mesh": "Texture/Character/Yone/yone.fbx",
+      "shader": "Shaders/Mesh3D.hlsl",
+      "defaultTexture": "Texture/Character/Yone/yone_base_tx_cm.png",
+      "textureSlots": [
+        "Texture/Character/Yone/yone_base_tx_cm.png",
+        "Texture/Character/Yone/yone_base_swords_tx_cm.png",
+        "Texture/Character/Yone/yone_base_swords_tx_cm.png",
+        "Texture/Character/Yone/yone_base_props_tx_cm.png",
+        "Texture/Character/Yone/yone_base_tx_cm.png",
+        "Texture/Character/Yone/yone_base_tx_cm.png",
+        "Texture/Character/Yone/yone_base_tx_cm.png",
+        "Texture/Character/Yone/yone_base_tx_cm.png"
+      ],
+      "spawnPosition": [
+        45.0,
+        1.0,
+        0.0
       ],
       "spawnScale": 0.01
     },

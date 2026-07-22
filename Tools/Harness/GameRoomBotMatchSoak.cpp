@@ -1,6 +1,10 @@
 #include "Game/GameRoom.h"
 
+#include "Server/Private/Game/GameRoomInternal.h"
+
 #include "Game/ReplayRecorder.h"
+#include "Game/SnapshotBuilder.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
@@ -9,10 +13,14 @@
 #include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
+#include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Core/Checkpoint/WorldKeyframe.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
+#include "Shared/GameSim/Definitions/TeamPingDef.h"
+#include "Shared/Schemas/Generated/cpp/Snapshot_generated.h"
 
 #include "ECS/Components/TransformComponent.h"
+#include "Manager/Navigation/NavGrid.h"
 
 #include <Windows.h>
 #include <Psapi.h>
@@ -51,6 +59,8 @@ namespace
     constexpr u32_t kRespawnGraceTicks = 30u;
     constexpr u32_t kSteadyHandleGrowthLimit = 16u;
     constexpr u32_t kDeadlineMissRateDenominator = 200u;
+    constexpr u64_t kMinionLaneStallLimitTicks = 180u;
+    constexpr f32_t kMinionProgressSlackSq = 0.01f;
 
     struct Options
     {
@@ -117,6 +127,29 @@ namespace
         u32_t respawnManaFailures = 0u;
     };
 
+    struct MinionMotionSample
+    {
+        EntityHandle handle{};
+        Vec3 previousPosition{};
+        Vec3 activeGoal{};
+        f32_t bestWaypointDistanceSq = (std::numeric_limits<f32_t>::max)();
+        u32_t activeGoalIndex = 0u;
+        u64_t lastProgressTick = 0u;
+        bool_t bInitialized = false;
+        bool_t bTrackingLaneMove = false;
+        bool_t bTrackingPathGoal = false;
+    };
+
+    struct MinionMotionTracker
+    {
+        std::unordered_map<EntityID, MinionMotionSample> samples{};
+        std::array<bool_t, 6u> observedLaneSlots{};
+        u64_t maxLaneStallTicks = 0u;
+        u32_t stalledLaneMinionCount = 0u;
+        u32_t opposedYawCount = 0u;
+        EntityID firstOpposedYawEntity = NULL_ENTITY;
+    };
+
     struct PracticeControlProbeEvidence
     {
         bool_t bExecuted = false;
@@ -125,6 +158,35 @@ namespace
         NetEntityId replacementNetId = NULL_NET_ENTITY;
         u64_t toolRevision = 0u;
         u32_t replayCommandCount = 0u;
+    };
+
+    struct TeamPingProbeEvidence
+    {
+        u32_t blueBotCount = 0u;
+        u32_t replayCommandCount = 0u;
+        u64_t checkpointBytes = 0u;
+        bool_t bThreeHumanLanePreset = false;
+        bool_t bAssistProducedNextTickMove = false;
+        bool_t bDangerConsumedEquivalentMove = false;
+        bool_t bExpired = false;
+    };
+
+    struct StructureNavigationProbeEvidence
+    {
+        bool_t bDeadReleased = false;
+        bool_t bPathReleased = false;
+        bool_t bLaneReleased = false;
+        bool_t bChampionPathReached = false;
+        bool_t bMinionPathReached = false;
+        bool_t bDerivedAllocationsStable = false;
+        bool_t bSecondRefreshNoop = false;
+        u64_t refreshTickUs = 0ull;
+        u64_t firstChampionPathQueryUs = 0ull;
+        u64_t firstMinionPathQueryUs = 0ull;
+        u64_t noopTickUs = 0ull;
+        u64_t derivedRebuildCalls = 0ull;
+        u64_t refreshWorkCalls = 0ull;
+        u64_t secondRefreshWorkCalls = 0ull;
     };
 
     bool_t IsFinite(f32_t value)
@@ -431,13 +493,62 @@ public:
         return true;
 #else
         constexpr u32_t kSessionId = 7001u;
-        constexpr u32_t kTakeSequence = 1u;
-        constexpr u32_t kReplaceSequence = 2u;
+        constexpr u32_t kReloadSequence = 1u;
+        constexpr u32_t kTakeSequence = 2u;
+        constexpr u32_t kReplaceSequence = 3u;
         constexpr u32_t kPracticeRevision = 17u;
         constexpr eChampion kReplacementChampion = eChampion::EZREAL;
 
         if (!PreparePracticeControlMatch(room, seed, kSessionId, outError))
             return false;
+
+        std::size_t baseItemCount = 0u;
+        const ItemDef* pBaseItems =
+            ServerData::GetActiveLoLGameplayDefinitionPack().FindItems(
+                baseItemCount);
+        const bool_t bHasItem3153 = pBaseItems && std::any_of(
+            pBaseItems,
+            pBaseItems + baseItemCount,
+            [](const ItemDef& item)
+            {
+                return item.itemId == 3153u;
+            });
+        if (!bHasItem3153)
+        {
+            outError = "runtime reload probe base pack is missing item 3153";
+            return false;
+        }
+
+        const u32_t runtimeRevisionBeforeReload =
+            ServerData::GetRuntimeGameplayDefinitionRevision();
+        GameCommandWire reload{};
+        reload.kind = eCommandKind::PracticeControl;
+        reload.sequenceNum = kReloadSequence;
+        reload.practiceOperation =
+            ePracticeOperation::ReloadGameplayDefinitions;
+        if (!ExecuteAcceptedPracticeControlCommand(
+            room,
+            kSessionId,
+            reload,
+            outError))
+        {
+            return false;
+        }
+        if (ServerData::GetRuntimeGameplayDefinitionRevision() !=
+            runtimeRevisionBeforeReload + 1u)
+        {
+            outError = "runtime definition reload did not publish exactly one revision";
+            return false;
+        }
+        const GameplayDefinitionPack& reloadedPack =
+            ServerData::GetActiveLoLGameplayDefinitionPack();
+        if (!reloadedPack.economy ||
+            std::fabs(reloadedPack.economy->turretGold - 1500.f) > 0.001f ||
+            std::fabs(reloadedPack.economy->turretTeamGold - 1000.f) > 0.001f)
+        {
+            outError = "runtime reload did not overlay turret team gold";
+            return false;
+        }
 
         LobbySlotState* pSlots = room.m_pLobbyAuthority->GetSlots();
         const LobbySlotState sourceSlotBeforeTake = pSlots[0];
@@ -665,11 +776,11 @@ public:
             outError = "Fresh replace strict roster invariant: " + outError;
             return false;
         }
-        if (room.m_toolRevision != 2u ||
+        if (room.m_toolRevision != 3u ||
             !room.m_pReplayRecorder ||
-            room.m_pReplayRecorder->GetCommandCount() != 2u)
+            room.m_pReplayRecorder->GetCommandCount() != 3u)
         {
-            outError = "Take/Fresh accepted replay/tool outcomes are not exact";
+            outError = "Reload/Take/Fresh accepted replay/tool outcomes are not exact";
             return false;
         }
 
@@ -689,6 +800,284 @@ public:
                 ownershipProbe),
             room.m_PracticeSpawnedEntities.end());
         room.m_world.DestroyEntity(ownershipProbe);
+        return true;
+#endif
+    }
+
+    static bool_t RunTeamPingCommandProbe(
+        CGameRoom& room,
+        u64_t seed,
+        TeamPingProbeEvidence& outEvidence,
+        std::string& outError)
+    {
+        outEvidence = {};
+        outError.clear();
+
+#if !defined(_DEBUG)
+        (void)room;
+        (void)seed;
+        return true;
+#else
+        constexpr u32_t kSessionId = 7002u;
+        if (!room.m_pLobbyAuthority)
+        {
+            outError = "team ping probe lobby authority is missing";
+            return false;
+        }
+
+        CLobbyAuthority& laneAuthority = *room.m_pLobbyAuthority;
+        laneAuthority.InitializeSlots();
+        laneAuthority.m_hostSessionId = kSessionId;
+        laneAuthority.m_phase = eRoomPhase::ChampionSelect;
+        LobbySlotState* pLaneSlots = laneAuthority.GetSlots();
+        u8_t redLaneBefore[5]{};
+        for (u32_t i = 0u; i < kGameRosterSlotCount; ++i)
+        {
+            LobbySlotState& slot = pLaneSlots[i];
+            slot.bHuman = i < 3u;
+            slot.bBot = i >= 3u;
+            slot.sessionId = i < 3u ? kSessionId + i : 0u;
+            slot.champion = eChampion::ASHE;
+            if (i >= 5u)
+                redLaneBefore[i - 5u] = slot.botLane;
+        }
+        if (!laneAuthority.TryStartGame(kSessionId) ||
+            pLaneSlots[3].botLane !=
+                static_cast<u8_t>(Winters::Map::eLane::Bot) ||
+            pLaneSlots[4].botLane !=
+                static_cast<u8_t>(Winters::Map::eLane::Top))
+        {
+            outError = "3-human + 2-bot lane preset did not produce Bot/Top";
+            return false;
+        }
+        for (u32_t i = 5u; i < kGameRosterSlotCount; ++i)
+        {
+            if (pLaneSlots[i].botLane != redLaneBefore[i - 5u])
+            {
+                outError = "3-human lane preset changed the enemy five-bot lanes";
+                return false;
+            }
+        }
+        outEvidence.bThreeHumanLanePreset = true;
+
+        if (!PreparePracticeControlMatch(room, seed, kSessionId, outError))
+            return false;
+
+        LobbySlotState* pSlots = room.m_pLobbyAuthority->GetSlots();
+        const EntityID issuer = room.m_entityMap.FromNet(pSlots[0].netId);
+        std::vector<EntityID> blueBots;
+        std::vector<EntityID> redBots;
+        for (u32_t i = 1u; i < kGameRosterSlotCount; ++i)
+        {
+            const EntityID entity = room.m_entityMap.FromNet(pSlots[i].netId);
+            if (entity == NULL_ENTITY || !room.m_world.IsAlive(entity))
+            {
+                outError = "team ping probe roster entity is invalid";
+                return false;
+            }
+            (pSlots[i].team == 0u ? blueBots : redBots).push_back(entity);
+        }
+        if (issuer == NULL_ENTITY || blueBots.size() != 4u || redBots.size() != 5u)
+        {
+            outError = "team ping probe expected one blue human, four blue bots, five red bots";
+            return false;
+        }
+
+        const Vec3 issuerPos =
+            room.m_world.GetComponent<TransformComponent>(issuer).GetPosition();
+        for (u32_t index = 0u; index < blueBots.size(); ++index)
+        {
+            const EntityID bot = blueBots[index];
+            room.m_world.GetComponent<TransformComponent>(bot).SetPosition(
+                issuerPos + Vec3{ static_cast<f32_t>(index + 1u), 0.f, 0.f });
+            room.m_world.GetComponent<GoldComponent>(bot).amount = 0u;
+        }
+        for (u32_t index = 0u; index < redBots.size(); ++index)
+        {
+            room.m_world.GetComponent<TransformComponent>(redBots[index]).SetPosition(
+                Vec3{ 300.f + static_cast<f32_t>(index), 0.f, 300.f });
+        }
+
+        const auto SubmitPing = [&](const GameCommandWire& wire) -> bool_t
+        {
+            const u64_t tickBefore = room.m_tickIndex;
+            const u32_t replayBefore = room.m_pReplayRecorder->GetCommandCount();
+            room.EnqueueCommand(kSessionId, wire, room.m_tickIndex, 0u, 0u);
+            room.Tick();
+            const auto ack = room.m_lastSimCommandSeqBySession.find(kSessionId);
+            if (room.m_tickIndex != tickBefore + 1u ||
+                ack == room.m_lastSimCommandSeqBySession.end() ||
+                ack->second != wire.sequenceNum ||
+                room.m_pReplayRecorder->GetCommandCount() != replayBefore + 1u ||
+                !room.m_pendingExecCommands.empty() ||
+                !room.m_pendingReplayCommands.empty())
+            {
+                outError = "team ping was not ACKed/journaled exactly once";
+                return false;
+            }
+            return true;
+        };
+
+        GameCommandWire assist{};
+        assist.kind = eCommandKind::TeamPing;
+        assist.sequenceNum = 1u;
+        assist.slot = static_cast<u8_t>(eTeamPingKind::Assist);
+        assist.groundPos = issuerPos + Vec3{ 10.f, 0.f, 0.f };
+        if (!SubmitPing(assist))
+            return false;
+
+        for (EntityID bot : blueBots)
+        {
+            const ChampionAIComponent& ai =
+                room.m_world.GetComponent<ChampionAIComponent>(bot);
+            if (!ai.bTeamPingObjectiveActive ||
+                ai.teamPingKind != eTeamPingKind::Assist ||
+                ai.teamPingExpireTick <= room.m_tickIndex)
+            {
+                outError = "Assist did not reach every same-team bot";
+                return false;
+            }
+        }
+        for (EntityID bot : redBots)
+        {
+            if (room.m_world.GetComponent<ChampionAIComponent>(bot)
+                    .bTeamPingObjectiveActive)
+            {
+                outError = "Assist leaked to enemy bot";
+                return false;
+            }
+        }
+
+        std::vector<u8_t> checkpoint;
+        if (!SimCheckpoint::SaveWorldKeyframe(
+                room.m_world,
+                room.m_rng,
+                room.m_entityMap,
+                room.m_tickIndex,
+                checkpoint))
+        {
+            outError = "team ping checkpoint save failed";
+            return false;
+        }
+        CWorld restoredWorld;
+        DeterministicRng restoredRng(1ull);
+        EntityIdMap restoredEntityMap;
+        u64_t restoredTick = 0u;
+        if (!SimCheckpoint::RestoreWorldKeyframe(
+                restoredWorld,
+                restoredRng,
+                restoredEntityMap,
+                restoredTick,
+                checkpoint) ||
+            restoredTick != room.m_tickIndex ||
+            !restoredWorld.GetComponent<ChampionAIComponent>(blueBots.front())
+                .bTeamPingObjectiveActive ||
+            restoredWorld.GetComponent<ChampionAIComponent>(blueBots.front())
+                .teamPingKind != eTeamPingKind::Assist)
+        {
+            outError = "team ping checkpoint restore lost Assist state";
+            return false;
+        }
+
+        const u32_t assistSequenceBefore =
+            room.m_world.GetComponent<ChampionAIComponent>(blueBots.front())
+                .nextCommandSequence;
+        room.Tick();
+        const ChampionAIComponent& assistAI =
+            room.m_world.GetComponent<ChampionAIComponent>(blueBots.front());
+        outEvidence.bAssistProducedNextTickMove =
+            assistAI.nextCommandSequence > assistSequenceBefore &&
+            assistAI.debugLastCommandKind == static_cast<u8_t>(eCommandKind::Move);
+        if (!outEvidence.bAssistProducedNextTickMove)
+        {
+            outError = "Assist did not produce a next-tick bot Move command";
+            return false;
+        }
+
+        const EntityID dangerBot = blueBots.front();
+        const Vec3 dangerAnchor =
+            room.m_world.GetComponent<TransformComponent>(dangerBot).GetPosition();
+        room.m_world.GetComponent<TransformComponent>(blueBots.back()).SetPosition(
+            dangerAnchor + Vec3{ kTeamPingDangerRadius + 5.f, 0.f, 0.f });
+        GameCommandWire danger{};
+        danger.kind = eCommandKind::TeamPing;
+        danger.sequenceNum = 2u;
+        danger.slot = static_cast<u8_t>(eTeamPingKind::Danger);
+        danger.groundPos = dangerAnchor;
+        if (!SubmitPing(danger))
+            return false;
+
+        ChampionAIComponent& dangerState =
+            room.m_world.GetComponent<ChampionAIComponent>(dangerBot);
+        const Vec3 safeAnchor = dangerState.safeAnchor;
+        const u64_t dangerExpireTick = dangerState.teamPingExpireTick;
+        if (dangerState.teamPingKind != eTeamPingKind::Danger ||
+            dangerExpireTick <= room.m_tickIndex)
+        {
+            outError = "Danger did not overwrite Assist with a fresh TTL";
+            return false;
+        }
+        const ChampionAIComponent& ineligibleDangerAI =
+            room.m_world.GetComponent<ChampionAIComponent>(blueBots.back());
+        if (ineligibleDangerAI.bTeamPingObjectiveActive ||
+            ineligibleDangerAI.teamPingKind != eTeamPingKind::None)
+        {
+            outError = "Danger ping-time radius eligibility was not fixed";
+            return false;
+        }
+
+        MoveTargetComponent& equivalentMove =
+            room.m_world.GetComponent<MoveTargetComponent>(dangerBot);
+        equivalentMove.target = safeAnchor;
+        equivalentMove.bHasTarget = true;
+        dangerState.decisionTimer = 0.f;
+        room.Tick();
+        const MoveTargetComponent& dangerMove =
+            room.m_world.GetComponent<MoveTargetComponent>(dangerBot);
+        outEvidence.bDangerConsumedEquivalentMove =
+            dangerMove.bHasTarget &&
+            WintersMath::DistanceSqXZ(dangerMove.target, safeAnchor) <= 0.25f;
+        if (!outEvidence.bDangerConsumedEquivalentMove)
+        {
+            outError = "Danger equivalent Move was overwritten by normal macro";
+            return false;
+        }
+
+        room.m_world.GetComponent<TransformComponent>(dangerBot).SetPosition(
+            dangerAnchor + Vec3{ kTeamPingDangerRadius + 5.f, 0.f, 0.f });
+        room.m_world.GetComponent<ChampionAIComponent>(dangerBot).decisionTimer = 0.f;
+        room.Tick();
+        const ChampionAIComponent& outsideRadiusAI =
+            room.m_world.GetComponent<ChampionAIComponent>(dangerBot);
+        const MoveTargetComponent& outsideRadiusMove =
+            room.m_world.GetComponent<MoveTargetComponent>(dangerBot);
+        if (!outsideRadiusAI.bTeamPingObjectiveActive ||
+            outsideRadiusAI.teamPingKind != eTeamPingKind::Danger ||
+            !outsideRadiusMove.bHasTarget ||
+            WintersMath::DistanceSqXZ(
+                outsideRadiusMove.target, safeAnchor) > 0.25f)
+        {
+            outError = "eligible Danger bot stopped retreating after leaving radius";
+            return false;
+        }
+
+        while (room.m_tickIndex <= dangerExpireTick)
+            room.Tick();
+        const ChampionAIComponent& expiredAI =
+            room.m_world.GetComponent<ChampionAIComponent>(dangerBot);
+        outEvidence.bExpired =
+            !expiredAI.bTeamPingObjectiveActive &&
+            expiredAI.teamPingKind == eTeamPingKind::None;
+        if (!outEvidence.bExpired)
+        {
+            outError = "Danger TTL did not expire back to normal macro";
+            return false;
+        }
+
+        outEvidence.blueBotCount = static_cast<u32_t>(blueBots.size());
+        outEvidence.replayCommandCount =
+            room.m_pReplayRecorder->GetCommandCount();
+        outEvidence.checkpointBytes = static_cast<u64_t>(checkpoint.size());
         return true;
 #endif
     }
@@ -769,6 +1158,586 @@ public:
             return false;
         }
         return true;
+    }
+
+    static bool_t RunStructureNavigationRefreshProbe(
+        CGameRoom& room,
+        StructureNavigationProbeEvidence& outEvidence,
+        std::string& outError)
+    {
+        outEvidence = {};
+        outError.clear();
+        if (!room.m_pTerrainNavGrid || !room.m_pNavGrid)
+        {
+            outError = "server terrain/nav grid is missing";
+            return false;
+        }
+
+        EntityID structureEntity = NULL_ENTITY;
+        Engine::CNavGrid::Cell probeCell{};
+        Engine::CNavGrid::Cell probeStartCell{};
+        const MinionBehaviorDef& minionBehavior =
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack().minionBehavior;
+        room.m_world.ForEach<StructureComponent, TransformComponent, HealthComponent>(
+            [&](EntityID entity,
+                StructureComponent&,
+                TransformComponent& transform,
+                HealthComponent& health)
+            {
+                if (structureEntity != NULL_ENTITY ||
+                    health.bIsDead ||
+                    health.fCurrent <= 0.f)
+                {
+                    return;
+                }
+
+                const Engine::CNavGrid::Cell center =
+                    room.m_pTerrainNavGrid->WorldToCell(transform.GetPosition());
+                for (int32_t dy = -12;
+                    dy <= 12 && structureEntity == NULL_ENTITY;
+                    ++dy)
+                {
+                    for (int32_t dx = -12; dx <= 12; ++dx)
+                    {
+                        const Engine::CNavGrid::Cell candidate{
+                            center.x + dx,
+                            center.y + dy
+                        };
+                        const Vec3 candidateWorld =
+                            room.m_pTerrainNavGrid->CellToWorld(
+                                candidate.x,
+                                candidate.y);
+                        if (!room.m_pTerrainNavGrid->IsAreaWalkable(
+                                candidateWorld,
+                                minionBehavior.pathAgentRadius) ||
+                            !room.m_pTerrainNavGrid->IsAreaWalkable(
+                                candidateWorld,
+                                minionBehavior.laneClearanceRadius) ||
+                            room.m_pPathNavGrid->IsWalkable(
+                                candidate.x, candidate.y) ||
+                            room.m_pMinionLaneNavGrid->IsWalkable(
+                                candidate.x, candidate.y))
+                        {
+                            continue;
+                        }
+
+                        bool_t bFoundStart = false;
+                        for (int32_t radius = 1;
+                            radius <= 16 && !bFoundStart;
+                            ++radius)
+                        {
+                            for (int32_t sy = -radius;
+                                sy <= radius && !bFoundStart;
+                                ++sy)
+                            {
+                                for (int32_t sx = -radius;
+                                    sx <= radius;
+                                    ++sx)
+                                {
+                                    if (std::abs(sx) != radius &&
+                                        std::abs(sy) != radius)
+                                    {
+                                        continue;
+                                    }
+                                    const Engine::CNavGrid::Cell start{
+                                        candidate.x + sx,
+                                        candidate.y + sy };
+                                    if (!room.m_pPathNavGrid->IsWalkable(
+                                            start.x, start.y) ||
+                                        !room.m_pMinionLaneNavGrid->IsWalkable(
+                                            start.x, start.y))
+                                    {
+                                        continue;
+                                    }
+                                    probeStartCell = start;
+                                    bFoundStart = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (bFoundStart)
+                        {
+                            structureEntity = entity;
+                            probeCell = candidate;
+                            break;
+                        }
+                    }
+                }
+            });
+        if (structureEntity == NULL_ENTITY)
+        {
+            outError = "no live structure-carved terrain cell was found";
+            return false;
+        }
+
+        const auto* pPathGridBefore = room.m_pPathNavGrid.get();
+        const auto* pLaneGridBefore = room.m_pMinionLaneNavGrid.get();
+        const u64_t buildCountBefore = room.m_serverPathNavGridBuildCount;
+        const u64_t refreshCountBefore =
+            room.m_serverStructureNavigationRefreshCount;
+
+        EntityID sourceChampion = NULL_ENTITY;
+        const eTeam structureTeam =
+            room.m_world.GetComponent<StructureComponent>(structureEntity).team;
+        room.m_world.ForEach<ChampionComponent>(
+            [&](EntityID entity, ChampionComponent& champion)
+            {
+                if (sourceChampion == NULL_ENTITY && champion.team != structureTeam)
+                    sourceChampion = entity;
+            });
+        if (sourceChampion == NULL_ENTITY)
+        {
+            outError = "no opposing champion for structure damage probe";
+            return false;
+        }
+
+        const f32_t structureMaximum =
+            room.m_world.GetComponent<HealthComponent>(structureEntity).fMaximum;
+        DamageRequest lethal{};
+        lethal.source = sourceChampion;
+        lethal.target = structureEntity;
+        lethal.sourceTeam = room.m_world.GetComponent<ChampionComponent>(
+            sourceChampion).team;
+        lethal.type = eDamageType::True;
+        lethal.flatAmount = structureMaximum + 1000.f;
+        lethal.eSourceKind = eDamageSourceKind::BasicAttack;
+        EnqueueDamageRequest(room.m_world, lethal);
+
+        room.Tick();
+        const HealthComponent& killedHealth =
+            room.m_world.GetComponent<HealthComponent>(structureEntity);
+        if (!killedHealth.bIsDead || killedHealth.fCurrent > 0.f)
+        {
+            outError = "queued lethal structure damage was not applied";
+            return false;
+        }
+
+        const auto refreshStart = std::chrono::steady_clock::now();
+        room.Tick();
+        const auto refreshEnd = std::chrono::steady_clock::now();
+        outEvidence.refreshTickUs = static_cast<u64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                refreshEnd - refreshStart).count());
+        outEvidence.bDeadReleased =
+            room.m_pNavGrid->IsWalkable(probeCell.x, probeCell.y);
+        outEvidence.bPathReleased =
+            room.m_pPathNavGrid->IsWalkable(probeCell.x, probeCell.y);
+        outEvidence.bLaneReleased =
+            room.m_pMinionLaneNavGrid->IsWalkable(
+                probeCell.x, probeCell.y);
+        outEvidence.bDerivedAllocationsStable =
+            room.m_pPathNavGrid.get() == pPathGridBefore &&
+            room.m_pMinionLaneNavGrid.get() == pLaneGridBefore;
+        outEvidence.derivedRebuildCalls =
+            room.m_serverPathNavGridBuildCount - buildCountBefore;
+        outEvidence.refreshWorkCalls =
+            room.m_serverStructureNavigationRefreshCount - refreshCountBefore;
+
+        Vec3 pathStart = room.m_pPathNavGrid->CellToWorld(
+            probeStartCell.x, probeStartCell.y);
+        Vec3 pathGoal = room.m_pPathNavGrid->CellToWorld(
+            probeCell.x, probeCell.y);
+        Vec3 championWaypoints[64]{};
+        u16_t championWaypointCount = 0u;
+        Vec3 championResolved{};
+        const auto championPathStart = std::chrono::steady_clock::now();
+        const bool_t bChampionPathBuilt = room.TryBuildMovePath(
+            pathStart,
+            pathGoal,
+            championWaypoints,
+            static_cast<u16_t>(std::size(championWaypoints)),
+            championWaypointCount,
+            championResolved);
+        const auto championPathEnd = std::chrono::steady_clock::now();
+        outEvidence.firstChampionPathQueryUs = static_cast<u64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                championPathEnd - championPathStart).count());
+        outEvidence.bChampionPathReached =
+            bChampionPathBuilt &&
+            championWaypointCount > 0u &&
+            room.m_pPathNavGrid->WorldToCell(championResolved).x ==
+                probeCell.x &&
+            room.m_pPathNavGrid->WorldToCell(championResolved).y ==
+                probeCell.y;
+
+        Vec3 minionWaypoints[MinionStateComponent::PathMaxWaypoints]{};
+        u16_t minionWaypointCount = 0u;
+        Vec3 minionResolved{};
+        const auto minionPathStart = std::chrono::steady_clock::now();
+        const bool_t bMinionPathBuilt = room.TryBuildServerMinionMovePath(
+            pathStart,
+            pathGoal,
+            minionWaypoints,
+            MinionStateComponent::PathMaxWaypoints,
+            minionWaypointCount,
+            minionResolved);
+        const auto minionPathEnd = std::chrono::steady_clock::now();
+        outEvidence.firstMinionPathQueryUs = static_cast<u64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                minionPathEnd - minionPathStart).count());
+        outEvidence.bMinionPathReached =
+            bMinionPathBuilt &&
+            minionWaypointCount > 0u &&
+            room.m_pMinionLaneNavGrid->WorldToCell(minionResolved).x ==
+                probeCell.x &&
+            room.m_pMinionLaneNavGrid->WorldToCell(minionResolved).y ==
+                probeCell.y;
+
+        const u64_t settledHash = room.m_serverStructureNavigationStateHash;
+        const u64_t refreshCountAfter =
+            room.m_serverStructureNavigationRefreshCount;
+        const auto noopStart = std::chrono::steady_clock::now();
+        room.Tick();
+        const auto noopEnd = std::chrono::steady_clock::now();
+        outEvidence.noopTickUs = static_cast<u64_t>(
+            std::chrono::duration_cast<std::chrono::microseconds>(
+                noopEnd - noopStart).count());
+        outEvidence.bSecondRefreshNoop =
+            room.m_serverStructureNavigationStateHash == settledHash &&
+            room.m_pPathNavGrid.get() == pPathGridBefore &&
+            room.m_pMinionLaneNavGrid.get() == pLaneGridBefore;
+        outEvidence.secondRefreshWorkCalls =
+            room.m_serverStructureNavigationRefreshCount - refreshCountAfter;
+
+        if (!outEvidence.bDeadReleased ||
+            !outEvidence.bPathReleased ||
+            !outEvidence.bLaneReleased ||
+            !outEvidence.bChampionPathReached ||
+            !outEvidence.bMinionPathReached ||
+            !outEvidence.bDerivedAllocationsStable ||
+            !outEvidence.bSecondRefreshNoop ||
+            outEvidence.derivedRebuildCalls != 0ull ||
+            outEvidence.refreshWorkCalls != 1ull ||
+            outEvidence.secondRefreshWorkCalls != 0ull ||
+            outEvidence.refreshTickUs > 33333ull ||
+            outEvidence.firstChampionPathQueryUs > 33333ull ||
+            outEvidence.firstMinionPathQueryUs > 33333ull)
+        {
+            outError = "structure death nav refresh exceeded its runtime contract";
+            return false;
+        }
+        return true;
+    }
+
+    static bool_t RunMinionCombatExitWaypointProbe(
+        CGameRoom& room,
+        std::string& outError)
+    {
+        constexpr eTeam team = eTeam::Blue;
+        constexpr u8_t lane = static_cast<u8_t>(Winters::Map::eLane::Mid);
+        const u8_t waypointLane = ResolveServerWaypointLane(team, lane);
+        const u32_t waypointCount = room.GetServerMinionWaypointCount(
+            team, waypointLane);
+        if (waypointCount < 3u)
+        {
+            outError = "minion combat-exit probe needs three waypoints";
+            return false;
+        }
+
+        constexpr u32_t currentIndex = 1u;
+        const Vec3 previous = room.GetServerMinionWaypoint(
+            team, waypointLane, currentIndex - 1u);
+        const Vec3 current = room.GetServerMinionWaypoint(
+            team, waypointLane, currentIndex);
+        const Vec3 next = room.GetServerMinionWaypoint(
+            team, waypointLane, currentIndex + 1u);
+        const Vec3 forward = WintersMath::DirectionXZ(previous, current, Vec3{});
+        const Vec3 spawnPos{
+            current.x + forward.x * 1.1f,
+            current.y,
+            current.z + forward.z * 1.1f };
+        const EntityID minion = room.SpawnServerMinion(team, 0u, lane, spawnPos);
+        if (minion == NULL_ENTITY)
+        {
+            outError = "minion combat-exit probe spawn failed";
+            return false;
+        }
+
+        const EntityID deadTarget = room.m_world.CreateEntity();
+        const Vec3 staleTargetPos{
+            spawnPos.x - forward.x * 8.f,
+            spawnPos.y,
+            spawnPos.z - forward.z * 8.f };
+        TransformComponent deadTransform{};
+        deadTransform.SetPosition(staleTargetPos);
+        room.m_world.AddComponent<TransformComponent>(deadTarget, deadTransform);
+        HealthComponent deadHealth{};
+        deadHealth.fCurrent = 0.f;
+        deadHealth.fMaximum = 100.f;
+        deadHealth.bIsDead = true;
+        room.m_world.AddComponent<HealthComponent>(deadTarget, deadHealth);
+
+        auto& state = room.m_world.GetComponent<MinionStateComponent>(minion);
+        state.current = MinionStateComponent::Chase;
+        state.currentWaypoint = currentIndex;
+        state.attackTargetId = deadTarget;
+        state.targetScanCooldown = 1.f;
+        state.PathTarget = staleTargetPos;
+        state.PathResolvedTarget = staleTargetPos;
+        state.PathWaypoints[0] = staleTargetPos;
+        state.PathCount = 1u;
+        state.PathIndex = 0u;
+        state.PathRebuildCooldown = 0.2f;
+
+        const Vec3 before = room.m_world.GetComponent<TransformComponent>(minion)
+            .GetPosition();
+        room.Tick();
+        const Vec3 after = room.m_world.GetComponent<TransformComponent>(minion)
+            .GetPosition();
+        const auto& afterState =
+            room.m_world.GetComponent<MinionStateComponent>(minion);
+        const Vec3 displacement{
+            after.x - before.x, 0.f, after.z - before.z };
+        const Vec3 laneForward = WintersMath::DirectionXZ(current, next, Vec3{});
+        const bool_t stalePathCleared =
+            afterState.PathCount == 0u ||
+            WintersMath::DistanceSqXZ(
+                afterState.PathTarget, staleTargetPos) > 0.01f;
+        const bool_t monotonic =
+            afterState.currentWaypoint == currentIndex + 1u;
+        const bool_t backward =
+            displacement.x * laneForward.x +
+            displacement.z * laneForward.z < -0.05f;
+        if (!stalePathCleared || !monotonic || backward)
+        {
+            outError = "minion combat exit reused stale path or waypoint";
+            return false;
+        }
+        return true;
+    }
+
+    static bool_t RunAIDebugSnapshotEvidenceProbe(
+        CGameRoom& room,
+        std::string& outError,
+        std::size_t& outBaselineBytes,
+        std::size_t& outEvidenceBytes)
+    {
+        outError.clear();
+        outBaselineBytes = 0u;
+        outEvidenceBytes = 0u;
+
+#if !defined(_DEBUG)
+        (void)room;
+        return true;
+#else
+        EntityID bot = NULL_ENTITY;
+        room.m_world.ForEach<ChampionAIComponent>(
+            [&](EntityID entity, ChampionAIComponent&)
+            {
+                if (bot == NULL_ENTITY &&
+                    room.m_world.HasComponent<TransformComponent>(entity) &&
+                    room.m_world.HasComponent<NetEntityIdComponent>(entity))
+                {
+                    bot = entity;
+                }
+            });
+        if (bot == NULL_ENTITY)
+        {
+            outError = "AI snapshot probe found no replicated bot";
+            return false;
+        }
+
+        ChampionAIComponent& ai =
+            room.m_world.GetComponent<ChampionAIComponent>(bot);
+        const ChampionAIComponent savedAI = ai;
+        const bool_t bHadResearch =
+            room.m_world.HasComponent<ChampionAIResearchDebugComponent>(bot);
+        const ChampionAIResearchDebugComponent savedResearch = bHadResearch
+            ? room.m_world.GetComponent<ChampionAIResearchDebugComponent>(bot)
+            : ChampionAIResearchDebugComponent{};
+        if (!bHadResearch)
+        {
+            room.m_world.AddComponent<ChampionAIResearchDebugComponent>(
+                bot,
+                ChampionAIResearchDebugComponent{});
+        }
+        ChampionAIResearchDebugComponent& research =
+            room.m_world.GetComponent<ChampionAIResearchDebugComponent>(bot);
+        const auto Restore = [&]()
+        {
+            ai = savedAI;
+            if (bHadResearch)
+            {
+                room.m_world.GetComponent<ChampionAIResearchDebugComponent>(
+                    bot) = savedResearch;
+            }
+            else if (room.m_world.HasComponent<ChampionAIResearchDebugComponent>(bot))
+            {
+                room.m_world.RemoveComponent<ChampionAIResearchDebugComponent>(bot);
+            }
+        };
+        const auto Fail = [&](const char* message)
+        {
+            outError = message;
+            Restore();
+            return false;
+        };
+
+        constexpr u64_t kEvidenceTick = 77u;
+        const NetEntityId botNetId = room.m_entityMap.ToNet(bot);
+        std::array<SkillCommandFeedback, 5u> feedback{};
+        auto snapshotBuilder = CSnapshotBuilder::Create();
+        const auto BuildAt = [&](u64_t tick)
+        {
+            return snapshotBuilder->Build(
+                room.m_world,
+                room.m_entityMap,
+                tick,
+                tick * 33u,
+                room.m_rng.GetState(),
+                0u,
+                feedback,
+                botNetId,
+                1u,
+                1u,
+                1u,
+                false,
+                1.f);
+        };
+        const auto VerifyAndGet = [](
+            const flatbuffers::DetachedBuffer& buffer,
+            const Shared::Schema::Snapshot*& outSnapshot)
+        {
+            flatbuffers::Verifier verifier(buffer.data(), buffer.size());
+            if (!Shared::Schema::VerifySnapshotBuffer(verifier))
+                return false;
+            outSnapshot = Shared::Schema::GetSnapshot(buffer.data());
+            return outSnapshot != nullptr;
+        };
+        const auto FindBotSnapshot = [&](const Shared::Schema::Snapshot& snapshot)
+            -> const Shared::Schema::EntitySnapshot*
+        {
+            const auto* entities = snapshot.entities();
+            if (!entities)
+                return nullptr;
+            for (flatbuffers::uoffset_t index = 0u;
+                index < entities->size();
+                ++index)
+            {
+                const Shared::Schema::EntitySnapshot* entity =
+                    entities->Get(index);
+                if (entity && entity->netId() == botNetId)
+                    return entity;
+            }
+            return nullptr;
+        };
+
+        research.decisionDraft = ChampionAIResearch::MakeDecisionTraceV1();
+        ai.debugDecisionTraceCount = 0u;
+        ai.debugDecisionTraceHead = 0u;
+        flatbuffers::DetachedBuffer baseline = BuildAt(kEvidenceTick);
+        const Shared::Schema::Snapshot* baselineSnapshot = nullptr;
+        if (!VerifyAndGet(baseline, baselineSnapshot))
+            return Fail("AI snapshot baseline FlatBuffer verification failed");
+        const Shared::Schema::EntitySnapshot* baselineBot =
+            FindBotSnapshot(*baselineSnapshot);
+        if (!baselineBot ||
+            baselineBot->aiDebugCandidateTick() != 0u ||
+            (baselineBot->aiDebugCandidateKinds() &&
+                baselineBot->aiDebugCandidateKinds()->size() != 0u))
+        {
+            return Fail("AI snapshot baseline unexpectedly carried evidence");
+        }
+        outBaselineBytes = baseline.size();
+
+        AiDecisionTraceV1 draft = ChampionAIResearch::MakeDecisionTraceV1();
+        draft.tick = kEvidenceTick;
+        draft.candidateCount = kAiDecisionCandidateCapacityV1;
+        for (u8_t index = 0u;
+            index < kAiDecisionCandidateCapacityV1;
+            ++index)
+        {
+            AiCandidateEvidenceV1& candidate = draft.candidates[index];
+            candidate.candidateKind = static_cast<u8_t>(index + 1u);
+            candidate.flags = kAiCandidateLegalFlagV1;
+            candidate.targetNetEntityId = botNetId;
+            candidate.score = 0.2f * static_cast<f32_t>(index + 1u);
+            candidate.contributionCount = 1u;
+            candidate.contributions[0] =
+                ChampionAIResearch::MakeFeatureContributionV1();
+            candidate.contributions[0].featureId =
+                static_cast<u16_t>(AiFeatureIdV1::UtilityScore);
+            candidate.contributions[0].rawValue = candidate.score;
+            candidate.contributions[0].weight = 1.f;
+            candidate.contributions[0].contribution = candidate.score;
+        }
+        research.decisionDraft = draft;
+        ChampionAIDecisionTraceEntry selected{};
+        selected.tick = kEvidenceTick;
+        selected.intent = eChampionAIIntent::FarmMinion;
+        ai.debugDecisionTrace[0] = selected;
+        ai.debugDecisionTraceHead = 1u;
+        ai.debugDecisionTraceCount = 1u;
+
+        flatbuffers::DetachedBuffer evidence = BuildAt(kEvidenceTick);
+        const Shared::Schema::Snapshot* evidenceSnapshot = nullptr;
+        if (!VerifyAndGet(evidence, evidenceSnapshot))
+            return Fail("AI snapshot evidence FlatBuffer verification failed");
+        const Shared::Schema::EntitySnapshot* evidenceBot =
+            FindBotSnapshot(*evidenceSnapshot);
+        if (!evidenceBot ||
+            evidenceBot->aiDebugCandidateTick() != kEvidenceTick ||
+            evidenceBot->aiDebugSelectionTick() != kEvidenceTick ||
+            !evidenceBot->aiDebugCandidateKinds() ||
+            !evidenceBot->aiDebugCandidateFlags() ||
+            !evidenceBot->aiDebugCandidateScores() ||
+            !evidenceBot->aiDebugCandidateTermCounts() ||
+            !evidenceBot->aiDebugCandidateTermContributions() ||
+            evidenceBot->aiDebugCandidateKinds()->size() !=
+                kAiDecisionCandidateCapacityV1 ||
+            evidenceBot->aiDebugCandidateTermContributions()->size() !=
+                kAiDecisionCandidateCapacityV1 *
+                    kAiFeatureContributionCapacityV1 ||
+            (evidenceBot->aiDebugCandidateFlags()->Get(2u) &
+                kAiCandidateSelectedFlagV1) == 0u)
+        {
+            return Fail("AI snapshot evidence vectors/selection mismatch");
+        }
+        for (u8_t candidateIndex = 0u;
+            candidateIndex < kAiDecisionCandidateCapacityV1;
+            ++candidateIndex)
+        {
+            f32_t sum = 0.f;
+            const u8_t count = evidenceBot->aiDebugCandidateTermCounts()->Get(
+                candidateIndex);
+            for (u8_t term = 0u; term < count; ++term)
+            {
+                const u32_t flatIndex =
+                    candidateIndex * kAiFeatureContributionCapacityV1 + term;
+                sum += evidenceBot->aiDebugCandidateTermContributions()->Get(
+                    flatIndex);
+            }
+            if (std::fabs(
+                    sum - evidenceBot->aiDebugCandidateScores()->Get(
+                        candidateIndex)) > 0.001f)
+            {
+                return Fail("AI snapshot contribution sum mismatch");
+            }
+        }
+        outEvidenceBytes = evidence.size();
+        if (outEvidenceBytes < outBaselineBytes ||
+            outEvidenceBytes - outBaselineBytes > 6u * 1024u)
+        {
+            return Fail("AI snapshot evidence exceeded 6 KiB budget");
+        }
+
+        flatbuffers::DetachedBuffer stale = BuildAt(kEvidenceTick + 1u);
+        const Shared::Schema::Snapshot* staleSnapshot = nullptr;
+        if (!VerifyAndGet(stale, staleSnapshot))
+            return Fail("AI snapshot stale FlatBuffer verification failed");
+        const Shared::Schema::EntitySnapshot* staleBot =
+            FindBotSnapshot(*staleSnapshot);
+        if (!staleBot ||
+            staleBot->aiDebugCandidateTick() != 0u ||
+            (staleBot->aiDebugCandidateKinds() &&
+                staleBot->aiDebugCandidateKinds()->size() != 0u))
+        {
+            return Fail("AI snapshot stale evidence was not omitted");
+        }
+
+        Restore();
+        return true;
+#endif
     }
 
     static void Tick(CGameRoom& room)
@@ -1079,6 +2048,122 @@ public:
                 {
                     ++tracker.inactiveBotCount;
                 }
+            });
+    }
+
+    static void ObserveMinionMotion(
+        CGameRoom& room,
+        u64_t tick,
+        MinionMotionTracker& tracker)
+    {
+        tracker.stalledLaneMinionCount = 0u;
+        room.m_world.ForEach<MinionStateComponent>(
+            [&](EntityID entity, MinionStateComponent& state)
+            {
+                if (!room.m_world.HasComponent<TransformComponent>(entity))
+                    return;
+
+                const TransformComponent& transform =
+                    room.m_world.GetComponent<TransformComponent>(entity);
+                const Vec3 position = transform.GetPosition();
+                MinionMotionSample& sample = tracker.samples[entity];
+                const EntityHandle handle = room.m_world.GetEntityHandle(entity);
+                if (!sample.bInitialized || sample.handle != handle)
+                {
+                    sample = MinionMotionSample{};
+                    sample.handle = handle;
+                    sample.previousPosition = position;
+                    sample.lastProgressTick = tick;
+                    sample.bInitialized = true;
+                }
+
+                const bool_t bHasPathGoal =
+                    state.PathCount > 0u && state.PathIndex < state.PathCount;
+                const u8_t waypointLane = ResolveServerWaypointLane(
+                    state.team,
+                    state.lane);
+                const u32_t waypointCount = room.GetServerMinionWaypointCount(
+                    state.team,
+                    waypointLane);
+                const bool_t bTrackLaneMove =
+                    state.current == MinionStateComponent::LaneMove &&
+                    (bHasPathGoal || state.currentWaypoint < waypointCount);
+                if (!bTrackLaneMove)
+                {
+                    sample.previousPosition = position;
+                    sample.lastProgressTick = tick;
+                    sample.bTrackingLaneMove = false;
+                    return;
+                }
+
+                const u32_t teamIndex = static_cast<u32_t>(state.team);
+                if (teamIndex < 2u && state.lane < 3u)
+                    tracker.observedLaneSlots[teamIndex * 3u + state.lane] = true;
+
+                const Vec3 target = bHasPathGoal
+                    ? state.PathWaypoints[state.PathIndex]
+                    : room.GetServerMinionWaypoint(
+                        state.team,
+                        waypointLane,
+                        state.currentWaypoint);
+                const u32_t activeGoalIndex = bHasPathGoal
+                    ? static_cast<u32_t>(state.PathIndex)
+                    : state.currentWaypoint;
+                const f32_t targetDistanceSq =
+                    WintersMath::DistanceSqXZ(position, target);
+
+                if (sample.bTrackingLaneMove)
+                {
+                    const Vec3 displacement{
+                        position.x - sample.previousPosition.x,
+                        0.f,
+                        position.z - sample.previousPosition.z };
+                    const f32_t moveLengthSq =
+                        displacement.x * displacement.x + displacement.z * displacement.z;
+                    if (moveLengthSq > 0.0001f)
+                    {
+                        const f32_t yaw = transform.GetRotation().y;
+                        const f32_t facingDotMove =
+                            (-std::sin(yaw) * displacement.x -
+                                std::cos(yaw) * displacement.z) /
+                            std::sqrt(moveLengthSq);
+                        if (facingDotMove < -0.05f)
+                        {
+                            ++tracker.opposedYawCount;
+                            if (tracker.firstOpposedYawEntity == NULL_ENTITY)
+                                tracker.firstOpposedYawEntity = entity;
+                        }
+                    }
+                }
+
+                const bool_t bGoalChanged =
+                    !sample.bTrackingLaneMove ||
+                    sample.bTrackingPathGoal != bHasPathGoal ||
+                    sample.activeGoalIndex != activeGoalIndex ||
+                    WintersMath::DistanceSqXZ(sample.activeGoal, target) > 0.01f;
+                if (bGoalChanged)
+                {
+                    sample.activeGoal = target;
+                    sample.activeGoalIndex = activeGoalIndex;
+                    sample.bestWaypointDistanceSq = targetDistanceSq;
+                    sample.lastProgressTick = tick;
+                }
+                else if (targetDistanceSq + kMinionProgressSlackSq <
+                    sample.bestWaypointDistanceSq)
+                {
+                    sample.bestWaypointDistanceSq = targetDistanceSq;
+                    sample.lastProgressTick = tick;
+                }
+
+                const u64_t stallTicks = tick - sample.lastProgressTick;
+                tracker.maxLaneStallTicks =
+                    (std::max)(tracker.maxLaneStallTicks, stallTicks);
+                if (stallTicks > kMinionLaneStallLimitTicks)
+                    ++tracker.stalledLaneMinionCount;
+
+                sample.previousPosition = position;
+                sample.bTrackingLaneMove = true;
+                sample.bTrackingPathGoal = bHasPathGoal;
             });
     }
 
@@ -1488,7 +2573,94 @@ int main(int argc, char** argv)
     std::cout.flush();
     controlProbeRoom->Stop();
     controlProbeRoom.reset();
+
+    auto teamPingProbeRoom = CGameRoom::Create(
+        options.roomId ^ 0x40000000u);
+    TeamPingProbeEvidence teamPingEvidence{};
+    if (!teamPingProbeRoom ||
+        !CGameRoomIntegrationProbeAccess::RunTeamPingCommandProbe(
+            *teamPingProbeRoom,
+            options.seed,
+            teamPingEvidence,
+            error))
+    {
+        if (teamPingProbeRoom)
+            teamPingProbeRoom->Stop();
+        std::cerr << "RESULT status=FAIL reason=team_ping_probe_failed detail=\""
+            << error << "\"\n";
+        return 1;
+    }
+    std::cout << "TEAM_PING_PROBE status=PASS"
+        << " blue_bots=" << teamPingEvidence.blueBotCount
+        << " replay_commands=" << teamPingEvidence.replayCommandCount
+        << " checkpoint_bytes=" << teamPingEvidence.checkpointBytes
+        << " lane_preset=1 assist_next_tick_move=1"
+        << " danger_equivalent_move=1 expired=1\n";
+    teamPingProbeRoom->Stop();
+    teamPingProbeRoom.reset();
 #endif
+
+    StructureNavigationProbeEvidence structureNavEvidence{};
+    auto structureNavProbeRoom = CGameRoom::Create(
+        options.roomId ^ 0x20000000u);
+    if (!structureNavProbeRoom ||
+        !CGameRoomIntegrationProbeAccess::PrepareBotMatch(
+            *structureNavProbeRoom,
+            options.seed,
+            error) ||
+        !CGameRoomIntegrationProbeAccess::RunStructureNavigationRefreshProbe(
+            *structureNavProbeRoom,
+            structureNavEvidence,
+            error) ||
+        !CGameRoomIntegrationProbeAccess::RunMinionCombatExitWaypointProbe(
+            *structureNavProbeRoom,
+            error))
+    {
+        if (structureNavProbeRoom)
+            structureNavProbeRoom->Stop();
+        std::cerr
+            << "RESULT status=FAIL reason=structure_nav_probe_failed detail=\""
+            << error << "\"\n";
+        return 1;
+    }
+    std::cout << "STRUCTURE_NAV_PROBE status=PASS"
+        << " live_blocked=1 dead_released=1 path_released=1 lane_released=1"
+        << " champion_path_reached=1 minion_path_reached=1"
+        << " refresh_tick_us=" << structureNavEvidence.refreshTickUs
+        << " first_champion_path_query_us="
+        << structureNavEvidence.firstChampionPathQueryUs
+        << " first_minion_path_query_us="
+        << structureNavEvidence.firstMinionPathQueryUs
+        << " noop_tick_us=" << structureNavEvidence.noopTickUs
+        << " derived_rebuild_calls=" << structureNavEvidence.derivedRebuildCalls
+        << " refresh_work_calls=" << structureNavEvidence.refreshWorkCalls
+        << " second_refresh_work_calls="
+        << structureNavEvidence.secondRefreshWorkCalls
+        << " minion_combat_exit=1\n";
+    std::ofstream navJson("structure_nav_probe.json", std::ios::trunc);
+    navJson << "{\n"
+        << "  \"scope\": \"ServerStructureNav::AuthoritativeDeathRefreshTick\",\n"
+        << "  \"refreshTickUs\": " << structureNavEvidence.refreshTickUs << ",\n"
+        << "  \"firstChampionPathQueryUs\": "
+        << structureNavEvidence.firstChampionPathQueryUs << ",\n"
+        << "  \"firstMinionPathQueryUs\": "
+        << structureNavEvidence.firstMinionPathQueryUs << ",\n"
+        << "  \"noopTickUs\": " << structureNavEvidence.noopTickUs << ",\n"
+        << "  \"derivedRebuildCalls\": "
+        << structureNavEvidence.derivedRebuildCalls << ",\n"
+        << "  \"refreshWorkCalls\": "
+        << structureNavEvidence.refreshWorkCalls << ",\n"
+        << "  \"secondRefreshWorkCalls\": "
+        << structureNavEvidence.secondRefreshWorkCalls << "\n"
+        << "}\n";
+    if (!navJson.good())
+    {
+        std::cerr
+            << "RESULT status=FAIL reason=structure_nav_json_write_failed\n";
+        return 1;
+    }
+    structureNavProbeRoom->Stop();
+    structureNavProbeRoom.reset();
 
     auto room = CGameRoom::Create(options.roomId);
     if (!room)
@@ -1503,6 +2675,29 @@ int main(int argc, char** argv)
             << error << "\"\n";
         return 1;
     }
+
+#if defined(_DEBUG)
+    std::size_t aiSnapshotBaselineBytes = 0u;
+    std::size_t aiSnapshotEvidenceBytes = 0u;
+    if (!CGameRoomIntegrationProbeAccess::RunAIDebugSnapshotEvidenceProbe(
+            *room,
+            error,
+            aiSnapshotBaselineBytes,
+            aiSnapshotEvidenceBytes))
+    {
+        room->Stop();
+        std::cerr << "RESULT status=FAIL reason=ai_snapshot_probe_failed detail=\""
+            << error << "\"\n";
+        return 1;
+    }
+    std::cout << "AI_SNAPSHOT_PROBE status=PASS"
+        << " baseline_bytes=" << aiSnapshotBaselineBytes
+        << " evidence_bytes=" << aiSnapshotEvidenceBytes
+        << " delta_bytes="
+        << (aiSnapshotEvidenceBytes - aiSnapshotBaselineBytes)
+        << " stale_omitted=1 selected_tick=1 contribution_sum=1\n";
+    std::cout.flush();
+#endif
 
     const ProcessMemorySample afterPrepare = QueryProcessMemory();
     const WorldMetrics initialMetrics =
@@ -1520,7 +2715,9 @@ int main(int argc, char** argv)
     std::vector<f64_t> tickMicros;
     tickMicros.reserve(options.tickCount);
     LifecycleTracker lifecycle{};
+    MinionMotionTracker minionMotion{};
     CGameRoomIntegrationProbeAccess::ObserveLifecycle(*room, 0u, lifecycle);
+    CGameRoomIntegrationProbeAccess::ObserveMinionMotion(*room, 0u, minionMotion);
 
     WorldMetrics lastMetrics = initialMetrics;
     ProcessMemorySample lastMemory = afterPrepare;
@@ -1552,6 +2749,17 @@ int main(int argc, char** argv)
             break;
         }
         CGameRoomIntegrationProbeAccess::ObserveLifecycle(*room, tick, lifecycle);
+        CGameRoomIntegrationProbeAccess::ObserveMinionMotion(*room, tick, minionMotion);
+        if (minionMotion.opposedYawCount != 0u)
+        {
+            failure = "lane minion faced opposite its applied movement";
+            break;
+        }
+        if (minionMotion.stalledLaneMinionCount != 0u)
+        {
+            failure = "lane minion made no waypoint progress for over 6 seconds";
+            break;
+        }
 
         const bool_t bSample = (tick % 30u) == 0u || tick == options.tickCount;
         const bool_t bHeartbeat =
@@ -1697,6 +2905,16 @@ int main(int argc, char** argv)
     const u64_t finalTick = CGameRoomIntegrationProbeAccess::TickIndex(*room);
     if (failure.empty() && finalTick != options.tickCount)
         failure = "final tick count mismatch";
+    const u32_t observedMinionLaneSlotCount = static_cast<u32_t>(std::count(
+        minionMotion.observedLaneSlots.begin(),
+        minionMotion.observedLaneSlots.end(),
+        true));
+    if (failure.empty() &&
+        finalTick >= 600u &&
+        observedMinionLaneSlotCount != 6u)
+    {
+        failure = "GameRoom soak did not observe all six team/lane minion slots";
+    }
     if (failure.empty() &&
         lifecycle.deathTransitions !=
             lifecycle.respawnTransitions + lastMetrics.deadChampionCount)
@@ -1802,6 +3020,11 @@ int main(int argc, char** argv)
         << " command_active_bots=" << lifecycle.commandActiveEntities.size()
         << " inactive_bots=" << lifecycle.inactiveBotCount
         << " max_command_inactive_ticks=" << lifecycle.maxCommandInactivityTicks
+        << " minion_lane_slots=" << observedMinionLaneSlotCount
+        << " max_minion_lane_stall_ticks=" << minionMotion.maxLaneStallTicks
+        << " minion_opposed_yaw=" << minionMotion.opposedYawCount
+        << " first_opposed_yaw_entity="
+        << static_cast<u32_t>(minionMotion.firstOpposedYawEntity)
         << " replay_records=" << replayRecordsBeforeStop
         << " peak_rss_mib=" << BytesToMiB(peakWorkingSetBytes)
         << " peak_private_mib=" << BytesToMiB(peakPrivateBytes)

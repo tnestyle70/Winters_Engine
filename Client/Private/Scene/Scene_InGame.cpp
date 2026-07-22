@@ -1,4 +1,4 @@
-#define _CRT_SECURE_NO_WARNINGS
+﻿#define _CRT_SECURE_NO_WARNINGS
 
 #include "Network/Client/ClientNetwork.h"
 #include "Network/Client/CommandSerializer.h"
@@ -47,8 +47,8 @@
 #include "Manager/Navigation/Pathfinder.h"
 
 // S030: 게임 종료 산출물 저장 + 메인 메뉴 복귀
-#include "ClientShell/ClientShellSession.h"
 #include "ClientShell/ClientShellBackendService.h"
+#include "ClientShell/ClientShellSession.h"
 #include "Replay/LocalMatchRecord.h"
 #include "Scene/Scene_MainMenu.h"
 #include "Scene/Scene_MyInfo.h"
@@ -81,17 +81,18 @@
 #include "GameObject/Champion/Kalista/Kalista_Skills.h"
 #include "GameObject/Champion/Kalista/Kalista_Tuning.h"
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
+#include "GameObject/Champion/Yone/Yone_Components.h"
 #include "Shared/GameSim/Components/ChampionScore.h"
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/GoldComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/RespawnComponent.h"
 #include "Shared/GameSim/Components/InventoryComponent.h"
 #include "Shared/GameSim/Components/MatchScore.h"
 #include "Shared/GameSim/Components/RuneComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
@@ -113,7 +114,6 @@
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/SkillDefGameDataAdapter.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -127,7 +127,6 @@
 #pragma pop_macro("min")
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
-#include "ECS/Systems/StatusEffectSystem.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
@@ -149,9 +148,12 @@
 
 CScene_InGame::CScene_InGame() = default;
 
-CScene_InGame::CScene_InGame(const wstring_t& replayPath)
+CScene_InGame::CScene_InGame(
+    const wstring_t& replayPath,
+    u32_t replayPerspectiveNetId)
     : m_bReplayPlaybackMode(true)
     , m_strReplayPath(replayPath)
+    , m_replayPerspectiveNetId(replayPerspectiveNetId)
 {
 }
 
@@ -182,6 +184,22 @@ namespace
         return (team == eTeam::TEAM_END)
             ? 255u
             : static_cast<u8_t>(team);
+    }
+
+    Engine::eUIResourceKind ToUIResourceKind(eChampionResourceKind kind)
+    {
+        switch (kind)
+        {
+        case eChampionResourceKind::Energy:
+            return Engine::eUIResourceKind::Energy;
+        case eChampionResourceKind::None:
+            return Engine::eUIResourceKind::None;
+        case eChampionResourceKind::Flow:
+            return Engine::eUIResourceKind::Flow;
+        case eChampionResourceKind::Mana:
+        default:
+            return Engine::eUIResourceKind::Mana;
+        }
     }
 
     eChampion ResolveLocalRosterChampion(const MatchContext& context)
@@ -407,6 +425,18 @@ void CScene_InGame::SyncActorHUDStateToEngineUI()
         const HealthComponent& Health = m_World.GetComponent<HealthComponent>(Entity);
         State.Hp = Health.fCurrent;
         State.MaxHp = Health.fMaximum;
+        State.bDead = Health.bIsDead || Health.fCurrent <= 0.f;
+    }
+
+    if (m_World.HasComponent<RespawnComponent>(Entity))
+    {
+        const RespawnComponent& Respawn =
+            m_World.GetComponent<RespawnComponent>(Entity);
+        State.RespawnRemainingSec = (std::max)(0.f, Respawn.respawnTimer);
+        State.RespawnDurationSec = (std::max)(
+            State.RespawnRemainingSec,
+            Respawn.respawnDelay);
+        State.bDead = State.bDead || Respawn.bPending;
     }
 
     if (m_World.HasComponent<ExperienceComponent>(Entity))
@@ -436,7 +466,7 @@ void CScene_InGame::SyncActorHUDStateToEngineUI()
     {
         State.LethalTempoStacks =
             m_World.GetComponent<RuneRuntimeComponent>(Entity).iLethalTempoStacks;
-        State.LethalTempoMaxStacks = static_cast<u8_t>(RuneTuning::kLethalTempoMaxStacks);
+        State.LethalTempoMaxStacks = 0u;
     }
 
     if (m_World.HasComponent<GoldComponent>(Entity))
@@ -465,12 +495,24 @@ void CScene_InGame::SyncActorHUDStateToEngineUI()
         State.MoveSpeed = Stat.moveSpeed;
         State.CritChance = Stat.critChance;
         State.AbilityHaste = Stat.abilityHaste;
+        State.ResourceKind = ToUIResourceKind(Stat.resourceKind);
         if (Stat.level > 0)
             State.Level = Stat.level;
         if (Stat.hpMax > 0.f)
             State.MaxHp = Stat.hpMax;
-        if (Stat.manaMax > 0.f)
-            State.MaxMp = Stat.manaMax;
+        State.MaxMp = Stat.manaMax;
+    }
+
+    if (Champion.id == eChampion::YASUO &&
+        m_World.HasComponent<YasuoStateComponent>(Entity))
+    {
+        const YasuoStateComponent& Yasuo =
+            m_World.GetComponent<YasuoStateComponent>(Entity);
+        State.ResourceKind = Engine::eUIResourceKind::Flow;
+        State.PassiveValue = Yasuo.fPassiveFlow;
+        State.PassiveMax = Yasuo.fPassiveFlowMax;
+        State.PassiveShield = Yasuo.fPassiveShieldRemaining;
+        State.PassiveShieldMax = Yasuo.fPassiveShieldMax;
     }
 
     State.bStunned = false;
@@ -521,6 +563,9 @@ void CScene_InGame::SyncStatusPanelStateToEngineUI()
     m_World.ForEach<ChampionComponent>(
         [&](EntityID Entity, ChampionComponent& Champion)
         {
+            if (m_World.HasComponent<YoneSoulPresentationTag>(Entity))
+                return;
+
             Engine::StatusPanelActorRow Row{};
             Row.Entity = Entity;
             Row.iActorContentId = ToLoLUIContentId(Champion.id);
@@ -621,6 +666,14 @@ void CScene_InGame::SyncWorldHealthBarsToEngineUI()
     std::vector<Engine::UIWorldHealthBarDesc> Bars;
     Bars.reserve(128u);
 
+    u8_t iLocalTeam = ToLoLUITeamId(m_PlayerTeam);
+    if (m_PlayerEntity != NULL_ENTITY &&
+        m_World.HasComponent<ChampionComponent>(m_PlayerEntity))
+    {
+        iLocalTeam = ToLoLUITeamId(
+            m_World.GetComponent<ChampionComponent>(m_PlayerEntity).team);
+    }
+
     auto ApplyHealthOverride = [this](
         EntityID Entity,
         f32_t& fCurrent,
@@ -640,8 +693,17 @@ void CScene_InGame::SyncWorldHealthBarsToEngineUI()
     m_World.ForEach<ChampionComponent, TransformComponent>(
         [&](EntityID Entity, ChampionComponent& Champion, TransformComponent& Transform)
         {
-            if (UI::IsKalistaCarried(m_World, Entity))
+            if (UI::IsKalistaCarried(m_World, Entity) ||
+                m_World.HasComponent<YoneSoulPresentationTag>(Entity) ||
+                !UI::IsRenderableForLocal(
+                    m_World,
+                    Entity,
+                    iLocalTeam,
+                    false,
+                    false))
+            {
                 return;
+            }
 
             Engine::UIWorldHealthBarDesc Bar{};
             Bar.Entity = Entity;
@@ -652,6 +714,14 @@ void CScene_InGame::SyncWorldHealthBarsToEngineUI()
             Bar.fShield = (std::max)(0.f, Champion.shield);
             Bar.fManaCurrent = Champion.mana;
             Bar.fManaMaximum = Champion.maxMana;
+            Bar.iLevel = Champion.level;
+            if (m_World.HasComponent<StatComponent>(Entity))
+            {
+                const StatComponent& Stat =
+                    m_World.GetComponent<StatComponent>(Entity);
+                Bar.ResourceKind = ToUIResourceKind(Stat.resourceKind);
+                Bar.fManaMaximum = Stat.manaMax;
+            }
             Bar.iTeam = ToLoLUITeamId(Champion.team);
             Bar.bDead = Bar.fCurrent <= 0.f;
             ApplyHealthOverride(Entity, Bar.fCurrent, Bar.fMaximum, Bar.bDead);
@@ -730,13 +800,6 @@ void CScene_InGame::SyncWorldHealthBarsToEngineUI()
             Bars.push_back(Bar);
         });
 
-    u8_t iLocalTeam = ToLoLUITeamId(m_PlayerTeam);
-    if (m_PlayerEntity != NULL_ENTITY &&
-        m_World.HasComponent<ChampionComponent>(m_PlayerEntity))
-    {
-        iLocalTeam = ToLoLUITeamId(m_World.GetComponent<ChampionComponent>(m_PlayerEntity).team);
-    }
-
     CGameInstance::Get()->UI_Set_WorldHealthBars(
         Bars.empty() ? nullptr : Bars.data(),
         static_cast<u32_t>(Bars.size()),
@@ -748,6 +811,9 @@ void CScene_InGame::SyncAIResourceStateToEngine()
     m_World.ForEach<ChampionComponent>(
         [&](EntityID Entity, ChampionComponent& Champion)
         {
+            if (m_World.HasComponent<YoneSoulPresentationTag>(Entity))
+                return;
+
             AIResourceStateComponent& Resource =
                 m_World.HasComponent<AIResourceStateComponent>(Entity)
                     ? m_World.GetComponent<AIResourceStateComponent>(Entity)
@@ -1261,7 +1327,23 @@ void CScene_InGame::OnUpdate(f32_t dt)
             {
                 ss.slots[i].stageWindow -= dt;
                 if (ss.slots[i].stageWindow <= 0.f)
+                {
+#if defined(_DEBUG)
+                    static u32_t s_uStageExpiryTraceCount = 0u;
+                    if (s_uStageExpiryTraceCount < 32u)
+                    {
+                        char message[176]{};
+                        sprintf_s(
+                            message,
+                            "[StageGate][ClientRuntime] event=window-expired champ=%u slot=%u\n",
+                            static_cast<u32_t>(GetPlayerChampionId()),
+                            static_cast<u32_t>(i));
+                        OutputDebugStringA(message);
+                        ++s_uStageExpiryTraceCount;
+                    }
+#endif
                     ss.slots[i].currentStage = 0;
+                }
             }
         }
     }
@@ -1330,10 +1412,26 @@ void CScene_InGame::OnUpdate(f32_t dt)
 
 void CScene_InGame::OnLateUpdate(f32_t /*dt*/)
 {
+    if (!m_bNetworkAuthoritativeGameplay || !m_pSnapshotApplier)
+        return;
+
+    const u64_t snapshotTick =
+        m_pSnapshotApplier->GetLastAppliedSnapshotTick();
+    if (snapshotTick == 0u ||
+        snapshotTick == m_uNetworkChampionLevelSnapshotTick)
+    {
+        return;
+    }
+
+    m_uNetworkChampionLevelSnapshotTick = snapshotTick;
+    SyncNetworkChampionLevelUpFx();
 }
 
 void CScene_InGame::PollGameEndAndSettings()
 {
+    if (m_bReplayPlaybackMode)
+        return;
+
     if (m_pEventApplier && !m_bGameEndActive)
     {
         u8_t winningTeam = 0u;
@@ -1358,21 +1456,18 @@ void CScene_InGame::SaveEndOfMatchArtifacts(const char* pResultLabel)
     m_bEndOfMatchArtifactsSaved = true;
 
     Winters::LocalMatchRecord record{};
-    record.strUser = CClientShellSession::Instance().GetDisplayName();
+    record.strUserID = CClientShellSession::Instance().GetUserID();
+    record.strDisplayName = CClientShellSession::Instance().GetDisplayName();
+    if (CClientShellSession::Instance().HasMatchAssignment())
+    {
+        record.strMatchID = CClientShellSession::Instance()
+            .GetMatchAssignment().strMatchID;
+    }
     record.strResult = pResultLabel ? pResultLabel : "unknown";
     record.uEndTick = m_pSnapshotApplier
         ? m_pSnapshotApplier->GetLastAppliedServerTick()
         : 0ull;
     Winters::AppendLocalMatchRecord(record);
-
-    // 온라인 계정이면 매치결과를 백엔드에 보고 (MMR/RP 반영, S035).
-    // 비회원/백엔드 미실행이면 서비스 내부 게이트가 조용히 스킵 — 게임 흐름 비차단.
-    // "aborted"(강제 이탈)는 보고하지 않는다.
-    if (record.strResult == "victory" || record.strResult == "defeat")
-    {
-        CClientShellBackendService::Instance().RequestReportMatchResult(
-            record.strResult == "victory");
-    }
 
     std::string strTracePath;
     Winters::ExportAiDecisionTraceJsonl(m_World, strTracePath);
@@ -1390,6 +1485,11 @@ void CScene_InGame::ChangeToMainMenuScene()
 
 void CScene_InGame::ChangeToMyInfoScene()
 {
+    if (m_bUsingSharedNetwork)
+        CGameSessionClient::Instance().Disconnect();
+
+    CClientShellBackendService::Instance().RequestPostMatchRefresh();
+
     CGameInstance::Get()->Change_Scene(
         static_cast<uint32_t>(eSceneID::MyInfo),
         CScene_MyInfo::Create());

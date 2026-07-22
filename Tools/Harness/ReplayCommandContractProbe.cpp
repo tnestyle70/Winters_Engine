@@ -1,4 +1,5 @@
 #include "Game/ReplayRecorder.h"
+#include "Shared/GameSim/Definitions/TeamPingDef.h"
 #include "Shared/Replay/ReplayFormat.h"
 
 #include <cstddef>
@@ -34,6 +35,7 @@ static_assert(static_cast<u16_t>(
     Winters::Replay::eReplayCommandDomain::ControlPlane) == 3u);
 static_assert(static_cast<u16_t>(
     Winters::Replay::eReplayCommandDomain::ObservationOnly) == 4u);
+static constexpr u8_t kTeamPingCommandKind = 14u;
 
 int main()
 {
@@ -106,8 +108,10 @@ int main()
     ReplayCommandPayload explicitCommand{};
     explicitCommand.sourceSessionId = 17u;
     explicitCommand.sequenceNum = 23u;
-    explicitCommand.kind = 12u;
-    explicitCommand.practiceOperation = 7u;
+    explicitCommand.kind = 13u;
+    explicitCommand.slot = 2u;
+    explicitCommand.itemId = 3157u;
+    explicitCommand.practiceFlags = 5u;
     explicitCommand.clientTick = 91u;
     SetReplayCommandDomain(
         explicitCommand,
@@ -115,6 +119,24 @@ int main()
     if (!recorder->RecordCommand(100u, explicitCommand))
     {
         std::printf("[ReplayContract] FAIL: valid writer domain rejected\n");
+        return 1;
+    }
+
+    ReplayCommandPayload teamPingCommand{};
+    teamPingCommand.sourceSessionId = 17u;
+    teamPingCommand.sequenceNum = 24u;
+    teamPingCommand.kind = kTeamPingCommandKind;
+    teamPingCommand.slot = static_cast<u8_t>(eTeamPingKind::Assist);
+    teamPingCommand.groundPos[0] = 10.f;
+    teamPingCommand.groundPos[1] = 0.f;
+    teamPingCommand.groundPos[2] = -4.f;
+    teamPingCommand.clientTick = 92u;
+    SetReplayCommandDomain(
+        teamPingCommand,
+        eReplayCommandDomain::PlayerInput);
+    if (!recorder->RecordCommand(100u, teamPingCommand))
+    {
+        std::printf("[ReplayContract] FAIL: TeamPing writer domain rejected\n");
         return 1;
     }
 
@@ -138,6 +160,8 @@ int main()
     ReplayFileHeader fileHeader{};
     ReplayRecordHeader commandHeader{};
     ReplayCommandPayload persistedCommand{};
+    ReplayRecordHeader teamPingHeader{};
+    ReplayCommandPayload persistedTeamPing{};
     std::ifstream input(outputPath, std::ios::binary);
     const bool_t bPersistedCommandContract =
         ReadExact(input, &fileHeader, sizeof(fileHeader)) &&
@@ -145,13 +169,28 @@ int main()
         commandHeader.type == static_cast<u8_t>(eReplayRecordType::Command) &&
         commandHeader.payloadSize == sizeof(ReplayCommandPayload) &&
         ReadExact(input, &persistedCommand, sizeof(persistedCommand)) &&
+        ReadExact(input, &teamPingHeader, sizeof(teamPingHeader)) &&
+        teamPingHeader.type == static_cast<u8_t>(eReplayRecordType::Command) &&
+        teamPingHeader.payloadSize == sizeof(ReplayCommandPayload) &&
+        ReadExact(input, &persistedTeamPing, sizeof(persistedTeamPing)) &&
         fileHeader.version == kReplayVersion &&
-        fileHeader.recordCount == 3u &&
+        fileHeader.recordCount == 4u &&
         fileHeader.snapshotCount == 2u &&
-        recorder->GetCommandCount() == 1u &&
+        recorder->GetCommandCount() == 2u &&
         recorder->GetSnapshotCount() == 2u &&
         GetReplayCommandDomain(persistedCommand) ==
-            eReplayCommandDomain::AuthoringMutation;
+            eReplayCommandDomain::AuthoringMutation &&
+        persistedCommand.kind == 13u &&
+        persistedCommand.slot == 2u &&
+        persistedCommand.itemId == 3157u &&
+        persistedCommand.practiceFlags == 5u &&
+        GetReplayCommandDomain(persistedTeamPing) ==
+            eReplayCommandDomain::PlayerInput &&
+        persistedTeamPing.kind == kTeamPingCommandKind &&
+        persistedTeamPing.slot == static_cast<u8_t>(eTeamPingKind::Assist) &&
+        persistedTeamPing.groundPos[0] == 10.f &&
+        persistedTeamPing.groundPos[1] == 0.f &&
+        persistedTeamPing.groundPos[2] == -4.f;
     input.close();
     std::error_code removeError;
     std::filesystem::remove(outputPath, removeError);
@@ -200,7 +239,7 @@ int main()
 
     std::printf(
         "[ReplayContract] %s: v1 read, v2 legacy-zero/domain, 60-byte ABI, "
-        "journal/resim outcomes, tool revision, paused snapshot pair, "
+        "reorder and TeamPing payloads, journal/resim outcomes, tool revision, paused snapshot pair, "
         "sealed publish retry\n",
         bPass ? "PASS" : "FAIL");
     return bPass ? 0 : 1;

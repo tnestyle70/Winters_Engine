@@ -1,6 +1,7 @@
 #pragma once
 #include "Defines.h"
 #include "WintersMath.h"
+#include "Shared/GameSim/Definitions/TeamPingDef.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
 
 #include <functional>
@@ -29,10 +30,14 @@ public:
 		const Vec3& groundPos, const Vec3& direction, u8_t skillStage = 1);
 	u32_t SendBasicAttack(CClientNetwork& net, NetEntityId targetNet,
 		const Vec3& groundPos = {}, const Vec3& direction = {});
+	u32_t SendTeamPing(CClientNetwork& net, eTeamPingKind kind,
+		const Vec3& groundPos);
 	void SendBuyItem(CClientNetwork& net, u16_t itemId);
-	void SendUseItem(CClientNetwork& net, u16_t itemId,
+	void SendUseItem(CClientNetwork& net, u8_t slot, u16_t itemId,
 		const Vec3& groundPos, const Vec3& direction = {},
 		NetEntityId targetNet = NULL_NET_ENTITY);
+	void SendReorderItem(CClientNetwork& net, u8_t sourceSlot,
+		u8_t targetSlot, u16_t expectedItemId);
 	void SendRecall(CClientNetwork& net);
 	void SendFlash(CClientNetwork& net, const Vec3& groundPos,
 		const Vec3& direction);

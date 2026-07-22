@@ -17,3 +17,11 @@ struct SylasDashComponent
 	f32_t fElapsedSec = 0.f;
 	f32_t fDurationSec = 0.18f;
 };
+
+struct SylasQExplosionComponent
+{
+	EntityHandle hCaster = NULL_ENTITY_HANDLE;
+	Vec3 vCenter{};
+	u64_t uDetonateTick = 0u;
+	u8_t uRank = 1u;
+};

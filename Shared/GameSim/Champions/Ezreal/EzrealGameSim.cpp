@@ -486,30 +486,11 @@ namespace
             return;
         }
 
-        const f32_t explicitBase = ResolveEffectParam(
-            world,
-            tc,
-            projectile.sourceEntity,
-            kEzrealRSlot,
+        request.flatAmount = GameplayDefinitionQuery::ResolveSkillEffectParamRanked(
+            world, projectile.sourceEntity, tc, eChampion::EZREAL,
+            kEzrealRSlot, projectile.rank,
             eSkillEffectParamId::NonEpicBaseDamage,
-            -1.f);
-        const f32_t explicitPerRank = ResolveEffectParam(
-            world,
-            tc,
-            projectile.sourceEntity,
-            kEzrealRSlot,
-            eSkillEffectParamId::NonEpicDamagePerRank,
-            -1.f);
-        if (explicitBase >= 0.f && explicitPerRank >= 0.f)
-        {
-            request.flatAmount = explicitBase + explicitPerRank *
-                static_cast<f32_t>(SanitizeRank(projectile.rank) - 1u);
-        }
-        else
-        {
-            request.flatAmount = 150.f + 75.f *
-                static_cast<f32_t>(SanitizeRank(projectile.rank) - 1u);
-        }
+            150.f + 75.f * static_cast<f32_t>(SanitizeRank(projectile.rank) - 1u));
     }
 
     DamageRequest BuildEssenceFluxDetonationDamage(
@@ -1102,10 +1083,8 @@ namespace
             range,
             ResolveEffectParam(world, tc, source, kEzrealRSlot,
                 eSkillEffectParamId::HalfWidth, 1.6f),
-            ResolveRankedValue(world, tc, source, kEzrealRSlot, rank,
-                eSkillEffectParamId::BaseDamage,
-                eSkillEffectParamId::DamagePerRank,
-                350.f, 200.f),
+            GameplayDefinitionQuery::ResolveSkillFlatDamage(
+                world, source, tc, eChampion::EZREAL, kEzrealRSlot, rank, 350.f),
             ResolveEffectParam(world, tc, source, kEzrealRSlot,
                 eSkillEffectParamId::TotalAdRatio, 0.f),
             ResolveEffectParam(world, tc, source, kEzrealRSlot,

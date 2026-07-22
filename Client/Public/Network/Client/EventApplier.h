@@ -79,6 +79,11 @@ public:
         f32_t fHalfLength,
         f32_t fHalfThickness,
         u64_t uExpireTick);
+    void ReconcileObjectiveSnapshot(
+        CWorld& world,
+        NetEntityId uNetId,
+        EntityID entity,
+        u32_t objectiveStateFlags);
     void EndSnapshotReconciliation(CWorld& world, EntityIdMap& entityMap);
 
     // S030: 서버 kGlobalGameEndEffect 수신 latch — 씬이 폴링 후 1회 소비한다.
@@ -128,6 +133,7 @@ private:
     void DestroyProjectileVisuals(CWorld& world, NetEntityId projectileNet);
     void DestroyEzrealFluxVisuals(CWorld& world, u64_t relationKey);
     void DestroyYasuoWindWallVisuals(CWorld& world, u64_t wallKey);
+    void DestroyObjectiveVisuals(CWorld& world, u64_t objectiveKey);
 
     EntityID EnsureProjectilePresentation(
         CWorld& world,
@@ -158,6 +164,8 @@ private:
     std::unordered_set<NetEntityId> m_snapshotProjectileNetIds;
     std::unordered_set<u64_t> m_snapshotEzrealFluxKeys;
     std::unordered_set<u64_t> m_snapshotYasuoWindWallKeys;
+    std::unordered_set<u64_t> m_snapshotObjectiveKeys;
+    std::unordered_map<u64_t, std::vector<EntityID>> m_objectiveVisualEntities;
     std::unordered_set<u64_t> m_seenProjectileHitCueKeys;
     std::unordered_map<NetEntityId, PresentationMutationStamp>
         m_projectileMutationStamps;

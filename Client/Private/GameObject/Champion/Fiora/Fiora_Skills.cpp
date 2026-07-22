@@ -209,14 +209,6 @@ namespace Fiora
 
     namespace Visual
     {
-        void OnCastFrame_BA_Visual(VisualHookContext& ctx)
-        {
-            if (!ctx.pWorld || !ctx.pCommand) return;
-            const EntityID target = ctx.pCommand->targetEntityId;
-            if (target == NULL_ENTITY) return;
-            Fx::SpawnBAHitSpark(*ctx.pWorld, target, 0.4f);
-        }
-
         void OnCastFrame_Q_Visual(VisualHookContext& ctx)
         {
             if (!ctx.pWorld || !ctx.pCommand) return;
@@ -226,23 +218,119 @@ namespace Fiora
 
         void OnCastFrame_W_Visual(VisualHookContext& ctx)
         {
-            if (!ctx.pWorld) return;
-            Fx::SpawnWParryActive(*ctx.pWorld, ctx.casterEntity, 1.5f);
+            if (!ctx.pWorld || !ctx.pCommand) return;
+            if (ctx.bAuthoritativeEvent && ctx.fEffectLength <= 0.f)
+                return;
+
+            const f32_t duration = ctx.fEffectLifetimeSec > 0.f
+                ? ctx.fEffectLifetimeSec
+                : 0.75f;
+            const f32_t length = ctx.fEffectLength > 0.f
+                ? ctx.fEffectLength
+                : 6.5f;
+            const f32_t halfWidth = ctx.fEffectHalfWidth > 0.f
+                ? ctx.fEffectHalfWidth
+                : 0.8f;
+            if (ctx.skillStage >= 2u)
+                Fx::SpawnWParrySuccess(*ctx.pWorld, ctx.casterEntity,
+                    ctx.pCommand->direction, length, halfWidth, duration);
+            else
+                Fx::SpawnWParryActive(*ctx.pWorld, ctx.casterEntity,
+                    ctx.pCommand->direction, length, halfWidth, duration);
+        }
+
+        void OnRecovery_W_Visual(VisualHookContext& ctx)
+        {
+            if (!ctx.pWorld || !ctx.pCommand) return;
+            if (ctx.bAuthoritativeEvent && ctx.fEffectLength <= 0.f)
+                return;
+
+            const f32_t length = ctx.fEffectLength > 0.f
+                ? ctx.fEffectLength
+                : 6.5f;
+            const f32_t halfWidth = ctx.fEffectHalfWidth > 0.f
+                ? ctx.fEffectHalfWidth
+                : 0.8f;
+            Vec3 endpoint = ctx.pCommand->groundPos;
+            if (ctx.fEffectLength <= 0.f &&
+                ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity))
+            {
+                const Vec3 origin = ctx.pWorld
+                    ->GetComponent<TransformComponent>(ctx.casterEntity)
+                    .GetPosition();
+                const Vec3 direction = WintersMath::NormalizeXZ(
+                    ctx.pCommand->direction, Vec3{ 0.f, 0.f, 1.f });
+                endpoint = Vec3{
+                    origin.x + direction.x * length,
+                    origin.y,
+                    origin.z + direction.z * length
+                };
+            }
+            Fx::SpawnWRelease(*ctx.pWorld, ctx.casterEntity,
+                ctx.pCommand->direction, endpoint, halfWidth, 0.30f);
         }
 
         void OnCastFrame_E_Visual(VisualHookContext& ctx)
         {
             if (!ctx.pWorld) return;
-            Fx::SpawnEBladeworkBuff(*ctx.pWorld, ctx.casterEntity, 5.0f);
+            Fx::SpawnEBladeworkBuff(
+                *ctx.pWorld,
+                ctx.casterEntity,
+                ctx.fEffectLifetimeSec > 0.f ? ctx.fEffectLifetimeSec : 5.0f);
+        }
+
+        void OnRecovery_E_Visual(VisualHookContext& ctx)
+        {
+            if (!ctx.pWorld || !ctx.pCommand) return;
+            if (ctx.pCommand->targetEntityId != NULL_ENTITY)
+                Fx::SpawnEHitSpark(*ctx.pWorld, ctx.pCommand->targetEntityId, 0.40f);
+            if (ctx.skillStage >= 3u)
+                Fx::StopEBladeworkBuff(*ctx.pWorld, ctx.casterEntity);
         }
 
         void OnCastFrame_R_Visual(VisualHookContext& ctx)
         {
+            if (!ctx.pWorld || !ctx.pCommand || ctx.skillStage < 2u) return;
+            Fx::SpawnVital(*ctx.pWorld, ctx.casterEntity,
+                ctx.pCommand->targetEntityId, ctx.pCommand->direction,
+                Fx::eVitalVisualKind::GrandChallenge, ctx.fEffectLifetimeSec);
+        }
+
+        void OnRecovery_R_Visual(VisualHookContext& ctx)
+        {
             if (!ctx.pWorld || !ctx.pCommand) return;
-            const EntityID target = ctx.pCommand->targetEntityId;
-            if (target == NULL_ENTITY) return;
-            Fx::SpawnRMark(*ctx.pWorld, target, 8.0f);
-            Fx::SpawnRHealZone(*ctx.pWorld, ctx.casterEntity, 4.0f);
+            if (ctx.skillStage == 1u)
+                Fx::SpawnRRing(*ctx.pWorld, ctx.casterEntity,
+                    ctx.pCommand->targetEntityId, ctx.pCommand->groundPos,
+                    ctx.fEffectLifetimeSec);
+            else if (ctx.skillStage == 2u)
+                Fx::ConsumeVital(*ctx.pWorld, ctx.casterEntity,
+                    ctx.pCommand->targetEntityId, ctx.pCommand->direction,
+                    Fx::eVitalVisualKind::GrandChallenge);
+            else if (ctx.skillStage == 3u)
+            {
+                Fx::ClearRPresentation(*ctx.pWorld, ctx.casterEntity);
+                Fx::SpawnRHealZone(*ctx.pWorld, ctx.pCommand->groundPos,
+                    ctx.fEffectLifetimeSec);
+            }
+            else if (ctx.skillStage >= 4u)
+                Fx::ClearRPresentation(*ctx.pWorld, ctx.casterEntity);
+        }
+
+        void OnPassiveTrigger_Visual(VisualHookContext& ctx)
+        {
+            if (!ctx.pWorld || !ctx.pCommand) return;
+            if (ctx.skillStage == 1u)
+                Fx::SpawnVital(*ctx.pWorld, ctx.casterEntity,
+                    ctx.pCommand->targetEntityId, ctx.pCommand->direction,
+                    Fx::eVitalVisualKind::Passive, ctx.fEffectLifetimeSec);
+            else if (ctx.skillStage == 2u)
+                Fx::ConsumeVital(*ctx.pWorld, ctx.casterEntity,
+                    ctx.pCommand->targetEntityId, ctx.pCommand->direction,
+                    Fx::eVitalVisualKind::Passive);
+            else
+                Fx::ClearVitals(*ctx.pWorld, ctx.casterEntity,
+                    Fx::eVitalVisualKind::Passive);
         }
     }
 }

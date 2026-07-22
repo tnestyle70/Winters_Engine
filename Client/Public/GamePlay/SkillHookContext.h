@@ -26,6 +26,7 @@ struct SkillHookContext
 	const SkillDef* pDef = nullptr;
 	const CastSkillCommand* pCommand = nullptr;
 	u8_t skillStage = 1;
+	f32_t fEffectLifetimeSec = 0.f;
 	f32_t fDeltaTime = 0.f;
 	std::string* pKeyOut = nullptr;
 	Engine::CFxStaticMeshRenderer* pFxMeshRenderer = nullptr;

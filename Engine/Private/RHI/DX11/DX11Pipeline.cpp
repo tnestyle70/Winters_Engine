@@ -1,4 +1,5 @@
 #include "RHI/DX11/DX11Pipeline.h"
+#include "Core/Profiler/RenderFrameStats.h"
 #include <d3dcompiler.h>
 #include <cassert>
 
@@ -105,6 +106,7 @@ bool DX11Pipeline::CreateSkinnedMesh(ID3D11Device* device, ID3DBlob* vsBlob)
 
 void DX11Pipeline::Bind(ID3D11DeviceContext* context) const
 {
+    RenderFrameStats::AddBindPipeline();
     context->IASetInputLayout(m_pInputLayout);
     context->RSSetState(m_pRasterState);
     if (m_pDepthState)

@@ -11,6 +11,7 @@ class CExperienceSystem
 public:
     static void InitializeChampionExperience(CWorld& world, EntityID entity, u8_t level);
     static void GrantExperience(CWorld& world, EntityID entity, f32_t amount);
+    static void GrantChampionLevels(CWorld& world, EntityID entity, u8_t levels);
     static void GrantKillRewards(CWorld& world, const TickContext& tc, EntityID killer, EntityID victim);
     static u32_t GrantGold(CWorld& world, EntityID entity, f32_t amount);
 

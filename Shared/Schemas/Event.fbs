@@ -33,6 +33,7 @@ table DamageEvent {
     bWasCrit:bool;
     bKilled:bool;
     skillId:ushort;
+    flags:ushort;
 }
 
 table BuffApplyEvent {
@@ -117,6 +118,8 @@ table EffectTriggerEvent {
     startTick:ulong;
     durationMs:ushort;
     flags:ushort;
+    effectLength:float;
+    effectHalfWidth:float;
 }
 
 enum KillFeedObjectKind : ubyte {

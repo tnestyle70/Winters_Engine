@@ -17,16 +17,6 @@
 #include <imgui.h>
 #pragma pop_macro("new")
 
-// CScene_Editor — 맵 오브젝트 배치 전용 씬 (던전스 CEditor 포팅, v3 싱글턴)
-//
-// 기능:
-//  - 탑다운 카메라 (FreeCam, WASD + 마우스)
-//  - 3 싱글턴 Manager 에 직접 접근 (CXxx_Manager::Get())
-//  - Palette: Structure / Jungle 중 선택 후 맵 좌클릭 = 배치 (Minion 은 런타임 스폰 대상이라 제외)
-//  - Hierarchy 트리에서 오브젝트 선택
-//  - Inspector: Position / Rotation / Scale / Visible / Delete
-//  - File: Save(Ctrl+S) / Load / Switch Stage / Back to InGame(Esc)
-
 class CScene_Editor final : public IScene
 {
 public:

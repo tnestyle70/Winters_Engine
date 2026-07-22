@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ECS/Entity.h"
+#include "Manager/UI/UIResourceKind.h"
 #include "WintersMath.h"
 #include "WintersTypes.h"
 
@@ -23,7 +24,9 @@ namespace Engine
         f32_t fShield = 0.f;
         f32_t fManaCurrent = 0.f;
         f32_t fManaMaximum = 0.f;
+        eUIResourceKind ResourceKind = eUIResourceKind::None;
         f32_t fWidthScale = 1.f;
+        u8_t iLevel = 0u;
         u8_t iTeam = 255u;
         bool_t bDead = false;
     };

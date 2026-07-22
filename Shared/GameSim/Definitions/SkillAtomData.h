@@ -1,11 +1,17 @@
 #pragma once
 
 #include "LoLMatchContext.h"
+#include "Shared/GameSim/Definitions/DamageTypes.h"
 #include "SkillTypes.h"
 #include "WintersTypes.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <type_traits>
+
 inline constexpr u8_t kSkillAtomStageMax = 2;
 inline constexpr u8_t kSkillEffectParamMax = 16;
+inline constexpr u8_t kSkillRankValueMax = 5;
 
 struct SkillSlotBinding
 {
@@ -24,11 +30,22 @@ struct SkillTargetSpec
 
 struct SkillCostSpec
 {
+    u8_t rankCount = 1;
+    f32_t manaCostByRank[kSkillRankValueMax]{};
+    // Legacy client SkillDef adapter only. Canonical gameplay pack uses the array above.
     f32_t manaCost = 0.f;
+};
+
+struct SkillInputSpec
+{
+    eSkillInputActivation activation = eSkillInputActivation::Press;
 };
 
 struct SkillCooldownSpec
 {
+    u8_t rankCount = 1;
+    f32_t cooldownSecByRank[kSkillRankValueMax]{};
+    // Legacy client SkillDef adapter only. Canonical gameplay pack uses the array above.
     f32_t cooldownSec = 0.f;
 };
 
@@ -41,8 +58,59 @@ struct SkillStageSpec
 {
     u8_t stageCount = 1;
     f32_t stageWindowSec = 0.f;
+    // Animation/presentation duration. Kept under the legacy field name until
+    // SkillDef visual timing is fully retired.
     f32_t lockDurationSec[kSkillAtomStageMax] = {};
+    // Server command/action lock. This is intentionally independent from the
+    // animation duration above.
+    f32_t commandLockSec[kSkillAtomStageMax] = {};
+    eSkillActionMovePolicy movePolicy[kSkillAtomStageMax] =
+    {
+        eSkillActionMovePolicy::Allow,
+        eSkillActionMovePolicy::Allow,
+    };
+    bool_t bCreatesActionState[kSkillAtomStageMax] = { true, true };
+    bool_t bPresentationLoopWhileActive[kSkillAtomStageMax] = {};
 };
+
+struct SkillChargeSpec
+{
+    bool_t bEnabled = false;
+    bool_t bAutoRelease = false;
+    u8_t reserved[2]{};
+    f32_t maxHoldSec = 0.f;
+    f32_t minRangeScale = 1.f;
+    f32_t maxRangeScale = 1.f;
+    f32_t minDamageScale = 1.f;
+    f32_t maxDamageScale = 1.f;
+    f32_t minStunSec = 0.f;
+    f32_t maxStunSec = 0.f;
+};
+
+inline f32_t ResolveSkillChargeRatio(
+    u64_t startTick,
+    u64_t maxReleaseTick,
+    u64_t currentTick)
+{
+    if (maxReleaseTick <= startTick || currentTick <= startTick)
+        return 0.f;
+    if (currentTick >= maxReleaseTick)
+        return 1.f;
+
+    return static_cast<f32_t>(currentTick - startTick) /
+        static_cast<f32_t>(maxReleaseTick - startTick);
+}
+
+inline f32_t ResolveSkillChargeValue(
+    f32_t minValue,
+    f32_t maxValue,
+    f32_t chargeRatio)
+{
+    const f32_t clampedRatio = chargeRatio < 0.f
+        ? 0.f
+        : (chargeRatio > 1.f ? 1.f : chargeRatio);
+    return minValue + (maxValue - minValue) * clampedRatio;
+}
 
 struct SkillFacingSpec
 {
@@ -111,6 +179,24 @@ enum class eSkillEffectParamId : u8_t
     RectLengthPerRank,
     FormationDelaySec,
     DamagePerSpear,
+    TargetHealthThresholdRatio,
+    AcquireRange,
+    LifetimeSec,
+    RespawnSec,
+    SideDotThreshold,
+    TargetMaxHpRatio,
+    ChallengeDurationSec,
+    HealDurationSec,
+    HealRadius,
+    HealIntervalSec,
+    HealAmount,
+    // Practice-only live-tuning overrides. Never authored in packs; consumed
+    // via PracticeSkillEffectOverrideComponent with -1 sentinel = unset.
+    // Single value applies to every rank.
+    CooldownSecOverride,
+    DamageFlatOverride,
+    // Authored after practice-only IDs to preserve their numeric ABI.
+    HealDamageRatio,
 };
 
 enum class eSummonPolicyParamId : u8_t
@@ -133,8 +219,14 @@ enum class eSummonPolicyParamId : u8_t
 struct SkillEffectParam
 {
     eSkillEffectParamId id = eSkillEffectParamId::None;
-    f32_t value = 0.f;
+    u8_t rankCount = 1u;
+    f32_t valueByRank[kSkillRankValueMax]{};
 };
+
+static_assert(std::is_trivially_copyable_v<SkillEffectParam>);
+static_assert(sizeof(SkillEffectParam) == 24u);
+static_assert(offsetof(SkillEffectParam, rankCount) == 1u);
+static_assert(offsetof(SkillEffectParam, valueByRank) == 4u);
 
 struct SummonPolicyParam
 {
@@ -144,6 +236,7 @@ struct SummonPolicyParam
 
 struct SkillEffectSpec
 {
+    DamageFormulaDef damage{};
     u16_t scalingTableId = 0;
     u32_t gameplayPolicyId = 0;
     u32_t replicatedCueId = 0;
@@ -175,17 +268,30 @@ inline const SkillEffectParam* FindSkillEffectParam(
     return nullptr;
 }
 
+inline f32_t ResolveSkillEffectParamRanked(
+    const SkillEffectSpec& effect,
+    eSkillEffectParamId id,
+    u8_t rank,
+    f32_t fallbackValue = 0.f)
+{
+    if (const SkillEffectParam* param = FindSkillEffectParam(effect, id))
+    {
+        const u8_t count = std::clamp<u8_t>(
+            param->rankCount, 1u, kSkillRankValueMax);
+        const u8_t resolvedRank = std::clamp<u8_t>(
+            rank > 0u ? rank : 1u, 1u, count);
+        return param->valueByRank[resolvedRank - 1u];
+    }
+
+    return fallbackValue;
+}
+
 inline f32_t ResolveSkillEffectParam(
     const SkillEffectSpec& effect,
     eSkillEffectParamId id,
     f32_t fallbackValue = 0.f)
 {
-    if (const SkillEffectParam* param = FindSkillEffectParam(effect, id))
-    {
-        return param->value;
-    }
-
-    return fallbackValue;
+    return ResolveSkillEffectParamRanked(effect, id, 1u, fallbackValue);
 }
 
 inline const SummonPolicyParam* FindSummonPolicyParam(
@@ -220,12 +326,14 @@ struct SkillGameAtomBundle
 {
     bool_t bValid = false;
     SkillSlotBinding slot{};
+    SkillInputSpec input{};
     SkillTargetSpec target{};
     SkillCostSpec cost{};
     SkillCooldownSpec cooldown{};
     SkillRangeSpec range{};
     SkillStageSpec stage{};
     SkillFacingSpec facing{};
+    SkillChargeSpec charge{};
     SkillEffectSpec effect{};
     SummonPolicySpec summonPolicy{};
 };

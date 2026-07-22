@@ -1,0 +1,40 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Objective.Elder.Execute",
+  "emitters": [
+    {
+      "name": "elder_breath",
+      "render_type": "Beam",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Character/Annie/particles/annie_base_firetrail_styled_02.png",
+      "lifetime": 0.75,
+      "fade_in": 0.03,
+      "fade_out": 0.28,
+      "width": 0.9,
+      "height": 6.0,
+      "color": [2.5, 0.38, 0.05, 0.92],
+      "attach_offset": [0.0, 1.2, -5.0],
+      "end_offset": [0.0, 1.0, 0.0],
+      "uv_scroll": [0.0, -2.8]
+    },
+    {
+      "name": "elder_execute_burst",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "OverlayNoDepth",
+      "texture": "Client/Bin/Resource/Texture/Character/Annie/particles/annie_hiteffect.png",
+      "lifetime": 0.55,
+      "start_delay": 0.18,
+      "segment_t": 1.0,
+      "fade_in": 0.02,
+      "fade_out": 0.3,
+      "width": 3.5,
+      "height": 3.5,
+      "color": [2.6, 0.45, 0.06, 0.98],
+      "attach_offset": [0.0, 1.0, 0.0],
+      "billboard": true
+    }
+  ]
+}

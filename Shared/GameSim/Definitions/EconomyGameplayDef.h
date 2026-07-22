@@ -28,12 +28,34 @@ struct EconomyMinionRewardDef
 
 struct EconomyJungleRewardDef
 {
-    f32_t smallCampGold = 35.f;
-    f32_t smallCampXP = 75.f;
-    f32_t epicGold = 150.f;
-    f32_t epicXP = 250.f;
-    f32_t baronGold = 300.f;
-    f32_t baronXP = 600.f;
+    f32_t smallCampGold = 80.f;
+    f32_t smallCampXP = 240.f;
+    f32_t epicGold = 0.f;
+    f32_t epicXP = 0.f;
+    f32_t baronGold = 0.f;
+    f32_t baronXP = 0.f;
+};
+
+struct ObjectiveGameplayDef
+{
+    f32_t teamGoldPerChampion = 2000.f;
+    u8_t teamLevelGrant = 3u;
+    f32_t buffDurationSec = 300.f;
+    f32_t baronRecallDurationMultiplier = 0.5f;
+    f32_t baronAuraRadius = 12.f;
+    f32_t baronMinionHpMultiplier = 3.f;
+    f32_t baronMinionAttackDamageMultiplier = 2.f;
+    f32_t baronMinionScaleMultiplier = 2.f;
+    f32_t elderAttackDamageMultiplier = 1.7f;
+    f32_t elderBurnDurationSec = 3.f;
+    f32_t elderBurnTickIntervalSec = 1.f;
+    f32_t elderBurnTargetMaxHpRatioPerTick = 0.01f;
+    f32_t elderExecuteThresholdRatio = 0.2f;
+    f32_t blueManaRegenPerSec = 10.f;
+    f32_t redHealthRegenPerSec = 10.f;
+    f32_t redBurnDurationSec = 3.f;
+    f32_t redBurnTickIntervalSec = 1.f;
+    f32_t redBurnDamagePerTick = 10.f;
 };
 
 struct EconomyGameplayDef
@@ -52,15 +74,17 @@ struct EconomyGameplayDef
     EconomyMinionRewardDef ranged{ 30.40f, 39.68f, 14.f, 0.f, 0.f, 0.f };
     EconomyMinionRewardDef siege{ 95.f, 124.f, 60.f, 90.f, 3.f, 90.f };
     EconomyMinionRewardDef super{ 95.f, 124.f, 60.f, 90.f, 3.f, 90.f };
-    f32_t turretGold = 250.f;
+    f32_t turretGold = 1500.f;
+    f32_t turretTeamGold = 1000.f;
     EconomyJungleRewardDef jungle{};
+    ObjectiveGameplayDef objectives{};
 
     u64_t passiveGoldStartTick = 3300ull;      // 110s * 30Hz (LoL 1:50)
     u64_t passiveGoldIntervalTicks = 30ull;    // 1s
     u32_t passiveGoldPerGrant = 2u;            // ~2.0g/s
 
     f32_t assistCreditWindowSec = 10.f;
-    f32_t recallDurationSec = 2.f;
+    f32_t recallDurationSec = 6.f;
 
     // 팩 미장착 판별용: 코드젠/오버레이가 채운 팩만 true.
     bool_t bValid = false;

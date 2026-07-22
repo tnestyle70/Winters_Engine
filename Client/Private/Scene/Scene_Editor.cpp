@@ -115,6 +115,9 @@ bool CScene_Editor::OnEnter()
     // 맵 메시 (InGame 과 동일)
     m_Map.Initialize("Texture/MAP/output/sr_base_flip.wmesh",
         L"Shaders/Mesh3D.hlsl");
+    m_Map.SetGrassTintMaterialByName(
+        "Maps/KitPieces/SRX/Base/Models/LevelProp/Materials/VertexDeform_inst",
+        L"Texture/MAP/output/textures/assets/maps/info/map11/grasstint_srx.png");
     m_MapTransform.SetPosition(0.f, 0.f, 0.f);
     // InGame 과 동일한 X mirror 적용 (lol2gltf --flipX false 무력화 우회).
     m_MapTransform.SetScale({ -0.01f, 0.01f, 0.01f });

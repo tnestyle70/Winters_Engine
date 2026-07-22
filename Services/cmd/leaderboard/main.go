@@ -15,7 +15,6 @@ import (
 	"winters-backend/pkg/cache"
 	"winters-backend/pkg/config"
 	"winters-backend/pkg/database"
-	"winters-backend/pkg/messaging"
 	"winters-backend/pkg/middleware"
 )
 
@@ -50,11 +49,6 @@ func main() {
 	if err := repo.SyncFromDB(ctx); err != nil {
 		slog.Warn("failed to sync leaderboard from db", "error", err)
 	}
-
-	reader := messaging.NewReader(cfg.Kafka.Brokers, messaging.TopicMatchEvents, "leaderboard-consumer")
-	defer reader.Close()
-	consumer := leaderboard.NewConsumer(repo, reader)
-	go consumer.Start(ctx)
 
 	jwtMgr := jwtauth.NewJWTManager(cfg.JWT.AccessSecret, cfg.JWT.RefreshSecret, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
 	handler := leaderboard.NewHandler(repo)

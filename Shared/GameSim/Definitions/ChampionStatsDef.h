@@ -3,6 +3,14 @@
 #include "LoLMatchContext.h"
 #include "WintersTypes.h"
 
+enum class eChampionResourceKind : u8_t
+{
+    Mana = 0,
+    Energy,
+    None,
+    Flow,
+};
+
 struct ChampionStatsDef
 {
     eChampion championId = eChampion::NONE;
@@ -11,6 +19,8 @@ struct ChampionStatsDef
     f32_t hpPerLevel = 100.f;
     f32_t baseMana = 300.f;
     f32_t manaPerLevel = 50.f;
+    eChampionResourceKind resourceKind = eChampionResourceKind::Mana;
+    f32_t resourceRegenPerSec = 0.f;
     f32_t baseAd = 60.f;
     f32_t adPerLevel = 3.5f;
     f32_t baseAp = 0.f;
@@ -22,6 +32,7 @@ struct ChampionStatsDef
     f32_t baseAttackSpeed = 0.60f;
     f32_t attackSpeedRatio = 0.60f;
     f32_t attackSpeedPerLevel = 0.025f;
+    f32_t basicAttackWindupSec = 0.f;
     f32_t baseAttackRange = 5.5f;
     f32_t baseMoveSpeed = 5.f;
     f32_t navArriveRadius = 0.15f;

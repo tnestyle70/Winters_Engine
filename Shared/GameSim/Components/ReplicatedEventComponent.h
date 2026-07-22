@@ -49,6 +49,7 @@ inline constexpr u32_t kEzrealEffectArcaneShiftBlink = 0x455A4501u;
 inline constexpr u32_t kEzrealEffectEssenceFluxMark = 0x455A5701u;
 inline constexpr u32_t kEzrealEffectEssenceFluxDetonate = 0x455A5702u;
 inline constexpr u32_t kEzrealEffectEssenceFluxClear = 0x455A5703u;
+inline constexpr u32_t kObjectiveEffectElderExecute = 0x4F424A01u;
 
 struct ReplicatedEventComponent
 {
@@ -68,6 +69,8 @@ struct ReplicatedEventComponent
     u16_t durationMs = 0;
     u16_t flags = 0;
     u16_t uContactOrdinal = 0u;
+    f32_t effectLength = 0.f;
+    f32_t effectHalfWidth = 0.f;
 
     u8_t slot = 0;
     u8_t rank = 0;

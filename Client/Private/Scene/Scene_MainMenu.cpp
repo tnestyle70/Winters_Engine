@@ -37,6 +37,7 @@ bool CScene_MainMenu::OnEnter()
 	m_bLogoutRequested = false;
 	m_bShopRequested = false;
 	m_bMyInfoRequested = false;
+	m_bWaitingForMatch = false;
 	m_ImageUI.Initialize(
 		L"Texture/UI/MainMenu1.png",
 		1545,
@@ -76,18 +77,29 @@ void CScene_MainMenu::OnExit()
 	m_strStatus.clear();
 }
 
-void CScene_MainMenu::OnUpdate(f32_t /*dt*/)
+void CScene_MainMenu::OnUpdate(f32_t dt)
 {
-	CClientShellBackendService::Instance().ProcessCallbacks();
-	if (!CClientShellBackendService::Instance().GetStatus().empty())
-		m_strStatus = CClientShellBackendService::Instance().GetStatus();
+	CClientShellBackendService& backend =
+		CClientShellBackendService::Instance();
+	backend.ProcessCallbacks();
+	if (!backend.GetStatus().empty())
+		m_strStatus = backend.GetStatus();
 
-	if (m_ImageUI.WasSourceRectClicked(kGameStartRect))
-		RequestPlay();
-	if (m_ImageUI.WasSourceRectClicked(kShopButtonRect))
-		m_bShopRequested = true;
-	if (m_ImageUI.WasSourceRectClicked(kMyInfoPortraitRect))
-		m_bMyInfoRequested = true;
+	const bool_t bGameStartClicked =
+		m_ImageUI.WasSourceRectClicked(kGameStartRect);
+	if (m_bWaitingForMatch)
+	{
+		UpdateOnlineMatchmaking(dt);
+	}
+	else
+	{
+		if (bGameStartClicked)
+			RequestPlay();
+		if (m_ImageUI.WasSourceRectClicked(kShopButtonRect))
+			m_bShopRequested = true;
+		if (m_ImageUI.WasSourceRectClicked(kMyInfoPortraitRect))
+			m_bMyInfoRequested = true;
+	}
 
 	if (m_bLogoutRequested) { m_bLogoutRequested = false; ChangeToLogin(); return; }
 	if (m_bShopRequested) { m_bShopRequested = false; ChangeToShop(); return; }
@@ -144,12 +156,60 @@ void CScene_MainMenu::OnImGui()
 		sprintf_s(szBuffer, sizeof(szBuffer), "%d RP", store.GetProfile().iRP);
 		drawSourceText(1405.f, 156.f, IM_COL32(120, 210, 255, 255), szBuffer);
 	}
+	if (m_bWaitingForMatch)
+	{
+		drawSourceText(
+			47.f,
+			78.f,
+			IM_COL32(120, 210, 255, 255),
+			m_strStatus.c_str());
+	}
 }
 
 void CScene_MainMenu::RequestPlay()
 {
-	m_strStatus = "Launching selected product...";
-	m_bPlayRequested = true;
+	const CClientShellSession& session = CClientShellSession::Instance();
+	if (!session.IsAuthenticated() || session.IsOfflineAccount())
+	{
+		m_strStatus = "Launching selected product...";
+		m_bPlayRequested = true;
+		return;
+	}
+
+	CClientShellBackendService& backend =
+		CClientShellBackendService::Instance();
+	if (!backend.IsConfigured())
+	{
+		m_strStatus = "Online lobby backend is unavailable";
+		return;
+	}
+
+	m_bWaitingForMatch = true;
+	m_strStatus = "Joining authenticated custom lobby...";
+	backend.RequestJoinQueue();
+}
+
+void CScene_MainMenu::UpdateOnlineMatchmaking(f32_t /*dt*/)
+{
+	CClientShellBackendService& backend =
+		CClientShellBackendService::Instance();
+	const ShellLobbyState& lobby =
+		CClientShellDataStore::Instance().GetLobbyState();
+	if (CClientShellSession::Instance().HasMatchAssignment() &&
+		lobby.bMatchReady)
+	{
+		m_bWaitingForMatch = false;
+		m_strStatus = "Authenticated custom lobby ready";
+		m_bPlayRequested = true;
+		return;
+	}
+
+	if (lobby.eQueueState == eLobbyQueueState::Idle &&
+		!backend.IsMatchRequestInFlight())
+	{
+		m_bWaitingForMatch = false;
+		return;
+	}
 }
 
 void CScene_MainMenu::RequestLogout()

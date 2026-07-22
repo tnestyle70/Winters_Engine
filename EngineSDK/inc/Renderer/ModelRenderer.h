@@ -81,15 +81,25 @@ public:
 		f32_t fPlaySpeed = 1.f);
 	bool HasAnimationByName(const std::string& strKeyword) const;
 	f32_t GetAnimationDurationSecondsByName(const std::string& strKeyword) const;
+	f32_t GetAnimationTimeSecondsByFrameByName(
+		const std::string& strKeyword,
+		f32_t fFrame) const;
 	bool HasSkeleton() const;
 	bool TryResolveBoneWorldPosition(const std::string& strBoneName,
 		const Mat4& matEntityWorld,
 		const Vec3& vLocalOffset,
 		Vec3& vOutWorldPos) const;
+	bool TryResolveBoneWorldPose(const std::string& strBoneName,
+		const Mat4& matEntityWorld,
+		const Vec3& vLocalOffset,
+		Vec3& vOutWorldPos,
+		Mat4& matOutWorldRotation) const;
 	bool UsesPBR() const;
 	void SetAmbientOcclusionSRV(void* pNativeSRV);
 	void SetMaterialOverrideColor(const Vec4& color, bool_t bEnabled);
 	void ClearMaterialOverrideColor();
+	bool_t SetGrassTintMaterialByName(const std::string& materialName,
+		const std::wstring& grassTintTexturePath);
 	void SetHoverOutline(const Vec4& color, f32_t fIntensity = 1.f);
 	void ClearHoverOutline();
 
@@ -116,6 +126,8 @@ public:
 	Vec3 GetLocalAABBMax() const;
 
 private:
+	void UpdateObjectConstants(bool_t bUseGrassTint);
+
 	struct Impl;
 	Impl* m_pImpl = nullptr;
 };

@@ -10,6 +10,8 @@
 #include "Game/SessionBinding.h"
 #include "Shared/GameSim/Core/Determinism/DeterministicRng.h"
 #include "Shared/GameSim/Core/Determinism/DeterministicTime.h"
+#include "Shared/GameSim/Definitions/PracticeMinionAttackDamagePolicy.h"
+#include "Shared/GameSim/Definitions/SpawnLoadoutPolicyDef.h"
 #include "Shared/GameSim/Replication/EntityIdMap.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/Replay/ReplayFormat.h"
@@ -17,6 +19,7 @@
 #include "WintersMath.h"
 #include "WintersTypes.h"
 
+#include <array>
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -67,7 +70,7 @@ public:
         u64_t acceptedTick, u64_t recvTimeMs, u64_t clientTimestampMs);
     void OnLobbyCommand(u32_t sessionId, const Shared::Schema::LobbyCommand* command);
 
-    EntityID OnSessionJoin(u32_t sessionId);
+    EntityID OnSessionJoin(u32_t sessionId, bool_t* pOutAccepted = nullptr);
     void OnSessionLeave(u32_t sessionId);
     bool DebugSetHealthByNetId(NetEntityId netId, f32_t value);
 
@@ -85,6 +88,7 @@ public:
     bool_t TrySampleHeight(f32_t x, f32_t z, f32_t& outY) const override;
 
     u32_t GetRoomId() const { return m_roomId; }
+    void SetCompletedGameSessionGenerationFloor(u64_t generation);
     u64_t GetCurrentTickIndex() const
     {
         return m_visibleTickIndex.load(std::memory_order_relaxed);
@@ -108,6 +112,7 @@ private:
     // S035: 게임종료 후 마지막 세션 이탈 시 룸을 새 매치 대기 상태(SeatSelect)로 리셋.
     // m_stateMutex를 잡은 문맥에서만 호출한다.
     void ResetMatchStateLocked();
+    bool_t TryResetCompletedMatchLocked();
 
     void Phase_DrainCommands(TickContext& tc);
     void Phase_ExecuteCommands(TickContext& tc);
@@ -132,6 +137,10 @@ private:
         u64_t tick,
         const GameCommand& command,
         Winters::Replay::eReplayJournalOutcome outcome);
+    bool_t TryHandleTeamPing(
+        const TickContext& tc,
+        const GameCommand& cmd,
+        bool_t& outAccepted);
     bool_t TryHandlePracticeControl(
         const TickContext& tc,
         const GameCommand& cmd,
@@ -142,6 +151,7 @@ private:
         bool_t& outAccepted);
     void TickPracticeControls(const TickContext& tc);
     void ClearPracticeSpawns();
+    void ClearPracticeMinionAttackDamageOverrides();
     bool_t CommitPendingPracticeControlChange(const TickContext& tc);
     void CancelPendingPracticeControlChange(u64_t tick);
     void TickPausedControlLane();
@@ -155,7 +165,10 @@ private:
     void SpawnChampionsFromLobby();
     void InitializeServerSimSystems();
     void InitializeServerWalkableGrid(const Winters::Map::StageData* pStage, const wchar_t* pStagePath);
-    void CarveServerStructuresOnNavGrid();
+    bool_t CaptureServerTerrainNavGrid();
+    u64_t ComputeServerStructureNavigationStateHash();
+    void RefreshServerStructureNavigationIfNeeded();
+    bool_t CarveServerStructuresOnNavGrid(bool_t bRebuildDerived = true);
     void BuildServerPathNavGrid();
     bool_t LoadServerStageData(Winters::Map::StageData& outStage, std::wstring& outPath) const;
     void CacheServerMinionWaypoints(const Winters::Map::StageData& stage);
@@ -203,6 +216,7 @@ private:
         EntityID entity,
         const Vec3& vPos,
         f32_t fStep,
+        const Vec3& vPreferredForward,
         const TickContext& tc,
         Vec3& vOutNext);
     bool_t TryBuildServerMinionMovePath(
@@ -215,6 +229,11 @@ private:
 
     u32_t GetServerMinionWaypointCount(eTeam team, u8_t lane) const;
     Vec3 GetServerMinionWaypoint(eTeam team, u8_t lane, u32_t index) const;
+    void AdvanceServerMinionWaypointPastPosition(
+        MinionStateComponent& state,
+        const Vec3& position,
+        u8_t waypointLane,
+        u32_t waypointCount) const;
     u8_t ResolveServerStructureLane(eTeam team, u32_t kind, u32_t tier, const Vec3& pos) const;
     Vec3 ResolveChampionAILaneGoal(eTeam team, u8_t lane) const;
     Vec3 ResolveChampionAISafeAnchor(eTeam team, u8_t lane);
@@ -258,14 +277,21 @@ private:
     std::unique_ptr<Engine::CSpatialHashSystem> m_pSpatialSystem;
     std::unique_ptr<GameplayTurret::CTurretAISystem> m_pTurretAI;
     std::unique_ptr<Engine::CMapSurfaceSampler> m_pMapSurfaceSampler;
+    std::unique_ptr<Engine::CNavGrid> m_pTerrainNavGrid;
     std::unique_ptr<Engine::CNavGrid> m_pNavGrid;
     std::unique_ptr<Engine::CNavGrid> m_pPathNavGrid;
     std::unique_ptr<Engine::CNavGrid> m_pMinionLaneNavGrid;
+    u64_t m_serverStructureNavigationStateHash = 0ull;
+    u64_t m_serverPathNavGridBuildCount = 0ull;
+    u64_t m_serverStructureNavigationRefreshCount = 0ull;
 
     CCommandIngress m_commandIngress;
     std::vector<GameCommand> m_pendingExecCommands;
     std::unordered_map<u64_t, PendingCommand> m_pendingReplayCommands;
     bool_t m_bPracticeModeEnabled = false;
+    std::array<f32_t, SpawnLoadoutPolicyDef::kRespawnLevelCount>
+        m_PracticeRespawnSecondsByLevel{};
+    PracticeMinionAttackDamagePolicy m_PracticeMinionAttackDamage{};
     std::vector<EntityID> m_PracticeSpawnedEntities;
 
     enum class PracticeControlChangeKind : u8_t
@@ -305,15 +331,39 @@ private:
         CServerMinionWaveRuntime::WaveState waveState{};
         f32_t turretActivationAccum = 0.f;
         bool_t bPracticeModeEnabled = false;
+        std::array<f32_t, SpawnLoadoutPolicyDef::kRespawnLevelCount>
+            practiceRespawnSecondsByLevel{};
+        std::array<f32_t, PracticeMinionAttackDamagePolicy::kRoleCount>
+            practiceMinionAttackDamageByRole{};
     };
     std::vector<RoomKeyframe> m_keyframes;
     u64_t m_pendingRewindToTick = 0;
 
     std::vector<u32_t> m_sessionIds;
     CSessionBinding m_sessionBinding;
+
+    struct AuthenticatedMatchParticipant
+    {
+        u32_t sessionId = 0u;
+        u8_t team = 0xFFu;
+        NetEntityId perspectiveNetId = NULL_NET_ENTITY;
+    };
+    std::string m_matchID;
+    std::string m_gameSessionID;
+	u64_t m_gameSessionGeneration = 0u;
+	u64_t m_lastCompletedGameSessionGeneration = 0u;
+    std::string m_pendingReadyMatchID;
+    std::string m_pendingReadyGameSessionID;
+    std::unordered_map<u32_t, std::string> m_userIDBySession;
+    std::unordered_map<std::string, AuthenticatedMatchParticipant>
+        m_authenticatedParticipants;
+    u8_t m_winningTeam = 0xFFu;
     std::unordered_map<EntityID, u32_t> m_lastBroadcastActionSeq;
     std::unordered_map<u32_t, u32_t> m_lastSimCommandSeqBySession;
+    std::unordered_map<u32_t, std::array<SkillCommandFeedback, 5u>>
+        m_lastCommandFeedbackBySession;
 
     bool_t m_bGameplayObjectsSpawned = false;
     CServerMinionWaveRuntime m_serverMinionWaves{};
+    std::unordered_map<EntityID, Vec3> m_serverMinionTickStartPositions{};
 };

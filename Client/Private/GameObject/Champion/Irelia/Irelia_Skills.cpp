@@ -13,9 +13,11 @@
 #include "GameObject/FX/FxRibbonComponent.h"
 #include "GamePlay/VisualHookRegistry.h"
 #include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
+#include "Shared/GameSim/Components/StatComponent.h"
 #include "Client/Private/Data/LoLVisualDefinitionPack.h"
 
 #include <Windows.h>
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <functional>
@@ -199,7 +201,7 @@ namespace Irelia
 
         const bool_t bPlayed =
             CFxCuePlayer::PlayAll(world, "Irelia.W.Spin", hold, &state.wHoldCueIds) != NULL_ENTITY;
-        state.bWHoldCueActive = false;
+        state.bWHoldCueActive = bPlayed;
         return bPlayed;
     }
 
@@ -438,10 +440,15 @@ namespace Irelia
             ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
         const Vec3 pTarget =
             ctx.pWorld->GetComponent<TransformComponent>(target).GetPosition();
-        constexpr f32_t kQDashStopGap = 1.35f;
-        const Vec3 pEnd = IreliaGameSim::ResolveQDashEndPos(pStart, pTarget, kQDashStopGap);
+        const Vec3 pEnd = IreliaGameSim::ResolveQDashEndPos(
+            pStart, pTarget, IreliaGameSim::kQStopGapFallback);
 
-        const f32_t duration = ctx.getLocalDashDuration ? ctx.getLocalDashDuration() : 0.3f;
+        f32_t dashSpeed = IreliaGameSim::kQBaseDashSpeedFallback;
+        if (ctx.pWorld->HasComponent<StatComponent>(ctx.casterEntity))
+            dashSpeed += ctx.pWorld->GetComponent<StatComponent>(ctx.casterEntity).moveSpeed;
+        const f32_t travelDistance = std::sqrtf(
+            WintersMath::DistanceSqXZ(pStart, pEnd));
+        const f32_t duration = travelDistance / std::max(0.01f, dashSpeed);
         ctx.startPointDash(pStart, pEnd, duration, target);
         IreliaFx::SpawnQTrail(*ctx.pWorld, ctx.casterEntity, duration);
         PlayQLeadingEdgeCue(*ctx.pWorld, ctx.casterEntity, ctx.pCommand);
@@ -477,8 +484,6 @@ namespace Irelia
     void OnCastAccepted_E(SkillHookContext& ctx)
     {
         if (!ctx.pWorld || !ctx.pCommand || !ctx.pFxMeshRenderer)
-            return;
-        if (ctx.pCommand->resolvedTargetMode != static_cast<u8_t>(eTargetMode::GroundTarget))
             return;
 
         const IreliaTuning& t = GetTuning();

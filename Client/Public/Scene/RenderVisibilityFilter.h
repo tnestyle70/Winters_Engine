@@ -41,7 +41,8 @@ namespace UI
         CWorld& world,
         EntityID entity,
         u8_t localTeam,
-        bool_t bIgnoreFogOfWar = false)
+        bool_t bIgnoreFogOfWar = false,
+        bool_t bAllowDebugReveal = true)
     {
         if (entity == NULL_ENTITY)
             return true;
@@ -73,16 +74,16 @@ namespace UI
             return true;
 
 #if defined(_DEBUG) && !defined(WINTERS_DISABLE_AI_VISIBILITY_DEBUG)
-        return true;
-#else
-        if (!world.HasComponent<VisibilityComponent>(entity))
+        if (bAllowDebugReveal)
             return true;
+#endif
+        if (!world.HasComponent<VisibilityComponent>(entity))
+            return bAllowDebugReveal;
 
         if (localTeam >= 8)
             return true;
 
         const VisibilityComponent& visibility = world.GetComponent<VisibilityComponent>(entity);
         return (visibility.teamVisibilityMask & static_cast<u8_t>(1u << localTeam)) != 0;
-#endif
     }
 }

@@ -4,12 +4,10 @@
 #include "WintersMath.h"
 #include "IScene.h"
 #include "Sound/SoundChannel.h"
-#include "ECS/Systems/EntityBlueprint.h"
 #include "Manager/Profiler/ProfilerOverlay.h"
 #include "Core/Profiler/CPUProfiler.h"
 
 class CWorld;
-class CEntityBlueprintRegistry;
 class CJobSystem;
 class CProfilerOverlay;
 class DX11Shader;
@@ -52,7 +50,6 @@ public: // Timer
 public: // Scene
     CScene_Manager* Get_SceneManager() { return m_pScene_Manager.get(); }
     HRESULT Change_Scene(uint32_t iNextSceneID, unique_ptr<IScene> pNewScene);
-    HRESULT Set_StaticScene(unique_ptr<IScene> pScene);
     void Clear_Resources(uint32_t iPrevSceneID);
 
 public: // Sound
@@ -83,7 +80,10 @@ public: // UI
         const Vec4& vUVRect,
         const Vec4& vColor,
         u32_t iSegmentCount = 48);
-    void UI_OnImGui_Tuner();
+    void UI_OnImGui_Tuner(
+        void(*pfnExternalTabs)(void*) = nullptr,
+        bool_t(*pfnExternalSaveAll)(void*) = nullptr,
+        void* pExternalUser = nullptr);
     void UI_OnImGui_StatusPanelLayoutTuner();
     void UI_Set_ActiveLuaScreen(const char* pScreenID);
     void UI_Reload_Lua();
@@ -119,27 +119,24 @@ public: // UI
     void UI_Push_MapPing(const Vec3& vWorldPos, u8_t iDirection);
     void UI_Set_InGameBuyItemCallback(void(*pfn)(void*, u16_t), void* pUser);
     void UI_Set_LevelSkillCallback(void(*pfn)(void*, u8_t), void* pUser);
+    void UI_Set_InventoryReorderCallback(
+        void(*pfn)(void*, u8_t, u8_t, u16_t), void* pUser);
+    bool_t UI_IsPointerOverActorInventory() const;
     void UI_Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
-        u8_t iDamageType, bool_t bWasCrit, bool_t bKilled);
+        u8_t iDamageType, bool_t bWasCrit, bool_t bKilled,
+        bool_t bShowCriticalIndicator = false);
     void UI_Push_WorldText(const Vec3& vWorldPos, const char* pText,
         const Vec4& vColor, f32_t fLifetime);
     void UI_Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
         f32_t fLifetime);
     //Kill, Slay, Destroy Log
     void UI_Push_KillFeedBanner(u8_t iSourceActorId, u8_t iTargetActorId,
-        u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage);
+        u8_t iObjectKind, u8_t iTargetTeam,
+        bool_t bSourceAlly, bool_t bSourceMinion, const char* pMessage);
     void UI_RecordMatchContextActorKill(u8_t iSourceTeam, u8_t iTargetTeam,
         bool_t bLocalSource, bool_t bLocalTarget);
     void UI_RecordMatchContextUnitKill();
     void UI_SetMatchContextServerTimeMs(u64_t iServerTimeMs);
-
-public: // Blueprint
-    HRESULT Add_Blueprint(uint32_t iSceneID, const std::wstring& strKey,
-        CEntityBlueprint blueprint);
-
-    EntityID Clone_Entity(uint32_t iSceneID, const std::wstring& strKey, CWorld& world);
-    EntityID Clone_Entity(uint32_t iSceneID, const std::wstring& strKey,
-        CWorld& world, const void* pArg);
 
 public: // Profiler
     void Profiler_Begin();
@@ -180,7 +177,6 @@ private:
     unique_ptr<class CScene_Manager> m_pScene_Manager = {};
     unique_ptr<class CSound_Manager> m_pSound_Manager = {};
     unique_ptr<class CUI_Manager> m_pUI_Manager = {};
-    unique_ptr<class CEntityBlueprintRegistry> m_pBlueprintRegistry = {};
     unique_ptr<class CCPUProfiler> m_pProfiler = {};
     unique_ptr<class CProfilerOverlay> m_pProfilerOverlay = {};
     unique_ptr<class CJobSystem> m_pJobSystem = {};

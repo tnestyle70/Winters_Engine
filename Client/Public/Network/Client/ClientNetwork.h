@@ -9,6 +9,7 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <span>
 #include <thread>
 #include <tuple>
 #include <vector>
@@ -30,7 +31,10 @@ public:
 		eClientNetworkTransport transport = eClientNetworkTransport::Tcp);
 	~CClientNetwork();
 
-	bool Connect(const char* host, u16_t port);
+	bool Connect(
+		const char* host,
+		u16_t port,
+		std::span<const u8_t> connectTicket = {});
 	void Disconnect();
 
 	// UDP owns lane/message sequencing; applicationSequence is retained by the

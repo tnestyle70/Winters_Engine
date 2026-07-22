@@ -42,4 +42,5 @@ table LobbySlot {
     botProfile:ushort;
     ready:bool;
     locked:bool;
+    championDefinitionKey:uint;
 }

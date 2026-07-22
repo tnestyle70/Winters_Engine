@@ -7,7 +7,18 @@
       "team": "Blue",
       "mesh": "Texture/Object/Inhibitor/inhibitor_textured.wmesh",
       "shader": "Shaders/Mesh3D.hlsl",
-      "visibilityStates": []
+      "visibilityStates": [
+        {
+          "name": "Alive",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": false
+        },
+        {
+          "name": "Destroyed",
+          "submeshIndex": 1,
+          "visibleWhenDestroyed": true
+        }
+      ]
     },
     {
       "key": "structure.inhibitor.red",
@@ -15,7 +26,18 @@
       "team": "Red",
       "mesh": "Texture/Object/Inhibitor/inhibitor_red_textured.wmesh",
       "shader": "Shaders/Mesh3D.hlsl",
-      "visibilityStates": []
+      "visibilityStates": [
+        {
+          "name": "Alive",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": false
+        },
+        {
+          "name": "Destroyed",
+          "submeshIndex": 1,
+          "visibleWhenDestroyed": true
+        }
+      ]
     },
     {
       "key": "structure.nexus.blue",
@@ -63,14 +85,21 @@
       "shader": "Shaders/Mesh3D.hlsl",
       "visibilityStates": [
         {
+          "name": "Base",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": false
+        },
+        {
           "name": "Stage1",
           "submeshIndex": 1,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Stage2",
           "submeshIndex": 2,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Stage3Stump",
@@ -80,22 +109,26 @@
         {
           "name": "Rubble",
           "submeshIndex": 4,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken1",
           "submeshIndex": 5,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken2",
           "submeshIndex": 6,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken3",
           "submeshIndex": 7,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         }
       ]
     },
@@ -107,14 +140,21 @@
       "shader": "Shaders/Mesh3D.hlsl",
       "visibilityStates": [
         {
+          "name": "Base",
+          "submeshIndex": 0,
+          "visibleWhenDestroyed": false
+        },
+        {
           "name": "Stage1",
           "submeshIndex": 1,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Stage2",
           "submeshIndex": 2,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Stage3Stump",
@@ -124,22 +164,26 @@
         {
           "name": "Rubble",
           "submeshIndex": 4,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken1",
           "submeshIndex": 5,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken2",
           "submeshIndex": 6,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         },
         {
           "name": "Broken3",
           "submeshIndex": 7,
-          "visibleWhenDestroyed": true
+          "visibleWhenDestroyed": false,
+          "visibleWhenAlive": false
         }
       ]
     }
@@ -260,6 +304,7 @@
       "team": 0,
       "mesh": "Texture/Object/Minion_Order/Siege/order_siege_textured.wmesh",
       "shader": "Shaders/Mesh3D.hlsl",
+      "visualScaleMultiplier": 1.5,
       "textureAllMeshes": ""
     },
     {
@@ -300,6 +345,7 @@
       "team": 1,
       "mesh": "Texture/Object/Minion_Chaos/siege/chaos_siege_textured.wmesh",
       "shader": "Shaders/Mesh3D.hlsl",
+      "visualScaleMultiplier": 1.5,
       "textureAllMeshes": ""
     },
     {
@@ -347,7 +393,7 @@
   },
   "mapRuntime": {
     "baseMapMesh": "Texture/MAP/output/sr_base_flip.wmesh",
-    "baseMapSurface": "Texture/MAP/output/sr_base_flip.wmesh",
+    "baseMapSurface": "Texture/MAP/output/sr_base_flip_surface.wmesh",
     "fullLayerMapMesh": "Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh",
     "fullLayerMapSurface": "Texture/MAP/Map11_Rebuild/cooked/sr_base_flip_full_layers.wmesh",
     "brushVolumeCsv": "Texture/MAP/Map11_Rebuild/manifest/map11_brush_volumes.csv",
@@ -355,6 +401,11 @@
     "attackRangeTexture": "Texture/UI/UI_AttackRange.png"
   },
   "fxMeshPreloads": [
+    {
+      "key": "fx.ashe.base_arrow",
+      "mesh": "Texture/Character/Ashe/particles/fbx/ashe_base_aa_arrow.fbx",
+      "texture": "Texture/Character/Ashe/particles/ashe_base_aa_arrowtext.png"
+    },
     {
       "key": "fx.irelia.e_beam",
       "mesh": "Texture/FX/Irelia/fbx/irelia_base_e_beam.fbx",

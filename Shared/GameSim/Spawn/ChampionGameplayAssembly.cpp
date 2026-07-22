@@ -2,6 +2,7 @@
 
 #include "Shared/GameSim/Definitions/ChampionGameplayDef.h"
 #include "Shared/GameSim/Definitions/SkillTypes.h"
+#include "Shared/GameSim/Definitions/WardDefinitions.h"
 
 #include "Shared/GameSim/Components/ChampionComponent.h"
 #include "Shared/GameSim/Components/ChampionDefinitionComponent.h"
@@ -17,6 +18,7 @@
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
+#include "Shared/GameSim/Systems/ChampionAI/ChampionAIPolicy.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
 #include "Shared/GameSim/Systems/Stat/StatSystem.h"
 
@@ -27,43 +29,34 @@
 
 namespace
 {
-    void AssignDefaultBotSkillRanks(SkillRankComponent& ranks, u8_t championLevel)
+    void AssignDefaultBotSkillRanks(
+        SkillRankComponent& ranks,
+        eChampion champion,
+        u8_t championLevel)
     {
         ranks = SkillRankComponent{};
         CSkillRankSystem::SyncPointsForLevel(ranks, championLevel);
-
-        static constexpr u8_t kLevelOrder[] =
+        const ChampionAIProfile& profile = GetChampionAIProfile(champion);
+        while (ranks.pointsAvailable > 0u)
         {
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::R),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::R),
-            static_cast<u8_t>(eSkillSlot::Q),
-            static_cast<u8_t>(eSkillSlot::W),
-            static_cast<u8_t>(eSkillSlot::E),
-            static_cast<u8_t>(eSkillSlot::R),
-        };
-
-        const u8_t count = std::min<u8_t>(
-            championLevel,
-            static_cast<u8_t>(sizeof(kLevelOrder) / sizeof(kLevelOrder[0])));
-        for (u8_t i = 0; i < count && ranks.pointsAvailable > 0u; ++i)
-            CSkillRankSystem::TryLevelSkill(ranks, kLevelOrder[i]);
+            const u8_t slot = ResolveChampionAISkillLevelSlot(
+                profile,
+                ranks,
+                championLevel);
+            if (slot >= static_cast<u8_t>(eSkillSlot::SLOT_END) ||
+                !CSkillRankSystem::TryLevelSkill(ranks, championLevel, slot))
+            {
+                break;
+            }
+        }
     }
 }
 
 EntityID ChampionGameplayAssembly::Build(CWorld& world, const ChampionAssemblyContext& ctx)
 {
+    if (!ctx.pDef)
+        return NULL_ENTITY;
+
     const EntityHandle entityHandle = world.CreateEntityHandle();
     const EntityID entity = entityHandle.GetIndex();
 
@@ -72,26 +65,19 @@ EntityID ChampionGameplayAssembly::Build(CWorld& world, const ChampionAssemblyCo
     world.AddComponent<TransformComponent>(entity, transform);
 
     StatComponent stat{};
-    if (ctx.pDef)
-    {
-        ChampionDefinitionComponent identity{};
-        identity.championDefId = ctx.pDef->id;
-        world.AddComponent<ChampionDefinitionComponent>(entity, identity);
+    ChampionDefinitionComponent identity{};
+    identity.championDefId = ctx.pDef->id;
+    world.AddComponent<ChampionDefinitionComponent>(entity, identity);
 
-        SkillLoadoutComponent loadout{};
-        for (u8_t skillSlot = 0u; skillSlot < kChampionSkillSlotCount; ++skillSlot)
-            loadout.skills[skillSlot] = ctx.pDef->skillLoadout[skillSlot];
-        world.AddComponent<SkillLoadoutComponent>(entity, loadout);
+    SkillLoadoutComponent loadout{};
+    for (u8_t skillSlot = 0u; skillSlot < kChampionSkillSlotCount; ++skillSlot)
+        loadout.skills[skillSlot] = ctx.pDef->skillLoadout[skillSlot];
+    world.AddComponent<SkillLoadoutComponent>(entity, loadout);
 
-        stat = CStatSystem::BuildBaseStats(
-            ctx.pDef->stats,
-            ctx.pDef->legacyChampion,
-            ctx.loadout.startLevel);
-    }
-    else
-    {
-        stat = CStatSystem::BuildBaseStats(ctx.fallbackStats, ctx.loadout.startLevel);
-    }
+    stat = CStatSystem::BuildBaseStats(
+        ctx.pDef->stats,
+        ctx.pDef->legacyChampion,
+        ctx.loadout.startLevel);
     if (ctx.maxHpOverride > 0.f)
         stat.hpMax = ctx.maxHpOverride;
     world.AddComponent<StatComponent>(entity, stat);
@@ -114,7 +100,7 @@ EntityID ChampionGameplayAssembly::Build(CWorld& world, const ChampionAssemblyCo
 
     SkillRankComponent skillRank{};
     if (ctx.bAssignBotSkillRanks)
-        AssignDefaultBotSkillRanks(skillRank, stat.level);
+        AssignDefaultBotSkillRanks(skillRank, ctx.champion, stat.level);
     else
         CSkillRankSystem::SyncPointsForLevel(skillRank, stat.level);
     world.AddComponent<SkillRankComponent>(entity, skillRank);
@@ -124,6 +110,9 @@ EntityID ChampionGameplayAssembly::Build(CWorld& world, const ChampionAssemblyCo
     world.AddComponent<GoldComponent>(entity, gold);
 
     InventoryComponent inventory{};
+    constexpr u8_t kDefaultWardSlot = 3u;
+    inventory.itemIds[kDefaultWardSlot] = kTrinketWardItemId;
+    inventory.count = static_cast<u8_t>(kDefaultWardSlot + 1u);
     if (ctx.champion == eChampion::KALISTA)
     {
         // 칼리스타 서약(Oathsworn) 아이템은 스폰 시 고정 슬롯에 시딩된다 —

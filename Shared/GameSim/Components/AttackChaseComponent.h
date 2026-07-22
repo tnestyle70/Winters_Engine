@@ -18,6 +18,7 @@ struct AttackChaseComponent
     Vec3 direction{};
     f32_t repathTimer = 0.f;
     bool_t bActive = false;
+    bool_t bSustain = false;
 };
 
 static_assert(std::is_trivially_copyable_v<AttackChaseComponent>,

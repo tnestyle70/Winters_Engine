@@ -23,6 +23,7 @@ namespace Yone
 
     namespace Visual
     {
+        void ClearSoulMarkFxRuntime(CWorld& world);
         void OnCastFrame_BA_Visual(VisualHookContext& ctx);
         void OnCastFrame_Q_Visual(VisualHookContext& ctx);
         void OnCastFrame_W_Visual(VisualHookContext& ctx);

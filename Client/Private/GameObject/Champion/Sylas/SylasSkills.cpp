@@ -6,6 +6,7 @@
 #include "GamePlay/VisualHookRegistry.h"
 #include "WintersMath.h"
 
+#include <algorithm>
 #include <cmath>
 
 namespace
@@ -113,6 +114,36 @@ namespace
 		CFxCuePlayer::Play(*ctx.pWorld, pszCueName, fx);
 	}
 
+	void PlaySylasProjectileCue(VisualHookContext& ctx, const char* pszCueName,
+		const Vec3& vStartWorldPos, const Vec3& vEndWorldPos)
+	{
+		if (!ctx.pWorld)
+			return;
+
+		const Vec3 delta{
+			vEndWorldPos.x - vStartWorldPos.x,
+			vEndWorldPos.y - vStartWorldPos.y,
+			vEndWorldPos.z - vStartWorldPos.z
+		};
+		const f32_t distance = std::sqrt(
+			delta.x * delta.x + delta.y * delta.y + delta.z * delta.z);
+		const f32_t lifetime = std::clamp(distance / 18.f, 0.12f, 0.45f);
+
+		FxCueContext fx{};
+		fx.vWorldPos = vStartWorldPos;
+		fx.vForward = ResolveForward(ctx);
+		fx.bOverrideVelocity = true;
+		fx.vVelocity = {
+			delta.x / lifetime,
+			delta.y / lifetime,
+			delta.z / lifetime
+		};
+		fx.bOverrideLifetime = true;
+		fx.fLifetimeOverride = lifetime;
+		fx.pFxMeshRenderer = ctx.pFxMeshRenderer;
+		CFxCuePlayer::Play(*ctx.pWorld, pszCueName, fx);
+	}
+
 	void PlaySylasCue(VisualHookContext& ctx, const char* pszCueName, bool_t bAttachToCaster)
 	{
 		PlaySylasCueAt(ctx, pszCueName, ResolveCasterPosition(ctx), bAttachToCaster);
@@ -125,6 +156,9 @@ namespace Sylas
 	{
 		void OnBACastFrame(VisualHookContext& ctx)
 		{
+			if (ctx.skillStage >= 2u && !ctx.bAuthoritativeEvent)
+				return;
+
 			PlaySylasCue(
 				ctx,
 				ctx.skillStage >= 2u ? "Sylas.PassiveBA.Hit" : "Sylas.BA.Hit",
@@ -133,8 +167,19 @@ namespace Sylas
 
 		void OnQCastFrame(VisualHookContext& ctx)
 		{
+			if (ctx.skillStage >= 2u)
+			{
+				if (ctx.bAuthoritativeEvent)
+				{
+					PlaySylasCueAt(
+						ctx,
+						"Sylas.Q.Explosion",
+						ResolveEffectPosition(ctx),
+						false);
+				}
+				return;
+			}
 			PlaySylasCue(ctx, "Sylas.Q.Cast", true);
-			PlaySylasCueAt(ctx, "Sylas.Q.Explosion", ResolveEffectPosition(ctx), false);
 		}
 
 		void OnWCastFrame(VisualHookContext& ctx)
@@ -172,11 +217,15 @@ namespace Sylas
 
 		void OnRCastFrame(VisualHookContext& ctx)
 		{
+			if (!ctx.bAuthoritativeEvent)
+				return;
+
 			Vec3 vStart = ResolveCasterPosition(ctx);
 			Vec3 vEnd = ResolveTargetOrEffectPosition(ctx);
 			vStart.y += 1.35f;
 			vEnd.y += 1.25f;
 			PlaySylasCueSegment(ctx, "Sylas.R.Cast", vStart, vEnd);
+			PlaySylasProjectileCue(ctx, "Sylas.R.HookProjectile", vStart, vEnd);
 		}
 	}
 }

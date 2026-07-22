@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "Manager/UI/UI_Manager.h"
 #include "ActorHUDPanel.h"
+#include "Framework/CEngineApp.h"
 #include "Manager/UI/LuaUIHost.h"
 #include "RHI/RHITypes.h"
 #include "Core/CInput.h"
@@ -58,6 +59,7 @@ namespace
     constexpr const wchar_t* kPathPingAssist = L"Resource/Texture/UI/ux/minimap/pings/assist.png";
     constexpr const wchar_t* kPathPingMissing = L"Resource/Texture/UI/ux/minimap/pings/mia_new.png";
     constexpr const wchar_t* kPathOffscreenPingAtlas = L"Resource/Texture/UI/HUD/offscreenping_atlas.png";
+    constexpr const wchar_t* kPathStatsPanelAtlas = L"Resource/Texture/UI/HUD/statspanel_atlas.png";
     constexpr const wchar_t* kPathAbilityAtlas = L"Resource/Texture/UI/HUD/clarity_abilityatlas.png";
     constexpr const wchar_t* kPathActorHUDDefault = L"Resource/Texture/UI/HUD_Irelia_2.png";
     constexpr const wchar_t* kPathSkillRankPip = L"Resource/Texture/Character/Irelia/particles/defaultcoloroverlifetime.png";
@@ -68,6 +70,14 @@ namespace
     constexpr const wchar_t* kPathHUDLayoutFallback = L"Client/Bin/Resource/UI/hud_irelia_layout.json";
     constexpr const wchar_t* kPathInGameShopReference = L"Resource/Texture/UI/상점1.png";
     constexpr const wchar_t* kPathStatusPanel = L"Resource/Texture/UI/StatusPannel_final.png";
+    constexpr const wchar_t* kPathKillFeedTowerBlue =
+        L"Resource/Texture/UI/InGameUI/minimap_tower_blue.png";
+    constexpr const wchar_t* kPathKillFeedTowerRed =
+        L"Resource/Texture/UI/InGameUI/minimap_tower_red.png";
+    constexpr const wchar_t* kPathKillFeedInhibitorBlue =
+        L"Resource/Texture/UI/InGameUI/minimap_inhibitor_blue.png";
+    constexpr const wchar_t* kPathKillFeedInhibitorRed =
+        L"Resource/Texture/UI/InGameUI/minimap_inhibitor_red.png";
     constexpr u8_t kUITeamBlue = 0u;
     constexpr u8_t kUITeamRed = 1u;
     constexpr u8_t kUIInvalidTeam = 255u;
@@ -84,6 +94,17 @@ namespace
     constexpr u8_t kKillFeedObjectBaron = 5;
     constexpr f32_t kActorHUDRefW = 861.f;
     constexpr f32_t kActorHUDRefH = 167.f;
+    constexpr f32_t kInventorySlotX[6] =
+    {
+        646.f, 688.f, 730.f,
+        646.f, 688.f, 730.f,
+    };
+    constexpr f32_t kInventorySlotY[6] =
+    {
+        59.f, 59.f, 59.f,
+        101.f, 101.f, 101.f,
+    };
+    constexpr f32_t kInventorySlotSize = 36.f;
     constexpr u8_t kUIContentNone = 0u;
     constexpr u8_t kUIContentDefault = 1u;
     constexpr u8_t kUIContentEnd = 255u;
@@ -112,6 +133,22 @@ namespace
 
         OutPath = std::filesystem::path(LocalAppData) /
             L"Winters" / L"Developer" / L"status_panel_layout.ini";
+        return true;
+    }
+
+    bool_t BuildWorldHealthBarLayoutSettingsPath(
+        std::filesystem::path& outPath)
+    {
+        wchar_t localAppData[32768]{};
+        const DWORD length = GetEnvironmentVariableW(
+            L"LOCALAPPDATA",
+            localAppData,
+            static_cast<DWORD>(std::size(localAppData)));
+        if (length == 0u || length >= std::size(localAppData))
+            return false;
+
+        outPath = std::filesystem::path(localAppData) /
+            L"Winters" / L"Developer" / L"world_health_bars.ini";
         return true;
     }
 
@@ -229,6 +266,71 @@ namespace
 
         OutValue = Parsed;
         return true;
+    }
+
+    bool_t DrawLabeledSliderFloat(
+        const char* pLabel,
+        f32_t* pValue,
+        f32_t minimum,
+        f32_t maximum,
+        const char* pFormat)
+    {
+        if (!pLabel || !pValue)
+            return false;
+
+        bool_t changed = false;
+        ImGui::PushID(pLabel);
+        if (ImGui::BeginTable(
+                "##ScalarRow",
+                2,
+                ImGuiTableFlags_SizingStretchProp |
+                    ImGuiTableFlags_NoSavedSettings))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 175.f);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(pLabel);
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            changed = ImGui::SliderFloat(
+                "##Value", pValue, minimum, maximum, pFormat);
+            ImGui::EndTable();
+        }
+        ImGui::PopID();
+        return changed;
+    }
+
+    bool_t DrawLabeledCombo(
+        const char* pLabel,
+        i32_t* pSelected,
+        const char* const* ppItems,
+        i32_t itemCount)
+    {
+        if (!pLabel || !pSelected || !ppItems || itemCount <= 0)
+            return false;
+
+        bool_t changed = false;
+        ImGui::PushID(pLabel);
+        if (ImGui::BeginTable(
+                "##ComboRow",
+                2,
+                ImGuiTableFlags_SizingStretchProp |
+                    ImGuiTableFlags_NoSavedSettings))
+        {
+            ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 175.f);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(pLabel);
+            ImGui::TableNextColumn();
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            changed = ImGui::Combo(
+                "##Value", pSelected, ppItems, itemCount);
+            ImGui::EndTable();
+        }
+        ImGui::PopID();
+        return changed;
     }
 
 
@@ -841,6 +943,122 @@ bool_t CUI_Manager::SaveStatusPanelLayoutSettings()
     return true;
 }
 
+bool_t CUI_Manager::LoadWorldHealthBarLayoutSettings()
+{
+    std::filesystem::path path;
+    if (!BuildWorldHealthBarLayoutSettingsPath(path))
+        return false;
+    std::error_code existsError;
+    if (!std::filesystem::exists(path, existsError) || existsError)
+        return false;
+
+    std::unordered_map<std::string, std::string> values;
+    if (!ReadStatusPanelSettingValues(path, values))
+        return false;
+
+    u32_t version = 0u;
+    bool_t show = true;
+    f32_t championWidth = 0.f;
+    f32_t championHeight = 0.f;
+    f32_t championYOffset = 0.f;
+    f32_t championLevelX = 0.f;
+    f32_t championLevelY = 0.f;
+    f32_t championLevelFontScale = 0.f;
+    f32_t minionWidth = 0.f;
+    f32_t minionHeight = 0.f;
+    f32_t minionYOffset = 0.f;
+    f32_t structureWidth = 0.f;
+    f32_t structureHeight = 0.f;
+    f32_t structureYOffset = 0.f;
+    f32_t structureScreenX = 0.f;
+    f32_t structureScreenY = 0.f;
+    const bool_t valid =
+        ReadStatusPanelU32(values, "version", version) && version == 1u &&
+        ReadStatusPanelBool(values, "show", show) &&
+        ReadStatusPanelFloat(values, "championWidth", 20.f, 200.f, championWidth) &&
+        ReadStatusPanelFloat(values, "championHeight", 3.f, 32.f, championHeight) &&
+        ReadStatusPanelFloat(values, "championYOffset", 0.5f, 6.f, championYOffset) &&
+        ReadStatusPanelFloat(values, "championLevelX", -80.f, 20.f, championLevelX) &&
+        ReadStatusPanelFloat(values, "championLevelY", -30.f, 30.f, championLevelY) &&
+        ReadStatusPanelFloat(values, "championLevelFontScale", 0.5f, 2.f, championLevelFontScale) &&
+        ReadStatusPanelFloat(values, "minionWidth", 20.f, 100.f, minionWidth) &&
+        ReadStatusPanelFloat(values, "minionHeight", 3.f, 16.f, minionHeight) &&
+        ReadStatusPanelFloat(values, "minionYOffset", 0.5f, 3.f, minionYOffset) &&
+        ReadStatusPanelFloat(values, "structureWidth", 50.f, 240.f, structureWidth) &&
+        ReadStatusPanelFloat(values, "structureHeight", 6.f, 40.f, structureHeight) &&
+        ReadStatusPanelFloat(values, "structureYOffset", 1.f, 8.f, structureYOffset) &&
+        ReadStatusPanelFloat(values, "structureScreenX", -120.f, 120.f, structureScreenX) &&
+        ReadStatusPanelFloat(values, "structureScreenY", -120.f, 120.f, structureScreenY);
+    if (!valid)
+        return false;
+
+    m_bShowHealthBars = show;
+    m_fHPBarWidth = championWidth;
+    m_fHPBarHeight = championHeight;
+    m_fHPBarYOffset = championYOffset;
+    m_fChampionLevelOffsetX = championLevelX;
+    m_fChampionLevelOffsetY = championLevelY;
+    m_fChampionLevelFontScale = championLevelFontScale;
+    m_fUnitHPBarWidth = minionWidth;
+    m_fUnitHPBarHeight = minionHeight;
+    m_fUnitHPBarYOffset = minionYOffset;
+    m_fStructureHPBarWidth = structureWidth;
+    m_fStructureHPBarHeight = structureHeight;
+    m_fStructureHPBarYOffset = structureYOffset;
+    m_fStructureHPBarScreenOffsetX = structureScreenX;
+    m_fStructureHPBarScreenOffsetY = structureScreenY;
+    return true;
+}
+
+bool_t CUI_Manager::SaveWorldHealthBarLayoutSettings()
+{
+    std::filesystem::path path;
+    if (!BuildWorldHealthBarLayoutSettingsPath(path))
+        return false;
+    std::error_code directoryError;
+    std::filesystem::create_directories(path.parent_path(), directoryError);
+    if (directoryError)
+        return false;
+
+    std::filesystem::path temporaryPath = path;
+    temporaryPath += L".tmp";
+    FILE* file = nullptr;
+    if (_wfopen_s(&file, temporaryPath.c_str(), L"wb") != 0 || !file)
+        return false;
+    const i32_t writeResult = fprintf(
+        file,
+        "version=1\nshow=%u\n"
+        "championWidth=%.9g\nchampionHeight=%.9g\nchampionYOffset=%.9g\n"
+        "championLevelX=%.9g\nchampionLevelY=%.9g\nchampionLevelFontScale=%.9g\n"
+        "minionWidth=%.9g\nminionHeight=%.9g\nminionYOffset=%.9g\n"
+        "structureWidth=%.9g\nstructureHeight=%.9g\nstructureYOffset=%.9g\n"
+        "structureScreenX=%.9g\nstructureScreenY=%.9g\n",
+        m_bShowHealthBars ? 1u : 0u,
+        m_fHPBarWidth, m_fHPBarHeight, m_fHPBarYOffset,
+        m_fChampionLevelOffsetX, m_fChampionLevelOffsetY,
+        m_fChampionLevelFontScale,
+        m_fUnitHPBarWidth, m_fUnitHPBarHeight, m_fUnitHPBarYOffset,
+        m_fStructureHPBarWidth, m_fStructureHPBarHeight,
+        m_fStructureHPBarYOffset,
+        m_fStructureHPBarScreenOffsetX, m_fStructureHPBarScreenOffsetY);
+    const i32_t flushResult = fflush(file);
+    const i32_t closeResult = fclose(file);
+    if (writeResult < 0 || flushResult != 0 || closeResult != 0)
+    {
+        DeleteFileW(temporaryPath.c_str());
+        return false;
+    }
+    if (!MoveFileExW(
+            temporaryPath.c_str(),
+            path.c_str(),
+            MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+    {
+        DeleteFileW(temporaryPath.c_str());
+        return false;
+    }
+    return true;
+}
+
 HRESULT CUI_Manager::Initialize(CWorld* pWorld,
     IRHIDevice* pDevice,
     uint32_t iWinSizeX, uint32_t iWinSizeY)
@@ -854,6 +1072,8 @@ HRESULT CUI_Manager::Initialize(CWorld* pWorld,
     m_StatusPanelLayout = StatusPanelLayout{};
     m_strStatusPanelLayoutSaveMessage.clear();
     LoadStatusPanelLayoutSettings();
+    m_strWorldHealthBarLayoutSaveMessage.clear();
+    LoadWorldHealthBarLayoutSettings();
 
     m_pRHIUIRenderer = CUIRenderer::Create(pDevice);
     if (!m_pRHIUIRenderer)
@@ -899,7 +1119,17 @@ HRESULT CUI_Manager::Initialize(CWorld* pWorld,
     Load_TextureSRV(kPathCursorDefault, &m_pSRV_CursorDefault);
     Load_TextureSRV(kPathCursorEnemy, &m_pSRV_CursorEnemy);
     Load_TextureSRV(kPathCursorAttack, &m_pSRV_CursorAttack);
+    // 로딩 씬은 프레임 스톨 동안에도 반응하는 네이티브 커서를 쓴다
+    // (SetLoadingCursorMode). 그 네이티브 커서에 같은 이미지를 심어
+    // 텍스처 커서 ↔ 네이티브 커서 전환이 보이지 않게 한다.
+    if (!CEngineApp::Get().GetWindow().SetCursorImageFromFile(kPathCursorDefault))
+        OutputDebugStringA("[UI_Manager] loading cursor image install failed - native arrow fallback\n");
     LoadPingWheelAssets();
+    if (FAILED(Load_TextureSRV(kPathStatsPanelAtlas, &m_pSRV_StatsPanelAtlas)))
+    {
+        OutputDebugStringA("[UI_Manager] statspanel_atlas.png load failed - critical indicators skipped\n");
+        m_pSRV_StatsPanelAtlas = nullptr;
+    }
     if (FAILED(Load_TextureSRV(kPathAbilityAtlas, &m_pSRV_AbilityAtlas)))
     {
         OutputDebugStringA("[UI_Manager] clarity_abilityatlas.png load failed - ability atlas elements skipped\n");
@@ -971,6 +1201,7 @@ void CUI_Manager::Shutdown()
     ReleaseSRV(m_pSRV_PingAssist);
     ReleaseSRV(m_pSRV_PingMissing);
     ReleaseSRV(m_pSRV_OffscreenPingAtlas);
+    ReleaseSRV(m_pSRV_StatsPanelAtlas);
     m_MapPingMarkers.clear();
     ReleaseSRV(m_pSRV_AbilityAtlas);
     ReleaseSRV(m_pSRV_SkillRankPip);
@@ -980,6 +1211,10 @@ void CUI_Manager::Shutdown()
     ReleaseStatusPanelSpellIconCache();
     for (KillFeedPortraitCache& Portrait : m_KillFeedPortraits)
         ReleaseSRV(Portrait.pSRV);
+    ReleaseSRV(m_pSRV_KillFeedTowerBlue);
+    ReleaseSRV(m_pSRV_KillFeedTowerRed);
+    ReleaseSRV(m_pSRV_KillFeedInhibitorBlue);
+    ReleaseSRV(m_pSRV_KillFeedInhibitorRed);
     m_KillFeedPortraits.clear();
     m_KillFeedBanners.clear();
     m_InGameShopAtlasManifest.ForEachTexture(
@@ -1146,7 +1381,7 @@ void CUI_Manager::LoadActorHUDAssets()
     if (!m_pActorHudPanel->LoadLayout(kPathHUDLayout) &&
         !m_pActorHudPanel->LoadLayout(kPathHUDLayoutFallback))
     {
-        OutputDebugStringA("[UI_Manager] actor_hud_layout.json load failed - using built-in HUD layout\n");
+        OutputDebugStringA("[UI_Manager] hud_irelia_layout.json load failed - using built-in HUD layout\n");
     }
 
     const u8_t iInitialActorContentId =
@@ -1318,6 +1553,52 @@ void CUI_Manager::SetLevelSkillCallback(void(*pfn)(void*, u8_t), void* pUser)
     m_pLevelSkillUser = pUser;
     if (m_pLuaUIHost)
         m_pLuaUIHost->SetLevelSkillCallback(pfn, pUser);
+}
+
+void CUI_Manager::SetInventoryReorderCallback(
+    void(*pfn)(void*, u8_t, u8_t, u16_t), void* pUser)
+{
+    m_pfnInventoryReorder = pfn;
+    m_pInventoryReorderUser = pUser;
+    if (!pfn)
+    {
+        m_iInventoryDragSource = -1;
+        m_iInventoryDragHover = -1;
+        m_iInventoryDragItemId = 0u;
+    }
+}
+
+bool_t CUI_Manager::IsPointerOverActorInventory() const
+{
+    if (m_iInventoryDragSource >= 0)
+        return true;
+
+    const ImVec2 Display = ImGui::GetIO().DisplaySize;
+    f32_t HudW = m_fHUDWidth;
+    f32_t HudH = m_fHUDHeight;
+    if (HudW > Display.x - 24.f)
+    {
+        const f32_t Scale = (Display.x - 24.f) / HudW;
+        HudW *= Scale;
+        HudH *= Scale;
+    }
+    const f32_t ScaleX = HudW / kActorHUDRefW;
+    const f32_t ScaleY = HudH / kActorHUDRefH;
+    const ImVec2 Root((Display.x - HudW) * 0.5f, Display.y - HudH);
+    const ImVec2 Mouse = ImGui::GetIO().MousePos;
+    for (u8_t slot = 0u; slot < 6u; ++slot)
+    {
+        const f32_t left = Root.x + kInventorySlotX[slot] * ScaleX;
+        const f32_t top = Root.y + kInventorySlotY[slot] * ScaleY;
+        const f32_t right = left + kInventorySlotSize * ScaleX;
+        const f32_t bottom = top + kInventorySlotSize * ScaleY;
+        if (Mouse.x >= left && Mouse.x <= right &&
+            Mouse.y >= top && Mouse.y <= bottom)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void CUI_Manager::Bind_World(CWorld* pWorld)
@@ -1499,9 +1780,11 @@ void CUI_Manager::SetActorHUDState(const ActorHUDState* pState)
     }
 
     m_ActorHUDState = *pState;
-    if (ShouldUseActorHUDPassiveResource(m_ActorHUDState.iActorContentId))
+    if (ShouldUseActorHUDPassiveResource(m_ActorHUDState.iActorContentId) ||
+        m_ActorHUDState.ResourceKind == eUIResourceKind::Flow)
     {
         m_ActorHUDState.bUsesPassiveResource = true;
+        m_ActorHUDState.ResourceKind = eUIResourceKind::Flow;
         if (m_ActorHUDState.PassiveMax <= 0.f)
             m_ActorHUDState.PassiveMax = (m_ActorHUDState.MaxMp > 0.f) ? m_ActorHUDState.MaxMp : 100.f;
         if (m_ActorHUDState.PassiveShieldMax <= 0.f)
@@ -1936,10 +2219,16 @@ void CUI_Manager::LoadInGameShopAssets()
 
     LoadInGameShopItemTextures();
 
-    if (!m_InGameShopItems.empty())
-        m_iSelectedInGameShopItemId = m_InGameShopItems.front().iItemId;
-    else
-        m_iSelectedInGameShopItemId = 0;
+    const auto SelectedIt = std::find_if(
+        m_InGameShopItems.begin(),
+        m_InGameShopItems.end(),
+        [](const InGameShopItemView& Item)
+        {
+            return Item.bEnabled && Item.bPurchasable && Item.iItemId != 0u;
+        });
+    m_iSelectedInGameShopItemId = SelectedIt != m_InGameShopItems.end()
+        ? SelectedIt->iItemId
+        : 0u;
 
     m_strInGameShopStatus = "Left click selects, right click buys";
 }
@@ -2496,7 +2785,7 @@ void CUI_Manager::DrawInGameShop(ImDrawList* pDraw)
     for (u32_t Index = 0; Index < m_InGameShopItems.size(); ++Index)
     {
         const InGameShopItemView& Item = m_InGameShopItems[Index];
-        if (!Item.bEnabled)
+        if (!Item.bEnabled || !Item.bPurchasable)
             continue;
 
         const u32_t Row = DisplayIndex / 7u;
@@ -2572,8 +2861,18 @@ void CUI_Manager::DrawInGameShop(ImDrawList* pDraw)
     }
 
     const InGameShopItemView* pSelectedItem = FindInGameShopItem(m_iSelectedInGameShopItemId);
-    if (!pSelectedItem && !m_InGameShopItems.empty())
-        pSelectedItem = &m_InGameShopItems.front();
+    if (!pSelectedItem)
+    {
+        const auto SelectedIt = std::find_if(
+            m_InGameShopItems.begin(),
+            m_InGameShopItems.end(),
+            [](const InGameShopItemView& Item)
+            {
+                return Item.bEnabled && Item.bPurchasable && Item.iItemId != 0u;
+            });
+        if (SelectedIt != m_InGameShopItems.end())
+            pSelectedItem = &*SelectedIt;
+    }
 
     if (pSelectedItem)
     {
@@ -2676,7 +2975,8 @@ bool_t CUI_Manager::TryBuyInGameItem(u16_t iItemId)
 }
 
 void CUI_Manager::Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
-    u8_t iDamageType, bool_t bWasCrit, bool_t bKilled)
+    u8_t iDamageType, bool_t bWasCrit, bool_t bKilled,
+    bool_t bShowCriticalIndicator)
 {
     if (fAmount <= 0.f)
         return;
@@ -2690,6 +2990,7 @@ void CUI_Manager::Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
     floater.fLifetime = bKilled ? (m_fDamageFloaterLife + 0.25f) : m_fDamageFloaterLife;
     floater.iDamageType = iDamageType;
     floater.bWasCrit = bWasCrit;
+    floater.bShowCriticalIndicator = bShowCriticalIndicator;
     floater.bKilled = bKilled;
 
     const u32_t seed =
@@ -2752,7 +3053,8 @@ void CUI_Manager::Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
 }
 
 void CUI_Manager::Push_KillFeedBanner(u8_t iSourceActorContentId, u8_t iTargetActorContentId,
-    u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage)
+    u8_t iObjectKind, u8_t iTargetTeam, bool_t bSourceAlly,
+    bool_t bSourceMinion, const char* pMessage)
 {
     if (!pMessage || pMessage[0] == '\0')
         return;
@@ -2764,7 +3066,9 @@ void CUI_Manager::Push_KillFeedBanner(u8_t iSourceActorContentId, u8_t iTargetAc
     banner.iSourceActorContentId = iSourceActorContentId;
     banner.iTargetActorContentId = iTargetActorContentId;
     banner.iObjectKind = iObjectKind;
+    banner.iTargetTeam = iTargetTeam;
     banner.bSourceAlly = bSourceAlly;
+    banner.bSourceMinion = bSourceMinion;
     banner.strMessage = pMessage;
     m_KillFeedBanners.push_back(banner);
 }
@@ -2917,6 +3221,52 @@ void* CUI_Manager::FindOrLoadKillFeedPortrait(u8_t iActorContentId)
     return pSRV;
 }
 
+ImVec2 UI_StatsPanelAtlasUV(f32_t x, f32_t y)
+{
+    constexpr f32_t kAtlasSize = 512.f;
+    return ImVec2(x / kAtlasSize, y / kAtlasSize);
+}
+
+void* CUI_Manager::FindOrLoadKillFeedObjectIcon(
+    u8_t iObjectKind, u8_t iTargetTeam)
+{
+    void** ppSRV = nullptr;
+    const wchar_t* pPath = nullptr;
+    if (iObjectKind == kKillFeedObjectStructure)
+    {
+        if (iTargetTeam == kUITeamBlue)
+        {
+            ppSRV = &m_pSRV_KillFeedTowerBlue;
+            pPath = kPathKillFeedTowerBlue;
+        }
+        else if (iTargetTeam == kUITeamRed)
+        {
+            ppSRV = &m_pSRV_KillFeedTowerRed;
+            pPath = kPathKillFeedTowerRed;
+        }
+    }
+
+    else if (iObjectKind == kKillFeedObjectObjective)
+    {
+        if (iTargetTeam == kUITeamBlue)
+        {
+            ppSRV = &m_pSRV_KillFeedInhibitorBlue;
+            pPath = kPathKillFeedInhibitorBlue;
+        }
+        else if (iTargetTeam == kUITeamRed)
+        {
+            ppSRV = &m_pSRV_KillFeedInhibitorRed;
+            pPath = kPathKillFeedInhibitorRed;
+        }
+    }
+
+    if (!ppSRV || !pPath)
+        return nullptr;
+    if (!*ppSRV)
+        (void)Load_TextureSRV(pPath, ppSRV);
+    return *ppSRV;
+}
+
 void CUI_Manager::DrawKillFeedCircleImage(ImDrawList* pDraw, const ImVec2& vCenter,
     f32_t fRadius, void* pSRV, ImU32 iTintColor, ImU32 iBorderColor)
 {
@@ -3019,13 +3369,37 @@ void CUI_Manager::DrawKillFeedBanners(ImDrawList* pDraw, f32_t fDeltaTime)
         const ImVec2 textPos(sourceCenter.x + kRadius + kGap, centerY - textSize.y * 0.5f);
         const ImVec2 targetCenter(textPos.x + textSize.x + kGap + kRadius, centerY);
 
-        DrawKillFeedCircleImage(
-            pDraw,
-            sourceCenter,
-            kRadius,
-            FindOrLoadKillFeedPortrait(banner.iSourceActorContentId),
-            tintColor,
-            banner.bSourceAlly ? allyColor : enemyColor);
+        if (banner.bSourceMinion && m_pSRV_OffscreenPingAtlas)
+        {
+            pDraw->AddCircleFilled(
+                sourceCenter,
+                kRadius,
+                UI_ColorWithAlpha(24, 28, 34, 0.92f * alpha),
+                48);
+            UI_DrawPingAtlasSpriteCentered(
+                pDraw,
+                m_pSRV_OffscreenPingAtlas,
+                UIPingAtlasSprite{ 970.f, 264.f, 1014.f, 315.f },
+                sourceCenter,
+                kRadius * 1.86f,
+                tintColor);
+            pDraw->AddCircle(
+                sourceCenter,
+                kRadius,
+                banner.bSourceAlly ? allyColor : enemyColor,
+                48,
+                2.5f);
+        }
+        else
+        {
+            DrawKillFeedCircleImage(
+                pDraw,
+                sourceCenter,
+                kRadius,
+                FindOrLoadKillFeedPortrait(banner.iSourceActorContentId),
+                tintColor,
+                banner.bSourceAlly ? allyColor : enemyColor);
+        }
 
         UI_DrawOutlinedText(pDraw, pFont, kFontSize, textPos, textColor, pMessage);
 
@@ -3041,16 +3415,34 @@ void CUI_Manager::DrawKillFeedBanners(ImDrawList* pDraw, f32_t fDeltaTime)
             continue;
         }
 
+        if (banner.iObjectKind == kKillFeedObjectStructure ||
+            banner.iObjectKind == kKillFeedObjectObjective)
+        {
+            if (void* pObjectIcon = FindOrLoadKillFeedObjectIcon(
+                    banner.iObjectKind,
+                    banner.iTargetTeam))
+            {
+                DrawKillFeedCircleImage(
+                    pDraw,
+                    targetCenter,
+                    kRadius,
+                    pObjectIcon,
+                    tintColor,
+                    banner.bSourceAlly ? enemyColor : allyColor);
+                continue;
+            }
+        }
+
         const char* pLabel = nullptr;
         ImU32 badgeColor = neutralColor;
         switch (banner.iObjectKind)
         {
         case kKillFeedObjectStructure:
-            pLabel = "Structure";
+            pLabel = "Tower";
             badgeColor = banner.bSourceAlly ? enemyColor : allyColor;
             break;
         case kKillFeedObjectObjective:
-            pLabel = "Objective";
+            pLabel = "Inhibitor";
             badgeColor = banner.bSourceAlly ? enemyColor : allyColor;
             break;
         case kKillFeedObjectDragon:
@@ -3582,61 +3974,109 @@ void CUI_Manager::DrawActorHUDOverlay(ImDrawList* pDraw, const ActorHUDState& St
     ImFont* pFont = FindUIFont("hud");
     if (pFont)
     {
-        static constexpr f32_t kInventorySlotX[6] =
+        ImVec2 SlotMins[6]{};
+        ImVec2 SlotMaxs[6]{};
+        i8_t HoverSlot = -1;
+        for (u8_t Slot = 0u; Slot < 6u; ++Slot)
         {
-            646.f,
-            688.f,
-            730.f,
-            772.f,
-            646.f,
-            688.f,
-        };
-        static constexpr f32_t kInventorySlotY[6] =
+            SlotMins[Slot] = ToPosition(kInventorySlotX[Slot], kInventorySlotY[Slot]);
+            SlotMaxs[Slot] = ToPosition(
+                kInventorySlotX[Slot] + kInventorySlotSize,
+                kInventorySlotY[Slot] + kInventorySlotSize);
+            if (UI_PointInRect(IO.MousePos, SlotMins[Slot], SlotMaxs[Slot]))
+                HoverSlot = static_cast<i8_t>(Slot);
+        }
+
+        if (IO.MouseClicked[0] && HoverSlot >= 0 &&
+            State.InventoryItemIds[static_cast<u8_t>(HoverSlot)] != 0u)
         {
-            59.f,
-            59.f,
-            59.f,
-            59.f,
-            101.f,
-            101.f,
-        };
+            m_iInventoryDragSource = HoverSlot;
+            m_iInventoryDragHover = HoverSlot;
+            m_iInventoryDragItemId =
+                State.InventoryItemIds[static_cast<u8_t>(HoverSlot)];
+        }
+        if (m_iInventoryDragSource >= 0)
+            m_iInventoryDragHover = HoverSlot;
+        if (IO.MouseReleased[0] && m_iInventoryDragSource >= 0)
+        {
+            if (m_iInventoryDragHover >= 0 &&
+                m_iInventoryDragHover != m_iInventoryDragSource &&
+                m_pfnInventoryReorder)
+            {
+                m_pfnInventoryReorder(
+                    m_pInventoryReorderUser,
+                    static_cast<u8_t>(m_iInventoryDragSource),
+                    static_cast<u8_t>(m_iInventoryDragHover),
+                    m_iInventoryDragItemId);
+            }
+            m_iInventoryDragSource = -1;
+            m_iInventoryDragHover = -1;
+            m_iInventoryDragItemId = 0u;
+        }
 
         const f32_t FontSize = pFont->LegacySize * ScaleY * 0.68f;
         for (u32_t Index = 0; Index < State.InventoryItemIds.size(); ++Index)
         {
+            const ImVec2 IconMin = SlotMins[Index];
+            const ImVec2 IconMax = SlotMaxs[Index];
             const u16_t ItemId = State.InventoryItemIds[Index];
-            if (ItemId == 0)
-                continue;
+            pDraw->AddRectFilled(
+                IconMin, IconMax, IM_COL32(13, 17, 22, 205), 2.f);
+            const bool_t bDragSource =
+                m_iInventoryDragSource == static_cast<i8_t>(Index);
+            const bool_t bDragTarget =
+                m_iInventoryDragSource >= 0 &&
+                m_iInventoryDragHover == static_cast<i8_t>(Index);
+            pDraw->AddRect(
+                IconMin,
+                IconMax,
+                bDragTarget ? IM_COL32(245, 205, 92, 255) :
+                    bDragSource ? IM_COL32(120, 176, 238, 255) :
+                    IM_COL32(91, 99, 109, 230),
+                2.f,
+                0,
+                bDragTarget ? 2.5f : 1.f);
 
-            const InGameShopItemView* pItemView = FindInGameShopItem(ItemId);
-            if (pItemView && pItemView->pSRV)
+            if (ItemId != 0u)
             {
-                const ImVec2 IconMin = ToPosition(kInventorySlotX[Index], kInventorySlotY[Index]);
-                const ImVec2 IconMax = ToPosition(
-                    kInventorySlotX[Index] + 36.f,
-                    kInventorySlotY[Index] + 36.f);
-                pDraw->AddImage(
-                    reinterpret_cast<ImTextureID>(pItemView->pSRV),
-                    IconMin,
-                    IconMax,
-                    ImVec2(0.f, 0.f),
-                    ImVec2(1.f, 1.f),
-                    IM_COL32(255, 255, 255, 255));
-                continue;
+                const InGameShopItemView* pItemView = FindInGameShopItem(ItemId);
+                if (pItemView && pItemView->pSRV)
+                {
+                    pDraw->AddImage(
+                        reinterpret_cast<ImTextureID>(pItemView->pSRV),
+                        IconMin,
+                        IconMax,
+                        ImVec2(0.f, 0.f),
+                        ImVec2(1.f, 1.f),
+                        bDragSource
+                            ? IM_COL32(255, 255, 255, 150)
+                            : IM_COL32(255, 255, 255, 255));
+                }
+                else
+                {
+                    const std::string Text =
+                        std::to_string(static_cast<u32_t>(ItemId));
+                    const ImVec2 TextSize =
+                        pFont->CalcTextSizeA(FontSize, FLT_MAX, 0.f, Text.c_str());
+                    ImVec2 Position(
+                        (IconMin.x + IconMax.x - TextSize.x) * 0.5f,
+                        (IconMin.y + IconMax.y - TextSize.y) * 0.5f);
+                    UI_DrawOutlinedText(
+                        pDraw, pFont, FontSize, Position,
+                        IM_COL32(245, 231, 177, 255), Text.c_str());
+                }
             }
 
-            const std::string Text = std::to_string(static_cast<u32_t>(ItemId));
-            const ImVec2 TextSize = pFont->CalcTextSizeA(FontSize, FLT_MAX, 0.f, Text.c_str());
-            ImVec2 Position = ToPosition(kInventorySlotX[Index] + 18.f, kInventorySlotY[Index] + 13.f);
-            Position.x -= TextSize.x * 0.5f;
-            Position.y -= TextSize.y * 0.5f;
+            const std::string KeyText = std::to_string(Index + 1u);
+            const f32_t KeyFontSize = FontSize * 0.82f;
+            const ImVec2 KeyTextSize =
+                pFont->CalcTextSizeA(KeyFontSize, FLT_MAX, 0.f, KeyText.c_str());
+            const ImVec2 KeyPosition(
+                IconMax.x - KeyTextSize.x - 2.f * ScaleX,
+                IconMax.y - KeyTextSize.y + 1.f * ScaleY);
             UI_DrawOutlinedText(
-                pDraw,
-                pFont,
-                FontSize,
-                Position,
-                IM_COL32(245, 231, 177, 255),
-                Text.c_str());
+                pDraw, pFont, KeyFontSize, KeyPosition,
+                IM_COL32(230, 235, 240, 255), KeyText.c_str());
         }
     }
 
@@ -3812,12 +4252,31 @@ void CUI_Manager::DrawDamageFloaters(ImDrawList* pDraw,
         const f32_t baseFontSize = floater.bWasCrit ? 26.f : 20.f;
         const f32_t fontSize = baseFontSize * (1.f + 0.18f * t);
         const ImVec2 textSize = pDamageFont->CalcTextSizeA(fontSize, FLT_MAX, 0.f, text);
-        const ImVec2 pos(screen.x - textSize.x * 0.5f, screen.y - textSize.y * 0.5f);
+        ImVec2 pos(screen.x - textSize.x * 0.5f, screen.y - textSize.y * 0.5f);
         const ImU32 color = UI_DamageColor(
             floater.iDamageType,
             floater.bWasCrit,
             floater.bKilled,
             alpha);
+
+        if (floater.bShowCriticalIndicator && m_pSRV_StatsPanelAtlas)
+        {
+            const f32_t iconSize = fontSize * 1.08f;
+            const f32_t gap = 3.f;
+            const f32_t totalW = iconSize + gap + textSize.x;
+            const ImVec2 iconMin(
+                screen.x - totalW * 0.5f,
+                screen.y - iconSize * 0.5f);
+            const ImVec2 iconMax(iconMin.x + iconSize, iconMin.y + iconSize);
+            pDraw->AddImage(
+                reinterpret_cast<ImTextureID>(m_pSRV_StatsPanelAtlas),
+                iconMin,
+                iconMax,
+                UI_StatsPanelAtlasUV(232.f, 488.f),
+                UI_StatsPanelAtlasUV(256.f, 512.f),
+                UI_ColorWithAlpha(255, 255, 255, alpha));
+            pos.x = iconMax.x + gap;
+        }
 
         UI_DrawOutlinedText(pDraw, pDamageFont, fontSize, pos, color, text);
     }
@@ -3890,17 +4349,28 @@ struct HealthBarScreenRects
     ImVec2 ManaMax{};
 };
 
-static HealthBarScreenRects BuildHealthBarScreenRects(const ImVec2& center, f32_t width, f32_t height)
+static HealthBarScreenRects BuildHealthBarScreenRects(
+    const ImVec2& center,
+    f32_t width,
+    f32_t height,
+    bool_t bHasResource)
 {
     HealthBarScreenRects rects{};
-    rects.BarMin = ImVec2(center.x - width * 0.5f, center.y - height * 0.5f);
-    rects.BarMax = ImVec2(center.x + width * 0.5f, center.y + height * 0.5f);
+    const f32_t effectiveHeight = bHasResource ? height : height * 0.68f;
+    rects.BarMin = ImVec2(
+        center.x - width * 0.5f,
+        center.y - height * 0.5f);
+    rects.BarMax = ImVec2(
+        center.x + width * 0.5f,
+        rects.BarMin.y + effectiveHeight);
     rects.FillMin = ImVec2(
         rects.BarMin.x + width * 0.012f,
-        rects.BarMin.y + height * 0.08f);
+        rects.BarMin.y + effectiveHeight * 0.08f);
     rects.FillMax = ImVec2(
         rects.BarMax.x - width * 0.012f,
-        rects.BarMin.y + height * 0.60f);
+        bHasResource
+            ? rects.BarMin.y + height * 0.60f
+            : rects.BarMax.y - effectiveHeight * 0.08f);
     rects.ManaMin = ImVec2(
         rects.BarMin.x + width * 0.012f,
         rects.BarMin.y + height * 0.68f);
@@ -3908,6 +4378,34 @@ static HealthBarScreenRects BuildHealthBarScreenRects(const ImVec2& center, f32_
         rects.BarMax.x - width * 0.012f,
         rects.BarMax.y - height * 0.10f);
     return rects;
+}
+
+static void DrawChampionLevelText(
+    ImDrawList* pDraw,
+    ImFont* pFont,
+    const HealthBarScreenRects& rects,
+    u8_t iLevel,
+    f32_t fOffsetX,
+    f32_t fOffsetY,
+    f32_t fFontScale)
+{
+    if (!pDraw || !pFont || iLevel == 0u)
+        return;
+
+    char levelText[4]{};
+    sprintf_s(levelText, "%u", static_cast<u32_t>(iLevel));
+    const f32_t fontSize =
+        (std::max)(8.f, pFont->LegacySize * fFontScale);
+    const ImVec2 position(
+        rects.BarMin.x + fOffsetX,
+        rects.BarMin.y + fOffsetY);
+    UI_DrawOutlinedText(
+        pDraw,
+        pFont,
+        fontSize,
+        position,
+        IM_COL32(245, 245, 238, 255),
+        levelText);
 }
 
 static void DrawHealthBarcode(ImDrawList* pDraw,
@@ -3971,6 +4469,7 @@ void CUI_Manager::DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP
     const f32_t w = m_fHPBarWidth;
     const f32_t h = m_fHPBarHeight;
     const f32_t yOff = m_fHPBarYOffset;
+    ImFont* pLevelFont = FindUIFont("hud");
 
     for (const UIWorldHealthBarDesc& Bar : m_WorldHealthBars)
     {
@@ -3990,7 +4489,10 @@ void CUI_Manager::DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP
         }
 
         const f32_t clamped = std::clamp(Bar.fCurrent / Bar.fMaximum, 0.f, 1.f);
-        const HealthBarScreenRects rects = BuildHealthBarScreenRects(screen, w, h);
+        const bool_t bHasResource =
+            Bar.ResourceKind != eUIResourceKind::None;
+        const HealthBarScreenRects rects =
+            BuildHealthBarScreenRects(screen, w, h, bHasResource);
         const bool_t bAlly = UI_IsTeamAlly(Bar.iTeam, m_iWorldHealthBarLocalTeam);
 
         pDraw->AddRectFilled(rects.BarMin, rects.BarMax, IM_COL32(10, 10, 10, 226));
@@ -4039,23 +4541,43 @@ void CUI_Manager::DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP
         const f32_t manaRatio = (manaMax > 0.f)
             ? std::clamp(Bar.fManaCurrent / manaMax, 0.f, 1.f)
             : 0.f;
-        if (manaMax > 0.f)
+        if (bHasResource && manaMax > 0.f)
         {
             pDraw->AddRectFilled(rects.ManaMin, rects.ManaMax, IM_COL32(6, 13, 25, 235));
             if (manaRatio > 0.f)
             {
                 const f32_t manaW = (rects.ManaMax.x - rects.ManaMin.x) * manaRatio;
                 const ImVec2 manaFillMax(rects.ManaMin.x + manaW, rects.ManaMax.y);
-                pDraw->AddRectFilled(rects.ManaMin, manaFillMax, IM_COL32(36, 125, 226, 255));
+                const ImU32 resourceFill =
+                    Bar.ResourceKind == eUIResourceKind::Energy
+                        ? IM_COL32(236, 191, 36, 255)
+                        : Bar.ResourceKind == eUIResourceKind::Flow
+                            ? IM_COL32(226, 235, 244, 255)
+                            : IM_COL32(36, 125, 226, 255);
+                const ImU32 resourceHighlight =
+                    Bar.ResourceKind == eUIResourceKind::Energy
+                        ? IM_COL32(255, 235, 118, 110)
+                        : Bar.ResourceKind == eUIResourceKind::Flow
+                            ? IM_COL32(255, 255, 255, 120)
+                            : IM_COL32(108, 210, 255, 92);
+                pDraw->AddRectFilled(rects.ManaMin, manaFillMax, resourceFill);
                 pDraw->AddRectFilled(
                     rects.ManaMin,
                     ImVec2(manaFillMax.x, rects.ManaMin.y + 1.f),
-                    IM_COL32(108, 210, 255, 92));
+                    resourceHighlight);
             }
         }
 
         DrawHealthBarcode(pDraw, rects.FillMin, rects.FillMax, Bar.fMaximum);
         pDraw->AddRect(rects.BarMin, rects.BarMax, IM_COL32(0, 0, 0, 240), 0.f, 0, 1.25f);
+        DrawChampionLevelText(
+            pDraw,
+            pLevelFont,
+            rects,
+            Bar.iLevel,
+            m_fChampionLevelOffsetX,
+            m_fChampionLevelOffsetY,
+            m_fChampionLevelFontScale);
     }
 }
 
@@ -4087,7 +4609,10 @@ void CUI_Manager::DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP)
         }
 
         const f32_t clamped = std::clamp(Bar.fCurrent / Bar.fMaximum, 0.f, 1.f);
-        const HealthBarScreenRects rects = BuildHealthBarScreenRects(s, w, h);
+        const bool_t bHasResource =
+            Bar.ResourceKind != eUIResourceKind::None;
+        const HealthBarScreenRects rects =
+            BuildHealthBarScreenRects(s, w, h, bHasResource);
         const bool_t bAlly = UI_IsTeamAlly(Bar.iTeam, m_iWorldHealthBarLocalTeam);
 
         m_pRHIUIRenderer->DrawImage(
@@ -4166,7 +4691,7 @@ void CUI_Manager::DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP)
         const f32_t manaRatio = (manaMax > 0.f)
             ? std::clamp(Bar.fManaCurrent / manaMax, 0.f, 1.f)
             : 0.f;
-        if (manaMax > 0.f)
+        if (bHasResource && manaMax > 0.f)
         {
             m_pRHIUIRenderer->DrawImage(
                 nullptr,
@@ -4186,7 +4711,11 @@ void CUI_Manager::DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP)
                     manaW,
                     rects.ManaMax.y - rects.ManaMin.y,
                     uvFull,
-                    Vec4(0.14f, 0.49f, 0.89f, 1.0f));
+                    Bar.ResourceKind == eUIResourceKind::Energy
+                        ? Vec4(0.93f, 0.75f, 0.14f, 1.f)
+                        : Bar.ResourceKind == eUIResourceKind::Flow
+                            ? Vec4(0.89f, 0.93f, 0.97f, 1.f)
+                            : Vec4(0.14f, 0.49f, 0.89f, 1.0f));
                 m_pRHIUIRenderer->DrawImage(
                     nullptr,
                     rects.ManaMin.x,
@@ -4194,7 +4723,11 @@ void CUI_Manager::DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP)
                     manaW,
                     1.0f,
                     uvFull,
-                    Vec4(0.42f, 0.82f, 1.0f, 0.36f));
+                    Bar.ResourceKind == eUIResourceKind::Energy
+                        ? Vec4(1.f, 0.92f, 0.46f, 0.43f)
+                        : Bar.ResourceKind == eUIResourceKind::Flow
+                            ? Vec4(1.f, 1.f, 1.f, 0.47f)
+                            : Vec4(0.42f, 0.82f, 1.0f, 0.36f));
             }
         }
     }
@@ -4483,6 +5016,7 @@ void CUI_Manager::DrawHealthBarBarcodeOverlay(ImDrawList* pDraw, const DirectX::
     const f32_t w = m_fHPBarWidth;
     const f32_t h = m_fHPBarHeight;
     const f32_t yOff = m_fHPBarYOffset;
+    ImFont* pLevelFont = FindUIFont("hud");
 
     for (const UIWorldHealthBarDesc& Bar : m_WorldHealthBars)
     {
@@ -4501,9 +5035,21 @@ void CUI_Manager::DrawHealthBarBarcodeOverlay(ImDrawList* pDraw, const DirectX::
             continue;
         }
 
-        const HealthBarScreenRects rects = BuildHealthBarScreenRects(screen, w, h);
+        const HealthBarScreenRects rects = BuildHealthBarScreenRects(
+            screen,
+            w,
+            h,
+            Bar.ResourceKind != eUIResourceKind::None);
         DrawHealthBarcode(pDraw, rects.FillMin, rects.FillMax, Bar.fMaximum);
         pDraw->AddRect(rects.BarMin, rects.BarMax, IM_COL32(0, 0, 0, 240), 0.f, 0, 1.25f);
+        DrawChampionLevelText(
+            pDraw,
+            pLevelFont,
+            rects,
+            Bar.iLevel,
+            m_fChampionLevelOffsetX,
+            m_fChampionLevelOffsetY,
+            m_fChampionLevelFontScale);
     }
 }
 void CUI_Manager::OnImGui_StatusPanelLayoutTuner()
@@ -4618,6 +5164,230 @@ void CUI_Manager::OnImGui_StatusPanelLayoutTuner()
     ImGui::End();
 }
 
+void CUI_Manager::OnImGui_Tuner(
+    ImGuiExternalTabCallback pfnExternalTabs,
+    ImGuiExternalSaveAllCallback pfnExternalSaveAll,
+    void* pExternalUser)
+{
+    ImGui::SetNextWindowSize(ImVec2(520.f, 430.f), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin("UI Manager"))
+    {
+        ImGui::End();
+        return;
+    }
+
+    const f32_t fFooterHeight =
+        ImGui::GetFrameHeightWithSpacing() * 2.f +
+        ImGui::GetStyle().ItemSpacing.y;
+    if (ImGui::BeginChild(
+            "UIManagerScrollBody",
+            ImVec2(0.f, -fFooterHeight),
+            false,
+            ImGuiWindowFlags_AlwaysVerticalScrollbar))
+    {
+        if (ImGui::BeginTabBar("UIManagerEssentials"))
+        {
+            if (ImGui::BeginTabItem("HUD"))
+            {
+                ImGui::Checkbox("Show HUD", &m_bShowActorHUD);
+                ImGui::Checkbox("Reference", &m_bShowActorHUDReference);
+                DrawLabeledSliderFloat(
+                    "Reference Alpha",
+                    &m_fHUDReferenceAlpha,
+                    0.f,
+                    1.f,
+                    "%.2f");
+                if (m_pActorHudPanel)
+                    m_pActorHudPanel->DrawLayoutTunerImGui();
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Health Bars"))
+            {
+                bool bShow = m_bShowHealthBars != 0;
+                if (ImGui::Checkbox("Show", &bShow))
+                    m_bShowHealthBars = bShow;
+
+            static i32_t s_SelectedBarType = 0;
+            static const char* const kBarTypes[3] = {
+                "Champion", "Minion", "Structure"
+            };
+            DrawLabeledCombo(
+                "Target", &s_SelectedBarType, kBarTypes, 3);
+
+            f32_t* pWidth = &m_fHPBarWidth;
+            f32_t* pHeight = &m_fHPBarHeight;
+            f32_t* pYOffset = &m_fHPBarYOffset;
+            f32_t widthMin = 20.f;
+            f32_t widthMax = 200.f;
+            f32_t heightMin = 3.f;
+            f32_t heightMax = 32.f;
+            f32_t yMin = 0.5f;
+            f32_t yMax = 6.f;
+            if (s_SelectedBarType == 1)
+            {
+                pWidth = &m_fUnitHPBarWidth;
+                pHeight = &m_fUnitHPBarHeight;
+                pYOffset = &m_fUnitHPBarYOffset;
+                widthMax = 100.f;
+                heightMax = 16.f;
+                yMax = 3.f;
+            }
+            else if (s_SelectedBarType == 2)
+            {
+                pWidth = &m_fStructureHPBarWidth;
+                pHeight = &m_fStructureHPBarHeight;
+                pYOffset = &m_fStructureHPBarYOffset;
+                widthMin = 50.f;
+                widthMax = 240.f;
+                heightMin = 6.f;
+                heightMax = 40.f;
+                yMin = 1.f;
+                yMax = 8.f;
+            }
+
+            DrawLabeledSliderFloat(
+                "Width", pWidth, widthMin, widthMax, "%.0f px");
+            DrawLabeledSliderFloat(
+                "Height", pHeight, heightMin, heightMax, "%.0f px");
+            DrawLabeledSliderFloat(
+                "Y Offset", pYOffset, yMin, yMax, "%.2f m");
+            if (s_SelectedBarType == 2)
+            {
+                DrawLabeledSliderFloat(
+                    "Screen X", &m_fStructureHPBarScreenOffsetX,
+                    -120.f, 120.f, "%.0f px");
+                DrawLabeledSliderFloat(
+                    "Screen Y", &m_fStructureHPBarScreenOffsetY,
+                    -120.f, 120.f, "%.0f px");
+            }
+            if (s_SelectedBarType == 0)
+            {
+                ImGui::SeparatorText("Champion Level");
+                DrawLabeledSliderFloat(
+                    "Level X", &m_fChampionLevelOffsetX,
+                    -80.f, 20.f, "%+.0f px");
+                DrawLabeledSliderFloat(
+                    "Level Y", &m_fChampionLevelOffsetY,
+                    -30.f, 30.f, "%+.0f px");
+                DrawLabeledSliderFloat(
+                    "Level Font Scale", &m_fChampionLevelFontScale,
+                    0.5f, 2.f, "%.2f");
+            }
+
+            if (ImGui::Button("Reset Selected"))
+            {
+                if (s_SelectedBarType == 0)
+                {
+                    m_fHPBarWidth = 104.f;
+                    m_fHPBarHeight = 20.f;
+                    m_fHPBarYOffset = 2.75f;
+                    m_fChampionLevelOffsetX = -24.f;
+                    m_fChampionLevelOffsetY = 1.f;
+                    m_fChampionLevelFontScale = 0.85f;
+                }
+                else if (s_SelectedBarType == 1)
+                {
+                    m_fUnitHPBarWidth = 43.088f;
+                    m_fUnitHPBarHeight = 3.f;
+                    m_fUnitHPBarYOffset = 1.189f;
+                }
+                else
+                {
+                    m_fStructureHPBarWidth = 125.5f;
+                    m_fStructureHPBarHeight = 14.f;
+                    m_fStructureHPBarYOffset = 4.75f;
+                    m_fStructureHPBarScreenOffsetX = 0.f;
+                    m_fStructureHPBarScreenOffsetY = 0.f;
+                }
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Reset All"))
+            {
+                m_bShowHealthBars = true;
+                m_fHPBarWidth = 104.f;
+                m_fHPBarHeight = 20.f;
+                m_fHPBarYOffset = 2.75f;
+                m_fChampionLevelOffsetX = -24.f;
+                m_fChampionLevelOffsetY = 1.f;
+                m_fChampionLevelFontScale = 0.85f;
+                m_fUnitHPBarWidth = 43.088f;
+                m_fUnitHPBarHeight = 3.f;
+                m_fUnitHPBarYOffset = 1.189f;
+                m_fStructureHPBarWidth = 125.5f;
+                m_fStructureHPBarHeight = 14.f;
+                m_fStructureHPBarYOffset = 4.75f;
+                m_fStructureHPBarScreenOffsetX = 0.f;
+                m_fStructureHPBarScreenOffsetY = 0.f;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Save"))
+            {
+                m_strWorldHealthBarLayoutSaveMessage =
+                    SaveWorldHealthBarLayoutSettings()
+                    ? "Saved to %LOCALAPPDATA%/Winters/Developer/world_health_bars.ini"
+                    : "Save failed";
+            }
+            if (!m_strWorldHealthBarLayoutSaveMessage.empty())
+                ImGui::TextWrapped(
+                    "%s", m_strWorldHealthBarLayoutSaveMessage.c_str());
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Cursor"))
+            {
+                ImGui::Checkbox("Show Cursor", &m_bShowMouseCursor);
+                DrawLabeledSliderFloat(
+                    "Size", &m_fCursorSize, 16.f, 64.f, "%.0f px");
+                ImGui::EndTabItem();
+            }
+            if (pfnExternalTabs)
+                pfnExternalTabs(pExternalUser);
+            ImGui::EndTabBar();
+        }
+    }
+    ImGui::EndChild();
+
+    ImGui::Separator();
+    if (ImGui::Button("Save All"))
+    {
+        std::vector<const char*> failedScopes;
+        const bool_t bHudSaved =
+            m_pActorHudPanel && m_pActorHudPanel->SaveLayout();
+        const bool_t bHealthBarsSaved =
+            SaveWorldHealthBarLayoutSettings();
+        const bool_t bMinimapSaved =
+            pfnExternalSaveAll && pfnExternalSaveAll(pExternalUser);
+        if (!bHudSaved)
+            failedScopes.push_back("HUD Layout");
+        if (!bHealthBarsSaved)
+            failedScopes.push_back("Health Bars");
+        if (!bMinimapSaved)
+            failedScopes.push_back("Minimap");
+
+        if (failedScopes.empty())
+        {
+            m_strSaveAllMessage =
+                "Saved HUD Layout, Health Bars, and Minimap.";
+        }
+        else
+        {
+            m_strSaveAllMessage = "Save All failed: ";
+            for (std::size_t i = 0; i < failedScopes.size(); ++i)
+            {
+                if (i > 0u)
+                    m_strSaveAllMessage += ", ";
+                m_strSaveAllMessage += failedScopes[i];
+            }
+        }
+    }
+    if (!m_strSaveAllMessage.empty())
+        ImGui::TextWrapped("%s", m_strSaveAllMessage.c_str());
+
+    ImGui::End();
+}
+
+#if 0 // Legacy all-in-one UI diagnostics retained as backend reference only.
 void CUI_Manager::OnImGui_Tuner()
 {
     if (!ImGui::Begin("UI Manager")) { ImGui::End(); return; }
@@ -4693,5 +5463,6 @@ void CUI_Manager::OnImGui_Tuner()
 
     ImGui::End();
 }
+#endif
 
 NS_END

@@ -22,11 +22,12 @@
 #include "UI/SkillTimingPanel.h"
 #include "UI/ChampionTuner.h"
 #include "UI/AttackSpeedLab.h"
-#include "UI/StructureTunerPanel.h"
 #include "UI/EffectTuner.h"
 #include "UI/WfxEffectToolPanel.h"
 #include "UI/ModelAnimPanel.h"
 #include "Network/Client/NetworkEventTrace.h"
+
+#include <algorithm>
 
 #pragma push_macro("min")
 #pragma push_macro("max")
@@ -49,18 +50,19 @@ void CScene_InGame::OnImGui()
     }
 
     if (input.IsKeyPressed(VK_F9))
-    {
         m_bShowAIDebug = !m_bShowAIDebug;
-        m_bShowUITuner = m_bShowAIDebug;
-    }
     if (input.IsKeyPressed(VK_F8))
         m_bShowUITuner = !m_bShowUITuner;
     if (input.IsKeyPressed(VK_F7))
         m_bShowWfxEffectTool = !m_bShowWfxEffectTool;
-    // F4 = 구조물(포탑/억제기/넥서스) 체력·데미지 튜너.
+    // F4 = 서버 권위 수치를 카테고리별로 조절하는 통합 Balance Lab.
     // 엔진 전역 프로파일러 JSON 캡처는 F12 로 이전 (CEngineApp.cpp).
     if (input.IsKeyPressed(VK_F4))
-        m_bShowStructureTuner = !m_bShowStructureTuner;
+    {
+        m_bShowBalanceTuner = !m_bShowBalanceTuner;
+        if (m_bShowBalanceTuner)
+            UI::CChampionTuner::Open(UI::eBalanceTunerCategory::Champions);
+    }
     // F5 = 기본 공격 속도/애니 튜닝(Attack Speed Lab). '8' 은 기존 별칭으로 유지.
     if (input.IsKeyPressed(VK_F5))
     {
@@ -110,19 +112,43 @@ void CScene_InGame::OnImGui()
     if (m_bShowUITuner)
     {
         WINTERS_PROFILE_SCOPE("UI::Tuner");
-        CGameInstance::Get()->UI_OnImGui_Tuner();
-        CGameInstance::Get()->UI_OnImGui_StatusPanelLayoutTuner();
-        UI::MinimapProjection AppliedProjection{};
-        if (UI::CMinimapPanel::DrawTunerImGui(
-                m_pVisionSystem != nullptr,
-                AppliedProjection) &&
-            m_pVisionSystem)
+        struct MinimapTunerContext
         {
-            Engine::CVisionSystem::FowProjection FowProjection{};
-            FowProjection.vWorldAtUv00 = AppliedProjection.vWorldAtUv00;
-            FowProjection.vWorldAtUv10 = AppliedProjection.vWorldAtUv10;
-            FowProjection.vWorldAtUv01 = AppliedProjection.vWorldAtUv01;
-            m_pVisionSystem->SetFowProjection(FowProjection);
+            bool_t bProjectionSyncAvailable = false;
+            bool_t bProjectionChanged = false;
+            UI::MinimapProjection AppliedProjection{};
+        };
+        MinimapTunerContext minimapContext{};
+        minimapContext.bProjectionSyncAvailable = m_pVisionSystem != nullptr;
+        const auto drawExternalTabs = [](void* user)
+        {
+            auto* context = static_cast<MinimapTunerContext*>(user);
+            if (!context || !ImGui::BeginTabItem("Minimap"))
+                return;
+            context->bProjectionChanged =
+                UI::CMinimapPanel::DrawTunerContentsImGui(
+                    context->bProjectionSyncAvailable,
+                    context->AppliedProjection);
+            ImGui::EndTabItem();
+        };
+        const auto saveExternalTabs = [](void*) -> bool_t
+        {
+            return UI::CMinimapPanel::SaveTunerSettings();
+        };
+        CGameInstance::Get()->UI_OnImGui_Tuner(
+            drawExternalTabs,
+            saveExternalTabs,
+            &minimapContext);
+        if (minimapContext.bProjectionChanged && m_pVisionSystem)
+        {
+            Engine::CVisionSystem::FowProjection fowProjection{};
+            fowProjection.vWorldAtUv00 =
+                minimapContext.AppliedProjection.vWorldAtUv00;
+            fowProjection.vWorldAtUv10 =
+                minimapContext.AppliedProjection.vWorldAtUv10;
+            fowProjection.vWorldAtUv01 =
+                minimapContext.AppliedProjection.vWorldAtUv01;
+            m_pVisionSystem->SetFowProjection(fowProjection);
         }
     }
 
@@ -150,10 +176,10 @@ void CScene_InGame::OnImGui()
         UI::CAttackSpeedLab::Render(this);
     }
 
-    if (m_bShowStructureTuner)
+    if (m_bShowBalanceTuner)
     {
-        WINTERS_PROFILE_SCOPE("UI::StructureTuner");
-        UI::CStructureTunerPanel::Render(m_World, this);
+        WINTERS_PROFILE_SCOPE("UI::BalanceTuner");
+        UI::CChampionTuner::Render(this);
     }
 
     DrawGameEndOverlay();
@@ -163,7 +189,8 @@ void CScene_InGame::OnImGui()
 
     UI::CCombatDebugPanel::Render(m_World, this);
     UI::CMapTunerPanel::Render(this);
-    UI::CChampionTuner::Render(this);
+    if (!m_bShowBalanceTuner)
+        UI::CChampionTuner::Render(this);
     UI::CEffectTuner::Render(this);
     UI::CRenderDebugPanel::Render(this);
     UI::CSkillTimingPanel::Render(this);
@@ -194,11 +221,39 @@ void CScene_InGame::OnImGui()
     CMinion_Manager::Get()->OnImGui_Tuner();
 }
 
+bool_t CScene_InGame::ApplyReplaySpectatorFocus()
+{
+    if (!m_pEntityIdMap)
+        return false;
+
+    if (m_replayPerspectiveNetId != NULL_NET_ENTITY)
+    {
+        if (ApplyAuthoritativePlayerNetId(m_replayPerspectiveNetId))
+            return true;
+        m_strReplayStatus = "Replay account perspective is unavailable";
+        return false;
+    }
+
+    NetEntityId focusNetId = NULL_NET_ENTITY;
+    m_pEntityIdMap->ForEachBinding(
+        [this, &focusNetId](NetEntityId netId, EntityID entity)
+        {
+            if (m_World.IsAlive(entity) &&
+                m_World.HasComponent<ChampionComponent>(entity) &&
+                (focusNetId == NULL_NET_ENTITY || netId < focusNetId))
+            {
+                focusNetId = netId;
+            }
+        });
+    return ApplyAuthoritativePlayerNetId(focusNetId);
+}
+
 void CScene_InGame::UpdateReplayPlayback(f32_t dt)
 {
     if (!m_pReplayPlayer || !m_pEntityIdMap || !m_pSnapshotApplier || !m_pEventApplier)
         return;
 
+    const bool_t bWasFinished = m_pReplayPlayer->IsFinished();
     if (m_pReplayPlayer->Update(
         dt,
         m_World,
@@ -206,8 +261,66 @@ void CScene_InGame::UpdateReplayPlayback(f32_t dt)
         *m_pSnapshotApplier,
         *m_pEventApplier))
     {
+        const bool_t bFocusApplied = ApplyReplaySpectatorFocus();
         ProjectGameplayActorsToMapSurface();
+        if (!bFocusApplied)
+            return;
     }
+
+    const std::string& playbackError = m_pReplayPlayer->GetPlaybackError();
+    if (!playbackError.empty())
+    {
+        m_strReplayStatus = playbackError;
+        m_fReplayAutoReturnRemainingSec = -1.f;
+        return;
+    }
+
+    constexpr f32_t kReplayAutoReturnDelaySec = 2.f;
+    if (!bWasFinished &&
+        m_pReplayPlayer->IsFinished() &&
+        !m_pReplayPlayer->IsPaused())
+    {
+        m_fReplayAutoReturnRemainingSec = kReplayAutoReturnDelaySec;
+    }
+    else if (m_fReplayAutoReturnRemainingSec >= 0.f)
+    {
+        m_fReplayAutoReturnRemainingSec =
+            (std::max)(0.f, m_fReplayAutoReturnRemainingSec - dt);
+    }
+
+    if (m_fReplayAutoReturnRemainingSec < 0.f)
+        return;
+
+    m_strReplayStatus = "Replay complete - returning to main menu";
+    if (m_fReplayAutoReturnRemainingSec <= 0.f)
+        m_bReturnToMainMenuRequested = true;
+}
+
+bool_t CScene_InGame::SeekReplayToTick(u64_t targetTick)
+{
+    if (!m_pReplayPlayer || !m_pEntityIdMap || !m_pSnapshotApplier || !m_pEventApplier)
+        return false;
+
+    m_fReplayAutoReturnRemainingSec = -1.f;
+    const bool_t bApplied = m_pReplayPlayer->SeekToTick(
+        targetTick,
+        m_World,
+        *m_pEntityIdMap,
+        *m_pSnapshotApplier,
+        *m_pEventApplier);
+    if (bApplied)
+    {
+        const bool_t bFocusApplied = ApplyReplaySpectatorFocus();
+        ProjectGameplayActorsToMapSurface();
+        if (!bFocusApplied)
+            return false;
+        m_strReplayStatus = "Replay Chrono seek complete";
+        return true;
+    }
+
+    const std::string& error = m_pReplayPlayer->GetPlaybackError();
+    m_strReplayStatus = error.empty() ? "Replay Chrono seek failed" : error;
+    return false;
 }
 
 bool_t CScene_InGame::SendStopReplayRequest()
@@ -237,34 +350,117 @@ bool_t CScene_InGame::SendStopReplayRequest()
 
 void CScene_InGame::DrawReplayControlPanel()
 {
-    ImGui::SetNextWindowSize(ImVec2(280.f, 116.f), ImGuiCond_FirstUseEver);
-    if (!ImGui::Begin("Replay"))
+    if (m_bReplayPlaybackMode)
     {
+        ImGuiIO& io = ImGui::GetIO();
+        constexpr f32_t kPanelTop = 4.f;
+        constexpr f32_t kPerfOverlayLeft = 10.f;
+        constexpr f32_t kPanelGap = 16.f;
+        constexpr f32_t kMatchHudLeftReserve = 400.f;
+        const f32_t panelLeft =
+            kPerfOverlayLeft +
+            ImGui::CalcTextSize(
+                "Draw: 2147483647 verts, 2147483647 indices").x +
+            ImGui::GetStyle().WindowPadding.x * 2.f +
+            kPanelGap;
+        const f32_t panelRight =
+            io.DisplaySize.x - kMatchHudLeftReserve - kPanelGap;
+        const f32_t availableWidth = (std::max)(
+            240.f,
+            panelRight - panelLeft);
+        const ImVec2 windowSize((std::min)(640.f, availableWidth), 160.f);
+        ImGui::SetNextWindowPos(
+            ImVec2(panelLeft, kPanelTop),
+            ImGuiCond_Always);
+        ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
+
+        constexpr ImGuiWindowFlags flags =
+            ImGuiWindowFlags_NoCollapse |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoSavedSettings;
+        if (!ImGui::Begin("Replay Chrono Break", nullptr, flags))
+        {
+            ImGui::End();
+            return;
+        }
+
+        if (m_pReplayPlayer)
+        {
+            const u64_t firstTick = m_pReplayPlayer->GetFirstSeekableTick();
+            const u64_t lastTick = m_pReplayPlayer->GetLastTick();
+            u64_t selectedTick = (std::max)(
+                firstTick,
+                m_pReplayPlayer->GetCurrentTick());
+            ImGui::SetNextItemWidth(-1.f);
+            if (ImGui::SliderScalar(
+                "##ReplayTimeline",
+                ImGuiDataType_U64,
+                &selectedTick,
+                &firstTick,
+                &lastTick,
+                "%llu"))
+            {
+                m_pReplayPlayer->SetPaused(true);
+                SeekReplayToTick(selectedTick);
+            }
+
+            const f32_t tickRate = m_pReplayPlayer->GetTickRate();
+            const double currentSec = tickRate > 0.f
+                ? static_cast<double>(selectedTick - firstTick) / tickRate
+                : 0.0;
+            const double totalSec = tickRate > 0.f
+                ? static_cast<double>(lastTick - firstTick) / tickRate
+                : 0.0;
+            ImGui::Text("Time: %.2f / %.2f sec", currentSec, totalSec);
+
+            if (ImGui::Button("Restart"))
+            {
+                if (SeekReplayToTick(firstTick))
+                    m_pReplayPlayer->SetPaused(false);
+            }
+            ImGui::SameLine();
+            const bool_t bPaused = m_pReplayPlayer->IsPaused();
+            if (ImGui::Button(bPaused ? "Play" : "Pause"))
+                m_pReplayPlayer->SetPaused(!bPaused);
+            ImGui::SameLine();
+            f32_t speed = m_pReplayPlayer->GetPlaybackRate();
+            ImGui::SetNextItemWidth(80.f);
+            if (ImGui::SliderFloat(
+                "##ReplaySpeed",
+                &speed,
+                0.25f,
+                4.f,
+                "%.2fx"))
+                m_pReplayPlayer->SetPlaybackRate(speed);
+
+            if (ImGui::Button("프로필로 돌아가기"))
+                m_bExitReplayToMyInfoRequested = true;
+            ImGui::SameLine();
+            if (ImGui::Button("메인 메뉴로"))
+                m_bReturnToMainMenuRequested = true;
+        }
+
+        const char* pStatus = m_strReplayStatus.empty()
+            ? "Replay playback"
+            : m_strReplayStatus.c_str();
+        if (ImGui::CalcTextSize(pStatus).x <= ImGui::GetContentRegionAvail().x)
+        {
+            ImGui::TextUnformatted(pStatus);
+        }
+        else
+        {
+            ImGui::TextUnformatted("Replay status (hover for details)");
+            if (ImGui::IsItemHovered())
+                ImGui::SetTooltip("%s", pStatus);
+        }
         ImGui::End();
         return;
     }
 
-    if (m_bReplayPlaybackMode)
+    ImGui::SetNextWindowSize(ImVec2(320.f, 100.f), ImGuiCond_FirstUseEver);
+    if (!ImGui::Begin("Replay Recording"))
     {
-        if (m_pReplayPlayer)
-        {
-            bool_t bPaused = m_pReplayPlayer->IsPaused();
-            if (ImGui::Checkbox("Pause", &bPaused))
-                m_pReplayPlayer->SetPaused(bPaused);
-
-            f32_t speed = m_pReplayPlayer->GetPlaybackRate();
-            if (ImGui::SliderFloat("Speed", &speed, 0.25f, 4.f))
-                m_pReplayPlayer->SetPlaybackRate(speed);
-
-            ImGui::Text(
-                "Tick: %llu / %llu",
-                static_cast<unsigned long long>(m_pReplayPlayer->GetCurrentTick()),
-                static_cast<unsigned long long>(m_pReplayPlayer->GetLastTick()));
-        }
-
-        ImGui::TextUnformatted(m_strReplayStatus.empty() ? "Replay playback" : m_strReplayStatus.c_str());
-        if (ImGui::Button("나의 정보로 돌아가기"))
-            m_bExitReplayToMyInfoRequested = true;
         ImGui::End();
         return;
     }
@@ -272,7 +468,8 @@ void CScene_InGame::DrawReplayControlPanel()
     if (ImGui::Button("Stop & Save Replay"))
         SendStopReplayRequest();
 
-    ImGui::TextUnformatted(m_strReplayStatus.empty() ? "Recording on server" : m_strReplayStatus.c_str());
+    ImGui::TextUnformatted(
+        m_strReplayStatus.empty() ? "Recording on server" : m_strReplayStatus.c_str());
     ImGui::End();
 }
 
@@ -303,7 +500,10 @@ void CScene_InGame::DrawGameEndOverlay()
         ImGui::Separator();
         ImGui::TextWrapped("넥서스가 파괴되어 게임이 종료되었습니다. 리플레이와 AI trace가 저장되었습니다.");
         ImGui::Spacing();
-        if (ImGui::Button("메인 메뉴로", ImVec2(160.f, 0.f)))
+        if (ImGui::Button("프로필 / 다시보기", ImVec2(180.f, 0.f)))
+            m_bExitReplayToMyInfoRequested = true;
+        ImGui::SameLine();
+        if (ImGui::Button("메인 메뉴로", ImVec2(150.f, 0.f)))
             m_bReturnToMainMenuRequested = true;
     }
     ImGui::End();

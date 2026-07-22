@@ -1,0 +1,20 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Fiora.W.ParrySuccess",
+  "emitters": [{
+    "name": "w_cc_indicator_red",
+    "render_type": "GroundDecal",
+    "blend_mode": "Additive",
+    "depth_mode": "DepthTestWriteOff",
+    "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_w_indicator_red.png",
+    "lifetime": 0.75,
+    "fade_in": 0.01,
+    "fade_out": 0.25,
+    "width": 6.0,
+    "height": 1.6,
+    "color": [1.5, 0.25, 0.12, 0.9],
+    "attach_offset": [0.0, 0.05, 0.0],
+    "billboard": false
+  }]
+}

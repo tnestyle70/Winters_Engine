@@ -4,6 +4,7 @@
 #include "Map/MapDataFormats.h"
 #include "ECS/Components/TransformComponent.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Definitions/MinionCombatDef.h"
 #include "ECS/Components/CoreComponents.h"
 #include "ECS/Components/SpatialAgentComponent.h"
 #include "ECS/Components/RenderComponent.h"
@@ -16,7 +17,8 @@
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/PoseStateComponent.h"
-#include "Shared/GameSim/Definitions/MinionCombatDef.h"
+#include "Shared/GameSim/Components/ReplicatedStateComponent.h"
+#include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
@@ -38,6 +40,40 @@ namespace
     static constexpr f32_t kMinionScreenCullMargin = 48.f;
     static constexpr uint32_t kNetworkVisualBindBudgetPerFrame = 3u;
     static constexpr u32_t kNetworkWarmPoolSizeByRole[] = { 9u, 9u, 3u, 3u, 1u };
+
+    f32_t ResolveMinionVisualScale(
+        f32_t baseScale,
+        eMinionType type,
+        eMinionTeam team)
+    {
+        if (type == eMinionType::Tibbers)
+            return kTibbersVisualScale;
+        const ClientData::MinionVisualDefinition* visual =
+            ClientData::FindMinionVisualDefinition(
+                static_cast<u32_t>(type),
+                static_cast<u32_t>(team));
+        return baseScale * (visual ? visual->visualScaleMultiplier : 1.f);
+    }
+
+    Mat4 ResolveMinionRenderTransform(
+        CWorld& world,
+        EntityID entity,
+        const TransformComponent& transform)
+    {
+        Mat4 result = transform.GetWorldMatrix();
+        const ReplicatedStateComponent* state =
+            world.TryGetComponent<ReplicatedStateComponent>(entity);
+        if (!state ||
+            (state->objectiveStateFlags & kObjectiveStateBaronMinionFlag) == 0u)
+        {
+            return result;
+        }
+        const f32_t scale = (std::max)(0.f, state->visualScaleMultiplier);
+        result.m._11 *= scale; result.m._12 *= scale; result.m._13 *= scale;
+        result.m._21 *= scale; result.m._22 *= scale; result.m._23 *= scale;
+        result.m._31 *= scale; result.m._32 *= scale; result.m._33 *= scale;
+        return result;
+    }
 
 	void OutputMinionDebug(const char* msg)
 	{
@@ -887,7 +923,7 @@ void CMinion_Manager::Render(const Mat4& matVP, const Vec3& vCameraWorld,
             FlushTransformForRender(xform);
             rc.pRenderer->SetAmbientOcclusionSRV(pAmbientOcclusionSRV);
             rc.pRenderer->UpdateCamera(matVP, vCameraWorld);
-            rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
+            rc.pRenderer->UpdateTransform(ResolveMinionRenderTransform(*m_pWorld, id, xform));
             rc.pRenderer->RenderFrustumCulled(matVP);
         });
 
@@ -926,7 +962,7 @@ u32_t CMinion_Manager::AppendRenderSnapshotMeshes(
 
             ++visibleCount;
             FlushTransformForRender(xform);
-            rc.pRenderer->UpdateTransform(xform.GetWorldMatrix());
+            rc.pRenderer->UpdateTransform(ResolveMinionRenderTransform(*m_pWorld, id, xform));
             appendedCount += rc.pRenderer->AppendRenderSnapshotMeshesFrustumCulled(
                 snapshot,
                 matVP);
@@ -984,7 +1020,8 @@ bool_t CMinion_Manager::Ensure_NetworkVisual(EntityID entity, eMinionType eType,
         return false;
     }
 
-    const f32_t fVisualScale = (eType == eMinionType::Tibbers) ? kTibbersVisualScale : m_fVisualScale;
+    const f32_t fVisualScale =
+        ResolveMinionVisualScale(m_fVisualScale, eType, eTeamParam);
 
     if (!m_pWorld->HasComponent<TransformComponent>(entity))
         m_pWorld->AddComponent<TransformComponent>(entity);
@@ -1186,7 +1223,8 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
 
     auto& xform = m_pWorld->AddComponent<TransformComponent>(id);
     xform.SetPosition(pWPs[0]);
-    const f32_t fVisualScale = (eType == eMinionType::Tibbers) ? kTibbersVisualScale : m_fVisualScale;
+    const f32_t fVisualScale =
+        ResolveMinionVisualScale(m_fVisualScale, eType, eTeamParam);
     xform.SetScale(fVisualScale);
 
     auto& ms = m_pWorld->AddComponent<MinionStateComponent>(id);
@@ -1195,12 +1233,16 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     ms.team            = (eTeamParam == eMinionTeam::Blue) ? eTeam::Blue : eTeam::Red;
     ms.type            = static_cast<uint8_t>(eType);
     ms.lane            = static_cast<uint8_t>(eWay);
-    const MinionCombatDef combat = ResolveMinionCombatDef(ms.type);
-    ms.moveSpeed = combat.moveSpeed;
-    ms.attackRange = combat.attackRange;
-    ms.sightRange = combat.sightRange;
-    ms.attackDamage = combat.attackDamage;
-    ms.attackCooldownMax = combat.attackCooldownMax;
+    // This constructor is enabled only in the explicit local/offline smoke path.
+    // Network minions are created by Ensure_NetworkVisual and receive snapshot values.
+    const MinionCombatDef* pLocalCombat =
+        ClientData::FindLocalSmokeMinionCombatDefinition(ms.type);
+    const MinionCombatDef localCombat = pLocalCombat ? *pLocalCombat : MinionCombatDef{};
+    ms.moveSpeed = localCombat.moveSpeed;
+    ms.attackRange = localCombat.attackRange;
+    ms.sightRange = localCombat.sightRange;
+    ms.attackDamage = localCombat.attackDamage;
+    ms.attackCooldownMax = localCombat.attackCooldownMax;
 
     const u32_t scanSeed = (static_cast<u32_t>(id) * 1103515245u + 12345u) & 7u;
     ms.targetScanCooldown = 0.03f * static_cast<f32_t>(scanSeed);
@@ -1209,7 +1251,7 @@ EntityID CMinion_Manager::Spawn_Minion(eMinionType eType, eMinionTeam eTeamParam
     ms.animUpdateAccumulator = ResolveMinionAnimPhase(id, ms.animUpdateInterval);
 
     auto& hp = m_pWorld->AddComponent<HealthComponent>(id);
-    hp.fMaximum = hp.fCurrent = combat.maxHp;
+    hp.fMaximum = hp.fCurrent = localCombat.maxHp;
 
     //Velocity!
     auto& vel = m_pWorld->AddComponent<VelocityComponent>(id);
@@ -1698,37 +1740,40 @@ void CMinion_Manager::OnImGui_Tuner()
 {
     if (!ImGui::Begin("Minion Tuner")) { ImGui::End(); return; }
 
+    const auto ApplyCurrentVisualScale = [&]()
+    {
+        if (!m_pWorld)
+            return;
+        for (EntityID entity : m_vecEntities)
+        {
+            if (!m_pWorld->IsAlive(entity) ||
+                !m_pWorld->HasComponent<TransformComponent>(entity) ||
+                !m_pWorld->HasComponent<MinionStateComponent>(entity))
+            {
+                continue;
+            }
+            const auto& state =
+                m_pWorld->GetComponent<MinionStateComponent>(entity);
+            const eMinionType eType = static_cast<eMinionType>(state.type);
+            const eMinionTeam eTeamParam = state.team == eTeam::Red
+                ? eMinionTeam::Red
+                : eMinionTeam::Blue;
+            m_pWorld->GetComponent<TransformComponent>(entity).SetScale(
+                ResolveMinionVisualScale(m_fVisualScale, eType, eTeamParam));
+        }
+    };
+
     ImGui::Text("Active minions: %u", Get_Count());
     ImGui::Checkbox("Enabled", &m_bEnabled);
     ImGui::SliderFloat("Spawn Interval (s)", &m_fSpawnInterval, 1.f, 30.f);
     if (ImGui::DragFloat("Visual Scale", &m_fVisualScale, 0.0001f, 0.001f, 0.02f, "%.4f"))
     {
-        if (m_pWorld)
-        {
-            for (EntityID entity : m_vecEntities)
-            {
-                if (m_pWorld->IsAlive(entity) &&
-                    m_pWorld->HasComponent<TransformComponent>(entity))
-                {
-                    m_pWorld->GetComponent<TransformComponent>(entity).SetScale(m_fVisualScale);
-                }
-            }
-        }
+        ApplyCurrentVisualScale();
     }
     if (ImGui::Button("Reset Visual Scale"))
     {
         m_fVisualScale = kDefaultMinionScale;
-        if (m_pWorld)
-        {
-            for (EntityID entity : m_vecEntities)
-            {
-                if (m_pWorld->IsAlive(entity) &&
-                    m_pWorld->HasComponent<TransformComponent>(entity))
-                {
-                    m_pWorld->GetComponent<TransformComponent>(entity).SetScale(m_fVisualScale);
-                }
-            }
-        }
+        ApplyCurrentVisualScale();
     }
 
     if (ImGui::Button("Spawn Wave Now")) DEBUG_SpawnWaveNow();

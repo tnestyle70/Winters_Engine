@@ -2,6 +2,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <assimp/Importer.hpp>
+#include <assimp/config.h>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
@@ -24,6 +25,7 @@
 #include <filesystem>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using namespace Winters::Asset;
@@ -61,15 +63,24 @@ static std::wstring SanitizeFileStem(const char* name, uint32_t fallbackIndex)
     return Utf8ToWide(stem.c_str());
 }
 
-static const aiScene* ReadScene(Assimp::Importer& importer, const std::wstring& path)
+static const aiScene* ReadScene(
+    Assimp::Importer& importer,
+    const std::wstring& path,
+    bool bPretransformVertices = false)
 {
-    const unsigned postFlags =
+    unsigned postFlags =
         aiProcess_Triangulate |
         aiProcess_ConvertToLeftHanded |
         aiProcess_GenNormals |
         aiProcess_CalcTangentSpace |
         aiProcess_LimitBoneWeights |
         aiProcess_JoinIdenticalVertices;
+
+    if (bPretransformVertices)
+    {
+        importer.SetPropertyInteger(AI_CONFIG_PP_PTV_KEEP_HIERARCHY, 1);
+        postFlags |= aiProcess_PreTransformVertices;
+    }
 
     const std::string utf8 = WideToUtf8(path);
     return importer.ReadFile(utf8, postFlags);
@@ -89,13 +100,19 @@ static int CmdMesh(int argc, char** argv)
 {
     if (argc < 4)
     {
-        std::fprintf(stderr, "usage: mesh <input> -o <output> [--skel <wskel>] [--mirror-x] [--include-layers] [--scale N]\n");
+        std::fprintf(stderr,
+            "usage: mesh <input> -o <output> [--skel <wskel>] [--mirror-x] "
+            "[--include-layers] [--pretransform] [--exclude-material <name>] "
+            "[--material-remap <name>=<runtime-path>] [--scale N]\n");
         return 2;
     }
 
     const std::wstring inPath = Utf8ToWide(argv[1]);
     std::wstring outPath;
     std::wstring skelPath;
+    bool bPretransformVertices = false;
+    std::unordered_set<std::string> excludedMaterialNames;
+    std::unordered_map<std::string, std::wstring> diffusePathOverrides;
 
     WMeshWriteOptions opt;
     for (int i = 2; i < argc; ++i)
@@ -109,6 +126,22 @@ static int CmdMesh(int argc, char** argv)
             opt.bMirrorX = true;
         else if (arg == "--include-layers")
             opt.bIncludeLayerOverlays = true;
+        else if (arg == "--pretransform")
+            bPretransformVertices = true;
+        else if (arg == "--exclude-material" && i + 1 < argc)
+            excludedMaterialNames.emplace(argv[++i]);
+        else if (arg == "--material-remap" && i + 1 < argc)
+        {
+            const std::string mapping = argv[++i];
+            const size_t separator = mapping.find('=');
+            if (separator == std::string::npos || separator == 0 || separator + 1 >= mapping.size())
+            {
+                std::fprintf(stderr, "invalid material remap: %s\n", mapping.c_str());
+                return 2;
+            }
+            diffusePathOverrides[mapping.substr(0, separator)] =
+                Utf8ToWide(mapping.substr(separator + 1).c_str());
+        }
         else if (arg == "--scale" && i + 1 < argc)
             opt.fScale = std::strtof(argv[++i], nullptr);
         else
@@ -124,6 +157,9 @@ static int CmdMesh(int argc, char** argv)
         return 2;
     }
 
+    if (!excludedMaterialNames.empty())
+        opt.pExcludedMaterialNames = &excludedMaterialNames;
+
     WSkelLoaded ws;
     std::unordered_map<std::string, uint32_t> skelMap;
     if (!skelPath.empty())
@@ -137,7 +173,7 @@ static int CmdMesh(int argc, char** argv)
     }
 
     Assimp::Importer importer;
-    const aiScene* pScene = ReadScene(importer, inPath);
+    const aiScene* pScene = ReadScene(importer, inPath, bPretransformVertices);
     if (!pScene || (pScene->mFlags & AI_SCENE_FLAGS_INCOMPLETE) || !pScene->mRootNode)
     {
         std::fprintf(stderr, "assimp failed: %s\n", importer.GetErrorString());
@@ -152,7 +188,14 @@ static int CmdMesh(int argc, char** argv)
 
     std::filesystem::path matPath(outPath);
     matPath.replace_extension(L".wmat");
-    if (!CWMaterialWriter::WriteFromAssimp(pScene, inPath.c_str(), matPath.c_str()))
+    WMaterialWriteOptions materialOpt{};
+    if (!diffusePathOverrides.empty())
+        materialOpt.pDiffusePathOverrides = &diffusePathOverrides;
+    if (!CWMaterialWriter::WriteFromAssimp(
+        pScene,
+        inPath.c_str(),
+        matPath.c_str(),
+        materialOpt))
     {
         std::fprintf(stderr, "material write failed\n");
         return 1;

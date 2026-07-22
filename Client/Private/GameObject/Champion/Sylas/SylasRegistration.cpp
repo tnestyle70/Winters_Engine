@@ -17,48 +17,24 @@ namespace
 	constexpr u32_t kSylasECast = MakeHookId(eChampion::SYLAS, HookVariant::E_CastFrame);
 	constexpr u32_t kSylasRCast = MakeHookId(eChampion::SYLAS, HookVariant::R_CastFrame);
 	//?ш굅由?
-	f32_t ResolveRange(u8_t slot)
-	{
-		switch (static_cast<eSkillSlot>(slot))
-		{
-		case eSkillSlot::BasicAttack: return 1.5f;
-		case eSkillSlot::Q: return 4.f;
-		case eSkillSlot::W: return 5.f;
-		case eSkillSlot::E: return 6.f;
-		case eSkillSlot::R: return 10.f;
-		default: return 0.f;
-		}
-	}
 
-	void RegisterSkill(u8_t slot, eTargetMode targetMode, const char* animKey, u32_t hookId)
+void RegisterSkill(u8_t slot, const char* animKey, u32_t hookId)
 	{
 		SkillDef s{};
 		s.champ = eChampion::SYLAS;
 		s.slot = slot;
-		s.targetMode = targetMode;
-		s.cooldownSec = 0.6f;
-		s.rangeMax = ResolveRange(slot);
 		s.animKey = animKey;
-		s.lockDurationSec = 0.55f;
 		s.bOneShot = true;
-		s.rotate = targetMode == eTargetMode::Self ? eRotateMode::None : eRotateMode::TowardsCursor;
-		s.visualCastFrame = 4.f;
-		s.visualRecoveryFrame = 12.f;
-		s.visualPlaySpeed = 1.f;
 		s.castHookId = hookId;
 		//?ъ씪?ъ뒪 E ?ъ뒳 ?ъ궗泥?
-		if (slot == static_cast<u8_t>(eSkillSlot::E))
+		if (slot == static_cast<u8_t>(eSkillSlot::BasicAttack))
 		{
-			s.stageCount = 2;
-			s.stage2TargetMode = eTargetMode::Direction;
+			s.stage2AnimKey = "skinned_mesh_sylas_attack_passive";
+			}
+		else if (slot == static_cast<u8_t>(eSkillSlot::E))
+		{
 			s.stage2AnimKey = "skinned_mesh_sylas_spell3_bhit_cast";
-			s.stage2LockSec = 0.5f;
-			s.stage2Rotate = eRotateMode::TowardsCursor;
-			s.stageWindowSec = 3.f;
-			s.stage2VisualCastFrame = 4.f;
-			s.stage2VisualRecoveryFrame = 12.f;
-			s.stage2VisualPlaySpeed = 1.f;
-		}
+			}
 		CSkillRegistry::Instance().Add(eChampion::SYLAS, slot, s);
 	}
 
@@ -87,11 +63,11 @@ namespace
 			cd.displayName = "Sylas";
 			CChampionRegistry::Instance().Add(eChampion::SYLAS, cd);
 
-			RegisterSkill(0, eTargetMode::UnitTarget, "skinned_mesh_sylas_attack_01", kSylasBACast);
-			RegisterSkill(1, eTargetMode::GroundTarget, "skinned_mesh_sylas_spell1_cast", kSylasQCast);
-			RegisterSkill(2, eTargetMode::UnitTarget, "skinned_mesh_sylas_spell2", kSylasWCast);
-			RegisterSkill(3, eTargetMode::Direction, "skinned_mesh_sylas_spell3_dash", kSylasECast);
-			RegisterSkill(4, eTargetMode::UnitTarget, "skinned_mesh_sylas_spell4_cast", kSylasRCast);
+			RegisterSkill(0, "skinned_mesh_sylas_attack_01", kSylasBACast);
+			RegisterSkill(1, "skinned_mesh_sylas_spell1_cast", kSylasQCast);
+			RegisterSkill(2, "skinned_mesh_sylas_spell2", kSylasWCast);
+			RegisterSkill(3, "skinned_mesh_sylas_spell3_dash", kSylasECast);
+			RegisterSkill(4, "skinned_mesh_sylas_spell4_cast", kSylasRCast);
 
 			CVisualHookRegistry::Instance().Register(kSylasBACast, &Sylas::Visual::OnBACastFrame);
 			CVisualHookRegistry::Instance().Register(kSylasQCast, &Sylas::Visual::OnQCastFrame);

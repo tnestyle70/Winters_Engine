@@ -202,6 +202,118 @@ static IEnumerable<(string name, System.Numerics.Matrix4x4 m)> FindNamedTransfor
     }
 }
 
+if (args.Length == 2 && args[0].Equals("wad-list", StringComparison.OrdinalIgnoreCase))
+{
+    using var wad = new WadFile(args[1]);
+    var header = new byte[8];
+    foreach (var pair in wad.Chunks.OrderBy(pair => pair.Key))
+    {
+        Array.Clear(header);
+        using var chunkStream = wad.OpenChunk(pair.Value);
+        var read = chunkStream.Read(header);
+        var magic = read >= 4
+            ? string.Concat(header[..4].Select(value => value is >= 32 and <= 126 ? (char)value : '.'))
+            : string.Empty;
+        var headerHex = Convert.ToHexString(header[..read]);
+        Console.WriteLine(
+            $"{pair.Key:x16}|uncompressed={pair.Value.UncompressedSize}|compressed={pair.Value.CompressedSize}|compression={pair.Value.Compression}|magic={magic}|header={headerHex}");
+    }
+
+    return;
+}
+
+if (args.Length == 3 && args[0].Equals("wpk-extract", StringComparison.OrdinalIgnoreCase))
+{
+    var wpkInputPath = Path.GetFullPath(args[1]);
+    var wpkOutputRoot = Path.GetFullPath(args[2]);
+    Directory.CreateDirectory(wpkOutputRoot);
+
+    using var wpkInputStream = File.OpenRead(wpkInputPath);
+    using var wpkReader = new BinaryReader(wpkInputStream);
+    var wpkMagic = System.Text.Encoding.ASCII.GetString(wpkReader.ReadBytes(4));
+    if (!wpkMagic.Equals("r3d2", StringComparison.Ordinal))
+    {
+        throw new InvalidDataException($"Unsupported WPK magic '{wpkMagic}' in {wpkInputPath}.");
+    }
+
+    var wpkVersion = wpkReader.ReadUInt32();
+    var wpkEntryCount = wpkReader.ReadUInt32();
+    if (wpkEntryCount > 1_000_000)
+    {
+        throw new InvalidDataException($"Unreasonable WPK entry count {wpkEntryCount} in {wpkInputPath}.");
+    }
+
+    var wpkEntryOffsets = new uint[wpkEntryCount];
+    for (var wpkIndex = 0; wpkIndex < wpkEntryOffsets.Length; ++wpkIndex)
+    {
+        wpkEntryOffsets[wpkIndex] = wpkReader.ReadUInt32();
+    }
+
+    var wpkWrittenCount = 0;
+    foreach (var wpkEntryOffset in wpkEntryOffsets)
+    {
+        if (wpkEntryOffset == 0)
+        {
+            continue;
+        }
+
+        if (wpkEntryOffset > wpkInputStream.Length - 12)
+        {
+            throw new InvalidDataException($"WPK entry offset {wpkEntryOffset} is outside {wpkInputPath}.");
+        }
+
+        wpkInputStream.Position = wpkEntryOffset;
+        var wpkDataOffset = wpkReader.ReadUInt32();
+        var wpkDataLength = wpkReader.ReadUInt32();
+        var wpkNameLength = wpkReader.ReadUInt32();
+        if (wpkNameLength == 0 || wpkNameLength > 1024)
+        {
+            throw new InvalidDataException($"Invalid WPK name length {wpkNameLength} at entry {wpkEntryOffset}.");
+        }
+
+        var wpkNameChars = new char[wpkNameLength];
+        for (var wpkNameIndex = 0; wpkNameIndex < wpkNameChars.Length; ++wpkNameIndex)
+        {
+            wpkNameChars[wpkNameIndex] = (char)wpkReader.ReadUInt16();
+        }
+
+        var wpkFileName = new string(wpkNameChars).TrimEnd('\0');
+        if (!Path.GetFileName(wpkFileName).Equals(wpkFileName, StringComparison.Ordinal) ||
+            wpkFileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+        {
+            throw new InvalidDataException($"Unsafe WPK entry name '{wpkFileName}'.");
+        }
+
+        if (!wpkFileName.EndsWith(".wem", StringComparison.OrdinalIgnoreCase))
+        {
+            wpkFileName += ".wem";
+        }
+
+        if (wpkDataLength > int.MaxValue ||
+            wpkDataOffset > wpkInputStream.Length ||
+            wpkDataLength > wpkInputStream.Length - wpkDataOffset)
+        {
+            throw new InvalidDataException(
+                $"WPK data range offset={wpkDataOffset} length={wpkDataLength} is outside {wpkInputPath}.");
+        }
+
+        wpkInputStream.Position = wpkDataOffset;
+        var wpkData = wpkReader.ReadBytes((int)wpkDataLength);
+        if (wpkData.Length != (int)wpkDataLength)
+        {
+            throw new EndOfStreamException($"WPK entry '{wpkFileName}' was truncated.");
+        }
+
+        var wpkOutputPath = Path.Combine(wpkOutputRoot, wpkFileName);
+        File.WriteAllBytes(wpkOutputPath, wpkData);
+        Console.WriteLine($"WROTE {wpkOutputPath}");
+        ++wpkWrittenCount;
+    }
+
+    Console.WriteLine($"WPK version={wpkVersion} entries={wpkEntryCount} written={wpkWrittenCount}");
+    return;
+}
+
 if (args.Length >= 3 && args[0].Equals("wad-has", StringComparison.OrdinalIgnoreCase))
 {
     using var wad = new WadFile(args[1]);
@@ -248,6 +360,30 @@ if (args.Length >= 4 && args[0].Equals("wad-extract", StringComparison.OrdinalIg
         using var output = File.Create(outPath);
         input.CopyTo(output);
         Console.WriteLine($"WROTE {outPath}");
+    }
+
+    return;
+}
+
+if (args.Length is 2 or 3 && args[0].Equals("bin-strings", StringComparison.OrdinalIgnoreCase))
+{
+    using var binStream = File.OpenRead(args[1]);
+    var binTree = new BinTree(binStream);
+    var binFilter = args.Length == 3 ? args[2] : string.Empty;
+
+    foreach (var pair in binTree.Objects.OrderBy(pair => pair.Key))
+    {
+        foreach (var (nameHash, value) in pair.Value.Properties.Values.SelectMany(FindStrings))
+        {
+            if (!string.IsNullOrEmpty(binFilter) &&
+                !value.Contains(binFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            Console.WriteLine(
+                $"object=0x{pair.Key:X8}|class=0x{pair.Value.ClassHash:X8}|property=0x{nameHash:X8}|value={value}");
+        }
     }
 
     return;
@@ -826,6 +962,11 @@ if (args.Length == 5 && args[0].Equals("ngrid-filter-mask", StringComparison.Ord
 if (args.Length != 1)
 {
     Console.Error.WriteLine("Usage: LeagueToolkitProbe <file.bin>");
+    Console.Error.WriteLine("       LeagueToolkitProbe wad-list <file.wad.client>");
+    Console.Error.WriteLine("       LeagueToolkitProbe wpk-extract <file.wpk> <output-directory>");
+    Console.Error.WriteLine("       LeagueToolkitProbe wad-has <file.wad.client> <chunk-path> [...]");
+    Console.Error.WriteLine("       LeagueToolkitProbe wad-extract <file.wad.client> <output-directory> <chunk-path> [...]");
+    Console.Error.WriteLine("       LeagueToolkitProbe bin-strings <file.bin> [filter]");
     Console.Error.WriteLine("       LeagueToolkitProbe types [filter]");
     Console.Error.WriteLine("       LeagueToolkitProbe describe <fully.qualified.TypeName>");
     Console.Error.WriteLine("       LeagueToolkitProbe overlay <file.rg_overlay>");

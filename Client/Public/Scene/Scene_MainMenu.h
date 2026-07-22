@@ -25,6 +25,7 @@ private:
 
 	void RequestPlay();
 	void RequestLogout();
+	void UpdateOnlineMatchmaking(f32_t dt);
 
 	bool_t LaunchSelectedProduct();
 	void ChangeToLogin();
@@ -38,4 +39,5 @@ private:
 	bool_t m_bLogoutRequested = false;
 	bool_t m_bShopRequested = false;
 	bool_t m_bMyInfoRequested = false;
+	bool_t m_bWaitingForMatch = false;
 };

@@ -1,4 +1,4 @@
-// Scene_InGameLocalSkills.cpp — CScene_InGame의 클라 로컬 예측(스킬 디스패치/대시/플레이어 컨트롤/플래시) 책임 TU.
+﻿// Scene_InGameLocalSkills.cpp — CScene_InGame의 클라 로컬 예측(스킬 디스패치/대시/플레이어 컨트롤/플래시) 책임 TU.
 // Stage 1 (mechanical split): Scene_InGame.cpp에서 verbatim 이동. 동작/시그니처/호출순서 불변.
 // compass 허용 local-only prediction. snapshot-apply(Scene_InGameNetwork.cpp)와 절대 같은 파일에 두지 않는다.
 // 설계: .md/plan/refactor/15_INGAME_SCENE_THINNING_DESIGN.md
@@ -65,13 +65,13 @@
 #include "GameObject/Champion/Annie/Annie_Components.h"
 #include "GameObject/Champion/Ashe/Ashe_Components.h"
 #include "GameObject/Champion/Irelia/Irelia_Skills.h"
+#include "Shared/GameSim/Champions/Irelia/IreliaGameSim.h"
 #include "GameObject/Champion/Jax/Jax_Components.h"
 #include "GameObject/Champion/Kalista/Kalista_Skills.h"
 #include "GameObject/Champion/Kalista/Kalista_Tuning.h"
 #include "GameObject/Champion/Yasuo/Yasuo_Tuning.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
-#include "Shared/GameSim/Registries/ChampionStats/ChampionStatsRegistry.h"
 #include "GameObject/ChampionSpawnService.h"
 #include "GamePlay/ChampionCatalog.h"
 #include "GamePlay/ChampionModuleBootstrap.h"
@@ -94,7 +94,6 @@
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/SkillDefGameDataAdapter.h"
 #include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -108,7 +107,6 @@
 #pragma pop_macro("min")
 
 // [Phase T-8] FX / Status / Irelia Blade / Ult Wave
-#include "ECS/Systems/StatusEffectSystem.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"   // Stun/Slow/Disarm
 #include "GameObject/FX/FxSystem.h"
 #include "GameObject/FX/FxBillboardComponent.h"
@@ -123,6 +121,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <cwchar>
 #include <functional>
@@ -131,6 +130,44 @@
 namespace
 {
     constexpr f32_t kPlayerAvoidancePadding = 0.05f;
+
+    void TraceStageDispatch(
+        const char* pEvent,
+        eChampion champion,
+        u8_t slot,
+        u8_t stage,
+        bool_t bSent,
+        u8_t currentStage,
+        f32_t stageWindow)
+    {
+#if defined(_DEBUG)
+        static u32_t s_uTraceCount = 0u;
+        if (s_uTraceCount >= 96u)
+            return;
+
+        char message[224]{};
+        sprintf_s(
+            message,
+            "[StageGate][ClientDispatch] event=%s champ=%u slot=%u stage=%u sent=%u currentStage=%u window=%.3f\n",
+            pEvent ? pEvent : "-",
+            static_cast<u32_t>(champion),
+            static_cast<u32_t>(slot),
+            static_cast<u32_t>(stage),
+            bSent ? 1u : 0u,
+            static_cast<u32_t>(currentStage),
+            stageWindow);
+        OutputDebugStringA(message);
+        ++s_uTraceCount;
+#else
+        (void)pEvent;
+        (void)champion;
+        (void)slot;
+        (void)stage;
+        (void)bSent;
+        (void)currentStage;
+        (void)stageWindow;
+#endif
+    }
 
     u8_t GetSkillStageIndex(u8_t skillStage)
     {
@@ -350,7 +387,7 @@ namespace
             champion = world.GetComponent<ChampionComponent>(playerEntity).id;
         }
 
-        return CChampionStatsRegistry::Instance().Resolve(champion);
+        return BuildDefaultChampionStatsDef(champion);
     }
 
     f32_t ResolvePlayerMoveSpeed(CWorld& world, EntityID playerEntity)
@@ -551,16 +588,12 @@ namespace
         return world.GetComponent<SkillRankComponent>(player).ranks[slot] > 0;
     }
 
-    bool_t ShouldLoopLocalSkillAnimation(const SkillDef& def, u8_t skillStage)
+    bool_t ShouldLoopLocalSkillAnimation(
+        const SkillGameAtomBundle& gameData,
+        u8_t skillStage)
     {
-        if (def.champ == eChampion::JAX &&
-            def.slot == static_cast<u8_t>(eSkillSlot::E) &&
-            skillStage == 1u)
-        {
-            return true;
-        }
-
-        return !def.bOneShot;
+        const u8_t stageIndex = GetSkillStageIndex(skillStage);
+        return gameData.stage.bPresentationLoopWhileActive[stageIndex];
     }
 }
 
@@ -1103,7 +1136,7 @@ void CScene_InGame::StartLocalPassiveDash(const Vec3& vForward)
 
     m_vKalistaPassiveDashStart = vOrigin;
     const f32_t dashDist =
-        ChampionGameDataDB::ResolvePassiveDashDistance(eChampion::KALISTA);
+        GetDefaultChampionPassiveDashDistance(eChampion::KALISTA);
     m_vKalistaPassiveDashEnd = {
         vOrigin.x + vForward.x * dashDist,
         vOrigin.y,
@@ -1901,6 +1934,7 @@ void CScene_InGame::PreemptAction(const char* reasonLabel)
 
     m_bDashActive = false;
     m_fDashElapsed = 0.f;
+    m_fDashSpeed = 0.f;
     m_DashTargetEntity = NULL_ENTITY;
 
 }
@@ -1911,6 +1945,7 @@ void CScene_InGame::UpdateDash(f32_t dt)
     {
         m_bDashActive = false;
         m_fDashElapsed = 0.f;
+        m_fDashSpeed = 0.f;
         m_DashTargetEntity = NULL_ENTITY;
         return;
     }
@@ -1918,17 +1953,42 @@ void CScene_InGame::UpdateDash(f32_t dt)
     if (!m_bDashActive || !m_pPlayerTransform)
         return;
 
-    m_fDashElapsed += dt;
-    const f32_t t = (m_fDashDuration > 0.01f)
-        ? (m_fDashElapsed / m_fDashDuration) : 1.f;
-
-    if (t >= 1.f)
+    if (m_bNetworkAuthoritativeGameplay)
     {
-        SetPlayerPosition(m_vDashEnd);
-
         m_bDashActive = false;
         m_fDashElapsed = 0.f;
+        m_fDashSpeed = 0.f;
         m_DashTargetEntity = NULL_ENTITY;
+        return;
+    }
+
+    Vec3 current = m_pPlayerTransform->GetPosition();
+    if (m_DashTargetEntity != NULL_ENTITY &&
+        m_World.HasComponent<TransformComponent>(m_DashTargetEntity))
+    {
+        const Vec3 target = m_World.GetComponent<TransformComponent>(
+            m_DashTargetEntity).GetPosition();
+        m_vDashEnd = IreliaGameSim::ResolveQDashEndPos(
+            current, target, IreliaGameSim::kQStopGapFallback);
+    }
+
+    const Vec3 delta{
+        m_vDashEnd.x - current.x,
+        0.f,
+        m_vDashEnd.z - current.z };
+    const f32_t remaining = std::sqrtf(
+        delta.x * delta.x + delta.z * delta.z);
+    const f32_t step = std::max(0.01f, m_fDashSpeed) * dt;
+
+    if (remaining <= step || remaining <= 0.0001f)
+    {
+        SetPlayerPosition(m_vDashEnd);
+        m_bDashActive = false;
+        m_fDashElapsed = 0.f;
+        m_fDashSpeed = 0.f;
+        m_DashTargetEntity = NULL_ENTITY;
+        m_fLastActionTimer = 0.f;
+        ClearActiveSkillRuntime();
 
         using namespace Engine;
         if (m_PlayerEntity != NULL_ENTITY
@@ -1941,12 +2001,11 @@ void CScene_InGame::UpdateDash(f32_t dt)
         }
         return;
     }
-    const Vec3 p
-    {
-        m_vDashStart.x + (m_vDashEnd.x - m_vDashStart.x) * t,
-        m_vDashStart.y,
-        m_vDashStart.z + (m_vDashEnd.z - m_vDashStart.z) * t
-    };
+
+    const Vec3 p{
+        current.x + delta.x * (step / remaining),
+        current.y,
+        current.z + delta.z * (step / remaining) };
     SetPlayerPosition(p);
 
     if (m_DashTargetEntity != NULL_ENTITY &&
@@ -1967,12 +2026,22 @@ void CScene_InGame::UpdateDash(f32_t dt)
     }
 }
 
-void CScene_InGame::SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& cmd, u8_t skillStage)
+bool_t CScene_InGame::SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& cmd, u8_t skillStage)
 {
     if (!m_pNetworkView || !m_pCommandSerializer)
-        return;
+    {
+        TraceStageDispatch(
+            "transport-missing", GetPlayerChampionId(), slot, skillStage,
+            false, 0u, 0.f);
+        return false;
+    }
     if (!m_pNetworkView->IsConnected())
-        return;
+    {
+        TraceStageDispatch(
+            "network-disconnected", GetPlayerChampionId(), slot, skillStage,
+            false, 0u, 0.f);
+        return false;
+    }
 
     NetEntityId targetNet = NULL_NET_ENTITY;
     if (cmd.targetEntityId != NULL_ENTITY && m_pEntityIdMap)
@@ -1986,17 +2055,58 @@ void CScene_InGame::SendNetworkSkillCommand(u8_t slot, const CastSkillCommand& c
             cmd.groundPos,
             cmd.direction);
         ProtectNetworkBasicAttackYaw(*this, attackSeq);
+        return true;
     }
-    else
+
+    m_pCommandSerializer->SendCastSkill(
+        *m_pNetworkView,
+        slot,
+        targetNet,
+        cmd.groundPos,
+        cmd.direction,
+        skillStage);
+    if (skillStage >= 2u)
     {
-        m_pCommandSerializer->SendCastSkill(
-            *m_pNetworkView,
-            slot,
-            targetNet,
-            cmd.groundPos,
-            cmd.direction,
-            skillStage);
+        TraceStageDispatch(
+            "network-send", GetPlayerChampionId(), slot, skillStage,
+            true, 0u, 0.f);
     }
+    return true;
+}
+
+eSkillInputActivation CScene_InGame::ResolveLocalSkillInputActivation(u8_t slot)
+{
+    eChampion champion = GetPlayerChampionId();
+    u8_t lookupSlot = slot;
+    if (m_PlayerEntity != NULL_ENTITY &&
+        m_World.HasComponent<SpellbookOverrideComponent>(m_PlayerEntity))
+    {
+        const auto& spellbook =
+            m_World.GetComponent<SpellbookOverrideComponent>(m_PlayerEntity);
+        if (spellbook.bActive && spellbook.localSlot == slot)
+        {
+            champion = spellbook.sourceChampion;
+            lookupSlot = spellbook.sourceSlot;
+        }
+    }
+    else if (m_PlayerEntity != NULL_ENTITY &&
+        m_World.HasComponent<FormOverrideComponent>(m_PlayerEntity))
+    {
+        const auto& form = m_World.GetComponent<FormOverrideComponent>(m_PlayerEntity);
+        if (form.bActive &&
+            form.skillChampion != eChampion::END &&
+            form.skillChampion != eChampion::NONE &&
+            slot < 8u &&
+            (form.skillSlotMask & static_cast<u8_t>(1u << slot)) != 0u)
+        {
+            champion = form.skillChampion;
+        }
+    }
+
+    SkillGameAtomBundle gameData{};
+    if (CSkillRegistry::Instance().ResolveGameAtoms(champion, lookupSlot, gameData))
+        return gameData.input.activation;
+    return eSkillInputActivation::Press;
 }
 
 bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
@@ -2130,7 +2240,7 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
         if (m_bNetworkAuthoritativeGameplay)
             RotatePlayerToward(gameData.facing, 2, cmd);
 
-        SendNetworkSkillCommand(slot, cmd, 2);
+        const bool_t bSent = SendNetworkSkillCommand(slot, cmd, 2);
         if (bRequestedStage2 && !bLocalStage2Ready)
         {
             Winters::DevSmoke::Log(
@@ -2142,6 +2252,16 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
 
         if (m_bNetworkAuthoritativeGameplay)
         {
+            if (!bSent)
+                return false;
+            TraceStageDispatch(
+                "stage2-clear-local",
+                champ,
+                slot,
+                2u,
+                true,
+                slotState.currentStage,
+                slotState.stageWindow);
             slotState.currentStage = 0;
             slotState.stageWindow = 0.f;
             return true;
@@ -2177,11 +2297,20 @@ bool CScene_InGame::DispatchSkillInput(uint8_t slot, u8_t requestedStage)
     if (m_bNetworkAuthoritativeGameplay)
     {
         RotatePlayerToward(gameData.facing, 1, cmd);
-        SendNetworkSkillCommand(slot, cmd, 1);
+        if (!SendNetworkSkillCommand(slot, cmd, 1))
+            return false;
         if (gameData.stage.stageCount == 2)
         {
             slotState.currentStage = 1;
             slotState.stageWindow = gameData.stage.stageWindowSec;
+            TraceStageDispatch(
+                "stage1-arm-local",
+                champ,
+                slot,
+                1u,
+                true,
+                slotState.currentStage,
+                slotState.stageWindow);
         }
         return true;
     }
@@ -2234,6 +2363,14 @@ bool CScene_InGame::BuildCastCommand(
     case eTargetMode::UnitTarget:
     {
         if (GetPlayerChampionId() == eChampion::LEESIN &&
+            outCmd.slot == static_cast<u8_t>(eSkillSlot::Q) &&
+            skillStage >= 2u)
+        {
+            outCmd.targetEntityId = NULL_ENTITY;
+            return true;
+        }
+
+        if (GetPlayerChampionId() == eChampion::LEESIN &&
             outCmd.slot == static_cast<u8_t>(eSkillSlot::W))
         {
             if (!IsLeeSinSafeguardLocalTarget(
@@ -2257,8 +2394,16 @@ bool CScene_InGame::BuildCastCommand(
     case eTargetMode::GroundTarget:
     {
         if (!m_pCamera) return false;
-        Vec3 ground = ResolveMouseMapSurfacePos();
+        const Vec3 ground = ResolveMouseMapSurfacePos();
+        const Vec3 origin = m_pPlayerTransform
+            ? m_pPlayerTransform->GetPosition()
+            : Vec3{};
         outCmd.groundPos = ground;
+        outCmd.direction = WintersMath::DirectionXZ(
+            origin,
+            ground,
+            Vec3{},
+            0.0001f);
         return true;
     }
     case eTargetMode::Direction:
@@ -2347,7 +2492,7 @@ void CScene_InGame::ApplyLocalPrediction(
             const std::string full = std::string(cd->animPrefix) + key;
             m_pPlayerRenderer->PlayAnimationByName(
                 full,
-                ShouldLoopLocalSkillAnimation(bridge, skillStage));
+                ShouldLoopLocalSkillAnimation(gameData, skillStage));
 
             m_pLastActionLabel = bridge.animKey;
             m_fLastActionTimer = bridge.lockDurationSec > 0.f ? bridge.lockDurationSec : 1.2f;
@@ -2416,6 +2561,11 @@ void CScene_InGame::ApplyLocalPrediction(
                 m_bDashActive = true;
                 m_fDashElapsed = 0.f;
                 m_fDashDuration = duration;
+                const f32_t distance = std::sqrtf(
+                    WintersMath::DistanceSqXZ(start, end));
+                m_fDashSpeed = duration > 0.0001f
+                    ? distance / duration
+                    : IreliaGameSim::kQBaseDashSpeedFallback;
                 m_vDashStart = start;
                 m_vDashEnd = end;
                 m_DashTargetEntity = target;

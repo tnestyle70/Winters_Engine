@@ -1,3 +1,45 @@
+x-app-environment: &app-environment
+  WINTERS_ENV: development
+  DB_HOST: postgres
+  DB_PORT: "5432"
+  DB_USER: winters
+  DB_PASSWORD: winters_dev_2026
+  DB_NAME: winters
+  DB_POOL_MAX: "10"
+  DB_SSL_MODE: disable
+  REDIS_ADDR: redis:6379
+  KAFKA_BROKERS: kafka:29092
+  JWT_ACCESS_SECRET: winters-access-secret-change-in-production
+  JWT_REFRESH_SECRET: winters-refresh-secret-change-in-production
+  WINTERS_MATCH_TICKET_SECRET: winters-match-ticket-secret-change-in-production
+  WINTERS_GAME_HOST: 127.0.0.1
+  WINTERS_GAME_PORT: "9000"
+  WINTERS_GAME_TRANSPORT: udp
+  WINTERS_GAME_SESSION_ID: "${WINTERS_GAME_SESSION_ID:-winters-local-game-session}"
+  WINTERS_MATCH_MAX_SIZE: "${WINTERS_MATCH_MAX_SIZE:-10}"
+  MATCHMAKING_INTERNAL_TOKEN: "${MATCHMAKING_INTERNAL_TOKEN:-winters-matchmaking-internal-token-change-in-production}"
+  REPLAY_BUCKET: winters-replays
+  AWS_REGION: ap-northeast-2
+  S3_ENDPOINT: http://minio:9000
+  S3_PUBLIC_ENDPOINT: http://localhost:9000
+  S3_USE_PATH_STYLE: "true"
+  AWS_ACCESS_KEY_ID: winters-minio
+  AWS_SECRET_ACCESS_KEY: winters-minio-secret
+  REPLAY_INTERNAL_TOKEN: winters-replay-internal-token-change-in-production
+  REPLAY_MULTIPART_PART_BYTES: "5242880"
+
+x-app-dependencies: &app-dependencies
+  postgres:
+    condition: service_healthy
+  redis:
+    condition: service_healthy
+  kafka:
+    condition: service_healthy
+  kafka-init:
+    condition: service_completed_successfully
+  migrate:
+    condition: service_completed_successfully
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -36,10 +78,11 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
-      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://host.docker.internal:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -47,9 +90,183 @@ services:
     ports:
       - "9092:9092"
     healthcheck:
-      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --list"]
       interval: 10s
       timeout: 5s
       retries: 10
+
+  kafka-init:
+    image: apache/kafka:3.7.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint:
+      - /bin/bash
+      - -ec
+      - |
+        for topic in match-events payment-events player-events; do
+          /opt/kafka/bin/kafka-topics.sh \
+            --bootstrap-server kafka:29092 \
+            --create --if-not-exists \
+            --topic "$$topic" \
+            --partitions 1 \
+            --replication-factor 1
+        done
+
+  minio:
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    container_name: winters-minio
+    environment:
+      MINIO_ROOT_USER: winters-minio
+      MINIO_ROOT_PASSWORD: winters-minio-secret
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio-init:
+    image: minio/mc@sha256:a7fe349ef4bd8521fb8497f55c6042871b2ae640607cf99d9bede5e9bdf11727
+    container_name: winters-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >-
+        mc alias set local http://minio:9000 winters-minio winters-minio-secret &&
+        mc mb --ignore-existing local/winters-replays &&
+        mc anonymous set none local/winters-replays
+
+  migrate:
+    profiles: ["app"]
+    image: winters-migrate:dev
+    build:
+      context: ..
+      dockerfile: Services/Dockerfile
+      args:
+        SERVICE: migrate
+    environment: *app-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  auth:
+    profiles: ["app"]
+    image: winters-auth:dev
+    build:
+      context: ..
+      dockerfile: Services/Dockerfile
+      args:
+        SERVICE: auth
+    environment:
+      <<: *app-environment
+      AUTH_PORT: "8081"
+      WINTERS_DEV_AUTH_ENABLED: "true"
+    depends_on: *app-dependencies
+    ports:
+      - "8081:8081"
+
+  leaderboard:
+    profiles: ["app"]
+    image: winters-leaderboard:dev
+    build:
+      context: ..
+      dockerfile: Services/Dockerfile
+      args:
+        SERVICE: leaderboard
+    environment:
+      <<: *app-environment
+      LEADERBOARD_PORT: "8082"
+    depends_on: *app-dependencies
+    ports:
+      - "8082:8082"
+
+  matchmaking:
+    profiles: ["app"]
+    image: winters-matchmaking:dev
+    build:
+      context: ..
+      dockerfile: Services/Dockerfile
+      args:
+        SERVICE: matchmaking
+    environment:
+      <<: *app-environment
+      MATCHMAKING_PORT: "8083"
+    depends_on: *app-dependencies
+    ports:
+      - "8083:8083"
+
+  profile:
+    profiles: ["app"]
+    image: winters-profile:dev
+    build:
+      context: ..
+      dockerfile: Services/Dockerfile
+      args:
+        SERVICE: profile
+    environment:
+      <<: *app-environment
+      PROFILE_PORT: "8084"
+    depends_on: *app-dependencies
+    ports:
+      - "8084:8084"
+
+  payment:
+    profiles: ["app"]
+    image: winters-payment:dev
+    build:
+      context: ..
+      dockerfile: Services/Dockerfile
+      args:
+        SERVICE: payment
+    environment:
+      <<: *app-environment
+      PAYMENT_PORT: "8085"
+    depends_on: *app-dependencies
+    ports:
+      - "8085:8085"
+
+  shop:
+    profiles: ["app"]
+    image: winters-shop:dev
+    build:
+      context: ..
+      dockerfile: Services/Dockerfile
+      args:
+        SERVICE: shop
+    environment:
+      <<: *app-environment
+      SHOP_PORT: "8086"
+    depends_on: *app-dependencies
+    ports:
+      - "8086:8086"
+
+  replay:
+    profiles: ["app"]
+    image: winters-replay:dev
+    build:
+      context: ..
+      dockerfile: Services/Dockerfile
+      args:
+        SERVICE: replay
+    environment:
+      <<: *app-environment
+      REPLAY_PORT: "8087"
+    depends_on:
+      <<: *app-dependencies
+      minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "8087:8087"
+
 volumes:
   pgdata:
+  miniodata:

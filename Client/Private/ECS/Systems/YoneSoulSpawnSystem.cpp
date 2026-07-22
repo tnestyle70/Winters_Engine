@@ -220,10 +220,8 @@ void CYoneSoulSpawnSystem::SpawnSoul(CWorld& world, EntityID owner)
     cc.id = eChampion::YONE;
     world.AddComponent<ChampionComponent>(soul, cc);
 
-    HealthComponent hp{};
-    if (world.HasComponent<HealthComponent>(owner))
-        hp = world.GetComponent<HealthComponent>(owner);
-    world.AddComponent<HealthComponent>(soul, hp);
+    world.AddComponent<YoneSoulPresentationTag>(
+        soul, YoneSoulPresentationTag{});
 
     MeshGroupVisibilityComponent visibility{};
     visibility.mask = Yone::MeshGroups::MaskBaseDefault();

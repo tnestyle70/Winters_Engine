@@ -12,6 +12,11 @@
 - Hot Reload and Perforce integration start after the DataDriven ownership and cutover gates are complete.
 - Practice/balance tools stay on the normal in-game network path: Client UI sends typed commands, Server policy and GameSim own every gameplay mutation, and Snapshot/Event reports the result.
 - A practice balance overlay is temporary bounded session data, never canonical authoring data. Approved values return to JSON/sheet -> validate -> cook -> SimLab/build before release.
+- Canonical skill damage follows `ServerPrivate SkillEffectGameplayDefs.json -> codegen -> DamageFormulaDef -> DamageRequest -> DamagePipeline`; champion hooks may choose targets or variants but must not own a second copy of the same rank/scaling values.
+- Variant-only flat damage may use ranked `SkillEffectParam` values only through an exact generator/runtime allowlist; ordinary flat damage and ratios remain owned by `DamageFormulaDef`.
+- Canonical item on-hit damage follows `ServerPrivate ItemGameplayDefs.json -> codegen -> ItemDef -> DamageQueueSystem -> DamagePipeline`; mixed damage types require separate requests rather than silently folding into the basic attack type.
+- Canonical animation playback/cast/recovery timing follows `ClientPublic ChampionVisualDefs.json -> codegen -> SkillRegistry`. Runtime timing panels may produce a review draft, but a draft is not release truth until merged and regenerated.
+- In F4 canonical authoring, the current saved source JSON has highest value authority. Dated PLAN/RESULT numbers are historical baselines and generated files are derivatives. Generators and tests prove current-source parity; they must not restore an editable exact value unless the user explicitly froze that value.
 
 ## Runtime Concurrency / Network Boundary
 
@@ -47,6 +52,7 @@
 - Elden editor 세션: `.md/plan/EldenRingEditor/01_DX12_IMGUI_EDITOR_BOOTSTRAP.md`부터 `07_BOSS_BLACKBOARD_HFSM_BT_TUNING.md`
 - LoL/Elden 검증장을 Class & Servant 출시/운영 기반으로 연결하는 전체 폴더 방향: `.md/architecture/CLASS_SERVANT_FOUNDATION_DIRECTION.md`
 - LoL/Elden 공용 UI 파이프라인: `.md/architecture/WINTERS_UI_PIPELINE_ARCHITECTURE.md`
+- ImGui 튜너·디버그 패널·워크플로 편집기 제품 설계와 완료 게이트: `.md/architecture/WINTERS_IMGUI_TOOL_DESIGN_GUIDE.md`
 - 장기 AAA 엔진 챕터: `.md/문서/00_INDEX.md`
 
 ## 제품 방향

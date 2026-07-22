@@ -6,11 +6,21 @@
 
 class CWorld;
 struct TickContext;
+struct DamageRequest;
+struct DamageResult;
 
 namespace YoneGameSim
 {
     u8_t ResolveEStage(CWorld& world, EntityID caster);
     void RegisterHooks();
     void Tick(CWorld& world, const TickContext& tc);
-    void CancelRuntime(CWorld& world, EntityID caster);
+    void CancelRuntime(
+        CWorld& world,
+        EntityID caster,
+        const TickContext* pTickCtx = nullptr);
+    void OnDamageResolved(
+        CWorld& world,
+        const TickContext& tc,
+        const DamageRequest& request,
+        const DamageResult& result);
 }

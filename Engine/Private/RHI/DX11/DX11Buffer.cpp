@@ -1,4 +1,5 @@
 #include "RHI/DX11/DX11Buffer.h"
+#include "Core/Profiler/RenderFrameStats.h"
 #include <cassert>
 
 // ─────────────────────────────────────────────────────────────────
@@ -82,6 +83,7 @@ void DX11Buffer::BindIndex(ID3D11DeviceContext* context) const
 void DX11Buffer::DrawIndexed(ID3D11DeviceContext* context) const
 {
     assert(context);
+    RenderFrameStats::AddDraw(m_pIndexBuffer ? m_IndexCount : m_VertexCount);
     if (m_pIndexBuffer)
         context->DrawIndexed(m_IndexCount, 0, 0);
     else
@@ -97,6 +99,7 @@ void DX11Buffer::DrawIndexedRange(
     if (indexCount == 0)
         return;
 
+    RenderFrameStats::AddDraw(indexCount);
     if (m_pIndexBuffer)
         context->DrawIndexed(indexCount, startIndex, 0);
     else

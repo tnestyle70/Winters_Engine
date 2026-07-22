@@ -13,12 +13,6 @@ enum class eRuneId : u8_t
     AdaptiveForce = 3,
 };
 
-namespace RuneTuning
-{
-    constexpr u8_t kLethalTempoMaxStacks = 5u;
-    constexpr f32_t kLethalTempoAttackSpeedPerStack = 0.10f;
-}
-
 struct RuneLoadoutComponent
 {
     static constexpr u8_t kMaxRunes = 6u;

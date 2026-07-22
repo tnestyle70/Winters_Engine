@@ -74,6 +74,8 @@ enum class eCommandKind : uint8_t
     Flash = 10,
     CompanionCommand = 11,
     PracticeControl = 12,
+    ReorderItem = 13,
+    TeamPing = 14,
 };
 
 enum class eCompanionCommandMode : uint16_t
@@ -110,7 +112,16 @@ enum class ePracticeOperation : uint16_t
     ApplyStructureStatOverride = 23,
     ClearStructureStatOverrides = 24,
     ReloadGameplayDefinitions = 25,
-    Count = 26,
+    ApplyJungleStatOverride = 26,
+    ClearJungleStatOverrides = 27,
+    ApplyRespawnTimeOverride = 28,
+    ClearRespawnTimeOverrides = 29,
+    ApplyMinionStatOverride = 30,
+    ClearMinionStatOverrides = 31,
+    RefillJungleHealth = 32,
+    ResetJungleMonster = 33,
+    ClearObjectiveBuffs = 34,
+    Count = 35,
 };
 
 // ApplyChampionStatOverride: slot = eChampionStatOverrideId, value = 대체값, targetNet 지정 가능.
@@ -156,6 +167,27 @@ enum class eStructureStatOverrideId : uint8_t
     Count = 5,
 };
 
+// ApplyJungleStatOverride: slot = eJungleStatOverrideId, value = 대체값. 전 정글몹 일괄.
+//   MaxHp 는 죽어 리스폰 대기 중인 캠프에도 적용된다(리스폰이 컴포넌트 캐시 체력으로 힐하므로).
+// ClearJungleStatOverrides: 정의 팩 jungleCamps(subKind 매칭)로 복원.
+enum class eJungleStatOverrideId : uint8_t
+{
+    None = 0,
+    MaxHp = 1,
+    AttackDamage = 2,
+    Count = 3,
+};
+
+// ApplyMinionStatOverride: flags = lane minion role (0..3),
+// slot = eMinionStatOverrideId, value = practice-only final value.
+// ClearMinionStatOverrides restores active pack values including time growth.
+enum class eMinionStatOverrideId : uint8_t
+{
+    None = 0,
+    AttackDamage = 1,
+    Count = 2,
+};
+
 enum class eItemStatOverrideField : uint8_t
 {
     None = 0,
@@ -173,7 +205,12 @@ enum class eItemStatOverrideField : uint8_t
     LifeSteal = 12,
     FlatMagicPen = 13,
     Lethality = 14,
-    Count = 15,
+    CritDamageBonus = 15,
+    PercentMoveSpeed = 16,
+    ArmorPenPercent = 17,
+    BonusArmorPenPercent = 18,
+    MagicPenPercent = 19,
+    Count = 20,
 };
 
 inline constexpr u32_t kPracticeInfiniteHealthFlag = 1u << 0;
@@ -289,6 +326,14 @@ struct CommandExecutionResult
     }
 };
 
+struct SkillCommandFeedback
+{
+    CommandExecutionResult result{};
+    u8_t authoritativeSkillSlot = 0xFFu;
+    u8_t authoritativeSkillStage = 0u;
+    u64_t stageWindowEndTick = 0u;
+};
+
 class ICommandExecutor
 {
 public:
@@ -315,7 +360,8 @@ private:
     CommandExecutionResult HandleBasicAttack(CWorld&, const TickContext&, const GameCommand&);
     void HandleLevelSkill(CWorld&, const TickContext&, const GameCommand&);
     void HandleBuyItem(CWorld&, const TickContext&, const GameCommand&);
-    void HandleUseItem(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleUseItem(CWorld&, const TickContext&, const GameCommand&);
+    CommandExecutionResult HandleReorderItem(CWorld&, const TickContext&, const GameCommand&);
     CommandExecutionResult HandleRecall(CWorld&, const TickContext&, const GameCommand&);
     CommandExecutionResult HandleRecallCancel(CWorld&, const TickContext&, const GameCommand&);
     void HandleAIDebugControl(CWorld&, const TickContext&, const GameCommand&);
@@ -326,3 +372,8 @@ private:
 GameCommand BuildServerCommand(const GameCommandWire& wire,
     uint32_t sessionId, EntityID controlledEntity,
     const EntityIdMap& map);
+
+void ExecuteExpiredSkillCharges(
+    ICommandExecutor& executor,
+    CWorld& world,
+    const TickContext& tc);

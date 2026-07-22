@@ -5,6 +5,17 @@
 
 #include <string>
 
+struct MatchAssignment
+{
+	std::string strMatchID{};
+	std::string strGameSessionID{};
+	std::string strHost{};
+	i32_t iPort = 0;
+	std::string strTransport{};
+	std::string strPlayerTicket{};
+	i64_t iExpiresAtUnix = 0;
+};
+
 class CClientShellSession final
 {
 public:
@@ -21,12 +32,16 @@ public:
 		const std::string& displayName,
 		const std::string& accessToken);
 	void Logout();
+	void SetMatchAssignment(const MatchAssignment& assignment);
+	void ClearMatchAssignment();
 
 	bool_t IsAuthenticated() const { return m_bAuthenticated; }
 	bool_t IsOfflineAccount() const { return m_bOfflineAccount; }
 	const std::string& GetUserID() const { return m_strUserID; }
 	const std::string& GetDisplayName() const { return m_strDisplayName; }
 	const std::string& GetAccessToken() const { return m_strAccessToken; }
+	bool_t HasMatchAssignment() const;
+	const MatchAssignment& GetMatchAssignment() const { return m_MatchAssignment; }
 
 private:
 	CClientShellSession() = default;
@@ -42,4 +57,5 @@ private:
 	std::string m_strUserID{};
 	std::string m_strDisplayName{};
 	std::string m_strAccessToken{};
+	MatchAssignment m_MatchAssignment{};
 };

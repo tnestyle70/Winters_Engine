@@ -6,14 +6,19 @@ Cross-agent operating rules for Winters. Keep the behavioral core aligned with `
 1. Read this file before coding.
 2. Read `.claude/gotchas.md` before starting changes so recurring mistakes are in scope.
 3. Read `.md/architecture/WINTERS_CODEBASE_COMPASS.md` when work touches architecture boundaries, LoL DX11, Client/Engine/Shared dependencies, RHI/UI/data pipelines, Elden client/editor direction, collaboration structure, or an unfamiliar module.
-4. Read `CLAUDE.md` when working in Claude Code or changing Claude-specific hooks.
-5. Read deeper docs only when the task touches that domain.
-6. Read `CLAUDE_Legacy.md` when work touches Winters gameplay, networking, Shared/GameSim, server authority, AI, champion skills, animation replication, or FX cues.
+4. Read `.md/architecture/WINTERS_IMGUI_TOOL_DESIGN_GUIDE.md` before adding or changing any ImGui tuner, debug panel, inspector, or workflow editor.
+5. Read `CLAUDE.md` when working in Claude Code or changing Claude-specific hooks.
+6. Read deeper docs only when the task touches that domain.
+7. Read `CLAUDE_Legacy.md` when work touches Winters gameplay, networking, Shared/GameSim, server authority, AI, champion skills, animation replication, or FX cues.
 
 ## Codebase Compass
 - The active architecture compass is `.md/architecture/WINTERS_CODEBASE_COMPASS.md`.
 - Keep LoL DX11 client direction, Client/Engine/Shared dependency rules, collaboration conventions, and Elden client/editor direction there instead of expanding this file into project inventory.
 - When a cross-cutting architecture rule changes, update the compass. When a repeated mistake appears, update `.claude/gotchas.md`.
+
+## Canonical Authoring Safety
+- F4 `Save & Hot Load` writes four canonical sources: `champions.json`, `SkillEffectGameplayDefs.json`, `SpawnObjectGameplayDefs.json`, and `EconomyGameplayDefs.json`. Their current saved values outrank older PLAN/RESULT numbers, test fixtures, generated JSON/C++, and manifests; `ChampionGameplayDefs.json` and `SkillGameplayDefs.json` are generated outputs, not authoring sources.
+- A generated-freshness failure requires recooking from current canonical sources, never rolling those sources back. Freeze an F4-editable exact value in a test only when the user explicitly declares that baseline immutable; otherwise verify schema, domain, rank shape, and canonical/generated parity. See `.md/architecture/WINTERS_DATA_ARCHITECTURE.md`.
 
 ## Server Authority / GameSim Work
 - For server-authoritative gameplay, GameSim, networking, snapshot/event, AI, skill execution, or FX cue work, use `CLAUDE_Legacy.md` as the compact current codebase brief before changing code.
@@ -39,10 +44,13 @@ Cross-agent operating rules for Winters. Keep the behavioral core aligned with `
 ## Plan Document Placement
 - When asked for a design guide, implementation guide, handoff plan, or architecture plan, create a dated Markdown file under `.md/plan/YYYY-MM-DD_<TOPIC>.md` unless the user names a more specific plan subfolder.
 - Start the document with `Session - ...`, include current code evidence, ownership boundaries, staged direction, and verification/handoff notes.
+- Every session that authors, resumes, or applies a dated implementation plan must read and create or update the corresponding `*_PLAN.md` before source edits. Once implementation starts, the same session must create or update the same-name `*_RESULT.md` before handoff; chat-only plans and implementation-only handoffs are not complete.
+- Resume the existing plan/result pair for the same slice instead of creating a duplicate, and follow `.md/계획서작성규칙.md` for both files. `2026-07-18_IRELIA_E_UNIT_HIT_MARK_Q_RESET_RECALL_6S_PLAN.md` is the reference example for this mandatory session contract.
+- Before source edits, every dated implementation plan must receive a read-only critique from at least one independent sub-agent. The primary agent must review the findings, update the plan with accepted/rejected dispositions and reasons, and only then implement. The pass line is `.md/계획서작성규칙.md` §0: re-critique revisions until no accepted or held (보류) P0/P1 remains. If sub-agent tools are unavailable, mark the critique gate `CONFIRM_NEEDED` and do not claim the plan is reviewed or begin implementation.
 - Keep `AGENTS.md` as the rule pointer only; put detailed design guidance in the dated plan document.
 
 ## Goal Operating Lens
-For goal/plan/priority/retro conversations, apply `.md/process/GOAL_OPERATING_DOCTRINE.md`: enforce the 30% ceiling budget in plans, ask the ceiling-budget question after 3+ consecutive floor-work sessions on one track, require insight-to-output conversion (이해→환전) before a new deep dive, and propose external deadlines for deadline-less goals. Never cite this lens to lower code verification standards.
+For goal/plan/priority/retro conversations, apply `.md/process/GOAL_OPERATING_DOCTRINE.md`: enforce the 30% ceiling budget in plans, ask the ceiling-budget question after 3+ consecutive floor-work sessions on one track, require insight-to-output conversion (이해→환전) before a new deep dive, and propose external deadlines for deadline-less goals. When the next problem/task selection is genuinely open — not fixed by the user or a standing handoff — require 2+ candidates scored against the real evaluator's rubric (impact·risk·cost, doctrine §3). Judge user-declared frozen (동결) submissions go/no-go only: fix P0 (factual error, fatal phrasing), route the rest to the post-submission loss log; this never applies to code, dated plans, or build verification. Never cite this lens to lower code verification standards.
 
 ## Andrej Karpathy Coding Guardrail
 Behavioral guidelines to reduce common LLM coding mistakes. Apply before coding unless the task is truly trivial. **Tradeoff:** caution over speed; use judgment for tiny edits.
@@ -56,6 +64,8 @@ Before implementing:
 - If multiple interpretations exist, present them; do not choose silently.
 - If a simpler approach exists, say so. Push back when warranted.
 - If something is unclear, stop, name the confusion, and ask.
+- Route questions by reachability: inspect code/build facts yourself; ask the user for facts only they hold (intent, taste, priority); reserve `CONFIRM_NEEDED` for what no one in the session can settle.
+- For goal-level or ambiguous-scope requests, ask up to 3-5 targeted questions before planning — skip when a handoff/plan doc already supplies the context; under the handoff guard, surface them in the handoff's 확인 필요 section.
 
 ### 2. Simplicity First
 
@@ -106,6 +116,7 @@ Strong success criteria allow independent progress. Weak criteria require clarif
 When the user asks to write or show a plan ("계획 작성해줘", "계획서 쭉 보여줘", "plan 만들어줘", or equivalent):
 - Read `.md/계획서작성규칙.md` first and follow its format/ordering before writing anything.
 - Apply Karpathy guardrails on top. The rules doc does not exempt them.
+- After drafting, run the mandatory independent sub-agent critique gate from `Plan Document Placement`, record its disposition in the plan, and revise until the `.md/계획서작성규칙.md` §0 pass line (no accepted or held P0/P1 remaining) before implementation.
 - For `/plan-rules` or code-preview plans, follow this order: read this file, read `.claude/gotchas.md`, read `.md/계획서작성규칙.md`, then inspect the target h/cpp/vcxproj files before writing code blocks.
 - For every `새 파일:` section, include the complete intended file body in a fenced code block; do not replace implementation with `구현 내용`, bullet summaries, omitted functions, or pseudo-code.
 - For existing files, use exact existing anchors and explicit `아래에 추가`, `아래로 교체`, or `삭제` blocks; prose-only implementation summaries are not acceptable.

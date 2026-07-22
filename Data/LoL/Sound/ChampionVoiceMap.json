@@ -1,0 +1,2665 @@
+{
+  "version": 2,
+  "locale": "ko_KR",
+  "voiceVolume": 0.9,
+  "moveDelayMinSec": 8.0,
+  "moveDelayMaxSec": 10.0,
+  "champions": [
+    {
+      "champion": "Annie",
+      "voices": {
+        "move": [
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_148858347.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_280558609.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_558086424.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_720512450.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_737339694.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1197079022.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1395345696.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1512757894.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_943550236.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1155597321.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1447910771.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_2099394563.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_158425658.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_791422260.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_999264394.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1275066343.wav"
+        ],
+        "skillW": [],
+        "skillE": [],
+        "skillR": [
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_586424934.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_988040757.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1035055511.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1475437953.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1484008981.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1627125775.wav"
+        ],
+        "death": [
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_374858922.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_650835396.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1081504941.wav",
+          "LoL/Champions/Annie/Voice/annie_base_vo_ko_kr_1321896131.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Annie_Move2DStandard",
+            "eventId": 282358042,
+            "wemCount": 8
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Annie_AnnieBasicAttack2_cast3D",
+            "eventId": 1919528710,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Annie_AnnieBasicAttack_cast3D",
+            "eventId": 3147465526,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Annie_AnnieCritAttack_cast3D",
+            "eventId": 1691666118,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_AnnieQ_cast3D",
+            "eventId": 2794408569,
+            "wemCount": 4
+          }
+        ],
+        "skillW": [],
+        "skillE": [],
+        "skillR": [
+          {
+            "name": "Play_vo_Annie_AnnieR_cast3D",
+            "eventId": 3968515430,
+            "wemCount": 6
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Annie_Death3D",
+            "eventId": 2569376179,
+            "wemCount": 4
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Ashe",
+      "voices": {
+        "move": [
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_96176152.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_233364186.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_266097741.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_361834723.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_375918594.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_485472422.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_530864873.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_538501444.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_661265309.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_908165763.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_919597966.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_935533219.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_954998352.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1002072084.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1003139147.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1105148848.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1225715428.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1228628363.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1759907616.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1786051157.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1809408468.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1916671334.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2074509810.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2146727066.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2312174650.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2345194642.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2601206816.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2609470713.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2703696136.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2767807733.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2871522108.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2950744037.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3069725447.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3077417668.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3111071597.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3247677795.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3273992749.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3370302962.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3389935635.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3410741160.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3417082318.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3428409106.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3464300909.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3472215332.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3537167634.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3608812011.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3666323961.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3705421883.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3864644684.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3908223380.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_4005461589.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_4028434261.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_4110318836.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_4123678650.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_4135568967.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_4190230552.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_4246614886.wav"
+        ],
+        "basicAttack": [],
+        "skillQ": [
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_794799113.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_802145838.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2904049910.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2919366915.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3956578864.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_826522738.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_830717629.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1888412716.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2574164846.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3918231678.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3973429457.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_443999904.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1676400820.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2797503503.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2840305235.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3424032245.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3957641779.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_957987404.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_1883609946.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_2099709182.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_3068907405.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_4067224526.wav"
+        ],
+        "death": [
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_82625149.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_708876336.wav",
+          "LoL/Champions/Ashe/Voice/ashe_base_vo_ko_kr_879583783.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Ashe_Move2DLong",
+            "eventId": 2652107605,
+            "wemCount": 22
+          },
+          {
+            "name": "Play_vo_Ashe_Move2DStandard",
+            "eventId": 1557547372,
+            "wemCount": 35
+          }
+        ],
+        "basicAttack": [],
+        "skillQ": [
+          {
+            "name": "Play_vo_Ashe_AsheQ_cast3D",
+            "eventId": 476871959,
+            "wemCount": 5
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Ashe_VolleyRank2_cast3D",
+            "eventId": 1223639902,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Ashe_VolleyRank3_cast3D",
+            "eventId": 1095299741,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Ashe_VolleyRank4_cast3D",
+            "eventId": 4021257668,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Ashe_VolleyRank5_cast3D",
+            "eventId": 2191859491,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Ashe_Volley_cast3D",
+            "eventId": 2055702320,
+            "wemCount": 6
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Ashe_AsheSpiritOfTheHawk_cast3D",
+            "eventId": 4202469934,
+            "wemCount": 6
+          }
+        ],
+        "skillR": [
+          {
+            "name": "BNK_EVENT_1546256697",
+            "eventId": 1546256697,
+            "wemCount": 5
+          },
+          {
+            "name": "BNK_EVENT_2074303445",
+            "eventId": 2074303445,
+            "wemCount": 5
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Ashe_Death3D",
+            "eventId": 1632532837,
+            "wemCount": 3
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Ezreal",
+      "voices": {
+        "move": [
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_17115808.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_61502165.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_195682300.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_221221412.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_243334806.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_480603345.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_497969754.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_576333247.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_641894100.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_722999208.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_732087616.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_764489853.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_771517518.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_775326012.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_775377013.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_822085390.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_838954977.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_948769758.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_960158367.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1042729916.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1084602401.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1093753093.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1164628420.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1273323244.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1274146781.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1361443514.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1377335210.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1380007615.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1391582449.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1406047403.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1437392070.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1445016424.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1508165317.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1792260458.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1814942380.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1897222313.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1955688817.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_2015700852.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_2041846467.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_30251234.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_121308658.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_270425978.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_960205449.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_52391162.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_118569181.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_178181008.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_881078390.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_895406576.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1017267862.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1214925138.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_198820270.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_366597436.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_588805525.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1015835849.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_64351488.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_174595043.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_411230051.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_443754256.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_969906131.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_1718935286.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_410324858.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_485278543.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_626516127.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_921825794.wav"
+        ],
+        "death": [
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_214172419.wav",
+          "LoL/Champions/Ezreal/Voice/ezreal_base_vo_ko_kr_488478389.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Ezreal_Move2DFirst",
+            "eventId": 3750793319,
+            "wemCount": 7
+          },
+          {
+            "name": "Play_vo_Ezreal_Move2DLong",
+            "eventId": 515485765,
+            "wemCount": 12
+          },
+          {
+            "name": "Play_vo_Ezreal_Move2DStandard",
+            "eventId": 644821948,
+            "wemCount": 20
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Ezreal_EzrealBasicAttack2_cast3D",
+            "eventId": 3995496238,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Ezreal_EzrealBasicAttack_cast3D",
+            "eventId": 3434252046,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Ezreal_EzrealCritAttack_cast3D",
+            "eventId": 3313954702,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Ezreal_EzrealQ_cast3D",
+            "eventId": 2278328551,
+            "wemCount": 7
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Ezreal_EzrealW_cast3D",
+            "eventId": 949765449,
+            "wemCount": 4
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Ezreal_EzrealE_cast3D",
+            "eventId": 2477186547,
+            "wemCount": 6
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Ezreal_EzrealR_cast3D",
+            "eventId": 4240730046,
+            "wemCount": 4
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Ezreal_Death3D",
+            "eventId": 977554229,
+            "wemCount": 2
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Fiora",
+      "voices": {
+        "move": [
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_40494773.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_460955456.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_575543673.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_655173840.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1214044568.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1774482079.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1969781712.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1996308083.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_2078078936.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1095655024.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1437384216.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1437529220.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_2113212870.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_449601149.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_635638272.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_789509359.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1591025683.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_21732285.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_154760959.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_270505085.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_396803497.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_564227720.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1184522251.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1237860736.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1784472365.wav"
+        ],
+        "skillE": [],
+        "skillR": [
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_991158927.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1002461677.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1010118144.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1251269093.wav"
+        ],
+        "death": [
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_677739682.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1517125055.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_1870271932.wav",
+          "LoL/Champions/Fiora/Voice/fiora_base_vo_ko_kr_2091485782.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Fiora_Move2DStandard",
+            "eventId": 2177925324,
+            "wemCount": 9
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Fiora_FioraBasicAttack2_cast3D",
+            "eventId": 2166969598,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Fiora_FioraBasicAttack_cast3D",
+            "eventId": 2970580126,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Fiora_FioraCritAttack_cast3D",
+            "eventId": 2531202142,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Fiora_Spell3DQHit",
+            "eventId": 660780829,
+            "wemCount": 4
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Fiora_FioraW_Jade_cast3D",
+            "eventId": 2344062138,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Fiora_FioraW_cast3D",
+            "eventId": 3381531865,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Fiora_Spell3DW2Cast",
+            "eventId": 1980364611,
+            "wemCount": 4
+          }
+        ],
+        "skillE": [],
+        "skillR": [
+          {
+            "name": "Play_vo_Fiora_FioraR_Jade_cast3D",
+            "eventId": 1963221551,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Fiora_FioraR_cast3D",
+            "eventId": 109526094,
+            "wemCount": 4
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Fiora_Death3D",
+            "eventId": 876924101,
+            "wemCount": 4
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Garen",
+      "voices": {
+        "move": [
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_57442772.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_318880610.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_340953559.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_409466852.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_558390503.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_880681905.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_892906173.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_961205631.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_976213479.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1473198237.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1614311050.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1755637803.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1775506906.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1885291296.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_2034491132.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_2042334446.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_214872225.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1046156758.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1592171424.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1992804686.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_76503828.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_364615957.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_545856189.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_904873173.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1434746971.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1910248728.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_839636087.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_842890194.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1015063925.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1035460691.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1409483860.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1966236864.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_2115312462.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_912300774.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1530928178.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1939110742.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_267222522.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_623888988.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1383634446.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1804389639.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_2126575081.wav"
+        ],
+        "death": [
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_176229037.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_904509259.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1014383488.wav",
+          "LoL/Champions/Garen/Voice/garen_base_vo_ko_kr_1198657183.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Garen_Move2DStandard",
+            "eventId": 2001396334,
+            "wemCount": 16
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Garen_GarenBasicAttack2_cast3D",
+            "eventId": 1789760802,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Garen_GarenBasicAttack3_cast3D",
+            "eventId": 2398989361,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Garen_GarenBasicAttack_cast3D",
+            "eventId": 2883700938,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Garen_GarenCritAttack_cast3D",
+            "eventId": 1796367482,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Garen_GarenQAttack_cast3D",
+            "eventId": 261086951,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Garen_GarenQ_cast3D",
+            "eventId": 2176790691,
+            "wemCount": 2
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Garen_GarenW_cast3D",
+            "eventId": 1080230941,
+            "wemCount": 7
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Garen_GarenE_cast3D",
+            "eventId": 820462711,
+            "wemCount": 3
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Garen_GarenR_cast3D",
+            "eventId": 571948090,
+            "wemCount": 5
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Garen_Death3D",
+            "eventId": 198222311,
+            "wemCount": 4
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Irelia",
+      "voices": {
+        "move": [
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_20377121.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_149851566.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_155982563.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_160636413.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_164005362.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_204883303.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_211447836.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_235801410.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_252870967.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_267222794.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_301467184.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_362996947.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_370546515.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_410530040.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_430508216.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_443449058.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_606037527.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_740332230.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_766991295.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_775729090.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_780160584.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_781979410.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_795402684.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_846806738.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_881135112.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_898004671.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_965617101.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_991971068.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1005264640.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1011375747.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1017392957.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1030318602.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1031844566.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1044031652.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1119411036.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1130744264.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1159191364.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1317185691.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1329796486.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1484002235.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1491826843.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1507062351.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1532343799.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1537370831.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1573879902.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1618792967.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1683820493.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1759060207.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1766894479.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1784640812.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1809147951.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1833336009.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1845011458.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1966480455.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1979178899.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_2006870355.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_2019051564.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_2125017950.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_413564954.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1243400429.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1309756554.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1751910175.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1883973002.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_2079676441.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_2082197904.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_2085677746.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_60774063.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_129422864.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_413876269.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_482271284.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_551428691.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_554555820.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_564894017.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_689676814.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_888358017.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_932493450.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_993953026.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1091106375.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1094610742.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1440492058.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1487658480.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1686300106.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1691939417.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1846915196.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1848272303.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_2054248062.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_95818967.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_106911913.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_238379134.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_274953303.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_927900895.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1008110490.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1380618853.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1660149208.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_5196848.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_432147680.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1173147286.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1412444385.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_2105407021.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_635766736.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_723426298.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_880400461.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_900766204.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_905902869.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1068629228.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1872646876.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_2088215710.wav"
+        ],
+        "death": [
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_155831224.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_655818861.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_918903292.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1183532159.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1204699374.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1388005917.wav",
+          "LoL/Champions/Irelia/Voice/irelia_base_vo_ko_kr_1552771551.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Irelia_Move2DFirst",
+            "eventId": 703539106,
+            "wemCount": 5
+          },
+          {
+            "name": "Play_vo_Irelia_Move2DLong",
+            "eventId": 721412034,
+            "wemCount": 3
+          },
+          {
+            "name": "Play_vo_Irelia_Move2DStandard",
+            "eventId": 2541103743,
+            "wemCount": 50
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Irelia_IreliaBasicAttack2_cast3D",
+            "eventId": 3932851060,
+            "wemCount": 8
+          },
+          {
+            "name": "Play_vo_Irelia_IreliaBasicAttack_cast3D",
+            "eventId": 1172363588,
+            "wemCount": 8
+          },
+          {
+            "name": "Play_vo_Irelia_IreliaCritAttack_cast3D",
+            "eventId": 4082413580,
+            "wemCount": 8
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Irelia_IreliaQ_cast3D",
+            "eventId": 3422090865,
+            "wemCount": 20
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Irelia_IreliaW2_cast3D",
+            "eventId": 3455764637,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Irelia_IreliaW_cast3D",
+            "eventId": 2799008047,
+            "wemCount": 4
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Irelia_IreliaE2_cast3D",
+            "eventId": 1107510459,
+            "wemCount": 5
+          },
+          {
+            "name": "Play_vo_Irelia_IreliaE_cast3D",
+            "eventId": 1028639221,
+            "wemCount": 5
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Irelia_IreliaR_cast3D",
+            "eventId": 1837586924,
+            "wemCount": 8
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Irelia_Death3D",
+            "eventId": 3257501876,
+            "wemCount": 7
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Jax",
+      "voices": {
+        "move": [
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_3678539.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_6029189.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_18509055.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_59660163.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_138017968.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_143772847.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_168575598.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_409260241.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_452133116.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_508231031.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_522675002.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_619288586.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_709362316.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1002574747.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1047672817.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1100559408.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1173208759.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1185324477.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1208421666.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1212523508.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1479394121.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1523592872.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1563868739.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1636259862.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1640852035.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1699068225.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1778513808.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1891203688.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1900449419.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1934471014.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1960678305.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1978636869.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_2097283034.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_739249439.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_816459757.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1113472870.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1391303242.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1313630125.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1663487835.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1980158862.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_2032579186.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_268182066.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_404554679.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_859571169.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1955837744.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_446059282.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_652754656.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_756600996.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_769870106.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_973872565.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1830249105.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_2008026942.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_20315619.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_911325791.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_914206600.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1020419853.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1543775949.wav"
+        ],
+        "death": [
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_279008557.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_988035633.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1241122053.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_1321098341.wav",
+          "LoL/Champions/Jax/Voice/jax_base_vo_ko_kr_2000265883.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Jax_Move2DFirst",
+            "eventId": 130768771,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Jax_Move2DLong",
+            "eventId": 82391417,
+            "wemCount": 9
+          },
+          {
+            "name": "Play_vo_Jax_Move2DStandard",
+            "eventId": 3220120688,
+            "wemCount": 18
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Jax_JaxBasicAttack2_cast3D",
+            "eventId": 1708941134,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Jax_JaxBasicAttack3_cast3D",
+            "eventId": 3205000717,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Jax_JaxBasicAttack_cast3D",
+            "eventId": 755645614,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Jax_JaxCritAttack_cast3D",
+            "eventId": 965528494,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Jax_JaxQ_cast3D",
+            "eventId": 336615687,
+            "wemCount": 4
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Jax_JaxWAttack_cast3D",
+            "eventId": 1716837709,
+            "wemCount": 4
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Jax_JaxE_cast3D",
+            "eventId": 3984339219,
+            "wemCount": 7
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Jax_JaxR_cast3D",
+            "eventId": 872639454,
+            "wemCount": 5
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Jax_Death3D",
+            "eventId": 470767417,
+            "wemCount": 5
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Kalista",
+      "voices": {
+        "move": [
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_33924269.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_161685854.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_215144466.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_265874365.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_487349561.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_500421332.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_633170235.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_697912428.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_807559138.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_865887154.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_879741806.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1011361344.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1155929181.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1180699718.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1202799610.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1285019724.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1438305648.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1486845902.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1517995320.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1533093815.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1570801436.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1603190104.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1654626100.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1999505582.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_2097718910.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_2105635544.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_2118009406.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_2118778289.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_293226372.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_537809252.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_989073824.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1205146576.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1443508064.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1790893206.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_399769044.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1003605358.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1019973677.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1145699659.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1208879452.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1470198600.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1988731277.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1993363243.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_514377113.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1455372979.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1835370876.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1993630733.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_33957869.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_66702230.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_69835148.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_332607938.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_631283360.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_790391976.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1126268874.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_29931763.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_439218776.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1140778601.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1151748562.wav"
+        ],
+        "death": [
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_530736265.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_561014500.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1307613566.wav",
+          "LoL/Champions/Kalista/Voice/kalista_base_vo_ko_kr_1336396484.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Kalista_Move2DFirst",
+            "eventId": 4255558747,
+            "wemCount": 3
+          },
+          {
+            "name": "Play_vo_Kalista_Move2DStandard",
+            "eventId": 2805885848,
+            "wemCount": 25
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Kalista_KalistaBasicAttack_cast3D",
+            "eventId": 3387161390,
+            "wemCount": 6
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Kalista_KalistaMysticShot_cast3D",
+            "eventId": 3085956895,
+            "wemCount": 8
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Kalista_KalistaW_cast3D",
+            "eventId": 2279614825,
+            "wemCount": 4
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Kalista_KalistaExpunge_cast3D",
+            "eventId": 3628961268,
+            "wemCount": 7
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Kalista_KalistaRMis_cast3D",
+            "eventId": 2418388451,
+            "wemCount": 4
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Kalista_Death3D",
+            "eventId": 3753721905,
+            "wemCount": 4
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Kindred",
+      "voices": {
+        "move": [
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_11858680.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_111802006.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_181360051.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_185942159.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_198799254.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_242281165.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_378582872.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_415941528.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_420192247.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_430485759.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_510163776.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_522257798.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_529184473.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_656852281.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_852609216.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_912617290.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_915996204.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_971381837.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1090577099.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1129530887.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1257291472.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1300765350.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1371524960.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1389527270.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1494763963.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1503472297.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1609928909.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1649657992.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1801012507.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1835307535.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1844530710.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1890378308.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1996238477.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_2003531424.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_2009041006.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_2035191526.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_2096574271.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_2118670116.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_249076714.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_608087151.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_779427928.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_925570939.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1182447151.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1199881726.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1327849055.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1515987082.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_674527000.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1322095205.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1349257930.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1712887131.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_237624939.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_691152319.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1183003571.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_11367728.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1721659919.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_1785376004.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_202962866.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_279929111.wav",
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_643046346.wav"
+        ],
+        "death": [
+          "LoL/Champions/Kindred/Voice/kindred_base_vo_ko_kr_2120421390.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Kindred_Move2DFirst",
+            "eventId": 172243637,
+            "wemCount": 7
+          },
+          {
+            "name": "Play_vo_Kindred_Move2DStandard",
+            "eventId": 1236901630,
+            "wemCount": 31
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Kindred_CritAttack_cast3D",
+            "eventId": 1163901963,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Kindred_KindredBasicAttackBounty1_cast3D",
+            "eventId": 4060013290,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Kindred_KindredBasicAttackBounty2_cast3D",
+            "eventId": 1417271379,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Kindred_KindredBasicAttackBounty3_cast3D",
+            "eventId": 1392848820,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Kindred_KindredBasicAttackOverrideLightBombFinal_cast3D",
+            "eventId": 1991637498,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Kindred_KindredBasicAttack_cast3D",
+            "eventId": 1330949554,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Kindred_KindredQ_cast3D",
+            "eventId": 3462063915,
+            "wemCount": 4
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Kindred_KindredW_cast3D",
+            "eventId": 537792357,
+            "wemCount": 3
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Kindred_KindredE_cast3D",
+            "eventId": 1446841919,
+            "wemCount": 3
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Kindred_KindredR_cast3D",
+            "eventId": 2423409378,
+            "wemCount": 3
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Kindred_Death3D",
+            "eventId": 997662775,
+            "wemCount": 1
+          }
+        ]
+      }
+    },
+    {
+      "champion": "LeeSin",
+      "voices": {
+        "move": [
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_10147302.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_26416920.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_50326152.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_54477122.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_58810997.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_204478133.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_220009234.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_228419903.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_286548567.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_288398431.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_314298533.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_318873716.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_330969419.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_522950164.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_530977876.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_542083635.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_553643420.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_575269250.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_603236903.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_605106244.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_619703905.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_622533919.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_649538410.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_657208247.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_658804592.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_687600949.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_700085748.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_708639980.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_770005449.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_774593221.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_826860376.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_835040887.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_903873200.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_923152122.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_930282591.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_1036904173.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_113704043.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_122213918.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_250894127.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_540996329.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_583331484.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_904824454.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_922916301.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_1027816449.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_1987026.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_110010817.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_192737567.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_355552424.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_426859795.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_444430335.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_798914803.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_1029109006.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_108545483.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_144606601.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_233805147.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_815968285.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_116436885.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_198719520.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_263197324.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_591354322.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_614901121.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_744088481.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_778473516.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_1023896999.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_152664581.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_180134342.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_290694350.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_294437117.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_672702437.wav"
+        ],
+        "death": [
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_96967990.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_478512927.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_499787102.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_604298178.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_636358411.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_731574058.wav",
+          "LoL/Champions/LeeSin/Voice/leesin_base_vo_ko_kr_911711779.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_LeeSin_Move2DFirst",
+            "eventId": 686167142,
+            "wemCount": 5
+          },
+          {
+            "name": "Play_vo_LeeSin_Move2DLong",
+            "eventId": 2274431614,
+            "wemCount": 11
+          },
+          {
+            "name": "Play_vo_LeeSin_Move2DStandard",
+            "eventId": 1349154187,
+            "wemCount": 20
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_LeeSin_LeeSinBasicAttack2_cast3D",
+            "eventId": 575043372,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_LeeSin_LeeSinBasicAttack3_cast3D",
+            "eventId": 2864499947,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_LeeSin_LeeSinBasicAttack4_cast3D",
+            "eventId": 2686096806,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_LeeSin_LeeSinBasicAttack_cast3D",
+            "eventId": 2119307660,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_LeeSin_LeeSinCritAttack_cast3D",
+            "eventId": 2940828644,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_LeeSin_LeeSinQOne_cast3D",
+            "eventId": 3968095553,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_LeeSin_LeeSinQTwo_cast3D",
+            "eventId": 2185544367,
+            "wemCount": 4
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_LeeSin_LeeSinWTwo_cast3D",
+            "eventId": 3850369529,
+            "wemCount": 4
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_LeeSin_LeeSinEOne_cast3D",
+            "eventId": 870024565,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_LeeSin_LeeSinETwo_cast3D",
+            "eventId": 1804195667,
+            "wemCount": 4
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_LeeSin_LeeSinR_cast3D",
+            "eventId": 3313130964,
+            "wemCount": 5
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_LeeSin_Death3D",
+            "eventId": 1590914544,
+            "wemCount": 7
+          }
+        ]
+      }
+    },
+    {
+      "champion": "MasterYi",
+      "voices": {
+        "move": [
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_31314437.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_320089674.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_342150477.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_645619798.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_836653876.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1258325138.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1317773833.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_2041518681.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_2096086720.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_472549660.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_492918406.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1867208940.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_2100488256.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_649497996.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1194202474.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1207795346.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1383214235.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1747526736.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1800137708.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_2146135452.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_48831770.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_344453334.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_578879002.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1386731025.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1454949060.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1918147490.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1939356922.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1097663597.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1234300070.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1713440221.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1713918617.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_273327821.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_403764864.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_633429732.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_690277158.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_820865899.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_861406698.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1345238549.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1858034862.wav"
+        ],
+        "death": [
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_456525436.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_603732538.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_1412497956.wav",
+          "LoL/Champions/MasterYi/Voice/masteryi_base_vo_ko_kr_2021172357.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_MasterYi_Move2DStandard",
+            "eventId": 3226976215,
+            "wemCount": 9
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_MasterYi_MasterYiBasicAttack2_cast3D",
+            "eventId": 2083733992,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_MasterYi_MasterYiBasicAttack_cast3D",
+            "eventId": 3901508960,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_MasterYi_MasterYiCritAttack_cast3D",
+            "eventId": 472524920,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_MasterYi_AlphaStrike_cast3D",
+            "eventId": 1714070588,
+            "wemCount": 7
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_MasterYi_Meditate_cast3D",
+            "eventId": 2310679041,
+            "wemCount": 7
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_MasterYi_WujuStyle_cast3D",
+            "eventId": 242645180,
+            "wemCount": 4
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_MasterYi_Highlander_cast3D",
+            "eventId": 1921066730,
+            "wemCount": 8
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_MasterYi_Death3D",
+            "eventId": 1183521500,
+            "wemCount": 4
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Riven",
+      "voices": {
+        "move": [
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_196037478.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_245327754.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_420673882.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_549954494.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_601782901.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_645052927.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_654872032.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_667281982.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_899409707.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1268359297.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1336875816.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1499944282.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1573208091.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1917925733.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_977991440.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1171147161.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1204509300.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1522686786.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_228705018.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_524085815.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_841478368.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1075359457.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1258550616.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1423068606.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1460161306.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1679656102.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1687627271.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_2138572626.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1406448686.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1536674364.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1593346304.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1960102085.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_290065365.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_871195656.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1621301729.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1940997154.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_82222794.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_191347573.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_273267051.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_329101302.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_437329947.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1061446962.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1125136930.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_1871537392.wav"
+        ],
+        "death": [
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_423045767.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_674934797.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_830208026.wav",
+          "LoL/Champions/Riven/Voice/riven_base_vo_ko_kr_947238314.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Riven_Move2DStandard",
+            "eventId": 1581318469,
+            "wemCount": 14
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Riven_RivenBasicAttack2_cast3D",
+            "eventId": 3532536258,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Riven_RivenBasicAttack3_cast3D",
+            "eventId": 1507680849,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Riven_RivenBasicAttack_cast3D",
+            "eventId": 2340183530,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Riven_RivenCritAttack_cast3D",
+            "eventId": 2860319514,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Riven_Spell3DQ1Cast",
+            "eventId": 3895967717,
+            "wemCount": 3
+          },
+          {
+            "name": "Play_vo_Riven_Spell3DQ2Cast",
+            "eventId": 3516517198,
+            "wemCount": 3
+          },
+          {
+            "name": "Play_vo_Riven_Spell3DQ3Cast",
+            "eventId": 1846201263,
+            "wemCount": 4
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Riven_RivenMartyr_cast3D",
+            "eventId": 4085999513,
+            "wemCount": 4
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Riven_RivenFeint_cast3D",
+            "eventId": 1757794418,
+            "wemCount": 4
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Riven_RivenFengShuiEngine_cast3D",
+            "eventId": 2980003599,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Riven_RivenIzunaBlade_cast3D",
+            "eventId": 3706974777,
+            "wemCount": 4
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Riven_Death3D",
+            "eventId": 240324002,
+            "wemCount": 4
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Sylas",
+      "voices": {
+        "move": [
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_33483879.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_34394486.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_56671852.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_73753372.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_82852788.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_133292646.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_150241817.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_216430915.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_341226287.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_412561674.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_655042437.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_656658479.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_741631602.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_793520224.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_824826698.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_886624496.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_914500826.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1004482781.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1034790132.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1133566701.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1212911220.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1226427369.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1273143759.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1279985015.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1336344176.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1392781678.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1435900035.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1581963200.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1598717348.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1648427541.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1704320964.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1708584163.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1720022839.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1737239564.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1853312748.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1861831678.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1868781928.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1891923881.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1954573422.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_2001576212.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_2082830524.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_2109309075.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_2112876717.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_2125790681.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_2143991143.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_36774791.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_243519016.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1314813897.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1598255257.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_89495243.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1733481518.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1871837328.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_188203422.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_864961906.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1247392719.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_748356771.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1583159914.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1791774865.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_21067908.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_128999049.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_156948942.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_326079670.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_389531912.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_582404804.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_860586345.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_972442186.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1463406840.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1492102201.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1586055385.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1591737040.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1631981999.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1673214415.wav"
+        ],
+        "death": [
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_80777824.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_335383638.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_396897824.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1183543392.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1348061718.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1587932367.wav",
+          "LoL/Champions/Sylas/Voice/sylas_base_vo_ko_kr_1714943695.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Sylas_Move2DFirst",
+            "eventId": 2856487622,
+            "wemCount": 7
+          },
+          {
+            "name": "Play_vo_Sylas_Move2DLong",
+            "eventId": 3590966878,
+            "wemCount": 3
+          },
+          {
+            "name": "Play_vo_Sylas_Move2DStandard",
+            "eventId": 3068609899,
+            "wemCount": 35
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Sylas_SylasBasicAttack2_cast3D",
+            "eventId": 49024438,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Sylas_SylasBasicAttack_cast3D",
+            "eventId": 1962935590,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Sylas_SylasCritAttack_cast3D",
+            "eventId": 2988553526,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Sylas_SylasQ_cast3D",
+            "eventId": 1594185887,
+            "wemCount": 3
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Sylas_SylasW_cast3D",
+            "eventId": 2362093601,
+            "wemCount": 3
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Sylas_SylasE_cast3D",
+            "eventId": 2099765259,
+            "wemCount": 3
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Sylas_SylasR2_cast",
+            "eventId": 1694218055,
+            "wemCount": 3
+          },
+          {
+            "name": "Play_vo_Sylas_SylasR_hit3D",
+            "eventId": 296417360,
+            "wemCount": 11
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Sylas_Death3D",
+            "eventId": 2068400208,
+            "wemCount": 7
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Viego",
+      "voices": {
+        "move": [
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_78091908.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_105210347.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_167965449.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_183796886.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_347866652.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_388541858.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_504911462.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_601952963.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_648558018.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_690574101.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_826511480.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_951433843.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_954721429.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1129475018.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1138923392.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1168090017.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1182252637.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1251419272.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1278762455.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1405767056.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1409848444.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1524584863.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1571244406.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1678290537.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1695131983.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1843457960.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2007430060.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2064846490.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2081751578.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2096789921.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2106912002.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2112736070.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_97063515.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1423806919.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1773711269.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2029276484.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1382566838.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1553074423.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1986065237.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_951225637.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1218881540.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1756957380.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_520101885.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_810425222.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_825284449.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_876621792.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_943983500.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1333095370.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1345842996.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1450330914.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1823420964.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2005369167.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_342083535.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_943919506.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1220595024.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1326111188.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1451638781.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2090743508.wav"
+        ],
+        "death": [
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_310282067.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_326509584.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_1325571642.wav",
+          "LoL/Champions/Viego/Voice/viego_base_vo_ko_kr_2100163180.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Viego_Move2DFirst",
+            "eventId": 3764081880,
+            "wemCount": 3
+          },
+          {
+            "name": "Play_vo_Viego_Move2DLong",
+            "eventId": 2497703428,
+            "wemCount": 7
+          },
+          {
+            "name": "Play_vo_Viego_Move2DStandard",
+            "eventId": 1617805601,
+            "wemCount": 22
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Viego_ViegoBasicAttack2_cast3D",
+            "eventId": 780998182,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Viego_ViegoBasicAttack3_cast3D",
+            "eventId": 307506085,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Viego_ViegoBasicAttack_cast3D",
+            "eventId": 1546416726,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Viego_ViegoCritAttack2_cast3D",
+            "eventId": 122091510,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Viego_ViegoCritAttack_cast3D",
+            "eventId": 1760764134,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Viego_ViegoQ_cast3D",
+            "eventId": 3027655375,
+            "wemCount": 3
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Viego_Spell3DW2Cast",
+            "eventId": 3082998876,
+            "wemCount": 3
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Viego_ViegoE_cast3D",
+            "eventId": 2401432859,
+            "wemCount": 10
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Viego_ViegoR_cast3D",
+            "eventId": 3859414278,
+            "wemCount": 6
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Viego_Death3D",
+            "eventId": 3377298366,
+            "wemCount": 4
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Yasuo",
+      "voices": {
+        "move": [
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_41563770.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_167863857.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_466629836.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_596406136.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_762626129.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_924464654.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1038382228.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1173310308.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1247304908.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1248232394.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1370865475.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1517546076.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1547643077.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1579680124.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1626072556.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1804081605.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1804392666.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1946004337.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_2030047260.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_2034988726.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_82967448.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_183865960.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1485995964.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_2145886021.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_240054611.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_404603464.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_525872480.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_556915690.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1084240379.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1304034512.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1559008195.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1820792093.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_164362840.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_569061168.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1949686848.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_313224518.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1030196589.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1218051156.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1649710977.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_791104826.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_945739079.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1724015896.wav"
+        ],
+        "death": [
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_147945069.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_424782905.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1121692080.wav",
+          "LoL/Champions/Yasuo/Voice/yasuo_base_vo_ko_kr_1124399666.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Yasuo_Move2DStandard",
+            "eventId": 1083669192,
+            "wemCount": 20
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Yasuo_YasuoBasicAttack2_cast3D",
+            "eventId": 817366158,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoBasicAttack3_cast3D",
+            "eventId": 203103821,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoBasicAttack4_cast3D",
+            "eventId": 1143674228,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoBasicAttack5_cast3D",
+            "eventId": 3933017875,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoBasicAttack6_cast3D",
+            "eventId": 1382643114,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoBasicAttack_cast3D",
+            "eventId": 3606952558,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoCritAttack2_cast3D",
+            "eventId": 1457458318,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoCritAttack3_cast3D",
+            "eventId": 843195981,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoCritAttack4_cast3D",
+            "eventId": 1783766388,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoCritAttack5_cast3D",
+            "eventId": 278142739,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoCritAttack_cast3D",
+            "eventId": 784306798,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Yasuo_YasuoQ1_cast3D",
+            "eventId": 2597382496,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoQ2_cast3D",
+            "eventId": 3980515109,
+            "wemCount": 2
+          },
+          {
+            "name": "Play_vo_Yasuo_YasuoQ3Wrapper_cast3D",
+            "eventId": 1767428439,
+            "wemCount": 2
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Yasuo_YasuoW_cast3D",
+            "eventId": 368906409,
+            "wemCount": 3
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Yasuo_YasuoEDash_cast3D",
+            "eventId": 2812602247,
+            "wemCount": 4
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Yasuo_YasuoR_cast3D",
+            "eventId": 1294425758,
+            "wemCount": 3
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Yasuo_Death3D",
+            "eventId": 3196039457,
+            "wemCount": 4
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Yone",
+      "voices": {
+        "move": [
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_44395366.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_71453786.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_85310009.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_92930290.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_107935647.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_198934501.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_206003728.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_373829233.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_381550415.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_495170054.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_562101913.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_566443935.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_603247419.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_680223050.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_699745369.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_748335692.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_788041822.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_844684937.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_906347595.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_925279618.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_927527711.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_945373001.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_966214948.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1020819291.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1066289300.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1089362262.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1104271798.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1160128756.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1349405944.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1418270532.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1444427203.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1456853029.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1457009640.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1471295932.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1530618110.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1610165239.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1663795860.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1738673967.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1994880795.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_2107817480.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_2135033768.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_2146225701.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_41185341.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_811950710.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_899204741.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1397251387.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1783916061.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_2068395314.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_387414782.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_665015801.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_728277031.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1089633231.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1617641975.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1732950572.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_260568444.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_353493798.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_946870488.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1388347450.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_285966045.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_286541852.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_827511467.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1253643493.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1415514582.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1810368375.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_398106667.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_442570863.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1079214157.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_2084682562.wav"
+        ],
+        "death": [
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_326103520.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1458515592.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1563363057.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1706871617.wav",
+          "LoL/Champions/Yone/Voice/yone_base_vo_ko_kr_1809458941.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Yone_Move2DFirst",
+            "eventId": 394538781,
+            "wemCount": 5
+          },
+          {
+            "name": "Play_vo_Yone_Move2DLong",
+            "eventId": 953677983,
+            "wemCount": 11
+          },
+          {
+            "name": "Play_vo_Yone_Move2DStandard",
+            "eventId": 3094395126,
+            "wemCount": 26
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Yone_YoneBasicAttack2_cast3D",
+            "eventId": 1835270874,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneBasicAttack3_cast3D",
+            "eventId": 37390473,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneBasicAttack4_cast3D",
+            "eventId": 2936655864,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneBasicAttack5_cast3D",
+            "eventId": 744100647,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneBasicAttack6_cast3D",
+            "eventId": 3172536574,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneBasicAttack_cast3D",
+            "eventId": 2688074898,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneCritAttack2_cast3D",
+            "eventId": 3525100378,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneCritAttack3_cast3D",
+            "eventId": 1727219977,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneCritAttack4_cast3D",
+            "eventId": 331518072,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneCritAttack5_cast3D",
+            "eventId": 2433930151,
+            "wemCount": 6
+          },
+          {
+            "name": "Play_vo_Yone_YoneCritAttack_cast3D",
+            "eventId": 2100777490,
+            "wemCount": 6
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Yone_YoneQ3_cast3D",
+            "eventId": 3022621202,
+            "wemCount": 3
+          },
+          {
+            "name": "Play_vo_Yone_YoneQ_cast3D",
+            "eventId": 4204749579,
+            "wemCount": 3
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Yone_YoneW_cast3D",
+            "eventId": 3086820421,
+            "wemCount": 4
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Yone_Spell3DEEnd",
+            "eventId": 3465143431,
+            "wemCount": 3
+          },
+          {
+            "name": "Play_vo_Yone_YoneE_cast3D",
+            "eventId": 3699170207,
+            "wemCount": 3
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Yone_YoneR_cast3D",
+            "eventId": 3249359682,
+            "wemCount": 4
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Yone_Death3D",
+            "eventId": 1116318143,
+            "wemCount": 5
+          }
+        ]
+      }
+    },
+    {
+      "champion": "Zed",
+      "voices": {
+        "move": [
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_139813373.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_242957588.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_306662562.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_473251181.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_876774675.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1063641712.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1125573843.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1183781552.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1289094431.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1988055553.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1999596943.wav"
+        ],
+        "basicAttack": [
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_650757381.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_948349116.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1007254742.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1223470908.wav"
+        ],
+        "skillQ": [
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_612771052.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1254415102.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1535682790.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1588369356.wav"
+        ],
+        "skillW": [
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_148575753.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_777087422.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_855559738.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1126446529.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1334734251.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1438830141.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1545899844.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1912930412.wav"
+        ],
+        "skillE": [
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_525237654.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_701530331.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_888310704.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1473999498.wav"
+        ],
+        "skillR": [
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_499990059.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_578960257.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_731747102.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1480043552.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1619504783.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1686829729.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_1971792082.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_2034224640.wav"
+        ],
+        "death": [
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_274447124.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_319723059.wav",
+          "LoL/Champions/Zed/Voice/zed_base_vo_ko_kr_528759986.wav"
+        ]
+      },
+      "audit": {
+        "move": [
+          {
+            "name": "Play_vo_Zed_Move2DStandard",
+            "eventId": 341249040,
+            "wemCount": 11
+          }
+        ],
+        "basicAttack": [
+          {
+            "name": "Play_vo_Zed_ZedBasicAttack2_cast3D",
+            "eventId": 1417131870,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Zed_ZedBasicAttack_cast3D",
+            "eventId": 3244693246,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Zed_ZedCritAttack_cast3D",
+            "eventId": 2403675454,
+            "wemCount": 4
+          }
+        ],
+        "skillQ": [
+          {
+            "name": "Play_vo_Zed_ZedQ_cast3D",
+            "eventId": 776981655,
+            "wemCount": 4
+          }
+        ],
+        "skillW": [
+          {
+            "name": "Play_vo_Zed_ZedW2_cast3D",
+            "eventId": 3241538263,
+            "wemCount": 4
+          },
+          {
+            "name": "Play_vo_Zed_ZedW_cast3D",
+            "eventId": 454285113,
+            "wemCount": 4
+          }
+        ],
+        "skillE": [
+          {
+            "name": "Play_vo_Zed_ZedE_cast3D",
+            "eventId": 2792272707,
+            "wemCount": 4
+          }
+        ],
+        "skillR": [
+          {
+            "name": "Play_vo_Zed_ZedR_cast3D",
+            "eventId": 2244558638,
+            "wemCount": 8
+          }
+        ],
+        "death": [
+          {
+            "name": "Play_vo_Zed_Death3D",
+            "eventId": 4029817817,
+            "wemCount": 3
+          }
+        ]
+      }
+    }
+  ],
+  "warnings": []
+}

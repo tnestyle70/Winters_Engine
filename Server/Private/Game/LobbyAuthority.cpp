@@ -1,6 +1,7 @@
 #include "Game/LobbyAuthority.h"
 
 #include "GameRoomSmokeRoster.h"
+#include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
 #include "Shared/GameSim/Definitions/MapSpawnPoints.h"
 #include "Shared/Schemas/Generated/cpp/LobbyCommand_generated.h"
 
@@ -11,6 +12,14 @@
 
 namespace
 {
+    eChampion ResolveCommandChampion(const Shared::Schema::LobbyCommand& command)
+    {
+        const ChampionGameplayDef* definition =
+            ServerData::GetActiveLoLGameplayDefinitionPack().FindChampion(
+                command.championDefinitionKey());
+        return definition ? definition->legacyChampion : eChampion::END;
+    }
+
     const char* GetLobbyCommandKindName(Shared::Schema::LobbyCommandKind kind)
     {
         switch (kind)
@@ -85,6 +94,45 @@ namespace
             return kGameSimLaneMid;
         }
     }
+
+    void ApplyThreeHumanTwoBotLanePreset(
+        LobbySlotState* pSlots,
+        u32_t slotCount)
+    {
+        if (!pSlots)
+            return;
+
+        for (u8_t team = 0u; team < 2u; ++team)
+        {
+            u32_t humanCount = 0u;
+            u32_t botCount = 0u;
+            LobbySlotState* pBots[2]{};
+            for (u32_t i = 0u; i < slotCount; ++i)
+            {
+                LobbySlotState& slot = pSlots[i];
+                if (slot.team != team)
+                    continue;
+                humanCount += slot.bHuman ? 1u : 0u;
+                if (slot.bBot)
+                {
+                    if (botCount < 2u)
+                        pBots[botCount] = &slot;
+                    ++botCount;
+                }
+            }
+
+            if (humanCount == 3u &&
+                botCount == 2u &&
+                pBots[0] &&
+                pBots[1] &&
+                pBots[0]->botLane == kGameSimLaneBot &&
+                pBots[1]->botLane == kGameSimLaneBot)
+            {
+                pBots[0]->botLane = kGameSimLaneBot;
+                pBots[1]->botLane = kGameSimLaneTop;
+            }
+        }
+    }
 }
 
 CLobbyAuthority::CLobbyAuthority(u32_t roomId)
@@ -143,7 +191,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
             sessionId,
             command->kind(),
             command->slotId(),
-            static_cast<eChampion>(command->championId()),
+            ResolveCommandChampion(*command),
             "room is not in lobby phase"));
         IncrementRevision(result);
         return result;
@@ -162,7 +210,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "slot changes are only allowed in seat select"));
             break;
         }
@@ -176,7 +224,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "slot changes are only allowed in seat select"));
             break;
         }
@@ -190,17 +238,17 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "player champion pick is only allowed in champion select"));
             break;
         }
-        bChanged = TryPickChampion(sessionId, static_cast<eChampion>(command->championId()));
+        bChanged = TryPickChampion(sessionId, ResolveCommandChampion(*command));
         break;
     case Shared::Schema::LobbyCommandKind::SetBotChampion:
         bChanged = TrySetBotChampion(
             sessionId,
             command->slotId(),
-            static_cast<eChampion>(command->championId()));
+            ResolveCommandChampion(*command));
         break;
     case Shared::Schema::LobbyCommandKind::SetReady:
         if (TrySetReady(sessionId, command->value() != 0, result))
@@ -237,7 +285,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "room is not ready to advance"));
         }
         break;
@@ -247,7 +295,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
             sessionId,
             command->kind(),
             command->slotId(),
-            static_cast<eChampion>(command->championId()),
+            ResolveCommandChampion(*command),
             "unsupported lobby command"));
         break;
     }
@@ -261,7 +309,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "state changed"));
         }
     }
@@ -274,7 +322,7 @@ LobbyAuthorityResult CLobbyAuthority::OnLobbyCommand(
                 sessionId,
                 command->kind(),
                 command->slotId(),
-                static_cast<eChampion>(command->championId()),
+                ResolveCommandChampion(*command),
                 "no state change"));
         }
     }
@@ -1078,6 +1126,8 @@ bool CLobbyAuthority::TryStartGame(u32_t sessionId)
     }
     else if (ShouldUseRedSylasSmokeRoster())
         EnsureRedSylasSmokeRoster(m_slots, kGameRosterSlotCount);
+
+    ApplyThreeHumanTwoBotLanePreset(m_slots, kGameRosterSlotCount);
 
     for (u32_t i = 0; i < kGameRosterSlotCount; ++i)
     {

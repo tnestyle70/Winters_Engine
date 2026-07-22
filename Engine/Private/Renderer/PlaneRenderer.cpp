@@ -1,5 +1,6 @@
 #include "Renderer/PlaneRenderer.h"
 
+#include "Core/Profiler/RenderFrameStats.h"
 #include "RHI/RHITypes.h"
 #include "RHI/DX11/BlendStateCache.h"
 #include "RHI/DX11/DX11Shader.h"
@@ -273,6 +274,7 @@ void CPlaneRenderer::Render(IRHIDevice* pDevice, const Mat4& matViewProj)
     pContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
     pContext->IASetIndexBuffer(m_pImpl->pIB.Get(), DXGI_FORMAT_R16_UINT, 0);
     pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    RenderFrameStats::AddDraw(6u);
     pContext->DrawIndexed(6, 0, 0);
 
     m_pImpl->pSharedShader->Unbind(pContext);
@@ -394,6 +396,7 @@ void CPlaneRenderer::RenderBatched()
     if (m_pTexture)
         m_pTexture->Bind(m_pImpl->pBatchDevice, 0);
 
+    RenderFrameStats::AddDraw(6u);
     pContext->DrawIndexed(6, 0, 0);
 }
 

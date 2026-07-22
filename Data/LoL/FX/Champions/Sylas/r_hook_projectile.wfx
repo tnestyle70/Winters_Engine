@@ -1,0 +1,24 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Sylas.R.HookProjectile",
+  "emitters": [
+    {
+      "name": "r_hook_head_projectile",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Sylas/particles/sylas_base_r_hookmis_head.png",
+      "max_particles": 1,
+      "spawn_rate": 0.0,
+      "lifetime": 0.45,
+      "fade_in": 0.01,
+      "fade_out": 0.08,
+      "width": 1.55,
+      "height": 1.55,
+      "color": [1.85, 1.10, 2.25, 0.92],
+      "billboard": true,
+      "blockable_by_wind_wall": true
+    }
+  ]
+}

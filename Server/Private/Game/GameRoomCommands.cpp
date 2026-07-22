@@ -47,14 +47,18 @@
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Components/ZedSimComponent.h"
 #include "Shared/GameSim/Definitions/ExperienceDef.h"
+#include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
 #include "Shared/GameSim/Definitions/ItemDef.h"
 #include "Shared/GameSim/Definitions/MapDataFormats.h"
 #include "Shared/GameSim/Definitions/SkillAtomData.h"
+#include "Shared/GameSim/Definitions/TeamPingDef.h"
 #include "Shared/GameSim/Registries/Reward/RewardRegistry.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/Experience/ExperienceSystem.h"
+#include "Shared/GameSim/Systems/SkillCooldown/SkillCooldownSystem.h"
 #include "Shared/GameSim/Systems/SkillRank/SkillRankSystem.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectSystem.h"
+#include "Shared/GameSim/Systems/Buff/BuffSystem.h"
 #include "Shared/GameSim/Champions/Viego/ViegoGameSim.h"
 
 #include "ECS/Components/CoreComponents.h"
@@ -139,8 +143,9 @@ namespace
 
     bool_t IsValidPracticeEffectParam(u32_t rawParam)
     {
+        // 상한은 enum 말미와 동기 유지 — 중간 절단은 클라 콤보와 파리티가 깨진다.
         return rawParam > static_cast<u32_t>(eSkillEffectParamId::None) &&
-            rawParam <= static_cast<u32_t>(eSkillEffectParamId::BonusAttackSpeed);
+            rawParam <= static_cast<u32_t>(eSkillEffectParamId::HealDamageRatio);
     }
 
     bool_t IsValidPracticeEffectValue(
@@ -158,47 +163,10 @@ namespace
             return value >= 0.f && value <= 4.f;
         case eSkillEffectParamId::MissingHealthDamageRatio:
             return value >= 0.f && value <= 10.f;
+        case eSkillEffectParamId::HealDamageRatio:
+            return value >= 0.f && value <= 5.f;
         default:
             return value >= 0.f && value <= kPracticeOverrideValueMax;
-        }
-    }
-
-    const ChampionAITuningParam* ResolveChampionAITuningParamForValidation(
-        const ChampionAIComponent& ai,
-        eChampionAITuningId tuningId)
-    {
-        switch (tuningId)
-        {
-        case eChampionAITuningId::ChampionScanRange:
-            return &ai.tuning.championScanRange;
-        case eChampionAITuningId::MinionScanRange:
-            return &ai.tuning.minionScanRange;
-        case eChampionAITuningId::StructureScanRange:
-            return &ai.tuning.structureScanRange;
-        case eChampionAITuningId::LeashRange:
-            return &ai.tuning.leashRange;
-        case eChampionAITuningId::RetreatHpRatio:
-            return &ai.tuning.retreatHpRatio;
-        case eChampionAITuningId::ReengageHpRatio:
-            return &ai.tuning.reengageHpRatio;
-        case eChampionAITuningId::ChampionScoreMargin:
-            return &ai.tuning.championScoreMargin;
-        case eChampionAITuningId::TurretDangerThreshold:
-            return &ai.tuning.turretDangerThreshold;
-        case eChampionAITuningId::PostComboBASelfHpMinRatio:
-            return &ai.tuning.postComboBASelfHpMinRatio;
-        case eChampionAITuningId::PostComboBAEnemyHpMargin:
-            return &ai.tuning.postComboBAEnemyHpMargin;
-        case eChampionAITuningId::PostComboBAWindow:
-            return &ai.tuning.postComboBAWindow;
-        case eChampionAITuningId::LowHpExecuteThreshold:
-            return &ai.tuning.lowHpExecuteThreshold;
-        case eChampionAITuningId::DiveScanRange:
-            return &ai.tuning.diveScanRange;
-        case eChampionAITuningId::DiveExtraBAWindow:
-            return &ai.tuning.diveExtraBAWindow;
-        default:
-            return nullptr;
         }
     }
 
@@ -790,8 +758,8 @@ namespace
             {
                 irelia.dashTarget = NULL_ENTITY;
                 irelia.bDashActive = false;
-                irelia.dashElapsedSec = 0.f;
-                irelia.dashDurationSec = 0.f;
+                irelia.dashSpeed = 0.f;
+                irelia.qRank = 0u;
             }
 
             const auto RemoveTrackedTarget = [&](EntityID* pTargets, u8_t& count)
@@ -1422,6 +1390,9 @@ void CGameRoom::CaptureKeyframeIfDue(const TickContext& tc)
     keyframe.turretActivationAccum =
         m_pTurretAI ? m_pTurretAI->GetActivationAccum() : 0.f;
     keyframe.bPracticeModeEnabled = m_bPracticeModeEnabled;
+    keyframe.practiceRespawnSecondsByLevel = m_PracticeRespawnSecondsByLevel;
+    keyframe.practiceMinionAttackDamageByRole =
+        m_PracticeMinionAttackDamage.values;
 
     m_keyframes.push_back(std::move(keyframe));
     if (m_keyframes.size() > kKeyframeCapacity)
@@ -1465,6 +1436,10 @@ void CGameRoom::PerformPendingRewind()
     if (m_pTurretAI)
         m_pTurretAI->SetActivationAccum(pKeyframe->turretActivationAccum);
     m_bPracticeModeEnabled = pKeyframe->bPracticeModeEnabled;
+    m_PracticeRespawnSecondsByLevel =
+        pKeyframe->practiceRespawnSecondsByLevel;
+    m_PracticeMinionAttackDamage.values =
+        pKeyframe->practiceMinionAttackDamageByRole;
 
     m_PracticeSpawnedEntities =
         DeterministicEntityIterator<PracticeSpawnedTag>::CollectSorted(m_world);
@@ -1535,6 +1510,80 @@ void CGameRoom::EnqueueCommand(u32_t sessionId, const GameCommandWire& wire,
         clientTimestampMs);
 }
 
+bool_t CGameRoom::TryHandleTeamPing(
+    const TickContext& tc,
+    const GameCommand& cmd,
+    bool_t& outAccepted)
+{
+    outAccepted = false;
+    if (cmd.kind != eCommandKind::TeamPing)
+        return false;
+
+    if (cmd.sourceSessionId == 0u || cmd.issuerEntity == NULL_ENTITY ||
+        !m_world.IsAlive(cmd.issuerEntity) ||
+        !m_world.HasComponent<ChampionComponent>(cmd.issuerEntity) ||
+        !m_world.HasComponent<HealthComponent>(cmd.issuerEntity) ||
+        !m_world.HasComponent<TransformComponent>(cmd.issuerEntity) ||
+        !std::isfinite(cmd.groundPos.x) ||
+        !std::isfinite(cmd.groundPos.y) ||
+        !std::isfinite(cmd.groundPos.z))
+    {
+        return true;
+    }
+
+    const HealthComponent& issuerHealth =
+        m_world.GetComponent<HealthComponent>(cmd.issuerEntity);
+    if (issuerHealth.bIsDead || issuerHealth.fCurrent <= 0.f)
+        return true;
+
+    const eTeamPingKind kind = static_cast<eTeamPingKind>(cmd.slot);
+    if (kind < eTeamPingKind::OnMyWay || kind > eTeamPingKind::Missing)
+        return true;
+
+    const Vec3 issuerPos =
+        m_world.GetComponent<TransformComponent>(cmd.issuerEntity).GetPosition();
+    Vec3 resolvedTarget{};
+    if (!TryResolveMoveTarget(issuerPos, cmd.groundPos, resolvedTarget))
+        return true;
+
+    outAccepted = true;
+    if (kind != eTeamPingKind::Assist && kind != eTeamPingKind::Danger)
+        return true;
+
+    const eTeam issuerTeam =
+        m_world.GetComponent<ChampionComponent>(cmd.issuerEntity).team;
+    const u64_t ttlTicks = kind == eTeamPingKind::Assist ? 180u : 90u;
+    const f32_t dangerRadiusSq =
+        kTeamPingDangerRadius * kTeamPingDangerRadius;
+
+    m_world.ForEach<ChampionAIComponent, ChampionComponent, TransformComponent>(
+        [&](EntityID, ChampionAIComponent& ai, ChampionComponent& champion,
+            TransformComponent& transform)
+        {
+            if (champion.team != issuerTeam)
+                return;
+
+            if (kind == eTeamPingKind::Danger)
+            {
+                ai.bTeamPingObjectiveActive = false;
+                ai.teamPingKind = eTeamPingKind::None;
+                ai.teamPingExpireTick = 0u;
+                if (WintersMath::DistanceSqXZ(
+                        transform.GetPosition(), resolvedTarget) > dangerRadiusSq)
+                {
+                    return;
+                }
+            }
+
+            ai.teamPingKind = kind;
+            ai.teamPingAnchor = resolvedTarget;
+            ai.teamPingExpireTick = tc.tickIndex + ttlTicks;
+            ai.bTeamPingObjectiveActive = true;
+            ai.decisionTimer = 0.f;
+        });
+    return true;
+}
+
 bool_t CGameRoom::TryHandlePracticeControl(
     const TickContext& tc,
     const GameCommand& cmd,
@@ -1577,6 +1626,8 @@ bool_t CGameRoom::TryHandlePracticeControl(
             m_bSimPaused = false;
             m_simStepBudget = 0;
             m_simSpeedMul.store(1.f, std::memory_order_relaxed);
+            m_PracticeRespawnSecondsByLevel.fill(0.f);
+            ClearPracticeMinionAttackDamageOverrides();
             ClearPracticeSpawns();
             if (cmd.issuerEntity != NULL_ENTITY && m_world.IsAlive(cmd.issuerEntity))
             {
@@ -2395,6 +2446,32 @@ bool_t CGameRoom::TryHandlePracticeControl(
 
     case ePracticeOperation::ReloadGameplayDefinitions:
     {
+        struct PreviousSkillCooldowns
+        {
+            EntityID entity = NULL_ENTITY;
+            f32_t values[4]{};
+        };
+        std::vector<PreviousSkillCooldowns> previousSkillCooldowns;
+        m_world.ForEach<ChampionComponent, SkillStateComponent>(
+            [&](EntityID entity, ChampionComponent& champion, SkillStateComponent&)
+            {
+                PreviousSkillCooldowns sample{};
+                sample.entity = entity;
+                for (u8_t slotIndex = static_cast<u8_t>(eSkillSlot::Q);
+                    slotIndex <= static_cast<u8_t>(eSkillSlot::R); ++slotIndex)
+                {
+                    sample.values[
+                        slotIndex - static_cast<u8_t>(eSkillSlot::Q)] =
+                        GameplayDefinitionQuery::ResolveSkillCooldown(
+                            m_world,
+                            entity,
+                            tc,
+                            static_cast<eChampion>(champion.id),
+                            slotIndex);
+                }
+                previousSkillCooldowns.push_back(sample);
+            });
+
         std::string reloadError;
         if (!ServerData::TryReloadRuntimeGameplayDefinitions(reloadError))
         {
@@ -2403,7 +2480,67 @@ bool_t CGameRoom::TryHandlePracticeControl(
             return Finish(false, "definition-reload-failed");
         }
 
-        // 스탯 계열은 재계산 트리거 필요. 스킬 효과/쿨다운/마나/사거리는 쿼리 시점 해석이라 즉시 반영.
+		// JSON hot load is the single source of truth. Remove stale per-entity
+		// practice overlays so they cannot mask the newly loaded definitions.
+		const auto skillOverrideEntities =
+			DeterministicEntityIterator<PracticeSkillEffectOverrideComponent>
+				::CollectSorted(m_world);
+		for (EntityID entity : skillOverrideEntities)
+		{
+			if (m_world.IsAlive(entity))
+				m_world.RemoveComponent<PracticeSkillEffectOverrideComponent>(entity);
+		}
+		const auto statOverrideEntities =
+			DeterministicEntityIterator<PracticeChampionStatOverrideComponent>
+				::CollectSorted(m_world);
+		for (EntityID entity : statOverrideEntities)
+		{
+			if (m_world.IsAlive(entity))
+				m_world.RemoveComponent<PracticeChampionStatOverrideComponent>(entity);
+		}
+		m_PracticeMinionAttackDamage.Clear();
+
+        const GameplayDefinitionPack& reloadedDefinitions =
+            ServerData::GetActiveLoLGameplayDefinitionPack();
+        TickContext reloadedTick = tc;
+        reloadedTick.pDefinitions = &reloadedDefinitions;
+        u32_t refreshedSkillCooldowns = 0u;
+        m_world.ForEach<ChampionComponent, SkillStateComponent>(
+            [&](EntityID entity, ChampionComponent& champion,
+                SkillStateComponent& skills)
+            {
+                const auto previousIt = std::find_if(
+                    previousSkillCooldowns.begin(),
+                    previousSkillCooldowns.end(),
+                    [&](const PreviousSkillCooldowns& sample)
+                    {
+                        return sample.entity == entity;
+                    });
+                if (previousIt == previousSkillCooldowns.end())
+                    return;
+
+                for (u8_t slotIndex = static_cast<u8_t>(eSkillSlot::Q);
+                    slotIndex <= static_cast<u8_t>(eSkillSlot::R); ++slotIndex)
+                {
+                    const f32_t previousCooldown = previousIt->values[
+                        slotIndex - static_cast<u8_t>(eSkillSlot::Q)];
+                    const f32_t reloadedCooldown =
+                        GameplayDefinitionQuery::ResolveSkillCooldown(
+                            m_world,
+                            entity,
+                            reloadedTick,
+                            static_cast<eChampion>(champion.id),
+                            slotIndex);
+                    CSkillCooldownSystem::RemapDefinitionCooldown(
+                        skills.slots[slotIndex],
+                        previousCooldown,
+                        reloadedCooldown);
+                    ++refreshedSkillCooldowns;
+                }
+            });
+
+        // 스탯은 dirty 재계산하고, 새 스킬 정의는 쿼리 시점에 해석한다.
+        // 이미 진행 중인 쿨다운은 위에서 새 정의 비율로 별도 환산한다.
         u32_t refreshedCount = 0u;
         m_world.ForEach<StatComponent>(
             [&](EntityID, StatComponent& stat)
@@ -2415,6 +2552,120 @@ bool_t CGameRoom::TryHandlePracticeControl(
                 stat.bDirty = true;
                 ++refreshedCount;
             });
+
+		// SpawnObject definitions normally affect the next spawn. The F4 editor
+		// promises immediate hot load, so refresh living lane minions and turrets
+		// from the successfully published pack in this same authoritative tick.
+		const SpawnObjectDefinitionPack& spawnPack =
+			ServerData::GetActiveLoLSpawnObjectDefinitionPack();
+		const MinionWaveDef& waveDef = spawnPack.minionWave;
+		const u64_t rawMinutes = m_tickIndex / 1800ull;
+		const u64_t capMinutes = static_cast<u64_t>(waveDef.timeGrowthCapMinutes);
+		const u64_t elapsedMinutes = rawMinutes > capMinutes ? capMinutes : rawMinutes;
+		const f32_t timeGrowth =
+			1.f + waveDef.timeGrowthPerMinute * static_cast<f32_t>(elapsedMinutes);
+		u32_t refreshedMinions = 0u;
+		CBuffSystem::UnapplyAllBaronEmpoweredMinions(m_world);
+		m_world.ForEach<MinionStateComponent, MinionComponent, HealthComponent>(
+			[&](EntityID, MinionStateComponent& state,
+				MinionComponent& minion, HealthComponent& health)
+			{
+				if (state.type >= PracticeMinionAttackDamagePolicy::kRoleCount ||
+					health.bIsDead)
+				{
+					return;
+				}
+				const MinionCombatDef combat = spawnPack.ResolveMinion(state.type);
+				const f32_t maxHp = combat.maxHp * timeGrowth;
+				const f32_t healthRatio = health.fMaximum > 0.f
+					? std::clamp(health.fCurrent / health.fMaximum, 0.f, 1.f)
+					: 0.f;
+				state.attackDamage = combat.attackDamage * timeGrowth;
+				state.attackRange = combat.attackRange;
+				health.fMaximum = maxHp;
+				health.fCurrent = maxHp * healthRatio;
+				minion.maxHp = maxHp;
+				minion.hp = health.fCurrent;
+				++refreshedMinions;
+			});
+
+		u32_t refreshedJungle = 0u;
+		m_world.ForEach<JungleComponent, HealthComponent, StatComponent>(
+			[&](EntityID entity, JungleComponent& jungle,
+				HealthComponent& health, StatComponent& stat)
+			{
+				const JungleCampGameDef camp = spawnPack.ResolveJungleCamp(
+					static_cast<u8_t>(jungle.subKind));
+				const f32_t healthRatio = health.fMaximum > 0.f
+					? std::clamp(health.fCurrent / health.fMaximum, 0.f, 1.f)
+					: 0.f;
+				health.fMaximum = camp.maxHp;
+				health.fCurrent = health.bIsDead ? 0.f : camp.maxHp * healthRatio;
+				jungle.maxHp = camp.maxHp;
+				jungle.hp = health.fCurrent;
+				jungle.fRespawnDelaySec = camp.respawnDelaySec;
+				stat.hpMax = camp.maxHp;
+				stat.baseAd = camp.attackDamage;
+				stat.ad = camp.attackDamage;
+				stat.baseArmor = camp.baseArmor;
+				stat.armor = camp.baseArmor;
+				stat.baseMr = camp.baseMr;
+				stat.mr = camp.baseMr;
+				stat.attackRange = camp.attackRange;
+				stat.moveSpeed = camp.moveSpeed;
+				const f32_t attackSpeed = camp.attackCooldown > 0.f
+					? 1.f / camp.attackCooldown : 0.f;
+				stat.baseAttackSpeed = attackSpeed;
+				stat.attackSpeedRatio = attackSpeed;
+				stat.attackSpeed = attackSpeed;
+				if (m_world.HasComponent<JungleAIComponent>(entity))
+				{
+					auto& ai = m_world.GetComponent<JungleAIComponent>(entity);
+					ai.aggroRange = camp.aggroRange;
+					ai.leashRange = camp.leashRange;
+				}
+				++refreshedJungle;
+			});
+
+		u32_t refreshedTurrets = 0u;
+		m_world.ForEach<StructureComponent, HealthComponent>(
+			[&](EntityID entity, StructureComponent& structure, HealthComponent& health)
+			{
+				if (structure.kind != static_cast<u32_t>(eStructureKind::Turret) ||
+					health.bIsDead)
+				{
+					return;
+				}
+				const f32_t maxHp = spawnPack.structure.turretMaxHp;
+				health.fMaximum = maxHp;
+				health.fCurrent = maxHp;
+				structure.maxHp = maxHp;
+				structure.hp = maxHp;
+				if (m_world.HasComponent<TurretComponent>(entity))
+				{
+					auto& turret = m_world.GetComponent<TurretComponent>(entity);
+					turret.maxHp = maxHp;
+					turret.hp = maxHp;
+				}
+				++refreshedTurrets;
+			});
+		m_world.ForEach<StructureComponent, TurretAIComponent>(
+			[&](EntityID, StructureComponent& structure, TurretAIComponent& ai)
+			{
+				if (structure.kind != static_cast<u32_t>(eStructureKind::Turret))
+					return;
+				ai.attackDamage =
+					structure.tier == static_cast<u32_t>(Winters::Map::eTurretTier::Nexus)
+					? spawnPack.structure.turretAI.nexusAttackDamage
+					: spawnPack.structure.turretAI.attackDamage;
+			});
+
+		// A checkpoint captured under an older definition generation is not a
+		// valid rewind target after a hot load.
+		m_keyframes.clear();
+		m_pendingRewindToTick = 0u;
+		++m_timelineEpoch;
+		++m_timelineBranchId;
 
         // 보상/XP 레지스트리도 리로드된 경제 정의로 재적재 (팩 미장착 시 기존 값 유지).
         if (const EconomyGameplayDef* pEconomy =
@@ -2433,9 +2684,235 @@ bool_t CGameRoom::TryHandlePracticeControl(
 
         std::cerr << "[Data] runtime definitions reloaded rev="
             << ServerData::GetRuntimeGameplayDefinitionRevision()
-            << " statRefresh=" << refreshedCount << "\n";
+			<< " statRefresh=" << refreshedCount
+			<< " skillCooldownRefresh=" << refreshedSkillCooldowns
+			<< " minionRefresh=" << refreshedMinions
+			<< " jungleRefresh=" << refreshedJungle
+			<< " turretRefresh=" << refreshedTurrets << "\n";
         return Finish(true, "definitions-reloaded");
     }
+
+    case ePracticeOperation::ApplyJungleStatOverride:
+    {
+        // slot = eJungleStatOverrideId, value = 대체값. 전 정글몹 일괄 적용.
+        if (cmd.slot == 0u ||
+            cmd.slot >= static_cast<u8_t>(eJungleStatOverrideId::Count))
+        {
+            return Finish(false, "jungle-stat-id-invalid");
+        }
+
+        const eJungleStatOverrideId statId =
+            static_cast<eJungleStatOverrideId>(cmd.slot);
+        const f32_t minValue =
+            statId == eJungleStatOverrideId::MaxHp ? 1.f : 0.f;
+        if (!std::isfinite(cmd.practiceValue) ||
+            cmd.practiceValue < minValue ||
+            cmd.practiceValue > kPracticeOverrideValueMax)
+        {
+            return Finish(false, "jungle-stat-value-out-of-range");
+        }
+
+        u32_t appliedCount = 0u;
+        if (statId == eJungleStatOverrideId::AttackDamage)
+        {
+            m_world.ForEach<JungleComponent, StatComponent>(
+                [&](EntityID, JungleComponent&, StatComponent& stat)
+                {
+                    stat.baseAd = cmd.practiceValue;
+                    stat.ad = cmd.practiceValue;
+                    ++appliedCount;
+                });
+            return Finish(appliedCount > 0u,
+                appliedCount > 0u ? "jungle-damage-applied" : "jungle-stat-no-target");
+        }
+
+        m_world.ForEach<JungleComponent, HealthComponent>(
+            [&](EntityID, JungleComponent& jungle, HealthComponent& health)
+            {
+                jungle.maxHp = cmd.practiceValue;
+                health.fMaximum = cmd.practiceValue;
+                if (!health.bIsDead)
+                {
+                    jungle.hp = cmd.practiceValue;
+                    health.fCurrent = cmd.practiceValue;
+                }
+                ++appliedCount;
+            });
+        return Finish(appliedCount > 0u,
+            appliedCount > 0u ? "jungle-hp-applied" : "jungle-stat-no-target");
+    }
+
+    case ePracticeOperation::ClearJungleStatOverrides:
+    {
+        const SpawnObjectDefinitionPack& spawnPack =
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack();
+        m_world.ForEach<JungleComponent, HealthComponent>(
+            [&](EntityID entity, JungleComponent& jungle, HealthComponent& health)
+            {
+                const JungleCampGameDef campDef = spawnPack.ResolveJungleCamp(
+                    static_cast<u8_t>(jungle.subKind));
+                jungle.maxHp = campDef.maxHp;
+                jungle.fRespawnDelaySec = campDef.respawnDelaySec;
+                health.fMaximum = campDef.maxHp;
+                if (!health.bIsDead)
+                {
+                    jungle.hp = campDef.maxHp;
+                    health.fCurrent = campDef.maxHp;
+                }
+                if (m_world.HasComponent<StatComponent>(entity))
+                {
+                    auto& stat = m_world.GetComponent<StatComponent>(entity);
+                    stat.baseAd = campDef.attackDamage;
+                    stat.ad = campDef.attackDamage;
+                }
+            });
+        return Finish(true, "jungle-stats-restored");
+    }
+
+    case ePracticeOperation::ApplyRespawnTimeOverride:
+    {
+        if (cmd.slot < 1u ||
+            cmd.slot > SpawnLoadoutPolicyDef::kRespawnLevelCount)
+        {
+            return Finish(false, "respawn-level-out-of-range");
+        }
+        if (!std::isfinite(cmd.practiceValue) ||
+            cmd.practiceValue < 1.f || cmd.practiceValue > 120.f)
+        {
+            return Finish(false, "respawn-time-out-of-range");
+        }
+        m_PracticeRespawnSecondsByLevel[cmd.slot - 1u] = cmd.practiceValue;
+        return Finish(true, "respawn-time-applied");
+    }
+
+    case ePracticeOperation::ClearRespawnTimeOverrides:
+        m_PracticeRespawnSecondsByLevel.fill(0.f);
+        return Finish(true, "respawn-times-restored");
+
+    case ePracticeOperation::ApplyMinionStatOverride:
+    {
+        if (cmd.slot != static_cast<u8_t>(eMinionStatOverrideId::AttackDamage))
+            return Finish(false, "minion-stat-id-invalid");
+
+        if (cmd.practiceFlags >= PracticeMinionAttackDamagePolicy::kRoleCount)
+            return Finish(false, "minion-role-invalid");
+        const u8_t role = static_cast<u8_t>(cmd.practiceFlags);
+        if (!m_PracticeMinionAttackDamage.Apply(role, cmd.practiceValue))
+            return Finish(false, "minion-stat-value-invalid");
+
+        u32_t appliedCount = 0u;
+        m_world.ForEach<MinionStateComponent>(
+            [&](EntityID, MinionStateComponent& minion)
+            {
+                if (minion.type != role)
+                    return;
+                minion.attackDamage = cmd.practiceValue;
+                ++appliedCount;
+            });
+        return Finish(true,
+            appliedCount > 0u ? "minion-damage-applied" : "minion-damage-stored");
+    }
+
+    case ePracticeOperation::ClearMinionStatOverrides:
+        ClearPracticeMinionAttackDamageOverrides();
+        return Finish(true, "minion-damage-restored");
+
+    case ePracticeOperation::RefillJungleHealth:
+    {
+        u32_t refillCount = 0u;
+        m_world.ForEach<JungleComponent, HealthComponent>(
+            [&](EntityID, JungleComponent& jungle, HealthComponent& health)
+            {
+                if ((cmd.practiceFlags != 0u &&
+                        cmd.practiceFlags != jungle.subKind + 1u) ||
+                    health.bIsDead)
+                {
+                    return;
+                }
+                health.fCurrent = health.fMaximum;
+                jungle.hp = health.fCurrent;
+                jungle.maxHp = health.fMaximum;
+                ++refillCount;
+            });
+        return Finish(refillCount > 0u,
+            refillCount > 0u ? "jungle-health-refilled" : "jungle-refill-no-target");
+    }
+
+    case ePracticeOperation::ResetJungleMonster:
+    {
+        const SpawnObjectDefinitionPack& spawnPack =
+            ServerData::GetActiveLoLSpawnObjectDefinitionPack();
+        u32_t resetCount = 0u;
+        m_world.ForEach<JungleComponent, HealthComponent, StatComponent>(
+            [&](EntityID entity, JungleComponent& jungle,
+                HealthComponent& health, StatComponent& stat)
+            {
+                if (cmd.practiceFlags != 0u &&
+                    cmd.practiceFlags != jungle.subKind + 1u)
+                {
+                    return;
+                }
+                const JungleCampGameDef camp = spawnPack.ResolveJungleCamp(
+                    static_cast<u8_t>(jungle.subKind));
+                health.fMaximum = camp.maxHp;
+                health.fCurrent = camp.maxHp;
+                health.bIsDead = false;
+                jungle.maxHp = camp.maxHp;
+                jungle.hp = camp.maxHp;
+                jungle.fRespawnDelaySec = camp.respawnDelaySec;
+                jungle.bRespawnPending = false;
+                jungle.fRespawnTimerSec = 0.f;
+                if (!m_world.HasComponent<TargetableTag>(entity))
+                    m_world.AddComponent<TargetableTag>(entity);
+                stat.hpMax = camp.maxHp;
+                stat.baseAd = camp.attackDamage;
+                stat.ad = camp.attackDamage;
+                stat.baseArmor = camp.baseArmor;
+                stat.armor = camp.baseArmor;
+                stat.baseMr = camp.baseMr;
+                stat.mr = camp.baseMr;
+                stat.attackRange = camp.attackRange;
+                stat.moveSpeed = camp.moveSpeed;
+                const f32_t attackSpeed = camp.attackCooldown > 0.f
+                    ? 1.f / camp.attackCooldown : 0.f;
+                stat.baseAttackSpeed = attackSpeed;
+                stat.attackSpeedRatio = attackSpeed;
+                stat.attackSpeed = attackSpeed;
+
+                if (m_world.HasComponent<JungleAIComponent>(entity))
+                {
+                    auto& ai = m_world.GetComponent<JungleAIComponent>(entity);
+                    ai.target = NULL_ENTITY;
+                    ai.bAggro = false;
+                    ai.bReturning = false;
+                    ai.aggroRange = camp.aggroRange;
+                    ai.leashRange = camp.leashRange;
+                    if (ai.bHasAnchor && m_world.HasComponent<TransformComponent>(entity))
+                    {
+                        auto& transform = m_world.GetComponent<TransformComponent>(entity);
+                        Vec3 position = transform.GetPosition();
+                        position.x = ai.anchorX;
+                        position.z = ai.anchorZ;
+                        transform.SetPosition(position);
+                    }
+                }
+                if (m_world.HasComponent<MoveTargetComponent>(entity))
+                    m_world.RemoveComponent<MoveTargetComponent>(entity);
+                if (m_world.HasComponent<AttackChaseComponent>(entity))
+                    m_world.RemoveComponent<AttackChaseComponent>(entity);
+                if (m_world.HasComponent<CombatActionComponent>(entity))
+                    m_world.RemoveComponent<CombatActionComponent>(entity);
+                if (m_world.HasComponent<ActionStateComponent>(entity))
+                    m_world.RemoveComponent<ActionStateComponent>(entity);
+                ++resetCount;
+            });
+        return Finish(resetCount > 0u,
+            resetCount > 0u ? "jungle-monster-reset" : "jungle-reset-no-target");
+    }
+
+    case ePracticeOperation::ClearObjectiveBuffs:
+        CBuffSystem::ClearObjectiveState(m_world);
+        return Finish(true, "objective-buffs-cleared");
 
     default:
         return Finish(false, "operation-unknown");
@@ -2482,8 +2959,8 @@ bool_t CGameRoom::TryHandleAIDebugControl(
     {
         const auto tuningId = static_cast<eChampionAITuningId>(cmd.slot);
         const ChampionAITuningParam* pParam =
-            ResolveChampionAITuningParamForValidation(
-                m_world.GetComponent<ChampionAIComponent>(cmd.targetEntity),
+            ResolveChampionAITuningParam(
+                m_world.GetComponent<ChampionAIComponent>(cmd.targetEntity).tuning,
                 tuningId);
         if (!pParam ||
             !std::isfinite(cmd.groundPos.x) ||
@@ -2813,4 +3290,31 @@ void CGameRoom::ClearPracticeSpawns()
     }
 #endif
     m_PracticeSpawnedEntities.clear();
+}
+
+void CGameRoom::ClearPracticeMinionAttackDamageOverrides()
+{
+    m_PracticeMinionAttackDamage.Clear();
+
+#if defined(_DEBUG)
+    const SpawnObjectDefinitionPack& pack =
+        ServerData::GetActiveLoLSpawnObjectDefinitionPack();
+    const MinionWaveDef& waveDef = pack.minionWave;
+    const u64_t rawMinutes = m_tickIndex / 1800ull;
+    const u64_t capMinutes = static_cast<u64_t>(waveDef.timeGrowthCapMinutes);
+    const u64_t elapsedMinutes = rawMinutes > capMinutes ? capMinutes : rawMinutes;
+    const f32_t timeGrowth =
+        1.f + waveDef.timeGrowthPerMinute * static_cast<f32_t>(elapsedMinutes);
+
+    m_world.ForEach<MinionStateComponent>(
+        [&](EntityID, MinionStateComponent& minion)
+        {
+            const MinionCombatDef combat = pack.ResolveMinion(minion.type);
+            minion.attackDamage = m_PracticeMinionAttackDamage.Resolve(
+                minion.type,
+                combat.attackDamage,
+                timeGrowth,
+                false);
+        });
+#endif
 }

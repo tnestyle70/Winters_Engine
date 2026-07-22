@@ -9,7 +9,6 @@
 #include "Shared/GameSim/Components/SkillStateComponent.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
@@ -390,7 +389,7 @@ namespace
 
     void OnW(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld)
+        if (!ctx.pWorld || !ctx.pTickCtx)
             return;
 
         JaxSimComponent& state = EnsureJaxState(*ctx.pWorld, ctx.casterEntity);
@@ -399,11 +398,9 @@ namespace
             eSkillSlot::W,
             eSkillEffectParamId::EffectDurationSec,
             5.f);
-        state.empowerBonusDamage = ResolveJaxSkillEffectParam(
-            ctx,
-            eSkillSlot::W,
-            eSkillEffectParamId::BaseDamage,
-            45.f);
+        state.empowerBonusDamage = GameplayDefinitionQuery::ResolveSkillFlatDamage(
+            *ctx.pWorld, ctx.casterEntity, *ctx.pTickCtx, eChampion::JAX,
+            static_cast<u8_t>(eSkillSlot::W), ctx.skillRank, 45.f);
         state.bEmpowerActive = true;
         state.empowerTimerSec = state.empowerWindowSec;
         std::cout << "[JaxSim] W empower caster=" << ctx.casterEntity << "\n";
@@ -432,7 +429,7 @@ namespace
 
     void OnR(GameplayHookContext& ctx)
     {
-        if (!ctx.pWorld)
+        if (!ctx.pWorld || !ctx.pTickCtx)
             return;
 
         JaxSimComponent& state = EnsureJaxState(*ctx.pWorld, ctx.casterEntity);
@@ -441,11 +438,9 @@ namespace
             eSkillSlot::R,
             eSkillEffectParamId::EffectDurationSec,
             8.f);
-        state.ultThirdHitDamage = ResolveJaxSkillEffectParam(
-            ctx,
-            eSkillSlot::R,
-            eSkillEffectParamId::BaseDamage,
-            70.f);
+        state.ultThirdHitDamage = GameplayDefinitionQuery::ResolveSkillFlatDamage(
+            *ctx.pWorld, ctx.casterEntity, *ctx.pTickCtx, eChampion::JAX,
+            static_cast<u8_t>(eSkillSlot::R), ctx.skillRank, 70.f);
         state.ultThirdHitThreshold = static_cast<u8_t>(ResolveJaxSkillEffectParam(
             ctx,
             eSkillSlot::R,

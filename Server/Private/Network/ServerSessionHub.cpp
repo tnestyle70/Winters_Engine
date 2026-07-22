@@ -73,6 +73,7 @@ namespace
         u32_t lastCommandSequence = 0;
         u32_t suspicionCount = 0;
         bool bJoinPublished = false;
+        ServerSessionIdentity identity{};
     };
 
     struct AssociationState
@@ -230,7 +231,11 @@ struct CServerSessionHub::Impl
         QueueDisconnectLocked(key, association);
     }
 
-    void OnUdpConnection(u64_t connectionId, u32_t generation, bool bConnected)
+    void OnUdpConnection(
+        u64_t connectionId,
+        u32_t generation,
+        bool bConnected,
+        const UdpAuthenticatedIdentity& identity)
     {
         const AssociationKey key{ connectionId, generation };
         CUdpIocpCore* rejectedCore = nullptr;
@@ -266,6 +271,13 @@ struct CServerSessionHub::Impl
                         session.transport = eServerSessionTransport::Udp;
                         session.connectionId = connectionId;
                         session.generation = generation;
+                        session.identity.matchID = identity.matchID;
+                        session.identity.userID = identity.userID;
+                        session.identity.gameSessionID = identity.gameSessionID;
+						session.identity.gameSessionGeneration =
+							identity.gameSessionGeneration;
+                        session.identity.expiresAtUnix = identity.expiresAtUnix;
+                        session.identity.bAuthenticated = identity.bAuthenticated;
                         sessions.emplace(sessionId, session);
 
                         AssociationState association{};
@@ -413,12 +425,17 @@ bool CServerSessionHub::Attach(CGameRoom& room, CUdpIocpCore* pUdpCore)
     if (pUdpCore)
     {
         pUdpCore->SetConnectionCallback(
-            [this](u64_t connectionId, u32_t generation, bool bConnected)
+            [this](
+                u64_t connectionId,
+                u32_t generation,
+                bool bConnected,
+                const UdpAuthenticatedIdentity& identity)
             {
                 m_impl->OnUdpConnection(
                     connectionId,
                     generation,
-                    bConnected);
+                    bConnected,
+                    identity);
             });
         pUdpCore->SetFrameCallback(
             [this](UdpServerInboundFrame frame)
@@ -695,6 +712,23 @@ bool CServerSessionHub::IsSessionActive(u32_t sessionId) const
         iterator->second.lifecycle == eSessionLifecycle::Active;
 }
 
+bool CServerSessionHub::TryGetAuthenticatedIdentity(
+    u32_t sessionId,
+    ServerSessionIdentity& outIdentity) const
+{
+    std::lock_guard lock(m_impl->mutex);
+    const auto iterator = m_impl->sessions.find(sessionId);
+    if (iterator == m_impl->sessions.end() ||
+        iterator->second.lifecycle != eSessionLifecycle::Active ||
+        !iterator->second.identity.bAuthenticated)
+    {
+        return false;
+    }
+
+    outIdentity = iterator->second.identity;
+    return true;
+}
+
 bool CServerSessionHub::IsIngressOpen() const
 {
     std::lock_guard lock(m_impl->mutex);
@@ -771,7 +805,15 @@ void CServerSessionHub::DrainIngress(CGameRoom& room, u32_t maxEvents)
             }
             if (bActive)
             {
-                room.OnSessionJoin(event.sessionId);
+                bool_t bAccepted = true;
+                room.OnSessionJoin(event.sessionId, &bAccepted);
+                if (!bAccepted)
+                {
+                    if (pUdpCore)
+                        pUdpCore->DisconnectConnection(
+                            event.association.connectionId);
+                    break;
+                }
                 std::lock_guard lock(m_impl->mutex);
                 const auto sessionIterator =
                     m_impl->sessions.find(event.sessionId);

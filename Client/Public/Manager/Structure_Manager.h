@@ -70,6 +70,7 @@ private:
     CWorld* m_pWorld = nullptr;
     std::vector<EntityID>                                        m_vecEntities;
     std::unordered_map<EntityID, std::unique_ptr<ModelRenderer>> m_mapRenderers;
+    std::unordered_map<EntityID, std::unique_ptr<ModelRenderer>> m_mapInhibitorDestroyedRenderers;
     std::vector<std::string>                                     m_vecNames;
 
     f32_t    m_fDefaultScale = 0.01f;

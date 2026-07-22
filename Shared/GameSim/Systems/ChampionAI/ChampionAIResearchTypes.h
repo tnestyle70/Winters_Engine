@@ -35,6 +35,13 @@ enum class AiFeatureIdV1 : std::uint16_t
 {
     None = 0u,
     UtilityScore = 1u,
+    PositiveOpportunity = 2u,
+    TurretRisk = 3u,
+    ObservedComboRisk = 4u,
+    ClampOrThresholdAdjustment = 5u,
+    HealthPressure = 6u,
+    FarmOpportunity = 7u,
+    StructureExposure = 8u,
 };
 
 inline constexpr std::uint32_t kAiObservationCanMoveFlagV1 = 1u << 0;

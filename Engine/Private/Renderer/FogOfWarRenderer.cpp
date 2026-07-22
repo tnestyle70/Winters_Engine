@@ -1,5 +1,6 @@
 #include "WintersPCH.h"
 #include "Renderer/FogOfWarRenderer.h"
+#include "Core/Profiler/RenderFrameStats.h"
 #include "RHI/DX11/DX11Shader.h"
 #include "RHI/RHITypes.h"
 #include "WintersPaths.h"
@@ -427,6 +428,7 @@ void CFogOfWarRenderer::RenderWorldOverlay(IRHIDevice* pDevice,
     pContext->PSSetShaderResources(0, 1, &pSRV);
     pContext->PSSetSamplers(0, 1, &pSampler);
 
+    RenderFrameStats::AddDraw(6u);
     pContext->DrawIndexed(6, 0, 0);
 
     if (!m_pImpl->bWorldOverlayDrawLogged)

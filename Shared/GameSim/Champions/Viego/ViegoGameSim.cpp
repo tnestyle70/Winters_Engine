@@ -25,6 +25,7 @@
 #include "Shared/GameSim/Components/MasterYiComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 #include "Shared/GameSim/Components/SylasSimComponent.h"
 #include "Shared/GameSim/Components/ViegoSimComponent.h"
 #include "Shared/GameSim/Components/YoneSimComponent.h"
@@ -32,6 +33,7 @@
 #include "Shared/GameSim/Definitions/ChampionGameplayDef.h"
 #include "Shared/GameSim/Definitions/ChampionRuntimeDefaults.h"
 #include "Shared/GameSim/Definitions/GameplayDefinitionQuery.h"
+#include "Shared/GameSim/Definitions/SkillGameplayDef.h"
 #include "Shared/GameSim/Systems/Damage/DamagePipeline.h"
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
@@ -115,7 +117,8 @@ namespace
     void ClearBorrowedChampionRuntime(
         CWorld& world,
         EntityID caster,
-        eChampion borrowedChampion)
+        eChampion borrowedChampion,
+        const TickContext* pTickCtx)
     {
         switch (borrowedChampion)
         {
@@ -139,7 +142,9 @@ namespace
             RemoveBorrowedComponent<SylasDashComponent>(world, caster);
             break;
         case eChampion::YASUO: YasuoGameSim::CancelRuntime(world, caster); break;
-        case eChampion::YONE: YoneGameSim::CancelRuntime(world, caster); break;
+        case eChampion::YONE:
+            YoneGameSim::CancelRuntime(world, caster, pTickCtx);
+            break;
         case eChampion::ZED:
         {
             RemoveBorrowedComponent<ZedSimComponent>(world, caster);
@@ -187,9 +192,17 @@ namespace
         }
     }
 
-    void ClearViegoPossession(CWorld& world, EntityID caster, ViegoSimComponent& state)
+    void ClearViegoPossession(
+        CWorld& world,
+        EntityID caster,
+        ViegoSimComponent& state,
+        const TickContext* pTickCtx = nullptr)
     {
-        ClearBorrowedChampionRuntime(world, caster, state.possessionChampion);
+        ClearBorrowedChampionRuntime(
+            world,
+            caster,
+            state.possessionChampion,
+            pTickCtx);
 
         if (state.bHasOriginalSkillRanks &&
             world.HasComponent<SkillRankComponent>(caster))
@@ -230,11 +243,15 @@ namespace
             world.RemoveComponent<FormOverrideComponent>(caster);
     }
 
-    void ApplyViegoPossession(CWorld& world, EntityID caster, ViegoSimComponent& state)
+    void ApplyViegoPossession(
+        CWorld& world,
+        EntityID caster,
+        ViegoSimComponent& state,
+        const TickContext* pTickCtx)
     {
         if (!IsValidPossessionChampion(state.pendingPossessionChampion))
         {
-            ClearViegoPossession(world, caster, state);
+            ClearViegoPossession(world, caster, state, pTickCtx);
             return;
         }
 
@@ -374,6 +391,53 @@ namespace
         return Vec3{ 0.f, 0.f, 1.f };
     }
 
+    Vec3 ResolveGroundDashEnd(
+        const GameplayHookContext& ctx,
+        const Vec3& origin,
+        const Vec3& fallbackDirection,
+        f32_t maxRange)
+    {
+        Vec3 end = ctx.pCommand
+            ? ctx.pCommand->groundPos
+            : Vec3{
+                origin.x + fallbackDirection.x * maxRange,
+                origin.y,
+                origin.z + fallbackDirection.z * maxRange };
+        end.y = origin.y;
+
+        const Vec3 delta{ end.x - origin.x, 0.f, end.z - origin.z };
+        const f32_t distanceSq = delta.x * delta.x + delta.z * delta.z;
+        const f32_t maxRangeSq = maxRange * maxRange;
+        if (maxRange > 0.f && distanceSq > maxRangeSq)
+        {
+            const f32_t inverseDistance = 1.f / std::sqrt(distanceSq);
+            end.x = origin.x + delta.x * inverseDistance * maxRange;
+            end.z = origin.z + delta.z * inverseDistance * maxRange;
+        }
+
+        if (ctx.pTickCtx && ctx.pTickCtx->pWalkable && ctx.pWorld)
+        {
+            Vec3 clampedEnd = end;
+            const f32_t casterRadius = GameplayStateQuery::ResolveGameplayRadius(
+                *ctx.pWorld,
+                ctx.casterEntity);
+            if (ctx.pTickCtx->pWalkable->TryClampMoveSegmentXZ(
+                origin,
+                end,
+                casterRadius,
+                clampedEnd))
+            {
+                end = clampedEnd;
+            }
+            else
+            {
+                end = origin;
+            }
+        }
+
+        return end;
+    }
+
     void ClearMove(CWorld& world, EntityID entity)
     {
         if (world.HasComponent<MoveTargetComponent>(entity))
@@ -401,7 +465,8 @@ namespace
         eTeam sourceTeam,
         f32_t amount,
         u8_t slot,
-        u8_t rank)
+        u8_t rank,
+        f32_t skillDamageScale = 1.f)
     {
         if (target == NULL_ENTITY || !world.IsAlive(target))
             return;
@@ -414,6 +479,7 @@ namespace
         request.flatAmount = amount;
         request.skillId = static_cast<u16_t>((static_cast<u32_t>(eChampion::VIEGO) << 8) | slot);
         request.rank = rank;
+        request.skillDamageScale = skillDamageScale;
         request.flags = DamageFlag_OnHit;
         EnqueueDamageRequest(world, request);
     }
@@ -427,7 +493,8 @@ namespace
         f32_t radius,
         f32_t amount,
         u8_t slot,
-        u8_t rank)
+        u8_t rank,
+        f32_t skillDamageScale = 1.f)
     {
         const std::vector<EntityID> targets =
             GameplayStateQuery::CollectEnemyMobileUnitsInSegment(
@@ -437,7 +504,8 @@ namespace
                 end,
                 radius);
         for (EntityID target : targets)
-            EnqueuePhysicalDamage(world, source, target, sourceTeam, amount, slot, rank);
+            EnqueuePhysicalDamage(
+                world, source, target, sourceTeam, amount, slot, rank, skillDamageScale);
     }
 
     void ApplyLineStun(
@@ -648,7 +716,7 @@ namespace
 
         const Vec3& vOrigin =
             ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
-        const f32_t dashRange = ResolveViegoSkillRange(ctx, eSkillSlot::W);
+        f32_t dashRange = ResolveViegoSkillRange(ctx, eSkillSlot::W);
         const f32_t dashDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
@@ -657,14 +725,42 @@ namespace
             ctx,
             eSkillSlot::W,
             eSkillEffectParamId::Radius);
-        const f32_t damage = ResolveViegoSkillEffectParam(
+        f32_t damage = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
             eSkillEffectParamId::BaseDamage);
-        const f32_t stunDurationSec = ResolveViegoSkillEffectParam(
+        f32_t skillDamageScale = 1.f;
+        f32_t stunDurationSec = ResolveViegoSkillEffectParam(
             ctx,
             eSkillSlot::W,
             eSkillEffectParamId::StunDurationSec);
+        if (ctx.pWorld->HasComponent<SkillChargeStateComponent>(ctx.casterEntity))
+        {
+            const f32_t ratio =
+                ctx.pWorld->GetComponent<SkillChargeStateComponent>(
+                    ctx.casterEntity).chargeRatio;
+            if (const SkillGameplayDef* skill = GameplayDefinitionQuery::FindSkill(
+                *ctx.pWorld,
+                ctx.casterEntity,
+                *ctx.pTickCtx,
+                eChampion::VIEGO,
+                static_cast<u8_t>(eSkillSlot::W)))
+            {
+                const f32_t rangeScale = ResolveSkillChargeValue(
+                    skill->charge.minRangeScale,
+                    skill->charge.maxRangeScale,
+                    ratio);
+                skillDamageScale = ResolveSkillChargeValue(
+                    skill->charge.minDamageScale,
+                    skill->charge.maxDamageScale,
+                    ratio);
+                dashRange *= rangeScale;
+                stunDurationSec = ResolveSkillChargeValue(
+                    skill->charge.minStunSec,
+                    skill->charge.maxStunSec,
+                    ratio);
+            }
+        }
 
         Vec3 vEnd
         {
@@ -703,7 +799,8 @@ namespace
             radius,
             damage,
             static_cast<u8_t>(eSkillSlot::W),
-            ctx.skillRank
+            ctx.skillRank,
+            skillDamageScale
         );
         ApplyLineStun(
             *ctx.pWorld,
@@ -780,7 +877,11 @@ namespace
             viegoState.bPossessionPending ||
             ctx.pWorld->HasComponent<FormOverrideComponent>(ctx.casterEntity))
         {
-            ClearViegoPossession(*ctx.pWorld, ctx.casterEntity, viegoState);
+            ClearViegoPossession(
+                *ctx.pWorld,
+                ctx.casterEntity,
+                viegoState,
+                ctx.pTickCtx);
         }
 
         const Vec3 origin = ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
@@ -806,8 +907,17 @@ namespace
             ctx,
             eSkillSlot::R,
             eSkillEffectParamId::MoveSpeedMul);
-        const Vec3 end{ origin.x + dir.x * range, origin.y, origin.z + dir.z * range };
-        RotateToward(*ctx.pWorld, ctx.casterEntity, dir);
+        const Vec3 end = ResolveGroundDashEnd(ctx, origin, dir, range);
+        const Vec3 landingDirection = WintersMath::NormalizeXZ(Vec3{
+            end.x - origin.x,
+            0.f,
+            end.z - origin.z });
+        RotateToward(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            (landingDirection.x != 0.f || landingDirection.z != 0.f)
+                ? landingDirection
+                : dir);
         StartDash(*ctx.pWorld, ctx.casterEntity, end, dashDurationSec);
         EnqueueCircleDamage(
             *ctx.pWorld,
@@ -833,7 +943,10 @@ namespace
 
 namespace ViegoGameSim
 {
-    void ClearPossession(CWorld& world, EntityID viegoEntity)
+    void ClearPossession(
+        CWorld& world,
+        EntityID viegoEntity,
+        const TickContext* pTickCtx)
     {
         if (viegoEntity == NULL_ENTITY ||
             !world.HasComponent<ViegoSimComponent>(viegoEntity))
@@ -844,7 +957,8 @@ namespace ViegoGameSim
         ClearViegoPossession(
             world,
             viegoEntity,
-            world.GetComponent<ViegoSimComponent>(viegoEntity));
+            world.GetComponent<ViegoSimComponent>(viegoEntity),
+            pTickCtx);
     }
 
     void TrySpawnSoulForKill(CWorld& world, const TickContext& tc,
@@ -1021,7 +1135,7 @@ namespace ViegoGameSim
                         const auto& health = world.GetComponent<HealthComponent>(entity);
                         if (health.bIsDead || health.fCurrent <= 0.f)
                         {
-                            ClearViegoPossession(world, entity, state);
+                            ClearViegoPossession(world, entity, state, &tc);
                             return;
                         }
                     }
@@ -1038,13 +1152,13 @@ namespace ViegoGameSim
                         state.possessionApplyTimerSec =
                             std::max(0.f, state.possessionApplyTimerSec - tc.fDt);
                         if (state.possessionApplyTimerSec <= 0.f)
-                            ApplyViegoPossession(world, entity, state);
+                            ApplyViegoPossession(world, entity, state, &tc);
                     }
 
                     if (state.bPossessionActive &&
                         !world.HasComponent<FormOverrideComponent>(entity))
                     {
-                        ClearViegoPossession(world, entity, state);
+                        ClearViegoPossession(world, entity, state, &tc);
                     }
                     else if (state.bPossessionActive && state.bHasOriginalSkillState)
                     {

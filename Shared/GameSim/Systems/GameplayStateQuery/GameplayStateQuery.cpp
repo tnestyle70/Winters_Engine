@@ -5,6 +5,7 @@
 #include "Shared/GameSim/Core/Ecs/SpatialAgentComponent.h"
 #include "Shared/GameSim/Core/World/World.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Components/ViegoSoulComponent.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 
@@ -130,6 +131,16 @@ namespace GameplayStateQuery
             kind == eGameplayTargetKind::JungleMonster;
     }
 
+    bool_t ShouldApplyBasicAttackSegmentGate(CWorld& world, EntityID source)
+    {
+        if (source == NULL_ENTITY || !world.HasComponent<StatComponent>(source))
+            return true;
+
+        constexpr f32_t kRangedAttackThreshold = 3.f;
+        const f32_t attackRange = world.GetComponent<StatComponent>(source).attackRange;
+        return !std::isfinite(attackRange) || attackRange < kRangedAttackThreshold;
+    }
+
     bool_t IsAttackSegmentGateExemptTarget(CWorld& world, EntityID target)
     {
         return ResolveTargetKind(world, target) == eGameplayTargetKind::Structure;
@@ -194,8 +205,11 @@ namespace GameplayStateQuery
     bool_t CanReceiveDamage(CWorld& world, EntityID source, EntityID target)
     {
         (void)source;
+        constexpr u32_t kDamageBlocked =
+            kGameplayStateUntargetableFlag |
+            kGameplayStateInvulnerableFlag;
         return IsAliveGameplayTarget(world, target) &&
-            !HasState(world, target, kGameplayStateUntargetableFlag);
+            !HasState(world, target, kDamageBlocked);
     }
 
     bool_t CanReceiveProjectileHit(CWorld& world, EntityID source, EntityID target)

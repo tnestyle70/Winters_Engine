@@ -1,0 +1,150 @@
+﻿{
+    "generatedAtUtc":  "2026-07-19T10:28:52.9431630Z",
+    "root":  "C:\\Users\\user\\Desktop\\Winters",
+    "championGameData":  {
+                             "path":  "C:\\Users\\user\\Desktop\\Winters\\Data\\Gameplay\\ChampionGameData\\champions.json",
+                             "championCount":  17,
+                             "summonerSpellCount":  0,
+                             "skillStageCount":  98,
+                             "visualYawOffsetCount":  0,
+                             "animPlaySpeedCount":  0,
+                             "castFrameCount":  0,
+                             "recoveryFrameCount":  0
+                         },
+    "coverage":  {
+                     "implementedChampionCount":  17,
+                     "championModelCount":  17,
+                     "championUiCount":  17,
+                     "aiProfileCount":  17
+                 },
+    "tooling":  {
+                    "schemaCoverageCount":  11,
+                    "schemaCoverage":  [
+                                           "Data\\Gameplay\\ChampionGameData\\champions.json",
+                                           "Data\\LoL\\ServerPrivate\\Gameplay\\SkillEffectGameplayDefs.json",
+                                           "Data\\LoL\\ServerPrivate\\Gameplay\\SummonerSpellGameplayDefs.json",
+                                           "Data\\LoL\\ServerPrivate\\Gameplay\\SpawnObjectGameplayDefs.json",
+                                           "Data\\LoL\\ServerPrivate\\Gameplay\\EconomyGameplayDefs.json",
+                                           "Data\\LoL\\ServerPrivate\\Gameplay\\ItemGameplayDefs.json",
+                                           "Data\\LoL\\ServerPrivate\\AI\\ChampionAIGameplayDefs.json",
+                                           "Data\\LoL\\ServerPrivate\\Gameplay\\RuneGameplayDefs.json",
+                                           "Data\\LoL\\ClientPublic\\Visual\\ChampionVisualDefs.json",
+                                           "Data\\LoL\\ClientPublic\\Visual\\ObjectVisualDefs.json",
+                                           "Data\\LoL\\ClientPublic\\Visual\\ChampionAssetVisualDefs.json"
+                                       ],
+                    "runtimeReloadDomainCount":  11,
+                    "runtimeReloadDomains":  [
+                                                 "Data\\Gameplay\\ChampionGameData\\champions.json",
+                                                 "Data\\LoL\\ServerPrivate\\Gameplay\\SkillEffectGameplayDefs.json",
+                                                 "Data\\LoL\\ServerPrivate\\Gameplay\\SummonerSpellGameplayDefs.json",
+                                                 "Data\\LoL\\ServerPrivate\\Gameplay\\SpawnObjectGameplayDefs.json",
+                                                 "Data\\LoL\\ServerPrivate\\Gameplay\\EconomyGameplayDefs.json",
+                                                 "Data\\LoL\\ServerPrivate\\Gameplay\\ItemGameplayDefs.json",
+                                                 "Data\\LoL\\ServerPrivate\\AI\\ChampionAIGameplayDefs.json",
+                                                 "Data\\LoL\\ServerPrivate\\Gameplay\\RuneGameplayDefs.json",
+                                                 "Data\\LoL\\ClientPublic\\Visual\\ChampionVisualDefs.json",
+                                                 "Data\\LoL\\ClientPublic\\Visual\\ObjectVisualDefs.json",
+                                                 "Data\\LoL\\ClientPublic\\Visual\\ChampionAssetVisualDefs.json"
+                                             ],
+                    "draftRoundTripFailureCount":  0
+                },
+    "legacyRegistrations":  {
+                                "skillRegistrationFileCount":  17,
+                                "skillRegistrationFiles":  [
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Zed\\Zed_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Yone\\Yone_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Kalista\\Kalista_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Riven\\Riven_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Yasuo\\Yasuo_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Viego\\Viego_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Jax\\Jax_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\MasterYi\\MasterYi_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Fiora\\Fiora_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Garen\\Garen_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Irelia\\Irelia_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Sylas\\SylasRegistration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Kindred\\Kindred_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\LeeSin\\LeeSin_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ashe\\Ashe_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ezreal\\Ezreal_Registration.cpp",
+                                                               "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Annie\\Annie_Registration.cpp"
+                                                           ],
+                                "championRegistrationFileCount":  12,
+                                "championRegistrationFiles":  [
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Fiora\\Fiora_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Annie\\Annie_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Sylas\\SylasRegistration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Yone\\Yone_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Jax\\Jax_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Viego\\Viego_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ezreal\\Ezreal_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Irelia\\Irelia_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Ashe\\Ashe_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\LeeSin\\LeeSin_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\MasterYi\\MasterYi_Registration.cpp",
+                                                                  "C:\\Users\\user\\Desktop\\Winters\\Client\\Private\\GameObject\\Champion\\Kindred\\Kindred_Registration.cpp"
+                                                              ]
+                            },
+    "legacyLineCounts":  {
+                             "skillDefRelated":  256,
+                             "championDefRelated":  223,
+                             "visualFieldsInGameplayOrLegacy":  475
+                         },
+    "visualFieldBreakdown":  {
+                                 "total":  475,
+                                 "expectedClientPublicVisual":  404,
+                                 "toolExtraction":  30,
+                                 "legacyGameplaySource":  0,
+                                 "clientLegacyRuntime":  41,
+                                 "sharedGameSimAuthoritative":  0,
+                                 "serverAuthoritative":  0,
+                                 "suspiciousAuthoritative":  0
+                             },
+    "phaseGoalCounts":  {
+                            "p3GameplayTuningLiteral":  6,
+                            "p3PackMissFallback":  0,
+                            "p4ClientGameplayLiteral":  0,
+                            "p5AiPolicyHardcode":  0,
+                            "p6ObjectWaveHardcode":  0,
+                            "p7NetworkIdentityRuntimeReader":  0,
+                            "p8LegacyValueOwnerReader":  0
+                        },
+    "phaseGoalBreakdown":  {
+                               "p3GameplayTuningLiteral":  [
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Irelia\\IreliaGameSim.cpp",
+                                                                   "count":  1
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Irelia\\IreliaGameSim.h",
+                                                                   "count":  2
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Yasuo\\YasuoGameSim.cpp",
+                                                                   "count":  2
+                                                               },
+                                                               {
+                                                                   "path":  "C:\\Users\\user\\Desktop\\Winters\\Shared\\GameSim\\Champions\\Yone\\YoneGameSim.cpp",
+                                                                   "count":  1
+                                                               }
+                                                           ],
+                               "p3PackMissFallback":  {
+
+                                                      },
+                               "p4ClientGameplayLiteral":  {
+
+                                                           },
+                               "p5AiPolicyHardcode":  {
+
+                                                      },
+                               "p6ObjectWaveHardcode":  {
+
+                                                        },
+                               "p7NetworkIdentityRuntimeReader":  {
+
+                                                                  },
+                               "p8LegacyValueOwnerReader":  {
+
+                                                            }
+                           }
+}

@@ -27,6 +27,8 @@ struct CBPerObject
     DirectX::XMFLOAT4X4 worldInvTranspose;
     DirectX::XMFLOAT4 materialOverrideColor = { 1.f, 1.f, 1.f, 1.f };
     DirectX::XMFLOAT4 vMaterialOverrideParams = { 0.f, 0.f, 0.f, 0.f };
+    u32_t bUseGrassTint = 0u;
+    u32_t _padding0[3] = {};
 };
 static_assert(sizeof(CBPerObject) % 16 == 0);
 

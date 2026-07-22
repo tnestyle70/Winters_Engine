@@ -22,15 +22,26 @@ unique_ptr<CHttpClient> CHttpClient::Create(const string& baseURL)
 {
 	auto pInstance = unique_ptr<CHttpClient>(new CHttpClient());
 	pInstance->m_BaseURL = baseURL;
-	pInstance->ParseURL(baseURL, pInstance->m_Host, pInstance->m_Port, pInstance->m_BasePath);
+	pInstance->ParseURL(
+		baseURL,
+		pInstance->m_Host,
+		pInstance->m_Port,
+		pInstance->m_BasePath,
+		pInstance->m_bSecure);
 
 	return pInstance;
 }
 
 //URL Parsing http://localhost:8081 -> host, port, basepath
-void CHttpClient::ParseURL(const string& url, wstring& host, uint16_t& port, wstring& basePath)
+void CHttpClient::ParseURL(
+	const string& url,
+	wstring& host,
+	uint16_t& port,
+	wstring& basePath,
+	bool_t& secure)
 {
 	string temp = url;
+	secure = temp.rfind("https://", 0u) == 0u;
 	//프로토콜 제거
 	size_t protoEnd = temp.find("://");
 	//npos -> size_t의 최대값을 의미
@@ -61,7 +72,7 @@ void CHttpClient::ParseURL(const string& url, wstring& host, uint16_t& port, wst
 	{
 		host = ToWide(hostPort);
 		//포트가 없을 경우 기본값 80으로 세팅!
-		port = 80;
+		port = secure ? 443 : 80;
 	}
 }
 
@@ -100,6 +111,11 @@ void CHttpClient::AsyncPost(const string & path, const string & jsonBody, HttpCa
 	LaunchAsyncRequest("POST", path, jsonBody, callback);
 }
 
+void CHttpClient::AsyncDelete(const string& path, HttpCallback callback)
+{
+	LaunchAsyncRequest("DELETE", path, "", callback);
+}
+
 CHttpClient::~CHttpClient()
 {
 	//진행 중인 요청 lambda가 this(m_CallbackMutex/m_PendingCallbacks)를 만지므로
@@ -123,6 +139,7 @@ CHttpClient::RequestSnapshot CHttpClient::MakeRequestSnapshot() const
 	snapshot.port = m_Port;
 	snapshot.basePath = m_BasePath;
 	snapshot.authToken = m_AuthToken;
+	snapshot.secure = m_bSecure;
 	return snapshot;
 }
 
@@ -205,7 +222,8 @@ HttpResponse CHttpClient::DoRequestWith(
 	wstring wMethod = ToWide(method);
 
 	HINTERNET hRequest = WinHttpOpenRequest(hConnect, wMethod.c_str(),
-		fullPath.c_str(), nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
+		fullPath.c_str(), nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES,
+		snapshot.secure ? WINHTTP_FLAG_SECURE : 0);
 	if (!hRequest)
 	{
 		response.error = "WinHttpOpenRequest failed";

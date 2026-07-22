@@ -4,7 +4,6 @@
 #include "Sound/Sound_Manager.h"
 #include "Manager/UI/UI_Manager.h"
 #include "Manager/Profiler/ProfilerOverlay.h"
-#include "ECS/Systems/EntityBlueprintRegistry.h"
 #include "Core/JobSystem.h"
 #include "Framework/CEngineApp.h"   // RHI 게터 포워딩 대상
 #include "Core/Profiler/CPUProfiler.h"
@@ -132,11 +131,6 @@ HRESULT CGameInstance::Initialize_Engine(uint32_t iNumScenes)
 	m_pUI_Manager = CUI_Manager::Create();
 	if (m_pUI_Manager == nullptr)
 		return E_FAIL;
-	//왜 불완전 형식? 
-	m_pBlueprintRegistry = CEntityBlueprintRegistry::Create(iNumScenes);
-	if (m_pBlueprintRegistry == nullptr)
-		return E_FAIL;
-
 	m_pJobSystem = std::unique_ptr<CJobSystem>(new CJobSystem());
 	m_pJobSystem->Initialize(0);
 
@@ -168,7 +162,6 @@ void CGameInstance::Shutdown_Engine()
 	m_pProfiler.reset();
 	m_pFxAssetRegistry.reset();
 	m_pScene_Manager.reset();
-	m_pBlueprintRegistry.reset();
 	m_pUI_Manager.reset();
 	m_pSound_Manager.reset();
 	m_pTimer_Manager.reset();
@@ -203,17 +196,11 @@ HRESULT CGameInstance::Change_Scene(uint32_t iNextSceneID, unique_ptr<IScene> pN
 	return m_pScene_Manager->Change_Scene(iNextSceneID, std::move(pNewScene));
 }
 
-HRESULT CGameInstance::Set_StaticScene(unique_ptr<IScene> pScene)
-{
-	return m_pScene_Manager->Set_StaticScene(std::move(pScene));
-}
-
 void CGameInstance::Clear_Resources(uint32_t iPrevSceneID)
 {
-	// 씬 종료 시 해당 씬의 Blueprint 전부 파기 (수업 Clear_Resources 관례 흡수).
-	// 추후 ResourceCache::Unload_Scene 연계 예정.
-	if (m_pBlueprintRegistry)
-		m_pBlueprintRegistry->Clear_Scene(iPrevSceneID);
+	// 씬 전환 시 씬 스코프 리소스 정리 심(seam).
+	// 현재 비어 있음 — ResourceCache::Unload_Scene 연계 시 이 지점에 붙인다.
+	(void)iPrevSceneID;
 }
 
 // ── Sound Manager ────────────────────────────────────────────────
@@ -324,9 +311,16 @@ void CGameInstance::UI_Draw_RawImageCircle(
 			vUVRect, vColor, iSegmentCount);
 }
 
-void CGameInstance::UI_OnImGui_Tuner()
+void CGameInstance::UI_OnImGui_Tuner(
+	void(*pfnExternalTabs)(void*),
+	bool_t(*pfnExternalSaveAll)(void*),
+	void* pExternalUser)
 {
-	if (m_pUI_Manager) m_pUI_Manager->OnImGui_Tuner();
+	if (m_pUI_Manager)
+		m_pUI_Manager->OnImGui_Tuner(
+			pfnExternalTabs,
+			pfnExternalSaveAll,
+			pExternalUser);
 }
 
 void CGameInstance::UI_OnImGui_StatusPanelLayoutTuner()
@@ -509,11 +503,30 @@ void CGameInstance::UI_Set_LevelSkillCallback(void(*pfn)(void*, u8_t), void* pUs
 		m_pUI_Manager->SetLevelSkillCallback(pfn, pUser);
 }
 
-void CGameInstance::UI_Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
-	u8_t iDamageType, bool_t bWasCrit, bool_t bKilled)
+void CGameInstance::UI_Set_InventoryReorderCallback(
+	void(*pfn)(void*, u8_t, u8_t, u16_t), void* pUser)
 {
 	if (m_pUI_Manager)
-		m_pUI_Manager->Push_DamageNumber(vWorldPos, fAmount, iDamageType, bWasCrit, bKilled);
+		m_pUI_Manager->SetInventoryReorderCallback(pfn, pUser);
+}
+
+bool_t CGameInstance::UI_IsPointerOverActorInventory() const
+{
+	return m_pUI_Manager && m_pUI_Manager->IsPointerOverActorInventory();
+}
+
+void CGameInstance::UI_Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
+	u8_t iDamageType, bool_t bWasCrit, bool_t bKilled,
+	bool_t bShowCriticalIndicator)
+{
+	if (m_pUI_Manager)
+		m_pUI_Manager->Push_DamageNumber(
+			vWorldPos,
+			fAmount,
+			iDamageType,
+			bWasCrit,
+			bKilled,
+			bShowCriticalIndicator);
 }
 
 void CGameInstance::UI_Push_WorldText(const Vec3& vWorldPos, const char* pText,
@@ -531,14 +544,17 @@ void CGameInstance::UI_Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
 }
 
 void CGameInstance::UI_Push_KillFeedBanner(u8_t iSourceActorId,
-	u8_t iTargetActorId, u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage)
+	u8_t iTargetActorId, u8_t iObjectKind, u8_t iTargetTeam,
+	bool_t bSourceAlly, bool_t bSourceMinion, const char* pMessage)
 {
 	if (m_pUI_Manager)
 		m_pUI_Manager->Push_KillFeedBanner(
 			iSourceActorId,
 			iTargetActorId,
 			iObjectKind,
+			iTargetTeam,
 			bSourceAlly,
+			bSourceMinion,
 			pMessage
 		);
 }
@@ -564,23 +580,6 @@ void CGameInstance::UI_SetMatchContextServerTimeMs(u64_t iServerTimeMs)
 {
 	if (m_pUI_Manager)
 		m_pUI_Manager->SetMatchContextServerTimeMs(iServerTimeMs);
-}
-
-HRESULT CGameInstance::Add_Blueprint(uint32_t ISceneID, const std::wstring& strKey, CEntityBlueprint blueprint)
-{
-	return m_pBlueprintRegistry->Add_Blueprint(ISceneID, strKey, move(blueprint));
-}
-
-EntityID CGameInstance::Clone_Entity(uint32_t ISceneID, const std::wstring& strKey, CWorld& world)
-{
-	return m_pBlueprintRegistry->Clone_Entity(ISceneID, strKey, world);
-}
-
-// 수업 Clone(void* pArg) 관례 — per-instance 초기화용. Client 가 struct 포인터 전달.
-EntityID CGameInstance::Clone_Entity(uint32_t ISceneID, const std::wstring& strKey,
-	CWorld& world, const void* pArg)
-{
-	return m_pBlueprintRegistry->Clone_Entity(ISceneID, strKey, world, pArg);
 }
 
 void CGameInstance::Profiler_Begin()

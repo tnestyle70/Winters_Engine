@@ -1,9 +1,5 @@
 #include "Scene/Loader.h"
 #include "GameInstance.h"
-#include "ECS/Systems/EntityBlueprint.h"
-#include "ECS/World.h"
-#include "ECS/Components/TransformComponent.h"
-#include "Shared/GameSim/Components/GameplayComponents.h"
 
 #include "Core/JobCounter.h"
 #include "Core/JobSystem.h"
@@ -78,7 +74,6 @@ std::unique_ptr<CLoader> CLoader::Create(eSceneID eNextSceneID, SceneFactory pFa
 
     if (eNextSceneID == eSceneID::InGame)
     {
-        Register_Blueprints_InGame();
         pInstance->PrepareMainThreadInGameLoad();
         pInstance->StartInGameCpuLoad();
         return pInstance;
@@ -638,34 +633,6 @@ void CLoader::SetProgress(f32_t fValue)
         fValue = 1.f;
 
     m_fProgress.store(fValue);
-}
-
-void CLoader::Register_Blueprints_InGame()
-{
-    const uint32_t SCENE = static_cast<uint32_t>(eSceneID::InGame);
-
-    //臾댁뒯 ?먮━濡?Entity媛 異붽??섍쾶 ?섎뒗 嫄곗??
-    CEntityBlueprint blueprint;
-    blueprint.Add([](CWorld& world, EntityID entity)
-        {
-            world.AddComponent<TransformComponent>(entity);
-        })
-        .Add([](CWorld& world, EntityID entity)
-            {
-                ChampionComponent cc;
-                cc.id = eChampion::SYLAS;
-                cc.team = eTeam::Red;
-                cc.hp = 600.f; cc.maxHp = 600.f;
-                cc.mana = 300.f; cc.maxMana = 300.f;
-                cc.moveSpeed = 5.f;
-                world.AddComponent<ChampionComponent>(entity, cc);
-            })
-        .Add([](CWorld& world, EntityID entity)
-            {
-                world.AddComponent<ServerIdComponent>(entity);
-            });
-	const HRESULT hr = CGameInstance::Get()->Add_Blueprint(SCENE, L"Sylas", std::move(blueprint));
-	(void)hr;
 }
 
 NS_END

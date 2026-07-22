@@ -21,6 +21,7 @@ namespace //?대젃寃?const char*濡??ㅼ젙??寃껋쿂???몃━?? RED Engine??
     constexpr f32_t kJungleBaseAnimUpdateInterval = 1.f / 8.f;
     constexpr f32_t kJungleHighPriorityAnimUpdateInterval = 1.f / 20.f;
     constexpr uint64_t kJungleAnimUpdateBudget = 6u;
+    constexpr f32_t kJungleCorpseVisibleSec = 1.5f;
 
     f32_t Resolve_ColliderRadius(CJungle_Manager::eJungleSub sub)
     {
@@ -56,7 +57,7 @@ namespace //?대젃寃?const char*濡??ㅼ젙??寃껋쿂???몃━?? RED Engine??
         case CJungle_Manager::eJungleSub::Baron:
             return { "sru_baron_idle1", "sru_baron_idle1_aggro", "sru_baron_attack1", "sru_baron_death" };
         case CJungle_Manager::eJungleSub::Dragon:
-            return { "sru_dragon_flying_run", "sru_dragon_flying_run", "sru_dragon_flying_attack1", "" };
+            return { "sru_dragon_flying_run", "sru_dragon_flying_run", "", "" };
         case CJungle_Manager::eJungleSub::BlueBuff:
             return { "sru_blue_idle_normal", "sru_blue_run", "sru_blue_attack1", "sru_blue_death" };
         case CJungle_Manager::eJungleSub::RedBuff:
@@ -190,6 +191,7 @@ void CJungle_Manager::Update(f32_t dt)
     if (dt <= 0.f) return;
 
     uint64_t animCount = 0;
+    uint64_t budgetedAnimCount = 0;
     uint64_t skippedCount = 0;
     uint64_t budgetSkippedCount = 0;
 
@@ -201,6 +203,20 @@ void CJungle_Manager::Update(f32_t dt)
         Apply_NetworkAnimation(it.first, *it.second, dt);
 
         auto& visual = m_mapVisualStates[it.first];
+        const eJungleSub sub = m_pWorld->HasComponent<JungleComponent>(it.first)
+            ? static_cast<eJungleSub>(
+                m_pWorld->GetComponent<JungleComponent>(it.first).subKind)
+            : static_cast<eJungleSub>(~0u);
+        const bool_t bFrameRateAnim =
+            sub == eJungleSub::Dragon || sub == eJungleSub::Baron;
+        if (bFrameRateAnim)
+        {
+            it.second->Update(dt);
+            visual.animUpdateAccumulator = 0.f;
+            ++animCount;
+            continue;
+        }
+
         const bool_t bHighPriorityAnim = visual.bAction || visual.bDead;
         const f32_t updateInterval = bHighPriorityAnim
             ? kJungleHighPriorityAnimUpdateInterval
@@ -214,7 +230,7 @@ void CJungle_Manager::Update(f32_t dt)
             continue;
         }
 
-        if (!bHighPriorityAnim && animCount >= kJungleAnimUpdateBudget)
+        if (!bHighPriorityAnim && budgetedAnimCount >= kJungleAnimUpdateBudget)
         {
             ++skippedCount;
             ++budgetSkippedCount;
@@ -224,6 +240,7 @@ void CJungle_Manager::Update(f32_t dt)
         it.second->Update(visual.animUpdateAccumulator);
         visual.animUpdateAccumulator = std::fmod(visual.animUpdateAccumulator, updateInterval);
         ++animCount;
+        ++budgetedAnimCount;
     }
 
     WINTERS_PROFILE_COUNT("JungleAnim::UpdateCalls", animCount);
@@ -430,10 +447,34 @@ void CJungle_Manager::Apply_NetworkAnimation(
                 renderer.PlayAnimationByNameAdvanced(pDeath, false, false, 1.f);
             visual.bDead = true;
             visual.bAction = false;
+            visual.actionTimer = 0.f;
+            visual.baseAnimId = 0u;
+            visual.fDeathElapsedSec = 0.f;
+        }
+        visual.fDeathElapsedSec += std::max(0.f, dt);
+        if (!visual.bCorpseHidden &&
+            visual.fDeathElapsedSec >= kJungleCorpseVisibleSec &&
+            m_pWorld->HasComponent<RenderComponent>(entity))
+        {
+            m_pWorld->GetComponent<RenderComponent>(entity).bVisible = false;
+            visual.bCorpseHidden = true;
         }
         return;
     }
 
+    if (visual.bCorpseHidden &&
+        m_pWorld->HasComponent<RenderComponent>(entity))
+    {
+        m_pWorld->GetComponent<RenderComponent>(entity).bVisible = true;
+    }
+    if (visual.bDead)
+    {
+        visual.baseAnimId = 0u;
+        visual.bAction = false;
+        visual.actionTimer = 0.f;
+    }
+    visual.fDeathElapsedSec = 0.f;
+    visual.bCorpseHidden = false;
     visual.bDead = false;
 
     const PoseStateComponent* pPose = nullptr;
@@ -443,6 +484,35 @@ void CJungle_Manager::Apply_NetworkAnimation(
     const ActionStateComponent* pAction = nullptr;
     if (m_pWorld->HasComponent<ActionStateComponent>(entity))
         pAction = &m_pWorld->GetComponent<ActionStateComponent>(entity);
+
+    if (sub == eJungleSub::Dragon)
+    {
+        if (pAction &&
+            static_cast<eActionStateId>(pAction->actionId) ==
+                eActionStateId::BasicAttack &&
+            pAction->sequence != 0u &&
+            (visual.lastActionSeq != pAction->sequence ||
+                visual.lastActionAnimId != pAction->actionId))
+        {
+            visual.lastActionSeq = pAction->sequence;
+            visual.lastActionAnimId = pAction->actionId;
+        }
+
+        visual.bAction = false;
+        visual.actionTimer = 0.f;
+        const u16_t wingLoopId = static_cast<u16_t>(ePoseStateId::Idle);
+        if (visual.baseAnimId != wingLoopId)
+        {
+            if (const char* pWing = Resolve_PlayableAnimation(
+                    renderer, anims.idle, nullptr))
+            {
+                renderer.PlayAnimationByNameAdvanced(
+                    pWing, true, false, 1.f);
+            }
+            visual.baseAnimId = wingLoopId;
+        }
+        return;
+    }
 
     const bool_t bMovingBySnapshot =
         m_pWorld->HasComponent<ReplicatedStateComponent>(entity) &&

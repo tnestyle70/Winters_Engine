@@ -3,6 +3,7 @@
 
 #include "Dev/SmokeLog.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
+#include "Shared/GameSim/Components/InventoryComponent.h"
 #include "Shared/GameSim/Components/KalistaBondComponent.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
 
@@ -59,6 +60,10 @@ namespace
             return "CompanionCommand";
         case eCommandKind::PracticeControl:
             return "PracticeControl";
+        case eCommandKind::ReorderItem:
+            return "ReorderItem";
+        case eCommandKind::TeamPing:
+            return "TeamPing";
         default:
             return "None";
         }
@@ -227,6 +232,24 @@ u32_t CCommandSerializer::SendBasicAttack(CClientNetwork& net, NetEntityId targe
     return wire.sequenceNum;
 }
 
+u32_t CCommandSerializer::SendTeamPing(
+    CClientNetwork& net,
+    eTeamPingKind kind,
+    const Vec3& groundPos)
+{
+    if (kind == eTeamPingKind::None || !IsValidMoveGroundPos(groundPos))
+        return 0u;
+
+    GameCommandWire wire{};
+    wire.kind = eCommandKind::TeamPing;
+    wire.clientTick = m_clientTick++;
+    wire.sequenceNum = m_nextSequenceNum++;
+    wire.slot = static_cast<u8_t>(kind);
+    wire.groundPos = groundPos;
+    SendSingle(net, wire);
+    return wire.sequenceNum;
+}
+
 void CCommandSerializer::SendBuyItem(CClientNetwork& net, u16_t itemId)
 {
     if (itemId == 0)
@@ -242,7 +265,7 @@ void CCommandSerializer::SendBuyItem(CClientNetwork& net, u16_t itemId)
     SendSingle(net, wire);
 }
 
-void CCommandSerializer::SendUseItem(CClientNetwork& net, u16_t itemId,
+void CCommandSerializer::SendUseItem(CClientNetwork& net, u8_t slot, u16_t itemId,
     const Vec3& groundPos, const Vec3& direction, NetEntityId targetNet)
 {
     if (itemId == 0 || !IsValidMoveGroundPos(groundPos))
@@ -252,11 +275,35 @@ void CCommandSerializer::SendUseItem(CClientNetwork& net, u16_t itemId,
     wire.kind = eCommandKind::UseItem;
     wire.clientTick = m_clientTick++;
     wire.sequenceNum = m_nextSequenceNum++;
+    wire.slot = slot;
     wire.itemId = itemId;
     wire.targetNet = targetNet;
     wire.groundPos = groundPos;
     wire.direction = WintersMath::NormalizeXZ(direction, Vec3{}, 0.0001f);
 
+    SendSingle(net, wire);
+}
+
+void CCommandSerializer::SendReorderItem(
+    CClientNetwork& net,
+    u8_t sourceSlot,
+    u8_t targetSlot,
+    u16_t expectedItemId)
+{
+    if (sourceSlot >= InventoryComponent::kMaxSlots ||
+        targetSlot >= InventoryComponent::kMaxSlots ||
+        expectedItemId == 0u)
+    {
+        return;
+    }
+
+    GameCommandWire wire{};
+    wire.kind = eCommandKind::ReorderItem;
+    wire.clientTick = m_clientTick++;
+    wire.sequenceNum = m_nextSequenceNum++;
+    wire.slot = sourceSlot;
+    wire.itemId = expectedItemId;
+    wire.practiceFlags = targetSlot;
     SendSingle(net, wire);
 }
 

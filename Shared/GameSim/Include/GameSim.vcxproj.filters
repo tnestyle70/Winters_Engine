@@ -1,0 +1,922 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Champions">
+      <UniqueIdentifier>{d45bdc6e-6e3d-4ae0-81e9-8b035d1c8638}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Annie">
+      <UniqueIdentifier>{d243cff1-6bb7-42c9-a01b-ce2717e58db0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Ashe">
+      <UniqueIdentifier>{efe3bee8-52d3-44e7-8c84-d8fda3c979fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Ezreal">
+      <UniqueIdentifier>{bf701d6c-5ab0-44c8-8d7e-c978437de836}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Fiora">
+      <UniqueIdentifier>{a0c6079a-f784-45d6-bf0d-c602886840da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Garen">
+      <UniqueIdentifier>{6fdff179-4e59-4a9a-845f-92fae9a0530a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Irelia">
+      <UniqueIdentifier>{081afccc-96e6-443b-853a-83ed25d082de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Jax">
+      <UniqueIdentifier>{b5b4e66b-58c6-469f-8c0e-49d4308a4e70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Kalista">
+      <UniqueIdentifier>{bb48a3fc-3ce5-4af0-85fa-a3fcfd668923}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Kindred">
+      <UniqueIdentifier>{1e574339-279e-45c0-b8e0-8ecbd52f75ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\LeeSin">
+      <UniqueIdentifier>{48944b27-6136-425e-a6d5-8c35367b23eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\MasterYi">
+      <UniqueIdentifier>{506f8cd4-69c6-453d-bcb6-bc1aa70c1d4b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Riven">
+      <UniqueIdentifier>{b5e674e5-474c-423f-99d5-c34d411c03c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Sylas">
+      <UniqueIdentifier>{c57ac985-e50d-4a70-b403-558ff42a7db1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Viego">
+      <UniqueIdentifier>{584f789d-753a-4d09-a790-8e96bf735f7a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Yasuo">
+      <UniqueIdentifier>{faa34ea8-f5ba-4996-91d3-96dcb48c72bf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Yone">
+      <UniqueIdentifier>{11be0b9d-5c69-43d8-85b9-2706c96404a6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Champions\Zed">
+      <UniqueIdentifier>{12506dfd-fd63-483f-a521-69e417525b43}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Components">
+      <UniqueIdentifier>{13b9b8b2-7b4d-4e55-8bd8-39fcff9daaf5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{43efa531-b38e-4204-9429-084da80eafb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Checkpoint">
+      <UniqueIdentifier>{fd2577f9-59ce-4222-9e8a-beabe5fd3f7b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Debug">
+      <UniqueIdentifier>{ea4837a3-1a7d-438b-8631-0279c1cf1ac8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Determinism">
+      <UniqueIdentifier>{4f597cc4-f1ec-4b3e-8d6f-e29c7b72e21d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\Ecs">
+      <UniqueIdentifier>{b7bfed81-2925-4b3f-b942-0bdf12b4bc87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core\World">
+      <UniqueIdentifier>{86e6fd7f-5774-4c29-95f2-5f87a4c7d68e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Definitions">
+      <UniqueIdentifier>{b6831855-5fff-4a50-aa66-12740cd9060b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Feedback">
+      <UniqueIdentifier>{14f86752-db3b-44a2-92ea-72c1e0bf4ae3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Generated">
+      <UniqueIdentifier>{87435cfa-a144-4bc8-a1c2-c7a4b2dbffd8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Registries">
+      <UniqueIdentifier>{96532328-f338-4063-ad0f-2865ade5264a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Registries\ChampionGameData">
+      <UniqueIdentifier>{3b89aa47-6464-4c32-ad2f-9fc16b565c34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Registries\ChampionStats">
+      <UniqueIdentifier>{38174294-271f-49cb-8bcb-c0995c7cbc0f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Registries\Reward">
+      <UniqueIdentifier>{2a7b3e7e-759f-4dd6-a45c-e3eeaf8cdf8e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Replication">
+      <UniqueIdentifier>{bbec5f93-1d77-4f43-8f1e-e6248019e9e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Spawn">
+      <UniqueIdentifier>{6ce4d50f-3612-4c8a-8c2f-939cff495c76}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems">
+      <UniqueIdentifier>{021d7f58-803c-4bb3-abf3-05de48192e3d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\AreaAura">
+      <UniqueIdentifier>{cb62e46d-eff1-46eb-ba68-5039be96f7a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\AttackChase">
+      <UniqueIdentifier>{8f053d16-df8d-4eb1-a698-55d501e8d7e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Buff">
+      <UniqueIdentifier>{75cee976-1593-4f44-b10b-a5226350b39e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\ChampionAI">
+      <UniqueIdentifier>{35b9958f-4807-4b7c-a5f7-296a34dcf8bd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Combat">
+      <UniqueIdentifier>{d657e1b2-1e03-4f5f-8ad3-749e050785da}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\CommandExecutor">
+      <UniqueIdentifier>{bbfd4ddf-33f1-479a-9cfa-b0f2642a9f1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Damage">
+      <UniqueIdentifier>{46a9cb3c-2207-4a0d-838d-47e19dc044ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Death">
+      <UniqueIdentifier>{f32ebed9-9a93-4ac8-9ab6-b7b16deb6163}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\DeterministicEntityIterator">
+      <UniqueIdentifier>{c5dded1d-7179-4ef3-aa1e-329925d26bfb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Experience">
+      <UniqueIdentifier>{7152d06b-1c10-4853-9cd7-96d1da4a69b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\GameplayHookRegistry">
+      <UniqueIdentifier>{528f7023-0c25-4ab6-ab21-254aacf2d273}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\GameplayStateQuery">
+      <UniqueIdentifier>{397a8818-09da-41d8-9be7-bec43e12d411}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Gold">
+      <UniqueIdentifier>{ae44a0dc-0431-41b7-956b-15cf0da62c4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\JungleAI">
+      <UniqueIdentifier>{481cff2b-3e88-4681-a3b6-35bb5454a095}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Item">
+      <UniqueIdentifier>{59d74637-a40d-4d66-bdb3-3539420c684c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Move">
+      <UniqueIdentifier>{b735e271-2456-4c2a-9e48-c25475882df6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\PendingHit">
+      <UniqueIdentifier>{d9ef0d2e-2158-4711-9290-116a1c1dddd1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Recall">
+      <UniqueIdentifier>{ac972c92-c1dd-4248-8f3f-066791c69601}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\ReplicatedEventQueue">
+      <UniqueIdentifier>{b170261e-2bee-44b1-89b0-7479ac930ce2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\ReplicatedEventSerializer">
+      <UniqueIdentifier>{2ee6f5af-5bd8-4ae9-84f6-96c0779ac654}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Rune">
+      <UniqueIdentifier>{7ff718dc-9712-40bf-b146-b79c9aa3352a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Shield">
+      <UniqueIdentifier>{a60d3fdf-ab01-410e-a521-a792f6892e41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\SkillCooldown">
+      <UniqueIdentifier>{ef1eb73e-4949-4676-a860-66859dbbac55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\SkillRank">
+      <UniqueIdentifier>{3cf03800-a3ba-4972-a37b-f9548aa6087f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\SpellbookFormOverride">
+      <UniqueIdentifier>{c1a313f7-102a-4534-b275-b26c93bb4654}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Stat">
+      <UniqueIdentifier>{6aafd2e7-e02f-48cc-a0df-fe69e66b7808}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\StatusEffect">
+      <UniqueIdentifier>{b91b8232-d90f-4b43-a9e7-7050837b133c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\Turret">
+      <UniqueIdentifier>{ae691136-a463-4f36-94df-bdd079b00785}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Systems\WaypointPatrol">
+      <UniqueIdentifier>{bec03c33-ceb5-4b67-9848-aba647373bbd}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\Champions\Annie\AnnieGameSim.cpp">
+      <Filter>Champions\Annie</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Ashe\AsheGameSim.cpp">
+      <Filter>Champions\Ashe</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Fiora\FioraGameSim.cpp">
+      <Filter>Champions\Fiora</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Ezreal\EzrealGameSim.cpp">
+      <Filter>Champions\Ezreal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Garen\GarenGameSim.cpp">
+      <Filter>Champions\Garen</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Irelia\IreliaGameSim.cpp">
+      <Filter>Champions\Irelia</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Jax\JaxGameSim.cpp">
+      <Filter>Champions\Jax</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Kalista\KalistaGameSim.cpp">
+      <Filter>Champions\Kalista</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Kindred\KindredGameSim.cpp">
+      <Filter>Champions\Kindred</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\LeeSin\LeeSinGameSim.cpp">
+      <Filter>Champions\LeeSin</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\MasterYi\MasterYiGameSim.cpp">
+      <Filter>Champions\MasterYi</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Riven\RivenGameSim.cpp">
+      <Filter>Champions\Riven</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Sylas\SylasGameSim.cpp">
+      <Filter>Champions\Sylas</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Viego\ViegoGameSim.cpp">
+      <Filter>Champions\Viego</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Yasuo\YasuoGameSim.cpp">
+      <Filter>Champions\Yasuo</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Yone\YoneGameSim.cpp">
+      <Filter>Champions\Yone</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Champions\Zed\ZedGameSim.cpp">
+      <Filter>Champions\Zed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Core\Checkpoint\WorldKeyframe.cpp">
+      <Filter>Core\Checkpoint</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Definitions\ChampionRuntimeDefaults.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Definitions\GameplayDefinitionPack.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Definitions\GameplayDefinitionQuery.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Definitions\ItemRegistry.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Definitions\MapSpawnPoints.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Definitions\SpawnObjectDefinitionPack.cpp">
+      <Filter>Definitions</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Spawn\ChampionGameplayAssembly.cpp">
+      <Filter>Spawn</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Generated\ChampionGameData.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Registries\Reward\RewardRegistry.cpp">
+      <Filter>Registries\Reward</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\AreaAura\AreaAuraSystem.cpp">
+      <Filter>Systems\AreaAura</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\AttackChase\AttackChaseSystem.cpp">
+      <Filter>Systems\AttackChase</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Buff\BuffSystem.cpp">
+      <Filter>Systems\Buff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAIBrain.cpp">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAIPolicy.cpp">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAIItemBuild.cpp">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAISystem.cpp">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\ChampionAI\ChampionAIValuation.cpp">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Combat\CombatActionSystem.cpp">
+      <Filter>Systems\Combat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Combat\CombatFormula.cpp">
+      <Filter>Systems\Combat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\CommandExecutor\CommandExecutor.cpp">
+      <Filter>Systems\CommandExecutor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Damage\DamagePipeline.cpp">
+      <Filter>Systems\Damage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Damage\DamageQueueSystem.cpp">
+      <Filter>Systems\Damage</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Item\ItemEffectSystem.cpp">
+      <Filter>Systems\Item</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Death\DeathSystem.cpp">
+      <Filter>Systems\Death</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Experience\ExperienceSystem.cpp">
+      <Filter>Systems\Experience</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\GameplayHookRegistry\GameplayHookRegistry.cpp">
+      <Filter>Systems\GameplayHookRegistry</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\GameplayStateQuery\GameplayStateQuery.cpp">
+      <Filter>Systems\GameplayStateQuery</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\JungleAI\JungleAISystem.cpp">
+      <Filter>Systems\JungleAI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Move\MoveSystem.cpp">
+      <Filter>Systems\Move</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Recall\RecallSystem.cpp">
+      <Filter>Systems\Recall</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Gold\GoldIncomeSystem.cpp">
+      <Filter>Systems\Gold</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.cpp">
+      <Filter>Systems\ReplicatedEventSerializer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Rune\RuneSystem.cpp">
+      <Filter>Systems\Rune</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Shield\ShieldSystem.cpp">
+      <Filter>Systems\Shield</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\SkillCooldown\SkillCooldownSystem.cpp">
+      <Filter>Systems\SkillCooldown</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\SkillRank\SkillRankSystem.cpp">
+      <Filter>Systems\SkillRank</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.cpp">
+      <Filter>Systems\SpellbookFormOverride</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Stat\StatSystem.cpp">
+      <Filter>Systems\Stat</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\StatusEffect\StatusEffectSystem.cpp">
+      <Filter>Systems\StatusEffect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Turret\TurretAISystem.cpp">
+      <Filter>Systems\Turret</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\Turret\StructureProjectileSystem.cpp">
+      <Filter>Systems\Turret</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Systems\WaypointPatrol\WaypointPatrolSystem.cpp">
+      <Filter>Systems\WaypointPatrol</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\Champions\Annie\AnnieGameSim.h">
+      <Filter>Champions\Annie</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Ashe\AsheGameSim.h">
+      <Filter>Champions\Ashe</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Ezreal\EzrealGameSim.h">
+      <Filter>Champions\Ezreal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Fiora\FioraGameSim.h">
+      <Filter>Champions\Fiora</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Garen\GarenGameSim.h">
+      <Filter>Champions\Garen</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Irelia\IreliaGameSim.h">
+      <Filter>Champions\Irelia</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Jax\JaxGameSim.h">
+      <Filter>Champions\Jax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Kalista\KalistaGameSim.h">
+      <Filter>Champions\Kalista</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Kindred\KindredGameSim.h">
+      <Filter>Champions\Kindred</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\LeeSin\LeeSinGameSim.h">
+      <Filter>Champions\LeeSin</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\MasterYi\MasterYiGameSim.h">
+      <Filter>Champions\MasterYi</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Riven\RivenGameSim.h">
+      <Filter>Champions\Riven</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Sylas\SylasGameSim.h">
+      <Filter>Champions\Sylas</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Viego\ViegoGameSim.h">
+      <Filter>Champions\Viego</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Yasuo\YasuoGameSim.h">
+      <Filter>Champions\Yasuo</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Yone\YoneGameSim.h">
+      <Filter>Champions\Yone</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Champions\Zed\ZedGameSim.h">
+      <Filter>Champions\Zed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ActionStateComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\AnnieSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\AreaAuraComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\AsheSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\AttackChaseComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\BuffComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ChampionAIComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ChampionAssistCredit.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ChampionComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ChampionDefinitionComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ChampionScore.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\CombatActionComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\DamageRequestComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\EzrealSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\FioraSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\FormOverrideComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\GameplayComponents.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\GoldComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\HealthComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\InventoryComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ItemRuntimeComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\IreliaSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\JaxSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\JungleAIComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\KalistaBondComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\KalistaPassiveDashComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\KalistaRendComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\KalistaSentinelComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\KindredSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\LeeSinSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ManaComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\MasterYiComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\MatchScore.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\MoveTargetComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\NetEntityIdComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\PendingHitComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\PoseActionStateHelpers.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\PoseStateComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ProjectileBarrierComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ProjectileKindComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\RecallComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ReplicatedActionComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ReplicatedEventComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ReplicatedPoseComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ReplicatedStateComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\RespawnComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\RuneComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ShadowCloneComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ShieldComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\SkillLoadoutComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\SkillProjectileComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\SkillRankComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\SkillStateComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\SpellbookOverrideComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\StatComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\SylasSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ViegoSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ViegoSoulComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\WaypointPatrolComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\YoneSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\ZedSimComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Checkpoint\KeyframeComponentRegistry.h">
+      <Filter>Core\Checkpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Checkpoint\WorldKeyframe.h">
+      <Filter>Core\Checkpoint</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Debug\SimDebugOutput.h">
+      <Filter>Core\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Determinism\DeterministicRng.h">
+      <Filter>Core\Determinism</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Determinism\DeterministicTime.h">
+      <Filter>Core\Determinism</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\CoreComponents.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\Entity.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\ISystem.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\NavAgentComponent.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\NavigationThrottleComponent.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\SpatialAgentComponent.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\SpatialIndex.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\TransformComponent.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\VisionComponents.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\Ecs\VisionSystem.h">
+      <Filter>Core\Ecs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Core\World\World.h">
+      <Filter>Core\World</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\ChampionColliderProfileDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\ChampionGameData.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\ChampionGameplayDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\ChampionRuntimeDefaults.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\ChampionStatsDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\DamageTypes.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\DataPackManifest.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\DefinitionIds.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\EconomyGameplayDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\EffectAnchorSubtype.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\ExperienceDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\GameplayDefinitionPack.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\GameplayDefinitionQuery.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\GoldRewardDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\ItemDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\JungleCampGameDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\LoLMatchContext.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\LoLPublicGameHintData.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\MapDataFormats.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\MapSpawnPoints.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\MinionCombatDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SkillAtomData.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SkillCommand.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SkillDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SkillDefGameDataAdapter.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SkillGameplayDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SkillTypes.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SnapshotStateFlags.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SpawnLoadoutPolicyDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\PracticeMinionAttackDamagePolicy.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SpawnObjectDefinitionPack.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\StageData.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\StructureGameDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SummonerSpellGameData.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\SummonerSpellGameplayDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\TeamPingDef.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Definitions\WardDefinitions.h">
+      <Filter>Definitions</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Feedback\GameplayFeedback.h">
+      <Filter>Feedback</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Feedback\GameplayFeedbackQueue.h">
+      <Filter>Feedback</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Generated\ChampionGameData.generated.h">
+      <Filter>Generated</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Registries\Reward\RewardRegistry.h">
+      <Filter>Registries\Reward</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Replication\EntityIdMap.h">
+      <Filter>Replication</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Spawn\ChampionGameplayAssembly.h">
+      <Filter>Spawn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\AreaAura\AreaAuraSystem.h">
+      <Filter>Systems\AreaAura</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\AttackChase\AttackChaseSystem.h">
+      <Filter>Systems\AttackChase</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Buff\BuffSystem.h">
+      <Filter>Systems\Buff</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ChampionAI\ChampionAIBrain.h">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ChampionAI\ChampionAIInfluenceMap.h">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ChampionAI\ChampionAIItemBuild.h">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ChampionAI\ChampionAIPerception.h">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ChampionAI\ChampionAIPolicy.h">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ChampionAI\ChampionAIResearchTypes.h">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ChampionAI\ChampionAISystem.h">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ChampionAI\ChampionAIValuation.h">
+      <Filter>Systems\ChampionAI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Combat\CombatActionSystem.h">
+      <Filter>Systems\Combat</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Combat\CombatFormula.h">
+      <Filter>Systems\Combat</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\CommandExecutor\ICommandExecutor.h">
+      <Filter>Systems\CommandExecutor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Components\SkillChargeStateComponent.h" />
+    <ClInclude Include="..\Systems\Damage\Damage.h">
+      <Filter>Systems\Damage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Damage\DamagePipeline.h">
+      <Filter>Systems\Damage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Damage\DamageQueueSystem.h">
+      <Filter>Systems\Damage</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Item\ItemEffectSystem.h">
+      <Filter>Systems\Item</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Death\DeathSystem.h">
+      <Filter>Systems\Death</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\DeterministicEntityIterator\DeterministicEntityIterator.h">
+      <Filter>Systems\DeterministicEntityIterator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Experience\ExperienceSystem.h">
+      <Filter>Systems\Experience</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\GameplayHookRegistry\GameplayHookRegistry.h">
+      <Filter>Systems\GameplayHookRegistry</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\GameplayStateQuery\GameplayStateQuery.h">
+      <Filter>Systems\GameplayStateQuery</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Gold\GoldIncomeSystem.h">
+      <Filter>Systems\Gold</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\JungleAI\JungleAISystem.h">
+      <Filter>Systems\JungleAI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Move\DashArrival.h">
+      <Filter>Systems\Move</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Move\MinionSoftSeparationPolicy.h">
+      <Filter>Systems\Move</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Move\MoveSystem.h">
+      <Filter>Systems\Move</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\PendingHit\PendingHitSystem.h">
+      <Filter>Systems\PendingHit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Recall\RecallSystem.h">
+      <Filter>Systems\Recall</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ReplicatedEventQueue\ReplicatedEventQueue.h">
+      <Filter>Systems\ReplicatedEventQueue</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\ReplicatedEventSerializer\ReplicatedEventSerializer.h">
+      <Filter>Systems\ReplicatedEventSerializer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Rune\RuneSystem.h">
+      <Filter>Systems\Rune</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Shield\ShieldSystem.h">
+      <Filter>Systems\Shield</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\SkillCooldown\SkillCooldownSystem.h">
+      <Filter>Systems\SkillCooldown</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\SkillRank\SkillRankSystem.h">
+      <Filter>Systems\SkillRank</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\SpellbookFormOverride\SpellbookFormOverrideSystem.h">
+      <Filter>Systems\SpellbookFormOverride</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Stat\StatSystem.h">
+      <Filter>Systems\Stat</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\StatusEffect\StatusEffectRequests.h">
+      <Filter>Systems\StatusEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\StatusEffect\StatusEffectSystem.h">
+      <Filter>Systems\StatusEffect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Turret\StructureProjectileSystem.h">
+      <Filter>Systems\Turret</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\Turret\TurretAISystem.h">
+      <Filter>Systems\Turret</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Systems\WaypointPatrol\WaypointPatrolSystem.h">
+      <Filter>Systems\WaypointPatrol</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

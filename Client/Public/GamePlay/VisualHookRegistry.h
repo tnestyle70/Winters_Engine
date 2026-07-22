@@ -20,6 +20,9 @@ struct VisualHookContext
 	const SkillDef* pDef = nullptr;
 	const CastSkillCommand* pCommand = nullptr;
 	u8_t skillStage = 1;
+	f32_t fEffectLifetimeSec = 0.f;
+	f32_t fEffectLength = 0.f;
+	f32_t fEffectHalfWidth = 0.f;
 	std::string* pKeyOut = nullptr; //keyswap channel
 	Engine::CFxStaticMeshRenderer* pFxMeshRenderer = nullptr;
 	bool_t bAuthoritativeEvent = false;

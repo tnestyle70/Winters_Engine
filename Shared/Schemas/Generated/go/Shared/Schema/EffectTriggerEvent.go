@@ -197,8 +197,32 @@ func (rcv *EffectTriggerEvent) MutateFlags(n uint16) bool {
 	return rcv._tab.MutateUint16Slot(28, n)
 }
 
+func (rcv *EffectTriggerEvent) EffectLength() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EffectTriggerEvent) MutateEffectLength(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(30, n)
+}
+
+func (rcv *EffectTriggerEvent) EffectHalfWidth() float32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
+	if o != 0 {
+		return rcv._tab.GetFloat32(o + rcv._tab.Pos)
+	}
+	return 0.0
+}
+
+func (rcv *EffectTriggerEvent) MutateEffectHalfWidth(n float32) bool {
+	return rcv._tab.MutateFloat32Slot(32, n)
+}
+
 func EffectTriggerEventStart(builder *flatbuffers.Builder) {
-	builder.StartObject(13)
+	builder.StartObject(15)
 }
 func EffectTriggerEventAddEffectId(builder *flatbuffers.Builder, effectId uint32) {
 	builder.PrependUint32Slot(0, effectId, 0)
@@ -238,6 +262,12 @@ func EffectTriggerEventAddDurationMs(builder *flatbuffers.Builder, durationMs ui
 }
 func EffectTriggerEventAddFlags(builder *flatbuffers.Builder, flags uint16) {
 	builder.PrependUint16Slot(12, flags, 0)
+}
+func EffectTriggerEventAddEffectLength(builder *flatbuffers.Builder, effectLength float32) {
+	builder.PrependFloat32Slot(13, effectLength, 0.0)
+}
+func EffectTriggerEventAddEffectHalfWidth(builder *flatbuffers.Builder, effectHalfWidth float32) {
+	builder.PrependFloat32Slot(14, effectHalfWidth, 0.0)
 }
 func EffectTriggerEventEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Shared/GameSim/Components/GameplayComponents.h"
+#include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Definitions/LoLMatchContext.h"
 #include "Shared/GameSim/Definitions/SkillDef.h"
 #include "Shared/GameSim/Systems/ChampionAI/ChampionAIResearchTypes.h"
@@ -23,6 +24,7 @@ enum class eChampionAIComboTargetMode : u8_t
     LastOwnWard,
     SylasHijackTarget,
     SylasStolenUltimateTarget,
+    Self,
 };
 
 struct ChampionAIComboStep
@@ -32,6 +34,7 @@ struct ChampionAIComboStep
     f32_t minRange = 0.f;
     f32_t maxRange = 0.f;
     f32_t selfHpMinRatio = 0.f;
+    f32_t selfHpMaxRatio = 1.f;
     f32_t enemyHpMaxRatio = 1.f;
     u8_t targetMode = static_cast<u8_t>(eChampionAIComboTargetMode::TargetEntity);
 };
@@ -62,8 +65,29 @@ struct ChampionAIProfile
     u8_t skillRuleCount = 0;
 };
 
+struct ChampionAIComboOverride
+{
+    eChampion champion = eChampion::END;
+    ChampionAIComboPlan plan{};
+};
+
+struct ChampionAIRuntimeDefinitionPack
+{
+    const ChampionAIProfile* defaultProfile = nullptr;
+    const ChampionAIProfile* profiles = nullptr;
+    std::size_t profileCount = 0u;
+    const ChampionAIComboPlan* defaultComboPlan = nullptr;
+    const ChampionAIComboOverride* comboOverrides = nullptr;
+    std::size_t comboOverrideCount = 0u;
+};
+
 const ChampionAIProfile& GetChampionAIProfile(eChampion champion);
 const ChampionAIComboPlan& GetChampionAIComboPlan(eChampion champion);
+u8_t ResolveChampionAISkillLevelSlot(
+    const ChampionAIProfile& profile,
+    const SkillRankComponent& ranks,
+    u8_t championLevel);
+void PublishChampionAIRuntimeDefinitions(const ChampionAIRuntimeDefinitionPack* pack);
 
 inline constexpr u16_t kChampionAIShadowPolicySchemaVersionV1 = 1u;
 inline constexpr u16_t kChampionAIShadowFeatureCountV1 = 67u;

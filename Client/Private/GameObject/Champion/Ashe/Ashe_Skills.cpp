@@ -245,8 +245,8 @@ namespace Ashe
         void OnCastFrame_Q_Visual(VisualHookContext& ctx)
         {
             if (!ctx.pWorld) return;
-            Fx::SpawnQBuffActive(*ctx.pWorld, ctx.casterEntity, 4.0f);
-            Fx::SpawnQBuffMesh(*ctx.pWorld, ctx.pFxMeshRenderer, ctx.casterEntity, 4.0f);
+            Fx::SpawnQBuffActive(*ctx.pWorld, ctx.casterEntity, 5.0f);
+            Fx::SpawnQBuffMesh(*ctx.pWorld, ctx.pFxMeshRenderer, ctx.casterEntity, 5.0f);
         }
 
         void OnCastFrame_W_Visual(VisualHookContext& ctx)
@@ -261,14 +261,9 @@ namespace Ashe
 
         void OnCastFrame_E_Visual(VisualHookContext& ctx)
         {
-            if (!ctx.pWorld || !ctx.pCommand) return;
-            if (!ctx.pWorld->HasComponent<TransformComponent>(ctx.casterEntity)) return;
-
-            const Vec3 origin =
-                ctx.pWorld->GetComponent<TransformComponent>(ctx.casterEntity).GetPosition();
-            const Vec3 dir = ctx.pCommand->direction;
-            const Vec3 dest = { origin.x + dir.x * 25.f, origin.y, origin.z + dir.z * 25.f };
-            Fx::SpawnEHawkshot(*ctx.pWorld, origin, dest, 5.0f);
+            // The replicated Hawkshot projectile owns movement, visibility,
+            // lifetime, and its WFX presentation. Do not spawn a local duplicate.
+            (void)ctx;
         }
 
         void OnCastFrame_R_Visual(VisualHookContext& ctx)

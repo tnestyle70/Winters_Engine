@@ -79,8 +79,10 @@ private:
         u32_t lastActionSeq = 0;
         f32_t actionTimer = 0.f;
         f32_t animUpdateAccumulator = 0.f;
+        f32_t fDeathElapsedSec = 0.f;
         bool_t bAction = false;
         bool_t bDead = false;
+        bool_t bCorpseHidden = false;
     };
 
     void  Apply_NetworkAnimation(EntityID entity, ModelRenderer& renderer, f32_t dt);

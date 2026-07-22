@@ -33,6 +33,15 @@ const (
 	PracticeOperationApplyStructureStatOverride  PracticeOperation = 23
 	PracticeOperationClearStructureStatOverrides PracticeOperation = 24
 	PracticeOperationReloadGameplayDefinitions   PracticeOperation = 25
+	PracticeOperationApplyJungleStatOverride     PracticeOperation = 26
+	PracticeOperationClearJungleStatOverrides    PracticeOperation = 27
+	PracticeOperationApplyRespawnTimeOverride    PracticeOperation = 28
+	PracticeOperationClearRespawnTimeOverrides   PracticeOperation = 29
+	PracticeOperationApplyMinionStatOverride     PracticeOperation = 30
+	PracticeOperationClearMinionStatOverrides    PracticeOperation = 31
+	PracticeOperationRefillJungleHealth          PracticeOperation = 32
+	PracticeOperationResetJungleMonster          PracticeOperation = 33
+	PracticeOperationClearObjectiveBuffs         PracticeOperation = 34
 )
 
 var EnumNamesPracticeOperation = map[PracticeOperation]string{
@@ -62,6 +71,15 @@ var EnumNamesPracticeOperation = map[PracticeOperation]string{
 	PracticeOperationApplyStructureStatOverride:  "ApplyStructureStatOverride",
 	PracticeOperationClearStructureStatOverrides: "ClearStructureStatOverrides",
 	PracticeOperationReloadGameplayDefinitions:   "ReloadGameplayDefinitions",
+	PracticeOperationApplyJungleStatOverride:     "ApplyJungleStatOverride",
+	PracticeOperationClearJungleStatOverrides:    "ClearJungleStatOverrides",
+	PracticeOperationApplyRespawnTimeOverride:    "ApplyRespawnTimeOverride",
+	PracticeOperationClearRespawnTimeOverrides:   "ClearRespawnTimeOverrides",
+	PracticeOperationApplyMinionStatOverride:     "ApplyMinionStatOverride",
+	PracticeOperationClearMinionStatOverrides:    "ClearMinionStatOverrides",
+	PracticeOperationRefillJungleHealth:          "RefillJungleHealth",
+	PracticeOperationResetJungleMonster:          "ResetJungleMonster",
+	PracticeOperationClearObjectiveBuffs:         "ClearObjectiveBuffs",
 }
 
 var EnumValuesPracticeOperation = map[string]PracticeOperation{
@@ -91,6 +109,15 @@ var EnumValuesPracticeOperation = map[string]PracticeOperation{
 	"ApplyStructureStatOverride":  PracticeOperationApplyStructureStatOverride,
 	"ClearStructureStatOverrides": PracticeOperationClearStructureStatOverrides,
 	"ReloadGameplayDefinitions":   PracticeOperationReloadGameplayDefinitions,
+	"ApplyJungleStatOverride":     PracticeOperationApplyJungleStatOverride,
+	"ClearJungleStatOverrides":    PracticeOperationClearJungleStatOverrides,
+	"ApplyRespawnTimeOverride":    PracticeOperationApplyRespawnTimeOverride,
+	"ClearRespawnTimeOverrides":   PracticeOperationClearRespawnTimeOverrides,
+	"ApplyMinionStatOverride":     PracticeOperationApplyMinionStatOverride,
+	"ClearMinionStatOverrides":    PracticeOperationClearMinionStatOverrides,
+	"RefillJungleHealth":          PracticeOperationRefillJungleHealth,
+	"ResetJungleMonster":          PracticeOperationResetJungleMonster,
+	"ClearObjectiveBuffs":         PracticeOperationClearObjectiveBuffs,
 }
 
 func (v PracticeOperation) String() string {

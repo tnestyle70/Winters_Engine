@@ -368,10 +368,13 @@ namespace
                 range);
 
         // 데미지 = 기본 + 창당 데미지 × 박힌 창 수. 시전자 본인 창만 환산·소모한다.
-        const f32_t baseDamage = ResolveKalistaESkillEffectParam(
-            world, ctx.casterEntity, tc, eSkillEffectParamId::BaseDamage, 20.f);
-        const f32_t damagePerSpear = ResolveKalistaESkillEffectParam(
-            world, ctx.casterEntity, tc, eSkillEffectParamId::DamagePerSpear, 30.f);
+        const f32_t baseDamage = GameplayDefinitionQuery::ResolveSkillFlatDamage(
+            world, ctx.casterEntity, tc, eChampion::KALISTA,
+            static_cast<u8_t>(eSkillSlot::E), ctx.skillRank, 20.f);
+        const f32_t damagePerSpear = GameplayDefinitionQuery::ResolveSkillEffectParamRanked(
+            world, ctx.casterEntity, tc, eChampion::KALISTA,
+            static_cast<u8_t>(eSkillSlot::E), ctx.skillRank,
+            eSkillEffectParamId::DamagePerSpear, 30.f);
         const eTeam casterTeam =
             GameplayStateQuery::ResolveEntityTeam(world, ctx.casterEntity);
 
@@ -821,6 +824,9 @@ namespace
         action.sourceChampion = eChampion::KALISTA;
         action.sourceSlot = static_cast<u8_t>(eSkillSlot::R);
         action.movePolicy = GameplayDefinitionQuery::ResolveSkillActionMovePolicy(
+            world,
+            owner,
+            tc,
             eChampion::KALISTA,
             static_cast<u8_t>(eSkillSlot::R),
             2u);

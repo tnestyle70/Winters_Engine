@@ -314,7 +314,8 @@ namespace Winters::Asset
     bool CWMaterialWriter::WriteFromAssimp(
         const aiScene* pScene,
         const wchar_t* pSourceModelPath,
-        const wchar_t* pOutPath)
+        const wchar_t* pOutPath,
+        const WMaterialWriteOptions& opt)
     {
         if (!pScene || !pOutPath)
             return false;
@@ -341,19 +342,36 @@ namespace Winters::Asset
             entry.material_hash = FNV1a(pName);
             strncpy_s(entry.name, sizeof(entry.name), pName ? pName : "", _TRUNCATE);
 
-            aiString diffusePath;
-            if (TryGetMaterialBaseColorPath(pMaterial, diffusePath))
+            const std::wstring* pDiffuseOverride = nullptr;
+            if (opt.pDiffusePathOverrides)
             {
-                const std::wstring resolved = ResolveDiffusePath(pScene, modelDir, diffusePath);
-                if (!resolved.empty())
-                    wcsncpy_s(entry.diffuse_path, WMAT_MAX_PATH, resolved.c_str(), _TRUNCATE);
+                const auto it = opt.pDiffusePathOverrides->find(pName ? pName : "");
+                if (it != opt.pDiffusePathOverrides->end())
+                    pDiffuseOverride = &it->second;
+            }
+            if (pDiffuseOverride)
+            {
+                wcsncpy_s(entry.diffuse_path,
+                    WMAT_MAX_PATH,
+                    pDiffuseOverride->c_str(),
+                    _TRUNCATE);
             }
             else
             {
-                const std::wstring resolved =
-                    ResolveNearbyDiffusePath(modelDir, pName);
-                if (!resolved.empty())
-                    wcsncpy_s(entry.diffuse_path, WMAT_MAX_PATH, resolved.c_str(), _TRUNCATE);
+                aiString diffusePath;
+                if (TryGetMaterialBaseColorPath(pMaterial, diffusePath))
+                {
+                    const std::wstring resolved = ResolveDiffusePath(pScene, modelDir, diffusePath);
+                    if (!resolved.empty())
+                        wcsncpy_s(entry.diffuse_path, WMAT_MAX_PATH, resolved.c_str(), _TRUNCATE);
+                }
+                else
+                {
+                    const std::wstring resolved =
+                        ResolveNearbyDiffusePath(modelDir, pName);
+                    if (!resolved.empty())
+                        wcsncpy_s(entry.diffuse_path, WMAT_MAX_PATH, resolved.c_str(), _TRUNCATE);
+                }
             }
 
             w.Write(entry);

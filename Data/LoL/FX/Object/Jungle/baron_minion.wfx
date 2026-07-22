@@ -1,0 +1,22 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Objective.Baron.Minion",
+  "emitters": [
+    {
+      "name": "baron_minion_pulse",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/LeeSin/particles/base_leesin_q_mark_floorhighlight_01.png",
+      "lifetime": 300.0,
+      "fade_in": 0.18,
+      "fade_out": 0.35,
+      "width": 1.7,
+      "height": 1.7,
+      "color": [1.4, 0.25, 2.15, 0.68],
+      "attach_offset": [0.0, 0.9, 0.0],
+      "billboard": true
+    }
+  ]
+}

@@ -12,6 +12,9 @@ class ICommandExecutor;
 
 namespace YasuoGameSim
 {
+    f32_t ResolvePassiveFlowDistancePerPoint(u8_t level);
+    f32_t ResolvePassiveShieldAmount(u8_t level);
+    bool_t CanTriggerPassiveShieldFromSource(CWorld& world, EntityID source);
     bool_t CanCastSweepingBlade(
         CWorld& world,
         const TickContext& tc,

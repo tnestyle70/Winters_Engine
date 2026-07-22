@@ -64,7 +64,7 @@ func (h *Handler) Purchase(w http.ResponseWriter, r *http.Request) {
 	var req PurchaseRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid request body")
-		return 
+		return
 	}
 
 	resp, err := h.svc.Purchase(r.Context(), claims.UserID, req.ItemID)
@@ -80,7 +80,7 @@ func (h *Handler) GetInventory(w http.ResponseWriter, r *http.Request) {
 	userId, err := uuid.Parse(userIdStr)
 	if err != nil {
 		response.Error(w, http.StatusBadRequest, "invalid user_id")
-		return 
+		return
 	}
 	items, err := h.svc.GetInventory(r.Context(), userId)
 	if err != nil {

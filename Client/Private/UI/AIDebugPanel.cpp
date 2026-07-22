@@ -22,6 +22,8 @@
 
 #include <cstdio>
 #include <algorithm>
+#include <array>
+#include <cmath>
 #include <vector>
 
 namespace
@@ -462,30 +464,334 @@ namespace
 		ImGui::EndDisabled();
 	}
 
-	void RenderTuningSlider(
+	struct AITuningDraftState
+	{
+		u32_t targetNetId = NULL_NET_ENTITY;
+		eChampionAITuningId tuningId = eChampionAITuningId::Count;
+		f32_t fDraft = 0.f;
+		f32_t fLastSent = 0.f;
+		bool_t bInitialized = false;
+		bool_t bDirty = false;
+		bool_t bPending = false;
+		bool_t bHasLastSent = false;
+		bool_t bEchoTimedOut = false;
+		double sentAtSec = 0.0;
+		double statusUntilSec = 0.0;
+	};
+
+	std::vector<AITuningDraftState> s_AITuningDrafts;
+
+	AITuningDraftState& ResolveAITuningDraft(
+		u32_t targetNetId,
+		eChampionAITuningId tuningId)
+	{
+		for (AITuningDraftState& state : s_AITuningDrafts)
+		{
+			if (state.targetNetId == targetNetId && state.tuningId == tuningId)
+				return state;
+		}
+
+		s_AITuningDrafts.push_back(AITuningDraftState{});
+		AITuningDraftState& state = s_AITuningDrafts.back();
+		state.targetNetId = targetNetId;
+		state.tuningId = tuningId;
+		return state;
+	}
+
+	const char* ChampionAICandidateName(u8_t candidateKind)
+	{
+		switch (static_cast<AiCandidateKindV1>(candidateKind))
+		{
+		case AiCandidateKindV1::Retreat: return "Retreat";
+		case AiCandidateKindV1::Fight: return "Fight";
+		case AiCandidateKindV1::Farm: return "Farm";
+		case AiCandidateKindV1::Siege: return "Structure";
+		default: return "None";
+		}
+	}
+
+	const char* ChampionAIFeatureName(u16_t featureId)
+	{
+		switch (static_cast<AiFeatureIdV1>(featureId))
+		{
+		case AiFeatureIdV1::UtilityScore: return "UtilityScore";
+		case AiFeatureIdV1::PositiveOpportunity: return "PositiveOpportunity";
+		case AiFeatureIdV1::TurretRisk: return "TurretRisk";
+		case AiFeatureIdV1::ObservedComboRisk: return "ObservedComboRisk";
+		case AiFeatureIdV1::ClampOrThresholdAdjustment: return "Clamp/Threshold";
+		case AiFeatureIdV1::HealthPressure: return "HealthPressure";
+		case AiFeatureIdV1::FarmOpportunity: return "FarmOpportunity";
+		case AiFeatureIdV1::StructureExposure: return "StructureExposure";
+		default: return "Unknown";
+		}
+	}
+
+	AiCandidateKindV1 ChampionAIIntentCandidate(eChampionAIIntent intent)
+	{
+		switch (intent)
+		{
+		case eChampionAIIntent::Retreat: return AiCandidateKindV1::Retreat;
+		case eChampionAIIntent::AttackChampion: return AiCandidateKindV1::Fight;
+		case eChampionAIIntent::FarmMinion: return AiCandidateKindV1::Farm;
+		case eChampionAIIntent::SiegeStructure: return AiCandidateKindV1::Siege;
+		default: return AiCandidateKindV1::None;
+		}
+	}
+
+	void RenderChampionAIDecisionRanking(const ChampionAIDebugComponent& debug)
+	{
+		const AiDecisionTraceV1& decision = debug.utilityDecision;
+		if (debug.utilityCandidateTick == 0u ||
+			decision.candidateCount != kAiDecisionCandidateCapacityV1)
+		{
+			ImGui::TextDisabled("No current candidate evidence.");
+			return;
+		}
+
+		std::array<const AiCandidateEvidenceV1*, kAiDecisionCandidateCapacityV1>
+			ranked{};
+		for (u8_t index = 0u; index < kAiDecisionCandidateCapacityV1; ++index)
+			ranked[index] = &decision.candidates[index];
+		std::sort(
+			ranked.begin(),
+			ranked.end(),
+			[](const AiCandidateEvidenceV1* lhs, const AiCandidateEvidenceV1* rhs)
+			{
+				const bool_t lhsLegal =
+					(lhs->flags & kAiCandidateLegalFlagV1) != 0u;
+				const bool_t rhsLegal =
+					(rhs->flags & kAiCandidateLegalFlagV1) != 0u;
+				if (lhsLegal != rhsLegal)
+					return lhsLegal;
+				if (lhs->score != rhs->score)
+					return lhs->score > rhs->score;
+				return lhs->candidateKind < rhs->candidateKind;
+			});
+
+		ImGui::TextDisabled(
+			"Server valuation evidence tick %llu. Legal candidates rank before blocked ones.",
+			static_cast<unsigned long long>(debug.utilityCandidateTick));
+		if (debug.utilitySelectionTick == 0u)
+			ImGui::TextDisabled("No decision committed this tick; current intent is ACTIVE / HELD.");
+
+		const AiCandidateKindV1 activeKind = ChampionAIIntentCandidate(debug.intent);
+		const AiCandidateEvidenceV1* pTopLegal = nullptr;
+		if ((ranked.front()->flags & kAiCandidateLegalFlagV1) != 0u)
+			pTopLegal = ranked.front();
+		if (ImGui::BeginTable(
+			"DecisionRanking", 6,
+			ImGuiTableFlags_BordersInnerH | ImGuiTableFlags_RowBg |
+			ImGuiTableFlags_SizingStretchProp))
+		{
+			ImGui::TableSetupColumn("#", ImGuiTableColumnFlags_WidthFixed, 24.f);
+			ImGui::TableSetupColumn("Behavior");
+			ImGui::TableSetupColumn("Score", ImGuiTableColumnFlags_WidthFixed, 60.f);
+			ImGui::TableSetupColumn("Legal", ImGuiTableColumnFlags_WidthFixed, 45.f);
+			ImGui::TableSetupColumn("Decision");
+			ImGui::TableSetupColumn("Target", ImGuiTableColumnFlags_WidthFixed, 70.f);
+			ImGui::TableHeadersRow();
+			for (u8_t rank = 0u; rank < ranked.size(); ++rank)
+			{
+				const AiCandidateEvidenceV1& candidate = *ranked[rank];
+				const bool_t bLegal =
+					(candidate.flags & kAiCandidateLegalFlagV1) != 0u;
+				const bool_t bSelected =
+					(candidate.flags & kAiCandidateSelectedFlagV1) != 0u;
+				const bool_t bActiveHeld = !bSelected &&
+					candidate.candidateKind == static_cast<u8_t>(activeKind);
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("%u", static_cast<u32_t>(rank + 1u));
+				ImGui::TableSetColumnIndex(1);
+				ImGui::TextUnformatted(ChampionAICandidateName(candidate.candidateKind));
+				ImGui::TableSetColumnIndex(2);
+				ImGui::Text("%.3f", candidate.score);
+				ImGui::TableSetColumnIndex(3);
+				ImGui::TextUnformatted(bLegal ? "yes" : "no");
+				ImGui::TableSetColumnIndex(4);
+				if (bSelected)
+					ImGui::TextColored(ImVec4(0.35f, 0.9f, 0.45f, 1.f), "SELECTED THIS TICK");
+				else if (bActiveHeld)
+					ImGui::TextColored(ImVec4(0.95f, 0.78f, 0.30f, 1.f), "ACTIVE / HELD");
+				else
+					ImGui::TextDisabled(bLegal ? "available" : "blocked");
+				ImGui::TableSetColumnIndex(5);
+				ImGui::Text("%u", candidate.targetNetEntityId);
+			}
+			ImGui::EndTable();
+		}
+
+		if (pTopLegal && activeKind != AiCandidateKindV1::None &&
+			pTopLegal->candidateKind != static_cast<u8_t>(activeKind))
+		{
+			ImGui::TextColored(
+				ImVec4(0.95f, 0.78f, 0.30f, 1.f),
+				"Raw #1 differs from active intent: a hard gate, margin, or intent hold is in effect.");
+		}
+		ImGui::TextDisabled(
+			"Brain order: Retreat >= 0.65 -> post-combo -> held intent -> Fight margin -> Structure -> Farm.");
+
+		if (ImGui::CollapsingHeader("Score Calculations"))
+		{
+			for (u8_t rank = 0u; rank < ranked.size(); ++rank)
+			{
+				const AiCandidateEvidenceV1& candidate = *ranked[rank];
+				ImGui::PushID(candidate.candidateKind);
+				const bool_t bOpen = ImGui::TreeNode(
+					"score_calc",
+					"#%u %s = %.3f",
+					static_cast<u32_t>(rank + 1u),
+					ChampionAICandidateName(candidate.candidateKind),
+					candidate.score);
+				if (bOpen)
+				{
+					f32_t sum = 0.f;
+					for (u8_t termIndex = 0u;
+						termIndex < candidate.contributionCount;
+						++termIndex)
+					{
+						const AiFeatureContributionV1& term =
+							candidate.contributions[termIndex];
+						sum += term.contribution;
+						ImGui::Text(
+							"%s: %.3f x %.3f = %+.3f",
+							ChampionAIFeatureName(term.featureId),
+							term.rawValue,
+							term.weight,
+							term.contribution);
+					}
+					ImGui::TextDisabled("Contribution sum %.3f -> score %.3f", sum, candidate.score);
+					ImGui::TreePop();
+				}
+				ImGui::PopID();
+			}
+		}
+	}
+
+	void ClearAITuningDrafts(u32_t targetNetId)
+	{
+		s_AITuningDrafts.erase(
+			std::remove_if(
+				s_AITuningDrafts.begin(),
+				s_AITuningDrafts.end(),
+				[targetNetId](const AITuningDraftState& state)
+				{
+					return state.targetNetId == targetNetId;
+				}),
+			s_AITuningDrafts.end());
+	}
+
+	void RenderTuningDrag(
 		CScene_InGame* pScene,
 		u32_t targetNetId,
 		const char* pLabel,
+		const char* pHelp,
 		eChampionAITuningId tuningId,
-		f32_t value,
+		f32_t serverValue,
+		f32_t dragSpeed,
 		f32_t minValue,
-		f32_t maxValue)
+		f32_t maxValue,
+		const char* pFormat)
 	{
 		const bool_t bCanSend = targetNetId != NULL_NET_ENTITY &&
 			CanSendAIDebugCommand(pScene);
-		f32_t current = value;
-		ImGui::BeginDisabled(!bCanSend);
+		AITuningDraftState& state = ResolveAITuningDraft(targetNetId, tuningId);
+		const f32_t epsilon = (std::max)(0.0001f, dragSpeed * 0.05f);
+		if (!state.bInitialized)
+		{
+			state.fDraft = serverValue;
+			state.bInitialized = true;
+		}
+
+		if (state.bPending &&
+			std::fabs(serverValue - state.fLastSent) <= epsilon)
+		{
+			state.bPending = false;
+			state.bEchoTimedOut = false;
+			state.fDraft = serverValue;
+		}
+		else if (state.bPending && ImGui::GetTime() - state.sentAtSec > 2.0)
+		{
+			state.bPending = false;
+			state.bEchoTimedOut = true;
+			state.fDraft = serverValue;
+			state.statusUntilSec = ImGui::GetTime() + 2.0;
+		}
+		if (state.bEchoTimedOut && ImGui::GetTime() > state.statusUntilSec)
+			state.bEchoTimedOut = false;
+
+		if (!state.bPending && !state.bDirty && !state.bEchoTimedOut)
+			state.fDraft = serverValue;
+
+		ImGui::PushID(static_cast<int>(targetNetId));
 		ImGui::PushID(static_cast<int>(tuningId));
-		if (ImGui::SliderFloat(pLabel, &current, minValue, maxValue, "%.2f"))
+		ImGui::BeginDisabled(!bCanSend);
+		bool_t bCommit = false;
+		if (ImGui::BeginTable(
+			"##TuningRow", 2,
+			ImGuiTableFlags_SizingStretchProp |
+				ImGuiTableFlags_NoSavedSettings))
+		{
+			ImGui::TableSetupColumn(
+				"Label", ImGuiTableColumnFlags_WidthStretch, 0.42f);
+			ImGui::TableSetupColumn(
+				"Value", ImGuiTableColumnFlags_WidthStretch, 0.58f);
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextUnformatted(pLabel);
+			ImGui::TableSetColumnIndex(1);
+			ImGui::SetNextItemWidth(-1.f);
+			if (ImGui::DragFloat(
+				"##Value",
+				&state.fDraft,
+				dragSpeed,
+				minValue,
+				maxValue,
+				pFormat,
+				ImGuiSliderFlags_AlwaysClamp) && std::isfinite(state.fDraft))
+			{
+				state.bDirty = true;
+				state.bEchoTimedOut = false;
+			}
+			bCommit = ImGui::IsItemDeactivatedAfterEdit();
+			if (ImGui::IsItemHovered() && pHelp)
+			{
+				ImGui::BeginTooltip();
+				ImGui::PushTextWrapPos(430.f);
+				ImGui::TextUnformatted(pHelp);
+				ImGui::PopTextWrapPos();
+				ImGui::EndTooltip();
+			}
+			ImGui::EndTable();
+		}
+		ImGui::EndDisabled();
+		if (bCommit && state.bDirty &&
+			(!state.bHasLastSent ||
+				std::fabs(state.fDraft - state.fLastSent) > epsilon))
 		{
 			pScene->GetCommandSerializer()->SendAIDebugTune(
-				*pScene->GetNetworkView(),
-				targetNetId,
-				static_cast<u8_t>(tuningId),
-				current);
+				*pScene->GetNetworkView(), targetNetId,
+				static_cast<u8_t>(tuningId), state.fDraft);
+			state.fLastSent = state.fDraft;
+			state.bHasLastSent = true;
+			state.bPending = true;
+			state.bDirty = false;
+			state.sentAtSec = ImGui::GetTime();
+		}
+		else if (bCommit)
+		{
+			state.bDirty = false;
 		}
 		ImGui::PopID();
-		ImGui::EndDisabled();
+		ImGui::PopID();
+
+		if (state.bPending)
+			ImGui::TextDisabled("Waiting for authoritative server echo...");
+		else if (state.bEchoTimedOut)
+			ImGui::TextColored(
+				ImVec4(1.f, 0.45f, 0.35f, 1.f),
+				"No server echo; restored snapshot value.");
 	}
 
 	struct AIChronoDecisionSample
@@ -515,6 +821,296 @@ namespace
 	CScene_InGame* s_pChronoScene = nullptr;
 }
 
+void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
+{
+	struct AIRow
+	{
+		EntityID entity = NULL_ENTITY;
+		ChampionComponent champion{};
+		ChampionAIDebugComponent debug{};
+		f32_t hp = 0.f;
+		f32_t maxHp = 0.f;
+	};
+
+	std::vector<AIRow> bots{};
+	bots.reserve(16u);
+	world.ForEach<ChampionComponent>(
+		[&](EntityID entity, ChampionComponent& champion)
+		{
+			if (!world.HasComponent<ChampionAIDebugComponent>(entity))
+				return;
+			const auto& debug = world.GetComponent<ChampionAIDebugComponent>(entity);
+			if (!debug.bPresent)
+				return;
+
+			AIRow row{};
+			row.entity = entity;
+			row.champion = champion;
+			row.debug = debug;
+			if (world.HasComponent<HealthComponent>(entity))
+			{
+				const auto& health = world.GetComponent<HealthComponent>(entity);
+				row.hp = health.fCurrent;
+				row.maxHp = health.fMaximum;
+			}
+			else
+			{
+				row.hp = champion.hp;
+				row.maxHp = champion.maxHp;
+			}
+			bots.push_back(row);
+		});
+
+	if (!bots.empty() && s_SelectedAINetId == NULL_NET_ENTITY)
+		s_SelectedAINetId = bots.front().debug.netId;
+	const AIRow* pSelected = nullptr;
+	for (const AIRow& row : bots)
+	{
+		if (row.debug.netId == s_SelectedAINetId)
+		{
+			pSelected = &row;
+			break;
+		}
+	}
+	if (!pSelected && !bots.empty())
+	{
+		s_SelectedAINetId = bots.front().debug.netId;
+		pSelected = &bots.front();
+	}
+
+	ImGui::SetNextWindowSize(ImVec2(700.f, 620.f), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSizeConstraints(ImVec2(560.f, 380.f), ImVec2(1100.f, 1000.f));
+	if (!ImGui::Begin("AI Debug"))
+	{
+		ImGui::End();
+		return;
+	}
+
+	if (bots.empty())
+	{
+		ImGui::TextDisabled("No AI snapshot yet.");
+		ImGui::End();
+		return;
+	}
+
+	char preview[96]{};
+	sprintf_s(
+		preview,
+		"%s (%s)",
+		ChampionName(pSelected->champion.id),
+		TeamName(pSelected->champion.team));
+	ImGui::SetNextItemWidth(-1.f);
+	if (ImGui::BeginCombo("##Bot", preview))
+	{
+		for (const AIRow& row : bots)
+		{
+			char label[112]{};
+			sprintf_s(
+				label,
+				"%s (%s)##%u",
+				ChampionName(row.champion.id),
+				TeamName(row.champion.team),
+				row.debug.netId);
+			const bool_t selected = row.debug.netId == s_SelectedAINetId;
+			if (ImGui::Selectable(label, selected))
+				s_SelectedAINetId = row.debug.netId;
+			if (selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
+	}
+
+	const ChampionAIDebugComponent& debug = pSelected->debug;
+	const bool_t bCanSend = CanSendAIDebugCommand(pScene);
+	if (!bCanSend)
+		ImGui::TextDisabled("Server-authoritative practice session required.");
+
+	if (ImGui::BeginTabBar("AIDebugModes"))
+	{
+		if (ImGui::BeginTabItem("Live Tuning"))
+		{
+			ImGui::TextDisabled(
+				"Server snapshot values. Drag or double-click for an exact value.");
+			ImGui::TextDisabled(
+				"Session-only override for this bot; Reset restores its JSON profile.");
+			ImGui::SeparatorText("Decision Ranking");
+			RenderChampionAIDecisionRanking(debug);
+
+			ImGui::SeparatorText("Lane Choice - immediate");
+			RenderTuningDrag(
+				pScene, debug.netId, "Follow Wave Search (m)",
+				"Maximum distance used to find an allied lane minion. "
+				"Higher values join a farther wave; lower values wait near the safe anchor.",
+				eChampionAITuningId::FollowWaveSearchRange,
+				debug.fFollowWaveSearchRange, 0.5f, 10.f, 120.f, "%.1f");
+			RenderTuningDrag(
+				pScene, debug.netId, "Farm Priority (x)",
+				"Multiplier for farm utility before intent selection. "
+				"Higher values prefer minion farming; lower values let fight or siege win sooner.",
+				eChampionAITuningId::FarmPriority,
+				debug.fFarmPriority, 0.01f, 0.f, 3.f, "%.2f");
+			RenderTuningDrag(
+				pScene, debug.netId, "Turret Danger Limit",
+				"The bot retreats when measured turret danger exceeds this value "
+				"without a wave tanking. Higher values tolerate more turret risk.",
+				eChampionAITuningId::TurretDangerThreshold,
+				debug.fTurretDangerThreshold, 0.01f, 0.f, 1.f, "%.2f");
+
+			ImGui::BeginDisabled(!bCanSend || debug.netId == NULL_NET_ENTITY);
+			if (ImGui::Button("Reset Selected Bot", ImVec2(180.f, 0.f)))
+			{
+				pScene->GetCommandSerializer()->SendAIDebugResetTuning(
+					*pScene->GetNetworkView(), debug.netId);
+				ClearAITuningDrafts(debug.netId);
+			}
+			ImGui::EndDisabled();
+
+			if (ImGui::CollapsingHeader("Lane Perception"))
+			{
+				RenderTuningDrag(
+					pScene, debug.netId, "Champion Scan (m)",
+					"Enemy champion perception radius. Higher values notice and score fights earlier.",
+					eChampionAITuningId::ChampionScanRange,
+					debug.fChampionScanRange, 0.1f, 1.f, 40.f, "%.1f");
+				RenderTuningDrag(
+					pScene, debug.netId, "Minion Scan (m)",
+					"Enemy minion perception radius used by FarmMinion. "
+					"It must be large enough to see the next last-hit or chase target.",
+					eChampionAITuningId::MinionScanRange,
+					debug.fMinionScanRange, 0.1f, 1.f, 40.f, "%.1f");
+				RenderTuningDrag(
+					pScene, debug.netId, "Structure Scan (m)",
+					"Enemy structure perception radius used for siege scoring.",
+					eChampionAITuningId::StructureScanRange,
+					debug.fStructureScanRange, 0.1f, 1.f, 60.f, "%.1f");
+				RenderTuningDrag(
+					pScene, debug.netId, "Leash Range (m)",
+					"Maximum pursuit distance from the bot's lane goal before it disengages.",
+					eChampionAITuningId::LeashRange,
+					debug.fLeashRange, 0.1f, 1.f, 60.f, "%.1f");
+			}
+
+			if (ImGui::CollapsingHeader("Combat, Survival & Cadence"))
+			{
+				RenderTuningDrag(
+					pScene, debug.netId, "Champion Score Margin",
+					"Extra fight score required above farm score. "
+					"Higher values make champion engagement more conservative.",
+					eChampionAITuningId::ChampionScoreMargin,
+					debug.fChampionScoreMargin, 0.01f, 0.f, 1.f, "%.2f");
+				RenderTuningDrag(
+					pScene, debug.netId, "Retreat HP",
+					"Retreat starts at or below this self HP ratio.",
+					eChampionAITuningId::RetreatHpRatio,
+					debug.fRetreatHpRatio, 0.01f, 0.01f, 0.90f, "%.2f");
+				RenderTuningDrag(
+					pScene, debug.netId, "Reengage HP",
+					"After recovery, normal lane decisions resume at or above this HP ratio.",
+					eChampionAITuningId::ReengageHpRatio,
+					debug.fReengageHpRatio, 0.01f, 0.01f, 1.f, "%.2f");
+				RenderTuningDrag(
+					pScene, debug.netId, "Skill Cast Interval (s)",
+					"Minimum interval between fresh AI skill sequences. "
+					"Lower values cast more often; active combos remain uninterrupted.",
+					eChampionAITuningId::SkillCastMinInterval,
+					debug.fSkillCastMinInterval, 0.05f, 0.f, 15.f, "%.2f");
+			}
+
+			if (ImGui::CollapsingHeader("Test Actions"))
+			{
+				RenderForceActionButton(
+					pScene, debug.netId, "Safe", eChampionAIAction::MoveToSafeAnchor);
+				ImGui::SameLine();
+				RenderForceActionButton(
+					pScene, debug.netId, "Farm", eChampionAIAction::AttackMinion);
+				ImGui::SameLine();
+				RenderForceActionButton(
+					pScene, debug.netId, "Fight", eChampionAIAction::AttackChampion);
+				ImGui::SameLine();
+				RenderForceActionButton(
+					pScene, debug.netId, "Structure", eChampionAIAction::AttackStructure);
+				ImGui::SameLine();
+				RenderForceActionButton(
+					pScene, debug.netId, "Retreat", eChampionAIAction::Retreat);
+			}
+			ImGui::EndTabItem();
+		}
+
+		if (ImGui::BeginTabItem("Observe"))
+		{
+			ImGui::SeparatorText("Now");
+			ImGui::Text(
+				"%s  |  %s  |  %s",
+				ChampionAIStateName(debug.state),
+				ChampionAIIntentName(debug.intent),
+				ChampionAIActionName(debug.action));
+			ImGui::Text(
+				"HP %.0f / %.0f  |  Brain %s",
+				pSelected->hp, pSelected->maxHp,
+				ChampionAIBrainName(debug.brainType));
+			ImGui::Text(
+				"Fight %.2f   Farm %.2f   Structure %.2f   Retreat %.2f",
+				debug.fChampionDecisionScore,
+				debug.fFarmDecisionScore,
+				debug.fStructureDecisionScore,
+				debug.fRetreatDecisionScore);
+
+			ImGui::SeparatorText("Targets & Move");
+			ImGui::Text(
+				"Chosen %u  |  Enemy minion %u  |  Allied wave %u",
+				debug.targetNetId,
+				debug.enemyMinionNetId,
+				debug.alliedWaveNetId);
+			ImGui::Text(
+				"Wave distance %.1f  |  support %.1f  |  search %.1f",
+				debug.fWaveDistance,
+				debug.fWaveSupportRange,
+				debug.fFollowWaveSearchRange);
+			ImGui::Text(
+				"Last %s %s -> target %u  goal (%.1f, %.1f)",
+				ChampionAICommandKindName(debug.lastCommandKind),
+				SkillSlotName(debug.lastCommandSlot),
+				debug.lastCommandTargetNetId,
+				debug.lastCommandPos.x,
+				debug.lastCommandPos.z);
+			ImGui::Text(
+				"Block %s  |  Executor %s / %s",
+				ChampionAIBlockReasonName(debug.lastBlockReason),
+				AIExecutorStateName(debug.lastExecutorState),
+				AIExecutorReasonName(debug.lastExecutorReason));
+
+			if (ImGui::CollapsingHeader("Latest Decision"))
+			{
+				if (debug.debugDecisionTraceCount == 0u)
+				{
+					ImGui::TextDisabled("No decision yet.");
+				}
+				else
+				{
+					const ChampionAIDecisionTraceEntry& latest =
+						debug.debugDecisionTrace[debug.debugDecisionTraceCount - 1u];
+					ImGui::Text(
+						"Tick %llu  |  %s  |  %s",
+						static_cast<unsigned long long>(latest.tick),
+						ChampionAIIntentName(latest.intent),
+						ChampionAIActionName(latest.action));
+					ImGui::Text(
+						"Block %s  |  Target %llu  |  Command %s %s",
+						ChampionAIBlockReasonName(latest.blockReason),
+						static_cast<unsigned long long>(latest.target),
+						ChampionAICommandKindName(latest.commandKind),
+						SkillSlotName(latest.commandSlot));
+				}
+			}
+			ImGui::EndTabItem();
+		}
+		ImGui::EndTabBar();
+	}
+
+	ImGui::End();
+}
+
+#if 0 // Legacy all-in-one AI inspection surface retained as backend reference only.
 void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 {
 	ImGui::SetNextWindowSize(ImVec2(820.f, 720.f), ImGuiCond_FirstUseEver);
@@ -1289,7 +1885,7 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 
 	if (ImGui::CollapsingHeader("Server Minions"))
 	{
-	ImGui::TextDisabled("Snapshot readout only. Server gameplay tuning lives in ServerMinionTuning.");
+	ImGui::TextDisabled("Snapshot readout only. Server gameplay tuning comes from the active definition pack.");
 
 	const CNavGrid* pMinionDebugGrid = pScene
 		? (pScene->GetPathNavGrid() ? pScene->GetPathNavGrid() : pScene->GetNavGrid())
@@ -1386,3 +1982,4 @@ void UI::CAIDebugPanel::Render(CWorld& world, CScene_InGame* pScene)
 
 	ImGui::End();
 }
+#endif

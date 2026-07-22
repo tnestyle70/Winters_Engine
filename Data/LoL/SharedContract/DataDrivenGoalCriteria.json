@@ -1,65 +1,118 @@
 {
-  "schemaVersion": 1,
-  "sourceDocument": ".md/plan/collab-pipeline/07_DATA_DRIVEN_FULL_CUTOVER_CODEX_REQUIREMENTS.md",
-  "loopRule": "Measure -> choose earliest unfinished phase -> implement one reversible slice -> verify full pipeline -> write status report -> repeat.",
-  "phaseOrder": [
-    "P3",
-    "P4",
-    "P5",
-    "P6",
-    "P7",
-    "P8"
-  ],
+  "schemaVersion": 2,
+  "sourceDocument": ".md/plan/2026-07-17_DATA_DRIVEN_100_PERCENT_AND_MAIN_MENU_PROFILE_PLAN.md",
+  "loopRule": "Measure -> choose earliest unfinished phase -> migrate one byte-identical reader slice -> verify -> remove zero-reader owner -> repeat.",
+  "phaseOrder": ["P3", "P4", "P5", "P6", "P7", "P8", "P9"],
   "goals": [
     {
-      "key": "P3SkillEffectHardcode",
+      "key": "P3GameplayTuningLiteral",
       "phase": "P3",
-      "name": "Champion skill gameplay/balance literals are removed",
-      "auditPath": "phaseGoalCounts.p3SkillEffectHardcode",
-      "targetMax": 0,
-      "nextFocus": "Convert remaining champion skill gameplay literals to generated ServerPrivate gameplay atoms, then delete fallback constants only after readers are data-backed."
+      "name": "Gameplay tuning literals outside generated code are zero",
+      "auditPath": "phaseGoalCounts.p3GameplayTuningLiteral",
+      "comparison": "max",
+      "target": 0,
+      "nextFocus": "Move remaining champion, item, economy, rune and formula fallback values to canonical ServerPrivate data."
     },
     {
-      "key": "P4VisualAuthorityLeak",
+      "key": "P3PackMissFallback",
+      "phase": "P3",
+      "name": "Definition queries do not fall back to legacy value owners",
+      "auditPath": "phaseGoalCounts.p3PackMissFallback",
+      "comparison": "max",
+      "target": 0,
+      "nextFocus": "Replace legacy fallback with validated coverage and explicit missing-definition failure."
+    },
+    {
+      "key": "P4ClientGameplayLiteral",
       "phase": "P4",
-      "name": "Gameplay authority no longer reads visual timing/yaw fields",
-      "auditPath": "phaseGoalCounts.p4VisualAuthorityLeak",
-      "targetMax": 0,
-      "nextFocus": "Split action timing from visual timing. Server/GameSim keeps action lock/window facts, ClientPublic owns animation/cast/recovery/yaw presentation facts."
+      "name": "Client registration owns no gameplay truth or duplicated visual scalar",
+      "auditPath": "phaseGoalCounts.p4ClientGameplayLiteral",
+      "comparison": "max",
+      "target": 0,
+      "nextFocus": "Generate SkillDef/Champion visual records and keep registration files limited to hooks."
+    },
+    {
+      "key": "P4ChampionModelCoverage",
+      "phase": "P4",
+      "name": "Every implemented champion has ClientPublic model and UI definitions",
+      "auditPath": "coverage.championModelCount",
+      "comparison": "min",
+      "target": 17,
+      "nextFocus": "Extract remaining registration asset paths into ChampionAssetVisualDefs.json."
     },
     {
       "key": "P5AiPolicyHardcode",
       "phase": "P5",
-      "name": "Bot AI tactics and skill-rank policy are data-owned",
+      "name": "Champion AI profile, skill rule and combo tuning are data-owned",
       "auditPath": "phaseGoalCounts.p5AiPolicyHardcode",
-      "targetMax": 0,
-      "nextFocus": "Move ChampionAIPolicy profile, combo, and bot skill-rank constants to ServerPrivate AI definition data."
+      "comparison": "max",
+      "target": 0,
+      "nextFocus": "Move ChampionAIPolicy Make*Profile and combo tables into the ServerPrivate pack."
+    },
+    {
+      "key": "P5AiProfileCoverage",
+      "phase": "P5",
+      "name": "Every implemented champion has a generated AI profile",
+      "auditPath": "coverage.aiProfileCount",
+      "comparison": "min",
+      "target": 17,
+      "nextFocus": "Reject missing champion AI definitions during codegen."
     },
     {
       "key": "P6ObjectWaveHardcode",
       "phase": "P6",
-      "name": "Minion, wave, jungle, structure, and placement game values are data-owned",
+      "name": "Minion behavior, wave formation, structure, jungle and placement tuning are data-owned",
       "auditPath": "phaseGoalCounts.p6ObjectWaveHardcode",
-      "targetMax": 0,
-      "nextFocus": "Move object combat, wave timing, jungle, structure, turret, and placement fallback values into ServerPrivate object/map data."
+      "comparison": "max",
+      "target": 0,
+      "nextFocus": "Move ServerMinionTuning and wave formation values into SpawnObjectGameplayDefs."
     },
     {
-      "key": "P7NetworkIdentityLegacy",
+      "key": "P7NetworkIdentityRuntimeReader",
       "phase": "P7",
-      "name": "Network identity uses stable DefinitionKey boundaries",
-      "auditPath": "phaseGoalCounts.p7NetworkIdentityLegacy",
-      "targetMax": 0,
-      "nextFocus": "Add stable DefinitionKey paths for command/snapshot boundaries and remove dense pack-local champion id assumptions from network contracts."
+      "name": "Runtime network code reads stable DefinitionKey fields only",
+      "auditPath": "phaseGoalCounts.p7NetworkIdentityRuntimeReader",
+      "comparison": "max",
+      "target": 0,
+      "nextFocus": "Append DefinitionKey fields, migrate writers/readers, then deprecate byte fields."
     },
     {
-      "key": "P8LegacyValueOwner",
+      "key": "P8LegacyValueOwnerReader",
       "phase": "P8",
-      "name": "Legacy value owner paths have no runtime readers",
-      "auditPath": "phaseGoalCounts.p8LegacyValueOwner",
-      "targetMax": 0,
-      "nextFocus": "After reader count reaches zero, delete ChampionGameDataDB value ownership, ChampionStatsRegistry defaults, ChampionRuntimeDefaults defaults, SkillTable, ChampionTable, and remaining fallback tables."
+      "name": "Legacy value owners have zero runtime readers",
+      "auditPath": "phaseGoalCounts.p8LegacyValueOwnerReader",
+      "comparison": "max",
+      "target": 0,
+      "nextFocus": "Delete reader-zero DB, tables, defaults and fallback registries."
+    },
+    {
+      "key": "P9SchemaCoverage",
+      "phase": "P9",
+      "name": "Every canonical authoring source has a generated JSON Schema",
+      "auditPath": "tooling.schemaCoverageCount",
+      "comparison": "min",
+      "target": 11,
+      "nextFocus": "Emit schemas for eight gameplay/AI/rune and three visual sources."
+    },
+    {
+      "key": "P9RuntimeReloadCoverage",
+      "phase": "P9",
+      "name": "Every tunable definition domain supports validated Debug reload",
+      "auditPath": "tooling.runtimeReloadDomainCount",
+      "comparison": "min",
+      "target": 11,
+      "nextFocus": "Add server AI/rune and client visual/asset reload without partial publication."
+    },
+    {
+      "key": "P9DraftRoundTrip",
+      "phase": "P9",
+      "name": "Planner draft can be hash-checked, applied and regenerated",
+      "auditPath": "tooling.draftRoundTripFailureCount",
+      "comparison": "max",
+      "target": 0,
+      "nextFocus": "Add base-hash guarded apply-draft and round-trip regression fixtures."
     }
   ],
-  "fullVerificationCommand": "powershell -ExecutionPolicy Bypass -File Tools/LoLData/Verify-LoLDataDrivenPipeline.ps1",
-  "completionDefinition": "All goals have currentCount <= targetMax and the full verification command passes."
+  "fullVerificationCommand": "powershell -ExecutionPolicy Bypass -File Tools/LoLData/Verify-LoLDataDrivenPipeline.ps1 -RequireComplete",
+  "completionDefinition": "All goals are achieved, all legacy reader counts are zero, and the read-only full verification command passes."
 }

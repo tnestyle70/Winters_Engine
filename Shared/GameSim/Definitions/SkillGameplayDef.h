@@ -10,12 +10,14 @@ struct SkillGameplayDef
     ChampionDefId ownerChampionId{};
     u8_t slot = 0u;
     u16_t legacySkillId = 0u;
+    SkillInputSpec input{};
     SkillTargetSpec target{};
     SkillCostSpec cost{};
     SkillCooldownSpec cooldown{};
     SkillRangeSpec range{};
     SkillStageSpec stage{};
     SkillFacingSpec facing{};
+    SkillChargeSpec charge{};
     SkillEffectSpec effect{};
     SummonPolicySpec summonPolicy{};
 };

@@ -40,6 +40,12 @@ public:
         const Vec4& vColor,
         u32_t iSegmentCount = 48);
 
+    void DrawImageVerticalReveal(void* pTextureSRV,
+        f32_t fX, f32_t fY, f32_t fW, f32_t fH,
+        const Vec4& vUVRect,
+        const Vec4& vColor,
+        f32_t fRevealRatio);
+
 private:
     CUIRenderer();
 

@@ -2,6 +2,7 @@
 
 #include "Shared/GameSim/Components/ActionStateComponent.h"
 #include "Shared/GameSim/Components/DamageRequestComponent.h"
+#include "Shared/GameSim/Components/HealthComponent.h"
 #include "Shared/GameSim/Components/MoveTargetComponent.h"
 #include "Shared/GameSim/Components/ProjectileBarrierComponent.h"
 #include "Shared/GameSim/Components/SkillProjectileComponent.h"
@@ -11,6 +12,7 @@
 #include "Shared/GameSim/Systems/GameplayHookRegistry/GameplayHookRegistry.h"
 #include "Shared/GameSim/Systems/GameplayStateQuery/GameplayStateQuery.h"
 #include "Shared/GameSim/Systems/CommandExecutor/ICommandExecutor.h"
+#include "Shared/GameSim/Systems/Combat/CombatFormula.h"
 #include "Shared/GameSim/Systems/DeterministicEntityIterator/DeterministicEntityIterator.h"
 #include "Shared/GameSim/Systems/StatusEffect/StatusEffectRequests.h"
 
@@ -220,6 +222,26 @@ namespace
             *ctx.pTickCtx,
             ctx.casterEntity,
             slot,
+            param,
+            fallbackValue);
+    }
+
+    f32_t ResolveYasuoSkillEffectParamRanked(
+        const GameplayHookContext& ctx,
+        eSkillSlot slot,
+        eSkillEffectParamId param,
+        f32_t fallbackValue = 0.f)
+    {
+        if (!ctx.pWorld || !ctx.pTickCtx)
+            return fallbackValue;
+
+        return GameplayDefinitionQuery::ResolveSkillEffectParamRanked(
+            *ctx.pWorld,
+            ctx.casterEntity,
+            *ctx.pTickCtx,
+            eChampion::YASUO,
+            static_cast<u8_t>(slot),
+            ctx.skillRank,
             param,
             fallbackValue);
     }
@@ -466,20 +488,21 @@ namespace
             ctx, eSkillSlot::Q, eSkillEffectParamId::EffectDurationSec);
         const f32_t qRadius = ResolveYasuoSkillEffectParam(
             ctx, eSkillSlot::Q, eSkillEffectParamId::Radius);
-        const f32_t qDamage = ResolveYasuoSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::BaseDamage);
+        const f32_t qDamage = GameplayDefinitionQuery::ResolveSkillFlatDamage(
+            world, ctx.casterEntity, *ctx.pTickCtx, eChampion::YASUO,
+            static_cast<u8_t>(eSkillSlot::Q), ctx.skillRank, 60.f);
         const f32_t tornadoSpeed = ResolveYasuoSkillEffectParam(
             ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoSpeed);
         const f32_t tornadoLifetimeSec = ResolveYasuoSkillEffectParam(
             ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoDurationSec);
         const f32_t tornadoRadius = ResolveYasuoSkillEffectParam(
             ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoRadius);
-        const f32_t tornadoDamage = ResolveYasuoSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoDamage);
+        const f32_t tornadoDamage = ResolveYasuoSkillEffectParamRanked(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::TornadoDamage, 100.f);
         const f32_t dashAreaRadius = ResolveYasuoSkillEffectParam(
             ctx, eSkillSlot::Q, eSkillEffectParamId::DashAreaRadius);
-        const f32_t dashAreaDamage = ResolveYasuoSkillEffectParam(
-            ctx, eSkillSlot::Q, eSkillEffectParamId::DashAreaDamage);
+        const f32_t dashAreaDamage = ResolveYasuoSkillEffectParamRanked(
+            ctx, eSkillSlot::Q, eSkillEffectParamId::DashAreaDamage, 70.f);
 
         switch (stage)
         {
@@ -673,6 +696,13 @@ namespace
             return;
         }
 
+        if (world.HasComponent<YasuoStateComponent>(ctx.casterEntity))
+        {
+            YasuoStateComponent& state =
+                world.GetComponent<YasuoStateComponent>(ctx.casterEntity);
+            state.fPassiveFlow = state.fPassiveFlowMax;
+        }
+
         GameplayStatus::ApplyAirborne(
             world,
             *ctx.pTickCtx,
@@ -705,6 +735,38 @@ namespace
 
 namespace YasuoGameSim
 {
+    f32_t ResolvePassiveFlowDistancePerPoint(u8_t level)
+    {
+        if (level >= 13u)
+            return 0.45f;
+        if (level >= 7u)
+            return 0.50f;
+        return 0.55f;
+    }
+
+    f32_t ResolvePassiveShieldAmount(u8_t level)
+    {
+        constexpr f32_t kLevelOneShield = 125.f;
+        constexpr f32_t kLevelEighteenShield = 600.f;
+        constexpr f32_t kLevelEighteenGrowthMultiplier = 17.f;
+        const u8_t resolvedLevel = (std::clamp)(
+            level,
+            static_cast<u8_t>(1u),
+            static_cast<u8_t>(18u));
+        return kLevelOneShield +
+            (kLevelEighteenShield - kLevelOneShield) /
+                kLevelEighteenGrowthMultiplier *
+                CCombatFormula::GrowthMultiplier(resolvedLevel);
+    }
+
+    bool_t CanTriggerPassiveShieldFromSource(CWorld& world, EntityID source)
+    {
+        return source != NULL_ENTITY &&
+            (world.HasComponent<ChampionComponent>(source) ||
+                world.HasComponent<JungleComponent>(source) ||
+                world.HasComponent<MinionComponent>(source));
+    }
+
     bool_t CanCastSweepingBlade(
         CWorld& world,
         const TickContext& tc,
@@ -1173,6 +1235,53 @@ namespace YasuoGameSim
                         state.eActiveTimer = std::max(0.f, state.eActiveTimer - tc.fDt);
                         if (state.eActiveTimer <= 0.f)
                             state.bEActive = false;
+                    }
+
+                    if (!world.HasComponent<ChampionComponent>(entity) ||
+                        !world.HasComponent<TransformComponent>(entity) ||
+                        world.GetComponent<ChampionComponent>(entity).id != eChampion::YASUO)
+                    {
+                        return;
+                    }
+
+                    const Vec3 position =
+                        world.GetComponent<TransformComponent>(entity).GetPosition();
+                    const PositionDiscontinuityComponent* discontinuity =
+                        world.TryGetComponent<PositionDiscontinuityComponent>(entity);
+                    const bool_t bNewDiscontinuity = discontinuity &&
+                        discontinuity->uTick > state.uPassiveLastObservedDiscontinuityTick;
+                    if (discontinuity)
+                    {
+                        state.uPassiveLastObservedDiscontinuityTick = (std::max)(
+                            state.uPassiveLastObservedDiscontinuityTick,
+                            discontinuity->uTick);
+                    }
+                    const bool_t bDead =
+                        world.HasComponent<HealthComponent>(entity) &&
+                        (world.GetComponent<HealthComponent>(entity).bIsDead ||
+                            world.GetComponent<HealthComponent>(entity).fCurrent <= 0.f);
+
+                    if (!state.bPassivePositionInitialized || bNewDiscontinuity || bDead)
+                    {
+                        state.fPassiveLastX = position.x;
+                        state.fPassiveLastZ = position.z;
+                        state.bPassivePositionInitialized = true;
+                        return;
+                    }
+
+                    const f32_t dx = position.x - state.fPassiveLastX;
+                    const f32_t dz = position.z - state.fPassiveLastZ;
+                    state.fPassiveLastX = position.x;
+                    state.fPassiveLastZ = position.z;
+                    const f32_t distance = std::sqrt(dx * dx + dz * dz);
+                    const u8_t level = world.GetComponent<ChampionComponent>(entity).level;
+                    const f32_t distancePerPoint =
+                        ResolvePassiveFlowDistancePerPoint(level);
+                    if (std::isfinite(distance) && distance > 0.f && distancePerPoint > 0.f)
+                    {
+                        state.fPassiveFlow = (std::min)(
+                            state.fPassiveFlowMax,
+                            state.fPassiveFlow + distance / distancePerPoint);
                     }
 
                 }));

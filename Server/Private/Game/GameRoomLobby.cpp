@@ -1,10 +1,11 @@
 #include "Game/GameRoom.h"
+#include "Backend/ReplayUploadQueue.h"
+#include "Shared/GameSim/Components/SkillChargeStateComponent.h"
 
 #include "GameRoomInternal.h"
 #include "Network/PacketDispatcher.h"
 #include "Network/ServerSessionHub.h"
 #include "Server/Private/Data/RuntimeGameplayDefinitionOverlay.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/Schemas/Generated/cpp/Hello_generated.h"
 #include "Shared/Schemas/Generated/cpp/LobbyCommand_generated.h"
 #include "Shared/Schemas/Generated/cpp/LobbyState_generated.h"
@@ -18,6 +19,13 @@
 
 namespace
 {
+    DefinitionKey ResolveChampionDefinitionKey(eChampion champion)
+    {
+        const ChampionGameplayDef* definition =
+            ServerData::GetActiveLoLGameplayDefinitionPack().FindChampion(champion);
+        return definition ? definition->key : kInvalidDefinitionKey;
+    }
+
     Shared::Schema::LobbyPhase ToSchemaLobbyPhase(eRoomPhase phase)
     {
         switch (phase)
@@ -55,9 +63,68 @@ void CGameRoom::OnLobbyCommand(
     ApplyLobbyAuthorityResult(result);
 }
 
-EntityID CGameRoom::OnSessionJoin(u32_t sessionId)
+EntityID CGameRoom::OnSessionJoin(u32_t sessionId, bool_t* pOutAccepted)
 {
     std::lock_guard stateLock(m_stateMutex);
+    if (pOutAccepted)
+        *pOutAccepted = true;
+
+    ServerSessionIdentity identity{};
+    if (CServerSessionHub::Instance().TryGetAuthenticatedIdentity(
+        sessionId,
+        identity))
+    {
+        if (m_matchID.empty() &&
+            identity.gameSessionGeneration <=
+                m_lastCompletedGameSessionGeneration)
+        {
+            if (pOutAccepted)
+                *pOutAccepted = false;
+            return NULL_ENTITY;
+        }
+        if ((!m_matchID.empty() && m_matchID != identity.matchID) ||
+            (!m_gameSessionID.empty() &&
+				m_gameSessionID != identity.gameSessionID) ||
+			(m_gameSessionGeneration != 0u &&
+				m_gameSessionGeneration != identity.gameSessionGeneration))
+        {
+            if (pOutAccepted)
+                *pOutAccepted = false;
+            return NULL_ENTITY;
+        }
+
+        const auto participant = m_authenticatedParticipants.find(
+            identity.userID);
+		const bool_t bLobbyOpen = !m_pLobbyAuthority ||
+			m_pLobbyAuthority->GetPhase() == eRoomPhase::SeatSelect ||
+			m_pLobbyAuthority->GetPhase() == eRoomPhase::ChampionSelect;
+		if (!bLobbyOpen && participant == m_authenticatedParticipants.end())
+		{
+			if (pOutAccepted)
+				*pOutAccepted = false;
+			return NULL_ENTITY;
+		}
+        if (participant != m_authenticatedParticipants.end() &&
+            participant->second.sessionId != sessionId &&
+            CServerSessionHub::Instance().IsSessionActive(
+                participant->second.sessionId))
+        {
+            if (pOutAccepted)
+                *pOutAccepted = false;
+            return NULL_ENTITY;
+        }
+
+        if (m_matchID.empty())
+            m_matchID = identity.matchID;
+        if (m_gameSessionID.empty())
+            m_gameSessionID = identity.gameSessionID;
+		if (m_gameSessionGeneration == 0u)
+			m_gameSessionGeneration = identity.gameSessionGeneration;
+        m_userIDBySession[sessionId] = identity.userID;
+        AuthenticatedMatchParticipant& authenticated =
+            m_authenticatedParticipants[identity.userID];
+        authenticated.sessionId = sessionId;
+    }
 
     EntityID boundEntity = NULL_ENTITY;
     if (m_sessionBinding.TryGet(sessionId, boundEntity) && boundEntity != NULL_ENTITY)
@@ -133,7 +200,15 @@ void CGameRoom::OnSessionLeave(u32_t sessionId)
 {
     std::lock_guard stateLock(m_stateMutex);
 
+    EntityID controlledEntity = NULL_ENTITY;
+    m_sessionBinding.TryGet(sessionId, controlledEntity);
+    if (controlledEntity != NULL_ENTITY &&
+        m_world.HasComponent<SkillChargeStateComponent>(controlledEntity))
+    {
+        m_world.RemoveComponent<SkillChargeStateComponent>(controlledEntity);
+    }
     m_sessionBinding.Unbind(sessionId);
+    m_userIDBySession.erase(sessionId);
     m_sessionIds.erase(
         std::remove(m_sessionIds.begin(), m_sessionIds.end(), sessionId),
         m_sessionIds.end());
@@ -154,12 +229,52 @@ void CGameRoom::OnSessionLeave(u32_t sessionId)
         // 게임종료 후 마지막 세션까지 떠나면 매치를 리셋해 SeatSelect로 되돌린다 —
         // 재접속이 파괴된 월드로 워프되는 대신 첫 게임과 동일 경로를 타게 한다 (S035).
         if (m_bGameEnded)
-            ResetMatchStateLocked();
+        {
+            if (!m_matchID.empty() && !m_gameSessionID.empty())
+            {
+                m_pendingReadyMatchID = m_matchID;
+                m_pendingReadyGameSessionID = m_gameSessionID;
+                TryResetCompletedMatchLocked();
+            }
+            else
+            {
+                ResetMatchStateLocked();
+            }
+        }
     }
 
     char msg[128]{};
     sprintf_s(msg, "[GameRoom] OnSessionLeave sid=%u\n", sessionId);
     OutputServerAITrace(msg);
+}
+
+bool_t CGameRoom::TryResetCompletedMatchLocked()
+{
+    if (!m_bGameEnded || !m_sessionIds.empty() ||
+        m_pendingReadyMatchID.empty() ||
+        m_pendingReadyGameSessionID.empty())
+    {
+        return false;
+    }
+
+    CReplayUploadQueue& uploadQueue = CReplayUploadQueue::Instance();
+    if (!uploadQueue.StageGameSessionReady(
+        m_pendingReadyGameSessionID, m_pendingReadyMatchID))
+    {
+        OutputServerAITrace(
+            "[MatchmakingReady] stage failed; completed room remains locked\n");
+        return false;
+    }
+
+    const std::string matchID = m_pendingReadyMatchID;
+    const std::string gameSessionID = m_pendingReadyGameSessionID;
+    ResetMatchStateLocked();
+    if (!uploadQueue.PublishGameSessionReady(gameSessionID, matchID))
+    {
+        OutputServerAITrace(
+            "[MatchmakingReady] publish enqueue failed; durable sidecar retained\n");
+    }
+    return true;
 }
 
 void CGameRoom::ApplyLobbyAuthorityResult(const LobbyAuthorityResult& result)
@@ -177,12 +292,38 @@ void CGameRoom::ApplyLobbyAuthorityResult(const LobbyAuthorityResult& result)
 
         const LobbySlotState* pSlots = GetLobbySlots();
         const u32_t slotCount = GetLobbySlotCount();
+		std::vector<std::string> finalUserIDs;
         for (u32_t i = 0; i < slotCount; ++i)
         {
             const LobbySlotState& slot = pSlots[i];
+            const auto user = m_userIDBySession.find(slot.sessionId);
+			if (slot.bHuman && user != m_userIDBySession.end())
+            {
+                auto participant = m_authenticatedParticipants.find(user->second);
+                if (participant != m_authenticatedParticipants.end())
+				{
+                    participant->second.team = slot.team;
+					participant->second.perspectiveNetId = slot.netId;
+					finalUserIDs.push_back(user->second);
+				}
+            }
             if (slot.bHuman && slot.sessionId != 0)
                 SendHelloToSessionLocked(slot.sessionId, slot.netId, slot.champion, slot.team);
         }
+		for (auto participant = m_authenticatedParticipants.begin();
+			participant != m_authenticatedParticipants.end();)
+		{
+			if (std::find(
+				finalUserIDs.begin(), finalUserIDs.end(), participant->first) ==
+				finalUserIDs.end())
+			{
+				participant = m_authenticatedParticipants.erase(participant);
+			}
+			else
+			{
+				++participant;
+			}
+		}
 
         char msg[128]{};
         sprintf_s(msg,
@@ -271,7 +412,8 @@ void CGameRoom::BroadcastLobbyStateLocked()
             slot.botLane,
             0,
             slot.bReady,
-            slot.bLocked));
+            slot.bLocked,
+            ResolveChampionDefinitionKey(slot.champion)));
     }
 
     const auto slotVec = fbb.CreateVector(slots);
@@ -340,9 +482,10 @@ void CGameRoom::SendHelloToSessionLocked(
         ResolveServerGameTimeMs(m_tickIndex),
         static_cast<u8_t>(champion),
         team,
-        ChampionGameDataDB::GetBuildHash(),
         ServerData::GetActiveLoLGameplayDefinitionPack().manifest.uBuildHash,
-        ServerData::GetRuntimeGameplayDefinitionRevision());
+        ServerData::GetActiveLoLGameplayDefinitionPack().manifest.uBuildHash,
+        ServerData::GetRuntimeGameplayDefinitionRevision(),
+        ResolveChampionDefinitionKey(champion));
     fbb.Finish(hello);
     auto helloBuffer = fbb.Release();
 

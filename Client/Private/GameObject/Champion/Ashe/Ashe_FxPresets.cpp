@@ -17,14 +17,10 @@ namespace
         L"Texture/Character/Ashe/particles/ashe_base_q_buf.png";
     constexpr const wchar_t* kPathQReadyTex =
         L"Texture/Character/Ashe/particles/ashe_base_q_ready_brightsparks.png";
-    constexpr const wchar_t* kPathQDiffuseTex =
-        L"Texture/Character/Ashe/particles/ashe_base_q_buff_diffuse.png";
     constexpr const wchar_t* kPathWArrowTex =
         L"Texture/Character/Ashe/particles/ashe_base_aa_arrowtext.png";
     constexpr const wchar_t* kPathWMuzzleTex =
         L"Texture/Character/Ashe/particles/ashe_base_q_bow_sparks.png";
-    constexpr const wchar_t* kPathEHawkTex =
-        L"Texture/Character/Ashe/particles/ashe_base_e_textureowl.png";
     constexpr const wchar_t* kPathRChargeTex =
         L"Texture/Character/Ashe/particles/ashe_base_q_ready_brightsparks_star.png";
     constexpr const wchar_t* kPathRArrowTex =
@@ -41,7 +37,7 @@ namespace
     constexpr const char* kFbxRArrow =
         "Texture/Character/Ashe/particles/fbx/ashe_base_r_arrow.fbx";
 
-    constexpr f32_t kArrowMeshYawOffset = -1.57079632679f;
+    constexpr f32_t kArrowMeshYawOffset = -WintersMath::kPi * 0.5f;
     const Vec3 kBAArrowMeshScale{ 0.021f, 0.021f, 0.021f };
 
     void SpawnLineProjectileVisual(CWorld& world, EntityID owner,
@@ -165,21 +161,6 @@ namespace Ashe::Fx
             fx.fFadeOut = fDuration * 0.3f;
             CFxSystem::Spawn(world, fx);
         }
-
-        {
-            FxBillboardComponent fx{};
-            fx.attachTo = owner;
-            fx.vAttachOffset = { 0.f, 0.05f, 0.f };
-            fx.texturePath = kPathQDiffuseTex;
-            fx.fWidth = 2.0f;
-            fx.fHeight = 2.0f;
-            fx.bBillboard = false;
-            fx.fLifetime = fDuration;
-            fx.vColor = { 0.6f, 0.9f, 1.2f, 0.6f };
-            fx.blendMode = eBlendPreset::AlphaBlend;
-            fx.fFadeOut = fDuration * 0.4f;
-            CFxSystem::Spawn(world, fx);
-        }
     }
 
     void SpawnQBuffMesh(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
@@ -264,23 +245,6 @@ namespace Ashe::Fx
             { 0.75f, 1.15f, 1.45f, 0.85f },
             0.f,
             8.f);
-    }
-
-    void SpawnEHawkshot(CWorld& world, const Vec3& start, const Vec3&, f32_t fLifetime)
-    {
-        FxBillboardComponent fx{};
-        fx.attachTo = NULL_ENTITY;
-        fx.vWorldPos = { start.x, start.y + 3.0f, start.z };
-        fx.vAttachOffset = { 0.f, 0.f, 0.f };
-        fx.texturePath = kPathEHawkTex;
-        fx.fWidth = 1.4f;
-        fx.fHeight = 1.0f;
-        fx.bBillboard = true;
-        fx.fLifetime = fLifetime;
-        fx.vColor = { 0.8f, 1.1f, 1.3f, 1.f };
-        fx.blendMode = eBlendPreset::Additive;
-        fx.fFadeOut = fLifetime * 0.4f;
-        CFxSystem::Spawn(world, fx);
     }
 
     void SpawnRCrystalCharge(CWorld& world, EntityID owner, f32_t fLifetime)

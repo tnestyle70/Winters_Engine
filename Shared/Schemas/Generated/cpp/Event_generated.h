@@ -231,7 +231,8 @@ struct DamageEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
     VT_TYPE = 10,
     VT_BWASCRIT = 12,
     VT_BKILLED = 14,
-    VT_SKILLID = 16
+    VT_SKILLID = 16,
+    VT_FLAGS = 18
   };
   uint32_t sourceNet() const {
     return GetField<uint32_t>(VT_SOURCENET, 0);
@@ -254,6 +255,9 @@ struct DamageEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
   uint16_t skillId() const {
     return GetField<uint16_t>(VT_SKILLID, 0);
   }
+  uint16_t flags() const {
+    return GetField<uint16_t>(VT_FLAGS, 0);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -264,6 +268,7 @@ struct DamageEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_BWASCRIT, 1) &&
            VerifyField<uint8_t>(verifier, VT_BKILLED, 1) &&
            VerifyField<uint16_t>(verifier, VT_SKILLID, 2) &&
+           VerifyField<uint16_t>(verifier, VT_FLAGS, 2) &&
            verifier.EndTable();
   }
 };
@@ -293,6 +298,9 @@ struct DamageEventBuilder {
   void add_skillId(uint16_t skillId) {
     fbb_.AddElement<uint16_t>(DamageEvent::VT_SKILLID, skillId, 0);
   }
+  void add_flags(uint16_t flags) {
+    fbb_.AddElement<uint16_t>(DamageEvent::VT_FLAGS, flags, 0);
+  }
   explicit DamageEventBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -312,11 +320,13 @@ inline ::flatbuffers::Offset<DamageEvent> CreateDamageEvent(
     uint8_t type = 0,
     bool bWasCrit = false,
     bool bKilled = false,
-    uint16_t skillId = 0) {
+    uint16_t skillId = 0,
+    uint16_t flags = 0) {
   DamageEventBuilder builder_(_fbb);
   builder_.add_amount(amount);
   builder_.add_targetNet(targetNet);
   builder_.add_sourceNet(sourceNet);
+  builder_.add_flags(flags);
   builder_.add_skillId(skillId);
   builder_.add_bKilled(bKilled);
   builder_.add_bWasCrit(bWasCrit);
@@ -909,7 +919,9 @@ struct EffectTriggerEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
     VT_DIRZ = 22,
     VT_STARTTICK = 24,
     VT_DURATIONMS = 26,
-    VT_FLAGS = 28
+    VT_FLAGS = 28,
+    VT_EFFECTLENGTH = 30,
+    VT_EFFECTHALFWIDTH = 32
   };
   uint32_t effectId() const {
     return GetField<uint32_t>(VT_EFFECTID, 0);
@@ -950,6 +962,12 @@ struct EffectTriggerEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
   uint16_t flags() const {
     return GetField<uint16_t>(VT_FLAGS, 0);
   }
+  float effectLength() const {
+    return GetField<float>(VT_EFFECTLENGTH, 0.0f);
+  }
+  float effectHalfWidth() const {
+    return GetField<float>(VT_EFFECTHALFWIDTH, 0.0f);
+  }
   template <bool B = false>
   bool Verify(::flatbuffers::VerifierTemplate<B> &verifier) const {
     return VerifyTableStart(verifier) &&
@@ -966,6 +984,8 @@ struct EffectTriggerEvent FLATBUFFERS_FINAL_CLASS : private ::flatbuffers::Table
            VerifyField<uint64_t>(verifier, VT_STARTTICK, 8) &&
            VerifyField<uint16_t>(verifier, VT_DURATIONMS, 2) &&
            VerifyField<uint16_t>(verifier, VT_FLAGS, 2) &&
+           VerifyField<float>(verifier, VT_EFFECTLENGTH, 4) &&
+           VerifyField<float>(verifier, VT_EFFECTHALFWIDTH, 4) &&
            verifier.EndTable();
   }
 };
@@ -1013,6 +1033,12 @@ struct EffectTriggerEventBuilder {
   void add_flags(uint16_t flags) {
     fbb_.AddElement<uint16_t>(EffectTriggerEvent::VT_FLAGS, flags, 0);
   }
+  void add_effectLength(float effectLength) {
+    fbb_.AddElement<float>(EffectTriggerEvent::VT_EFFECTLENGTH, effectLength, 0.0f);
+  }
+  void add_effectHalfWidth(float effectHalfWidth) {
+    fbb_.AddElement<float>(EffectTriggerEvent::VT_EFFECTHALFWIDTH, effectHalfWidth, 0.0f);
+  }
   explicit EffectTriggerEventBuilder(::flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -1038,9 +1064,13 @@ inline ::flatbuffers::Offset<EffectTriggerEvent> CreateEffectTriggerEvent(
     float dirZ = 0.0f,
     uint64_t startTick = 0,
     uint16_t durationMs = 0,
-    uint16_t flags = 0) {
+    uint16_t flags = 0,
+    float effectLength = 0.0f,
+    float effectHalfWidth = 0.0f) {
   EffectTriggerEventBuilder builder_(_fbb);
   builder_.add_startTick(startTick);
+  builder_.add_effectHalfWidth(effectHalfWidth);
+  builder_.add_effectLength(effectLength);
   builder_.add_dirZ(dirZ);
   builder_.add_dirY(dirY);
   builder_.add_dirX(dirX);

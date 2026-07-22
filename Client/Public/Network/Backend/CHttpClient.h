@@ -34,6 +34,7 @@ public:
 
 	void AsyncGet(const string& path, HttpCallback callback);
 	void AsyncPost(const string& path, const string& jsonBody, HttpCallback callback);
+	void AsyncDelete(const string& path, HttpCallback callback);
 
 	void ProcessCallbacks();
 
@@ -47,6 +48,7 @@ private:
 		uint16_t port = 80;
 		wstring basePath;
 		string authToken;
+		bool_t secure = false;
 	};
 
 	RequestSnapshot MakeRequestSnapshot() const;
@@ -58,12 +60,18 @@ private:
 	HttpResponse DoRequest(const string& method, const string& path, const string& body);
 	void LaunchAsyncRequest(string method, string path, string body, HttpCallback callback);
 	void PruneCompletedRequests();
-	void ParseURL(const string& url, wstring& host, uint16_t& port, wstring& basePath);
+	void ParseURL(
+		const string& url,
+		wstring& host,
+		uint16_t& port,
+		wstring& basePath,
+		bool_t& secure);
 
 	string m_BaseURL;
 	wstring m_Host;
 	uint16_t m_Port = 80;
 	wstring m_BasePath;
+	bool_t m_bSecure = false;
 	string m_AuthToken;
 	mutex m_CallbackMutex;
 	queue<function<void()>> m_PendingCallbacks;

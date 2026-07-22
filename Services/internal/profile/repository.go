@@ -128,10 +128,6 @@ func (r *Repository) UpdatePlayerStats(ctx context.Context, userId uuid.UUID, p 
 	return nil
 }
 
-func (r *Repository) InvalidateCache(ctx context.Context, userId uuid.UUID) error {
-	return r.rdb.Del(ctx, profileCachePrefix+userId.String()).Err()
-}
-
 // ReportMatch applies one finished match atomically: history row + player_stats
 // (wins/losses/mmr) + RP wallet credit, then invalidates the profile cache (S035).
 func (r *Repository) ReportMatch(ctx context.Context, userId, matchID uuid.UUID, p MatchCompletedPlayer, rpReward int64) error {
@@ -141,11 +137,19 @@ func (r *Repository) ReportMatch(ctx context.Context, userId, matchID uuid.UUID,
 	}
 	defer tx.Rollback(ctx)
 
-	if _, err := tx.Exec(ctx,
+	insertResult, err := tx.Exec(ctx,
 		`INSERT INTO match_history (user_id, match_id, result, kills, deaths, assists, mmr_change)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		userId, matchID, p.Result, p.Kills, p.Deaths, p.Assists, p.MMRChange); err != nil {
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)
+		 ON CONFLICT (user_id, match_id) DO NOTHING`,
+		userId, matchID, p.Result, p.Kills, p.Deaths, p.Assists, p.MMRChange)
+	if err != nil {
 		return fmt.Errorf("insert match history: %w", err)
+	}
+	if insertResult.RowsAffected() == 0 {
+		if err := tx.Commit(ctx); err != nil {
+			return fmt.Errorf("commit duplicate report match: %w", err)
+		}
+		return r.syncProfileProjection(ctx, userId)
 	}
 
 	winAdd, lossAdd := 0, 0
@@ -174,6 +178,25 @@ func (r *Repository) ReportMatch(ctx context.Context, userId, matchID uuid.UUID,
 		return fmt.Errorf("commit report match: %w", err)
 	}
 
-	r.InvalidateCache(ctx, userId)
+	return r.syncProfileProjection(ctx, userId)
+}
+
+func (r *Repository) syncProfileProjection(ctx context.Context, userId uuid.UUID) error {
+	var mmr int
+	if err := r.db.QueryRow(ctx,
+		`SELECT mmr FROM player_stats WHERE user_id = $1`, userId,
+	).Scan(&mmr); err != nil {
+		return fmt.Errorf("read profile projection: %w", err)
+	}
+
+	pipe := r.rdb.TxPipeline()
+	pipe.ZAdd(ctx, leaderboardKey, redis.Z{
+		Score:  float64(mmr),
+		Member: userId.String(),
+	})
+	pipe.Del(ctx, profileCachePrefix+userId.String())
+	if _, err := pipe.Exec(ctx); err != nil {
+		return fmt.Errorf("sync profile projection: %w", err)
+	}
 	return nil
 }

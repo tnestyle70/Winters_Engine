@@ -1,0 +1,23 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Objective.Baron.Buff",
+  "emitters": [
+    {
+      "name": "baron_ground_aura",
+      "render_type": "GroundDecal",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Kindred/particles/common_ahri_orbswirl.png",
+      "lifetime": 300.0,
+      "fade_in": 0.2,
+      "fade_out": 0.4,
+      "width": 2.8,
+      "height": 2.8,
+      "color": [1.25, 0.25, 1.8, 0.55],
+      "attach_offset": [0.0, 0.06, 0.0],
+      "uv_scroll": [0.0, -0.2],
+      "billboard": false
+    }
+  ]
+}

@@ -20,16 +20,13 @@ namespace
         L"Texture/FX/Kalista/kalista_base_e_spear_glow.png";
     constexpr const wchar_t* kPathERendWispAtlasTex =
         L"Texture/Character/Kalista/particles/kalista_base_q_precast_wisps.png";
-    constexpr const wchar_t* kPathWSentinelAvatarTex =
-        L"Texture/Character/Kalista/particles/kalista_base_w_avatar.png";
     constexpr const wchar_t* kPathWSentinelViewConeTex =
         L"Texture/Character/Kalista/particles/kalista_base_w_viewcone.png";
 }
 
 bool_t KalistaFx::PreloadWSentinelTextures(CFxSystem& fxSystem)
 {
-    return fxSystem.PreloadTextureResource(kPathWSentinelAvatarTex) &&
-        fxSystem.PreloadTextureResource(kPathWSentinelViewConeTex);
+    return fxSystem.PreloadTextureResource(kPathWSentinelViewConeTex);
 }
 
 EntityID KalistaFx::SpawnQSpear(CWorld& world, Engine::CFxStaticMeshRenderer* pRenderer,
@@ -137,31 +134,8 @@ void KalistaFx::SpawnWSentinelIdle(CWorld& world, EntityID sentinel,
     const f32_t sightRange = fSightRange > 0.1f ? fSightRange : 0.1f;
     const f32_t sightCenterOffset = sightRange * 0.5f;
 
-    FxBillboardComponent avatar{};
-    avatar.attachTo = sentinel;
-    avatar.vAttachOffset = { 0.f, 1.25f, 0.f };
-    avatar.texturePath = kPathWSentinelAvatarTex;
-    avatar.fWidth = 2.2f;
-    avatar.fHeight = 0.65f;
-    avatar.bBillboard = true;
-    avatar.renderType = eFxRenderType::Billboard;
-    avatar.fLifetime = lifetime;
-    avatar.vColor = { 0.76f, 0.86f, 0.92f, 0.88f };
-    avatar.iAtlasCols = 1u;
-    avatar.iAtlasRows = 4u;
-    avatar.iAtlasFrameCount = 4u;
-    avatar.fAtlasFps = 8.f;
-    avatar.bAtlasLoop = true;
-    avatar.blendMode = eBlendPreset::Additive;
-    avatar.depthMode = eFxDepthMode::DepthTestWriteOff;
-    avatar.fFadeIn = 0.08f;
-    avatar.fFadeOut = 0.35f;
-    avatar.fAlphaClip = 0.f;
-    avatar.visibilityPolicy = eFxVisibilityPolicy::InheritAttachVisibility;
-    avatar.bDestroyWhenAttachInvalid = true;
-    const EntityID avatarFx = CFxSystem::Spawn(world, avatar);
     if (pOutAvatarFx)
-        *pOutAvatarFx = avatarFx;
+        *pOutAvatarFx = NULL_ENTITY;
 
     FxBillboardComponent cone{};
     cone.attachTo = sentinel;

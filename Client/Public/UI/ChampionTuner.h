@@ -1,21 +1,25 @@
 #pragma once
 
+#include "WintersTypes.h"
+
 class CScene_InGame;
 
 namespace UI
 {
-	//ChampionTunerPanel
-	//Attack Speed Multiplier - 공격 / 스킬 애니 재생속도 계수
-	//Global Anim Speed : 모든 애니 재생속도 계수
-	//Basic Attack Range : A키 사거리 + 평타 발동 기준 거리
-	//    차후 확장:
-	//      Dash Distance / Duration (Q)
-	//      W Channel Duration
-	//      E Sword Place Range / Bind Speed / Stun Duration
-	//      R Wave Length / Width / Speed / Damage
+	enum class eBalanceTunerCategory : u8_t
+	{
+		Champions = 0u,
+		Skills,
+		Minions,
+		Towers,
+		Objectives,
+	};
+
 	class CChampionTuner
 	{
 	public:
+		static void Open(
+			eBalanceTunerCategory category = eBalanceTunerCategory::Champions);
 		static void Render(CScene_InGame* pScene);
 	};
 }

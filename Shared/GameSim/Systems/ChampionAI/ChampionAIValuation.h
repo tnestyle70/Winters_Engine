@@ -62,7 +62,9 @@ namespace ChampionAIValuation
         u8_t  enemyLevel = 1;
         f32_t enemyDistance = 999.f;
         f32_t attackRange = 1.5f;
+        f32_t engageRange = 1.5f;
         f32_t turretDanger = 0.f;
+        f32_t incomingComboDamageRatio = 0.f;
         f32_t retreatHpRatio = 0.10f;
         f32_t reengageHpRatio = 0.25f;
         f32_t fightUtilityWeight = 1.f;
@@ -96,6 +98,29 @@ namespace ChampionAIValuation
         f32_t siege = 0.f;
     };
 
+    struct UtilityTerm
+    {
+        f32_t rawValue = 0.f;
+        f32_t weight = 0.f;
+        f32_t contribution = 0.f;
+    };
+
+    struct CandidateBreakdown
+    {
+        f32_t score = 0.f;
+        UtilityTerm terms[4]{};
+        u8_t termCount = 0u;
+    };
+
+    struct UtilityBreakdown
+    {
+        CandidateBreakdown retreat{};
+        CandidateBreakdown fight{};
+        CandidateBreakdown farm{};
+        CandidateBreakdown siege{};
+    };
+
     f32_t RetreatValue(const ValueInput& in);
+    UtilityBreakdown BuildUtilityBreakdown(const ValueInput& in);
     UtilityScores BuildUtilityScores(const ValueInput& in);
 }

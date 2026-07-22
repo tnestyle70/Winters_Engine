@@ -30,14 +30,19 @@ struct ChampionAIPerception
     f32_t lowHpEnemyRatio = 1.f;
     f32_t lowHpEnemyDistance = 999.f;
     f32_t attackRange = 1.5f;
+    f32_t engageRange = 1.5f;
     f32_t waveDistance = 999.f;
     f32_t turretDanger = 0.f;
+    f32_t observedEnemyComboDamageRatio = 0.f;
     Vec3 midDefenseAnchor{};
+    Vec3 midTeamfightAnchor{};
     Vec3 lastSeenEnemyChampionPos{};
     u64_t lastSeenEnemyChampionTick = 0u;
     f32_t lastSeenEnemyAgeSec = 0.f;
     f32_t lastSeenEnemyConfidence = 0.f;
     u32_t activeSkillMask = 0u;
+    u8_t alliedMidChampionCount = 0u;
+    u8_t enemyMidChampionCount = 0u;
     bool_t bEnemyChampionTargetable = false;
     bool_t bCanMove = true;
     bool_t bCanAttack = true;
@@ -47,6 +52,7 @@ struct ChampionAIPerception
     bool_t bInsideEnemyTurretDanger = false;
     bool_t bAlliedOuterTurretLost = false;
     bool_t bMidLaneTurretLost = false;
+    bool_t bEnemyMidOuterTurretLost = false;
     bool_t bHasLastSeenEnemyChampion = false;
     bool_t bSelfInventoryValueComplete = true;
     bool_t bEnemyInventoryValueComplete = true;

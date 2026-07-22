@@ -28,12 +28,22 @@ private:
 	CScene_MyInfo& operator=(const CScene_MyInfo&) = delete;
 
 	void ReloadLocalMatchRecords();
-	void OpenReplay(const wstring_t& path);
+	void ReloadReplayItems();
+	void DrawCloudReplayItems();
+	void DrawReplayItems(const std::vector<ReplayListItem>& items, const char* pEmptyText);
+	void OpenReplay(const wstring_t& path, u32_t perspectiveNetId);
 	void ChangeToMainMenu();
+	bool_t HasExpectedCloudReplay() const;
+	void UpdateExpectedReplayPolling(f32_t dt);
 
 	CImageScenePresenter m_ImageUI{};
-	std::vector<ReplayListItem> m_vReplayItems{};
+	std::vector<ReplayListItem> m_vAccountReplayItems{};
+	std::vector<ReplayListItem> m_vDebugReplayItems{};
 	std::vector<std::string> m_vLocalMatchRecords{};
 	bool_t m_bBackRequested = false;
 	bool_t m_bSceneTransitionStarted = false;
+	u32_t m_uObservedReplayLibraryRevision = 0u;
+	std::string m_strExpectedReplayMatchID{};
+	f32_t m_fReplayReadyPollRemainingSec = 0.f;
+	f32_t m_fReplayReadyPollCooldownSec = 0.f;
 };

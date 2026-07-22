@@ -43,13 +43,14 @@ namespace
         return reward;
     }
 
-    RewardDef MakeTurretReward(f32_t killerGold)
+    RewardDef MakeTurretReward(f32_t killerGold, f32_t teamGold)
     {
         // 봇 가치판단(ChampionAIValuation::GetTurretGoldValue)이 이 레지스트리를
         // 조회하므로 실보상과 갈라지지 않는다.
         RewardDef reward{};
         reward.sourceKind = eRewardSourceKind::Turret;
         reward.gold.killerGold = killerGold;
+        reward.gold.teamGold = teamGold;
         return reward;
     }
 
@@ -112,7 +113,7 @@ void CRewardRegistry::LoadDefaultSummonersRift()
     AddReward(MakeMinionReward(eMinionRewardKind::Ranged, 30.40f, 39.68f, 14.f));
     AddReward(MakeMinionReward(eMinionRewardKind::Siege, 95.f, 124.f, 60.f, 90.f, 3.f, 90.f));
     AddReward(MakeMinionReward(eMinionRewardKind::Super, 95.f, 124.f, 60.f, 90.f, 3.f, 90.f));
-    AddReward(MakeTurretReward(250.f));
+    AddReward(MakeTurretReward(1500.f, 1000.f));
     AddReward(MakeJungleReward(kJungleRewardSubBaron, 300.f, 600.f));
     AddReward(MakeJungleReward(kJungleRewardSubEpic, 150.f, 250.f));
     AddReward(MakeJungleReward(kJungleRewardSubSmall, 35.f, 75.f));
@@ -145,7 +146,7 @@ void CRewardRegistry::LoadFromEconomyDef(const EconomyGameplayDef& economy)
     AddReward(MakeMinionReward(eMinionRewardKind::Super,
         economy.super.soloXP, economy.super.sharedXP, economy.super.gold,
         economy.super.maxGold, economy.super.growthAmount, economy.super.growthIntervalSec));
-    AddReward(MakeTurretReward(economy.turretGold));
+    AddReward(MakeTurretReward(economy.turretGold, economy.turretTeamGold));
     AddReward(MakeJungleReward(kJungleRewardSubBaron, economy.jungle.baronGold, economy.jungle.baronXP));
     AddReward(MakeJungleReward(kJungleRewardSubEpic, economy.jungle.epicGold, economy.jungle.epicXP));
     AddReward(MakeJungleReward(kJungleRewardSubSmall, economy.jungle.smallCampGold, economy.jungle.smallCampXP));

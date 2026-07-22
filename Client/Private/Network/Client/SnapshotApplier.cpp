@@ -1,4 +1,5 @@
 #include "Network/Client/SnapshotApplier.h"
+#include "Network/Client/AIDebugEvidenceDecoder.h"
 #include "Network/Client/EventApplier.h"
 
 #pragma push_macro("min")
@@ -12,7 +13,6 @@
 #pragma pop_macro("min")
 
 #include "Shared/GameSim/Replication/EntityIdMap.h"
-#include "Shared/GameSim/Registries/ChampionGameData/ChampionGameDataDB.h"
 #include "Shared/GameSim/Components/ChampionAIComponent.h"
 #include "Shared/GameSim/Components/AnnieSimComponent.h"
 #include "Shared/GameSim/Components/BuffComponent.h"
@@ -24,10 +24,13 @@
 #include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedPoseComponent.h"
 #include "Shared/GameSim/Components/ReplicatedStateComponent.h"
+#include "Shared/GameSim/Components/RespawnComponent.h"
+#include "Shared/GameSim/Components/ProjectileKindComponent.h"
 #include "Shared/GameSim/Components/SkillRankComponent.h"
 #include "Shared/GameSim/Components/StatComponent.h"
 #include "Shared/GameSim/Components/RuneComponent.h"
 #include "Shared/GameSim/Components/ChampionComponent.h"
+#include "Shared/GameSim/Champions/Yasuo/YasuoGameSim.h"
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/SpellbookOverrideComponent.h"
 #include "Shared/GameSim/Components/KalistaSentinelComponent.h"
@@ -80,6 +83,8 @@ namespace
         L"Texture/FX/Kalista/common_global_indicator_ring_bright.png";
     constexpr const wchar_t* kMonsterMarkerTexture =
         L"Texture/FX/Kalista/common_color-hit-physical.png";
+    constexpr const wchar_t* kLeeSinWardMarkerTexture =
+        L"Texture/Character/LeeSin/particles/base_leesin_q_mark_floor_01.png";
     constexpr f32_t kNetworkMinionVisualScale = 0.006f;
     constexpr f32_t kNetworkMinionVisualYOffset = kNetworkMinionVisualScale * 2.f;
     constexpr bool_t kSnapshotMinionDebugOutput = false;
@@ -237,14 +242,13 @@ namespace
         CWorld& world,
         EntityID entity,
         u8_t team,
-        u16_t subtype)
+        u16_t subtype,
+        f32_t sightRange)
     {
         if (entity == NULL_ENTITY || !world.IsAlive(entity))
             return;
 
-        const u8_t role = subtype <= kGameSimMinionRoleTibbers
-            ? static_cast<u8_t>(subtype)
-            : kGameSimMinionRoleMelee;
+        (void)subtype;
 
         SpatialAgentComponent& spatial =
             world.HasComponent<SpatialAgentComponent>(entity)
@@ -258,7 +262,9 @@ namespace
             world.HasComponent<VisionSourceComponent>(entity)
                 ? world.GetComponent<VisionSourceComponent>(entity)
                 : world.AddComponent<VisionSourceComponent>(entity, VisionSourceComponent{});
-        vision.sightRange = ResolveMinionCombatDef(role).sightRange;
+        // The server publishes the active minion definition value so FoW follows
+        // runtime Data reloads without compiling ServerPrivate tuning into Client.
+        vision.sightRange = (std::max)(0.f, sightRange);
 
         if (!world.HasComponent<VisibilityComponent>(entity))
             world.AddComponent<VisibilityComponent>(entity, VisibilityComponent{});
@@ -368,7 +374,8 @@ namespace
         EntityID entity,
         Shared::Schema::EntityKind kind,
         u8_t team,
-        u16_t subtype)
+        u16_t subtype,
+        bool_t bTargetable = true)
     {
         if (entity == NULL_ENTITY)
             return;
@@ -414,8 +421,15 @@ namespace
             world.AddComponent<NexusTag>(entity);
         }
 
-        if (!world.HasComponent<TargetableTag>(entity))
-            world.AddComponent<TargetableTag>(entity);
+        if (bTargetable)
+        {
+            if (!world.HasComponent<TargetableTag>(entity))
+                world.AddComponent<TargetableTag>(entity);
+        }
+        else if (world.HasComponent<TargetableTag>(entity))
+        {
+            world.RemoveComponent<TargetableTag>(entity);
+        }
     }
 
     EntityID TryBindStageStructureVisual(
@@ -518,17 +532,19 @@ namespace
         {
             FxBillboardComponent fx{};
             fx.attachTo = entity;
-            fx.vAttachOffset = { 0.f, 0.45f, 0.f };
+            fx.vAttachOffset = { 0.f, 0.055f, 0.f };
             fx.fLifetime = 3600.f;
             fx.fFadeOut = 0.f;
-            fx.bBillboard = true;
-            fx.blendMode = eBlendPreset::AlphaBlend;
-            fx.texturePath = kStructureMarkerTexture;
-            fx.fWidth = 0.45f;
-            fx.fHeight = 0.45f;
+            fx.bBillboard = false;
+            fx.renderType = eFxRenderType::GroundDecal;
+            fx.depthMode = eFxDepthMode::DepthTestWriteOff;
+            fx.blendMode = eBlendPreset::Additive;
+            fx.texturePath = kLeeSinWardMarkerTexture;
+            fx.fWidth = 0.8f;
+            fx.fHeight = 0.8f;
             fx.vColor = (team == static_cast<u8_t>(eTeam::Red))
-                ? Vec4{ 1.f, 0.20f, 0.16f, 0.95f }
-                : Vec4{ 0.20f, 0.55f, 1.f, 0.95f };
+                ? Vec4{ 1.f, 0.30f, 0.22f, 0.58f }
+                : Vec4{ 0.34f, 0.96f, 0.92f, 0.58f };
             world.AddComponent<FxBillboardComponent>(entity, fx);
         }
     }
@@ -639,7 +655,7 @@ void CSnapshotApplier::OnHello(
     // P1 데이터 버전 검증: 서버/클라가 서로 다른 생성 게임 데이터로 빌드된 경우
     // "미묘하게 다른 수치"로만 나타나던 drift를 접속 시점에 가시화한다 (0 = 구버전 서버, 검사 생략).
     if (hello->dataBuildHash() != 0u &&
-        hello->dataBuildHash() != ChampionGameDataDB::GetBuildHash())
+        hello->dataBuildHash() != ClientData::GetLoLClientVisualDefinitionBuildHash())
     {
         static u32_t s_dataHashMismatchLogCount = 0;
         if (s_dataHashMismatchLogCount < 8)
@@ -648,7 +664,7 @@ void CSnapshotApplier::OnHello(
             sprintf_s(msg,
                 "[Data] build hash mismatch server=0x%08X client=0x%08X\n",
                 hello->dataBuildHash(),
-                ChampionGameDataDB::GetBuildHash());
+                ClientData::GetLoLClientVisualDefinitionBuildHash());
             OutputDebugStringA(msg);
             ++s_dataHashMismatchLogCount;
         }
@@ -691,7 +707,8 @@ void CSnapshotApplier::OnHello(
         entityMap,
         hello->yourNetId(),
         static_cast<u8_t>(Shared::Schema::EntityKind::Champion),
-        hello->championId(),
+        static_cast<u8_t>(ClientData::ResolveChampionFromDefinitionKey(
+            hello->championDefinitionKey())),
         0u,
         Vec3{},
         hello->team());
@@ -707,6 +724,52 @@ void CSnapshotApplier::OnHello(
             hello->yourNetId());
     }
 
+}
+
+void CSnapshotApplier::ResetForReplaySeek(
+    CWorld& world,
+    EntityIdMap& entityMap,
+    u64_t targetTick)
+{
+    const SnapshotTimelineState previousTimeline = m_timelineState;
+    const u32_t replayLocalNetId = m_localNetId;
+
+    m_localMoveYawProtection = {};
+    for (u32_t netId : m_ezrealPassiveNetIds)
+    {
+        RemoveEzrealPassivePresentation(
+            world,
+            entityMap.FromNet(netId));
+    }
+    m_ezrealPassiveNetIds.clear();
+    ClearRemoteEntitiesForTimelineRebase(
+        world,
+        entityMap,
+        replayLocalNetId);
+    m_seenNetIds.clear();
+
+    m_lastServerTick = 0u;
+    m_lastSnapshotTick = 0u;
+    m_localNetId = 0u;
+    m_lastHelloNetId = 0u;
+    m_lastSnapshotNetId = 0u;
+    m_lastAckedCommandSequence = 0u;
+    m_serverGameplayPackHash = 0u;
+    m_serverGameplayPackRevision = 0u;
+    m_timelineState = {};
+    m_bHasTimelineState = false;
+
+    if (m_onTimelineRebase)
+    {
+        m_onTimelineRebase(
+            previousTimeline,
+            SnapshotTimelineState{},
+            targetTick);
+    }
+    else if (m_pEventApplier)
+    {
+        m_pEventApplier->RebaseTimeline(world, entityMap);
+    }
 }
 
 void CSnapshotApplier::OnSnapshot(
@@ -818,6 +881,34 @@ void CSnapshotApplier::OnSnapshot(
             lastAckedCommandSeq,
             localNetId);
     }
+    const auto* commandResults = snapshot->commandResults();
+    if (m_onCommandResult && commandResults && !commandResults->empty())
+    {
+        for (const Shared::Schema::CommandResultSnapshot* result : *commandResults)
+        {
+            if (!result || result->state() == 0u)
+                continue;
+            m_onCommandResult(
+                snapshot->serverTick(),
+                result->commandSequence(),
+                result->state(),
+                result->reason(),
+                result->authoritativeSkillSlot(),
+                result->authoritativeSkillStage(),
+                result->stageWindowEndTick());
+        }
+    }
+    else if (m_onCommandResult && snapshot->lastCommandResultState() != 0u)
+    {
+        m_onCommandResult(
+            snapshot->serverTick(),
+            snapshot->lastCommandResultSeq(),
+            snapshot->lastCommandResultState(),
+            snapshot->lastCommandResultReason(),
+            snapshot->authoritativeSkillSlot(),
+            snapshot->authoritativeSkillStage(),
+            snapshot->stageWindowEndTick());
+    }
 
     const bool_t bFullSnapshot = snapshot->deltaBaseTick() == 0u;
     if (m_pEventApplier)
@@ -841,7 +932,9 @@ void CSnapshotApplier::OnSnapshot(
 
         snapshotNetIds.insert(es->netId());
 
-        const u8_t snapshotChampionId = es->championId();
+        const eChampion snapshotChampion = ClientData::ResolveChampionFromDefinitionKey(
+            es->championDefinitionKey());
+        const u8_t snapshotChampionId = static_cast<u8_t>(snapshotChampion);
         const u8_t snapshotVisualChampionId =
             es->visualChampionId() != 0u ? es->visualChampionId() : snapshotChampionId;
         const EntityID e = EnsureEntity(
@@ -943,7 +1036,7 @@ void CSnapshotApplier::OnSnapshot(
                 const f32_t yawDelta = NormalizeChampionVisualYaw(resolvedYaw - rot.y);
                 const f32_t serverYawDelta = NormalizeChampionVisualYaw(serverYaw - rot.y);
                 const f32_t protectedYawDelta = NormalizeChampionVisualYaw(protectedYaw - rot.y);
-                const eChampion championId = static_cast<eChampion>(es->championId());
+                const eChampion championId = snapshotChampion;
                 const f32_t visualYawOffset = ClientData::ResolveChampionModelYawOffset(championId);
                 const Vec3 serverForward =
                     GameplayForwardFromVisualYaw(championId, serverYaw);
@@ -960,7 +1053,7 @@ void CSnapshotApplier::OnSnapshot(
                         lastAckedCommandSeq,
                         es->netId(),
                         static_cast<u32_t>(e),
-                        static_cast<u32_t>(es->championId()),
+                        static_cast<u32_t>(snapshotChampionId),
                         bUseProtectedYaw ? "protected" : "server",
                         m_localMoveYawProtection.bActive ? 1u : 0u,
                         bUseProtectedYaw ? 1u : 0u,
@@ -1048,10 +1141,20 @@ void CSnapshotApplier::OnSnapshot(
         auto& replicatedState = world.GetComponent<ReplicatedStateComponent>(e);
         replicatedState.stateFlags = es->stateFlags();
         replicatedState.gameplayStateFlags = es->gameplayStateFlags();
+        replicatedState.objectiveStateFlags = es->objectiveStateFlags();
         replicatedState.gameplayMoveSpeedMul = es->gameplayMoveSpeedMul();
+        replicatedState.visualScaleMultiplier = es->visualScaleMultiplier();
         replicatedState.forcedMotionKind = es->forcedMotionKind();
         replicatedState.fForcedMotionRemainingSec = es->forcedMotionRemainingSec();
         replicatedState.serverTick = m_lastServerTick;
+        if (m_pEventApplier)
+        {
+            m_pEventApplier->ReconcileObjectiveSnapshot(
+                world,
+                es->netId(),
+                e,
+                replicatedState.objectiveStateFlags);
+        }
 
         auto& gameplayState = world.HasComponent<GameplayStateComponent>(e)
             ? world.GetComponent<GameplayStateComponent>(e)
@@ -1090,10 +1193,21 @@ void CSnapshotApplier::OnSnapshot(
                 yasuoState.fPassiveFlow = champ.mana;
                 yasuoState.fPassiveFlowMax = champ.maxMana;
                 yasuoState.fPassiveShieldRemaining = champ.shield;
-                yasuoState.fPassiveShieldMax = (champ.maxMana > 0.f) ? champ.maxMana : 100.f;
+                yasuoState.fPassiveShieldMax =
+                    YasuoGameSim::ResolvePassiveShieldAmount(es->level());
             }
             champ.moveSpeed = es->moveSpeed();
             champ.level = es->level();
+            auto& respawn = world.HasComponent<RespawnComponent>(e)
+                ? world.GetComponent<RespawnComponent>(e)
+                : world.AddComponent<RespawnComponent>(e, RespawnComponent{});
+            respawn.respawnTimer = (std::max)(0.f, es->respawnRemainingSec());
+            respawn.respawnDelay = (std::max)(
+                respawn.respawnTimer,
+                es->respawnDurationSec());
+            respawn.bPending =
+                (es->stateFlags() & kSnapshotStateDeadFlag) != 0u &&
+                respawn.respawnDelay > 0.f;
             if (const auto* pCooldowns = es->skillCooldowns())
             {
                 for (u32_t i = 0; i < 4; ++i)
@@ -1398,6 +1512,14 @@ void CSnapshotApplier::OnSnapshot(
                 debug.fDiveExtraBAWindow = es->aiDebugDiveExtraBAWindow();
                 debug.fFlashRange = es->aiDebugFlashRange();
                 debug.fPostComboBATimer = es->aiDebugPostComboBATimer();
+                debug.enemyMinionNetId = es->aiDebugEnemyMinionNet();
+                debug.alliedWaveNetId = es->aiDebugAlliedWaveNet();
+                debug.fWaveDistance = es->aiDebugWaveDistance();
+                debug.fWaveSupportRange = es->aiDebugWaveSupportRange();
+                debug.fFollowWaveSearchRange = es->aiDebugFollowWaveSearchRange();
+                debug.fFarmPriority = es->aiDebugFarmPriority();
+				Client::DecodeAIDebugUtilityEvidence(
+					*es, snapshot->serverTick(), debug);
                 debug.moveSpeed = es->moveSpeed();
                 debug.snapshotPos = Vec3{ es->posX(), es->posY(), es->posZ() };
                 debug.lastCommandPos = Vec3{
@@ -1535,7 +1657,8 @@ void CSnapshotApplier::OnSnapshot(
                 world,
                 e,
                 es->team(),
-                es->subtype());
+                es->subtype(),
+                es->sightRange());
 
             CMinion_Manager::Get()->QueueNetworkVisual(
                 e,
@@ -1548,6 +1671,7 @@ void CSnapshotApplier::OnSnapshot(
                 ms.team = static_cast<eTeam>(es->team());
                 ms.type = static_cast<u8_t>(es->subtype());
                 ms.moveSpeed = es->moveSpeed();
+                ms.sightRange = es->sightRange();
                 if (es->minionAttackWindupSec() > 0.f)
                     ms.attackWindup = es->minionAttackWindupSec();
                 if (es->minionAttackRecoverySec() > 0.f)
@@ -1616,21 +1740,14 @@ void CSnapshotApplier::OnSnapshot(
              kind == Shared::Schema::EntityKind::Nexus) &&
             world.HasComponent<StructureComponent>(e))
         {
-            EnsureSnapshotStructureRuntimeTags(world, e, kind, es->team(), es->subtype());
+            EnsureSnapshotStructureRuntimeTags(
+                world, e, kind, es->team(), es->subtype(), es->hp() > 0.f);
 
             auto& structure = world.GetComponent<StructureComponent>(e);
             structure.team = static_cast<eTeam>(es->team());
             structure.hp = es->hp();
             if (es->maxHp() > 0.f)
                 structure.maxHp = es->maxHp();
-
-            // 포탑/억제기는 파괴 서브메시 상태가 없어 사망 시 본체 메시를 숨긴다.
-            // (넥서스는 Structure_Manager 의 visibleWhenDestroyed 서브메시 스왑 경로 유지)
-            if (kind != Shared::Schema::EntityKind::Nexus &&
-                world.HasComponent<RenderComponent>(e))
-            {
-                world.GetComponent<RenderComponent>(e).bVisible = es->hp() > 0.f;
-            }
 
             if (kind == Shared::Schema::EntityKind::Turret &&
                 world.HasComponent<TurretComponent>(e))
@@ -1651,7 +1768,7 @@ void CSnapshotApplier::OnSnapshot(
             kind == Shared::Schema::EntityKind::Champion)
         {
             auto& stat = world.GetComponent<StatComponent>(e);
-            stat.championId = static_cast<eChampion>(es->championId());
+            stat.championId = snapshotChampion;
             stat.level = es->level();
             stat.moveSpeed = es->moveSpeed();
 
@@ -1751,6 +1868,26 @@ void CSnapshotApplier::OnSnapshot(
                 world.AddComponent<ReplicatedProjectilePresentationTag>(
                     e,
                     ReplicatedProjectilePresentationTag{});
+            }
+            if (es->projectileKind() ==
+                static_cast<u16_t>(eProjectileKind::AsheHawkshot))
+            {
+                SpatialAgentComponent spatial{};
+                spatial.kind = eSpatialKind::Sensor;
+                spatial.team = es->team();
+                spatial.radius = 0.25f;
+                if (world.HasComponent<SpatialAgentComponent>(e))
+                    world.GetComponent<SpatialAgentComponent>(e) = spatial;
+                else
+                    world.AddComponent<SpatialAgentComponent>(e, spatial);
+
+                VisionSourceComponent vision{};
+                vision.sightRange = (std::max)(0.f, es->projectileRadius());
+                vision.bFlying = true;
+                if (world.HasComponent<VisionSourceComponent>(e))
+                    world.GetComponent<VisionSourceComponent>(e) = vision;
+                else
+                    world.AddComponent<VisionSourceComponent>(e, vision);
             }
             if (m_pEventApplier)
             {
@@ -2017,7 +2154,7 @@ EntityID CSnapshotApplier::EnsureEntity(
     EntityIdMap& entityMap,
     u32_t netId,
     u8_t entityKind,
-    u8_t championId,
+    u8_t legacyChampionValue,
     u16_t subtype,
     const Vec3& vPos,
     u8_t team)
@@ -2049,7 +2186,7 @@ EntityID CSnapshotApplier::EnsureEntity(
     {
         auto& champ = world.GetComponent<ChampionComponent>(e);
         const u8_t currentChampionID = static_cast<u8_t>(champ.id);
-        if (currentChampionID != championId)
+        if (currentChampionID != legacyChampionValue)
         {
             static u32_t s_championMismatchLogCount = 0;
             if (s_championMismatchLogCount < 8)
@@ -2060,16 +2197,16 @@ EntityID CSnapshotApplier::EnsureEntity(
                     netId,
                     static_cast<u32_t>(e),
                     currentChampionID,
-                    championId);
+                    legacyChampionValue);
                 OutputDebugStringA(msg);
                 ++s_championMismatchLogCount;
             }
 
-            champ.id = static_cast<eChampion>(championId);
+            champ.id = static_cast<eChampion>(legacyChampionValue);
             champ.team = static_cast<eTeam>(team);
 
             if (m_onChampionVisualChanged)
-                m_onChampionVisualChanged(e, championId, team);
+                m_onChampionVisualChanged(e, legacyChampionValue, team);
         }
     }
 
@@ -2103,7 +2240,7 @@ EntityID CSnapshotApplier::EnsureEntity(
     }
 
     if (m_onNewEntity && kind == Shared::Schema::EntityKind::Champion)
-        e = m_onNewEntity(netId, championId, team);
+        e = m_onNewEntity(netId, legacyChampionValue, team);
     else
         e = world.CreateEntity();
 
@@ -2117,7 +2254,7 @@ EntityID CSnapshotApplier::EnsureEntity(
                 "[SnapshotApplier] entity spawn FAILED netId=%u kind=%u champion=%u\n",
                 netId,
                 static_cast<u32_t>(entityKind),
-                static_cast<u32_t>(championId));
+                static_cast<u32_t>(legacyChampionValue));
             OutputDebugStringA(msg);
             ++s_entitySpawnFailLogCount;
         }
@@ -2146,7 +2283,7 @@ EntityID CSnapshotApplier::EnsureEntity(
         !world.HasComponent<ChampionComponent>(e))
     {
         ChampionComponent champ{};
-        champ.id = static_cast<eChampion>(championId);
+        champ.id = static_cast<eChampion>(legacyChampionValue);
         champ.team = static_cast<eTeam>(team);
         world.AddComponent<ChampionComponent>(e, champ);
     }
@@ -2201,7 +2338,7 @@ EntityID CSnapshotApplier::EnsureEntity(
         !world.HasComponent<StatComponent>(e))
     {
         StatComponent stat{};
-        stat.championId = static_cast<eChampion>(championId);
+        stat.championId = static_cast<eChampion>(legacyChampionValue);
         stat.moveSpeed = 5.f;
         stat.hpMax = 600.f;
         stat.manaMax = 300.f;

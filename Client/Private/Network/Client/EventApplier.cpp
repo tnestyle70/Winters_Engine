@@ -34,9 +34,11 @@
 #include "Renderer/ModelRenderer.h"
 #include "Shared/GameSim/Components/FormOverrideComponent.h"
 #include "Shared/GameSim/Components/HealthComponent.h"
+#include "Shared/GameSim/Components/ProjectileKindComponent.h"
 #include "Shared/GameSim/Components/ReplicatedActionComponent.h"
 #include "Shared/GameSim/Components/ReplicatedEventComponent.h"
 #include "Shared/GameSim/Feedback/GameplayFeedback.h"
+#include "Shared/GameSim/Definitions/SnapshotStateFlags.h"
 #include "UI/AttackSpeedLab.h"
 
 #include <algorithm>
@@ -149,22 +151,21 @@ namespace
             id != eReplicatedActionId::Recall;
     }
     bool_t ShouldLoopReplicatedAction(
-        eChampion animationChampion,
         u16_t actionId,
-        u8_t actionStage)
+        u8_t actionStage,
+        const SkillDef* pSkillDef)
     {
         const auto id = static_cast<eReplicatedActionId>(actionId);
         if (id == eReplicatedActionId::None)
             return false;
         if (id == eReplicatedActionId::Recall)
             return true;
-        if (animationChampion == eChampion::JAX &&
-            id == eReplicatedActionId::SkillE &&
-            actionStage <= 1u)
-        {
-            return true;
-        }
-        return false;
+        if (!pSkillDef)
+            return false;
+
+        return actionStage >= 2u
+            ? pSkillDef->bStage2PresentationLoopWhileActive
+            : pSkillDef->bPresentationLoopWhileActive;
     }
 
     bool_t IsNewerActionSeq(u32_t seq, u32_t previousSeq)
@@ -356,6 +357,10 @@ namespace
 
     bool_t ShouldKeepEffectEventPosition(eChampion hookChampion, u8_t slot)
     {
+        if (hookChampion == eChampion::FIORA)
+            return static_cast<eSkillSlot>(slot) == eSkillSlot::W;
+        if (hookChampion == eChampion::SYLAS)
+            return static_cast<eSkillSlot>(slot) == eSkillSlot::Q;
         if (hookChampion != eChampion::KINDRED)
             return false;
 
@@ -571,17 +576,26 @@ void CEventApplier::RebaseTimeline(
     m_yasuoWindWallAnchors.clear();
     m_yasuoWindWallVisualEntities.clear();
     m_yasuoWindWallExpireTicks.clear();
+    for (const auto& [_, visuals] : m_objectiveVisualEntities)
+    {
+        for (EntityID entity : visuals)
+            DestroyEntityIfAlive(world, entity);
+    }
+    m_objectiveVisualEntities.clear();
     m_lastActionSeq.clear();
     m_seenEffectCueKeys.clear();
     m_seenKillFeedKeys.clear();
     m_snapshotProjectileNetIds.clear();
     m_snapshotEzrealFluxKeys.clear();
     m_snapshotYasuoWindWallKeys.clear();
+    m_snapshotObjectiveKeys.clear();
     m_seenProjectileHitCueKeys.clear();
     m_projectileMutationStamps.clear();
     m_ezrealFluxMutationStamps.clear();
     m_reconcileServerTick = 0u;
     m_bReconcileFullSnapshot = false;
+    m_bGameEndPending = false;
+    m_uGameEndWinningTeam = 0u;
 }
 
 void CEventApplier::OnEvent(
@@ -802,6 +816,34 @@ void CEventApplier::ApplyProjectileHit(
     if (!m_seenProjectileHitCueKeys.insert(cueKey).second)
         return;
 
+    if (ev->kind() == static_cast<u16_t>(eProjectileKind::LeeSinQ) &&
+        ev->contactReason() == Shared::Schema::ProjectileContactReason::UnitHit)
+    {
+        const EntityID localEntity = FindLocalPlayerEntity(world);
+        const EntityID ownerEntity = ev->ownerNet() != NULL_NET_ENTITY
+            ? ResolveLiveEntity(world, entityMap, ev->ownerNet())
+            : NULL_ENTITY;
+        if (localEntity != NULL_ENTITY &&
+            ownerEntity == localEntity &&
+            world.HasComponent<ChampionComponent>(localEntity) &&
+            world.HasComponent<SkillStateComponent>(localEntity) &&
+            world.GetComponent<ChampionComponent>(localEntity).id == eChampion::LEESIN)
+        {
+            constexpr u8_t kQSlot = static_cast<u8_t>(eSkillSlot::Q);
+            SkillGameAtomBundle gameData{};
+            if (CSkillRegistry::Instance().ResolveGameAtoms(
+                    eChampion::LEESIN,
+                    kQSlot,
+                    gameData))
+            {
+                SkillSlotRuntime& qSlot =
+                    world.GetComponent<SkillStateComponent>(localEntity).slots[kQSlot];
+                qSlot.currentStage = 1u;
+                qSlot.stageWindow = gameData.stage.stageWindowSec;
+            }
+        }
+    }
+
     const Vec3 pos{ ev->posX(), ev->posY(), ev->posZ() };
     const ProjectileVisualDesc& visual = ProjectileVisualCatalog::Resolve(ev->kind());
     const char* pszContactCue = nullptr;
@@ -997,7 +1039,7 @@ EntityID CEventApplier::EnsureProjectilePresentation(
             mesh.vWorldPos = vPosition;
             mesh.vVelocity = {};
             mesh.attachTo = entity;
-            mesh.vRotation.y = yaw;
+            mesh.vRotation.y = visual.bSuppressMeshDirectionalYaw ? 0.f : yaw;
         }
         if (world.HasComponent<FxBillboardComponent>(visualEntity))
         {
@@ -1068,6 +1110,64 @@ void CEventApplier::BeginSnapshotReconciliation(
     m_snapshotProjectileNetIds.clear();
     m_snapshotEzrealFluxKeys.clear();
     m_snapshotYasuoWindWallKeys.clear();
+    m_snapshotObjectiveKeys.clear();
+}
+
+void CEventApplier::DestroyObjectiveVisuals(CWorld& world, u64_t objectiveKey)
+{
+    const auto it = m_objectiveVisualEntities.find(objectiveKey);
+    if (it == m_objectiveVisualEntities.end())
+        return;
+    for (EntityID visual : it->second)
+        DestroyEntityIfAlive(world, visual);
+    m_objectiveVisualEntities.erase(it);
+}
+
+void CEventApplier::ReconcileObjectiveSnapshot(
+    CWorld& world,
+    NetEntityId uNetId,
+    EntityID entity,
+    u32_t objectiveStateFlags)
+{
+    if (uNetId == NULL_NET_ENTITY || entity == NULL_ENTITY || !world.IsAlive(entity))
+        return;
+
+    struct CueFlag { u32_t flag; const char* cue; };
+    static constexpr CueFlag kCues[] =
+    {
+        { kObjectiveStateBaronFlag, "Objective.Baron.Buff" },
+        { kObjectiveStateElderFlag, "Objective.Elder.Buff" },
+        { kObjectiveStateBlueFlag, "Objective.Blue.Buff" },
+        { kObjectiveStateRedFlag, "Objective.Red.Buff" },
+        { kObjectiveStateBaronMinionFlag, "Objective.Baron.Minion" },
+    };
+    for (u8_t index = 0u;
+        index < static_cast<u8_t>(sizeof(kCues) / sizeof(kCues[0]));
+        ++index)
+    {
+        const u64_t key = (static_cast<u64_t>(uNetId) << 8u) | index;
+        if ((objectiveStateFlags & kCues[index].flag) == 0u)
+        {
+            DestroyObjectiveVisuals(world, key);
+            continue;
+        }
+        m_snapshotObjectiveKeys.insert(key);
+        const auto it = m_objectiveVisualEntities.find(key);
+        if (it != m_objectiveVisualEntities.end() && HasLiveVisualEntity(world, it->second))
+            continue;
+
+        DestroyObjectiveVisuals(world, key);
+        FxCueContext fx{};
+        fx.attachTo = entity;
+        if (world.HasComponent<TransformComponent>(entity))
+            fx.vWorldPos = world.GetComponent<TransformComponent>(entity).GetPosition();
+        fx.bOverrideLifetime = true;
+        fx.fLifetimeOverride = 3600.f;
+        fx.pFxMeshRenderer = m_pFxMeshRenderer;
+        std::vector<EntityID> spawned;
+        CFxCuePlayer::PlayAll(world, kCues[index].cue, fx, &spawned);
+        m_objectiveVisualEntities.emplace(key, std::move(spawned));
+    }
 }
 
 void CEventApplier::UpsertProjectileSnapshot(
@@ -1356,6 +1456,16 @@ void CEventApplier::EndSnapshotReconciliation(
     }
     for (u64_t wallKey : staleWallKeys)
         DestroyYasuoWindWallVisuals(world, wallKey);
+
+    std::vector<u64_t> staleObjectiveKeys;
+    staleObjectiveKeys.reserve(m_objectiveVisualEntities.size());
+    for (const auto& [objectiveKey, _] : m_objectiveVisualEntities)
+    {
+        if (m_snapshotObjectiveKeys.find(objectiveKey) == m_snapshotObjectiveKeys.end())
+            staleObjectiveKeys.push_back(objectiveKey);
+    }
+    for (u64_t objectiveKey : staleObjectiveKeys)
+        DestroyObjectiveVisuals(world, objectiveKey);
 }
 
 void CEventApplier::ApplyEffectTrigger(
@@ -1369,6 +1479,31 @@ void CEventApplier::ApplyEffectTrigger(
         return;
 
     const u32_t effectId = ev->effectId();
+    if (effectId == kObjectiveEffectElderExecute)
+    {
+        const EntityID target = ResolveLiveEntity(world, entityMap, ev->targetNet());
+        const EntityID source = ResolveLiveEntity(world, entityMap, ev->sourceNet());
+        FxCueContext fx{};
+        fx.attachTo = target;
+        if (target != NULL_ENTITY && world.HasComponent<TransformComponent>(target))
+            fx.vWorldPos = world.GetComponent<TransformComponent>(target).GetPosition();
+        if (source != NULL_ENTITY && world.HasComponent<TransformComponent>(source))
+        {
+            const Vec3 sourcePos = world.GetComponent<TransformComponent>(source).GetPosition();
+            const f32_t dx = fx.vWorldPos.x - sourcePos.x;
+            const f32_t dz = fx.vWorldPos.z - sourcePos.z;
+            const f32_t length = std::sqrt(dx * dx + dz * dz);
+            fx.vForward = length > 0.0001f
+                ? Vec3{ dx / length, 0.f, dz / length }
+                : Vec3{ 0.f, 0.f, 1.f };
+        }
+        fx.pFxMeshRenderer = m_pFxMeshRenderer;
+        std::vector<EntityID> spawned;
+        CFxCuePlayer::PlayAll(world, "Objective.Elder.Execute", fx, &spawned);
+        for (EntityID entity : spawned)
+            m_timelineVisualEntities.push_back(world.GetEntityHandle(entity));
+        return;
+    }
     if (effectId == kGlobalGameEndEffect)
     {
         // 넥서스 파괴 게임 종료 — 엔티티 해석 없이 latch만 세운다 (S030).
@@ -1614,6 +1749,30 @@ void CEventApplier::ApplyEffectTrigger(
         : NULL_ENTITY;
 
     if (eventSlot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
+        source != NULL_ENTITY &&
+        world.HasComponent<JungleComponent>(source) &&
+        world.GetComponent<JungleComponent>(source).subKind == 1u)
+    {
+        const EntityID target = ev->targetNet() != NULL_NET_ENTITY
+            ? ResolveLiveEntity(world, entityMap, ev->targetNet())
+            : NULL_ENTITY;
+        FxCueContext fx{};
+        fx.attachTo = target;
+        fx.vWorldPos = pos;
+        fx.vForward = WintersMath::Normalize3D(
+            Vec3{ ev->dirX(), ev->dirY(), ev->dirZ() });
+        fx.pFxMeshRenderer = m_pFxMeshRenderer;
+        std::vector<EntityID> spawned;
+        CFxCuePlayer::PlayAll(
+            world, "Objective.Elder.BasicAttack", fx, &spawned);
+        for (EntityID spawnedEntity : spawned)
+        {
+            m_timelineVisualEntities.push_back(
+                world.GetEntityHandle(spawnedEntity));
+        }
+    }
+
+    if (eventSlot == static_cast<u8_t>(eSkillSlot::BasicAttack) &&
         source != NULL_ENTITY)
     {
         const bool_t bAlreadyDrivenByAction =
@@ -1664,6 +1823,11 @@ void CEventApplier::ApplyEffectTrigger(
         ctx.pDef = pDef;
         ctx.pCommand = &command;
         ctx.skillStage = skillStage;
+        ctx.fEffectLifetimeSec = ev->durationMs() > 0u
+            ? static_cast<f32_t>(ev->durationMs()) / 1000.f
+            : 0.f;
+        ctx.fEffectLength = ev->effectLength();
+        ctx.fEffectHalfWidth = ev->effectHalfWidth();
         ctx.pFxMeshRenderer = m_pFxMeshRenderer;
         ctx.bAuthoritativeEvent = true;
 
@@ -1671,6 +1835,24 @@ void CEventApplier::ApplyEffectTrigger(
             CVisualHookRegistry::Instance().Dispatch(effectId, ctx);
 
 #if defined(_DEBUG)
+        if (hookChampion == eChampion::SYLAS &&
+            hookSlot == static_cast<u8_t>(eSkillSlot::BasicAttack))
+        {
+            static u32_t s_sylasPassiveCueTraceCount = 0u;
+            if (s_sylasPassiveCueTraceCount < 32u)
+            {
+                char msg[192]{};
+                sprintf_s(
+                    msg,
+                    "[SylasPassive][ClientCue] stage=%u effect=0x%08X visual=%u authoritative=%u\n",
+                    static_cast<u32_t>(skillStage),
+                    effectId,
+                    bVisualHandled ? 1u : 0u,
+                    ctx.bAuthoritativeEvent ? 1u : 0u);
+                OutputDebugStringA(msg);
+                ++s_sylasPassiveCueTraceCount;
+            }
+        }
         if (hookChampion == eChampion::IRELIA)
         {
             static u32_t s_ireliaCueTraceCount = 0;
@@ -1689,6 +1871,7 @@ void CEventApplier::ApplyEffectTrigger(
                     command.groundPos.x,
                     command.groundPos.y,
                     command.groundPos.z);
+                OutputDebugStringA(msg);
                 ++s_ireliaCueTraceCount;
             }
         }
@@ -1734,12 +1917,16 @@ void CEventApplier::ApplyDamage(
 
     Vec3 damageTextPos = pos;
     damageTextPos.y += 2.1f;
+    const bool_t bShowCriticalIndicator =
+        ev->bWasCrit() ||
+        (ev->flags() & DamageFlag_ShowCriticalIndicator) != 0u;
     CGameInstance::Get()->UI_Push_DamageNumber(
         damageTextPos,
         ev->amount(),
         ev->type(),
         ev->bWasCrit(),
-        ev->bKilled());
+        ev->bKilled(),
+        bShowCriticalIndicator);
 
     if (ev->bKilled() && IsMinionEntity(world, target))
     {
@@ -1783,6 +1970,10 @@ void CEventApplier::ApplyKillFeed(
     const eTeam targetTeam = TeamFromWire(ev->targetTeam());
     const bool_t bSourceAlly = sourceTeam == localTeam;
     const bool_t bTargetAlly = targetTeam == localTeam;
+    const EntityID sourceEntity = ev->sourceNet() != NULL_NET_ENTITY
+        ? ResolveLiveEntity(world, entityMap, ev->sourceNet())
+        : NULL_ENTITY;
+    const bool_t bSourceMinion = IsMinionEntity(world, sourceEntity);
 
     // 포탑/억제기 파괴 순간 연출 — 구조물 엔티티는 사망 후에도 ECS 에 남으므로 위치 해석 가능.
     if (objectKind == kKillFeedObjectStructure || objectKind == kKillFeedObjectObjective)
@@ -1836,7 +2027,9 @@ void CEventApplier::ApplyKillFeed(
         ev->sourceChampion(),
         ev->targetChampion(),
         objectKind,
+        ev->targetTeam(),
         bSourceAlly,
+        bSourceMinion,
         pMessage);
 }
 
@@ -1902,11 +2095,22 @@ bool_t CEventApplier::PlayReplicatedActionVisual(
         animName = ResolveRecallAnimName(*cd, *render.pRenderer);
         break;
     case eReplicatedActionId::BasicAttack:
-        animName = PrefixAnim(*cd,
-            animationChampion == eChampion::SYLAS && actionStage >= 2u
-                ? "skinned_mesh_sylas_attack_passive"
-                : cd->basicAttackKey);
+    {
+        const SkillDef* def = CSkillRegistry::Instance().Find(
+            animationChampion,
+            static_cast<u8_t>(eSkillSlot::BasicAttack));
+        if (!def)
+        {
+            def = FindSkillDef(
+                animationChampion,
+                static_cast<u8_t>(eSkillSlot::BasicAttack));
+        }
+        const char* pAnimKey = actionStage >= 2u && def && def->stage2AnimKey
+            ? def->stage2AnimKey
+            : cd->basicAttackKey;
+        animName = PrefixAnim(*cd, pAnimKey);
         break;
+    }
     case eReplicatedActionId::DeathStart:
         animName = PrefixAnim(*cd, "death");
         break;
@@ -1951,20 +2155,22 @@ bool_t CEventApplier::PlayReplicatedActionVisual(
         const bool_t bBasicAttackPresentation =
             UI::IsAttackSpeedPlaybackAction(actionId, replicatedSourceSlot);
         f32_t playSpeed = 1.f;
+        const SkillDef* pPresentationDef = nullptr;
         if (id == eReplicatedActionId::BasicAttack ||
             id == eReplicatedActionId::SkillQ ||
             id == eReplicatedActionId::SkillW ||
             id == eReplicatedActionId::SkillE ||
             id == eReplicatedActionId::SkillR)
         {
-            const SkillDef* def = CSkillRegistry::Instance().Find(animationChampion, actionSlot);
-            if (!def)
-                def = FindSkillDef(animationChampion, actionSlot);
+            pPresentationDef =
+                CSkillRegistry::Instance().Find(animationChampion, actionSlot);
+            if (!pPresentationDef)
+                pPresentationDef = FindSkillDef(animationChampion, actionSlot);
             playSpeed = ResolveReplicatedActionPlaySpeed(
                 animationChampion,
                 actionSlot,
                 actionStage,
-                def);
+                pPresentationDef);
 
             // BA 모션은 복제된 최종 공속 / canonical base 비율로 재생하고,
             // AttackSpeedLab('8' 키)의 per-entity 시각 보정값을 그 위에 곱한다.
@@ -1978,11 +2184,36 @@ bool_t CEventApplier::PlayReplicatedActionVisual(
         }
         const bool_t bPlayed = render.pRenderer->PlayAnimationByNameAdvanced(
             animName.c_str(),
-            ShouldLoopReplicatedAction(animationChampion, actionId, actionStage),
+            ShouldLoopReplicatedAction(
+                actionId,
+                actionStage,
+                pPresentationDef),
             false,
             playSpeed);
 #if defined(_DEBUG)
-        if (!bPlayed)
+        if (animationChampion == eChampion::SYLAS &&
+            id == eReplicatedActionId::BasicAttack &&
+            actionStage >= 2u)
+        {
+            static u32_t s_sylasPassiveActionTraceCount = 0u;
+            if (s_sylasPassiveActionTraceCount < 32u)
+            {
+                char msg[224]{};
+                sprintf_s(
+                    msg,
+                    "[SylasPassive][ClientAction] stage=%u def=%u stage2Key=%s selected=%s played=%u\n",
+                    static_cast<u32_t>(actionStage),
+                    pPresentationDef ? 1u : 0u,
+                    pPresentationDef && pPresentationDef->stage2AnimKey
+                        ? pPresentationDef->stage2AnimKey
+                        : "-",
+                    animName.c_str(),
+                    bPlayed ? 1u : 0u);
+                OutputDebugStringA(msg);
+                ++s_sylasPassiveActionTraceCount;
+            }
+        }
+        else if (!bPlayed)
         {
             static u32_t s_actionMissTraceCount = 0;
             if (s_actionMissTraceCount < 64u)

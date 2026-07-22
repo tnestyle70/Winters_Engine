@@ -39,6 +39,8 @@ enum class eCursorMode : uint8_t
 class CUI_Manager final
 {
 public:
+    using ImGuiExternalTabCallback = void(*)(void*);
+    using ImGuiExternalSaveAllCallback = bool_t(*)(void*);
     ~CUI_Manager();
 
     // 팩토리 — CGameInstance::Initialize_Engine 에서 호출, unique_ptr 로 소유
@@ -67,7 +69,10 @@ public:
         u32_t iSegmentCount = 48);
 
     // ImGui 튜닝 패널 (Scene::OnImGui 에서 호출)
-    void    OnImGui_Tuner();
+    void    OnImGui_Tuner(
+        ImGuiExternalTabCallback pfnExternalTabs = nullptr,
+        ImGuiExternalSaveAllCallback pfnExternalSaveAll = nullptr,
+        void* pExternalUser = nullptr);
     void    OnImGui_StatusPanelLayoutTuner();
 
     void Bind_World(CWorld* pWorld);
@@ -106,13 +111,15 @@ public:
     void    Set_ShowMouseCursor(bool_t b) { m_bShowMouseCursor = b; }
     bool_t  Get_ShowMouseCursor() const { return m_bShowMouseCursor; }
     void    Push_DamageNumber(const Vec3& vWorldPos, f32_t fAmount,
-        u8_t iDamageType, bool_t bWasCrit, bool_t bKilled);
+        u8_t iDamageType, bool_t bWasCrit, bool_t bKilled,
+        bool_t bShowCriticalIndicator = false);
     void    Push_WorldText(const Vec3& vWorldPos, const char* pText,
         const Vec4& vColor, f32_t fLifetime);
     void    Push_GoldText(const Vec3& vWorldPos, u32_t iGoldAmount,
         f32_t fLifetime);
     void Push_KillFeedBanner(u8_t iSourceActorContentId, u8_t iTargetActorContentId,
-        u8_t iObjectKind, bool_t bSourceAlly, const char* pMessage);
+        u8_t iObjectKind, u8_t iTargetTeam,
+        bool_t bSourceAlly, bool_t bSourceMinion, const char* pMessage);
     void RecordMatchContextActorKill(u8_t iSourceTeam, u8_t iTargetTeam,
         bool_t bLocalSource, bool_t bLocalTarget);
     void RecordMatchContextUnitKill();
@@ -132,6 +139,9 @@ public:
     void SetInGameGold(u32_t iGold) { m_iInGameGold = iGold; }
     void SetInGameBuyItemCallback(void(*pfn)(void*, u16_t), void* pUser);
     void SetLevelSkillCallback(void(*pfn)(void*, u8_t), void* pUser);
+    void SetInventoryReorderCallback(
+        void(*pfn)(void*, u8_t, u8_t, u16_t), void* pUser);
+    bool_t IsPointerOverActorInventory() const;
 
 private:
     struct DamageFloater
@@ -143,6 +153,7 @@ private:
         f32_t fXJitter = 0.f;
         u8_t iDamageType = 0;
         bool_t bWasCrit = false;
+        bool_t bShowCriticalIndicator = false;
         bool_t bKilled = false;
     };
     struct WorldTextFloater
@@ -161,7 +172,9 @@ private:
         u8_t iSourceActorContentId = 0;
         u8_t iTargetActorContentId = 0;
         u8_t iObjectKind = 0;
+        u8_t iTargetTeam = 255u;
         bool_t bSourceAlly = false;
+        bool_t bSourceMinion = false;
         f32_t fAge = 0.f;
         f32_t fLifetime = 3.f;
         std::string strMessage;
@@ -278,6 +291,8 @@ private:
 
     bool_t LoadStatusPanelLayoutSettings();
     bool_t SaveStatusPanelLayoutSettings();
+    bool_t LoadWorldHealthBarLayoutSettings();
+    bool_t SaveWorldHealthBarLayoutSettings();
 
     void    DrawHealthBars(ImDrawList* pDraw, const DirectX::XMMATRIX& mVP);
     void    DrawHealthBarsRHI(const DirectX::XMMATRIX& mVP);
@@ -299,6 +314,7 @@ private:
     void    DrawKillFeedCircleImage(ImDrawList* pDraw, const ImVec2& vCenter,
         f32_t fRadius, void* pSRV, ImU32 iTintColor, ImU32 iBorderColor);
     void*   FindOrLoadKillFeedPortrait(u8_t iActorContentId);
+    void*   FindOrLoadKillFeedObjectIcon(u8_t iObjectKind, u8_t iTargetTeam);
     void    ResetMatchContextHUDStats();
     void    LoadPingWheelAssets();
     ePingWheelDirection ResolvePingWheelDirection() const;
@@ -378,6 +394,8 @@ private:
     StatusPanelLayout m_StatusPanelLayout{};
     i32_t m_iStatusPanelLayoutTunerFrame = -2;
     std::string m_strStatusPanelLayoutSaveMessage;
+    std::string m_strWorldHealthBarLayoutSaveMessage;
+    std::string m_strSaveAllMessage;
     u16_t m_iSelectedInGameShopItemId = 0;
     u32_t m_iInGameGold = 10000;
     std::string m_strInGameShopStatus = "Press P to open shop";
@@ -386,6 +404,11 @@ private:
     void* m_pBuyItemUser = nullptr;
     void(*m_pfnLevelSkill)(void*, u8_t) = nullptr;
     void* m_pLevelSkillUser = nullptr;
+    void(*m_pfnInventoryReorder)(void*, u8_t, u8_t, u16_t) = nullptr;
+    void* m_pInventoryReorderUser = nullptr;
+    i8_t m_iInventoryDragSource = -1;
+    i8_t m_iInventoryDragHover = -1;
+    u16_t m_iInventoryDragItemId = 0u;
 
     // Phase B+ 확장 훅 (지금은 스텁 선언만)
     // void Draw_PlayerHUD();
@@ -436,6 +459,7 @@ private:
     void* m_pSRV_PingAssist = nullptr;
     void* m_pSRV_PingMissing = nullptr;
     void* m_pSRV_OffscreenPingAtlas = nullptr;
+    void* m_pSRV_StatsPanelAtlas = nullptr;
     eCursorMode               m_CursorMode = eCursorMode::Default;
     f32_t                     m_fCursorSize = 32.f;
     bool_t                    m_bShowMouseCursor = true;
@@ -460,6 +484,9 @@ private:
     f32_t   m_fHPBarWidth = 104.f;    // 화면 픽셀
     f32_t   m_fHPBarHeight = 20.f;
     f32_t   m_fHPBarYOffset = 2.75f;    // 월드 좌표 머리 위 높이 (m)
+    f32_t   m_fChampionLevelOffsetX = -24.f;
+    f32_t   m_fChampionLevelOffsetY = 1.f;
+    f32_t   m_fChampionLevelFontScale = 0.85f;
 
     struct CharacterHealthBarTrailState
     {
@@ -486,6 +513,10 @@ private:
     std::vector<WorldTextFloater> m_WorldTextFloaters;
     std::vector<KillFeedBanner> m_KillFeedBanners;
     std::vector<KillFeedPortraitCache> m_KillFeedPortraits;
+    void* m_pSRV_KillFeedTowerBlue = nullptr;
+    void* m_pSRV_KillFeedTowerRed = nullptr;
+    void* m_pSRV_KillFeedInhibitorBlue = nullptr;
+    void* m_pSRV_KillFeedInhibitorRed = nullptr;
     std::vector<MapPingMarker> m_MapPingMarkers;
     MatchContextHUDState m_MatchContextHUD{};
     bool_t  m_bShowMatchContextHUD = true;

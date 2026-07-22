@@ -3,6 +3,7 @@
 #include "GameObject/Champion/Yone/Yone_FxPresets.h"
 #include "GameObject/Champion/Yone/Yone_MeshGroups.h"
 #include "GamePlay/Systems/Damage.h"
+#include "GameObject/FX/FxCuePlayer.h"
 
 #include "ECS/World.h"
 #include "Shared/GameSim/Components/GameplayComponents.h"
@@ -11,11 +12,68 @@
 
 #include <Windows.h>
 #include <cstdio>
+#include <unordered_map>
+#include <vector>
 
 namespace Yone
 {
     namespace
     {
+        std::unordered_map<EntityID, std::vector<EntityHandle>>
+            s_soulMarkFxByTarget;
+
+        void ClearSoulMarkFx(CWorld& world, EntityID target)
+        {
+            const auto it = s_soulMarkFxByTarget.find(target);
+            if (it == s_soulMarkFxByTarget.end())
+                return;
+
+            for (const EntityHandle handle : it->second)
+            {
+                if (world.IsAlive(handle))
+                    world.DestroyEntity(handle);
+            }
+            s_soulMarkFxByTarget.erase(it);
+        }
+
+        void ShowSoulMarkFx(VisualHookContext& ctx, EntityID target)
+        {
+            if (!ctx.pWorld || target == NULL_ENTITY ||
+                !ctx.pWorld->IsAlive(target))
+            {
+                return;
+            }
+
+            ClearSoulMarkFx(*ctx.pWorld, target);
+            FxCueContext cue{};
+            cue.attachTo = target;
+            cue.vWorldPos = ctx.pWorld->HasComponent<TransformComponent>(target)
+                ? ctx.pWorld->GetComponent<TransformComponent>(target).GetPosition()
+                : Vec3{};
+            cue.vForward = { 0.f, 0.f, 1.f };
+            cue.pFxMeshRenderer = ctx.pFxMeshRenderer;
+            cue.bOverrideLifetime = true;
+            cue.fLifetimeOverride = ctx.fEffectLifetimeSec > 0.f
+                ? ctx.fEffectLifetimeSec
+                : 5.f;
+
+            std::vector<EntityID> spawned;
+            CFxCuePlayer::PlayAll(
+                *ctx.pWorld,
+                "Yone.E.SoulMark",
+                cue,
+                &spawned);
+            std::vector<EntityHandle>& handles = s_soulMarkFxByTarget[target];
+            handles.reserve(spawned.size());
+            for (EntityID entity : spawned)
+            {
+                if (entity != NULL_ENTITY && ctx.pWorld->IsAlive(entity))
+                    handles.push_back(ctx.pWorld->GetEntityHandle(entity));
+            }
+            if (handles.empty())
+                s_soulMarkFxByTarget.erase(target);
+        }
+
         void AddOrReplaceSoulRequest(CWorld& world, EntityID entity, const YoneSoulRequestComponent& req)
         {
             if (world.HasComponent<YoneSoulRequestComponent>(entity))
@@ -232,6 +290,20 @@ namespace Yone
 
     namespace Visual
     {
+        void ClearSoulMarkFxRuntime(CWorld& world)
+        {
+            for (const auto& [target, handles] : s_soulMarkFxByTarget)
+            {
+                (void)target;
+                for (const EntityHandle handle : handles)
+                {
+                    if (world.IsAlive(handle))
+                        world.DestroyEntity(handle);
+                }
+            }
+            s_soulMarkFxByTarget.clear();
+        }
+
         void OnCastFrame_BA_Visual(VisualHookContext& ctx)
         {
             if (!ctx.pWorld)
@@ -267,6 +339,19 @@ namespace Yone
         {
             if (!ctx.pWorld)
                 return;
+
+            const EntityID target = ResolveVisualTarget(ctx);
+            if (ctx.skillStage == 3u)
+            {
+                if (target != ctx.casterEntity)
+                    ShowSoulMarkFx(ctx, target);
+                return;
+            }
+            if (ctx.skillStage == 4u)
+            {
+                ClearSoulMarkFx(*ctx.pWorld, target);
+                return;
+            }
 
             if (ctx.skillStage >= 2u)
             {

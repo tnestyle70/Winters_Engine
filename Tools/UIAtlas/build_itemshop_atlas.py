@@ -26,11 +26,15 @@ CELL = 64
 COLUMNS = 16  # 1024 / 64
 
 # Arena/URF/ARAM/Nexus Blitz/Ornn masterwork/champion-exclusive/soul-juice ids.
+# Champion-owned inventory icons may still need atlas residency even though
+# they must never appear in the purchasable Summoner's Rift shop catalog.
+INVENTORY_ONLY_SPECIAL_IDS = {3042, 3599}
+
 EXCLUDED_SPECIAL_IDS = {
     1504, 1507, 1508, 1509, 1510, 1511, 1512, 1524,
     2019, 2051, 2052, 2319, 2420, 2422, 2503, 2508,
     2510, 2512, 2517, 2520, 2522, 2523, 2524, 2525, 2526, 2530,
-    3112, 3177, 3513, 3599, 3600, 3683, 3901, 3902, 3903,
+    3112, 3177, 3513, 3600, 3683, 3901, 3902, 3903,
     4001, 4003, 4004, 4012, 4013, 4015, 4017, 4403,
     6700, 6701, 6702,
     7000, 7003, 7100, 7101, 7102, 7103, 7105, 7106, 7107, 7108,
@@ -45,7 +49,7 @@ EXCLUDED_SPECIAL_IDS = {
 # Removed-from-SR legacy items (wiki/ddragon verified not purchasable on map 11).
 EXCLUDED_LEGACY_IDS = {
     96, 1004, 1040, 1402, 2012, 2020, 2022, 2033, 2048, 2049,
-    3001, 3002, 3005, 3010, 3012, 3022, 3023, 3032, 3042,
+    3001, 3002, 3005, 3010, 3012, 3022, 3023, 3032,
     3054, 3055, 3056, 3058, 3059, 3061, 3062, 3063, 3064,
     3069, 3073, 3095, 3128, 3131, 3144, 3146, 3147, 3181,
     3194, 3348, 3380, 3385, 3430,
@@ -110,6 +114,13 @@ def main() -> int:
         return 1
 
     kept, dropped = collect_icons(items_dir)
+    kept_ids = {leading_id(path.name) for path in kept}
+    missing_inventory_icons = INVENTORY_ONLY_SPECIAL_IDS - kept_ids
+    if missing_inventory_icons:
+        print(
+            "FAIL: inventory-only icons were excluded from the atlas: "
+            + ", ".join(str(item_id) for item_id in sorted(missing_inventory_icons)))
+        return 1
     rows = (len(kept) + COLUMNS - 1) // COLUMNS
     height = 1
     while height < rows * CELL:

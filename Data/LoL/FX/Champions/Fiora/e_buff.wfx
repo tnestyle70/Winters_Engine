@@ -1,0 +1,93 @@
+{
+  "schema": "WintersWfx",
+  "version": 1,
+  "name": "Fiora.E.Buff",
+  "emitters": [
+    {
+      "name": "e_buff",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_buff_mult_yellow.png",
+      "lifetime": 5.00,
+      "fade_in": 0.05,
+      "fade_out": 0.50,
+      "width": 1.60,
+      "height": 1.60,
+      "color": [1.00, 0.85, 0.30, 0.90],
+      "attach_offset": [0.00, 1.30, 0.00],
+      "billboard": true
+    },
+    {
+      "name": "e_sword_glow",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_sword_glow.png",
+      "lifetime": 5.00,
+      "fade_in": 0.05,
+      "fade_out": 0.50,
+      "width": 1.05,
+      "height": 1.80,
+      "color": [1.35, 1.05, 0.35, 0.92],
+      "attach_offset": [0.00, 0.00, 0.00],
+      "billboard": true,
+      "anchor": {
+        "type": "Bone",
+        "name": "BUFFBONE_CSTM_WEAPON_CENTER",
+        "offset": [0.00, 0.00, 0.00],
+        "inherit_rotation": false,
+        "fallback": "Entity"
+      }
+    },
+    {
+      "name": "e_sword_gleam",
+      "render_type": "Billboard",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_sword_glow.png",
+      "lifetime": 5.00,
+      "fade_in": 0.05,
+      "fade_out": 0.50,
+      "width": 0.72,
+      "height": 0.72,
+      "color": [1.55, 1.18, 0.42, 0.95],
+      "attach_offset": [0.00, 0.00, 0.00],
+      "billboard": true,
+      "anchor": {
+        "type": "Bone",
+        "name": "Weapon_gleam",
+        "offset": [0.00, 0.00, 0.00],
+        "inherit_rotation": false,
+        "fallback": "Entity"
+      }
+    },
+    {
+      "name": "e_weapon_history_trail",
+      "render_type": "Ribbon",
+      "blend_mode": "Additive",
+      "depth_mode": "DepthTestWriteOff",
+      "texture": "Client/Bin/Resource/Texture/Character/Fiora/particles/fiora_base_e_cas_trails_blue.png",
+      "lifetime": 5.0,
+      "fade_in": 0.04,
+      "fade_out": 0.35,
+      "width": 0.32,
+      "ribbon_point_count": 20,
+      "history_trail": true,
+      "trail_sample_interval": 0.025,
+      "trail_head_width_scale": 1.0,
+      "trail_tail_width_scale": 0.05,
+      "trail_head_alpha_scale": 0.85,
+      "trail_tail_alpha_scale": 0.0,
+      "uv_scroll": [0.0, -1.8],
+      "color": [0.45, 1.15, 2.1, 0.85],
+      "anchor": {
+        "type": "Bone",
+        "name": "BUFFBONE_GLB_WEAPON_1",
+        "offset": [0.0, 0.0, 0.0],
+        "inherit_rotation": true,
+        "fallback": "Entity"
+      }
+    }
+  ]
+}

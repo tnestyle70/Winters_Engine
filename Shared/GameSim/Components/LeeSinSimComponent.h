@@ -17,6 +17,12 @@ struct LeeSinQMarkComponent
 	f32_t fRemainingSec = 3.f;
 };
 
+struct LeeSinTempestMarkComponent
+{
+	EntityID sourceEntity = NULL_ENTITY;
+	f32_t fRemainingSec = 3.f;
+};
+
 struct LeeSinWardOwnerComponent
 {
 	EntityID owner = NULL_ENTITY;
@@ -28,4 +34,5 @@ struct LeeSinDashComponent
 	Vec3 vEnd{};
 	f32_t fElapsedSec = 0.f;
 	f32_t fDurationSec = 0.18f;
+	bool_t bIgnoreTerrainDuringTransit = false;
 };

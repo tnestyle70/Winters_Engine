@@ -1,5 +1,6 @@
 {
   "volume": 0.8,
+  "maxAudibleDistance": 24.0,
   "champions": [
     {
       "champion": "Annie",

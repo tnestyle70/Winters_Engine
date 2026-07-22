@@ -19,9 +19,7 @@ namespace
     constexpr u32_t kAnn_W_Accepted = MakeHookId(eChampion::ANNIE, HookVariant::W_OnCastAccepted);
     constexpr u32_t kAnn_E_Accepted = MakeHookId(eChampion::ANNIE, HookVariant::E_OnCastAccepted);
     constexpr u32_t kAnn_R_Accepted = MakeHookId(eChampion::ANNIE, HookVariant::R_OnCastAccepted);
-    constexpr f32_t kAnnieSkillTestSeconds = 0.2f;
-
-    struct AnnieAutoRegister
+struct AnnieAutoRegister
     {
         AnnieAutoRegister()
         {
@@ -47,60 +45,40 @@ namespace
             {
                 SkillDef s{};
                 s.champ = eChampion::ANNIE; s.slot = 0;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = kAnnieSkillTestSeconds; s.rangeMax = 6.25f; s.manaCost = 0.f;
                 s.animKey = "annie_2012_attack1";
-                s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
-                s.visualCastFrame = 6.f; s.visualRecoveryFrame = 14.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAnn_BA_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 0, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::ANNIE; s.slot = 1;
-                s.targetMode = eTargetMode::UnitTarget;
-                s.cooldownSec = kAnnieSkillTestSeconds; s.rangeMax = 6.25f; s.manaCost = 60.f;
                 s.animKey = "annie_2012_spell1";
-                s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsTarget;
-                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 10.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAnn_Q_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 1, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::ANNIE; s.slot = 2;
-                s.targetMode = eTargetMode::Direction;
-                s.cooldownSec = kAnnieSkillTestSeconds; s.rangeMax = 6.0f; s.manaCost = 80.f;
                 s.animKey = "annie_2012_spell2";
-                s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 5.f; s.visualRecoveryFrame = 12.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAnn_W_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 2, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::ANNIE; s.slot = 3;
-                s.targetMode = eTargetMode::Self;
-                s.cooldownSec = kAnnieSkillTestSeconds; s.rangeMax = 0.f; s.manaCost = 30.f;
                 s.animKey = "annie_spell3";
-                s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
-                s.rotate = eRotateMode::None;
-                s.visualCastFrame = 1.f; s.visualRecoveryFrame = 8.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAnn_E_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 3, s);
             }
             {
                 SkillDef s{};
                 s.champ = eChampion::ANNIE; s.slot = 4;
-                s.targetMode = eTargetMode::GroundTarget;
-                s.cooldownSec = kAnnieSkillTestSeconds; s.rangeMax = 6.0f; s.manaCost = 100.f;
                 s.animKey = "annie_2012_spell4";
-                s.lockDurationSec = kAnnieSkillTestSeconds; s.bOneShot = true;
-                s.rotate = eRotateMode::TowardsCursor;
-                s.visualCastFrame = 12.f; s.visualRecoveryFrame = 24.f; s.visualPlaySpeed = 1.f;
+                s.bOneShot = true;
                 s.castHookId = kAnn_R_Cast;
                 CSkillRegistry::Instance().Add(eChampion::ANNIE, 4, s);
             }

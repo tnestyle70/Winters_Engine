@@ -28,11 +28,13 @@ public:
 	static std::unique_ptr<CDX12Device> Create(const DX12DeviceDesc& desc);
 
 	eRHIBackend GetBackend() const override { return eRHIBackend::DX12; }
+	RHICapabilities GetCapabilities() const override { return m_Capabilities; }
 	void* GetNativeHandle(eNativeHandleType type) const override;
 
 	void BeginFrame(f32_t r = 0.f, f32_t g = 0.f, 
 		f32_t b = 0.f, f32_t a = 1.f) override;
 	void EndFrame() override;
+	bool_t WaitIdle() override;
 
 	IRHICommandList* GetFrameCommandList() override;
 
@@ -83,6 +85,7 @@ private:
 	CDX12Device();
 
 	bool_t Initialize(const DX12DeviceDesc& desc);
+	void InitializeCapabilities();
 
 	bool_t CreateDevice(const DX12DeviceDesc& desc);
 	bool_t CreateCommandObjects();
@@ -120,6 +123,7 @@ private:
 	std::unique_ptr<ResourceTables> m_pTables;
 	std::unique_ptr<DescriptorHeaps> m_pHeaps;
 	std::unique_ptr<CDX12FrameCommandList> m_pFrameCommandList;
+	RHICapabilities m_Capabilities{};
 
 	HANDLE m_hFenceEvent = nullptr;
 	u64_t m_uNextFenceValue = 1;
@@ -129,6 +133,7 @@ private:
 	u32_t m_iWidth = 1280;
 	u32_t m_iHeight = 720;
 	bool_t m_bVSync = true;
+	bool_t m_bDebugLayerEnabled = false;
 	bool_t m_bFrameRecording = false;
 
 	D3D12_VIEWPORT m_Viewport{};
